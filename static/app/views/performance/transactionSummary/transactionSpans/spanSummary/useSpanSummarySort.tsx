@@ -2,18 +2,15 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 type Query = {
   sort?: string;
 };
 
-const SORTABLE_FIELDS = [
-  SpanIndexedField.TIMESTAMP,
-  SpanIndexedField.SPAN_DURATION,
-] as const;
+const SORTABLE_FIELDS = [SpanFields.TIMESTAMP, SpanFields.SPAN_DURATION] as const;
 
-export type ValidSort = Sort & {
+type ValidSort = Sort & {
   field: (typeof SORTABLE_FIELDS)[number];
 };
 
@@ -28,7 +25,8 @@ export function useSpanSummarySort(
   const location = useLocation<Query>();
 
   return (
-    decodeSorts(location.query[sortParameterName]).filter(isAValidSort)[0] ?? fallback
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    decodeSorts(location.query[sortParameterName]).find(isAValidSort) ?? fallback
   );
 }
 

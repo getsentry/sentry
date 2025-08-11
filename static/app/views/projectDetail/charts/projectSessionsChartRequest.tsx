@@ -10,9 +10,10 @@ import type {Client} from 'sentry/api';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
-import {SessionFieldWithOperation, SessionStatus} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {
   filterSessionsInTimeWindow,
@@ -21,9 +22,8 @@ import {
   getSessionsInterval,
   initSessionsChart,
 } from 'sentry/utils/sessions';
+import {DisplayModes} from 'sentry/views/projectDetail/projectCharts';
 import {getCrashFreePercent} from 'sentry/views/releases/utils';
-
-import {DisplayModes} from '../projectCharts';
 
 const omitIgnoredProps = (props: ProjectSessionsChartRequestProps) =>
   omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
@@ -90,7 +90,7 @@ class ProjectSessionsChartRequest extends Component<
     this.unmounting = true;
   }
 
-  private unmounting: boolean = false;
+  private unmounting = false;
 
   fetchData = async () => {
     const {
@@ -140,7 +140,7 @@ class ProjectSessionsChartRequest extends Component<
         await Promise.all(requests);
 
       const filteredResponse = filterSessionsInTimeWindow(
-        response,
+        response!,
         queryParams.start,
         queryParams.end
       );
@@ -148,7 +148,7 @@ class ProjectSessionsChartRequest extends Component<
       const {timeseriesData, previousTimeseriesData, totalCount} =
         displayMode === DisplayModes.SESSIONS
           ? this.transformSessionCountData(filteredResponse)
-          : this.transformData(filteredResponse, totalCountResponse, {
+          : this.transformData(filteredResponse, totalCountResponse!, {
               fetchedWithPrevious: shouldFetchWithPrevious,
             });
 
@@ -160,9 +160,9 @@ class ProjectSessionsChartRequest extends Component<
         reloading: false,
         timeseriesData,
         previousTimeseriesData,
-        totalSessions: totalCount,
+        totalSessions: totalCount!,
       });
-      onTotalValuesChange(totalCount);
+      onTotalValuesChange(totalCount!);
     } catch {
       addErrorMessage(t('Error loading chart data'));
       this.setState({
@@ -253,9 +253,9 @@ class ProjectSessionsChartRequest extends Component<
           .slice(fetchedWithPrevious ? dataMiddleIndex : 0)
           .map((interval, i) => {
             const crashedSessionsPercent =
-              responseData.groups[0]?.series[field].slice(
+              responseData.groups[0]?.series[field]!.slice(
                 fetchedWithPrevious ? dataMiddleIndex : 0
-              )[i] * 100 ?? 0;
+              )[i]! * 100;
 
             return {
               name: interval,
@@ -270,8 +270,7 @@ class ProjectSessionsChartRequest extends Component<
           seriesName: t('Previous Period'),
           data: responseData.intervals.slice(0, dataMiddleIndex).map((_interval, i) => {
             const crashedSessionsPercent =
-              responseData.groups[0]?.series[field].slice(0, dataMiddleIndex)[i] * 100 ??
-              0;
+              responseData.groups[0]?.series[field]!.slice(0, dataMiddleIndex)[i]! * 100;
 
             return {
               name: responseData.intervals[i + dataMiddleIndex],
@@ -282,7 +281,7 @@ class ProjectSessionsChartRequest extends Component<
       : null;
 
     const totalCount =
-      totalCountResponse?.groups[0].totals[
+      totalCountResponse?.groups[0]!.totals[
         this.props.displayMode === DisplayModes.STABILITY_USERS
           ? SessionFieldWithOperation.USERS
           : SessionFieldWithOperation.SESSIONS

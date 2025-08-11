@@ -2,29 +2,40 @@ from __future__ import annotations
 
 import enum
 import logging
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
-from typing import Any, ClassVar
+from operator import attrgetter
+from typing import TYPE_CHECKING, Any, ClassVar
 
+from sentry import features
+from sentry.eventstore.models import GroupEvent
+from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.tasks.sync_status_inbound import (
     sync_status_inbound as sync_status_inbound_task,
 )
-from sentry.integrations.utils import where_should_sync
 from sentry.issues.grouptype import GroupCategory
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
+from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.user import User
 from sentry.notifications.utils import get_notification_group_title
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.silo.base import all_silo_function
+from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.silo.base import all_silo_function, region_silo_function
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user_option import get_option_from_list, user_option_service
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
+
+if TYPE_CHECKING:
+    from sentry.integrations.services.integration import RpcIntegration
 
 logger = logging.getLogger("sentry.integrations.issues")
 MAX_CHAR = 50
@@ -58,13 +69,14 @@ class ResolveSyncAction(enum.Enum):
         return ResolveSyncAction.NOOP
 
 
-class IssueBasicMixin:
-    def should_sync(self, attribute):
+class IssueBasicIntegration(IntegrationInstallation, ABC):
+    def should_sync(self, attribute, sync_source: AssignmentSource | None = None):
         return False
 
     def get_group_title(self, group, event, **kwargs):
         return get_notification_group_title(group, event, **kwargs)
 
+    @abstractmethod
     def get_issue_url(self, key: str) -> str:
         """
         Given the key of the external_issue return the external issue link.
@@ -78,6 +90,27 @@ class IssueBasicMixin:
             if output:
                 result.append(output)
         return "\n\n".join(result)
+
+    def get_feedback_issue_body(self, occurrence: IssueOccurrence) -> str:
+        messages = []
+        others = []
+        for evidence in occurrence.evidence_display:
+            if evidence.name == "message":
+                messages.append(evidence)
+            else:
+                others.append(evidence)
+
+        body = ""
+        for message in messages:
+            body += message.value
+            body += "\n\n"
+
+        body += "|  |  |\n"
+        body += "| ------------- | --------------- |\n"
+        for evidence in sorted(others, key=attrgetter("important"), reverse=True):
+            body += f"| **{evidence.name}** | {evidence.value} |\n"
+
+        return body.rstrip("\n")  # remove the last new line
 
     def get_group_link(self, group, **kwargs):
         params = {}
@@ -99,14 +132,24 @@ class IssueBasicMixin:
 
     def get_group_description(self, group, event, **kwargs):
         output = self.get_group_link(group, **kwargs)
-        body = self.get_group_body(group, event)
-        if body:
-            output.extend(["", "```", body, "```"])
+        if (
+            event
+            and isinstance(event, GroupEvent)
+            and event.occurrence is not None
+            and group.issue_category == GroupCategory.FEEDBACK
+        ):
+            body = ""
+            body = self.get_feedback_issue_body(event.occurrence)
+            output.extend([body])
+        else:
+            body = self.get_group_body(group, event)
+            if body:
+                output.extend(["", "```", body, "```"])
         return "\n".join(output)
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User, **kwargs
+        self, group: Group | None, user: User | RpcUser, **kwargs
     ) -> list[dict[str, Any]]:
         """
         These fields are used to render a form for the user,
@@ -148,6 +191,7 @@ class IssueBasicMixin:
         """
         return [{"name": "externalIssue", "label": "Issue", "default": "", "type": "string"}]
 
+    @abstractmethod
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         """
         Returns a list of field names that should have their last used values
@@ -162,7 +206,7 @@ class IssueBasicMixin:
         """
         return []
 
-    def store_issue_last_defaults(self, project: Project, user: RpcUser, data):
+    def store_issue_last_defaults(self, project: Project, user: RpcUser | User, data):
         """
         Stores the last used field defaults on a per-project basis. This
         accepts a dict of values that will be filtered to keys returned by
@@ -178,16 +222,18 @@ class IssueBasicMixin:
               differentiation is made between the two field configs.
         """
         persisted_fields = self.get_persisted_default_config_fields()
-        if persisted_fields:
+        if persisted_fields and self.org_integration:
             project_defaults = {k: v for k, v in data.items() if k in persisted_fields}
             new_config = deepcopy(self.org_integration.config)
             new_config.setdefault("project_issue_defaults", {}).setdefault(
                 str(project.id), {}
             ).update(project_defaults)
-            self.org_integration = integration_service.update_organization_integration(
+            org_integration = integration_service.update_organization_integration(
                 org_integration_id=self.org_integration.id,
                 config=new_config,
             )
+            if org_integration is not None:
+                self.org_integration = org_integration
 
         user_persisted_fields = self.get_persisted_user_default_config_fields()
         if user_persisted_fields:
@@ -203,8 +249,14 @@ class IssueBasicMixin:
                     user_id=user.id, value=new_user_defaults, **user_option_key
                 )
 
-    def get_defaults(self, project: Project, user: User):
-        project_defaults = self.get_project_defaults(project.id)
+    def get_defaults(self, project: Project, user: User | RpcUser):
+        project_defaults = (
+            {}
+            if not self.org_integration
+            else self.org_integration.config.get("project_issue_defaults", {}).get(
+                str(project.id), {}
+            )
+        )
 
         user_option_value = get_option_from_list(
             user_option_service.get_many(
@@ -216,18 +268,9 @@ class IssueBasicMixin:
 
         user_defaults = user_option_value.get(self.model.provider, {})
 
-        defaults = {}
-        defaults.update(project_defaults)
-        defaults.update(user_defaults)
+        return {**project_defaults, **user_defaults}
 
-        return defaults
-
-    # TODO(saif): Make private and move all usages over to `get_defaults`
-    def get_project_defaults(self, project_id):
-        return self.org_integration.config.get("project_issue_defaults", {}).get(
-            str(project_id), {}
-        )
-
+    @abstractmethod
     def create_issue(self, data, **kwargs):
         """
         Create an issue via the provider's API and return the issue key,
@@ -246,6 +289,7 @@ class IssueBasicMixin:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def get_issue(self, issue_id, **kwargs):
         """
         Get an issue via the provider's API and return the issue key,
@@ -262,6 +306,10 @@ class IssueBasicMixin:
         >>>         'description': resp['description'],
         >>>     }
         """
+        raise NotImplementedError
+
+    @abstractmethod
+    def search_issues(self, query: str | None, **kwargs) -> list[dict[str, Any]] | dict[str, Any]:
         raise NotImplementedError
 
     def after_link_issue(self, external_issue, **kwargs):
@@ -286,42 +334,6 @@ class IssueBasicMixin:
         does not match the desired display name.
         """
         return ""
-
-    def get_repository_choices(self, group: Group | None, params: Mapping[str, Any], **kwargs):
-        """
-        Returns the default repository and a set/subset of repositories of associated with the installation
-        """
-        try:
-            repos = self.get_repositories()
-        except ApiError:
-            raise IntegrationError("Unable to retrieve repositories. Please try again later.")
-        else:
-            repo_choices = [(repo["identifier"], repo["name"]) for repo in repos]
-
-        defaults = self.get_project_defaults(group.project_id) if group else {}
-        repo = params.get("repo") or defaults.get("repo")
-
-        try:
-            default_repo = repo or repo_choices[0][0]
-        except IndexError:
-            return "", repo_choices
-
-        # If a repo has been selected outside of the default list of
-        # repos, stick it onto the front of the list so that it can be
-        # selected.
-        try:
-            next(True for r in repo_choices if r[0] == default_repo)
-        except StopIteration:
-            repo_choices.insert(0, self.create_default_repo_choice(default_repo))
-
-        return default_repo, repo_choices
-
-    def create_default_repo_choice(self, default_repo):
-        """
-        Helper method for get_repository_choices
-        Returns the choice for the default repo in a tuple to be added to the list of repository choices
-        """
-        return (default_repo, default_repo)
 
     def get_annotations_for_group_list(self, group_list):
         group_links = GroupLink.objects.filter(
@@ -364,20 +376,62 @@ class IssueBasicMixin:
         pass
 
 
-class IssueSyncMixin(IssueBasicMixin):
+@region_silo_function
+def where_should_sync(
+    integration: RpcIntegration | Integration,
+    key: str,
+    organization_id: int | None = None,
+) -> Sequence[Organization]:
+    """
+    Given an integration, get the list of organizations where the sync type in
+    `key` is enabled. If an optional `organization_id` is passed, then only
+    check the integration for that organization.
+    """
+    kwargs = dict()
+    if organization_id is not None:
+        kwargs["id"] = organization_id
+        ois = integration_service.get_organization_integrations(
+            integration_id=integration.id, organization_id=organization_id
+        )
+    else:
+        ois = integration_service.get_organization_integrations(integration_id=integration.id)
+
+    organizations = Organization.objects.filter(id__in=[oi.organization_id for oi in ois])
+    ret = []
+    for organization in organizations.filter(**kwargs):
+        if features.has("organizations:integrations-issue-sync", organization):
+            installation = integration.get_installation(organization_id=organization.id)
+            if isinstance(installation, IssueBasicIntegration) and installation.should_sync(key):
+                ret.append(organization)
+    return ret
+
+
+class IntegrationSyncTargetNotFound(IntegrationError):
+    pass
+
+
+class IssueSyncIntegration(IssueBasicIntegration, ABC):
     comment_key: ClassVar[str | None] = None
     outbound_status_key: ClassVar[str | None] = None
     inbound_status_key: ClassVar[str | None] = None
     outbound_assignee_key: ClassVar[str | None] = None
     inbound_assignee_key: ClassVar[str | None] = None
 
-    def should_sync(self, attribute: str) -> bool:
+    def should_sync(self, attribute: str, sync_source: AssignmentSource | None = None) -> bool:
         key = getattr(self, f"{attribute}_key", None)
         if key is None or self.org_integration is None:
             return False
+
+        # Check that the assignment source isn't this same integration in order to
+        # prevent sync-cycles from occurring. This should still allow other
+        # integrations to propagate changes outward.
+        if sync_source and sync_source.integration_id == self.org_integration.integration_id:
+            return False
+
         value: bool = self.org_integration.config.get(key, False)
         return value
 
+    @abstractmethod
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
@@ -391,12 +445,16 @@ class IssueSyncMixin(IssueBasicMixin):
         """
         raise NotImplementedError
 
-    def sync_status_outbound(self, external_issue, is_resolved, project_id, **kwargs):
+    @abstractmethod
+    def sync_status_outbound(
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
+    ) -> None:
         """
         Propagate a sentry issue's status to a linked issue's status.
         """
         raise NotImplementedError
 
+    @abstractmethod
     def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
         """
         Given webhook data, check whether the status category changed FROM
@@ -426,3 +484,4 @@ class IssueSyncMixin(IssueBasicMixin):
         """
         Migrate the corresponding plugin's issues to the integration and disable the plugins.
         """
+        pass

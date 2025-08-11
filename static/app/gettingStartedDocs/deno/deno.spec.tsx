@@ -19,7 +19,7 @@ describe('deno onboarding docs', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders without performance monitoring', function () {
+  it('renders without tracing', function () {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [],
     });
@@ -28,10 +28,5 @@ describe('deno onboarding docs', function () {
     expect(
       screen.queryByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0,/))
     ).not.toBeInTheDocument();
-
-    // Renders next steps
-    expect(
-      screen.getByRole('link', {name: 'Performance Monitoring'})
-    ).toBeInTheDocument();
   });
 });

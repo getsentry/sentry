@@ -12,7 +12,6 @@ import type {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
-import useRouter from 'sentry/utils/useRouter';
 
 // We want p99 to be before p75 because echarts renders the series in order.
 // So if p75 is before p99, p99 will be rendered on top of p75 which will
@@ -32,7 +31,6 @@ export function ProfilesSummaryChart({
   selection,
   hideCount,
 }: ProfileSummaryChartProps) {
-  const router = useRouter();
   const theme = useTheme();
 
   const seriesOrder = useMemo(() => {
@@ -56,19 +54,21 @@ export function ProfilesSummaryChart({
 
     // the timestamps in the response is in seconds but echarts expects
     // a timestamp in milliseconds, so multiply by 1e3 to do the conversion
-    const timestamps = profileStats.data.timestamps.map(ts => ts * 1e3);
+    const timestamps = profileStats.data.timestamps.map((ts: any) => ts * 1e3);
 
     const allSeries = profileStats.data.data
-      .filter(rawData => seriesOrder.includes(rawData.axis))
-      .map(rawData => {
+      .filter((rawData: any) => seriesOrder.includes(rawData.axis))
+      .map((rawData: any) => {
         if (timestamps.length !== rawData.values.length) {
           throw new Error('Invalid stats response');
         }
 
         if (rawData.axis === 'count()') {
           return {
+            // @ts-expect-error TS(7006): Parameter 'value' implicitly has an 'any' type.
             data: rawData.values.map((value, i) => ({
               name: timestamps[i]!,
+
               // the response value contains nulls when no data is
               // available, use 0 to represent it
               value: value ?? 0,
@@ -80,8 +80,10 @@ export function ProfilesSummaryChart({
         }
 
         return {
+          // @ts-expect-error TS(7006): Parameter 'value' implicitly has an 'any' type.
           data: rawData.values.map((value, i) => ({
             name: timestamps[i]!,
+
             // the response value contains nulls when no data
             // is available, use 0 to represent it
             value: value ?? 0,
@@ -92,9 +94,9 @@ export function ProfilesSummaryChart({
         };
       });
 
-    allSeries.sort((a, b) => {
-      const idxA = seriesOrder.indexOf(a.seriesName as any);
-      const idxB = seriesOrder.indexOf(b.seriesName as any);
+    allSeries.sort((a: any, b: any) => {
+      const idxA = seriesOrder.indexOf(a.seriesName);
+      const idxB = seriesOrder.indexOf(b.seriesName);
 
       return idxA - idxB;
     });
@@ -177,7 +179,7 @@ export function ProfilesSummaryChart({
   return (
     <ProfilesChartContainer>
       <ProfilesChartTitle>{t('Durations')}</ProfilesChartTitle>
-      <ChartZoom router={router} {...selection?.datetime}>
+      <ChartZoom {...selection?.datetime}>
         {zoomRenderProps => (
           <AreaChart
             {...chartProps}
@@ -192,9 +194,9 @@ export function ProfilesSummaryChart({
 }
 
 const ProfilesChartTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.textColor};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   padding: ${space(0.25)} ${space(1)};
 `;
 

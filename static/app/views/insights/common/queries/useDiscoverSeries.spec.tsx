@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -8,42 +9,39 @@ import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import type {SpanMetricsProperty} from 'sentry/views/insights/types';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import type {SpanProperty} from 'sentry/views/insights/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('useSpanMetricsSeries', () => {
+describe('useSpanSeries', () => {
   const organization = OrganizationFixture();
 
   function Wrapper({children}: {children?: ReactNode}) {
     return (
       <QueryClientProvider client={makeTestQueryClient()}>
-        <OrganizationContext.Provider value={organization}>
-          {children}
-        </OrganizationContext.Provider>
+        <OrganizationContext value={organization}>{children}</OrganizationContext>
       </QueryClientProvider>
     );
   }
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [],
       },
-      environments: [],
-      projects: [],
-    },
-  });
+    })
+  );
 
   jest.mocked(useLocation).mockReturnValue({
     pathname: '',
@@ -64,7 +62,7 @@ describe('useSpanMetricsSeries', () => {
 
     const {result} = renderHook(
       ({filters, enabled}) =>
-        useSpanMetricsSeries(
+        useSpanSeries(
           {
             search: MutableSearch.fromQueryObject(filters),
             enabled,
@@ -82,7 +80,7 @@ describe('useSpanMetricsSeries', () => {
       }
     );
 
-    expect(result.current.isFetching).toEqual(false);
+    expect(result.current.isFetching).toBe(false);
     expect(eventsRequest).not.toHaveBeenCalled();
   });
 
@@ -91,7 +89,7 @@ describe('useSpanMetricsSeries', () => {
       url: `/organizations/${organization.slug}/events-stats/`,
       method: 'GET',
       body: {
-        'spm()': {
+        'epm()': {
           data: [
             [1699907700, [{count: 7810.2}]],
             [1699908000, [{count: 1216.8}]],
@@ -102,7 +100,7 @@ describe('useSpanMetricsSeries', () => {
 
     const {result} = renderHook(
       ({filters, yAxis}) =>
-        useSpanMetricsSeries(
+        useSpanSeries(
           {search: MutableSearch.fromQueryObject(filters), yAxis},
           'span-metrics-series'
         ),
@@ -116,12 +114,12 @@ describe('useSpanMetricsSeries', () => {
             'resource.render_blocking_status': 'blocking' as const,
             environment: undefined,
           },
-          yAxis: ['spm()'] as SpanMetricsProperty[],
+          yAxis: ['epm()'] as SpanProperty[],
         },
       }
     );
 
-    expect(result.current.isLoading).toEqual(true);
+    expect(result.current.isPending).toBe(true);
 
     expect(eventsRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
@@ -129,16 +127,17 @@ describe('useSpanMetricsSeries', () => {
         method: 'GET',
         query: expect.objectContaining({
           query: `span.group:221aa7ebd216 transaction:/api/details release:0.0.1 resource.render_blocking_status:blocking`,
-          dataset: 'spansMetrics',
+          dataset: 'spans',
+          sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
           referrer: 'span-metrics-series',
           interval: '30m',
-          yAxis: 'spm()',
+          yAxis: 'epm()',
         }),
       })
     );
 
-    await waitFor(() => expect(result.current.isLoading).toEqual(false));
+    await waitFor(() => expect(result.current.isPending).toBe(false));
   });
 
   it('adjusts interval based on the yAxis', async () => {
@@ -149,11 +148,11 @@ describe('useSpanMetricsSeries', () => {
     });
 
     const {rerender} = renderHook(
-      ({yAxis}) => useSpanMetricsSeries({yAxis}, 'span-metrics-series'),
+      ({yAxis}) => useSpanSeries({yAxis}, 'span-metrics-series'),
       {
         wrapper: Wrapper,
         initialProps: {
-          yAxis: ['avg(span.self_time)', 'spm()'] as SpanMetricsProperty[],
+          yAxis: ['avg(span.self_time)', 'epm()'] as SpanProperty[],
         },
       }
     );
@@ -164,13 +163,13 @@ describe('useSpanMetricsSeries', () => {
         method: 'GET',
         query: expect.objectContaining({
           interval: '30m',
-          yAxis: ['avg(span.self_time)', 'spm()'] as SpanMetricsProperty[],
+          yAxis: ['avg(span.self_time)', 'epm()'] as SpanProperty[],
         }),
       })
     );
 
     rerender({
-      yAxis: ['p95(span.self_time)', 'spm()'] as SpanMetricsProperty[],
+      yAxis: ['p95(span.self_time)', 'epm()'] as SpanProperty[],
     });
 
     await waitFor(() =>
@@ -180,7 +179,7 @@ describe('useSpanMetricsSeries', () => {
           method: 'GET',
           query: expect.objectContaining({
             interval: '1h',
-            yAxis: ['p95(span.self_time)', 'spm()'] as SpanMetricsProperty[],
+            yAxis: ['p95(span.self_time)', 'epm()'] as SpanProperty[],
           }),
         })
       )
@@ -196,28 +195,44 @@ describe('useSpanMetricsSeries', () => {
           [1699907700, [{count: 7810.2}]],
           [1699908000, [{count: 1216.8}]],
         ],
+        meta: {
+          fields: {
+            'epm()': 'rate',
+          },
+          units: {
+            'epm()': '1/minute',
+          },
+        },
       },
     });
 
     const {result} = renderHook(
-      ({yAxis}) => useSpanMetricsSeries({yAxis}, 'span-metrics-series'),
+      ({yAxis}) => useSpanSeries({yAxis}, 'span-metrics-series'),
       {
         wrapper: Wrapper,
         initialProps: {
-          yAxis: ['spm()'] as SpanMetricsProperty[],
+          yAxis: ['epm()'] as SpanProperty[],
         },
       }
     );
 
-    await waitFor(() => expect(result.current.isLoading).toEqual(false));
+    await waitFor(() => expect(result.current.isPending).toBe(false));
 
     expect(result.current.data).toEqual({
-      'spm()': {
+      'epm()': {
         data: [
           {name: '2023-11-13T20:35:00+00:00', value: 7810.2},
           {name: '2023-11-13T20:40:00+00:00', value: 1216.8},
         ],
-        seriesName: 'spm()',
+        meta: {
+          fields: {
+            'epm()': 'rate',
+          },
+          units: {
+            'epm()': '1/minute',
+          },
+        },
+        seriesName: 'epm()',
       },
     });
   });
@@ -232,30 +247,43 @@ describe('useSpanMetricsSeries', () => {
             [1699907700, [{count: 10.1}]],
             [1699908000, [{count: 11.2}]],
           ],
+          meta: {
+            fields: {
+              'http_response_rate(3)': 'rate',
+            },
+            units: {
+              'http_response_rate(3)': '1/minute',
+            },
+          },
         },
         'http_response_rate(4)': {
           data: [
             [1699907700, [{count: 12.6}]],
             [1699908000, [{count: 13.8}]],
           ],
+          meta: {
+            fields: {
+              'http_response_rate(4)': 'rate',
+            },
+            units: {
+              'http_response_rate(4)': '1/minute',
+            },
+          },
         },
       },
     });
 
     const {result} = renderHook(
-      ({yAxis}) => useSpanMetricsSeries({yAxis}, 'span-metrics-series'),
+      ({yAxis}) => useSpanSeries({yAxis}, 'span-metrics-series'),
       {
         wrapper: Wrapper,
         initialProps: {
-          yAxis: [
-            'http_response_rate(3)',
-            'http_response_rate(4)',
-          ] as SpanMetricsProperty[],
+          yAxis: ['http_response_rate(3)', 'http_response_rate(4)'] as SpanProperty[],
         },
       }
     );
 
-    await waitFor(() => expect(result.current.isLoading).toEqual(false));
+    await waitFor(() => expect(result.current.isPending).toBe(false));
 
     expect(result.current.data).toEqual({
       'http_response_rate(3)': {
@@ -263,6 +291,14 @@ describe('useSpanMetricsSeries', () => {
           {name: '2023-11-13T20:35:00+00:00', value: 10.1},
           {name: '2023-11-13T20:40:00+00:00', value: 11.2},
         ],
+        meta: {
+          fields: {
+            'http_response_rate(3)': 'rate',
+          },
+          units: {
+            'http_response_rate(3)': '1/minute',
+          },
+        },
         seriesName: 'http_response_rate(3)',
       },
       'http_response_rate(4)': {
@@ -270,6 +306,47 @@ describe('useSpanMetricsSeries', () => {
           {name: '2023-11-13T20:35:00+00:00', value: 12.6},
           {name: '2023-11-13T20:40:00+00:00', value: 13.8},
         ],
+        meta: {
+          fields: {
+            'http_response_rate(4)': 'rate',
+          },
+          units: {
+            'http_response_rate(4)': '1/minute',
+          },
+        },
+        seriesName: 'http_response_rate(4)',
+      },
+    });
+  });
+
+  it('returns a series for all requested yAxis even without data', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-stats/`,
+      method: 'GET',
+      body: {},
+    });
+
+    const {result} = renderHook(
+      ({yAxis}) => useSpanSeries({yAxis}, 'span-metrics-series'),
+      {
+        wrapper: Wrapper,
+        initialProps: {
+          yAxis: ['http_response_rate(3)', 'http_response_rate(4)'] as SpanProperty[],
+        },
+      }
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(result.current.data).toEqual({
+      'http_response_rate(3)': {
+        data: [],
+        meta: undefined,
+        seriesName: 'http_response_rate(3)',
+      },
+      'http_response_rate(4)': {
+        data: [],
+        meta: undefined,
         seriesName: 'http_response_rate(4)',
       },
     });

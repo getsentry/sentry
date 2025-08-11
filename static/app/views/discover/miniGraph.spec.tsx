@@ -1,7 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import * as eventRequest from 'sentry/components/charts/eventsRequest';
@@ -17,18 +16,12 @@ describe('Discover > MiniGraph', function () {
     pathname: '/',
   });
 
-  let organization, eventView, initialData;
+  let organization!: ReturnType<typeof OrganizationFixture>;
+  let eventView!: ReturnType<typeof EventView.fromSavedQueryOrLocation>;
 
   beforeEach(() => {
     organization = OrganizationFixture({
       features,
-    });
-    initialData = initializeOrg({
-      organization,
-      router: {
-        location,
-      },
-      projects: [],
     });
     eventView = EventView.fromSavedQueryOrLocation(undefined, location);
 
@@ -47,8 +40,7 @@ describe('Discover > MiniGraph', function () {
         eventView={eventView}
         organization={organization}
         yAxis={yAxis}
-      />,
-      {router: initialData.router}
+      />
     );
 
     expect(eventRequest.default).toHaveBeenCalledWith(
@@ -67,8 +59,7 @@ describe('Discover > MiniGraph', function () {
         eventView={eventView}
         organization={organization}
         yAxis={yAxis}
-      />,
-      {router: initialData.router}
+      />
     );
 
     expect(eventRequest.default).toHaveBeenCalledWith(

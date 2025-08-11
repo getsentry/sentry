@@ -1,4 +1,6 @@
-import type {OrganizationSummary, Project} from 'sentry/types';
+import {DataCategoryExact} from 'sentry/types/core';
+import type {OrganizationSummary} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {NOTIFICATION_SETTINGS_PATHNAMES} from 'sentry/views/settings/account/notifications/constants';
 
 /**
@@ -9,10 +11,6 @@ const notificationsByProject = ['alerts', 'email', 'workflow', 'spikeProtection'
 export const isGroupedByProject = (notificationType: string): boolean =>
   notificationsByProject.includes(notificationType);
 
-export const getParentKey = (notificationType: string): string => {
-  return isGroupedByProject(notificationType) ? 'project' : 'organization';
-};
-
 export const groupByOrganization = (
   projects: Project[]
 ): Record<string, {organization: OrganizationSummary; projects: Project[]}> => {
@@ -21,7 +19,7 @@ export const groupByOrganization = (
   >((acc, project) => {
     const orgSlug = project.organization.slug;
     if (acc.hasOwnProperty(orgSlug)) {
-      acc[orgSlug].projects.push(project);
+      acc[orgSlug]!.projects.push(project);
     } else {
       acc[orgSlug] = {
         organization: project.organization,
@@ -35,24 +33,31 @@ export const groupByOrganization = (
 /**
  * Returns a link to docs on explaining how to manage quotas for that event type
  */
-export function getDocsLinkForEventType(
-  event: 'error' | 'transaction' | 'attachment' | 'replay' | 'monitorSeat' | 'span'
-) {
+export function getPricingDocsLinkForEventType(event: DataCategoryExact) {
   switch (event) {
-    case 'transaction':
+    case DataCategoryExact.TRANSACTION:
       // For pre-AM3 plans prior to June 11th, 2024
       return 'https://docs.sentry.io/pricing/quotas/legacy-manage-transaction-quota/';
-    case 'span':
+    case DataCategoryExact.SPAN:
+    case DataCategoryExact.SPAN_INDEXED:
       // For post-AM3 plans after June 11th, 2024
       return 'https://docs.sentry.io/pricing/quotas/manage-transaction-quota/';
-    case 'attachment':
-      return 'https://docs.sentry.io/product/accounts/quotas/manage-attachments-quota/#2-rate-limiting';
-    case 'replay':
-      return 'https://docs.sentry.io/product/session-replay/';
-    case 'monitorSeat':
-      return 'https://docs.sentry.io/product/crons/';
+    case DataCategoryExact.ATTACHMENT:
+      return 'https://docs.sentry.io/pricing/quotas/manage-attachments-quota/';
+    case DataCategoryExact.REPLAY:
+      return 'https://docs.sentry.io/pricing/quotas/manage-replay-quota/';
+    case DataCategoryExact.MONITOR_SEAT:
+    case DataCategoryExact.UPTIME:
+      return 'https://docs.sentry.io/pricing/quotas/manage-cron-monitors/';
+    case DataCategoryExact.PROFILE_DURATION:
+      return 'https://docs.sentry.io/pricing/quotas/manage-continuous-profile-hours/';
+    case DataCategoryExact.PROFILE_DURATION_UI:
+      return 'https://docs.sentry.io/pricing/quotas/manage-ui-profile-hours/';
+    case DataCategoryExact.SEER_AUTOFIX:
+    case DataCategoryExact.SEER_SCANNER:
+      return 'https://docs.sentry.io/pricing/quotas/manage-seer-budget/';
     default:
-      return 'https://docs.sentry.io/product/accounts/quotas/manage-event-stream-guide/#common-workflows-for-managing-your-event-stream';
+      return 'https://docs.sentry.io/pricing/quotas/manage-event-stream-guide/';
   }
 }
 

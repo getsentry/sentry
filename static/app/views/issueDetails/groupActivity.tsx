@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import type {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {
@@ -10,31 +9,39 @@ import type {
 } from 'sentry/components/feedback/useMutateActivity';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ReprocessedBox from 'sentry/components/reprocessedBox';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
+import type {NoteType} from 'sentry/types/alerts';
 import type {
   Group,
   GroupActivity as GroupActivityType,
   GroupActivityNote,
   GroupActivityReprocess,
-  User,
-} from 'sentry/types';
-import type {NoteType} from 'sentry/types/alerts';
+} from 'sentry/types/group';
+import type {User} from 'sentry/types/user';
 import type {MutateOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import ActivitySection from 'sentry/views/issueDetails/activitySection';
+import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {
   getGroupMostRecentActivity,
   getGroupReprocessingStatus,
   ReprocessingStatus,
+  useHasStreamlinedUI,
 } from 'sentry/views/issueDetails/utils';
 
-type Props = {
-  group: Group;
-} & RouteComponentProps<{}, {}>;
+type MutateActivityOptions = MutateOptions<TData, TError, TVariables, TContext>;
 
-function GroupActivity({group}: Props) {
+interface GroupActivityProps {
+  group: Group;
+}
+
+function GroupActivity({group}: GroupActivityProps) {
   const organization = useOrganization();
   const {activity: activities, count, id: groupId} = group;
   const groupCount = Number(count);
@@ -45,44 +52,41 @@ function GroupActivity({group}: Props) {
     group,
   });
 
-  const deleteOptions: MutateOptions<TData, TError, TVariables, TContext> =
-    useMemo(() => {
-      return {
-        onError: () => {
-          addErrorMessage(t('Failed to delete comment'));
-        },
-        onSuccess: () => {
-          addSuccessMessage(t('Comment removed'));
-        },
-      };
-    }, []);
+  const deleteOptions: MutateActivityOptions = useMemo(() => {
+    return {
+      onError: () => {
+        addErrorMessage(t('Failed to delete comment'));
+      },
+      onSuccess: () => {
+        addSuccessMessage(t('Comment removed'));
+      },
+    };
+  }, []);
 
-  const createOptions: MutateOptions<TData, TError, TVariables, TContext> =
-    useMemo(() => {
-      return {
-        onError: () => {
-          addErrorMessage(t('Unable to post comment'));
-        },
-        onSuccess: data => {
-          GroupStore.addActivity(group.id, data);
-          addSuccessMessage(t('Comment posted'));
-        },
-      };
-    }, [group.id]);
+  const createOptions: MutateActivityOptions = useMemo(() => {
+    return {
+      onError: () => {
+        addErrorMessage(t('Unable to post comment'));
+      },
+      onSuccess: data => {
+        GroupStore.addActivity(group.id, data);
+        addSuccessMessage(t('Comment posted'));
+      },
+    };
+  }, [group.id]);
 
-  const updateOptions: MutateOptions<TData, TError, TVariables, TContext> =
-    useMemo(() => {
-      return {
-        onError: () => {
-          addErrorMessage(t('Unable to update comment'));
-        },
-        onSuccess: data => {
-          const d = data as GroupActivityNote;
-          GroupStore.updateActivity(group.id, data.id, {text: d.data.text});
-          addSuccessMessage(t('Comment updated'));
-        },
-      };
-    }, [group.id]);
+  const updateOptions: MutateActivityOptions = useMemo(() => {
+    return {
+      onError: () => {
+        addErrorMessage(t('Unable to update comment'));
+      },
+      onSuccess: data => {
+        const d = data as GroupActivityNote;
+        GroupStore.updateActivity(group.id, data.id, {text: d.data.text});
+        addSuccessMessage(t('Comment updated'));
+      },
+    };
+  }, [group.id]);
 
   const handleDelete = useCallback(
     (item: GroupActivityType) => {
@@ -120,29 +124,59 @@ function GroupActivity({group}: Props) {
     <Fragment>
       {(reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT ||
         reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HAS_EVENT) && (
-        <ReprocessedBox
-          reprocessActivity={mostRecentActivity as GroupActivityReprocess}
-          groupCount={groupCount}
-          orgSlug={organization.slug}
-          groupId={groupId}
-        />
-      )}
-
-      <Layout.Body>
-        <Layout.Main>
-          <ActivitySection
-            group={group}
-            onDelete={handleDelete}
-            onCreate={handleCreate}
-            onUpdate={handleUpdate}
-            placeholderText={t(
-              'Add details or updates to this event. \nTag users with @, or teams with #'
-            )}
+        <Layout.Main fullWidth>
+          <ReprocessedBox
+            reprocessActivity={mostRecentActivity as GroupActivityReprocess}
+            groupCount={groupCount}
+            orgSlug={organization.slug}
+            groupId={groupId}
           />
         </Layout.Main>
-      </Layout.Body>
+      )}
+
+      <Layout.Main>
+        <ActivitySection
+          group={group}
+          onDelete={handleDelete}
+          onCreate={handleCreate}
+          onUpdate={handleUpdate}
+          placeholderText={t(
+            'Add details or updates to this event. \nTag users with @, or teams with #'
+          )}
+        />
+      </Layout.Main>
     </Fragment>
   );
 }
 
-export default GroupActivity;
+function GroupActivityRoute() {
+  const hasStreamlinedUI = useHasStreamlinedUI();
+  const params = useParams<{groupId: string}>();
+
+  const {
+    data: group,
+    isPending: isGroupPending,
+    isError: isGroupError,
+    refetch: refetchGroup,
+  } = useGroup({groupId: params.groupId});
+
+  if (hasStreamlinedUI) {
+    return <GroupEventDetails />;
+  }
+
+  if (isGroupPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isGroupError) {
+    return <LoadingError onRetry={refetchGroup} />;
+  }
+
+  return (
+    <Layout.Body>
+      <GroupActivity group={group} />
+    </Layout.Body>
+  );
+}
+
+export default GroupActivityRoute;

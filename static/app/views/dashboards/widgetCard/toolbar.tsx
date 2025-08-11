@@ -1,18 +1,19 @@
-import type {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
+import color from 'color';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-import {DRAG_HANDLE_CLASS} from '../dashboard';
-
-type DraggableProps = Pick<ReturnType<typeof useSortable>, 'attributes' | 'listeners'>;
+import {DRAG_HANDLE_CLASS} from 'sentry/views/dashboards/dashboard';
 
 type ToolbarProps = {
-  draggableProps?: DraggableProps;
-  hideToolbar?: boolean;
+  disableDelete?: boolean;
+  disableDrag?: boolean;
+  disableDuplicate?: boolean;
+  disableEdit?: boolean;
+  disabledReason?: string;
   isMobile?: boolean;
   onDelete?: () => void;
   onDuplicate?: () => void;
@@ -20,55 +21,84 @@ type ToolbarProps = {
 };
 
 export function Toolbar({
-  hideToolbar,
   isMobile,
   onEdit,
   onDelete,
   onDuplicate,
-  draggableProps,
+  disableDelete,
+  disableDrag,
+  disableEdit,
+  disableDuplicate,
+  disabledReason,
 }: ToolbarProps) {
   return (
     <ToolbarPanel>
-      <IconContainer style={{visibility: hideToolbar ? 'hidden' : 'visible'}}>
+      <IconContainer>
         {!isMobile && (
-          <GrabbableButton
-            size="xs"
-            aria-label={t('Drag Widget')}
-            icon={<IconGrabbable />}
-            borderless
-            className={DRAG_HANDLE_CLASS}
-            {...draggableProps?.listeners}
-            {...draggableProps?.attributes}
-          />
+          <Tooltip
+            skipWrapper
+            title={disabledReason}
+            disabled={!disabledReason || !disableDrag}
+          >
+            <GrabbableButton
+              size="xs"
+              aria-label={t('Drag Widget')}
+              icon={<IconGrabbable />}
+              borderless
+              className={DRAG_HANDLE_CLASS}
+              disabled={disableDrag}
+            />
+          </Tooltip>
         )}
         {onEdit && (
-          <Button
-            data-test-id="widget-edit"
-            aria-label={t('Edit Widget')}
-            size="xs"
-            borderless
-            onClick={onEdit}
-            icon={<IconEdit />}
-          />
+          <Tooltip
+            skipWrapper
+            title={disabledReason}
+            disabled={!disabledReason || !disableEdit}
+          >
+            <Button
+              data-test-id="widget-edit"
+              aria-label={t('Edit Widget')}
+              size="xs"
+              borderless
+              onClick={onEdit}
+              icon={<IconEdit />}
+              disabled={disableEdit}
+            />
+          </Tooltip>
         )}
         {onDuplicate && (
-          <Button
-            aria-label={t('Duplicate Widget')}
-            size="xs"
-            borderless
-            onClick={onDuplicate}
-            icon={<IconCopy />}
-          />
+          <Tooltip
+            skipWrapper
+            title={disabledReason}
+            disabled={!disabledReason || !disableDuplicate}
+          >
+            <Button
+              aria-label={t('Duplicate Widget')}
+              size="xs"
+              borderless
+              onClick={onDuplicate}
+              icon={<IconCopy />}
+              disabled={disableDuplicate}
+            />
+          </Tooltip>
         )}
         {onDelete && (
-          <Button
-            data-test-id="widget-delete"
-            aria-label={t('Delete Widget')}
-            borderless
-            size="xs"
-            onClick={onDelete}
-            icon={<IconDelete />}
-          />
+          <Tooltip
+            skipWrapper
+            title={disabledReason}
+            disabled={!disabledReason || !disableDelete}
+          >
+            <Button
+              data-test-id="widget-delete"
+              aria-label={t('Delete Widget')}
+              borderless
+              size="xs"
+              onClick={onDelete}
+              icon={<IconDelete />}
+              disabled={disableDelete}
+            />
+          </Tooltip>
         )}
       </IconContainer>
     </ToolbarPanel>
@@ -88,8 +118,8 @@ const ToolbarPanel = styled('div')`
   justify-content: flex-end;
   align-items: flex-start;
 
-  background-color: ${p => p.theme.overlayBackgroundAlpha};
-  border-radius: calc(${p => p.theme.panelBorderRadius} - 1px);
+  background-color: ${p => color(p.theme.surface300).alpha(0.7).string()};
+  border-radius: calc(${p => p.theme.borderRadius} - 1px);
 `;
 
 const IconContainer = styled('div')`
@@ -100,15 +130,4 @@ const IconContainer = styled('div')`
 
 const GrabbableButton = styled(Button)`
   cursor: grab;
-`;
-
-export const WidgetTitleRow = styled('span')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.75)};
-`;
-
-export const WidgetDescription = styled('small')`
-  ${p => p.theme.overflowEllipsis}
-  color: ${p => p.theme.gray300};
 `;

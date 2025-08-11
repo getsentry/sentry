@@ -70,6 +70,7 @@ from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.query import MetricConditionField, MetricField, MetricGroupByField
 from sentry.snuba.metrics.query_builder import QUERY_PROJECT_LIMIT, QueryDefinition
+from sentry.snuba.metrics.utils import MetricEntity
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -99,7 +100,7 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
         SessionMRI.RAW_SESSION.value: EntityKey.MetricsCounters,
         "sentry.sessions.session.error": EntityKey.MetricsSets,
         SessionMRI.RAW_ERROR.value: EntityKey.MetricsSets,
-    }[metric_name]
+    }[metric_name].value
 
 
 @django_db_all
@@ -247,7 +248,7 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
         ),
     ],
 )
-def test_parse_conditions(query_string, expected):
+def test_parse_conditions(query_string, expected) -> None:
     org_id = ORG_ID
     use_case_id = UseCaseID.SESSIONS
     for s in ("myapp@2.0.0", "/bar/:orgId/"):
@@ -263,7 +264,7 @@ def test_parse_conditions(query_string, expected):
 
 
 @freeze_time("2018-12-11 03:21:00")
-def test_round_range():
+def test_round_range() -> None:
     # since data is not exactly aligned it will return 2d + 1h (+ one interval to cover everything)
     start, end, interval = get_date_range({"statsPeriod": "2d"})
     assert start == datetime(2018, 12, 9, 3, tzinfo=timezone.utc)
@@ -296,7 +297,7 @@ def test_round_range():
         ("2022-10-01 09:20:00", "2h", {"timeframe": "91d"}, ("08:00:00 07-02", "10:00:00 10-01")),
     ],
 )
-def test_get_date_range(now, interval, parameters, expected):
+def test_get_date_range(now, interval, parameters, expected) -> None:
     def _to_datetimestring(d):
         return d.strftime("%H:%M:%S %m-%d")
 
@@ -312,7 +313,7 @@ def test_get_date_range(now, interval, parameters, expected):
         assert (start_actual, end_actual) == (start_expected, end_expected)
 
 
-def test_invalid_interval():
+def test_invalid_interval() -> None:
     # get_date_range is now only responsible for parsing start, end and interval,
     # and not responsible for validation so just letting it bubble up the ZeroDivisionError if
     # the requested interval is 0d
@@ -320,7 +321,7 @@ def test_invalid_interval():
         get_date_range({"interval": "0d"})
 
 
-def test_round_exact():
+def test_round_exact() -> None:
     start, end, interval = get_date_range(
         {"start": "2021-01-12T04:06:16", "end": "2021-01-17T08:26:13", "interval": "1d"},
     )
@@ -328,7 +329,7 @@ def test_round_exact():
     assert end == datetime(2021, 1, 18, tzinfo=timezone.utc)
 
 
-def test_exclusive_end():
+def test_exclusive_end() -> None:
     start, end, interval = get_date_range(
         {"start": "2021-02-24T00:00:00", "end": "2021-02-25T00:00:00", "interval": "1h"},
     )
@@ -337,7 +338,7 @@ def test_exclusive_end():
 
 
 @freeze_time("2020-12-18T11:14:17.105Z")
-def test_timestamps():
+def test_timestamps() -> None:
     start, end, interval = get_date_range({"statsPeriod": "1d", "interval": "12h"})
 
     # one day before now aligned downward at 12h
@@ -349,7 +350,7 @@ def test_timestamps():
 
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_build_snuba_query(mock_now, mock_now2):
+def test_build_snuba_query(mock_now: mock.MagicMock, mock_now2: mock.MagicMock) -> None:
     # Your typical release health query querying everything
     having = [Condition(Column("sum"), Op.GT, 1000)]
     query_definition = DeprecatingMetricsQuery(
@@ -482,7 +483,7 @@ def test_build_snuba_query(mock_now, mock_now2):
 @mock.patch(
     "sentry.snuba.metrics.fields.base._get_entity_of_metric_mri", get_entity_of_metric_mocked
 )
-def test_build_snuba_query_mri(mock_now, mock_now2):
+def test_build_snuba_query_mri(mock_now, mock_now2) -> None:
     org_id = 1
     use_case_id = UseCaseID.SESSIONS
     # Your typical release health query querying everything
@@ -565,7 +566,7 @@ def test_build_snuba_query_mri(mock_now, mock_now2):
 @mock.patch(
     "sentry.snuba.metrics.fields.base._get_entity_of_metric_mri", get_entity_of_metric_mocked
 )
-def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
+def test_build_snuba_query_derived_metrics(mock_now, mock_now2) -> None:
     org_id = 1
     use_case_id = UseCaseID.SESSIONS
     # Your typical release health query querying everything
@@ -730,7 +731,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
 @django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_build_snuba_query_orderby(mock_now, mock_now2):
+def test_build_snuba_query_orderby(mock_now: mock.MagicMock, mock_now2: mock.MagicMock) -> None:
     query_params = MultiValueDict(
         {
             "query": [
@@ -833,7 +834,9 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
 @django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
+def test_build_snuba_query_with_derived_alias(
+    mock_now: mock.MagicMock, mock_now2: mock.MagicMock
+) -> None:
     query_params = MultiValueDict(
         {
             "query": ["release:staging"],
@@ -953,7 +956,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
 @django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_translate_results_derived_metrics(_1, _2):
+def test_translate_results_derived_metrics(_1: mock.MagicMock, _2: mock.MagicMock) -> None:
     query_params: MultiValueDict[str, str] = MultiValueDict(
         {
             "groupBy": [],
@@ -967,7 +970,7 @@ def test_translate_results_derived_metrics(_1, _2):
         }
     )
     query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
-    fields_in_entities = {
+    fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]] = {
         "metrics_counters": [
             (
                 None,
@@ -1075,7 +1078,7 @@ def test_translate_results_derived_metrics(_1, _2):
 @django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_translate_results_missing_slots(_1, _2):
+def test_translate_results_missing_slots(_1: mock.MagicMock, _2: mock.MagicMock) -> None:
     org_id = 1
     use_case_id = UseCaseID.SESSIONS
     query_params = MultiValueDict(
@@ -1088,7 +1091,7 @@ def test_translate_results_missing_slots(_1, _2):
         }
     )
     query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
-    fields_in_entities = {
+    fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]] = {
         "metrics_counters": [
             ("sum", SessionMRI.RAW_SESSION.value, "sum(sentry.sessions.session)"),
         ],
@@ -1146,7 +1149,7 @@ def test_translate_results_missing_slots(_1, _2):
     ]
 
 
-def test_translate_meta_results():
+def test_translate_meta_results() -> None:
     meta = [
         {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Float64"},
         {"name": "team_key_transaction", "type": "UInt8"},
@@ -1193,7 +1196,7 @@ def test_translate_meta_results():
     )
 
 
-def test_translate_meta_results_with_duplicates():
+def test_translate_meta_results_with_duplicates() -> None:
     meta = [
         {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Float64"},
         {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Float64"},
@@ -1237,7 +1240,7 @@ def test_translate_meta_results_with_duplicates():
         meta_type="ratio",
     ),
 )
-def test_translate_meta_result_type_singular_entity_derived_metric(_):
+def test_translate_meta_result_type_singular_entity_derived_metric(_: mock.MagicMock) -> None:
     meta = [
         {"name": "transaction.failure_rate", "type": "Array(Float64)"},
         {"name": "transaction", "type": "UInt64"},
@@ -1278,7 +1281,7 @@ def test_translate_meta_result_type_singular_entity_derived_metric(_):
         ),
     ),
 )
-def test_translate_meta_result_type_composite_entity_derived_metric(_):
+def test_translate_meta_result_type_composite_entity_derived_metric(_: mock.MagicMock) -> None:
     meta = [
         {
             "name": "e:sessions/all_errored@none__CHILD_OF__session.errored",
@@ -1474,7 +1477,9 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
         ),
     ],
 )
-def test_only_can_filter_operations_can_be_added_to_where(select, where, usecase, error_string):
+def test_only_can_filter_operations_can_be_added_to_where(
+    select, where, usecase, error_string
+) -> None:
     query_definition = DeprecatingMetricsQuery(
         org_id=1,
         project_ids=[1],
@@ -1496,7 +1501,7 @@ def test_only_can_filter_operations_can_be_added_to_where(select, where, usecase
 
 
 class QueryDefinitionTestCase(TestCase):
-    def test_valid_latest_release_alias_filter(self):
+    def test_valid_latest_release_alias_filter(self) -> None:
         self.create_release(version="foo", project=self.project, date_added=before_now(days=4))
         self.create_release(
             version="bar", project=self.project, date_added=before_now(days=2)
@@ -1519,7 +1524,7 @@ class QueryDefinitionTestCase(TestCase):
             )
         ]
 
-    def test_single_environment_is_passed_through_to_metrics_query(self):
+    def test_single_environment_is_passed_through_to_metrics_query(self) -> None:
         self.create_environment(name="alpha", project=self.project)
         query_params = MultiValueDict(
             {
@@ -1540,7 +1545,7 @@ class QueryDefinitionTestCase(TestCase):
             )
         ]
 
-    def test_multiple_environments_are_passed_through_to_metrics_query(self):
+    def test_multiple_environments_are_passed_through_to_metrics_query(self) -> None:
         self.create_environment(name="alpha", project=self.project)
         self.create_environment(name="beta", project=self.project)
         query_params = MultiValueDict(
@@ -1564,11 +1569,11 @@ class QueryDefinitionTestCase(TestCase):
 
 
 class ResolveTagsTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org_id = ORG_ID
         self.use_case_id = UseCaseID.TRANSACTIONS
 
-    def test_resolve_tags_with_unary_tuple(self):
+    def test_resolve_tags_with_unary_tuple(self) -> None:
         transactions = ["/foo", "/bar"]
 
         for transaction in ["transaction"] + transactions:
@@ -1629,7 +1634,7 @@ class ResolveTagsTestCase(TestCase):
             ),
         )
 
-    def test_resolve_tags_with_binary_tuple(self):
+    def test_resolve_tags_with_binary_tuple(self) -> None:
         tags = [("/foo", "ios"), ("/bar", "android")]
 
         for transaction, platform in [("transaction", "platform")] + tags:
@@ -1704,7 +1709,7 @@ class ResolveTagsTestCase(TestCase):
             ),
         )
 
-    def test_resolve_tags_with_has(self):
+    def test_resolve_tags_with_has(self) -> None:
         tag_key = "transaction"
 
         indexer.record(
@@ -1746,7 +1751,7 @@ class ResolveTagsTestCase(TestCase):
             rhs=1,
         )
 
-    def test_resolve_tags_with_match_and_filterable_tag(self):
+    def test_resolve_tags_with_match_and_filterable_tag(self) -> None:
         indexer.record(
             use_case_id=self.use_case_id,
             org_id=self.org_id,
@@ -1786,7 +1791,7 @@ class ResolveTagsTestCase(TestCase):
             rhs=1,
         )
 
-    def test_resolve_tags_with_match_and_deep_filterable_tag(self):
+    def test_resolve_tags_with_match_and_deep_filterable_tag(self) -> None:
         indexer.record(
             use_case_id=self.use_case_id,
             org_id=self.org_id,
@@ -1831,7 +1836,7 @@ class ResolveTagsTestCase(TestCase):
             rhs=1,
         )
 
-    def test_resolve_tags_with_match_and_non_filterable_tag(self):
+    def test_resolve_tags_with_match_and_non_filterable_tag(self) -> None:
         indexer.record(
             use_case_id=self.use_case_id,
             org_id=self.org_id,
@@ -1862,7 +1867,7 @@ class ResolveTagsTestCase(TestCase):
                 [],
             )
 
-    def test_resolve_tags_with_match_and_deep_non_filterable_tag(self):
+    def test_resolve_tags_with_match_and_deep_non_filterable_tag(self) -> None:
         indexer.record(
             use_case_id=self.use_case_id,
             org_id=self.org_id,
@@ -1902,7 +1907,7 @@ class ResolveTagsTestCase(TestCase):
         "sentry.snuba.metrics.Project.objects.filter",
         return_value=[PseudoProject(i, ORG_ID) for i in range(QUERY_PROJECT_LIMIT + 1)],
     )
-    def test_resolve_tags_too_many_projects(self, projects):
+    def test_resolve_tags_too_many_projects(self, projects: mock.MagicMock) -> None:
         with mock.patch.object(sentry_sdk, "capture_message") as capture_message:
             resolve_tags(
                 self.use_case_id,
@@ -1928,7 +1933,7 @@ class ResolveTagsTestCase(TestCase):
     @mock.patch(
         "sentry.snuba.metrics.Project.objects.filter", return_value=[PseudoProject(1, ORG_ID)]
     )
-    def test_resolve_tags_invalid_project_slugs(self, projects):
+    def test_resolve_tags_invalid_project_slugs(self, projects: mock.MagicMock) -> None:
         with pytest.raises(InvalidParams):
             resolve_tags(
                 self.use_case_id,
@@ -1957,7 +1962,7 @@ class ResolveTagsTestCase(TestCase):
         ("max_timestamp", "maxIf"),
     ],
 )
-def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str):
+def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str) -> None:
     """
     Tests code generation for timestamp operators
     """
@@ -2008,7 +2013,7 @@ def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str):
         [False, True],
     ],
 )
-def test_having_clause(include_totals, include_series):
+def test_having_clause(include_totals, include_series) -> None:
     """
     Tests that the having clause ends up in the snql queries in the expected form
     """

@@ -1,13 +1,15 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import type {StaticDropdownAutoCompleteProps} from 'sentry/components/dropdownAutoComplete';
-import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
-import type {Item} from 'sentry/components/dropdownAutoComplete/types';
-import DropdownButton from 'sentry/components/dropdownButton';
-import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Button} from 'sentry/components/core/button';
+import {
+  CompactSelect,
+  type SelectOption,
+  type SingleSelectProps,
+} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
+import type {ControlProps} from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
 import FormField from 'sentry/components/forms/formField';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -46,7 +48,10 @@ export interface ChoiceMapperProps extends DefaultProps {
   /**
    * Props forwarded to the add mapping dropdown.
    */
-  addDropdown: StaticDropdownAutoCompleteProps;
+  addDropdown: Omit<SingleSelectProps<string>, 'options'> & {
+    items: Array<SelectOption<string>>;
+    noResultsMessage?: string;
+  };
   /**
    * A list of column labels (headers) for the multichoice table. This should
    * have the same mapping keys as the mappedSelectors prop.
@@ -143,12 +148,11 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
       }
     };
 
-    const addRow = (data: Item) => {
+    const addRow = (data: SelectOption<string>) => {
       saveChanges({...value, [data.value]: emptyValue});
     };
 
     const removeRow = (itemKey: string) => {
-      // eslint-disable-next-line no-unused-vars
       saveChanges(
         Object.fromEntries(Object.entries(value).filter(([key, _]) => key !== itemKey))
       );
@@ -167,30 +171,31 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
       addDropdown.items?.filter(i => !value.hasOwnProperty(i.value)) ?? [];
 
     const valueMap =
-      addDropdown.items?.reduce((map, item) => {
+      addDropdown.items?.reduce<Record<string, React.ReactNode>>((map, item) => {
         map[item.value] = item.label;
         return map;
       }, {}) ?? {};
 
     const dropdown = (
-      <DropdownAutoComplete
+      <CompactSelect
         {...addDropdown}
-        alignMenu={valueIsEmpty ? 'right' : 'left'}
-        items={selectableValues}
-        onSelect={addRow}
-        disabled={disabled}
-      >
-        {({isOpen}) => (
-          <DropdownButton
-            icon={<IconAdd isCircled />}
-            isOpen={isOpen}
-            size="xs"
-            disabled={disabled}
-          >
-            {addButtonText}
-          </DropdownButton>
-        )}
-      </DropdownAutoComplete>
+        emptyMessage={
+          selectableValues.length === 0
+            ? addDropdown.emptyMessage
+            : addDropdown.noResultsMessage
+        }
+        size="xs"
+        searchable
+        disabled={false}
+        options={selectableValues}
+        menuWidth={250}
+        onChange={addRow}
+        triggerLabel={
+          <Flex gap="xs">
+            <IconAdd isCircled /> {addButtonText}
+          </Flex>
+        }
+      />
     );
 
     // The field will be set to inline when there is no value set for the
@@ -218,13 +223,13 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
             {mappedKeys.map((fieldKey, i) => (
               <Column key={fieldKey}>
                 <Control>
-                  <SelectControl
+                  <Select
                     {...(perItemMapping
-                      ? mappedSelectors[itemKey][fieldKey]
+                      ? mappedSelectors[itemKey]![fieldKey]
                       : mappedSelectors[fieldKey])}
                     height={30}
                     disabled={disabled}
-                    onChange={v => setValue(itemKey, fieldKey, v ? v.value : null)}
+                    onChange={(v: any) => setValue(itemKey, fieldKey, v ? v.value : null)}
                     value={value[itemKey][fieldKey]}
                   />
                 </Control>
@@ -251,7 +256,7 @@ export default class ChoiceMapperField extends Component<ChoiceMapperFieldProps>
     return (
       <FormField
         {...this.props}
-        inline={({model}) => !this.hasValue(model.getValue(this.props.name))}
+        inline={({model}: any) => !this.hasValue(model.getValue(this.props.name))}
       >
         {this.renderField}
       </FormField>

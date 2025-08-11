@@ -9,28 +9,27 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
-import type {
-  MetricsApiResponse,
-  Organization,
-  PageFilters,
-  Release,
-  SessionApiResponse,
-} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {Release} from 'sentry/types/release';
+import {defined, escapeDoubleQuotes} from 'sentry/utils';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
+import {TAG_VALUE_ESCAPE_PATTERN} from 'sentry/utils/queryString';
+import withProjects from 'sentry/utils/withProjects';
+import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
+import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
-
-import {ReleasesConfig} from '../datasetConfig/releases';
-import type {DashboardFilters, Widget, WidgetQuery} from '../types';
-import {DEFAULT_TABLE_LIMIT, DisplayType} from '../types';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
   DerivedStatusFields,
   DISABLED_SORT,
   METRICS_EXPRESSION_TO_FIELD,
-} from '../widgetBuilder/releaseWidget/fields';
+} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
 import type {
   GenericWidgetQueriesChildrenProps,
@@ -38,20 +37,22 @@ import type {
 } from './genericWidgetQueries';
 import GenericWidgetQueries from './genericWidgetQueries';
 
-type Props = {
+export interface ReleaseWidgetQueriesProps {
   api: Client;
-  children: (props: GenericWidgetQueriesChildrenProps) => JSX.Element;
+  children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
   organization: Organization;
+  projects: Project[];
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
   dashboardFilters?: DashboardFilters;
   limit?: number;
+  onDataFetchStart?: () => void;
   onDataFetched?: (results: {
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
   }) => void;
-};
+}
 
 type State = {
   loading: boolean;
@@ -67,15 +68,12 @@ function getReleasesQuery(releases: Release[]): {
   releaseQueryString: string;
   releasesUsed: string[];
 } {
-  let releaseCondition = '';
   const releasesArray: string[] = [];
-  releaseCondition += 'release:[' + releases[0].version;
-  releasesArray.push(releases[0].version);
+  releasesArray.push(releases[0]!.version);
   for (let i = 1; i < releases.length; i++) {
-    releaseCondition += ',' + releases[i].version;
-    releasesArray.push(releases[i].version);
+    releasesArray.push(releases[i]!.version);
   }
-  releaseCondition += ']';
+  const releaseCondition = `release:[${releasesArray.map(v => (new RegExp(TAG_VALUE_ESCAPE_PATTERN, 'g').test(v) ? `"${escapeDoubleQuotes(v)}"` : v))}]`;
   if (releases.length < 10) {
     return {releaseQueryString: releaseCondition, releasesUsed: releasesArray};
   }
@@ -147,16 +145,28 @@ export function requiresCustomReleaseSorting(query: WidgetQuery): boolean {
   return useMetricsAPI && rawOrderby === 'release';
 }
 
-class ReleaseWidgetQueries extends Component<Props, State> {
+class ReleaseWidgetQueries extends Component<ReleaseWidgetQueriesProps, State> {
   state: State = {
-    loading: true,
+    loading: false,
     errorMessage: undefined,
     releases: undefined,
   };
 
   componentDidMount() {
     this._isMounted = true;
-    if (requiresCustomReleaseSorting(this.props.widget.queries[0])) {
+    if (requiresCustomReleaseSorting(this.props.widget.queries[0]!)) {
+      this.fetchReleases();
+      return;
+    }
+  }
+
+  componentDidUpdate(prevProps: Readonly<ReleaseWidgetQueriesProps>): void {
+    if (
+      !requiresCustomReleaseSorting(prevProps.widget.queries[0]!) &&
+      requiresCustomReleaseSorting(this.props.widget.queries[0]!) &&
+      !this.state.loading &&
+      !defined(this.state.releases)
+    ) {
       this.fetchReleases();
       return;
     }
@@ -167,7 +177,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   }
 
   config = ReleasesConfig;
-  private _isMounted: boolean = false;
+  private _isMounted = false;
 
   fetchReleases = async () => {
     this.setState({loading: true, errorMessage: undefined});
@@ -224,14 +234,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   }
 
   customDidUpdateComparator = (
-    prevProps: GenericWidgetQueriesProps<
-      SessionApiResponse | MetricsApiResponse,
-      SessionApiResponse | MetricsApiResponse
-    >,
-    nextProps: GenericWidgetQueriesProps<
-      SessionApiResponse | MetricsApiResponse,
-      SessionApiResponse | MetricsApiResponse
-    >
+    prevProps: GenericWidgetQueriesProps<SessionApiResponse, SessionApiResponse>,
+    nextProps: GenericWidgetQueriesProps<SessionApiResponse, SessionApiResponse>
   ) => {
     const {loading, limit, widget, cursor, organization, selection, dashboardFilters} =
       nextProps;
@@ -242,6 +246,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       'layout',
       'tempId',
       'widgetType',
+      'tableWidths',
     ];
     const ignoredQueryProps = ['name', 'fields', 'aggregates', 'columns'];
     return (
@@ -259,7 +264,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         widget.queries.map(q => omit(q, ignoredQueryProps)),
         prevProps.widget.queries.map(q => omit(q, ignoredQueryProps))
       ) ||
-      // If the fields changed (ignore falsy/empty fields -> they can happen after clicking on Add Overlay)
+      // If the fields changed (ignore falsy/empty fields -> they can happen after clicking on Add Series)
       !isEqual(
         widget.queries.flatMap(q => q.fields?.filter(field => !!field)),
         prevProps.widget.queries.flatMap(q => q.fields?.filter(field => !!field))
@@ -283,16 +288,16 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const {releases} = this.state;
     const widget = cloneDeep(initialWidget);
 
-    const isCustomReleaseSorting = requiresCustomReleaseSorting(widget.queries[0]);
-    const isDescending = widget.queries[0].orderby.startsWith('-');
-    const useSessionAPI = widget.queries[0].columns.includes('session.status');
+    const isCustomReleaseSorting = requiresCustomReleaseSorting(widget.queries[0]!);
+    const isDescending = widget.queries[0]!.orderby.startsWith('-');
+    const useSessionAPI = widget.queries[0]!.columns.includes('session.status');
 
     let releaseCondition = '';
     const releasesArray: string[] = [];
     if (isCustomReleaseSorting) {
       if (releases && releases.length === 1) {
-        releaseCondition += `release:${releases[0].version}`;
-        releasesArray.push(releases[0].version);
+        releaseCondition += `release:${releases[0]!.version}`;
+        releasesArray.push(releases[0]!.version);
       }
       if (releases && releases.length > 1) {
         const {releaseQueryString, releasesUsed} = getReleasesQuery(releases);
@@ -315,16 +320,16 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     return widget;
   };
 
-  afterFetchData = (data: SessionApiResponse | MetricsApiResponse) => {
-    const {widget} = this.props;
+  afterFetchData = (data: SessionApiResponse) => {
+    const {widget, projects} = this.props;
     const {releases} = this.state;
 
-    const isDescending = widget.queries[0].orderby.startsWith('-');
+    const isDescending = widget.queries[0]!.orderby.startsWith('-');
 
     const releasesArray: string[] = [];
-    if (requiresCustomReleaseSorting(widget.queries[0])) {
+    if (requiresCustomReleaseSorting(widget.queries[0]!)) {
       if (releases && releases.length === 1) {
-        releasesArray.push(releases[0].version);
+        releasesArray.push(releases[0]!.version);
       }
       if (releases && releases.length > 1) {
         const {releasesUsed} = getReleasesQuery(releases);
@@ -340,10 +345,20 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       data.groups.sort(function (group1, group2) {
         const release1 = group1.by.release;
         const release2 = group2.by.release;
+        // @ts-expect-error TS(2345): Argument of type 'string | number | undefined' is ... Remove this comment to see the full error message
         return releasesArray.indexOf(release1) - releasesArray.indexOf(release2);
       });
       data.groups = data.groups.slice(0, this.limit);
     }
+
+    data.groups.forEach(group => {
+      // Convert the project ID in the grouping results to the project slug
+      // for a more human readable display
+      if (group.by.project) {
+        const project = projects.find(p => p.id === String(group.by.project));
+        group.by.project = project?.slug ?? group.by.project;
+      }
+    });
   };
 
   render() {
@@ -356,14 +371,13 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       cursor,
       dashboardFilters,
       onDataFetched,
+      onDataFetchStart,
+      limit,
     } = this.props;
     const config = ReleasesConfig;
 
     return (
-      <GenericWidgetQueries<
-        SessionApiResponse | MetricsApiResponse,
-        SessionApiResponse | MetricsApiResponse
-      >
+      <GenericWidgetQueries<SessionApiResponse, SessionApiResponse>
         config={config}
         api={api}
         organization={organization}
@@ -371,10 +385,11 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         widget={this.transformWidget(widget)}
         dashboardFilters={dashboardFilters}
         cursor={cursor}
-        limit={this.limit}
+        limit={limit}
         onDataFetched={onDataFetched}
+        onDataFetchStart={onDataFetchStart}
         loading={
-          requiresCustomReleaseSorting(widget.queries[0])
+          requiresCustomReleaseSorting(widget.queries[0]!)
             ? !this.state.releases
             : undefined
         }
@@ -393,4 +408,4 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   }
 }
 
-export default ReleaseWidgetQueries;
+export default withProjects(ReleaseWidgetQueries);

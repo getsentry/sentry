@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -10,10 +9,11 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {OrganizationAuthProvider} from 'sentry/types/auth';
 import type {Scope} from 'sentry/types/core';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface Props extends RouteComponentProps<{}, {}> {
+interface Props extends RouteComponentProps {
   access: Set<Scope>;
   location: Location;
 }
@@ -23,13 +23,13 @@ type FeatureFlags = Record<string, {description: string; value: boolean}>;
 export default function EarlyFeaturesSettingsForm({access, location}: Props) {
   const organization = useOrganization();
 
-  const {data: authProvider, isLoading: authProviderIsLoading} =
+  const {data: authProvider, isPending: authProviderIsLoading} =
     useApiQuery<OrganizationAuthProvider>(
       [`/organizations/${organization.slug}/auth-provider/`],
       {staleTime: 0}
     );
 
-  const {data: featureFlags, isLoading: featureFlagsIsLoading} =
+  const {data: featureFlags, isPending: featureFlagsIsLoading} =
     useApiQuery<FeatureFlags>(['/internal/feature-flags/'], {staleTime: 0});
 
   if (authProviderIsLoading || featureFlagsIsLoading) {
@@ -39,7 +39,7 @@ export default function EarlyFeaturesSettingsForm({access, location}: Props) {
   const initialData: Record<string, boolean> = {};
   for (const flag in featureFlags) {
     if (featureFlags.hasOwnProperty(flag)) {
-      const obj = featureFlags[flag];
+      const obj = featureFlags[flag]!;
       initialData[flag] = obj.value;
     }
   }

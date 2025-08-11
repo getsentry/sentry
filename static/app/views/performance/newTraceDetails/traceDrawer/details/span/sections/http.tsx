@@ -1,16 +1,29 @@
-import qs from 'qs';
+import * as qs from 'query-string';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {t} from 'sentry/locale';
 import {safeURL} from 'sentry/utils/url/safeURL';
+import {
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
+export function hasSpanHTTPInfo(span: RawSpanType) {
+  if (span.op !== 'http.client' || !span.description) {
+    return false;
+  }
+
+  const [_, url] = span.description.split(' ');
+  const parsedURL = safeURL(url!);
+
+  return !!parsedURL;
+}
 
 export function SpanHTTPInfo({span}: {span: RawSpanType}) {
   if (span.op === 'http.client' && span.description) {
     const [method, url] = span.description.split(' ');
 
-    const parsedURL = safeURL(url);
+    const parsedURL = safeURL(url!);
     const queryString = qs.parse(parsedURL?.search ?? '');
 
     if (!parsedURL) {

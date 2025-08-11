@@ -1,16 +1,16 @@
 import {Fragment, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import {LinkButton} from 'sentry/components/button';
 import type {RenderProps} from 'sentry/components/charts/eventsRequest';
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import Truncate from 'sentry/components/truncate';
-import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
@@ -31,36 +31,46 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
-import {Subtitle} from 'sentry/views/profiling/landing/styles';
-import {RightAlignedCell} from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
-
-import {Accordion} from '../components/accordion';
-import {GenericPerformanceWidget} from '../components/performanceWidget';
-import {GrowLink, WidgetEmptyStateWarning} from '../components/selectableList';
-import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
-import type {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
+import type {TabKey} from 'sentry/views/insights/mobile/screens/views/screenDetailsPage';
+import {ModuleName} from 'sentry/views/insights/types';
+import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
+import {
+  GrowLink,
+  WidgetEmptyStateWarning,
+} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import {transformDiscoverToList} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToList';
+import type {transformEventsRequestToArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToArea';
 import type {
+  GenericPerformanceWidgetProps,
   PerformanceWidgetProps,
   QueryDefinition,
   QueryDefinitionWithKey,
   WidgetDataConstraint,
   WidgetDataResult,
   WidgetPropUnion,
-} from '../types';
+} from 'sentry/views/performance/landing/widgets/types';
 import {
   eventsRequestQueryProps,
   getMEPParamsIfApplicable,
   QUERY_LIMIT_PARAM,
   TOTAL_EXPANDABLE_ROWS_HEIGHT,
-} from '../utils';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+} from 'sentry/views/performance/landing/widgets/utils';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets/settings';
+import {Subtitle} from 'sentry/views/profiling/landing/styles';
+import {RightAlignedCell} from 'sentry/views/replays/selectors/deadRageSelectorCards';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
 };
 
-export function transformEventsChartRequest<T extends WidgetDataConstraint>(
+type ComponentData = React.ComponentProps<
+  GenericPerformanceWidgetProps<DataType>['Visualizations'][0]['component']
+>;
+
+function transformEventsChartRequest<T extends WidgetDataConstraint>(
   widgetProps: WidgetPropUnion<T>,
   results: RenderProps,
   _: QueryDefinitionWithKey<T>
@@ -75,7 +85,7 @@ export function transformEventsChartRequest<T extends WidgetDataConstraint>(
     ...results,
     isLoading: results.loading || results.reloading,
     isErrored: results.errored,
-    hasData: defined(data) && !!data.length && !!data[0].data.length,
+    hasData: defined(data) && !!data.length && !!data[0]!.data.length,
     data,
     previousData: results.previousTimeseriesData ?? undefined,
 
@@ -91,6 +101,7 @@ export function transformEventsChartRequest<T extends WidgetDataConstraint>(
 
 function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   const api = useApi();
+  const theme = useTheme();
   const pageFilter = usePageFilters();
   const mepSetting = useMEPSettingContext();
   const {
@@ -102,8 +113,12 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {InteractiveTitle} = props;
   const {setPageError} = usePageAlert();
+  const dataset = DiscoverDatasets.SPANS;
 
-  const field = props.fields[0];
+  const queryParams: Record<string, string> = {...EAP_QUERY_PARAMS};
+  const segmentOp = 'span.op';
+
+  const field = props.fields[0]!;
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -114,16 +129,18 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
         }
 
         const eventView = provided.eventView.clone();
-        let extraQueryParams = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
+        let extraQueryParams = queryParams;
 
         // Set fields
-        const sortField = {
-          [PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID]: 'count()',
-          [PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START]:
-            'count_starts(measurements.app_start_cold)',
-          [PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START]:
-            'count_starts(measurements.app_start_warm)',
-        }[props.chartSetting];
+        const sortField: string = (
+          {
+            [PerformanceWidgetSetting.SLOW_SCREENS_BY_TTID]: 'count()',
+            [PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START]:
+              'count_starts(measurements.app_start_cold)',
+            [PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START]:
+              'count_starts(measurements.app_start_warm)',
+          } as any
+        )[props.chartSetting];
         eventView.fields = [{field: 'transaction'}, {field}, {field: sortField}];
         eventView.sorts = [
           {
@@ -133,16 +150,15 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
         ];
 
         // Change data set to metrics
-        eventView.dataset = DiscoverDatasets.METRICS;
+        eventView.dataset = dataset;
         extraQueryParams = {
           ...extraQueryParams,
-          dataset: DiscoverDatasets.METRICS,
+          ...queryParams,
         };
 
         // Update query
         const mutableSearch = new MutableSearch(eventView.query);
-        mutableSearch.addFilterValue('event.type', 'transaction');
-        mutableSearch.addFilterValue('transaction.op', 'ui.load');
+        mutableSearch.addFilterValue(segmentOp, 'ui.load');
         eventView.query = appendReleaseFilters(
           mutableSearch,
           primaryRelease,
@@ -195,19 +211,18 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
           const partialDataParam = true;
 
           eventView.additionalConditions.setFilterValues('transaction', [
-            provided.widgetData.list.data[selectedListIndex].transaction as string,
+            provided.widgetData.list.data[selectedListIndex]!.transaction as string,
           ]);
 
-          eventView.dataset = DiscoverDatasets.METRICS;
+          eventView.dataset = dataset;
           extraQueryParams = {
             ...extraQueryParams,
-            dataset: DiscoverDatasets.METRICS,
+            ...queryParams,
           };
 
           eventView.fields = [{field}, {field: 'release'}];
           const mutableSearch = new MutableSearch(eventView.query);
-          mutableSearch.addFilterValue('event.type', 'transaction');
-          mutableSearch.addFilterValue('transaction.op', 'ui.load');
+          mutableSearch.addFilterValue(segmentOp, 'ui.load');
           eventView.query = appendReleaseFilters(
             mutableSearch,
             primaryRelease,
@@ -256,13 +271,11 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
     chart: chartQuery,
   };
 
-  const assembleAccordionItems = provided =>
+  const assembleAccordionItems = (provided: ComponentData) =>
     getItems(provided).map(item => ({header: item, content: getChart(provided)}));
 
-  const getChart = provided => {
-    const transformedReleaseSeries: {
-      [releaseVersion: string]: Series;
-    } = {};
+  const getChart = (provided: ComponentData) => {
+    const transformedReleaseSeries: Record<string, Series> = {};
 
     const series = provided.widgetData.chart.data;
     if (defined(series)) {
@@ -278,7 +291,8 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
             } as SeriesDataUnit;
           }) ?? [];
 
-        const color = isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1];
+        const colors = theme.chart.getColorPalette(3);
+        const color = isPrimary ? colors[0] : colors[1];
         transformedReleaseSeries[release] = {
           seriesName: formatVersion(label, true),
           color,
@@ -304,6 +318,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
           valueFormatter: value =>
             tooltipFormatterUsingAggregateOutputType(value, 'duration'),
         }}
+        // @ts-expect-error TS(2339): Property 'error' does not exist on type 'WidgetDat... Remove this comment to see the full error message
         error={provided.widgetData.chart.error}
         disableXAxis
         showLegend={false}
@@ -317,18 +332,17 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
     PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START,
     PerformanceWidgetSetting.SLOW_SCREENS_BY_WARM_START,
   ].includes(props.chartSetting);
-  const targetModulePath = isAppStartup
-    ? moduleURLBuilder('app_start')
-    : moduleURLBuilder('screen_load');
+  const targetModulePath = moduleURLBuilder(ModuleName.MOBILE_VITALS);
   const targetQueryParams = isAppStartup
     ? {
+        tab: 'app_start' satisfies TabKey,
         app_start_type:
           props.chartSetting === PerformanceWidgetSetting.SLOW_SCREENS_BY_COLD_START
             ? 'cold'
             : 'warm',
       }
-    : {};
-  const getItems = provided =>
+    : {tab: 'screen_load' satisfies TabKey};
+  const getItems = (provided: ComponentData) =>
     provided.widgetData.list.data.map((listItem, i) => {
       const transaction = (listItem.transaction as string | undefined) ?? '';
 
@@ -336,7 +350,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
         <Fragment key={i}>
           <GrowLink
             to={{
-              pathname: `${targetModulePath}/spans/`,
+              pathname: `${targetModulePath}/details/`,
               query: {
                 project: listItem['project.id'],
                 transaction,
@@ -351,14 +365,15 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
           </GrowLink>
           <RightAlignedCell>
             <StyledDurationWrapper>
-              <PerformanceDuration milliseconds={listItem[field]} abbreviation />
+              {/* milliseconds expects a number */}
+              <PerformanceDuration milliseconds={listItem[field] as any} abbreviation />
             </StyledDurationWrapper>
           </RightAlignedCell>
         </Fragment>
       );
     });
 
-  const Visualizations = [
+  const Visualizations: GenericPerformanceWidgetProps<DataType>['Visualizations'] = [
     {
       component: provided =>
         isLoadingReleases || provided.widgetData.chart.loading ? (

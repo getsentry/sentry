@@ -1,17 +1,20 @@
 import {Fragment} from 'react';
 
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportGenericInstallStep,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -28,7 +31,7 @@ end`;
 
 const getConfigureSnippet = (params: Params) => `
   config :sentry,
-  dsn: "${params.dsn}",
+  dsn: "${params.dsn.public}",
   environment_name: Mix.env(),
   enable_source_code_context: true,
   root_source_code_paths: [File.cwd!()]`;
@@ -59,7 +62,8 @@ end`;
 
 const getVerifySnippet = () => `
 try do
-  ThisWillError.really()
+  a = 1 / 0
+  IO.puts(a)
 rescue
   my_exception ->
     Sentry.capture_exception(my_exception, stacktrace: __STACKTRACE__)
@@ -70,8 +74,8 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'Edit your [mixCode:mix.exs] file to add it as a dependency and add the [sentryCode::sentry] package to your applications:',
-        {sentryCode: <code />, mixCode: <code />}
+        'Edit your [code:mix.exs] file to add it as a dependency and add the [code::sentry] package to your applications:',
+        {code: <code />}
       ),
       configurations: [
         {
@@ -111,10 +115,9 @@ const onboarding: OnboardingConfig = {
         <Fragment>
           <p>
             {tct(
-              'You can capture errors in Plug (and Phoenix) applications with [plugContext:Sentry.PlugContext] and [plugCapture:Sentry.PlugCapture]:',
+              'You can capture errors in Plug (and Phoenix) applications with [code:Sentry.PlugContext] and [code:Sentry.PlugCapture]:',
               {
-                plugContext: <code />,
-                plugCapture: <code />,
+                code: <code />,
               }
             )}
           </p>
@@ -127,10 +130,9 @@ const onboarding: OnboardingConfig = {
         },
       ],
       additionalInfo: tct(
-        '[sentryPlugContextCode:Sentry.PlugContext] gathers the contextual information for errors, and [sentryPlugCaptureCode:Sentry.PlugCapture] captures and sends any errors that occur in the Plug stack.',
+        '[code:Sentry.PlugContext] gathers the contextual information for errors, and [code:Sentry.PlugCapture] captures and sends any errors that occur in the Plug stack.',
         {
-          sentryPlugCaptureCode: <code />,
-          sentryPlugContextCode: <code />,
+          code: <code />,
         }
       ),
     },
@@ -181,6 +183,7 @@ const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   crashReportOnboarding,
+  feedbackOnboardingJsLoader,
 };
 
 export default docs;

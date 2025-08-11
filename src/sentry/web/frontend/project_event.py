@@ -1,6 +1,5 @@
-from django.http import Http404, HttpResponseRedirect
+from django.http import Http404, HttpRequest, HttpResponseRedirect
 from django.urls import reverse
-from rest_framework.request import Request
 
 from sentry import eventstore
 from sentry.web.frontend.base import ProjectView, region_silo_view
@@ -11,7 +10,7 @@ class ProjectEventRedirect(ProjectView):
     required_scope = "event:read"
 
     def handle(
-        self, request: Request, organization, project, client_event_id
+        self, request: HttpRequest, organization, project, client_event_id
     ) -> HttpResponseRedirect:
         """
         Given a client event id and project, redirects to the event page

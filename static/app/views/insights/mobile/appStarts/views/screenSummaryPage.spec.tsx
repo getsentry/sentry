@@ -1,5 +1,6 @@
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
@@ -7,7 +8,7 @@ import {render, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ScreenSummary} from 'sentry/views/insights/mobile/appStarts/views/screenSummaryPage';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
@@ -31,25 +32,23 @@ describe('Screen Summary', function () {
     state: undefined,
   } as Location);
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [parseInt(project.id, 10)],
       },
-      environments: [],
-      projects: [parseInt(project.id, 10)],
-    },
-  });
+    })
+  );
 
   describe('Native Project', function () {
-    let eventsMock;
+    let eventsMock: jest.Mock;
 
     beforeEach(() => {
       MockApiClient.addMockResponse({
@@ -85,13 +84,13 @@ describe('Screen Summary', function () {
         action: 'PUSH',
         hash: '',
         key: '',
-        pathname: '/organizations/org-slug/performance/mobile/screens/spans/',
+        pathname: '/organizations/org-slug/insights/screens/spans/',
         query: {
           project: project.id,
           transaction: 'MainActivity',
           primaryRelease: 'com.example.vu.android@2.10.5',
           secondaryRelease: 'com.example.vu.android@2.10.3+42',
-          [SpanMetricsField.APP_START_TYPE]: 'cold',
+          [SpanFields.APP_START_TYPE]: 'cold',
         },
         search: '',
         state: undefined,
@@ -102,12 +101,12 @@ describe('Screen Summary', function () {
           data: [
             {
               'span.op': 'app.start.cold',
-              'avg_if(span.duration,release,com.example.vu.android@2.10.5)': 1000,
-              'avg_if(span.duration,release,com.example.vu.android@2.10.3+42)': 2000,
+              'avg_if(span.duration,release,equals,com.example.vu.android@2.10.5)': 1000,
+              'avg_if(span.duration,release,equals,com.example.vu.android@2.10.3+42)': 2000,
               'avg_compare(span.duration,release,com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42)':
                 -0.5,
-              'count_if(release,com.example.vu.android@2.10.5)': 20,
-              'count_if(release,com.example.vu.android@2.10.3+42)': 10,
+              'count_if(release,equals,com.example.vu.android@2.10.5)': 20,
+              'count_if(release,equals,com.example.vu.android@2.10.3+42)': 10,
             },
           ],
         },
@@ -116,7 +115,7 @@ describe('Screen Summary', function () {
         ],
       });
 
-      render(<ScreenSummary />, {organization});
+      render(<ScreenSummary />, {organization, deprecatedRouterMocks: true});
 
       await waitFor(() => {
         expect(eventsMock).toHaveBeenCalled();

@@ -1,17 +1,19 @@
 import {Component, Fragment} from 'react';
-import {components} from 'react-select';
 import styled from '@emotion/styled';
 import difference from 'lodash/difference';
 
 import {openProjectCreationModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Container} from 'sentry/components/core/layout';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Select} from 'sentry/components/core/select';
+import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import type FormModel from 'sentry/components/forms/model';
 import type {ProjectMapperType} from 'sentry/components/forms/types';
 import IdBadge from 'sentry/components/idBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {
   IconAdd,
@@ -67,7 +69,7 @@ export class RenderField extends Component<RenderProps, State> {
 
     if (newProjects.length === 1) {
       this.setState({
-        selectedSentryProjectId: newProjects[0],
+        selectedSentryProjectId: newProjects[0]!,
       });
     }
   }
@@ -207,14 +209,14 @@ export class RenderField extends Component<RenderProps, State> {
               t('Deleted')
             )}
           </MappedProjectWrapper>
-          <DeleteButtonWrapper>
+          <Container area="manage-project">
             <Button
               onClick={() => handleDelete(index)}
               icon={<IconDelete color="gray300" />}
               size="sm"
               aria-label={t('Delete')}
             />
-          </DeleteButtonWrapper>
+          </Container>
         </Item>
       );
     };
@@ -223,12 +225,12 @@ export class RenderField extends Component<RenderProps, State> {
       <Fragment>
         {existingValues.map(renderItem)}
         <Item>
-          <SelectControl
+          <Select
             placeholder={mappedValuePlaceholder}
             name="mappedDropdown"
             options={mappedItemOptions}
             components={{
-              SingleValue: containerProps => {
+              SingleValue: (containerProps: any) => {
                 return (
                   <components.ValueContainer {...containerProps}>
                     <MappedValueContainer>
@@ -243,12 +245,12 @@ export class RenderField extends Component<RenderProps, State> {
             value={selectedMappedValue}
           />
           <RightArrow size="xs" direction="right" />
-          <SelectControl
+          <Select
             placeholder={t('Sentry project\u2026')}
             name="project"
             options={projectOptions}
             components={{
-              SingleValue: containerProps => {
+              SingleValue: (containerProps: any) => {
                 return (
                   <components.ValueContainer {...containerProps}>
                     {renderIdBadge({id: selectedSentryProjectId, hideName: false})}
@@ -259,7 +261,7 @@ export class RenderField extends Component<RenderProps, State> {
             onChange={handleSelectProject}
             value={selectedSentryProjectId}
           />
-          <AddProjectWrapper>
+          <Container area="manage-project">
             <Button
               disabled={!selectedSentryProjectId || !selectedMappedValue}
               size="sm"
@@ -268,7 +270,7 @@ export class RenderField extends Component<RenderProps, State> {
               icon={<IconAdd />}
               aria-label={t('Add project')}
             />
-          </AddProjectWrapper>
+          </Container>
           <FieldControlWrapper>
             {formElementId && (
               <FormFieldControlState model={model} name={formElementId} />
@@ -279,7 +281,7 @@ export class RenderField extends Component<RenderProps, State> {
           <NextButtonPanelAlert type="muted">
             <NextButtonWrapper>
               {nextDescription ?? ''}
-              <Button
+              <LinkButton
                 size="sm"
                 priority="primary"
                 icon={<IconOpen />}
@@ -291,7 +293,7 @@ export class RenderField extends Component<RenderProps, State> {
                 }}
               >
                 {nextButtonText}
-              </Button>
+              </LinkButton>
             </NextButtonWrapper>
           </NextButtonPanelAlert>
         )}
@@ -353,17 +355,9 @@ const RightArrow = styled(IconArrow)`
   grid-area: arrow;
 `;
 
-const DeleteButtonWrapper = styled('div')`
-  grid-area: manage-project;
-`;
-
 const IntegrationIconWrapper = styled('span')`
   display: flex;
   align-items: center;
-`;
-
-const AddProjectWrapper = styled('div')`
-  grid-area: manage-project;
 `;
 
 const StyledFormField = styled(FormField)`

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
@@ -24,13 +24,13 @@ export function OtherPlatformsInfo({
   const {
     data = [],
     isError,
-    isLoading,
+    isPending,
     refetch,
   } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectSlug}/keys/`], {
     staleTime: Infinity,
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -45,7 +45,7 @@ export function OtherPlatformsInfo({
         platform
       )}
       <CodeSnippet dark language="properties">
-        {t('dsn: %s', data[0].dsn.public)}
+        {t('dsn: %s', data[0]!.dsn.public)}
       </CodeSnippet>
       <Suggestion>
         {t(

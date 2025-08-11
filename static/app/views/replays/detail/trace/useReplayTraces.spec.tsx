@@ -4,19 +4,22 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as useOrganization from 'sentry/utils/useOrganization';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {useReplayTraces} from './useReplayTraces';
 
-const organization = OrganizationFixture();
 const queryClient = makeTestQueryClient();
 const replayRecord = ReplayRecordFixture();
+const organization = OrganizationFixture();
+
+const wrapper = ({children}: {children: React.ReactNode}) => (
+  <OrganizationContext value={organization}>{children}</OrganizationContext>
+);
 
 describe('useTraceMeta', () => {
   beforeEach(function () {
     queryClient.clear();
     jest.clearAllMocks();
-    jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
   });
 
   it('Returns replay traces', async () => {
@@ -43,13 +46,15 @@ describe('useTraceMeta', () => {
       },
     });
 
-    const {result} = renderHook(() => useReplayTraces({replayRecord}));
+    const {result} = renderHook(() => useReplayTraces({replayRecord}), {
+      wrapper,
+    });
 
-    expect(result.current.indexComplete).toEqual(false);
+    expect(result.current.indexComplete).toBe(false);
 
     await waitFor(() => expect(result.current.indexComplete).toBe(true));
 
-    expect(result.current.indexComplete).toEqual(true);
+    expect(result.current.indexComplete).toBe(true);
     expect(result.current.replayTraces).toEqual([
       {traceSlug: 'trace1', timestamp: 1},
       {traceSlug: 'trace2', timestamp: 2},
@@ -69,14 +74,16 @@ describe('useTraceMeta', () => {
       statusCode: 400,
     });
 
-    const {result} = renderHook(() => useReplayTraces({replayRecord}));
+    const {result} = renderHook(() => useReplayTraces({replayRecord}), {
+      wrapper,
+    });
 
-    expect(result.current.indexComplete).toEqual(false);
+    expect(result.current.indexComplete).toBe(false);
 
     await waitFor(() => expect(result.current.indexComplete).toBe(true));
 
-    expect(result.current.indexComplete).toEqual(true);
-    expect(result.current.replayTraces).toEqual(undefined);
+    expect(result.current.indexComplete).toBe(true);
+    expect(result.current.replayTraces).toBeUndefined();
     expect(result.current.indexError as Error).toEqual(
       expect.objectContaining({status: 400})
     );

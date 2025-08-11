@@ -1,17 +1,24 @@
-import type {InjectedRouter} from 'react-router';
+import {useEffect} from 'react';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {
   getDatetimeFromState,
   normalizeDateTimeString,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {getPageFilterStorage} from 'sentry/components/organizations/pageFilters/persistence';
-import type {Organization, PageFilters, SavedQuery} from 'sentry/types';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import type {PageFilters} from 'sentry/types/core';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {Organization, SavedQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
+import {type ApiQueryKey, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePrevious from 'sentry/utils/usePrevious';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -29,27 +36,38 @@ type Props = {
   setSavedQuery: (savedQuery: SavedQuery) => void;
 };
 
-type HomepageQueryState = DeprecatedAsyncComponent['state'] & {
-  savedQuery?: SavedQuery | null;
-  starfishResult?: null;
-};
+function makeDiscoverHomepageQueryKey(organization: Organization): ApiQueryKey {
+  return [`/organizations/${organization.slug}/discover/homepage/`];
+}
 
-class HomepageQueryAPI extends DeprecatedAsyncComponent<Props, HomepageQueryState> {
-  shouldReload = true;
+function Homepage(props: Props) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const {data, isLoading, isError, refetch} = useApiQuery<SavedQuery>(
+    makeDiscoverHomepageQueryKey(organization),
+    {
+      staleTime: 0,
+      enabled: organization.features.includes('discover-query'),
+    }
+  );
 
-  componentDidUpdate(_, prevState) {
-    const hasFetchedSavedQuery = !prevState.savedQuery && this.state.savedQuery;
-    const hasInitiallyLoaded = prevState.loading && !this.state.loading;
-    const sidebarClicked = this.state.savedQuery && this.props.location.search === '';
-    const hasValidEventViewInURL = EventView.fromLocation(this.props.location).isValid();
+  const savedQuery = getSavedQueryWithDataset(data);
+
+  const previousSavedQuery = usePrevious(savedQuery);
+
+  useEffect(() => {
+    const hasFetchedSavedQuery = !previousSavedQuery && savedQuery;
+    const sidebarClicked = savedQuery && location.search === '';
+    const hasValidEventViewInURL = EventView.fromLocation(location).isValid();
 
     if (
-      this.state.savedQuery &&
-      ((hasInitiallyLoaded && hasFetchedSavedQuery && !hasValidEventViewInURL) ||
-        sidebarClicked)
+      savedQuery &&
+      ((hasFetchedSavedQuery && !hasValidEventViewInURL) || sidebarClicked)
     ) {
-      const eventView = EventView.fromSavedQuery(this.state.savedQuery);
-      const pageFilterState = getPageFilterStorage(this.props.organization.slug);
+      const eventView = EventView.fromSavedQuery(savedQuery);
+      const pageFilterState = getPageFilterStorage(organization.slug);
       let query = {
         ...eventView.generateQueryStringObject(),
       };
@@ -70,81 +88,54 @@ class HomepageQueryAPI extends DeprecatedAsyncComponent<Props, HomepageQueryStat
               start: normalizeDateTimeString(start),
               end: normalizeDateTimeString(end),
             };
+          } else if (pinnedFilter === 'environments') {
+            query.environment = pageFilterState.state.environment;
           } else {
             query[pinnedFilter] = pageFilterState.state[pinnedFilter];
           }
         });
       }
 
-      browserHistory.replace({
-        ...this.props.location,
-        query: {
-          ...query,
-          queryDataset: this.state.savedQuery?.queryDataset,
+      navigate(
+        {
+          ...location,
+          query: {
+            ...query,
+            queryDataset: savedQuery?.queryDataset,
+          },
         },
-      });
+        {replace: true}
+      );
     }
+  }, [savedQuery, location, previousSavedQuery, navigate, organization.slug]);
+
+  if (isLoading) {
+    return <LoadingIndicator />;
   }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {organization} = this.props;
-
-    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [];
-    if (organization.features.includes('discover-query')) {
-      endpoints.push([
-        'savedQuery',
-        `/organizations/${organization.slug}/discover/homepage/`,
-      ]);
-    }
-    return endpoints;
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
   }
 
-  onRequestSuccess({stateKey, data}) {
-    const {organization} = this.props;
-    // No homepage query results in a 204, returning an empty string
-    if (stateKey === 'savedQuery' && data === '') {
-      this.setState({savedQuery: null});
-      return;
-    }
-    if (stateKey === 'savedQuery') {
-      this.setState({
-        savedQuery: organization.features.includes(
-          'performance-discover-dataset-selector'
-        )
-          ? getSavedQueryWithDataset(data)
-          : data,
-      });
-    }
-  }
-
-  setSavedQuery = (newSavedQuery?: SavedQuery) => {
-    const {organization} = this.props;
-    this.setState({
-      savedQuery: organization.features.includes('performance-discover-dataset-selector')
-        ? (getSavedQueryWithDataset(newSavedQuery) as SavedQuery)
-        : newSavedQuery,
-    });
+  const setSavedQuery = (newSavedQuery?: SavedQuery) => {
+    queryClient.setQueryData(makeDiscoverHomepageQueryKey(organization), newSavedQuery);
   };
 
-  renderBody(): React.ReactNode {
-    const {savedQuery, loading} = this.state;
-
-    return (
-      <Results
-        {...this.props}
-        savedQuery={savedQuery ?? undefined}
-        loading={loading}
-        setSavedQuery={this.setSavedQuery}
-        isHomepage
-      />
-    );
-  }
+  return (
+    <Results
+      {...props}
+      savedQuery={savedQuery}
+      loading={isLoading}
+      setSavedQuery={setSavedQuery}
+      isHomepage
+    />
+  );
 }
 
 function HomepageContainer(props: Props) {
   return (
     <PageFiltersContainer skipInitializeUrlParams>
-      <HomepageQueryAPI {...props} />
+      <Homepage {...props} />
     </PageFiltersContainer>
   );
 }

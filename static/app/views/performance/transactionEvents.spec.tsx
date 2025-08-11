@@ -1,3 +1,4 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -5,9 +6,14 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {WebVital} from 'sentry/utils/fields';
+import {useLocation} from 'sentry/utils/useLocation';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 
 // XXX(epurkhiser): This appears to also be tested by ./transactionSummary/transactionEvents/index.spec.tsx
+
+jest.mock('sentry/utils/useLocation');
+
+const mockUseLocation = jest.mocked(useLocation);
 
 type Data = {
   features?: string[];
@@ -26,7 +32,7 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
     router: {
       location: {
         query: {
-          transaction: '/performance',
+          transaction: '/transaction-name',
           project: '1',
           transactionCursor: '1:0:0',
           ...query,
@@ -39,6 +45,10 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
 
 describe('Performance > TransactionSummary', function () {
   beforeEach(function () {
+    mockUseLocation.mockReturnValue(
+      LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
+    );
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -146,6 +156,14 @@ describe('Performance > TransactionSummary', function () {
       url: '/organizations/org-slug/replay-count/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
   });
 
   afterEach(function () {
@@ -158,24 +176,21 @@ describe('Performance > TransactionSummary', function () {
 
     ProjectsStore.loadInitialData(projects);
 
-    render(<TransactionEvents organization={organization} location={router.location} />, {
-      router,
-    });
+    render(<TransactionEvents organization={organization} location={router.location} />);
 
     // Breadcrumb
-    expect(screen.getByRole('link', {name: 'Performance'})).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/performance/?project=1&transactionCursor=1%3A0%3A0'
+    expect((await screen.findAllByTestId('breadcrumb-item'))[0]).toHaveTextContent(
+      'Insights'
     );
 
     // Header
-    expect(screen.getByRole('heading', {name: '/performance'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: '/transaction-name'})).toBeInTheDocument();
 
     expect(
-      await screen.findByRole('textbox', {name: 'Search events'})
+      await screen.findByPlaceholderText('Search for events, users, tags, and more')
     ).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Next'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
 
     expect(screen.getByRole('table')).toBeInTheDocument();
@@ -192,9 +207,7 @@ describe('Performance > TransactionSummary', function () {
 
     ProjectsStore.loadInitialData(projects);
 
-    render(<TransactionEvents organization={organization} location={router.location} />, {
-      router,
-    });
+    render(<TransactionEvents organization={organization} location={router.location} />);
 
     expect(await screen.findByText('operation duration')).toBeInTheDocument();
     expect(screen.getAllByRole('columnheader')).toHaveLength(6);
@@ -207,9 +220,7 @@ describe('Performance > TransactionSummary', function () {
 
     ProjectsStore.loadInitialData(projects);
 
-    render(<TransactionEvents organization={organization} location={router.location} />, {
-      router,
-    });
+    render(<TransactionEvents organization={organization} location={router.location} />);
 
     const tableHeader = await screen.findAllByRole('columnheader');
     expect(tableHeader).toHaveLength(6);
@@ -222,7 +233,7 @@ describe('Performance > TransactionSummary', function () {
 
     const tableFirstRowColumns = screen.getAllByRole('cell');
     expect(tableFirstRowColumns[0]).toHaveTextContent('deadbeef');
-    expect(tableFirstRowColumns[1]).toHaveTextContent('Uuhoh@example.com');
+    expect(tableFirstRowColumns[1]).toHaveTextContent('uhoh@example.com');
     expect(tableFirstRowColumns[2]).toHaveTextContent('(no value)');
     expect(tableFirstRowColumns[3]).toHaveTextContent('400.00ms');
     expect(tableFirstRowColumns[4]).toHaveTextContent('1234');
@@ -238,9 +249,7 @@ describe('Performance > TransactionSummary', function () {
 
     ProjectsStore.loadInitialData(projects);
 
-    render(<TransactionEvents organization={organization} location={router.location} />, {
-      router,
-    });
+    render(<TransactionEvents organization={organization} location={router.location} />);
 
     const tableHeader = await screen.findAllByRole('columnheader');
     expect(tableHeader).toHaveLength(7);
@@ -254,7 +263,7 @@ describe('Performance > TransactionSummary', function () {
 
     const tableFirstRowColumns = screen.getAllByRole('cell');
     expect(tableFirstRowColumns[0]).toHaveTextContent('deadbeef');
-    expect(tableFirstRowColumns[1]).toHaveTextContent('Uuhoh@example.com');
+    expect(tableFirstRowColumns[1]).toHaveTextContent('uhoh@example.com');
     expect(tableFirstRowColumns[2]).toHaveTextContent('(no value)');
     expect(tableFirstRowColumns[3]).toHaveTextContent('200');
     expect(tableFirstRowColumns[4]).toHaveTextContent('400.00ms');

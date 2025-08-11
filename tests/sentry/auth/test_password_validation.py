@@ -7,8 +7,8 @@ from pytest import raises
 
 from sentry.auth.password_validation import validate_password
 from sentry.conf.server import AUTH_PASSWORD_VALIDATORS
-from sentry.models.user import User
 from sentry.testutils.cases import TestCase
+from sentry.users.models.user import User
 
 PWNED_PASSWORDS_RESPONSE_MOCK = """4145D488EF49819E75E71019A6E8EA21905:1
 4186AA7593257C23D6A76D99FBEB3D3FEAF:2
@@ -26,24 +26,24 @@ AUTH_PASSWORD_VALIDATORS_TEST: list[dict[str, Any]] = [
 
 @override_settings(AUTH_PASSWORD_VALIDATORS=AUTH_PASSWORD_VALIDATORS_TEST)
 class PasswordValidationTestCase(TestCase):
-    def test_user_attribute_similarity(self):
+    def test_user_attribute_similarity(self) -> None:
         user = User(username="hello@example.com")
         with raises(ValidationError, match="The password is too similar to the username."):
             validate_password("hallo@example.com", user=user)
 
-    def test_minimum_length(self):
+    def test_minimum_length(self) -> None:
         with raises(ValidationError, match="This password is too short."):
             validate_password("p@sswrd")
 
-    def test_maximum_length(self):
+    def test_maximum_length(self) -> None:
         with raises(ValidationError, match="This password is too long."):
             validate_password("A" * 257)
 
-    def test_common_password(self):
+    def test_common_password(self) -> None:
         with raises(ValidationError, match="This password is too common."):
             validate_password("password")
 
-    def test_numeric_password(self):
+    def test_numeric_password(self) -> None:
         with raises(ValidationError, match="This password is entirely numeric."):
             validate_password("12345670007654321")
 
@@ -56,7 +56,7 @@ class PasswordValidationTestCase(TestCase):
             }
         ]
     )
-    def test_pwned_passwords(self):
+    def test_pwned_passwords(self) -> None:
         # sha1("hiphophouse") == "74BA3..."
         responses.add(
             responses.GET,
@@ -78,16 +78,13 @@ class PasswordValidationTestCase(TestCase):
             }
         ]
     )
-    def test_pwned_passwords_low_threshold(self):
+    def test_pwned_passwords_low_threshold(self) -> None:
         responses.add(
             responses.GET,
             "https://api.pwnedpasswords.com/range/74BA3",
             body=PWNED_PASSWORDS_RESPONSE_MOCK,
         )
-        try:
-            validate_password("hiphophouse")
-        except ValidationError:
-            assert False, "ValidationError was thrown"
+        validate_password("hiphophouse")  # should not raise
 
     @responses.activate
     @override_settings(
@@ -95,13 +92,10 @@ class PasswordValidationTestCase(TestCase):
             {"NAME": "sentry.auth.password_validation.PwnedPasswordsValidator"}
         ]
     )
-    def test_pwned_passwords_corrupted_content(self):
+    def test_pwned_passwords_corrupted_content(self) -> None:
         responses.add(
             responses.GET,
             "https://api.pwnedpasswords.com/range/74BA3",
             body="corrupted_content_with_no_colon",
         )
-        try:
-            validate_password("hiphophouse")
-        except ValidationError:
-            assert False, "ValidationError was thrown"
+        validate_password("hiphophouse")  # should not raise

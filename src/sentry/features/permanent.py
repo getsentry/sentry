@@ -22,6 +22,8 @@ def register_permanent_features(manager: FeatureManager):
     permanent_organization_features = {
         # Enable advanced search features, like negation and wildcard matching.
         "organizations:advanced-search": True,
+        # Enable anomaly detection alerts
+        "organizations:anomaly-detection-alerts": False,
         # Enable multiple Apple app-store-connect sources per project.
         "organizations:app-store-connect-multiple": False,
         # Enable change alerts for an org
@@ -46,8 +48,6 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:dynamic-sampling": False,
         # Enable attaching arbitrary files to events.
         "organizations:event-attachments": True,
-        # Enable multi project selection
-        "organizations:global-views": False,
         # Enable incidents feature
         "organizations:incidents": False,
         # Enable integration functionality to work with alert rules
@@ -76,6 +76,8 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:integrations-stacktrace-link": True,
         # Allow orgs to automatically create Tickets in Issue Alerts
         "organizations:integrations-ticket-rules": True,
+        # Enable metric alert charts in email/slack
+        "organizations:metric-alert-chartcuterie": False,
         # Enable Performance view
         "organizations:performance-view": True,
         # Enable profiling view
@@ -96,10 +98,17 @@ def register_permanent_features(manager: FeatureManager):
         # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
         # must be installed to use this functionality.
         "organizations:sso-saml2": True,
+        # Enable 'spans' category on the stats page
+        "organizations:span-stats": False,
         # Enable team insights page
         "organizations:team-insights": True,
         # Enable setting team-level roles and receiving permissions from them
         "organizations:team-roles": True,
+        # Enable the uptime monitoring features
+        "organizations:uptime": True,
+        # Feature flag for continuous profiling billing-related features.
+        # Separate from organizations:continuous-profiling feature flag.
+        "organizations:continuous-profiling-billing": False,
         # Signals that the organization supports the on demand metrics prefill.
         "organizations:on-demand-metrics-prefill": False,
         # Metrics: Enable ingestion and storage of custom metrics. See custom-metrics for UI.
@@ -111,6 +120,12 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:sentry-pride-logo-footer": False,
         # Enable priority calculations using Seer's severity endpoint
         "organizations:seer-based-priority": False,
+        # Enable Vercel integration - there is a custom handler in getsentry
+        "organizations:integrations-vercel": True,
+        # Enable GitHub multi-org for users to connect many Sentry orgs to a single GitHub org.
+        "organizations:integrations-scm-multi-org": True,
+        # Enable issue view endpoints and UI
+        "organizations:issue-views": False,
     }
 
     permanent_project_features = {

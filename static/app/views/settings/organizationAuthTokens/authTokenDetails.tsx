@@ -5,10 +5,10 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import {ExternalLink} from 'sentry/components/core/link';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -16,8 +16,8 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {Organization, OrgAuthToken} from 'sentry/types';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import type {Organization} from 'sentry/types/organization';
+import type {OrgAuthToken} from 'sentry/types/user';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
   getApiQueryData,
@@ -27,8 +27,8 @@ import {
   useQueryClient,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -51,10 +51,7 @@ type UpdateTokenQueryVariables = {
   name: string;
 };
 
-export const makeFetchOrgAuthTokenKey = ({
-  orgSlug,
-  tokenId,
-}: FetchOrgAuthTokenParameters) =>
+const makeFetchOrgAuthTokenKey = ({orgSlug, tokenId}: FetchOrgAuthTokenParameters) =>
   [`/organizations/${orgSlug}/org-auth-tokens/${tokenId}/`] as const;
 
 function AuthTokenDetailsForm({
@@ -69,14 +66,20 @@ function AuthTokenDetailsForm({
     tokenPreview: tokenPreview(token.tokenLastCharacters || '****'),
   };
 
+  const navigate = useNavigate();
   const api = useApi();
   const queryClient = useQueryClient();
 
-  const handleGoBack = useCallback(() => {
-    browserHistory.push(normalizeUrl(`/settings/${organization.slug}/auth-tokens/`));
-  }, [organization.slug]);
+  const handleGoBack = useCallback(
+    () => navigate(`/settings/${organization.slug}/auth-tokens/`),
+    [navigate, organization.slug]
+  );
 
-  const {mutate: submitToken} = useMutation<{}, RequestError, UpdateTokenQueryVariables>({
+  const {mutate: submitToken} = useMutation<
+    unknown,
+    RequestError,
+    UpdateTokenQueryVariables
+  >({
     mutationFn: ({name}) =>
       api.requestPromise(
         `/organizations/${organization.slug}/org-auth-tokens/${token.id}/`,
@@ -179,11 +182,11 @@ function AuthTokenDetailsForm({
   );
 }
 
-export function OrganizationAuthTokensDetails({params, organization}: Props) {
+function OrganizationAuthTokensDetails({params, organization}: Props) {
   const {tokenId} = params;
 
   const {
-    isLoading,
+    isPending,
     isError,
     data: token,
     refetch: refetchToken,
@@ -196,8 +199,8 @@ export function OrganizationAuthTokensDetails({params, organization}: Props) {
 
   return (
     <div>
-      <SentryDocumentTitle title={t('Edit Auth Token')} />
-      <SettingsPageHeader title={t('Edit Auth Token')} />
+      <SentryDocumentTitle title={t('Edit Organization Token')} />
+      <SettingsPageHeader title={t('Edit Organization Token')} />
 
       <TextBlock>
         {t(
@@ -213,19 +216,19 @@ export function OrganizationAuthTokensDetails({params, organization}: Props) {
         )}
       </TextBlock>
       <Panel>
-        <PanelHeader>{t('Auth Token Details')}</PanelHeader>
+        <PanelHeader>{t('Organization Token Details')}</PanelHeader>
 
         <PanelBody>
           {isError && (
             <LoadingError
-              message={t('Failed to load auth token.')}
+              message={t('Failed to load organization token.')}
               onRetry={refetchToken}
             />
           )}
 
-          {isLoading && <LoadingIndicator />}
+          {isPending && <LoadingIndicator />}
 
-          {!isLoading && !isError && token && (
+          {!isPending && !isError && token && (
             <AuthTokenDetailsForm token={token} organization={organization} />
           )}
         </PanelBody>

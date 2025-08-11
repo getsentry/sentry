@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Generator, Iterable
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import sentry_sdk
@@ -25,6 +25,7 @@ from snuba_sdk import (
     OrderBy,
     Query,
     Request,
+    Storage,
 )
 
 from sentry import features, options, projectoptions
@@ -34,12 +35,13 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.statistical_detectors import RegressionType
 from sentry.profiles.utils import get_from_profiling_service
+from sentry.search.events.fields import resolve_datetime64
 from sentry.search.events.types import SnubaParams
 from sentry.seer.breakpoints import BreakpointData
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba import functions
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.dataset import Dataset, EntityKey, StorageKey
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
@@ -56,6 +58,8 @@ from sentry.statistical_detectors.issue_platform_adapter import (
 from sentry.statistical_detectors.redis import RedisDetectorStore
 from sentry.statistical_detectors.store import DetectorStore
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import performance_tasks, profiling_tasks
 from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.math import ExponentialMovingAverage
@@ -108,6 +112,10 @@ def all_projects_with_flags() -> Generator[tuple[int, int]]:
     name="sentry.tasks.statistical_detectors.run_detection",
     queue="performance.statistical_detector",
     max_retries=0,
+    taskworker_config=TaskworkerConfig(
+        namespace=performance_tasks,
+        processing_deadline_duration=30,
+    ),
 )
 def run_detection() -> None:
     if not options.get("statistical_detectors.enable"):
@@ -162,7 +170,7 @@ def dispatch_performance_projects(
                 args=[
                     [],
                     projects,
-                    timestamp,
+                    timestamp.isoformat(),
                 ],
                 countdown=compute_delay(timestamp, (count - 1) // PROJECTS_PER_BATCH),
             )
@@ -176,7 +184,7 @@ def dispatch_performance_projects(
             args=[
                 [],
                 projects,
-                timestamp,
+                timestamp.isoformat(),
             ],
             countdown=compute_delay(timestamp, (count - 1) // PROJECTS_PER_BATCH),
         )
@@ -203,7 +211,7 @@ def dispatch_profiling_projects(
 
         if len(projects) >= PROJECTS_PER_BATCH:
             detect_function_trends.apply_async(
-                args=[projects, timestamp],
+                args=[projects, timestamp.isoformat()],
                 countdown=compute_delay(timestamp, (count - 1) // PROJECTS_PER_BATCH),
             )
             projects = []
@@ -213,7 +221,7 @@ def dispatch_profiling_projects(
     # make sure to dispatch a task to handle the remaining projects
     if projects:
         detect_function_trends.apply_async(
-            args=[projects, timestamp],
+            args=[projects, timestamp.isoformat()],
             countdown=compute_delay(timestamp, (count - 1) // PROJECTS_PER_BATCH),
         )
 
@@ -233,6 +241,10 @@ class EndpointRegressionDetector(RegressionDetector):
     buffer_period = timedelta(days=1)
     resolution_rel_threshold = 0.1
     escalation_rel_threshold = 0.75
+
+    @classmethod
+    def min_throughput_threshold(cls) -> int:
+        return options.get("statistical_detectors.throughput.threshold.transactions")
 
     @classmethod
     def detector_algorithm_factory(cls) -> DetectorAlgorithm:
@@ -277,6 +289,10 @@ class FunctionRegressionDetector(RegressionDetector):
     escalation_rel_threshold = 0.75
 
     @classmethod
+    def min_throughput_threshold(cls) -> int:
+        return options.get("statistical_detectors.throughput.threshold.functions")
+
+    @classmethod
     def detector_algorithm_factory(cls) -> DetectorAlgorithm:
         return MovingAverageRelativeChangeDetector(
             source=cls.source,
@@ -313,12 +329,18 @@ class FunctionRegressionDetector(RegressionDetector):
     name="sentry.tasks.statistical_detectors.detect_transaction_trends",
     queue="performance.statistical_detector",
     max_retries=0,
+    taskworker_config=TaskworkerConfig(
+        namespace=performance_tasks,
+        processing_deadline_duration=30,
+    ),
 )
 def detect_transaction_trends(
-    _org_ids: list[int], project_ids: list[int], start: datetime, *args, **kwargs
+    _org_ids: list[int], project_ids: list[int], start: str, *args, **kwargs
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
+
+    start_time = datetime.fromisoformat(start)
 
     EndpointRegressionDetector.configure_tags()
 
@@ -327,20 +349,20 @@ def detect_transaction_trends(
         project_option=InternalProjectOptions.TRANSACTION_DURATION_REGRESSION,
     )
 
-    trends = EndpointRegressionDetector.detect_trends(projects, start)
+    trends = EndpointRegressionDetector.detect_trends(projects, start_time)
     trends = EndpointRegressionDetector.get_regression_groups(trends)
-    trends = EndpointRegressionDetector.redirect_resolutions(trends, start)
-    trends = EndpointRegressionDetector.redirect_escalations(trends, start)
+    trends = EndpointRegressionDetector.redirect_resolutions(trends, start_time)
+    trends = EndpointRegressionDetector.redirect_escalations(trends, start_time)
     trends = EndpointRegressionDetector.limit_regressions_by_project(trends)
 
     delay = 12  # hours
-    delayed_start = start + timedelta(hours=delay)
+    delayed_start = start_time + timedelta(hours=delay)
 
     for regression_chunk in chunked(trends, TRANSACTIONS_PER_BATCH):
         detect_transaction_change_points.apply_async(
             args=[
                 [(bundle.payload.project_id, bundle.payload.group) for bundle in regression_chunk],
-                delayed_start,
+                delayed_start.isoformat(),
             ],
             # delay the check by delay hours because we want to make sure there
             # will be enough data after the potential change point to be confident
@@ -353,11 +375,16 @@ def detect_transaction_trends(
     name="sentry.tasks.statistical_detectors.detect_transaction_change_points",
     queue="performance.statistical_detector",
     max_retries=0,
+    taskworker_config=TaskworkerConfig(
+        namespace=performance_tasks,
+    ),
 )
 def detect_transaction_change_points(
-    transactions: list[tuple[int, str | int]], start: datetime, *args, **kwargs
+    transactions: list[tuple[int, str | int]], start: str, *args, **kwargs
 ) -> None:
-    _detect_transaction_change_points(transactions, start, *args, **kwargs)
+    start_time = datetime.fromisoformat(start)
+
+    _detect_transaction_change_points(transactions, start_time, *args, **kwargs)
 
 
 def _detect_transaction_change_points(
@@ -402,10 +429,16 @@ def _detect_transaction_change_points(
     name="sentry.tasks.statistical_detectors.detect_function_trends",
     queue="profiling.statistical_detector",
     max_retries=0,
+    taskworker_config=TaskworkerConfig(
+        namespace=profiling_tasks,
+        processing_deadline_duration=30,
+    ),
 )
-def detect_function_trends(project_ids: list[int], start: datetime, *args, **kwargs) -> None:
+def detect_function_trends(project_ids: list[int], start: str, *args, **kwargs) -> None:
     if not options.get("statistical_detectors.enable"):
         return
+
+    start_time = datetime.fromisoformat(start)
 
     FunctionRegressionDetector.configure_tags()
 
@@ -414,20 +447,20 @@ def detect_function_trends(project_ids: list[int], start: datetime, *args, **kwa
         project_option=InternalProjectOptions.FUNCTION_DURATION_REGRESSION,
     )
 
-    trends = FunctionRegressionDetector.detect_trends(projects, start)
+    trends = FunctionRegressionDetector.detect_trends(projects, start_time)
     trends = FunctionRegressionDetector.get_regression_groups(trends)
-    trends = FunctionRegressionDetector.redirect_resolutions(trends, start)
-    trends = FunctionRegressionDetector.redirect_escalations(trends, start)
+    trends = FunctionRegressionDetector.redirect_resolutions(trends, start_time)
+    trends = FunctionRegressionDetector.redirect_escalations(trends, start_time)
     trends = FunctionRegressionDetector.limit_regressions_by_project(trends)
 
     delay = 12  # hours
-    delayed_start = start + timedelta(hours=delay)
+    delayed_start = start_time + timedelta(hours=delay)
 
     for regression_chunk in chunked(trends, FUNCTIONS_PER_BATCH):
         detect_function_change_points.apply_async(
             args=[
                 [(bundle.payload.project_id, bundle.payload.group) for bundle in regression_chunk],
-                delayed_start,
+                delayed_start.isoformat(),
             ],
             # delay the check by delay hours because we want to make sure there
             # will be enough data after the potential change point to be confident
@@ -440,11 +473,16 @@ def detect_function_trends(project_ids: list[int], start: datetime, *args, **kwa
     name="sentry.tasks.statistical_detectors.detect_function_change_points",
     queue="profiling.statistical_detector",
     max_retries=0,
+    taskworker_config=TaskworkerConfig(
+        namespace=profiling_tasks,
+    ),
 )
 def detect_function_change_points(
-    functions_list: list[tuple[int, int]], start: datetime, *args, **kwargs
+    functions_list: list[tuple[int, int]], start: str, *args, **kwargs
 ) -> None:
-    _detect_function_change_points(functions_list, start, *args, **kwargs)
+    start_time = datetime.fromisoformat(start)
+
+    _detect_function_change_points(functions_list, start_time, *args, **kwargs)
 
 
 def _detect_function_change_points(
@@ -521,9 +559,8 @@ def emit_function_regression_issue(
     ]
 
     result = functions.query(
-        selected_columns=["project.id", "fingerprint", "examples()"],
+        selected_columns=["project.id", "fingerprint", "all_examples()"],
         query="is_application:1",
-        params={},
         snuba_params=params,
         orderby=["project.id"],
         limit=len(regressions),
@@ -534,30 +571,46 @@ def emit_function_regression_issue(
         conditions=conditions if len(conditions) <= 1 else [Or(conditions)],
     )
 
-    examples = {
-        (row["project.id"], row["fingerprint"]): row["examples()"][0]
-        for row in result["data"]
-        if row["examples()"]
-    }
+    transaction_examples = {}
+    raw_continuous_examples = {}
+    for row in result["data"]:
+        # Split this into 2 loops here to bias towards transaction based profiles
+
+        key = (row["project.id"], row["fingerprint"])
+        for example in row["all_examples()"]:
+            if "profile_id" in example:
+                transaction_examples[key] = example
+
+        if key in transaction_examples:
+            continue
+
+        for example in row["all_examples()"]:
+            if "profiler_id" in example:
+                raw_continuous_examples[key] = example
+
+    continuous_examples = fetch_continuous_examples(raw_continuous_examples)
 
     payloads = []
 
     for regression in regressions:
         project_id = int(regression["project"])
         fingerprint = int(regression["transaction"])
-        example = examples.get((project_id, fingerprint))
-        if example is None:
-            continue
 
         project = projects_by_id.get(project_id)
         if project is None:
+            continue
+
+        key = (project_id, fingerprint)
+        example = transaction_examples.get(key) or continuous_examples.get(key)
+
+        if example is None:
             continue
 
         payloads.append(
             {
                 "organization_id": project.organization_id,
                 "project_id": project_id,
-                "profile_id": example,
+                "example": example,
                 "fingerprint": fingerprint,
                 "absolute_percentage_change": regression["absolute_percentage_change"],
                 "aggregate_range_1": regression["aggregate_range_1"],
@@ -570,12 +623,105 @@ def emit_function_regression_issue(
             }
         )
 
+    if not payloads:
+        return 0
+
     response = get_from_profiling_service(method="POST", path="/regressed", json_data=payloads)
     if response.status != 200:
         return 0
 
     data = json.loads(response.data)
     return data.get("occurrences")
+
+
+def fetch_continuous_examples(raw_examples):
+    if not raw_examples:
+        return raw_examples
+
+    project_condition = Condition(
+        Column("project_id"),
+        Op.IN,
+        list({project_id for project_id, _ in raw_examples.keys()}),
+    )
+
+    conditions = [project_condition]
+
+    example_conditions: list[BooleanCondition | Condition] = []
+
+    for (project_id, _), example in raw_examples.items():
+        example_conditions.append(
+            And(
+                [
+                    Condition(Column("project_id"), Op.EQ, project_id),
+                    Condition(Column("profiler_id"), Op.EQ, example["profiler_id"]),
+                    Condition(
+                        Column("start_timestamp"), Op.LTE, resolve_datetime64(example["end"])
+                    ),
+                    Condition(
+                        Column("end_timestamp"), Op.GTE, resolve_datetime64(example["start"])
+                    ),
+                ]
+            )
+        )
+
+    if len(example_conditions) >= 2:
+        conditions.append(Or(example_conditions))
+    else:
+        conditions.extend(example_conditions)
+
+    query = Query(
+        match=Storage(StorageKey.ProfileChunks.value),
+        select=[
+            Column("project_id"),
+            Column("profiler_id"),
+            Column("chunk_id"),
+            Column("start_timestamp"),
+            Column("end_timestamp"),
+        ],
+        where=conditions,
+        limit=Limit(len(raw_examples)),
+    )
+
+    request = Request(
+        dataset=Dataset.Profiles.value,
+        app_id="default",
+        query=query,
+        tenant_ids={
+            "referrer": Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_CHUNKS.value,
+            "cross_org_query": 1,
+        },
+    )
+
+    data = raw_snql_query(
+        request,
+        referrer=Referrer.API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_CHUNKS.value,
+    )["data"]
+
+    for row in data:
+        row["start"] = (
+            datetime.fromisoformat(row["start_timestamp"]).replace(tzinfo=UTC).timestamp()
+        )
+        row["end"] = datetime.fromisoformat(row["end_timestamp"]).replace(tzinfo=UTC).timestamp()
+
+    examples = {}
+
+    for key, example in raw_examples.items():
+        for row in data:
+            if example["profiler_id"] != row["profiler_id"]:
+                continue
+            if example["start"] > row["end"]:
+                continue
+            if example["end"] < row["start"]:
+                continue
+            examples[key] = {
+                "profiler_id": row["profiler_id"],
+                "chunk_id": row["chunk_id"],
+                "thread_id": example["thread_id"],
+                "start": row["start"],
+                "end": row["end"],
+            }
+
+    return examples
 
 
 BACKEND_TRANSACTION_OPS = [
@@ -895,7 +1041,6 @@ def query_functions(projects: list[Project], start: datetime) -> list[DetectorPa
             "p95()",
         ],
         query="is_application:1",
-        params={},
         snuba_params=params,
         orderby=["project.id", "-count()"],
         limitby=("project.id", FUNCTIONS_PER_PROJECT),
@@ -947,7 +1092,6 @@ def query_functions_timeseries(
         timeseries_columns=[agg_function],
         selected_columns=["project.id", "fingerprint"],
         user_query="is_application:1",
-        params={},
         snuba_params=params,
         orderby=None,  # unused because top events is specified
         rollup=interval,

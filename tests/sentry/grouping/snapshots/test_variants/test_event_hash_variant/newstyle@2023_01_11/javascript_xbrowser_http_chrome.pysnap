@@ -1,72 +1,73 @@
 ---
-created: '2023-01-11T11:41:27.679091Z'
+created: '2025-04-25T21:22:09.130154+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
+        stacktrace (ignored because it contains no in-app frames)
+          frame (marked out of app by the client)
             module*
               "test"
             filename (ignored because frame points to a URL)
               "test.html"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "test"
             filename (ignored because frame points to a URL)
               "test.html"
             function* (trimmed javascript function)
               "testMethod"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "test"
             filename (ignored because frame points to a URL)
               "test.html"
             function*
               "aha"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "test"
             filename (ignored because frame points to a URL)
               "test.html"
             function*
               "eval"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "test"
             filename (ignored because frame points to a URL)
               "test.html"
             function*
               "test"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename (anonymous filename discarded)
               "<anonymous>"
             function* (trimmed javascript function)
               "map"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "test"
             filename (ignored because frame points to a URL)
               "test.html"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "test"
             filename (ignored because frame points to a URL)
               "test.html"
             function* (trimmed javascript function)
               "callback"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "test"
             filename (ignored because frame points to a URL)
               "test.html"
             function*
               "callAnotherThing"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "test"
             filename (ignored because frame points to a URL)
@@ -80,6 +81,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "b2602ad455472dede8e4c340d8a7eaba"
+  contributing component: exception
   component:
     system*
       exception*

@@ -1,0 +1,36 @@
+---
+created: '2024-12-17T22:50:32.241026+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "top-level",
+  "stacktrace_type": "system"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "top-level",
+    "stacktrace_type": "system"
+  }
+}
+---
+contributing variants:
+  system*
+    hash: "465d672b2d322bf6a1b44499f6dabc1f"
+    contributing component: stacktrace
+    component:
+      system*
+        stacktrace*
+          frame*
+            module* (removed codegen marker)
+              "com.example.api.OutboundController$$FastClassByGuice$$<auto>"
+            function*
+              "jipJipManagementApplication"

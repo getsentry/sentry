@@ -1,12 +1,11 @@
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import {FeatureFeedback} from 'sentry/components/featureFeedback';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import type {LinkProps} from 'sentry/components/core/link';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-
-import type {DashboardDetails} from '../types';
+import type {DashboardDetails} from 'sentry/views/dashboards/types';
 
 interface Props {
   dashboardTitle: DashboardDetails['title'];
@@ -34,15 +33,15 @@ export function Header({orgSlug, goBackLocation, dashboardTitle}: Props) {
       </Layout.HeaderContent>
 
       <Layout.HeaderActions>
-        <ButtonBar gap={1}>
-          <FeatureFeedback buttonProps={{size: 'sm'}} featureName="widget-builder" />
-          <Button
+        <ButtonBar>
+          <FeedbackWidgetButton />
+          <LinkButton
             external
             size="sm"
             href="https://docs.sentry.io/product/dashboards/custom-dashboards/#widget-builder"
           >
             {t('Read the docs')}
-          </Button>
+          </LinkButton>
         </ButtonBar>
       </Layout.HeaderActions>
     </Layout.Header>

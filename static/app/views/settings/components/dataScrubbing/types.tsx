@@ -41,7 +41,7 @@ export type SourceSuggestion = {
   type: SourceSuggestionType;
   value: string;
   description?: string;
-  examples?: Array<string>;
+  examples?: string[];
 };
 
 type RuleBase = {
@@ -66,20 +66,19 @@ export type RuleDefault = RuleBase & {
     | RuleType.ANYTHING;
 };
 
-export type RulePattern = RuleBase & {
+type RulePattern = RuleBase & {
   pattern: string;
   type: RuleType.PATTERN;
 } & Pick<RuleDefault, 'method'>;
 
-export type RuleReplace = RuleBase & {
+type RuleReplace = RuleBase & {
   method: MethodType.REPLACE;
   placeholder?: string;
 } & Pick<RuleDefault, 'type'>;
 
 export type KeysOfUnion<T> = T extends any ? keyof T : never;
 
-export type RuleReplaceAndPattern = Omit<RulePattern, 'method'> &
-  Omit<RuleReplace, 'type'>;
+type RuleReplaceAndPattern = Omit<RulePattern, 'method'> & Omit<RuleReplace, 'type'>;
 
 export type Rule = RuleDefault | RuleReplace | RulePattern | RuleReplaceAndPattern;
 
@@ -120,6 +119,4 @@ export type PiiConfig =
   | PiiConfigReplace
   | PiiConfigReplaceAndPattern;
 
-export type Applications = Record<string, Array<string>>;
-
-export type Errors = Partial<Record<KeysOfUnion<Rule>, string>>;
+export type Applications = Record<string, string[]>;

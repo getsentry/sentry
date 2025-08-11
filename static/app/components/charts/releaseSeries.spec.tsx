@@ -1,19 +1,24 @@
+import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {render, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ReleaseSeriesProps} from 'sentry/components/charts/releaseSeries';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
-import {lightTheme} from 'sentry/utils/theme';
+
+const theme = ThemeFixture();
 
 describe('ReleaseSeries', function () {
   const renderFunc = jest.fn(() => null);
   const organization = OrganizationFixture();
-  let releases;
-  let releasesMock;
+  let releases: any;
+  let releasesMock: any;
 
   beforeEach(function () {
+    jest.resetAllMocks();
+
     releases = [
       {
         version: 'sentry-android-shop@1.2.0',
@@ -43,7 +48,7 @@ describe('ReleaseSeries', function () {
     routes: router.routes,
     router,
     location: router.location,
-    theme: lightTheme,
+    theme,
   };
 
   it('does not fetch releases if releases is truthy', function () {
@@ -54,6 +59,46 @@ describe('ReleaseSeries', function () {
     );
 
     expect(releasesMock).not.toHaveBeenCalled();
+  });
+
+  it('does not fetch releases if not enabled', function () {
+    render(
+      <ReleaseSeries {...baseSeriesProps} organization={organization} enabled={false}>
+        {renderFunc}
+      </ReleaseSeries>
+    );
+
+    expect(releasesMock).not.toHaveBeenCalled();
+  });
+
+  it('fetches releases if becomes enabled', async function () {
+    const {rerender} = render(
+      <ReleaseSeries {...baseSeriesProps} organization={organization} enabled={false}>
+        {renderFunc}
+      </ReleaseSeries>
+    );
+
+    expect(releasesMock).not.toHaveBeenCalled();
+
+    rerender(
+      <ReleaseSeries {...baseSeriesProps} organization={organization} enabled>
+        {renderFunc}
+      </ReleaseSeries>
+    );
+
+    await act(tick);
+
+    expect(releasesMock).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <ReleaseSeries {...baseSeriesProps} organization={organization} enabled={false}>
+        {renderFunc}
+      </ReleaseSeries>
+    );
+
+    await act(tick);
+
+    expect(releasesMock).toHaveBeenCalledTimes(1);
   });
 
   it('fetches releases if no releases passed through props', async function () {
@@ -216,6 +261,28 @@ describe('ReleaseSeries', function () {
     );
 
     await waitFor(() => expect(releasesMock).toHaveBeenCalledTimes(2));
+  });
+
+  it('shares release fetches between components with memoize enabled', async function () {
+    render(
+      <Fragment>
+        <ReleaseSeries {...baseSeriesProps} period="42d" memoized>
+          {({releaseSeries}) => {
+            return releaseSeries.length > 0 ? <span>Series 1</span> : null;
+          }}
+        </ReleaseSeries>
+        <ReleaseSeries {...baseSeriesProps} period="42d" memoized>
+          {({releaseSeries}) => {
+            return releaseSeries.length > 0 ? <span>Series 2</span> : null;
+          }}
+        </ReleaseSeries>
+      </Fragment>
+    );
+
+    await screen.findByText('Series 1');
+    await screen.findByText('Series 2');
+
+    await waitFor(() => expect(releasesMock).toHaveBeenCalledTimes(1));
   });
 
   it('generates an eCharts `markLine` series from releases', async function () {

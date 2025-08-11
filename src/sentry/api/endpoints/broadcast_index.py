@@ -19,6 +19,7 @@ from sentry.db.models.query import in_icontains
 from sentry.models.broadcast import Broadcast, BroadcastSeen
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.search.utils import tokenize_query
+from sentry.users.models.user import User
 
 logger = logging.getLogger("sentry")
 
@@ -131,7 +132,10 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
             paginator_cls=paginator_cls,
         )
 
-    def put(self, request: Request):
+    def put(self, request: Request) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=401)
+
         validator = BroadcastValidator(data=request.data, partial=True)
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
@@ -145,9 +149,6 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
             queryset = queryset.filter(id__in=ids)
 
         if result.get("hasSeen"):
-            if not request.user.is_authenticated:
-                return self.respond(status=401)
-
             if ids:
                 unseen_queryset = queryset
             else:
@@ -165,6 +166,8 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
         return self.respond(result)
 
     def post(self, request: Request) -> Response:
+        if not request.user.is_authenticated:
+            return Response(status=400)
         if not request.access.has_permission("broadcasts.admin"):
             return self.respond(status=401)
 
@@ -179,9 +182,11 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
                 title=result["title"],
                 message=result["message"],
                 link=result["link"],
-                cta=result["cta"],
                 is_active=result.get("isActive") or False,
                 date_expires=result.get("dateExpires"),
+                media_url=result.get("mediaUrl"),
+                category=result.get("category"),
+                created_by_id=User.objects.get(id=request.user.id),
             )
             logger.info(
                 "broadcasts.create",

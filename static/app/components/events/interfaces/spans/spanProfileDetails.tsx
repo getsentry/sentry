@@ -1,54 +1,63 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
 import {StackTraceContentPanel} from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction, Frame, PlatformKey} from 'sentry/types';
-import {EntryType} from 'sentry/types/event';
+import {EntryType, type EventTransaction, type Frame} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame as ProfilingFrame} from 'sentry/utils/profiling/frame';
 import type {Profile} from 'sentry/utils/profiling/profile/profile';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {
+  generateContinuousProfileFlamechartRouteWithQuery,
+  generateProfileFlamechartRouteWithQuery,
+} from 'sentry/utils/profiling/routes';
 import {formatTo} from 'sentry/utils/profiling/units/units';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
-
-import type {SpanType} from './types';
 
 const MAX_STACK_DEPTH = 8;
 const MAX_TOP_NODES = 5;
 const MIN_TOP_NODES = 3;
 const TOP_NODE_MIN_COUNT = 3;
 
-interface SpanProfileDetailsProps {
+export interface SpanProfileDetailsProps {
   event: Readonly<EventTransaction>;
-  span: Readonly<SpanType>;
+  span: Readonly<{
+    end_timestamp: number;
+    span_id: string;
+    start_timestamp: number;
+  }>;
   onNoProfileFound?: () => void;
 }
 
-export function SpanProfileDetails({
-  event,
-  span,
-  onNoProfileFound,
-}: SpanProfileDetailsProps) {
-  const organization = useOrganization();
-  const {projects} = useProjects();
-  const project = projects.find(p => p.id === event.projectID);
-
+export function useSpanProfileDetails(
+  organization: Organization,
+  project: Project | undefined,
+  event: Readonly<EventTransaction | undefined>,
+  span: SpanProfileDetailsProps['span']
+) {
   const profileGroup = useProfileGroup();
 
   const processedEvent = useMemo(() => {
+    if (!event) {
+      return null;
+    }
+
     const entries: EventTransaction['entries'] = [...(event.entries || [])];
     if (profileGroup.images) {
       entries.push({
@@ -73,7 +82,7 @@ export function SpanProfileDetails({
   }, [profileGroup.profiles, threadId]);
 
   const nodes: CallTreeNode[] = useMemo(() => {
-    if (profile === null) {
+    if (profile === null || !event) {
       return [];
     }
 
@@ -94,7 +103,7 @@ export function SpanProfileDetails({
       profile.unit
     );
     const relativeStopTimestamp = formatTo(
-      span.timestamp - startTimestamp,
+      span.end_timestamp - startTimestamp,
       'second',
       profile.unit
     );
@@ -114,8 +123,8 @@ export function SpanProfileDetails({
   const maxNodes = useMemo(() => {
     // find the number of nodes with the minimum number of samples
     let hasMinCount = 0;
-    for (let i = 0; i < nodes.length; i++) {
-      if (nodes[i].count >= TOP_NODE_MIN_COUNT) {
+    for (const node of nodes) {
+      if (node.count >= TOP_NODE_MIN_COUNT) {
         hasMinCount += 1;
       } else {
         break;
@@ -128,34 +137,88 @@ export function SpanProfileDetails({
   }, [nodes]);
 
   const {frames, hasPrevious, hasNext} = useMemo(() => {
-    if (index >= maxNodes) {
+    if (index >= maxNodes || !event) {
       return {frames: [], hasPrevious: false, hasNext: false};
     }
 
     return {
-      frames: extractFrames(nodes[index], event.platform || 'other'),
+      frames: extractFrames(nodes[index]!, event.platform || 'other'),
       hasPrevious: index > 0,
       hasNext: index + 1 < maxNodes,
     };
   }, [index, maxNodes, event, nodes]);
 
-  const spanTarget =
-    project &&
-    profileGroup &&
-    profileGroup.metadata.profileID &&
-    profile &&
-    generateProfileFlamechartRouteWithQuery({
-      orgSlug: organization.slug,
-      projectSlug: project.slug,
-      profileId: profileGroup.metadata.profileID,
-      query: {
-        tid: String(profile.threadId),
-        spanId: span.span_id,
-        sorting: 'call order',
-      },
-    });
+  const profileTarget = useMemo(() => {
+    if (defined(project) && event) {
+      const profileContext = event.contexts.profile ?? {};
 
-  if (!defined(profile) || !defined(spanTarget)) {
+      if (defined(profileContext.profile_id)) {
+        return generateProfileFlamechartRouteWithQuery({
+          organization,
+          projectSlug: project.slug,
+          profileId: profileContext.profile_id,
+          query: {
+            spanId: span.span_id,
+          },
+        });
+      }
+
+      if (defined(profileContext.profiler_id)) {
+        return generateContinuousProfileFlamechartRouteWithQuery({
+          organization,
+          projectSlug: project.slug,
+          profilerId: profileContext.profiler_id,
+          start: new Date(event.startTimestamp * 1000).toISOString(),
+          end: new Date(event.endTimestamp * 1000).toISOString(),
+          query: {
+            eventId: event.id,
+            spanId: span.span_id,
+          },
+        });
+      }
+    }
+
+    return undefined;
+  }, [organization, project, event, span]);
+
+  return {
+    processedEvent,
+    profileGroup,
+    profileTarget,
+    profile,
+    nodes,
+    index,
+    setIndex,
+    totalWeight,
+    maxNodes,
+    frames,
+    hasPrevious,
+    hasNext,
+  };
+}
+
+export function SpanProfileDetails({
+  event,
+  span,
+  onNoProfileFound,
+}: SpanProfileDetailsProps) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === event.projectID);
+  const {
+    processedEvent,
+    profileTarget,
+    nodes,
+    index,
+    setIndex,
+    maxNodes,
+    hasNext,
+    hasPrevious,
+    totalWeight,
+    frames,
+  } = useSpanProfileDetails(organization, project, event, span);
+
+  if (!defined(profileTarget) || !processedEvent) {
     return null;
   }
 
@@ -166,7 +229,7 @@ export function SpanProfileDetails({
     return null;
   }
 
-  const percentage = formatPercentage(nodes[index].count / totalWeight);
+  const percentage = formatPercentage(nodes[index]!.count / totalWeight);
 
   return (
     <SpanContainer>
@@ -188,13 +251,13 @@ export function SpanProfileDetails({
           size="xs"
           title={t(
             '%s out of %s (%s) of the call stacks collected during this span',
-            nodes[index].count,
+            nodes[index]!.count,
             totalWeight,
             percentage
           )}
         />
         <SpanDetailsItem>
-          <ButtonBar merged>
+          <ButtonBar merged gap="0">
             <Button
               icon={<IconChevron direction="left" />}
               aria-label={t('Previous')}
@@ -202,6 +265,10 @@ export function SpanProfileDetails({
               disabled={!hasPrevious}
               onClick={() => {
                 setIndex(prevIndex => prevIndex - 1);
+                trackAnalytics('profiling_views.trace.profile_context.pagination', {
+                  organization,
+                  direction: 'Previous',
+                });
               }}
             />
             <Button
@@ -211,19 +278,22 @@ export function SpanProfileDetails({
               disabled={!hasNext}
               onClick={() => {
                 setIndex(prevIndex => prevIndex + 1);
+                trackAnalytics('profiling_views.trace.profile_context.pagination', {
+                  organization,
+                  direction: 'Next',
+                });
               }}
             />
           </ButtonBar>
         </SpanDetailsItem>
         <SpanDetailsItem>
-          <Button icon={<IconProfiling />} to={spanTarget} size="xs">
+          <LinkButton icon={<IconProfiling />} to={profileTarget} size="xs">
             {t('Profile')}
-          </Button>
+          </LinkButton>
         </SpanDetailsItem>
       </SpanDetails>
       <StackTraceContent
         event={processedEvent}
-        hasHierarchicalGrouping={false}
         newestFirst
         platform={event.platform || 'other'}
         stacktrace={{
@@ -240,17 +310,21 @@ export function SpanProfileDetails({
   );
 }
 
-function getTopNodes(profile: Profile, startTimestamp, stopTimestamp): CallTreeNode[] {
+function getTopNodes(
+  profile: Profile,
+  startTimestamp: any,
+  stopTimestamp: any
+): CallTreeNode[] {
   let duration = profile.startedAt;
 
   const callTree: CallTreeNode = new CallTreeNode(ProfilingFrame.Root, null);
 
   for (let i = 0; i < profile.samples.length; i++) {
-    const sample = profile.samples[i];
+    const sample = profile.samples[i]!;
     // TODO: should this take self times into consideration?
     const inRange = startTimestamp <= duration && duration < stopTimestamp;
 
-    duration += profile.weights[i];
+    duration += profile.weights[i]!;
 
     if (sample.isRoot || !inRange) {
       continue;
@@ -404,5 +478,5 @@ const SpanDetailsItem = styled('span')<{grow?: boolean}>`
 
 const SectionSubtext = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;

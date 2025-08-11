@@ -1,3 +1,4 @@
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
@@ -6,13 +7,12 @@ from sentry.models.artifactbundle import (
     SourceFileType,
 )
 from sentry.models.files.file import File
-from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
 class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
-    def test_simple(self):
+    def test_simple(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         release = self.create_release(version="1.0", project=project)

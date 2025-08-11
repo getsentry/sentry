@@ -1,88 +1,75 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
-import omit from 'lodash/omit';
-import * as qs from 'query-string';
 
-import Feature from 'sentry/components/acl/feature';
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import SearchBar from 'sentry/components/events/searchBar';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
+import {EventDrawerHeader} from 'sentry/components/events/eventDrawer';
+import {EapSpanSearchQueryBuilderWrapper} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
-import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
+import decodeSubregions from 'sentry/views/insights/browser/resources/utils/queryParameterDecoders/subregions';
+import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
+import {SampleDrawerHeaderTransaction} from 'sentry/views/insights/common/components/sampleDrawerHeaderTransaction';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
+import type {
+  NonDefaultSpanSampleFields,
+  SpanSample,
+} from 'sentry/views/insights/common/queries/useSpanSamples';
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
 import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
 import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
-import {
-  ModuleName,
-  SpanIndexedField,
-  SpanMetricsField,
-} from 'sentry/views/insights/types';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
-const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
+const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanFields;
 
 type Props = {
   groupId: string;
   moduleName: ModuleName;
-  transactionName: string;
-  onClose?: () => void;
   referrer?: string;
-  transactionMethod?: string;
   transactionRoute?: string;
 };
 
-export function SampleList({
-  groupId,
-  moduleName,
-  transactionName,
-  transactionMethod,
-  onClose,
-  transactionRoute = '/performance/summary/',
-  referrer,
-}: Props) {
+export function SampleList({groupId, moduleName, transactionRoute, referrer}: Props) {
+  const organization = useOrganization();
+  const {view} = useDomainViewFilters();
+
+  const {
+    transaction: transactionName,
+    transactionMethod,
+    [SpanFields.USER_GEO_SUBREGION]: subregions,
+  } = useLocationQuery({
+    fields: {
+      transaction: decodeScalar,
+      transactionMethod: decodeScalar,
+      [SpanFields.USER_GEO_SUBREGION]: decodeSubregions,
+    },
+  });
+
   const router = useRouter();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
   );
 
-  // A a transaction name is required to show the panel, but a transaction
-  // method is not
-  const detailKey = transactionName
-    ? [groupId, transactionName, transactionMethod].filter(Boolean).join(':')
-    : undefined;
+  transactionRoute ??= `/${getTransactionSummaryBaseUrl(organization, view, true)}`;
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debounceSetHighlightedSpanId = useCallback(
-    debounce(id => {
-      setHighlightedSpanId(id);
-    }, 10),
-    []
-  );
-
-  const organization = useOrganization();
   const {selection} = usePageFilters();
   const location = useLocation();
   const {projects} = useProjects();
 
   const spanSearchQuery = decodeScalar(location.query.spanSearchQuery);
-  const supportedTags = useSpanFieldSupportedTags();
 
   const project = useMemo(
     () => projects.find(p => p.id === String(location.query.project)),
@@ -99,27 +86,6 @@ export function SampleList({
     });
   };
 
-  const onOpenDetailPanel = useCallback(() => {
-    if (location.query.transaction) {
-      trackAnalytics('performance_views.sample_spans.opened', {
-        organization,
-        source: moduleName,
-      });
-    }
-  }, [organization, location.query.transaction, moduleName]);
-
-  const label =
-    transactionMethod && !transactionName.startsWith(transactionMethod)
-      ? `${transactionMethod} ${transactionName}`
-      : transactionName;
-
-  const link = normalizeUrl(
-    `/organizations/${organization.slug}${transactionRoute}?${qs.stringify({
-      project: location.query.project,
-      transaction: transactionName,
-    })}`
-  );
-
   // set additional query filters from the span search bar and the `query` param
   const spanSearch = new MutableSearch(spanSearchQuery ?? '');
   if (location.query.query) {
@@ -131,23 +97,13 @@ export function SampleList({
     });
   }
 
-  function defaultOnClose() {
-    router.replace({
-      pathname: router.location.pathname,
-      query: omit(router.location.query, 'transaction', 'transactionMethod', 'query'),
-    });
-  }
-
   let columnOrder = DEFAULT_COLUMN_ORDER;
 
-  const additionalFields: SpanIndexedField[] = [
-    SpanIndexedField.TRACE,
-    SpanIndexedField.TRANSACTION_ID,
-  ];
+  const additionalFields: NonDefaultSpanSampleFields[] = [SpanFields.TRACE];
 
   if (moduleName === ModuleName.RESOURCE) {
-    additionalFields?.push(SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH);
-    additionalFields?.push(SpanIndexedField.SPAN_DESCRIPTION);
+    additionalFields?.push(SpanFields.HTTP_RESPONSE_CONTENT_LENGTH);
+    additionalFields?.push(SpanFields.SPAN_DESCRIPTION);
 
     columnOrder = [
       ...DEFAULT_COLUMN_ORDER,
@@ -164,118 +120,93 @@ export function SampleList({
     ];
   }
 
+  const handleClickSample = useCallback(
+    (span: SpanSample) => {
+      router.push(
+        generateLinkToEventInTraceView({
+          targetId: span['transaction.span_id'],
+          spanId: span.span_id,
+          location,
+          organization,
+          traceSlug: span.trace,
+          timestamp: span.timestamp,
+        })
+      );
+    },
+    [organization, location, router]
+  );
+
+  const handleMouseOverSample = useCallback(
+    (sample: SpanSample) => setHighlightedSpanId(sample.span_id),
+    []
+  );
+
+  const handleMouseLeaveSample = useCallback(() => setHighlightedSpanId(undefined), []);
+
   return (
     <PageAlertProvider>
-      <DetailPanel
-        detailKey={detailKey}
-        onClose={() => {
-          onClose ? onClose() : defaultOnClose();
-        }}
-        onOpen={onOpenDetailPanel}
-      >
-        <HeaderContainer>
-          {project && (
-            <SpanSummaryProjectAvatar
-              project={project}
-              direction="left"
-              size={40}
-              hasTooltip
-              tooltip={project.slug}
-            />
-          )}
-          <Title>
-            <Link to={link}>{label}</Link>
-          </Title>
-        </HeaderContainer>
-        <PageAlert />
-
-        <SampleInfo
-          groupId={groupId}
-          transactionName={transactionName}
-          transactionMethod={transactionMethod}
-        />
-
-        <DurationChart
-          groupId={groupId}
-          transactionName={transactionName}
-          transactionMethod={transactionMethod}
-          additionalFields={additionalFields}
-          onClickSample={span => {
-            router.push(
-              generateLinkToEventInTraceView({
-                eventId: span['transaction.id'],
-                projectSlug: span.project,
-                spanId: span.span_id,
-                location,
-                organization,
-                traceSlug: span.trace,
-                timestamp: span.timestamp,
-              })
-            );
-          }}
-          onMouseOverSample={sample => debounceSetHighlightedSpanId(sample.span_id)}
-          onMouseLeaveSample={() => debounceSetHighlightedSpanId(undefined)}
-          spanSearch={spanSearch}
-          highlightedSpanId={highlightedSpanId}
-        />
-
-        <Feature features="performance-sample-panel-search">
-          <StyledSearchBar
-            searchSource={`${moduleName}-sample-panel`}
-            query={spanSearchQuery}
-            onSearch={handleSearch}
-            placeholder={t('Search for span attributes')}
-            organization={organization}
-            supportedTags={supportedTags}
-            dataset={DiscoverDatasets.SPANS_INDEXED}
-            projectIds={selection.projects}
+      <InsightsSpanTagProvider>
+        <EventDrawerHeader>
+          <SampleDrawerHeaderTransaction
+            project={project}
+            transaction={transactionName}
+            transactionMethod={transactionMethod}
           />
-        </Feature>
+        </EventDrawerHeader>
 
-        <SampleTable
-          highlightedSpanId={highlightedSpanId}
-          transactionMethod={transactionMethod}
-          onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
-          onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
-          groupId={groupId}
-          moduleName={moduleName}
-          transactionName={transactionName}
-          spanSearch={spanSearch}
-          columnOrder={columnOrder}
-          additionalFields={additionalFields}
-          referrer={referrer}
-        />
-      </DetailPanel>
+        <SampleDrawerBody>
+          <PageAlert />
+
+          <SampleInfo
+            groupId={groupId}
+            transactionName={transactionName}
+            transactionMethod={transactionMethod}
+            subregions={subregions}
+          />
+
+          <DurationChart
+            groupId={groupId}
+            transactionName={transactionName}
+            transactionMethod={transactionMethod}
+            subregions={subregions}
+            additionalFields={additionalFields}
+            onClickSample={handleClickSample}
+            onMouseOverSample={handleMouseOverSample}
+            onMouseLeaveSample={handleMouseLeaveSample}
+            spanSearch={spanSearch}
+            highlightedSpanId={highlightedSpanId}
+          />
+
+          <StyledSearchBar>
+            <EapSpanSearchQueryBuilderWrapper
+              projects={selection.projects}
+              initialQuery={spanSearchQuery ?? ''}
+              onSearch={handleSearch}
+              placeholder={t('Search for span attributes')}
+              searchSource={`${moduleName}-sample-panel`}
+            />
+          </StyledSearchBar>
+
+          <SampleTable
+            highlightedSpanId={highlightedSpanId}
+            transactionMethod={transactionMethod}
+            onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
+            onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
+            groupId={groupId}
+            moduleName={moduleName}
+            transactionName={transactionName}
+            subregions={subregions}
+            spanSearch={spanSearch}
+            columnOrder={columnOrder}
+            additionalFields={additionalFields}
+            referrer={referrer}
+          />
+        </SampleDrawerBody>
+      </InsightsSpanTagProvider>
     </PageAlertProvider>
   );
 }
 
-const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
-  padding-right: ${space(1)};
-`;
-
-const HeaderContainer = styled('div')`
-  width: 100%;
-  padding-bottom: ${space(2)};
-  padding-top: ${space(1)};
-
-  display: grid;
-  grid-template-rows: auto auto auto;
-  align-items: center;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-rows: auto;
-    grid-template-columns: auto 1fr;
-  }
-`;
-
-const Title = styled('h4')`
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-  margin: 0;
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  margin-top: ${space(2)};
+const StyledSearchBar = styled('div')`
+  margin: ${space(2)} 0;
 `;

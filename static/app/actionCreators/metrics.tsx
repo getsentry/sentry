@@ -1,25 +1,23 @@
-import type {Client, ResponseMeta} from 'sentry/api';
+import type {ApiResult, Client} from 'sentry/api';
 import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {DateString} from 'sentry/types/core';
-import type {MetricsApiResponse} from 'sentry/types/metrics';
-import type {Organization} from 'sentry/types/organization';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 
-export type DoReleaseHealthRequestOptions = {
+type DoReleaseHealthRequestOptions = {
   field: string[];
   orgSlug: Organization['slug'];
   cursor?: string;
   end?: DateString;
-  environment?: Readonly<string[]>;
+  environment?: readonly string[];
   groupBy?: string[];
-  includeAllArgs?: boolean;
   includeSeries?: number;
   includeTotals?: number;
   interval?: string;
   limit?: number;
   orderBy?: string;
-  project?: Readonly<number[]>;
+  project?: readonly number[];
   query?: string;
   start?: DateString;
   statsPeriod?: string | null;
@@ -42,12 +40,11 @@ export const doReleaseHealthRequest = (
     orderBy,
     project,
     query,
-    includeAllArgs = false,
     statsPeriodStart,
     statsPeriodEnd,
     ...dateTime
   }: DoReleaseHealthRequestOptions
-): Promise<MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta]> => {
+): Promise<ApiResult<SessionApiResponse>> => {
   const {start, end, statsPeriod} = normalizeDateTimeParams(dateTime, {
     allowEmptyPeriod: true,
   });
@@ -75,5 +72,5 @@ export const doReleaseHealthRequest = (
 
   const pathname = `/organizations/${orgSlug}/metrics/data/`;
 
-  return api.requestPromise(pathname, {includeAllArgs, query: urlQuery});
+  return api.requestPromise(pathname, {includeAllArgs: true, query: urlQuery});
 };

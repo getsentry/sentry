@@ -19,6 +19,14 @@ type CanvasEventWithTime = eventWithTime & {
   type: EventType.IncrementalSnapshot;
 };
 
+function isElement(node: Node): node is Element {
+  return node.nodeType === Node.ELEMENT_NODE;
+}
+
+function isCanvasElement(node: Node): node is HTMLCanvasElement {
+  return isElement(node) && node.tagName === 'CANVAS';
+}
+
 function isCanvasMutationEvent(e: eventWithTime): e is CanvasEventWithTime {
   return (
     e.type === EventType.IncrementalSnapshot &&
@@ -26,7 +34,12 @@ function isCanvasMutationEvent(e: eventWithTime): e is CanvasEventWithTime {
   );
 }
 
-class InvalidCanvasNodeError extends Error {}
+class InvalidCanvasNodeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidCanvasNodeError';
+  }
+}
 
 /**
  * Find the lowest matching index for event
@@ -51,7 +64,7 @@ function findIndex(
   const mid = Math.floor((start + end) / 2);
 
   // Search lower half
-  if (event.timestamp <= arr[mid].timestamp) {
+  if (event.timestamp <= arr[mid]!.timestamp) {
     return findIndex(arr, event, start, mid - 1);
   }
 
@@ -106,7 +119,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
     while (eventsToPrune.length) {
       // Peek top of queue and see if event should be pruned, otherwise we can break out of the loop
       if (
-        Math.abs(event.timestamp - eventsToPrune[0].timestamp) <= BUFFER_TIME &&
+        Math.abs(event.timestamp - eventsToPrune[0]!.timestamp) <= BUFFER_TIME &&
         eventsToPrune.length <= PRELOAD_SIZE
       ) {
         break;
@@ -168,8 +181,18 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
    * The image element is saved to `containers` map, which will later get
    * written to when replay is being played.
    */
-  function cloneCanvas(id: number, node: HTMLCanvasElement) {
-    const cloneNode = node.cloneNode() as HTMLCanvasElement;
+  function cloneCanvas(id: number, node: Node) {
+    if (!isCanvasElement(node)) {
+      Sentry.logger.warn('Replay: node is not a canvas element');
+      return null;
+    }
+    const cloneNode = node.cloneNode();
+
+    if (!isCanvasElement(cloneNode)) {
+      Sentry.logger.warn('Replay: cloned node is not a canvas element');
+      return null;
+    }
+
     canvases.set(id, cloneNode);
     document.adoptNode(cloneNode);
     return cloneNode;
@@ -201,8 +224,31 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
     }
   }
 
+  // Debounce so that `processEvent` is not called immediately. We want to only
+  // process the most recent event, otherwise it will look like the canvas is
+  // animating when we seek throughout replay.
+  //
+  // `handleQueue` is really a map of canvas id -> most recent canvas mutation
+  // event for all canvas mutation events before the current replay time
   const debouncedProcessQueuedEvents = debounce(
-    function () {
+    function processQueuedEvents() {
+      const queuedEventIds = Array.from(handleQueue.keys());
+      const queuedEventIdsSet = new Set(queuedEventIds);
+      const canvasIds = Array.from(canvases.keys());
+      const unusedCanvases = canvasIds.filter(id => !queuedEventIdsSet.has(id));
+
+      // Compare the canvas ids from canvas mutation events against existing
+      // canvases and remove the canvas snapshot for previously drawn to
+      // canvases that do not currently exist in this new point of time
+      unusedCanvases.forEach(id => {
+        const el = containers.get(id);
+        if (el) {
+          // this is valid URL for a blank image
+          el.src = 'data:,';
+        }
+      });
+
+      // Find all canvases with an event that needs to process
       Array.from(handleQueue.entries()).forEach(async ([id, [e, replayer]]) => {
         try {
           await processEvent(e, {replayer});
@@ -221,9 +267,11 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
    * recent sync event, otherwise the playback will look like it's playing if
    * we process all events.
    */
-  function processEventSync(e: CanvasEventWithTime, {replayer}: {replayer: Replayer}) {
-    // We want to only process the most recent sync event
-    handleQueue.set(e.data.id, [e, replayer]);
+  function processEventSync(e: eventWithTime, {replayer}: {replayer: Replayer}) {
+    // We want to only process the most recent sync CanvasMutationEvent
+    if (isCanvasMutationEvent(e)) {
+      handleQueue.set(e.data.id, [e, replayer]);
+    }
     debouncedProcessQueuedEvents();
   }
 
@@ -234,9 +282,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
     preload(e);
 
     const source = replayer.getMirror().getNode(e.data.id);
-    const target =
-      canvases.get(e.data.id) ||
-      (source && cloneCanvas(e.data.id, source as HTMLCanvasElement));
+    const target = canvases.get(e.data.id) || (source && cloneCanvas(e.data.id, source));
 
     if (!target) {
       throw new InvalidCanvasNodeError('No canvas found for id');
@@ -251,17 +297,22 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
       errorHandler: (err: unknown) => {
         if (err instanceof Error) {
           Sentry.captureException(err);
-        } else {
-          Sentry.metrics.increment('replay.canvas_player.error_canvas_mutation');
         }
       },
     });
 
     const img = containers.get(e.data.id);
-    if (img) {
-      img.src = target.toDataURL();
-      img.style.maxWidth = '100%';
-      img.style.maxHeight = '100%';
+    if (img && isCanvasElement(target)) {
+      try {
+        img.src = target.toDataURL();
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '100%';
+      } catch (err) {
+        Sentry.logger.warn('Replay: Failed to copy canvas to image', {
+          error: err,
+          element: target.tagName,
+        });
+      }
     }
 
     prune(e);
@@ -282,7 +333,8 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
 
       if (node.nodeName === 'CANVAS' && node.nodeType === 1) {
         // Add new image container that will be written to
-        const el = containers.get(id) || document.createElement('img');
+        const ownerDoc = (node as Element).ownerDocument || document;
+        const el = containers.get(id) || ownerDoc.createElement('img');
         (node as HTMLCanvasElement).appendChild(el);
         containers.set(id, el);
       }
@@ -293,6 +345,9 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
       if (!queueItem) {
         return;
       }
+      // Ensure that queued calls from `processEventSync` (e.g. when you seek into the middle of the replay) is called before continue to process the current event.
+      // Otherwise, if it runs after `processEvent`, `processQueuedEvents` will incorrectly clear the canvas assuming that the last queued event == current event.
+      debouncedProcessQueuedEvents.flush();
       const [event, replayer] = queueItem;
       processEvent(event, {replayer}).catch(handleProcessEventError);
     },
@@ -314,11 +369,7 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
         // Only do this when isSync is true, meaning there was a seek, since we
         // don't know where next index is
         nextPreloadIndex = -1;
-
-        if (isCanvas) {
-          processEventSync(e, {replayer});
-        }
-
+        processEventSync(e, {replayer});
         prune(e);
         return;
       }
@@ -338,7 +389,6 @@ export function CanvasReplayerPlugin(events: eventWithTime[]): ReplayPlugin {
 function handleProcessEventError(err: unknown) {
   if (err instanceof InvalidCanvasNodeError) {
     // This can throw if mirror DOM is not ready
-    Sentry.metrics.increment('replay.canvas_player.no_canvas_id');
     return;
   }
 

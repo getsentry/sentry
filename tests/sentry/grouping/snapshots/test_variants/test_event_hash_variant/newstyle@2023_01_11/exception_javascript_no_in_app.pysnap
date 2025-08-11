@@ -1,22 +1,23 @@
 ---
-created: '2023-01-11T11:41:28.065705Z'
+created: '2025-04-25T21:21:53.534358+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
+        stacktrace (ignored because it contains no in-app frames)
+          frame (marked out of app by the client)
             module*
               "app/components/modals/createTeamModal"
             filename (module takes precedence)
               "createteammodal.jsx"
             context-line*
               "onError(err);"
-          frame (non app frame)
+          frame (marked out of app by the client)
             module*
               "app/views/settings/components/forms/form"
             filename (module takes precedence)
@@ -32,6 +33,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "26552f86ca2368e708afa1df6effc1c5"
+  contributing component: exception
   component:
     system*
       exception*

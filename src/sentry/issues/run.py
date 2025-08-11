@@ -48,7 +48,7 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             self.pool = MultiprocessingPool(num_processes)
             self.worker = None
 
-    def crate_parallel_worker(
+    def create_parallel_worker(
         self,
         commit: Commit,
     ) -> ProcessingStrategy[KafkaPayload]:
@@ -63,7 +63,7 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             output_block_size=self.output_block_size,
         )
 
-    def creat_batched_parallel_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
+    def create_batched_parallel_worker(self, commit: Commit) -> ProcessingStrategy[KafkaPayload]:
         assert self.worker is not None
         batch_processor = RunTask(
             function=functools.partial(process_batch, self.worker),
@@ -81,9 +81,9 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         if self.batched:
-            return self.creat_batched_parallel_worker(commit)
+            return self.create_batched_parallel_worker(commit)
         else:
-            return self.crate_parallel_worker(commit)
+            return self.create_parallel_worker(commit)
 
     def shutdown(self) -> None:
         if self.pool:
@@ -103,9 +103,9 @@ def process_message(message: Message[KafkaPayload]) -> None:
 
 
 def process_batch(worker: ThreadPoolExecutor, messages: Message[ValuesBatch[KafkaPayload]]) -> None:
-    from sentry.issues.occurrence_consumer import _process_batch
+    from sentry.issues.occurrence_consumer import process_occurrence_batch
 
     try:
-        _process_batch(worker, messages)
+        process_occurrence_batch(worker, messages)
     except Exception:
         logger.exception("failed to process batch payload")

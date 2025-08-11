@@ -4,17 +4,13 @@ import * as qs from 'query-string';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {
-  IntegrationProvider,
-  IntegrationWithConfig,
-  Organization,
-} from 'sentry/types';
+import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import type {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 
 type Props = {
-  children: (
-    openDialog: (urlParams?: {[key: string]: string}) => void
-  ) => React.ReactNode;
+  children: (openDialog: (urlParams?: Record<string, string>) => void) => React.ReactNode;
   onInstall: (data: IntegrationWithConfig) => void;
   organization: Organization;
   provider: IntegrationProvider;
@@ -22,13 +18,13 @@ type Props = {
   analyticsParams?: {
     already_installed: boolean;
     view:
+      | MessagingIntegrationAnalyticsView
       | 'integrations_directory_integration_detail'
       | 'integrations_directory'
-      | 'messaging_integration_onboarding'
       | 'onboarding'
       | 'project_creation';
   };
-  modalParams?: {[key: string]: string};
+  modalParams?: Record<string, string>;
 };
 
 export default class AddIntegration extends Component<Props> {
@@ -46,9 +42,9 @@ export default class AddIntegration extends Component<Props> {
   computeCenteredWindow(width: number, height: number) {
     // Taken from: https://stackoverflow.com/questions/4068373/center-a-popup-window-on-screen
     const screenLeft =
-      window.screenLeft !== undefined ? window.screenLeft : window.screenX;
+      window.screenLeft === undefined ? window.screenX : window.screenLeft;
 
-    const screenTop = window.screenTop !== undefined ? window.screenTop : window.screenY;
+    const screenTop = window.screenTop === undefined ? window.screenY : window.screenTop;
 
     const innerWidth = window.innerWidth
       ? window.innerWidth
@@ -68,7 +64,7 @@ export default class AddIntegration extends Component<Props> {
     return {left, top};
   }
 
-  openDialog = (urlParams?: {[key: string]: string}) => {
+  openDialog = (urlParams?: Record<string, string>) => {
     const {account, analyticsParams, modalParams, organization, provider} = this.props;
 
     trackIntegrationAnalytics('integrations.installation_start', {
@@ -81,7 +77,7 @@ export default class AddIntegration extends Component<Props> {
     const {url, width, height} = provider.setupDialog;
     const {left, top} = this.computeCenteredWindow(width, height);
 
-    let query: {[key: string]: string} = {...urlParams};
+    let query: Record<string, string> = {...urlParams};
 
     if (account) {
       query.account = account;

@@ -4,17 +4,16 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Literal, NotRequired, TypedDict, cast
+from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
 from django.utils import timezone
-from sentry_relay.processing import validate_rule_condition, validate_sampling_condition
+from sentry_relay.processing import validate_sampling_condition
 
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.api.utils import get_date_range_from_params
-from sentry.features.rollout import in_random_rollout
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.models.dashboard_widget import (
     ON_DEMAND_ENABLED_KEY,
@@ -29,18 +28,19 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
+from sentry.options.rollout import in_random_rollout
 from sentry.relay.config.experimental import TimeChecker, build_safe_config
 from sentry.relay.types import RuleCondition
 from sentry.search.events import fields
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
-from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     WIDGET_QUERY_CACHE_MAX_CHUNKS,
     MetricSpec,
     MetricSpecType,
     OnDemandMetricSpec,
+    OnDemandMetricSpecError,
     OnDemandMetricSpecVersioning,
     SpecVersion,
     TagMapping,
@@ -48,7 +48,6 @@ from sentry.snuba.metrics.extraction import (
     are_specs_equal,
     should_use_on_demand_metrics,
 )
-from sentry.snuba.metrics.span_attribute_extraction import convert_to_metric_spec
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json, metrics
@@ -74,17 +73,11 @@ class HighCardinalityWidgetException(Exception):
     pass
 
 
-class MetricExtrapolationConfig(TypedDict):
-    include: NotRequired[list[str]]
-    exclude: NotRequired[list[str]]
-
-
 class MetricExtractionConfig(TypedDict):
     """Configuration for generic extraction of metrics from all data categories."""
 
     version: int
     metrics: list[MetricSpec]
-    extrapolate: NotRequired[MetricExtrapolationConfig]
 
 
 def get_max_widget_specs(organization: Organization) -> int:
@@ -114,14 +107,8 @@ def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | N
         alert_specs, widget_specs = build_safe_config(
             "on_demand_metric_specs", get_on_demand_metric_specs, project
         ) or ([], [])
-    with sentry_sdk.start_span(op="generate_span_attribute_specs"):
-        span_attr_specs = (
-            build_safe_config("span_attribute_specs", _generate_span_attribute_specs, project) or []
-        )
     with sentry_sdk.start_span(op="merge_metric_specs"):
-        metric_specs = _merge_metric_specs(alert_specs, widget_specs, span_attr_specs)
-    with sentry_sdk.start_span(op="get_extrapolation_config"):
-        extrapolation_config = get_extrapolation_config(project)
+        metric_specs = _merge_metric_specs(alert_specs, widget_specs)
 
     if not metric_specs:
         return None
@@ -131,42 +118,7 @@ def get_metric_extraction_config(project: Project) -> MetricExtractionConfig | N
         "metrics": metric_specs,
     }
 
-    if extrapolation_config:
-        rv["extrapolate"] = extrapolation_config
-
     return rv
-
-
-def get_extrapolation_config(project: Project) -> MetricExtrapolationConfig | None:
-    if not features.has("organizations:metrics-extrapolation", project.organization):
-        return None
-
-    enabled = project.get_option("sentry:extrapolate_metrics", None)
-    if enabled is None:
-        enabled = project.organization.get_option("sentry:extrapolate_metrics", False)
-    if not enabled:
-        return None
-
-    # Extrapolation applies to extracted metrics. This enables extrapolation for
-    # the entire `custom` namespace, but this does not extrapolate old custom
-    # metrics sent from the SDK directly.
-    config: MetricExtrapolationConfig = {
-        "include": ["?:custom/*"],
-        "exclude": [],
-    }
-
-    if options.get("sentry-metrics.extrapolation.enable_transactions"):
-        config["include"] += ["?:transactions/*"]
-        config["exclude"] += [
-            "c:transactions/usage@none",  # stats
-            "c:transactions/count_per_root_project@none",  # dynamic sampling
-        ]
-
-    if options.get("sentry-metrics.extrapolation.enable_spans"):
-        config["include"] += ["?:spans/*"]
-        config["exclude"] += ["c:spans/usage@none"]  # stats
-
-    return config
 
 
 def get_on_demand_metric_specs(
@@ -204,8 +156,7 @@ def on_demand_metrics_feature_flags(organization: Organization) -> set[str]:
     return enabled_features
 
 
-@metrics.wraps("on_demand_metrics._get_alert_metric_specs")
-def _get_alert_metric_specs(
+def get_all_alert_metric_specs(
     project: Project, enabled_features: set[str], prefilling: bool
 ) -> list[HashedMetricSpec]:
     if not ("organizations:on-demand-metrics-extraction" in enabled_features or prefilling):
@@ -234,8 +185,6 @@ def _get_alert_metric_specs(
     with metrics.timer("on_demand_metrics.alert_spec_convert"):
         for alert in alert_rules:
             alert_snuba_query = alert.snuba_query
-            if alert_snuba_query is None:
-                continue
             metrics.incr(
                 "on_demand_metrics.before_alert_spec_generation",
                 tags={"prefilling": prefilling, "dataset": alert_snuba_query.dataset},
@@ -248,6 +197,23 @@ def _get_alert_metric_specs(
                         tags={"prefilling": prefilling},
                     )
                     specs.append(spec)
+    return specs
+
+
+def get_default_version_alert_metric_specs(
+    project: Project, enabled_features: set[str], prefilling: bool
+) -> list[HashedMetricSpec]:
+    specs = get_all_alert_metric_specs(project, enabled_features, prefilling)
+    specs_per_version = get_specs_per_version(specs)
+    default_extraction_version = OnDemandMetricSpecVersioning.get_default_spec_version().version
+    return specs_per_version.get(default_extraction_version, [])
+
+
+@metrics.wraps("on_demand_metrics._get_alert_metric_specs")
+def _get_alert_metric_specs(
+    project: Project, enabled_features: set[str], prefilling: bool
+) -> list[HashedMetricSpec]:
+    specs = get_all_alert_metric_specs(project, enabled_features, prefilling)
 
     max_alert_specs = options.get("on_demand.max_alert_specs")
     (specs, _) = _trim_if_above_limit(specs, max_alert_specs, project, "alerts")
@@ -307,7 +273,10 @@ def _get_widget_metric_specs(
     widget_queries = (
         DashboardWidgetQuery.objects.filter(
             widget__dashboard__organization=project.organization,
-            widget__widget_type=DashboardWidgetTypes.DISCOVER,
+            widget__widget_type__in=[
+                DashboardWidgetTypes.DISCOVER,
+                DashboardWidgetTypes.TRANSACTION_LIKE,
+            ],
         )
         .prefetch_related("dashboardwidgetqueryondemand_set", "widget")
         .order_by("-widget__dashboard__last_visited", "widget__order")
@@ -460,12 +429,11 @@ def _update_state_with_spec_limit(
 def _merge_metric_specs(
     alert_specs: list[HashedMetricSpec],
     widget_specs: list[HashedMetricSpec],
-    span_attr_specs: list[HashedMetricSpec],
 ) -> list[MetricSpec]:
     # We use a dict so that we can deduplicate metrics with the same hash.
     specs: dict[str, MetricSpec] = {}
     duplicated_specs = 0
-    for query_hash, spec, _ in widget_specs + alert_specs + span_attr_specs:
+    for query_hash, spec, _ in widget_specs + alert_specs:
         already_present = specs.get(query_hash)
         if already_present and not are_specs_equal(already_present, spec):
             logger.warning(
@@ -749,10 +717,6 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
             results = query_builder.run_query(Referrer.METRIC_EXTRACTION_CARDINALITY_CHECK.value)
             processed_results = query_builder.process_results(results)
         except SoftTimeLimitExceeded as error:
-            metrics.incr(
-                "on_demand_metrics.cardinality_check.query.error",
-                tags={"reason": "timelimit-exceeded"},
-            )
             scope.set_tag("widget_soft_deadline", True)
             sentry_sdk.capture_exception(error)
             # We're setting a much shorter cache timeout here since this is essentially a permissive 'unknown' state
@@ -760,9 +724,6 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
             return True
 
         except Exception as error:
-            metrics.incr(
-                "on_demand_metrics.cardinality_check.query.error", tags={"reason": "other"}
-            )
             sentry_sdk.capture_exception(error)
             cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
             return False
@@ -778,15 +739,9 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
                     scope.set_extra("widget_query.id", widget_query.id)
                     raise HighCardinalityWidgetException()
         except HighCardinalityWidgetException as error:
-            metrics.incr(
-                "on_demand_metrics.cardinality_check.query.success", tags={"low_cardinality": False}
-            )
-            sentry_sdk.capture_exception(error)
+            sentry_sdk.capture_message(str(error))
             return False
 
-    metrics.incr(
-        "on_demand_metrics.cardinality_check.query.success", tags={"low_cardinality": True}
-    )
     cache.set(cache_key, True)
     return True
 
@@ -856,49 +811,19 @@ def _convert_aggregate_and_query_to_metrics(
                     "on_demand_metrics.invalid_metric_spec", tags={"prefilling": prefilling}
                 )
                 logger.exception("Invalid on-demand metric spec", extra=extra)
+
+            except OnDemandMetricSpecError:
+                metrics.incr("on_demand_metrics.invalid_metric_spec.other")
+                logger.warning(
+                    "Failed on-demand metric spec creation due to specification error.", extra=extra
+                )
+
             except Exception:
                 # Since prefilling might include several non-ondemand-compatible alerts, we want to not trigger errors in the
                 metrics.incr("on_demand_metrics.invalid_metric_spec.other")
                 logger.exception("Failed on-demand metric spec creation.", extra=extra)
 
     return metric_specs_and_hashes
-
-
-def _generate_span_attribute_specs(
-    timeout: TimeChecker, project: Project
-) -> list[HashedMetricSpec]:
-    if not features.has(
-        "organizations:custom-metrics-extraction-rule", organization=project.organization
-    ):
-        return []
-
-    extraction_configs = SpanAttributeExtractionRuleConfig.objects.filter(project=project)
-    extraction_rules = []
-    for extraction_config in extraction_configs:
-        extraction_rules.extend(extraction_config.generate_rules())
-        timeout.check()
-
-    version = SpecVersion(version=_METRIC_EXTRACTION_VERSION)
-
-    specs = []
-    for rule in extraction_rules:
-        try:
-            spec = cast(MetricSpec, convert_to_metric_spec(rule))
-
-            if condition := spec.get("condition"):
-                validate_rule_condition(json.dumps(condition))
-
-            specs.append((spec["mri"], spec, version))
-        except ValueError:
-            logger.exception("Invalid span attribute metric spec", extra=rule.to_dict())
-
-        timeout.check()
-
-    max_specs = options.get("metric_extraction.max_span_attribute_specs")
-    (specs, _) = _trim_if_above_limit(specs, max_specs, project, "span_attributes")
-    timeout.check()
-
-    return specs
 
 
 # CONDITIONAL TAGGING

@@ -17,6 +17,24 @@ and so it is a private metric, whereas `SessionMRI.CRASH_FREE_RATE` has a corres
 metric that is queryable by the API.
 """
 
+import re
+from dataclasses import dataclass
+from enum import Enum
+from typing import cast
+
+from sentry_kafka_schemas.codecs import ValidationError
+
+from sentry.exceptions import InvalidParams
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.snuba.metrics.units import format_value_using_unit_and_op
+from sentry.snuba.metrics.utils import (
+    AVAILABLE_GENERIC_OPERATIONS,
+    AVAILABLE_OPERATIONS,
+    OP_REGEX,
+    MetricEntity,
+    MetricOperationType,
+)
+
 __all__ = (
     "SessionMRI",
     "TransactionMRI",
@@ -30,29 +48,6 @@ __all__ = (
     "parse_mri_field",
     "format_mri_field",
     "format_mri_field_value",
-)
-
-import re
-from collections.abc import Sequence
-from dataclasses import dataclass
-from enum import Enum
-from typing import cast
-
-import sentry_sdk
-from sentry_kafka_schemas.codecs import ValidationError
-
-from sentry.exceptions import InvalidParams
-from sentry.sentry_metrics.extraction_rules import SPAN_ATTRIBUTE_PREFIX
-from sentry.sentry_metrics.models import SpanAttributeExtractionRuleCondition
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.dataset import EntityKey
-from sentry.snuba.metrics.units import format_value_using_unit_and_op
-from sentry.snuba.metrics.utils import (
-    AVAILABLE_GENERIC_OPERATIONS,
-    AVAILABLE_OPERATIONS,
-    OP_REGEX,
-    MetricOperationType,
-    MetricUnit,
 )
 
 MRI_SCHEMA_REGEX_STRING = r"(?P<entity>[^:]+):(?P<namespace>[^/]+)/(?P<name>[^@]+)@(?P<unit>.+)"
@@ -77,20 +72,32 @@ class SessionMRI(Enum):
     ERRORED_PREAGGREGATED = "e:sessions/error.preaggr@none"
     ERRORED_SET = "e:sessions/error.unique@none"
     ERRORED_ALL = "e:sessions/all_errored@none"
+    HANDLED = "e:sessions/handled.unique@none"  # all sessions excluding handled and crashed
+    UNHANDLED = "e:sessions/unhandled@none"  # unhandled, does not include crashed
     CRASHED_AND_ABNORMAL = "e:sessions/crashed_abnormal@none"
     CRASHED = "e:sessions/crashed@none"
     CRASH_FREE = "e:sessions/crash_free@none"
     ABNORMAL = "e:sessions/abnormal@none"
+    HANDLED_RATE = "e:sessions/handled_rate@ratio"  # all sessions excluding handled and crashed
+    UNHANDLED_RATE = "e:sessions/unhandled_rate@ratio"  # unhandled, does not include crashed
     CRASH_RATE = "e:sessions/crash_rate@ratio"
-    CRASH_FREE_RATE = "e:sessions/crash_free_rate@ratio"
+    CRASH_FREE_RATE = "e:sessions/crash_free_rate@ratio"  # includes handled and unhandled
     ALL_USER = "e:sessions/user.all@none"
     HEALTHY_USER = "e:sessions/user.healthy@none"
     ERRORED_USER = "e:sessions/user.errored@none"
     ERRORED_USER_ALL = "e:sessions/user.all_errored@none"
+    HANDLED_USER = "e:sessions/user.handled@none"  # all sessions excluding handled and crashed
+    UNHANDLED_USER = "e:sessions/user.unhandled@none"  # unhandled, does not include crashed
     CRASHED_AND_ABNORMAL_USER = "e:sessions/user.crashed_abnormal@none"
     CRASHED_USER = "e:sessions/user.crashed@none"
     CRASH_FREE_USER = "e:sessions/user.crash_free@none"
     ABNORMAL_USER = "e:sessions/user.abnormal@none"
+    HANDLED_USER_RATE = (
+        "e:sessions/user.handled_rate@ratio"  # all sessions excluding handled and crashed
+    )
+    UNHANDLED_USER_RATE = (
+        "e:sessions/user.unhandled_rate@ratio"  # unhandled, does not include crashed
+    )
     CRASH_USER_RATE = "e:sessions/user.crash_rate@ratio"
     CRASH_FREE_USER_RATE = "e:sessions/user.crash_free_rate@ratio"
     ANR_USER = "e:sessions/user.anr@none"
@@ -166,6 +173,7 @@ class TransactionMRI(Enum):
 class SpanMRI(Enum):
     USER = "s:spans/user@none"
     DURATION = "d:spans/duration@millisecond"
+    COUNT_PER_ROOT_PROJECT = "c:spans/count_per_root_project@none"
     SELF_TIME = "d:spans/exclusive_time@millisecond"
     SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 
@@ -210,15 +218,6 @@ class ParsedMRI:
     def mri_string(self) -> str:
         return f"{self.entity}:{self.namespace}/{self.name}@{self.unit}"
 
-    @property
-    def span_attribute_rule_id(self):
-        if self.name.startswith(SPAN_ATTRIBUTE_PREFIX):
-            try:
-                return int(self.name[len(SPAN_ATTRIBUTE_PREFIX) :])
-            except ValueError:
-                return None
-        return None
-
 
 @dataclass
 class ParsedMRIField:
@@ -258,30 +257,12 @@ def format_mri_field(field: str) -> str:
     """
     Format a metric field to be used in a metric expression.
 
-    For example, if the field is `avg(c:custom/foo@none)`, it will be returned as `avg(foo)`.
+    For example, if the field is `avg(c:transactions/foo@none)`, it will be returned as `avg(foo)`.
     """
     try:
         parsed = parse_mri_field(field)
 
         if parsed:
-            if condition_id := parsed.mri.span_attribute_rule_id:
-                try:
-                    condition = SpanAttributeExtractionRuleCondition.objects.get(id=condition_id)
-                    config = condition.config
-                    if condition.value:
-                        filter_str = f' filtered by "{condition.value}"'
-                    else:
-                        filter_str = ""
-
-                    return f"{parsed.op}({config.span_attribute}){filter_str}"
-                except SpanAttributeExtractionRuleCondition.DoesNotExist:
-                    with sentry_sdk.new_scope() as scope:
-                        scope.set_tag("field", field)
-                        sentry_sdk.capture_message(
-                            "Trying to format MRI field for non-existent span metric."
-                        )
-                    return field
-
             return str(parsed)
 
         else:
@@ -295,7 +276,7 @@ def format_mri_field_value(field: str, value: str) -> str:
     """
     Formats MRI field value to a human-readable format using unit.
 
-    For example, if the value of avg(c:custom/duration@second) is 60,
+    For example, if the value of avg(c:transactions/duration@second) is 60,
     it will be returned as 1 minute.
 
     """
@@ -304,22 +285,10 @@ def format_mri_field_value(field: str, value: str) -> str:
         if parsed_mri_field is None:
             return value
 
-        if condition_id := parsed_mri_field.mri.span_attribute_rule_id:
-            try:
-                condition = SpanAttributeExtractionRuleCondition.objects.get(id=condition_id)
-                unit = cast(MetricUnit, condition.config.unit)
-            except SpanAttributeExtractionRuleCondition.DoesNotExist:
-                with sentry_sdk.new_scope() as scope:
-                    scope.set_tag("field", field)
-                    sentry_sdk.capture_message(
-                        "Trying to format MRI field for non-existent span metric."
-                    )
-                return value
+        return format_value_using_unit_and_op(
+            float(value), parsed_mri_field.mri.unit, parsed_mri_field.op
+        )
 
-        else:
-            unit = cast(MetricUnit, parsed_mri_field.mri.unit)
-
-        return format_value_using_unit_and_op(float(value), unit, parsed_mri_field.op)
     except InvalidParams:
         return value
 
@@ -377,28 +346,27 @@ def is_custom_measurement(parsed_mri: ParsedMRI) -> bool:
     )
 
 
-def get_entity_key_from_entity_type(entity_type: str, generic_metrics: bool) -> EntityKey:
-    entity_name_suffixes = {
-        "c": "counters",
-        "s": "sets",
-        "d": "distributions",
-        "g": "gauges",
-    }
+_ENTITY_KEY_MAPPING_GENERIC: dict[str, MetricEntity] = {
+    "c": "generic_metrics_counters",
+    "s": "generic_metrics_sets",
+    "d": "generic_metrics_distributions",
+    "g": "generic_metrics_gauges",
+}
+_ENTITY_KEY_MAPPING_NON_GENERIC: dict[str, MetricEntity] = {
+    "c": "metrics_counters",
+    "s": "metrics_sets",
+    "d": "metrics_distributions",
+}
 
-    if generic_metrics:
-        return EntityKey(f"generic_metrics_{entity_name_suffixes[entity_type]}")
-    else:
-        return EntityKey(f"metrics_{entity_name_suffixes[entity_type]}")
 
-
-def get_available_operations(parsed_mri: ParsedMRI) -> Sequence[str]:
+def get_available_operations(parsed_mri: ParsedMRI) -> list[MetricOperationType]:
     if parsed_mri.entity == "e":
         return []
     elif parsed_mri.namespace == "sessions":
-        entity_key = get_entity_key_from_entity_type(parsed_mri.entity, False).value
+        entity_key = _ENTITY_KEY_MAPPING_NON_GENERIC[parsed_mri.entity]
         return AVAILABLE_OPERATIONS[entity_key]
     else:
-        entity_key = get_entity_key_from_entity_type(parsed_mri.entity, True).value
+        entity_key = _ENTITY_KEY_MAPPING_GENERIC[parsed_mri.entity]
         return AVAILABLE_GENERIC_OPERATIONS[entity_key]
 
 

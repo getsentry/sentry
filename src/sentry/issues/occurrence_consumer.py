@@ -13,14 +13,15 @@ import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.batching import ValuesBatch
 from arroyo.types import BrokerValue, Message
+from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
-from sentry import features, nodestore
+from sentry import nodestore, options
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
-from sentry.issues.grouptype import get_group_type_by_type_id
+from sentry.issues.grouptype import InvalidGroupTypeError, get_group_type_by_type_id
 from sentry.issues.ingest import process_occurrence_data, save_issue_occurrence
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
@@ -28,10 +29,13 @@ from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_consumer import process_status_change_message
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.types.actor import parse_and_validate_actor
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+rate_limiter = RedisSlidingWindowRateLimiter(cluster=settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER)
 
 
 class InvalidEventPayloadError(Exception):
@@ -40,6 +44,37 @@ class InvalidEventPayloadError(Exception):
 
 class EventLookupError(Exception):
     pass
+
+
+def create_rate_limit_key(project_id: int, fingerprint: str) -> str:
+    rate_limit_key = f"occurrence_rate_limit:{project_id}-{fingerprint}"
+    return rate_limit_key
+
+
+def is_rate_limited(
+    project_id: int,
+    fingerprint: str,
+) -> bool:
+    try:
+        rate_limit_enabled = options.get("issues.occurrence-consumer.rate-limit.enabled")
+        if not rate_limit_enabled:
+            return False
+
+        rate_limit_key = create_rate_limit_key(project_id, fingerprint)
+        rate_limit_quota = Quota(**options.get("issues.occurrence-consumer.rate-limit.quota"))
+        granted_quota = rate_limiter.check_and_use_quotas(
+            [
+                RequestedQuota(
+                    rate_limit_key,
+                    1,
+                    [rate_limit_quota],
+                )
+            ]
+        )[0]
+        return not granted_quota.granted
+    except Exception:
+        logger.exception("Failed to check issue platform rate limiter")
+        return False
 
 
 @sentry_sdk.tracing.trace
@@ -191,11 +226,11 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
             if payload.get("culprit"):
                 occurrence_data["culprit"] = payload["culprit"]
 
-            if payload.get("initial_issue_priority") is not None:
-                occurrence_data["initial_issue_priority"] = payload["initial_issue_priority"]
+            if payload.get("priority") is not None:
+                occurrence_data["priority"] = payload["priority"]
             else:
                 group_type = get_group_type_by_type_id(occurrence_data["type"])
-                occurrence_data["initial_issue_priority"] = group_type.default_priority
+                occurrence_data["priority"] = group_type.default_priority
 
             if "event" in payload:
                 event_payload = payload["event"]
@@ -279,6 +314,8 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
 
                 return {"occurrence_data": occurrence_data}
 
+    except InvalidGroupTypeError:
+        raise
     except (KeyError, ValueError) as e:
         raise InvalidEventPayloadError(e)
 
@@ -319,6 +356,15 @@ def process_occurrence_message(
         txn.set_tag("result", "dropped_feature_disabled")
         return None
 
+    if is_rate_limited(project.id, fingerprint=occurrence_data["fingerprint"][0]):
+        metrics.incr(
+            "occurrence_ingest.dropped_rate_limited",
+            sample_rate=1.0,
+            tags=metric_tags,
+        )
+        txn.set_tag("result", "dropped_rate_limited")
+        return None
+
     if "event_data" in kwargs and is_buffered_spans:
         return create_event_and_issue_occurrence(kwargs["occurrence_data"], kwargs["event_data"])
     elif "event_data" in kwargs:
@@ -342,7 +388,7 @@ def process_occurrence_message(
 @sentry_sdk.tracing.trace
 @metrics.wraps("occurrence_consumer.process_message")
 def _process_message(
-    message: Mapping[str, Any]
+    message: Mapping[str, Any],
 ) -> tuple[IssueOccurrence | None, GroupInfo | None] | None:
     """
     :raises InvalidEventPayloadError: when the message is invalid
@@ -351,7 +397,6 @@ def _process_message(
     with sentry_sdk.start_transaction(
         op="_process_message",
         name="issues.occurrence_consumer",
-        sampled=True,
     ) as txn:
         try:
             # Messages without payload_type default to an OCCURRENCE payload
@@ -370,6 +415,10 @@ def _process_message(
                     sample_rate=1.0,
                     tags={"payload_type": payload_type},
                 )
+        except InvalidGroupTypeError as e:
+            metrics.incr(
+                "occurrence_ingest.invalid_group_type", tags={"occurrence_type": e.group_type_id}
+            )
         except (ValueError, KeyError) as e:
             txn.set_tag("result", "error")
             raise InvalidEventPayloadError(e)
@@ -378,7 +427,9 @@ def _process_message(
 
 @sentry_sdk.tracing.trace
 @metrics.wraps("occurrence_consumer.process_batch")
-def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]) -> None:
+def process_occurrence_batch(
+    worker: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]
+) -> None:
     """
     Receives batches of occurrences. This function will take the batch
     and group them together by fingerprint (ensuring order is preserved) and
@@ -425,31 +476,19 @@ def process_occurrence_group(items: list[Mapping[str, Any]]) -> None:
     Process a group of related occurrences (all part of the same group)
     completely serially.
     """
+    status_changes = [
+        item for item in items if item.get("payload_type") == PayloadType.STATUS_CHANGE.value
+    ]
 
-    try:
-        project = Project.objects.get_from_cache(id=items[0]["project_id"])
-        organization = Organization.objects.get_from_cache(id=project.organization_id)
-    except Exception:
-        logger.exception("Failed to fetch project or organization")
-        organization = None
-    if organization and features.has(
-        "organizations:occurence-consumer-prune-status-changes", organization
-    ):
-        status_changes = [
-            item for item in items if item.get("payload_type") == PayloadType.STATUS_CHANGE.value
-        ]
-
-        if status_changes:
-            items = [
-                item
-                for item in items
-                if item.get("payload_type") != PayloadType.STATUS_CHANGE.value
-            ] + status_changes[-1:]
-            metrics.incr(
-                "occurrence_consumer.process_occurrence_group.dropped_status_changes",
-                amount=len(status_changes) - 1,
-                sample_rate=1.0,
-            )
+    if status_changes:
+        items = [
+            item for item in items if item.get("payload_type") != PayloadType.STATUS_CHANGE.value
+        ] + status_changes[-1:]
+        metrics.incr(
+            "occurrence_consumer.process_occurrence_group.dropped_status_changes",
+            amount=len(status_changes) - 1,
+            sample_rate=1.0,
+        )
 
     for item in items:
         cache_key = f"occurrence_consumer.process_occurrence_group.{item['id']}"

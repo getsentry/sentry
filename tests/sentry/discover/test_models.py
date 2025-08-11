@@ -2,13 +2,13 @@ import pytest
 from django.db import IntegrityError, router, transaction
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
-from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.users.models.user import User
 
 
 class DiscoverSavedQueryTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.org = self.create_organization()
         with assume_test_silo_mode_of(User):
@@ -19,7 +19,7 @@ class DiscoverSavedQueryTest(TestCase):
         ]
         self.query = {"fields": ["test"], "conditions": [], "limit": 10}
 
-    def test_create(self):
+    def test_create(self) -> None:
         model = DiscoverSavedQuery.objects.create(
             organization=self.org, name="Test query", query=self.query
         )
@@ -32,7 +32,7 @@ class DiscoverSavedQueryTest(TestCase):
             == self.project_ids
         )
 
-    def test_update_projects(self):
+    def test_update_projects(self) -> None:
         model = DiscoverSavedQuery.objects.create(
             organization=self.org, name="Test query", query=self.query
         )
@@ -51,7 +51,7 @@ class DiscoverSavedQueryTest(TestCase):
             DiscoverSavedQueryProject.objects.all().values_list("project_id", flat=True)
         ) == [self.project_ids[0]]
 
-    def test_can_only_create_single_homepage_query_for_user(self):
+    def test_can_only_create_single_homepage_query_for_user(self) -> None:
         DiscoverSavedQuery.objects.create(
             organization=self.org,
             name="Test query",
@@ -69,7 +69,7 @@ class DiscoverSavedQueryTest(TestCase):
                 is_homepage=True,
             )
 
-    def test_can_only_have_single_homepage_query_for_user_on_update(self):
+    def test_can_only_have_single_homepage_query_for_user_on_update(self) -> None:
         DiscoverSavedQuery.objects.create(
             organization=self.org,
             name="Test query",
@@ -84,23 +84,26 @@ class DiscoverSavedQueryTest(TestCase):
             created_by_id=self.user.id,
         )
 
-        with pytest.raises(IntegrityError), transaction.atomic(
-            router.db_for_write(DiscoverSavedQueryProject)
+        with (
+            pytest.raises(IntegrityError),
+            transaction.atomic(router.db_for_write(DiscoverSavedQueryProject)),
         ):
             new_query.update(is_homepage=True)
 
-        with pytest.raises(IntegrityError), transaction.atomic(
-            router.db_for_write(DiscoverSavedQueryProject)
+        with (
+            pytest.raises(IntegrityError),
+            transaction.atomic(router.db_for_write(DiscoverSavedQueryProject)),
         ):
             new_query.is_homepage = True
             new_query.save()
 
-        with pytest.raises(IntegrityError), transaction.atomic(
-            router.db_for_write(DiscoverSavedQueryProject)
+        with (
+            pytest.raises(IntegrityError),
+            transaction.atomic(router.db_for_write(DiscoverSavedQueryProject)),
         ):
             DiscoverSavedQuery.objects.filter(id=new_query.id).update(is_homepage=True)
 
-    def test_user_can_have_homepage_query_in_multiple_orgs(self):
+    def test_user_can_have_homepage_query_in_multiple_orgs(self) -> None:
         other_org = self.create_organization()
         DiscoverSavedQuery.objects.create(
             organization=self.org,

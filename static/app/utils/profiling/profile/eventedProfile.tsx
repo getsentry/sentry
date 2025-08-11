@@ -1,4 +1,3 @@
-import {lastOfArray} from 'sentry/utils/array/lastOfArray';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import type {Frame} from 'sentry/utils/profiling/frame';
 import {assertValidProfilingUnit, formatTo} from 'sentry/utils/profiling/units/units';
@@ -80,9 +79,7 @@ export class EventedProfile extends Profile {
       const samples: CallTreeNode[] = [];
       const weights: number[] = [];
 
-      for (let i = 0; i < built.samples.length; i++) {
-        const sample = built.samples[i];
-
+      for (const sample of built.samples) {
         if (visited.has(sample)) {
           continue;
         }
@@ -107,7 +104,7 @@ export class EventedProfile extends Profile {
       frame.totalWeight += weightDelta;
     }
 
-    const top = lastOfArray(this.stack);
+    const top = this.stack[this.stack.length - 1];
     if (top) {
       top.selfWeight += weight;
     }
@@ -119,7 +116,7 @@ export class EventedProfile extends Profile {
     for (const node of this.calltree) {
       node.totalWeight += delta;
     }
-    const stackTop = lastOfArray(this.calltree);
+    const stackTop = this.calltree[this.calltree.length - 1];
 
     if (stackTop) {
       stackTop.selfWeight += delta;
@@ -130,7 +127,7 @@ export class EventedProfile extends Profile {
     this.addWeightToFrames(at);
     this.addWeightsToNodes(at);
 
-    const lastTop = lastOfArray(this.calltree);
+    const lastTop = this.calltree[this.calltree.length - 1];
 
     if (lastTop) {
       const sampleDelta = at - this.lastValue;
@@ -164,7 +161,7 @@ export class EventedProfile extends Profile {
           lastTop.children.push(node);
         }
       } else {
-        const last = lastOfArray(lastTop.children);
+        const last = lastTop.children[lastTop.children.length - 1];
         if (last && !last.isLocked() && last.frame === frame) {
           node = last;
         } else {
@@ -178,10 +175,10 @@ export class EventedProfile extends Profile {
       // We check the stack in a top-down order to find the first recursive frame.
       let start = this.calltree.length - 1;
       while (start >= 0) {
-        if (this.calltree[start].frame === node.frame) {
+        if (this.calltree[start]!.frame === node.frame) {
           // The recursion edge is bidirectional
-          this.calltree[start].recursive = node;
-          node.recursive = this.calltree[start];
+          this.calltree[start]!.recursive = node;
+          node.recursive = this.calltree[start]!;
           break;
         }
         start--;

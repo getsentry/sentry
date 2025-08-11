@@ -1,39 +1,62 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  Docs,
-  DocsParams,
-  OnboardingConfig,
+import {Fragment} from 'react';
+
+import {ExternalLink} from 'sentry/components/core/link';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  type Docs,
+  type DocsParams,
+  type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  agentMonitoringOnboarding,
+  AlternativeConfiguration,
+  crashReportOnboardingPython,
+  featureFlagOnboarding,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {
+  getPythonInstallConfig,
+  getPythonProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[flask]'`;
-
-const getSdkSetupSnippet = (params: Params) => `
-import sentry_sdk
+const getSdkSetupSnippet = (params: Params) => `import sentry_sdk
 from flask import Flask
 
 sentry_sdk.init(
-    dsn="${params.dsn}",${
+    dsn="${params.dsn.public}",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
+    # of transactions for tracing.
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode !== 'continuous'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : ''
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
+          ? `
+    # Set profile_session_sample_rate to 1.0 to profile 100%
+    # of profile sessions.
+    profile_session_sample_rate=1.0,
+    # Set profile_lifecycle to "trace" to automatically
+    # run the profiler on when there is an active transaction
+    profile_lifecycle="trace",`
+          : ''
     }
 )
 `;
@@ -43,31 +66,16 @@ const onboarding: OnboardingConfig = {
     tct('The Flask integration adds support for the [link:Flask Framework].', {
       link: <ExternalLink href="https://flask.palletsprojects.com" />,
     }),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentryFlaskCode:flask] extra:',
+        'Install [code:sentry-sdk] from PyPI with the [code:flask] extra:',
         {
-          sentrySdkCode: <code />,
-          sentryFlaskCode: <code />,
+          code: <code />,
         }
       ),
-      configurations: [
-        {
-          description: params.isProfilingSelected
-            ? tct(
-                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
-                {
-                  codeVersion: <code />,
-                  codePackage: <code />,
-                }
-              )
-            : undefined,
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-      ],
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[flask]'}),
     },
   ],
   configure: (params: Params) => [
@@ -82,15 +90,25 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'python',
-          code: `
-${getSdkSetupSnippet(params)}
+          code: `${getSdkSetupSnippet(params)}
 app = Flask(__name__)
-      `,
+`,
         },
       ],
-      additionalInfo: tct(
-        'The above configuration captures both error and performance data. To reduce the volume of performance data captured, change [code:traces_sample_rate] to a value between 0 and 1.',
-        {code: <code />}
+      additionalInfo: (
+        <Fragment>
+          {params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous' && (
+              <Fragment>
+                <AlternativeConfiguration />
+                <br />
+              </Fragment>
+            )}
+          {tct(
+            'The above configuration captures both error and performance data. To reduce the volume of performance data captured, change [code:traces_sample_rate] to a value between 0 and 1.',
+            {code: <code />}
+          )}
+        </Fragment>
       ),
     },
   ],
@@ -104,15 +122,14 @@ app = Flask(__name__)
         {
           language: 'python',
 
-          code: `
-${getSdkSetupSnippet(params)}
+          code: `${getSdkSetupSnippet(params)}
 app = Flask(__name__)
 
 @app.route("/")
 def hello_world():
     1/0  # raises an error
     return "<p>Hello, World!</p>"
-        `,
+`,
         },
       ],
       additionalInfo: (
@@ -138,13 +155,86 @@ def hello_world():
   nextSteps: () => [],
 };
 
+const performanceOnboarding: OnboardingConfig = {
+  introduction: () =>
+    t(
+      "Adding Performance to your Flask project is simple. Make sure you've got these basics down."
+    ),
+  install: onboarding.install,
+  configure: params => [
+    {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'To configure the Sentry SDK, initialize it in your [code:settings.py] file:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          language: 'python',
+          code: `
+import sentry-sdk
+
+sentry_sdk.init(
+    dsn: "${params.dsn.public}",
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,
+)`,
+        },
+        {
+          type: 'text',
+          text: tct(
+            'Learn more about tracing [linkTracingOptions:options], how to use the [linkTracesSampler:traces_sampler] function, or how to [linkSampleTransactions:sample transactions].',
+            {
+              linkTracingOptions: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/configuration/options/#tracing-options" />
+              ),
+              linkTracesSampler: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/configuration/sampling/" />
+              ),
+              linkSampleTransactions: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/configuration/sampling/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Verify that performance monitoring is working correctly with our [link:automatic instrumentation] by simply using your Python application.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/automatic-instrumentation/" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  customMetricsOnboarding: getPythonMetricsOnboarding({
-    installSnippet: getInstallSnippet(),
-  }),
+  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[flask]'}),
+  performanceOnboarding,
   crashReportOnboarding: crashReportOnboardingPython,
+  featureFlagOnboarding,
+  feedbackOnboardingJsLoader,
+  agentMonitoringOnboarding,
 };
 
 export default docs;

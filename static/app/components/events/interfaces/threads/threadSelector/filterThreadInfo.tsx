@@ -1,26 +1,25 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import type {ThreadStates} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import {getMappedThreadState} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
-import type {
-  EntryData,
-  Event,
-  ExceptionType,
-  Frame,
-  StacktraceType,
-  Thread,
-} from 'sentry/types';
+import type {Event, ExceptionType, Frame, Thread} from 'sentry/types/event';
+import type {EntryData} from 'sentry/types/group';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 
 import getRelevantFrame from './getRelevantFrame';
 import getThreadException from './getThreadException';
 import getThreadStacktrace from './getThreadStacktrace';
-import trimFilename from './trimFilename';
 
-type ThreadInfo = {
+export type ThreadInfo = {
   crashedInfo?: EntryData;
   filename?: string;
   label?: string;
   state?: ThreadStates;
 };
+
+function trimFilename(filename: string) {
+  const pieces = filename.split(/\//g);
+  return pieces[pieces.length - 1];
+}
 
 function filterThreadInfo(
   event: Event,

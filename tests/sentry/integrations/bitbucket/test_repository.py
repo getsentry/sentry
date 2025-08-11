@@ -15,7 +15,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class BitbucketRepositoryProviderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.base_url = "https://api.bitbucket.org"
         self.shared_secret = "234567890"
@@ -44,7 +44,7 @@ class BitbucketRepositoryProviderTest(TestCase):
     def provider(self):
         return BitbucketRepositoryProvider("bitbucket")
 
-    def test_get_client(self):
+    def test_get_client(self) -> None:
         installation = self.integration.get_installation(self.repo.organization_id)
         client = installation.get_client()
         assert client.base_url == self.base_url
@@ -52,7 +52,7 @@ class BitbucketRepositoryProviderTest(TestCase):
         assert client.subject == self.subject
 
     @responses.activate
-    def test_compare_commits(self):
+    def test_compare_commits(self) -> None:
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/sentryuser/newsdiffs/commits/e18e4e72de0d824edfbe0d73efe34cbd0d01d301",
@@ -81,28 +81,42 @@ class BitbucketRepositoryProviderTest(TestCase):
         ]
 
     @responses.activate
-    def test_build_repository_config(self):
+    def test_build_repository_config(self) -> None:
         full_repo_name = "laurynsentry/helloworld"
         webhook_id = "web-hook-id"
+
+        organization = self.create_organization()
+
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/%s" % full_repo_name,
             json=REPO,
         )
+        expected_post_payload = {
+            "active": True,
+            "description": "sentry-bitbucket-repo-hook",
+            "events": ["repo:push", "pullrequest:fulfilled"],
+            "secret": "supersecret",
+            "url": f"http://testserver/extensions/bitbucket/organizations/{organization.id}/webhook/",
+        }
         responses.add(
             responses.POST,
             "https://api.bitbucket.org/2.0/repositories/%s/hooks" % full_repo_name,
             json={"uuid": webhook_id},
             status=201,
+            match=[responses.matchers.json_params_matcher(expected_post_payload)],
         )
 
-        organization = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(
                 provider="bitbucket",
                 external_id="bitbucket_external_id",
                 name="Hello world",
-                metadata={"base_url": "https://api.bitbucket.org", "shared_secret": "23456789"},
+                metadata={
+                    "base_url": "https://api.bitbucket.org",
+                    "shared_secret": "23456789",
+                    "webhook_secret": "supersecret",
+                },
             )
             integration.add_organization(organization)
         data = {
@@ -128,20 +142,20 @@ class BitbucketRepositoryProviderTest(TestCase):
             "config": {"name": full_repo_name, "webhook_id": webhook_id},
         }
 
-    def test_repository_external_slug(self):
+    def test_repository_external_slug(self) -> None:
         result = self.provider.repository_external_slug(self.repo)
         assert result == self.repo.name
 
-    def test_get_repository_data_no_installation_id(self):
+    def test_get_repository_data_no_installation_id(self) -> None:
         with pytest.raises(IntegrationError) as e:
             self.provider.get_repository_data(self.organization, {})
-            assert "requires an integration id" in str(e)
+        assert "requires an integration id" in str(e.value)
 
 
 class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
     provider_name = "integrations:bitbucket"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.base_url = "https://api.bitbucket.org"
         self.shared_secret = "234567890"
@@ -180,12 +194,12 @@ class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
             json={"uuid": "99"},
         )
 
-    def test_create_repository_data_no_installation_id(self):
+    def test_create_repository_data_no_installation_id(self) -> None:
         response = self.create_repository(self.default_repository_config, None)
         assert response.status_code == 400
         self.assert_error_message(response, "validation", "requires an integration id")
 
-    def test_create_repository_data_integration_does_not_exist(self):
+    def test_create_repository_data_integration_does_not_exist(self) -> None:
         integration_id = self.integration.id
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()

@@ -1,8 +1,8 @@
 import {Component, Fragment} from 'react';
-import type {WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import scrollToElement from 'scroll-to-element';
 
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 // eslint-disable-next-line no-restricted-imports
@@ -15,7 +15,7 @@ import type {Field, FieldObject, JsonFormObject} from './types';
 interface JsonFormProps
   extends WithRouterProps,
     Omit<FormPanelProps, 'highlighted' | 'fields' | 'additionalFieldProps'> {
-  additionalFieldProps?: {[key: string]: any};
+  additionalFieldProps?: Record<string, any>;
 
   /**
    * If `forms` is not defined, `title` + `fields` must be required.
@@ -174,10 +174,9 @@ class JsonForm extends Component<JsonFormProps, State> {
 
     return (
       <div {...otherProps}>
-        {typeof forms !== 'undefined' &&
-          forms.map((formGroup, i) => (
-            <Fragment key={i}>{this.renderForm({formPanelProps, ...formGroup})}</Fragment>
-          ))}
+        {forms?.map((formGroup, i) => (
+          <Fragment key={i}>{this.renderForm({formPanelProps, ...formGroup})}</Fragment>
+        ))}
         {typeof forms === 'undefined' &&
           typeof fields !== 'undefined' &&
           this.renderForm({fields, formPanelProps, title})}

@@ -9,10 +9,13 @@ from rest_framework import status
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.identity.services.identity import RpcIdentityProvider
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.identity.services.identity.service import identity_service
+from sentry.integrations.discord.client import DISCORD_BASE_URL
 from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
@@ -130,11 +133,11 @@ class DiscordRequest:
         token = self._data.get("token")
         if not token or not application_id:
             return None
-        return f"https://discord.com/api/v10/webhooks/{application_id}/{token}"
+        return f"{DISCORD_BASE_URL}/webhooks/{application_id}/{token}"
 
     def _get_context(self):
         context = integration_service.get_integration_identity_context(
-            integration_provider="discord",
+            integration_provider=IntegrationProviderSlug.DISCORD.value,
             integration_external_id=self.guild_id,
             identity_external_id=self.user_id,
             identity_provider_external_id=self.guild_id,
@@ -195,7 +198,7 @@ class DiscordRequest:
     def get_identity(self) -> RpcIdentity | None:
         if not self._provider:
             self._provider = identity_service.get_provider(
-                provider_type="discord", provider_ext_id=self.guild_id
+                provider_type=IntegrationProviderSlug.DISCORD.value, provider_ext_id=self.guild_id
             )
             if not self._provider:
                 self._info("discord.validate.identity.no.provider")
@@ -224,7 +227,9 @@ class DiscordRequest:
     def validate_integration(self) -> None:
         if not self._integration:
             self._integration = integration_service.get_integration(
-                provider="discord", external_id=self.guild_id
+                provider=IntegrationProviderSlug.DISCORD.value,
+                external_id=self.guild_id,
+                status=ObjectStatus.ACTIVE,
             )
         self._info("discord.validate.integration")
 
@@ -250,9 +255,6 @@ class DiscordRequest:
 
     def is_message_component(self) -> bool:
         return self._data.get("type", 0) == DiscordRequestTypes.MESSAGE_COMPONENT
-
-    def is_modal_submit(self) -> bool:
-        return self._data.get("type", 0) == DiscordRequestTypes.MODAL_SUBMIT
 
     def get_command_name(self) -> str:
         if not self.is_command():

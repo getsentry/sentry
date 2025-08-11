@@ -7,14 +7,14 @@ from django.urls import reverse
 
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
-from sentry.testutils.helpers.datetime import freeze_time, iso_format
+from sentry.testutils.helpers.datetime import freeze_time
 
 pytestmark = pytest.mark.sentry_metrics
 
 
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.org = self.create_organization(owner=self.user)
@@ -55,13 +55,13 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
     def now(self):
         return MetricsAPIBaseTestCase.MOCK_DATETIME
 
-    def test_no_feature_flag(self):
+    def test_no_feature_flag(self) -> None:
         response = self.client.get(
             self.url,
             format="json",
             data={
-                "end": iso_format(self.now - timedelta(minutes=1)),
-                "start": iso_format(self.now - timedelta(hours=4)),
+                "end": self.now - timedelta(minutes=1),
+                "start": self.now - timedelta(hours=4),
                 "field": ["project", "transaction"],
                 "query": "event.type:transaction",
             },
@@ -69,14 +69,14 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
 
         assert response.status_code == 404, response.content
 
-    def test_no_project(self):
+    def test_no_project(self) -> None:
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
                 format="json",
                 data={
-                    "end": iso_format(self.now - timedelta(minutes=1)),
-                    "start": iso_format(self.now - timedelta(hours=4)),
+                    "end": self.now - timedelta(minutes=1),
+                    "start": self.now - timedelta(hours=4),
                     "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "",
@@ -87,7 +87,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         assert response.data == []
 
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
-    def test_simple_with_trends(self, mock_detect_breakpoints):
+    def test_simple_with_trends(self, mock_detect_breakpoints: mock.MagicMock) -> None:
         mock_trends_result = [
             {
                 "project": self.project.id,
@@ -104,8 +104,8 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 self.url,
                 format="json",
                 data={
-                    "end": iso_format(self.now),
-                    "start": iso_format(self.now - timedelta(days=1)),
+                    "end": self.now,
+                    "start": self.now - timedelta(days=1),
                     "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
@@ -125,7 +125,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         assert len(result_stats.get(f"{self.project.id},foo", [])) > 0
 
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
-    def test_simple_with_no_trends(self, mock_detect_breakpoints):
+    def test_simple_with_no_trends(self, mock_detect_breakpoints: mock.MagicMock) -> None:
         mock_trends_result: list[dict[str, Any] | None] = []
         mock_detect_breakpoints.return_value = {"data": mock_trends_result}
 
@@ -134,8 +134,8 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 self.url,
                 format="json",
                 data={
-                    "end": iso_format(self.now),
-                    "start": iso_format(self.now - timedelta(days=1)),
+                    "end": self.now,
+                    "start": self.now - timedelta(days=1),
                     "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
@@ -154,7 +154,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         assert len(result_stats) == 0
 
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
-    def test_simple_with_transaction_query(self, mock_detect_breakpoints):
+    def test_simple_with_transaction_query(self, mock_detect_breakpoints: mock.MagicMock) -> None:
         mock_trends_result: list[dict[str, Any] | None] = []
         mock_detect_breakpoints.return_value = {"data": mock_trends_result}
 
@@ -172,8 +172,8 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 self.url,
                 format="json",
                 data={
-                    "end": iso_format(self.now),
-                    "start": iso_format(self.now - timedelta(days=1)),
+                    "end": self.now,
+                    "start": self.now - timedelta(days=1),
                     "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction transaction:foo",
@@ -188,7 +188,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         assert response.status_code == 200, response.content
 
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
-    def test_simple_with_trends_p75(self, mock_detect_breakpoints):
+    def test_simple_with_trends_p75(self, mock_detect_breakpoints: mock.MagicMock) -> None:
         mock_trends_result = [
             {
                 "project": self.project.id,
@@ -205,8 +205,8 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 self.url,
                 format="json",
                 data={
-                    "end": iso_format(self.now),
-                    "start": iso_format(self.now - timedelta(days=1)),
+                    "end": self.now,
+                    "start": self.now - timedelta(days=1),
                     "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
@@ -227,7 +227,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         assert len(result_stats.get(f"{self.project.id},foo", [])) > 0
 
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
-    def test_simple_with_trends_p95(self, mock_detect_breakpoints):
+    def test_simple_with_trends_p95(self, mock_detect_breakpoints: mock.MagicMock) -> None:
         mock_trends_result = [
             {
                 "project": self.project.id,
@@ -244,8 +244,8 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 self.url,
                 format="json",
                 data={
-                    "end": iso_format(self.now),
-                    "start": iso_format(self.now - timedelta(days=1)),
+                    "end": self.now,
+                    "start": self.now - timedelta(days=1),
                     "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
@@ -266,7 +266,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         assert len(result_stats.get(f"{self.project.id},foo", [])) > 0
 
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
-    def test_simple_with_top_events(self, mock_detect_breakpoints):
+    def test_simple_with_top_events(self, mock_detect_breakpoints: mock.MagicMock) -> None:
         # store second metric but with lower count
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
@@ -282,8 +282,8 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 self.url,
                 format="json",
                 data={
-                    "end": iso_format(self.now),
-                    "start": iso_format(self.now - timedelta(days=1)),
+                    "end": self.now,
+                    "start": self.now - timedelta(days=1),
                     "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
@@ -301,7 +301,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         assert len(trends_call_args_data.get(f"{self.project.id},bar", [])) == 0
 
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
-    def test_two_projects_same_transaction(self, mock_detect_breakpoints):
+    def test_two_projects_same_transaction(self, mock_detect_breakpoints: mock.MagicMock) -> None:
         project1 = self.create_project(organization=self.org)
         project2 = self.create_project(organization=self.org)
 
@@ -327,8 +327,8 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 self.url,
                 format="json",
                 data={
-                    "end": iso_format(self.now),
-                    "start": iso_format(self.now - timedelta(days=1)),
+                    "end": self.now,
+                    "start": self.now - timedelta(days=1),
                     "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
@@ -347,12 +347,12 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
 
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.detect_breakpoints")
     @mock.patch("sentry.api.endpoints.organization_events_trends_v2.EVENTS_PER_QUERY", 2)
-    def test_two_projects_same_transaction_split_queries(self, mock_detect_breakpoints):
+    def test_two_projects_same_transaction_split_queries(self, mock_detect_breakpoints) -> None:
         project1 = self.create_project(organization=self.org)
         project2 = self.create_project(organization=self.org)
 
         # force these 2 transactions from different projects
-        # to fall into the FIRST bucket when quering
+        # to fall into the FIRST bucket when querying
         for i in range(2):
             self.store_performance_metric(
                 name=TransactionMRI.DURATION.value,
@@ -371,7 +371,7 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 hours_before_now=2,
             )
         # force these 2 transactions from different projects
-        # to fall into the SECOND bucket when quering
+        # to fall into the SECOND bucket when querying
         self.store_performance_metric(
             name=TransactionMRI.DURATION.value,
             tags={"transaction": "foo bar*"},
@@ -394,8 +394,8 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
                 self.url,
                 format="json",
                 data={
-                    "end": iso_format(self.now),
-                    "start": iso_format(self.now - timedelta(days=1)),
+                    "end": self.now,
+                    "start": self.now - timedelta(days=1),
                     "interval": "1h",
                     "field": ["project", "transaction"],
                     "query": "event.type:transaction",
@@ -411,10 +411,20 @@ class OrganizationEventsTrendsStatsV2EndpointTest(MetricsAPIBaseTestCase):
         trends_call_args_data_1 = mock_detect_breakpoints.call_args_list[0][0][0]["data"]
         trends_call_args_data_2 = mock_detect_breakpoints.call_args_list[1][0][0]["data"]
 
-        assert len(trends_call_args_data_1[f"{project1.id},foo bar*"]) > 0
-        assert len(trends_call_args_data_1[f'{project2.id},foo bar\\\\"']) > 0
-        assert len(trends_call_args_data_2[f'{project1.id},foo bar\\\\"']) > 0
-        assert len(trends_call_args_data_2[f"{project2.id},foo bar*"]) > 0
+        # the order the calls happen in is non-deterministic because of the async
+        # nature making making the requests in a thread pool so check that 1 of
+        # the 2 possibilities happened
+        assert (
+            len(trends_call_args_data_1.get(f"{project1.id},foo bar*", {})) > 0
+            and len(trends_call_args_data_1.get(f'{project2.id},foo bar\\\\"', {})) > 0
+            and len(trends_call_args_data_2.get(f'{project1.id},foo bar\\\\"', {})) > 0
+            and len(trends_call_args_data_2.get(f"{project2.id},foo bar*", {})) > 0
+        ) or (
+            len(trends_call_args_data_1.get(f'{project1.id},foo bar\\\\"', {})) > 0
+            and len(trends_call_args_data_1.get(f"{project2.id},foo bar*", {})) > 0
+            and len(trends_call_args_data_2.get(f"{project1.id},foo bar*", {})) > 0
+            and len(trends_call_args_data_2.get(f'{project2.id},foo bar\\\\"', {})) > 0
+        )
 
         for trends_call_args_data in [trends_call_args_data_1, trends_call_args_data_2]:
             for k, v in trends_call_args_data.items():

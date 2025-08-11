@@ -14,12 +14,14 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT
-from sentry.apidocs.examples.organization_examples import OrganizationExamples
+from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.integrations.api.bases.external_actor import (
     ExternalActorEndpointMixin,
+    ExternalUserPermission,
     ExternalUserSerializer,
 )
+from sentry.integrations.api.serializers.models.external_actor import ExternalActorSerializer
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organization import Organization
 
@@ -27,13 +29,14 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-@extend_schema(tags=["Organizations"])
+@extend_schema(tags=["Integrations"])
 class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
+    owner = ApiOwner.ECOSYSTEM
+    permission_classes = (ExternalUserPermission,)
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ENTERPRISE
 
     def convert_args(
         self,
@@ -54,11 +57,11 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
         parameters=[GlobalParams.ORG_ID_OR_SLUG, OrganizationParams.EXTERNAL_USER_ID],
         request=ExternalUserSerializer,
         responses={
-            200: ExternalUserSerializer,
+            200: ExternalActorSerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
-        examples=OrganizationExamples.EXTERNAL_USER_CREATE,
+        examples=IntegrationExamples.EXTERNAL_USER_CREATE,
     )
     def put(
         self, request: Request, organization: Organization, external_user: ExternalActor
@@ -92,7 +95,6 @@ class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMix
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
-        examples=OrganizationExamples.EXTERNAL_USER_CREATE,
     )
     def delete(
         self, request: Request, organization: Organization, external_user: ExternalActor

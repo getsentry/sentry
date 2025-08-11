@@ -1,4 +1,4 @@
-import type {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
 export type RelocationState = {
   orgSlugs: string;
@@ -12,13 +12,11 @@ export type MaybeUpdateRelocationState = {
   regionUrl?: string;
 };
 
-export type StepProps = Pick<
-  RouteComponentProps<{}, {}>,
-  'router' | 'route' | 'location'
-> & {
+export type StepProps = Pick<RouteComponentProps, 'router' | 'route' | 'location'> & {
   active: boolean;
   existingRelocationUUID: string;
   onComplete: (uuid?: string) => void;
+  // @ts-expect-error TS(7051): Parameter has a name but no type. Did you mean 'ar... Remove this comment to see the full error message
   onUpdateRelocationState: (MaybeUpdateRelocationState) => void;
   publicKeys: Map<string, string>;
   relocationState: RelocationState;

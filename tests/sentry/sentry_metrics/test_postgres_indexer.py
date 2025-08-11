@@ -1,18 +1,10 @@
-from collections.abc import Mapping
-
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.indexer.base import FetchType, Metadata, UseCaseKeyCollection
+from sentry.sentry_metrics.indexer.base import UseCaseKeyCollection
 from sentry.sentry_metrics.indexer.cache import CachingIndexer
 from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PGStringIndexerV2, indexer_cache
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
-
-
-def assert_fetch_type_for_tag_string_set(
-    meta: Mapping[str, Metadata], fetch_type: FetchType, str_set: set[str]
-):
-    assert all([meta[string].fetch_type == fetch_type for string in str_set])
 
 
 class PostgresIndexerV2Test(TestCase):
@@ -27,7 +19,7 @@ class PostgresIndexerV2Test(TestCase):
     def tearDown(self) -> None:
         cache.clear()
 
-    def test_get_db_records(self):
+    def test_get_db_records(self) -> None:
         """
         Make sure that calling `_get_db_records` doesn't populate the cache
         """

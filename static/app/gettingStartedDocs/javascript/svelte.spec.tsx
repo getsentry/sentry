@@ -2,7 +2,7 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
 import docs from './svelte';
 
@@ -13,7 +13,9 @@ describe('javascript-svelte onboarding docs', function () {
     // Renders main headings
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Upload Source Maps'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: /Upload Source Maps/i})
+    ).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
     // Includes import statement
@@ -34,13 +36,13 @@ describe('javascript-svelte onboarding docs', function () {
     });
 
     expect(
-      screen.queryByText(textWithMarkupMatcher(/tracesSampleRate/))
+      screen.getByText(textWithMarkupMatcher(/tracesSampleRate/))
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(textWithMarkupMatcher(/replaysSessionSampleRate/))
+      screen.getByText(textWithMarkupMatcher(/replaysSessionSampleRate/))
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(textWithMarkupMatcher(/replaysOnErrorSampleRate/))
+      screen.getByText(textWithMarkupMatcher(/replaysOnErrorSampleRate/))
     ).toBeInTheDocument();
   });
 
@@ -84,5 +86,38 @@ describe('javascript-svelte onboarding docs', function () {
     expect(
       screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).toBeInTheDocument();
+  });
+
+  it('enables logs by setting enableLogs to true', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/enableLogs: true/))
+    ).toBeInTheDocument();
+  });
+
+  it('shows Logging Integrations in next steps when logs is selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.LOGS,
+      ],
+    });
+
+    expect(screen.getByText('Logging Integrations')).toBeInTheDocument();
+  });
+
+  it('does not show Logging Integrations in next steps when logs is not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.PERFORMANCE_MONITORING,
+      ],
+    });
+
+    expect(screen.queryByText('Logging Integrations')).not.toBeInTheDocument();
   });
 });

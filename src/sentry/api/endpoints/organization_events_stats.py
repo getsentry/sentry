@@ -1,118 +1,43 @@
-from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from collections.abc import Mapping
+from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics, features
+from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
+from sentry.api.helpers.error_upsampling import (
+    is_errors_query_for_error_upsampled_projects,
+    transform_query_columns_for_error_upsampling,
+)
 from sentry.constants import MAX_TOP_EVENTS
-from sentry.middleware import is_frontend_request
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
+from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import (
     discover,
     errors,
     functions,
     metrics_enhanced_performance,
     metrics_performance,
-    profile_functions_metrics,
     spans_indexed,
     spans_metrics,
     transactions,
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.query_sources import QuerySource
-from sentry.snuba.referrer import Referrer
+from sentry.snuba.referrer import Referrer, is_valid_referrer
+from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.utils import RPC_DATASETS
 from sentry.utils.snuba import SnubaError, SnubaTSResult
-
-METRICS_ENHANCED_REFERRERS: set[str] = {
-    Referrer.API_PERFORMANCE_HOMEPAGE_WIDGET_CHART.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_DURATION_HISTOGRAM.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_LCP_HISTOGRAM.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_FCP_HISTOGRAM.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_FID_HISTOGRAM.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P50_DURATION_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P75_DURATION_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P95_DURATION_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P99_DURATION_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_P75_LCP_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_TPM_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_FAILURE_RATE_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_USER_MISERY_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_WORST_LCP_VITALS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_WORST_FCP_VITALS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_WORST_CLS_VITALS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_WORST_FID_VITALS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_IMRPOVED.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_REGRESSED.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_RELATED_ERRORS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_RELATED_ISSUES.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_HTTP_OPS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_DB_OPS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_RESOURCE_OPS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_BROWSER_OPS.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_COLD_STARTUP_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_WARM_STARTUP_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_FRAMES_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_FROZEN_FRAMES_AREA.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_SLOW_FRAMES.value,
-    Referrer.API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_FROZEN_FRAMES.value,
-    Referrer.API_STARFISH_SPAN_CATEGORY_BREAKDOWN_CHART.value,
-    Referrer.API_STARFISH_ENDPOINT_OVERVIEW.value,
-    Referrer.API_STARFISH_HTTP_ERROR_COUNT.value,
-    Referrer.API_STARFISH_SPAN_SUMMARY_PAGE_CHART.value,
-    Referrer.API_STARFISH_SIDEBAR_SPAN_METRICS_CHART.value,
-    Referrer.API_STARFISH_SPAN_TIME_CHARTS.value,
-    Referrer.API_STARFISH_MOBILE_SCREEN_METRICS_SERIES.value,
-    Referrer.API_PERFORMANCE_MOBILE_UI_SERIES.value,
-}
-
-
-ALLOWED_EVENTS_STATS_REFERRERS: set[str] = {
-    Referrer.API_ALERTS_ALERT_RULE_CHART.value,
-    Referrer.API_ALERTS_CHARTCUTERIE.value,
-    Referrer.API_ENDPOINT_REGRESSION_ALERT_CHARTCUTERIE.value,
-    Referrer.API_FUNCTION_REGRESSION_ALERT_CHARTCUTERIE.value,
-    Referrer.DISCOVER_SLACK_UNFURL.value,
-    Referrer.API_DASHBOARDS_WIDGET_AREA_CHART.value,
-    Referrer.API_DASHBOARDS_WIDGET_BAR_CHART.value,
-    Referrer.API_DASHBOARDS_WIDGET_LINE_CHART.value,
-    Referrer.API_DASHBOARDS_TOP_EVENTS.value,
-    Referrer.API_DISCOVER_PREBUILT_CHART.value,
-    Referrer.API_DISCOVER_PREVIOUS_CHART.value,
-    Referrer.API_DISCOVER_DEFAULT_CHART.value,
-    Referrer.API_DISCOVER_DAILY_CHART.value,
-    Referrer.API_DISCOVER_TOP5_CHART.value,
-    Referrer.API_DISCOVER_DAILYTOP5_CHART.value,
-    Referrer.API_PERFORMANCE_HOMEPAGE_DURATION_CHART.value,
-    Referrer.API_PERFORMANCE_HOMEPAGE_WIDGET_CHART.value,
-    Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY_SIDEBAR_CHART.value,
-    Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY_VITALS_CHART.value,
-    Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY_TRENDS_CHART.value,
-    Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY_DURATION.value,
-    Referrer.API_PROFILING_LANDING_CHART.value,
-    Referrer.API_PROFILING_PROFILE_SUMMARY_CHART.value,
-    Referrer.API_RELEASES_RELEASE_DETAILS_CHART.value,
-    Referrer.API_PERFORMANCE_HTTP_LANDING_DURATION_CHART.value,
-    Referrer.API_PERFORMANCE_HTTP_LANDING_RESPONSE_CODE_CHART.value,
-    Referrer.API_PERFORMANCE_HTTP_LANDING_THROUGHPUT_CHART.value,
-    Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_DURATION_CHART.value,
-    Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_RESPONSE_CODE_CHART.value,
-    Referrer.API_PERFORMANCE_HTTP_DOMAIN_SUMMARY_THROUGHPUT_CHART.value,
-    Referrer.API_PERFORMANCE_HTTP_SAMPLES_PANEL_DURATION_CHART.value,
-    Referrer.API_PERFORMANCE_HTTP_SAMPLES_PANEL_RESPONSE_CODE_CHART.value,
-    Referrer.API_PERFORMANCE_SPAN_SUMMARY_DURATION_CHART.value,
-    Referrer.API_PERFORMANCE_SPAN_SUMMARY_THROUGHPUT_CHART.value,
-    Referrer.API_PERFORMANCE_SPAN_SUMMARY_TRANSACTION_THROUGHPUT_CHART.value,
-}
-
 
 SENTRY_BACKEND_REFERRERS = [
     Referrer.API_ALERTS_CHARTCUTERIE.value,
@@ -125,9 +50,8 @@ SENTRY_BACKEND_REFERRERS = [
 @region_silo_endpoint
 class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    sunba_methods = ["GET"]
 
     def get_features(
         self, organization: Organization, request: Request
@@ -181,8 +105,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         return has_data
 
     def get(self, request: Request, organization: Organization) -> Response:
-        query_source = QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
-        with sentry_sdk.start_span(op="discover.endpoint", description="filter_params") as span:
+        query_source = self.get_request_source(request)
+
+        with sentry_sdk.start_span(op="discover.endpoint", name="filter_params") as span:
             span.set_data("organization", organization)
 
             top_events = 0
@@ -198,7 +123,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         status=400,
                     )
                 elif top_events <= 0:
-                    return Response({"detail": "If topEvents needs to be at least 1"}, status=400)
+                    return Response({"detail": "topEvents needs to be at least 1"}, status=400)
 
             comparison_delta = None
             if "comparisonDelta" in request.GET:
@@ -215,13 +140,29 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             include_other = request.GET.get("excludeOther") != "1"
 
             referrer = request.GET.get("referrer")
-            referrer = (
-                referrer
-                if referrer in ALLOWED_EVENTS_STATS_REFERRERS.union(METRICS_ENHANCED_REFERRERS)
-                else Referrer.API_ORGANIZATION_EVENT_STATS.value
-            )
+
+            # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
+            if request.auth:
+                referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
+            elif referrer is None or not referrer:
+                referrer = Referrer.API_ORGANIZATION_EVENTS.value
+            elif not is_valid_referrer(referrer):
+                referrer = Referrer.API_ORGANIZATION_EVENTS.value
+
             if referrer in SENTRY_BACKEND_REFERRERS:
                 query_source = QuerySource.SENTRY_BACKEND
+
+            if "agent-monitoring" in referrer:
+                try:
+                    analytics.record(
+                        AgentMonitoringQuery(
+                            organization_id=organization.id,
+                            referrer=referrer,
+                        )
+                    )
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
+
             batch_features = self.get_features(organization, request)
             has_chart_interpolation = batch_features.get(
                 "organizations:performance-chart-interpolation", False
@@ -250,9 +191,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         functions,
                         metrics_performance,
                         metrics_enhanced_performance,
-                        profile_functions_metrics,
                         spans_indexed,
                         spans_metrics,
+                        Spans,
+                        OurLogs,
                         errors,
                         transactions,
                     ]
@@ -272,23 +214,55 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             return Response({"detail": f"Metric type must be one of: {metric_types}"}, status=400)
 
         force_metrics_layer = request.GET.get("forceMetricsLayer") == "true"
+        use_rpc = dataset in RPC_DATASETS
+        transform_alias_to_input_format = (
+            request.GET.get("transformAliasToInputFormat") == "1" or use_rpc
+        )
 
         def _get_event_stats(
             scoped_dataset: Any,
-            query_columns: Sequence[str],
+            query_columns: list[str],
             query: str,
-            params: dict[str, str],
+            snuba_params: SnubaParams,
             rollup: int,
             zerofill_results: bool,
-            comparison_delta: datetime | None,
+            comparison_delta: timedelta | None,
         ) -> SnubaTSResult | dict[str, SnubaTSResult]:
+            should_upsample = is_errors_query_for_error_upsampled_projects(
+                snuba_params, organization, dataset, request
+            )
+            final_columns = query_columns
+            if should_upsample:
+                final_columns = transform_query_columns_for_error_upsampling(query_columns)
+
             if top_events > 0:
+                raw_groupby = self.get_field_list(organization, request)
+                if "timestamp" in raw_groupby:
+                    raise ParseError("Cannot group by timestamp")
+                if use_rpc:
+                    return scoped_dataset.run_top_events_timeseries_query(
+                        params=snuba_params,
+                        query_string=query,
+                        y_axes=final_columns,
+                        raw_groupby=raw_groupby,
+                        orderby=self.get_orderby(request),
+                        limit=top_events,
+                        referrer=referrer,
+                        config=SearchResolverConfig(
+                            auto_fields=False,
+                            use_aggregate_conditions=True,
+                            disable_aggregate_extrapolation="disableAggregateExtrapolation"
+                            in request.GET,
+                        ),
+                        sampling_mode=snuba_params.sampling_mode,
+                        equations=self.get_equation_list(organization, request),
+                    )
                 return scoped_dataset.top_events_timeseries(
-                    timeseries_columns=query_columns,
-                    selected_columns=self.get_field_list(organization, request),
+                    timeseries_columns=final_columns,
+                    selected_columns=raw_groupby,
                     equations=self.get_equation_list(organization, request),
                     user_query=query,
-                    params=params,
+                    snuba_params=snuba_params,
                     orderby=self.get_orderby(request),
                     rollup=rollup,
                     limit=top_events,
@@ -300,12 +274,30 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     on_demand_metrics_type=on_demand_metrics_type,
                     include_other=include_other,
                     query_source=query_source,
+                    transform_alias_to_input_format=transform_alias_to_input_format,
+                    fallback_to_transactions=True,
+                )
+
+            if use_rpc:
+                return scoped_dataset.run_timeseries_query(
+                    params=snuba_params,
+                    query_string=query,
+                    y_axes=final_columns,
+                    referrer=referrer,
+                    config=SearchResolverConfig(
+                        auto_fields=False,
+                        use_aggregate_conditions=True,
+                        disable_aggregate_extrapolation="disableAggregateExtrapolation"
+                        in request.GET,
+                    ),
+                    sampling_mode=snuba_params.sampling_mode,
+                    comparison_delta=comparison_delta,
                 )
 
             return scoped_dataset.timeseries_query(
-                selected_columns=query_columns,
+                selected_columns=final_columns,
                 query=query,
-                params=params,
+                snuba_params=snuba_params,
                 rollup=rollup,
                 referrer=referrer,
                 zerofill_results=zerofill_results,
@@ -326,6 +318,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 ),
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
+                fallback_to_transactions=True,
+                transform_alias_to_input_format=transform_alias_to_input_format,
             )
 
         def get_event_stats_factory(scoped_dataset):
@@ -338,12 +332,12 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             dashboard_widget_id = request.GET.get("dashboardWidgetId", None)
 
             def fn(
-                query_columns: Sequence[str],
+                query_columns: list[str],
                 query: str,
-                params: dict[str, str],
+                snuba_params: SnubaParams,
                 rollup: int,
                 zerofill_results: bool,
-                comparison_delta: datetime | None,
+                comparison_delta: timedelta | None,
             ) -> SnubaTSResult | dict[str, SnubaTSResult]:
 
                 if not (metrics_enhanced and dashboard_widget_id):
@@ -351,7 +345,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         scoped_dataset,
                         query_columns,
                         query,
-                        params,
+                        snuba_params,
                         rollup,
                         zerofill_results,
                         comparison_delta,
@@ -360,13 +354,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 try:
                     widget = DashboardWidget.objects.get(id=dashboard_widget_id)
                     does_widget_have_split = widget.discover_widget_split is not None
-                    has_override_feature = features.has(
-                        "organizations:performance-discover-widget-split-override-save",
-                        organization,
-                        actor=request.user,
-                    )
 
-                    if does_widget_have_split and not has_override_feature:
+                    if does_widget_have_split:
                         # This is essentially cached behaviour and we skip the check
                         split_query = query
                         if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
@@ -383,7 +372,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             split_dataset,
                             query_columns,
                             split_query,
-                            params,
+                            snuba_params,
                             rollup,
                             zerofill_results,
                             comparison_delta,
@@ -397,7 +386,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             discover,
                             query_columns,
                             errors_only_query,
-                            params,
+                            snuba_params,
                             rollup,
                             zerofill_results,
                             comparison_delta,
@@ -410,7 +399,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         scoped_dataset,
                         query_columns,
                         query,
-                        params,
+                        snuba_params,
                         rollup,
                         zerofill_results,
                         comparison_delta,
@@ -438,7 +427,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             discover,
                             query_columns,
                             transactions_only_query,
-                            params,
+                            snuba_params,
                             rollup,
                             zerofill_results,
                             comparison_delta,
@@ -455,7 +444,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             discover,
                             query_columns,
                             query,
-                            params,
+                            snuba_params,
                             rollup,
                             zerofill_results,
                             comparison_delta,
@@ -468,10 +457,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         ):
                             if not result.data.get("meta"):
                                 result.data["meta"] = {}
-                            result.data["meta"][
-                                "discoverSplitDecision"
-                            ] = DashboardWidgetTypes.get_type_name(
-                                DashboardWidgetTypes.TRANSACTION_LIKE
+                            result.data["meta"]["discoverSplitDecision"] = (
+                                DashboardWidgetTypes.get_type_name(
+                                    DashboardWidgetTypes.TRANSACTION_LIKE
+                                )
                             )
                         return original_results
                     elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
@@ -482,10 +471,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         ):
                             if not result.data.get("meta"):
                                 result.data["meta"] = {}
-                            result.data["meta"][
-                                "discoverSplitDecision"
-                            ] = DashboardWidgetTypes.get_type_name(
-                                DashboardWidgetTypes.ERROR_EVENTS
+                            result.data["meta"]["discoverSplitDecision"] = (
+                                DashboardWidgetTypes.get_type_name(
+                                    DashboardWidgetTypes.ERROR_EVENTS
+                                )
                             )
                         return error_results
                     else:
@@ -498,7 +487,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         scoped_dataset,
                         query_columns,
                         query,
-                        params,
+                        snuba_params,
                         rollup,
                         zerofill_results,
                         comparison_delta,
@@ -507,6 +496,12 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             return fn
 
         get_event_stats = get_event_stats_factory(dataset)
+        zerofill_results = not (
+            request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
+        )
+        if use_rpc:
+            # The rpc will usually zerofill for us so we don't need to do it ourselves
+            zerofill_results = False
 
         try:
             return Response(
@@ -516,11 +511,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     get_event_stats,
                     top_events,
                     allow_partial_buckets=allow_partial_buckets,
-                    zerofill_results=not (
-                        request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
-                    ),
+                    zerofill_results=zerofill_results,
                     comparison_delta=comparison_delta,
                     dataset=dataset,
+                    transform_alias_to_input_format=transform_alias_to_input_format,
+                    use_rpc=use_rpc,
                 ),
                 status=200,
             )

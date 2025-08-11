@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {WithRouterProps} from 'react-router';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import type {Query} from 'history';
@@ -13,16 +12,17 @@ import MarkLine from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {escape} from 'sentry/utils';
-import {getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
+import {makeReleasesPathname} from 'sentry/views/releases/utils/pathnames';
 
 type ReleaseMetaBasic = {
   date: string;
@@ -31,8 +31,8 @@ type ReleaseMetaBasic = {
 
 type ReleaseConditions = {
   end: DateString;
-  environment: Readonly<string[]>;
-  project: Readonly<number[]>;
+  environment: readonly string[];
+  project: readonly number[];
   start: DateString;
   cursor?: string;
   query?: string;
@@ -46,9 +46,9 @@ function getOrganizationReleases(
   organization: Organization,
   conditions: ReleaseConditions
 ) {
-  const query = {};
+  const query: Record<string, string> = {};
   Object.keys(conditions).forEach(key => {
-    let value = conditions[key];
+    let value = (conditions as any)[key];
     if (value && (key === 'start' || key === 'end')) {
       value = getUtcDateString(value);
     }
@@ -64,16 +64,25 @@ function getOrganizationReleases(
   }) as Promise<[ReleaseMetaBasic[], any, ResponseMeta]>;
 }
 
+const getOrganizationReleasesMemoized = memoize(
+  getOrganizationReleases,
+  (_, __, conditions) =>
+    Object.values(conditions)
+      .map(val => JSON.stringify(val))
+      .join('-')
+);
+
 export interface ReleaseSeriesProps extends WithRouterProps {
   api: Client;
   children: (s: State) => React.ReactNode;
   end: DateString;
-  environments: Readonly<string[]>;
+  environments: readonly string[];
   organization: Organization;
-  projects: Readonly<number[]>;
+  projects: readonly number[];
   start: DateString;
   theme: Theme;
   emphasizeReleases?: string[];
+  enabled?: boolean;
   memoized?: boolean;
   period?: string | null;
   preserveQueryParams?: boolean;
@@ -97,7 +106,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
 
   componentDidMount() {
     this._isMounted = true;
-    const {releases} = this.props;
+    const {releases, enabled = true} = this.props;
 
     if (releases) {
       // No need to fetch releases if passed in from props
@@ -105,17 +114,23 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
       return;
     }
 
-    this.fetchData();
+    if (enabled) {
+      this.fetchData();
+    }
   }
 
-  componentDidUpdate(prevProps) {
+  componentDidUpdate(prevProps: any) {
+    const {enabled = true} = this.props;
+
     if (
-      !isEqual(prevProps.projects, this.props.projects) ||
-      !isEqual(prevProps.environments, this.props.environments) ||
-      !isEqual(prevProps.start, this.props.start) ||
-      !isEqual(prevProps.end, this.props.end) ||
-      !isEqual(prevProps.period, this.props.period) ||
-      !isEqual(prevProps.query, this.props.query)
+      (!isEqual(prevProps.projects, this.props.projects) ||
+        !isEqual(prevProps.environments, this.props.environments) ||
+        !isEqual(prevProps.start, this.props.start) ||
+        !isEqual(prevProps.end, this.props.end) ||
+        !isEqual(prevProps.period, this.props.period) ||
+        !isEqual(prevProps.query, this.props.query) ||
+        (!prevProps.enabled && this.props.enabled)) &&
+      enabled
     ) {
       this.fetchData();
     } else if (!isEqual(prevProps.emphasizeReleases, this.props.emphasizeReleases)) {
@@ -128,16 +143,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     this.props.api.clear();
   }
 
-  _isMounted: boolean = false;
-
-  getOrganizationReleasesMemoized = memoize(
-    (api: Client, organization: Organization, conditions: ReleaseConditions) =>
-      getOrganizationReleases(api, organization, conditions),
-    (_, __, conditions) =>
-      Object.values(conditions)
-        .map(val => JSON.stringify(val))
-        .join('-')
-  );
+  _isMounted = false;
 
   async fetchData() {
     const {
@@ -164,7 +170,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     while (hasMore) {
       try {
         const getReleases = memoized
-          ? this.getOrganizationReleasesMemoized
+          ? getOrganizationReleasesMemoized
           : getOrganizationReleases;
         const [newReleases, , resp] = await getReleases(api, organization, conditions);
         releases.push(...newReleases);
@@ -176,7 +182,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
         if (pageLinks) {
           const paginationObject = parseLinkHeader(pageLinks);
           hasMore = paginationObject?.next?.results ?? false;
-          conditions.cursor = paginationObject.next.cursor;
+          conditions.cursor = paginationObject.next!.cursor;
         } else {
           hasMore = false;
         }
@@ -187,7 +193,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     }
   }
 
-  setReleasesWithSeries(releases) {
+  setReleasesWithSeries(releases: any) {
     const {emphasizeReleases = []} = this.props;
     const releaseSeries: Series[] = [];
 
@@ -216,7 +222,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     });
   }
 
-  getReleaseSeries = (releases, lineStyle = {}) => {
+  getReleaseSeries = (releases: any, lineStyle = {}) => {
     const {
       organization,
       router,
@@ -252,20 +258,21 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
       label: {
         show: false,
       },
-      data: releases.map(release => ({
+      data: releases.map((release: any) => ({
         xAxis: +new Date(release.date),
         name: formatVersion(release.version, true),
         value: formatVersion(release.version, true),
+
         onClick: () => {
-          router.push(
-            normalizeUrl({
-              pathname: `/organizations/${
-                organization.slug
-              }/releases/${encodeURIComponent(release.version)}/`,
-              query,
-            })
-          );
+          router.push({
+            pathname: makeReleasesPathname({
+              organization,
+              path: `/${encodeURIComponent(release.version)}/`,
+            }),
+            query,
+          });
         },
+
         label: {
           formatter: () => formatVersion(release.version, true),
         },
@@ -280,9 +287,13 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
           // XXX using this.props here as this function does not get re-run
           // unless projects are changed. Using a closure variable would result
           // in stale values.
-          const time = getFormattedDate(data.value, 'MMM D, YYYY LT', {
-            local: !this.props.utc,
-          });
+          const time = getFormattedDate(
+            data.value,
+            getFormat({timeZone: true, year: true}),
+            {
+              local: !this.props.utc,
+            }
+          );
           const version = escape(formatVersion(data.name, true));
           return [
             '<div class="tooltip-series">',
@@ -293,7 +304,6 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
             '<div class="tooltip-footer">',
             time,
             '</div>',
-            '</div>',
             '<div class="tooltip-arrow"></div>',
           ].join('');
         },
@@ -301,6 +311,7 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
     });
 
     return {
+      id: 'release-lines',
       seriesName: 'Releases',
       color: theme.purple200,
       data: [],
@@ -309,11 +320,11 @@ class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
   };
 
   render() {
-    const {children} = this.props;
+    const {children, enabled = true} = this.props;
 
     return children({
-      releases: this.state.releases,
-      releaseSeries: this.state.releaseSeries,
+      releases: enabled ? this.state.releases : [],
+      releaseSeries: enabled ? this.state.releaseSeries : [],
     });
   }
 }

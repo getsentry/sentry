@@ -1,13 +1,15 @@
+import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
+  ContentBlock,
   Docs,
   DocsParams,
   OnboardingConfig,
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportJavaScriptInstallStep,
@@ -16,17 +18,14 @@ import {
   getFeedbackConfigureDescription,
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {
-  getProfilingDocumentHeaderConfigurationStep,
-  MaybeBrowserProfilingBetaWarning,
-} from 'sentry/components/onboarding/gettingStartedDoc/utils/profilingOnboarding';
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
+import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
 
 export enum VueVersion {
   VUE3 = 'vue3',
@@ -54,121 +53,143 @@ const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
 type PlatformOptions = typeof platformOptions;
 type Params = DocsParams<PlatformOptions>;
 
-const getSentryInitLayout = (params: Params, siblingOption: string): string => {
-  return `Sentry.init({
-    ${siblingOption === VueVersion.VUE2 ? 'Vue,' : 'app,'}
-    dsn: "${params.dsn}",
-    integrations: [${
-      params.isPerformanceSelected
-        ? `
-          Sentry.browserTracingIntegration(),`
-        : ''
-    }${
-      params.isReplaySelected
-        ? `
-          Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)}),`
-        : ''
-    }${
-      params.isProfilingSelected
-        ? `
-          Sentry.browserProfilingIntegration(),`
-        : ''
-    }
-  ],${
-    params.isPerformanceSelected
-      ? `
-        // Performance Monitoring
-        tracesSampleRate: 1.0, //  Capture 100% of the transactions
-        // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-        tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],`
-      : ''
-  }${
-    params.isReplaySelected
-      ? `
-        // Session Replay
-        replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-        replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
-      : ''
-  }${
-    params.isProfilingSelected
-      ? `
-        // Profiling
-        profilesSampleRate: 1.0, // Profile 100% of the transactions. This value is relative to tracesSampleRate`
-      : ''
-  }
-  });`;
-};
-
-const getInstallConfig = () => [
-  {
-    language: 'bash',
-    code: [
-      {
-        label: 'npm',
-        value: 'npm',
-        language: 'bash',
-        code: `npm install --save @sentry/vue`,
-      },
-      {
-        label: 'yarn',
-        value: 'yarn',
-        language: 'bash',
-        code: `yarn add @sentry/vue`,
-      },
-    ],
-  },
-];
-
-const getNextStep = (
-  params: Params
-): {
-  description: string;
-  id: string;
-  link: string;
-  name: string;
-}[] => {
-  let nextStepDocs = [...nextSteps];
-
+const getIntegrations = (params: Params): string[] => {
+  const integrations = [];
   if (params.isPerformanceSelected) {
-    nextStepDocs = nextStepDocs.filter(
-      step => step.id !== ProductSolution.PERFORMANCE_MONITORING
-    );
+    integrations.push(`Sentry.browserTracingIntegration({ router })`);
   }
 
   if (params.isReplaySelected) {
-    nextStepDocs = nextStepDocs.filter(
-      step => step.id !== ProductSolution.SESSION_REPLAY
+    integrations.push(
+      `Sentry.replayIntegration(${getReplayConfigOptions(params.replayOptions)})`
     );
   }
-  return nextStepDocs;
+
+  if (params.isProfilingSelected) {
+    integrations.push(`Sentry.browserProfilingIntegration()`);
+  }
+
+  return integrations;
+};
+
+const getDynamicParts = (params: Params): string[] => {
+  const dynamicParts: string[] = [];
+
+  if (params.isPerformanceSelected) {
+    dynamicParts.push(`
+      // Tracing
+      tracesSampleRate: 1.0, // Capture 100% of the transactions
+      // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+      tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
+  }
+
+  if (params.isReplaySelected) {
+    dynamicParts.push(`
+      // Session Replay
+      replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+      replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
+  }
+
+  if (params.isLogsSelected) {
+    dynamicParts.push(`
+      // Logs
+      enableLogs: true`);
+  }
+
+  if (params.isProfilingSelected) {
+    dynamicParts.push(`
+      // Profiling
+      profilesSampleRate: 1.0 // Profile 100% of the transactions. This value is relative to tracesSampleRate`);
+  }
+
+  return dynamicParts;
+};
+
+const getSentryInitLayout = (params: Params, siblingOption: string): string => {
+  const config = buildSdkConfig({
+    params,
+    staticParts: [
+      `${siblingOption === VueVersion.VUE2 ? 'Vue' : 'app'}`,
+      `dsn: "${params.dsn.public}"`,
+      `// Setting this option to true will send default PII data to Sentry.
+      // For example, automatic IP address collection on events
+      sendDefaultPii: true`,
+    ],
+    getIntegrations,
+    getDynamicParts,
+  });
+
+  return `Sentry.init({
+    ${config}
+  });`;
+};
+
+const installSnippetBlock: ContentBlock = {
+  type: 'code',
+  tabs: [
+    {
+      label: 'npm',
+      language: 'bash',
+      code: 'npm install --save @sentry/vue',
+    },
+    {
+      label: 'yarn',
+      language: 'bash',
+      code: 'yarn add @sentry/vue',
+    },
+    {
+      label: 'pnpm',
+      language: 'bash',
+      code: 'pnpm add @sentry/vue',
+    },
+  ],
 };
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
-  introduction: MaybeBrowserProfilingBetaWarning,
+  introduction: () =>
+    tct(
+      "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",
+      {
+        strong: <strong />,
+      }
+    ),
   install: () => [
     {
       type: StepType.INSTALL,
-      description: (
-        <p>
-          {tct(
-            `Install the Sentry Vue SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn], alongside the Sentry Vue SDK:`,
-            {
-              codeYarn: <code />,
-              codeNpm: <code />,
-            }
-          )}
-        </p>
-      ),
-      configurations: getInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Add the Sentry SDK as a dependency using [code:npm], [code:yarn], or [code:pnpm]:',
+            {code: <code />}
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle."
-      ),
-      configurations: getSetupConfiguration(params),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            "Initialize Sentry as early as possible in your application's lifecycle, usually your Vue app's entry point ([code:main.ts/js]).",
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: getSetupConfiguration(params)[0]?.code || '',
+            },
+          ],
+        },
+      ],
     },
     getUploadSourceMapsStep({
       guideLink: 'https://docs.sentry.io/platforms/javascript/guides/vue/sourcemaps/',
@@ -178,50 +199,58 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
+      content: [
         {
-          language: 'javascript',
-          code: `myUndefinedFunction();`,
+          type: 'text',
+          text: t(
+            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'JavaScript',
+              language: 'javascript',
+              code: `myUndefinedFunction();`,
+            },
+          ],
         },
       ],
     },
   ],
-  nextSteps: params => getNextStep(params),
-};
+  nextSteps: (params: Params) => {
+    const steps = [
+      {
+        id: 'vue-features',
+        name: t('Vue Features'),
+        description: t('Learn about our first class integration with the Vue framework.'),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/features/',
+      },
+    ];
 
-export const nextSteps = [
-  {
-    id: 'vue-features',
-    name: t('Vue Features'),
-    description: t('Learn about our first class integration with the Vue framework.'),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/vue/features/',
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/vue/logs/#integrations',
+      });
+    }
+
+    return steps;
   },
-  {
-    id: 'performance-monitoring',
-    name: t('Performance Monitoring'),
-    description: t(
-      'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-    ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/vue/tracing/',
-  },
-  {
-    id: 'session-replay',
-    name: t('Session Replay'),
-    description: t(
-      'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-    ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
-  },
-];
+};
 
 function getSiblingImportsSetupConfiguration(siblingOption: string): string {
   switch (siblingOption) {
     case VueVersion.VUE3:
       return `import {createApp} from "vue";
-          import {createRouter} from "vue-router";`;
+          import {createRouter} from "vue-router";
+          import router from "./router";
+          `;
     case VueVersion.VUE2:
     default:
       return `import Vue from "vue";
@@ -248,9 +277,6 @@ function getVueConstSetup(siblingOption: string): string {
     case VueVersion.VUE3:
       return `
           const app = createApp({
-            // ...
-          });
-          const router = createRouter({
             // ...
           });
           `;
@@ -280,9 +306,6 @@ function getSetupConfiguration(params: Params) {
 
           ${getSiblingSuffix(siblingOption)}`,
     },
-    ...(params.isProfilingSelected
-      ? [getProfilingDocumentHeaderConfigurationStep()]
-      : []),
   ];
 
   return configuration;
@@ -292,13 +315,18 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'You need a minimum version 7.27.0 of [code:@sentry/vue] in order to use Session Replay. You do not need to install any additional packages.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
+          type: 'text',
+          text: tct(
+            'You need a minimum version 7.27.0 of [code:@sentry/vue] in order to use Session Replay. You do not need to install any additional packages.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: params => [
@@ -311,7 +339,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
       additionalInfo: <TracePropagationMessage />,
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
@@ -319,13 +347,18 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/vue]) installed, minimum version 7.85.0.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
+          type: 'text',
+          text: tct(
+            'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/vue]) installed, minimum version 7.85.0.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
@@ -346,7 +379,7 @@ const feedbackOnboarding: OnboardingConfig<PlatformOptions> = {
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/vue";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
                 feedbackOptions: params.feedbackOptions,
               }),
             },
@@ -380,13 +413,20 @@ const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
   nextSteps: () => [],
 };
 
+const profilingOnboarding = getJavascriptProfilingOnboarding({
+  installSnippetBlock,
+  docsLink:
+    'https://docs.sentry.io/platforms/javascript/guides/vue/profiling/browser-profiling/',
+});
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
   feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboardingNpm: replayOnboarding,
-  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+  replayOnboarding,
   crashReportOnboarding,
+  profilingOnboarding,
+  featureFlagOnboarding,
 };
 
 export default docs;

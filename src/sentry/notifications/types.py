@@ -27,9 +27,13 @@ class NotificationSettingEnum(ValueEqualityEnum):
     QUOTA_ATTACHMENTS = "quotaAttachments"
     QUOTA_REPLAYS = "quotaReplays"
     QUOTA_MONITOR_SEATS = "quotaMonitorSeats"
+    QUTOA_UPTIME = "quotaUptime"
     QUOTA_SPANS = "quotaSpans"
     QUOTA_PROFILE_DURATION = "quotaProfileDuration"
+    QUOTA_PROFILE_DURATION_UI = "quotaProfileDurationUI"
+    QUOTA_SEER_BUDGET = "quotaSeerBudget"
     QUOTA_SPEND_ALLOCATIONS = "quotaSpendAllocations"
+    QUOTA_LOG_BYTES = "quotaLogBytes"
     SPIKE_PROTECTION = "spikeProtection"
     MISSING_MEMBERS = "missingMembers"
     REPORTS = "reports"
@@ -114,6 +118,10 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
+    NotificationSettingEnum.QUTOA_UPTIME: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
     NotificationSettingEnum.QUOTA_SPANS: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
@@ -122,11 +130,23 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
+    NotificationSettingEnum.QUOTA_PROFILE_DURATION_UI: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.QUOTA_SEER_BUDGET: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
     NotificationSettingEnum.QUOTA_WARNINGS: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
     NotificationSettingEnum.QUOTA_SPEND_ALLOCATIONS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.QUOTA_LOG_BYTES: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },
@@ -219,7 +239,7 @@ FALLTHROUGH_CHOICES = [
 ]
 
 
-class AssigneeTargetType(Enum):
+class AssigneeTargetType(StrEnum):
     UNASSIGNED = "Unassigned"
     TEAM = "Team"
     MEMBER = "Member"
@@ -245,3 +265,13 @@ class UnsubscribeContext:
     resource_id: int
     key: str
     referrer: str | None = None
+
+
+"""
+This is a special identifier that is used to indicate that the notification is a test notification.
+It is used to set the ID of models that are required in order to send a test notification.
+
+Note: This should eventually be deleted the test notification logic should instead utilize a notification platform
+which should provide an API for sending test notifications without "hacking" the notification system.
+"""
+TEST_NOTIFICATION_ID = -1

@@ -23,14 +23,15 @@ def empty_cocoa_config() -> SDKCrashDetectionConfig:
         project_id=0,
         sample_rate=0.0,
         organization_allowlist=[],
-        sdk_names=[],
-        min_sdk_version="",
+        sdk_names={},
         report_fatal_errors=False,
+        ignore_mechanism_type=set(),
+        allow_mechanism_type=set(),
         system_library_path_patterns=set(),
         sdk_frame_config=SDKFrameConfig(
             function_patterns=set(),
             path_patterns=set(),
             path_replacer=FixedPathReplacer(path=""),
         ),
-        sdk_crash_ignore_functions_matchers=set(),
+        sdk_crash_ignore_matchers=set(),
     )

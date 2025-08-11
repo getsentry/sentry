@@ -10,7 +10,7 @@ from sentry.rules import EventState
 from sentry.rules.filters import EventFilter
 from sentry.types.condition_activity import ConditionActivity
 
-CATEGORY_CHOICES = OrderedDict([(f"{gc.value}", str(gc.name).title()) for gc in GroupCategory])
+CATEGORY_CHOICES = OrderedDict([(f"{gc.value}", str(gc.name).lower()) for gc in GroupCategory])
 
 
 class IssueCategoryForm(forms.Form):
@@ -19,7 +19,6 @@ class IssueCategoryForm(forms.Form):
 
 class IssueCategoryFilter(EventFilter):
     id = "sentry.rules.filters.issue_category.IssueCategoryFilter"
-    form_cls = IssueCategoryForm
     form_fields = {"value": {"type": "choice", "choices": list(CATEGORY_CHOICES.items())}}
     rule_type = "filter/event"
     label = "The issue's category is equal to {value}"
@@ -31,8 +30,8 @@ class IssueCategoryFilter(EventFilter):
         except (TypeError, ValueError):
             return False
 
-        if group and group.issue_category:
-            return bool(value == group.issue_category)
+        if group:
+            return value == group.issue_category or value == group.issue_category_v2
 
         return False
 
@@ -54,3 +53,6 @@ class IssueCategoryFilter(EventFilter):
         title = CATEGORY_CHOICES.get(value)
         group_category_name = title.title() if title else ""
         return self.label.format(value=group_category_name)
+
+    def get_form_instance(self) -> IssueCategoryForm:
+        return IssueCategoryForm(self.data)

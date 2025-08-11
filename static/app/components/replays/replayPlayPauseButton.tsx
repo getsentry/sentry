@@ -1,10 +1,26 @@
-import type {BaseButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import NewReplayPlayPauseButton from 'sentry/components/replays/player/replayPlayPauseButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconPause, IconPlay, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
 
-function ReplayPlayPauseButton(props: BaseButtonProps) {
+export default function ReplayPlayPauseButton({
+  isLoading,
+  ...props
+}: Partial<ButtonProps> & {isLoading?: boolean}) {
+  const organization = useOrganization();
+  if (organization.features.includes('replay-new-context')) {
+    return <NewReplayPlayPauseButton {...props} />;
+  }
+
+  return <OriginalReplayPlayPauseButton isLoading={isLoading} {...props} />;
+}
+
+function OriginalReplayPlayPauseButton(
+  props: Partial<ButtonProps> & {isLoading?: boolean}
+) {
   const {isFinished, isPlaying, restart, togglePlayPause} = useReplayContext();
 
   return isFinished ? (
@@ -23,9 +39,8 @@ function ReplayPlayPauseButton(props: BaseButtonProps) {
       onClick={() => togglePlayPause(!isPlaying)}
       aria-label={isPlaying ? t('Pause') : t('Play')}
       priority="primary"
+      disabled={props.isLoading}
       {...props}
     />
   );
 }
-
-export default ReplayPlayPauseButton;

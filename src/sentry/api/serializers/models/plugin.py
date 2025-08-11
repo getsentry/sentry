@@ -6,11 +6,9 @@ from sentry import features
 from sentry.api.serializers import Serializer
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
-from sentry.utils.assets import get_asset_url
-from sentry.utils.http import absolute_uri
 
 # Dict with the plugin_name as the key, and enabling_feature_name as the value
-SHADOW_DEPRECATED_PLUGINS = {
+SHADOW_DEPRECATED_PLUGINS: dict[str, str] = {
     # "exampleslug": "organizations:integrations-ignore-exampleslug-deprecation"
 }
 
@@ -27,7 +25,7 @@ def is_plugin_deprecated(plugin, project: Project) -> bool:
     return is_past_deprecation_date or (
         plugin.slug in SHADOW_DEPRECATED_PLUGINS
         and not features.has(
-            SHADOW_DEPRECATED_PLUGINS.get(plugin.slug), getattr(project, "organization", None)
+            SHADOW_DEPRECATED_PLUGINS[plugin.slug], getattr(project, "organization", None)
         )
     )
 
@@ -52,7 +50,7 @@ class PluginSerializer(Serializer):
                     except NotImplementedError:
                         pass
 
-        contexts = []
+        contexts: list[str] = []
         if hasattr(obj, "get_custom_contexts"):
             contexts.extend(x.type for x in obj.get_custom_contexts() or ())
 
@@ -67,18 +65,12 @@ class PluginSerializer(Serializer):
             "canDisable": obj.can_disable,
             "isTestable": hasattr(obj, "is_testable") and obj.is_testable(),
             "hasConfiguration": obj.has_project_conf(),
-            "metadata": obj.get_metadata(),
             "contexts": contexts,
-            "status": obj.get_status(),
-            "assets": [
-                {"url": absolute_uri(get_asset_url(obj.asset_key or obj.slug, asset))}
-                for asset in obj.get_assets()
-            ],
             "doc": doc,
             "firstPartyAlternative": getattr(obj, "alternative", None),
-            "deprecationDate": deprecation_date.strftime("%b %-d, %Y")
-            if deprecation_date
-            else None,
+            "deprecationDate": (
+                deprecation_date.strftime("%b %-d, %Y") if deprecation_date else None
+            ),
             "altIsSentryApp": getattr(obj, "alt_is_sentry_app", None),
         }
         if self.project:

@@ -1,16 +1,16 @@
 import type {ReactNode} from 'react';
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {Button} from 'sentry/components/button';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/replaysOnboarding/platformOptionDropdown';
@@ -21,28 +21,76 @@ import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import TextOverflow from 'sentry/components/textOverflow';
 import {
-  backend,
   replayBackendPlatforms,
   replayFrontendPlatforms,
   replayJsLoaderInstructionsPlatformList,
+  replayMobilePlatforms,
   replayOnboardingPlatforms,
   replayPlatforms,
 } from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {PlatformKey, Project} from 'sentry/types/project';
+import useUrlParams from 'sentry/utils/url/useUrlParams';
 import useOrganization from 'sentry/utils/useOrganization';
-import useUrlParams from 'sentry/utils/useUrlParams';
 
-function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
+export function useReplaysOnboardingDrawer() {
+  const organization = useOrganization();
+  const currentPanel = useLegacyStore(SidebarPanelStore);
+  const isActive = currentPanel === SidebarPanelKey.REPLAYS_ONBOARDING;
+  const hasProjectAccess = organization.access.includes('project:read');
+
+  const {openDrawer} = useDrawer();
+
+  useEffect(() => {
+    if (isActive && hasProjectAccess) {
+      openDrawer(() => <DrawerContent />, {
+        ariaLabel: t('Getting Started with Session Replay'),
+        // Prevent the drawer from closing when the query params change
+        shouldCloseOnLocationChange: location =>
+          location.pathname !== window.location.pathname,
+      });
+    }
+  }, [isActive, hasProjectAccess, openDrawer]);
+}
+
+function DrawerContent() {
+  useEffect(() => {
+    return () => {
+      SidebarPanelStore.hidePanel();
+    };
+  }, []);
+
+  return <SidebarContent />;
+}
+
+function LegacyReplaysOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const organization = useOrganization();
 
   const isActive = currentPanel === SidebarPanelKey.REPLAYS_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
 
+  if (!isActive || !hasProjectAccess) {
+    return null;
+  }
+
+  return (
+    <TaskSidebarPanel
+      orientation={orientation}
+      collapsed={collapsed}
+      hidePanel={hidePanel}
+    >
+      <SidebarContent />
+    </TaskSidebarPanel>
+  );
+}
+
+function SidebarContent() {
   const {
     hasDocs,
     projects,
@@ -52,14 +100,14 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
     supportedProjects,
     unsupportedProjects,
   } = useCurrentProjectState({
-    currentPanel,
+    currentPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
     targetPanel: SidebarPanelKey.REPLAYS_ONBOARDING,
     onboardingPlatforms: replayOnboardingPlatforms,
     allPlatforms: replayPlatforms,
   });
 
   const projectSelectOptions = useMemo(() => {
-    const supportedProjectItems: SelectValue<string>[] = supportedProjects
+    const supportedProjectItems: Array<SelectValue<string>> = supportedProjects
       .sort((aProject, bProject) => {
         // if we're comparing two projects w/ or w/o replays alphabetical sort
         if (aProject.hasReplays === bProject.hasReplays) {
@@ -78,7 +126,7 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
         };
       });
 
-    const unsupportedProjectItems: SelectValue<string>[] = unsupportedProjects.map(
+    const unsupportedProjectItems: Array<SelectValue<string>> = unsupportedProjects.map(
       project => {
         return {
           value: project.id,
@@ -103,16 +151,13 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
   }, [supportedProjects, unsupportedProjects]);
 
   const selectedProject = currentProject ?? projects[0] ?? allProjects[0];
-  if (!isActive || !hasProjectAccess || !selectedProject) {
+
+  if (!selectedProject) {
     return null;
   }
 
   return (
-    <TaskSidebarPanel
-      orientation={orientation}
-      collapsed={collapsed}
-      hidePanel={hidePanel}
-    >
+    <Fragment>
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Getting Started with Session Replay')}</Heading>
@@ -151,7 +196,7 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
         </HeaderActions>
         <OnboardingContent currentProject={selectedProject} hasDocs={hasDocs} />
       </TaskList>
-    </TaskSidebarPanel>
+    </Fragment>
   );
 }
 
@@ -162,6 +207,8 @@ function OnboardingContent({
   currentProject: Project;
   hasDocs: boolean;
 }) {
+  const organization = useOrganization();
+
   const jsFrameworkSelectOptions = replayJsFrameworkOptions().map(platform => {
     return {
       value: platform.id,
@@ -175,56 +222,45 @@ function OnboardingContent({
     };
   });
 
-  const organization = useOrganization();
   const [jsFramework, setJsFramework] = useState<{
     value: PlatformKey;
     label?: ReactNode;
     textValue?: string;
-  }>(jsFrameworkSelectOptions[0]);
+  }>(jsFrameworkSelectOptions[0]!);
 
-  const defaultTab =
-    currentProject.platform && backend.includes(currentProject.platform)
-      ? 'jsLoader'
-      : 'npm';
-
-  const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
-    'mode',
-    defaultTab
-  );
-
-  const showJsFrameworkInstructions =
-    currentProject.platform &&
-    replayBackendPlatforms.includes(currentProject.platform) &&
-    setupMode() === 'npm';
-
+  const backendPlatform =
+    currentProject.platform && replayBackendPlatforms.includes(currentProject.platform);
+  const mobilePlatform =
+    currentProject.platform && replayMobilePlatforms.includes(currentProject.platform);
   const npmOnlyFramework =
     currentProject.platform &&
     replayFrontendPlatforms
       .filter((p): p is PlatformKey => p !== 'javascript')
       .includes(currentProject.platform);
 
-  const showRadioButtons =
-    currentProject.platform &&
-    replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
+  const defaultTab = 'jsLoader';
+  const {getParamValue: setupMode, setParamValue: setSetupMode} = useUrlParams(
+    'mode',
+    defaultTab
+  );
 
-  const backendPlatforms =
-    currentProject.platform && replayBackendPlatforms.includes(currentProject.platform);
+  const showJsFrameworkInstructions = backendPlatform && setupMode() === 'npm';
 
   const currentPlatform = currentProject.platform
-    ? platforms.find(p => p.id === currentProject.platform) ?? otherPlatform
+    ? (platforms.find(p => p.id === currentProject.platform) ?? otherPlatform)
     : otherPlatform;
 
   // New onboarding docs
   const {
     docs,
     dsn,
-    cdn,
     isLoading: isProjKeysLoading,
+    projectKeyId,
   } = useLoadGettingStarted({
     platform:
       showJsFrameworkInstructions && setupMode() === 'npm'
-        ? replayJsFrameworkOptions().find(p => p.id === jsFramework.value) ??
-          replayJsFrameworkOptions()[0]
+        ? (replayJsFrameworkOptions().find(p => p.id === jsFramework.value) ??
+          replayJsFrameworkOptions()[0]!)
         : currentPlatform,
     projSlug: currentProject.slug,
     orgSlug: organization.slug,
@@ -235,11 +271,15 @@ function OnboardingContent({
   const {docs: jsFrameworkDocs} = useLoadGettingStarted({
     platform:
       replayJsFrameworkOptions().find(p => p.id === jsFramework.value) ??
-      replayJsFrameworkOptions()[0],
+      replayJsFrameworkOptions()[0]!,
     projSlug: currentProject.slug,
     orgSlug: organization.slug,
     productType: 'replay',
   });
+
+  const showRadioButtons =
+    currentProject.platform &&
+    replayJsLoaderInstructionsPlatformList.includes(currentProject.platform);
 
   const radioButtons = (
     <Header>
@@ -249,11 +289,12 @@ function OnboardingContent({
           choices={[
             [
               'npm',
-              backendPlatforms ? (
+              backendPlatform ? (
                 <PlatformSelect key="platform-select">
                   {tct('I use [platformSelect]', {
                     platformSelect: (
                       <CompactSelect
+                        size="xs"
                         triggerLabel={jsFramework.label}
                         value={jsFramework.value}
                         onChange={setJsFramework}
@@ -264,27 +305,25 @@ function OnboardingContent({
                       />
                     ),
                   })}
-                  {jsFrameworkDocs?.platformOptions &&
-                    tct('with [optionSelect]', {
-                      optionSelect: (
-                        <PlatformOptionDropdown
-                          platformOptions={jsFrameworkDocs?.platformOptions}
-                          disabled={setupMode() === 'jsLoader'}
-                        />
-                      ),
-                    })}
+                  {jsFrameworkDocs?.platformOptions && (
+                    <PlatformOptionDropdown
+                      platformOptions={jsFrameworkDocs?.platformOptions}
+                      disabled={setupMode() === 'jsLoader'}
+                    />
+                  )}
                 </PlatformSelect>
               ) : (
                 t('I use NPM or Yarn')
               ),
             ],
-            ['jsLoader', t('I use HTML templates')],
+            ['jsLoader', t('I use HTML templates (Loader Script)')],
           ]}
           value={setupMode()}
           onChange={setSetupMode}
         />
       ) : (
-        docs?.platformOptions &&
+        !mobilePlatform &&
+        (docs?.platformOptions?.siblingOption || docs?.platformOptions?.packageManager) &&
         !isProjKeysLoading && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
@@ -307,22 +346,6 @@ function OnboardingContent({
     );
   }
 
-  // TODO: remove once we have mobile replay onboarding
-  if (['android', 'react-native'].includes(currentPlatform.language)) {
-    return (
-      <MobileBetaBanner
-        link={`https://docs.sentry.io/platforms/${currentPlatform.language}/session-replay/`}
-      />
-    );
-  }
-  if (currentPlatform.language === 'apple') {
-    return (
-      <MobileBetaBanner
-        link={`https://docs.sentry.io/platforms/apple/guides/ios/session-replay/`}
-      />
-    );
-  }
-
   const doesNotSupportReplay = currentProject.platform
     ? !replayPlatforms.includes(currentProject.platform)
     : true;
@@ -337,20 +360,27 @@ function OnboardingContent({
           )}
         </div>
         <div>
-          <Button
+          <LinkButton
             size="sm"
             href="https://docs.sentry.io/platforms/javascript/session-replay/"
             external
           >
             {t('Go to Sentry Documentation')}
-          </Button>
+          </LinkButton>
         </div>
       </Fragment>
     );
   }
 
-  // No platform, docs import failed, no DSN, or the platform doesn't have onboarding yet
-  if (!currentPlatform || !docs || !dsn || !hasDocs) {
+  // No platform, docs import failed, no DSN, ingestion is turned off, or the platform doesn't have onboarding yet
+  if (
+    !currentPlatform ||
+    !docs ||
+    !dsn ||
+    !hasDocs ||
+    !projectKeyId ||
+    organization.features.includes('session-replay-video-disabled')
+  ) {
     return (
       <Fragment>
         <div>
@@ -360,13 +390,13 @@ function OnboardingContent({
           )}
         </div>
         <div>
-          <Button
+          <LinkButton
             size="sm"
             href="https://docs.sentry.io/platforms/javascript/session-replay/"
             external
           >
             {t('Read Docs')}
-          </Button>
+          </LinkButton>
         </div>
       </Fragment>
     );
@@ -376,18 +406,18 @@ function OnboardingContent({
     <Fragment>
       {radioButtons}
       <ReplayOnboardingLayout
+        hideMaskBlockToggles={mobilePlatform}
         docsConfig={docs}
         dsn={dsn}
-        cdn={cdn}
+        projectKeyId={projectKeyId}
         activeProductSelection={[]}
         platformKey={currentPlatform.id}
-        projectId={currentProject.id}
-        projectSlug={currentProject.slug}
+        project={currentProject}
         configType={
           setupMode() === 'npm' || // switched to NPM option
-          (!setupMode() && defaultTab === 'npm') || // default value for FE frameworks when ?mode={...} in URL is not set yet
-          npmOnlyFramework // even if '?mode=jsLoader', only show npm instructions for FE frameworks
-            ? 'replayOnboardingNpm'
+          npmOnlyFramework ||
+          mobilePlatform // even if '?mode=jsLoader', only show npm/default instructions for FE frameworks & mobile platforms
+            ? 'replayOnboarding'
             : 'replayOnboardingJsLoader'
         }
       />
@@ -423,9 +453,9 @@ const TaskList = styled('div')`
 const Heading = styled('div')`
   display: flex;
   color: ${p => p.theme.activeText};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1;
   margin-top: ${space(3)};
 `;
@@ -460,4 +490,4 @@ const StyledRadioGroup = styled(RadioGroup)`
   padding: ${space(1)} 0;
 `;
 
-export default ReplaysOnboardingSidebar;
+export default LegacyReplaysOnboardingSidebar;

@@ -12,7 +12,6 @@ import {mat3, vec2} from 'gl-matrix';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
-import {ProfileDragDropImport} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import type {FlamegraphThreadSelectorProps} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
@@ -68,7 +67,6 @@ import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {
   useProfiles,
   useProfileTransaction,
-  useSetProfiles,
 } from 'sentry/views/profiling/profilesProvider';
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
@@ -131,9 +129,7 @@ function convertProfileMeasurementsToUIFrames(
     values: [],
   };
 
-  for (let i = 0; i < measurement.values.length; i++) {
-    const value = measurement.values[i];
-
+  for (const value of measurement.values) {
     measurements.values.push({
       elapsed: value.elapsed_since_start_ns,
       value: value.value,
@@ -172,8 +168,8 @@ function findLongestMatchingFrame(
       longestFrame = frame;
     }
 
-    for (let i = 0; i < frame.children.length; i++) {
-      frames.push(frame.children[i]);
+    for (const child of frame.children) {
+      frames.push(child);
     }
   }
 
@@ -188,7 +184,7 @@ function computeProfileOffset(
   let offset = flamegraph.profile.startedAt;
 
   const transactionStart =
-    transaction.type === 'resolved' ? transaction.data?.startTimestamp ?? null : null;
+    transaction.type === 'resolved' ? (transaction.data?.startTimestamp ?? null) : null;
 
   if (
     defined(transactionStart) &&
@@ -219,7 +215,6 @@ function Flamegraph(): ReactElement {
   const dispatch = useDispatchFlamegraphState();
 
   const profiles = useProfiles();
-  const setProfiles = useSetProfiles();
   const profileGroup = useProfileGroup();
 
   const flamegraphTheme = useFlamegraphTheme();
@@ -448,8 +443,7 @@ function Flamegraph(): ReactElement {
         const measurements = profileGroup.measurements[key]!;
         const values: ProfileSeriesMeasurement['values'] = [];
 
-        for (let i = 0; i < measurements.values.length; i++) {
-          const value = measurements.values[i];
+        for (const value of measurements.values) {
           values.push({
             value: value.value,
             elapsed: value.elapsed_since_start_ns,
@@ -477,8 +471,7 @@ function Flamegraph(): ReactElement {
     if (memory_footprint) {
       const values: ProfileSeriesMeasurement['values'] = [];
 
-      for (let i = 0; i < memory_footprint.values.length; i++) {
-        const value = memory_footprint.values[i];
+      for (const value of memory_footprint.values) {
         values.push({
           value: value.value,
           elapsed: value.elapsed_since_start_ns,
@@ -496,8 +489,7 @@ function Flamegraph(): ReactElement {
     if (native_memory_footprint) {
       const values: ProfileSeriesMeasurement['values'] = [];
 
-      for (let i = 0; i < native_memory_footprint.values.length; i++) {
-        const value = native_memory_footprint.values[i];
+      for (const value of native_memory_footprint.values) {
         values.push({
           value: value.value,
           elapsed: value.elapsed_since_start_ns,
@@ -1163,18 +1155,13 @@ function Flamegraph(): ReactElement {
     return [spansCanvasRef];
   }, [spansCanvasRef]);
 
-  const spansCanvasBounds = useResizeCanvasObserver(
-    spansCanvases,
-    canvasPoolManager,
-    spansCanvas,
-    spansView
-  );
+  useResizeCanvasObserver(spansCanvases, canvasPoolManager, spansCanvas, spansView);
 
   const uiFramesCanvases = useMemo(() => {
     return [uiFramesCanvasRef];
   }, [uiFramesCanvasRef]);
 
-  const uiFramesCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     uiFramesCanvases,
     canvasPoolManager,
     uiFramesCanvas,
@@ -1185,7 +1172,7 @@ function Flamegraph(): ReactElement {
     return [batteryChartCanvasRef];
   }, [batteryChartCanvasRef]);
 
-  const batteryChartCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     batteryChartCanvases,
     canvasPoolManager,
     batteryChartCanvas,
@@ -1196,7 +1183,7 @@ function Flamegraph(): ReactElement {
     return [cpuChartCanvasRef];
   }, [cpuChartCanvasRef]);
 
-  const cpuChartCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     cpuChartCanvases,
     canvasPoolManager,
     cpuChartCanvas,
@@ -1206,7 +1193,8 @@ function Flamegraph(): ReactElement {
   const memoryChartCanvases = useMemo(() => {
     return [memoryChartCanvasRef];
   }, [memoryChartCanvasRef]);
-  const memoryChartCanvasBounds = useResizeCanvasObserver(
+
+  useResizeCanvasObserver(
     memoryChartCanvases,
     canvasPoolManager,
     memoryChartCanvas,
@@ -1217,7 +1205,7 @@ function Flamegraph(): ReactElement {
     return [flamegraphCanvasRef, flamegraphOverlayCanvasRef];
   }, [flamegraphCanvasRef, flamegraphOverlayCanvasRef]);
 
-  const flamegraphCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     flamegraphCanvases,
     canvasPoolManager,
     flamegraphCanvas,
@@ -1312,13 +1300,6 @@ function Flamegraph(): ReactElement {
       dispatch({type: 'set thread id', payload: newThreadId});
     },
     [dispatch]
-  );
-
-  const onImport = useCallback(
-    (p: Profiling.ProfileInput) => {
-      setProfiles({type: 'resolved', data: p});
-    },
-    [setProfiles]
   );
 
   useEffect(() => {
@@ -1427,7 +1408,6 @@ function Flamegraph(): ReactElement {
           hasUIFrames ? (
             <FlamegraphUIFrames
               status={profiles.type}
-              canvasBounds={uiFramesCanvasBounds}
               canvasPoolManager={canvasPoolManager}
               setUIFramesCanvasRef={setUIFramesCanvasRef}
               uiFramesCanvasRef={uiFramesCanvasRef}
@@ -1445,7 +1425,6 @@ function Flamegraph(): ReactElement {
               chartCanvasRef={batteryChartCanvasRef}
               chartCanvas={batteryChartCanvas}
               setChartCanvasRef={setBatteryChartCanvasRef}
-              canvasBounds={batteryChartCanvasBounds}
               chartView={batteryChartView}
               canvasPoolManager={canvasPoolManager}
               chart={batteryChart}
@@ -1467,7 +1446,6 @@ function Flamegraph(): ReactElement {
               chartCanvasRef={memoryChartCanvasRef}
               chartCanvas={memoryChartCanvas}
               setChartCanvasRef={setMemoryChartCanvasRef}
-              canvasBounds={memoryChartCanvasBounds}
               chartView={memoryChartView}
               canvasPoolManager={canvasPoolManager}
               chart={memoryChart}
@@ -1493,7 +1471,6 @@ function Flamegraph(): ReactElement {
               chartCanvasRef={cpuChartCanvasRef}
               chartCanvas={cpuChartCanvas}
               setChartCanvasRef={setCpuChartCanvasRef}
-              canvasBounds={cpuChartCanvasBounds}
               chartView={cpuChartView}
               canvasPoolManager={canvasPoolManager}
               chart={CPUChart}
@@ -1515,7 +1492,6 @@ function Flamegraph(): ReactElement {
         spans={
           spanChart ? (
             <FlamegraphSpans
-              canvasBounds={spansCanvasBounds}
               spanChart={spanChart}
               spansCanvas={spansCanvas}
               spansCanvasRef={spansCanvasRef}
@@ -1539,11 +1515,15 @@ function Flamegraph(): ReactElement {
           />
         }
         flamegraph={
-          <ProfileDragDropImport onImport={onImport}>
-            <FlamegraphWarnings flamegraph={flamegraph} requestState={profiles} />
+          <Fragment>
+            <FlamegraphWarnings
+              flamegraph={flamegraph}
+              requestState={profiles}
+              filter={null}
+            />
             <FlamegraphZoomView
+              scheduler={scheduler}
               profileGroup={profileGroup}
-              canvasBounds={flamegraphCanvasBounds}
               canvasPoolManager={canvasPoolManager}
               flamegraph={flamegraph}
               flamegraphRenderer={flamegraphRenderer}
@@ -1555,7 +1535,7 @@ function Flamegraph(): ReactElement {
               setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
               contextMenu={FlamegraphContextMenu}
             />
-          </ProfileDragDropImport>
+          </Fragment>
         }
         flamegraphDrawer={
           <FlamegraphDrawer

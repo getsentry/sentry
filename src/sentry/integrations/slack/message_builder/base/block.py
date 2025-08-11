@@ -7,8 +7,8 @@ from typing import Any
 
 import orjson
 
-from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.integrations.slack.message_builder.types import SlackBlock
 from sentry.notifications.utils.actions import MessageAction
 
 
@@ -37,6 +37,31 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return {
             "type": "section",
             "text": {"type": "mrkdwn", "text": text},
+        }
+
+    @staticmethod
+    def get_rich_text_link(emojis: list[str], text: str, link: str | None = None) -> SlackBlock:
+        elements: list[dict[str, Any]] = []
+        for emoji in emojis:
+            elements.append({"type": "emoji", "name": emoji})
+            elements.append({"type": "text", "text": " "})
+
+        url: dict[str, Any] = {}
+        if link:
+            url = {
+                "type": "link",
+                "url": link,
+                "text": text,
+                "style": {"bold": True},
+            }
+        else:
+            url = {"type": "text", "text": text}
+
+        elements.append(url)
+
+        return {
+            "type": "rich_text",
+            "elements": [{"type": "rich_text_section", "elements": elements}],
         }
 
     @staticmethod
@@ -77,20 +102,11 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return {"type": "divider"}
 
     @staticmethod
-    def get_static_action(action):
-        return {
-            "type": "static_select",
-            "placeholder": {"type": "plain_text", "text": action.label, "emoji": True},
-            "option_groups": [option for option in action.option_groups],
-            "action_id": action.name,
-        }
-
-    @staticmethod
     def get_external_select_action(action, initial_option):
         action = {
             "type": "external_select",
             "placeholder": {"type": "plain_text", "text": action.label, "emoji": True},
-            "action_id": action.name,
+            "action_id": action.action_id if action.action_id else action.name,
         }
         if initial_option:
             action["initial_option"] = initial_option
@@ -210,4 +226,4 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return blocks
 
     def as_payload(self) -> Mapping[str, Any]:
-        return self.build()  # type: ignore[return-value]
+        return self.build()

@@ -3,9 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import round from 'lodash/round';
 
-import {Button} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LoadingError from 'sentry/components/loadingError';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -13,8 +13,9 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project, SessionApiResponse} from 'sentry/types';
-import {SessionFieldWithOperation, SessionStatus} from 'sentry/types';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {getCountSeries, getCrashFreeRate, getSeriesSum} from 'sentry/utils/sessions';
@@ -49,7 +50,7 @@ function TeamStability({
 
   const {
     data: periodSessions,
-    isLoading: isPeriodSessionsLoading,
+    isPending: isPeriodSessionsLoading,
     isError: isPeriodSessionsError,
     refetch: refetchPeriodSessions,
   } = useApiQuery<SessionApiResponse>(
@@ -67,7 +68,7 @@ function TeamStability({
 
   const {
     data: weekSessions,
-    isLoading: isWeekSessionsLoading,
+    isPending: isWeekSessionsLoading,
     isError: isWeekSessionsError,
     refetch: refetchWeekSessions,
   } = useApiQuery<SessionApiResponse>(
@@ -136,14 +137,14 @@ function TeamStability({
     const sumSessionsCount = Math.floor(sumSessions.length / 7);
     const countSeriesWeeklyTotals: number[] = new Array(sumSessionsCount).fill(0);
     countSeries.forEach(
-      (s, idx) => (countSeriesWeeklyTotals[Math.floor(idx / 7)] += s.value)
+      (s, idx) => (countSeriesWeeklyTotals[Math.floor(idx / 7)]! += s.value)
     );
 
     const sumSessionsWeeklyTotals: number[] = new Array(sumSessionsCount).fill(0);
-    sumSessions.forEach((s, idx) => (sumSessionsWeeklyTotals[Math.floor(idx / 7)] += s));
+    sumSessions.forEach((s, idx) => (sumSessionsWeeklyTotals[Math.floor(idx / 7)]! += s));
 
     const data = countSeriesWeeklyTotals.map((value, idx) => ({
-      name: countSeries[idx * 7].name,
+      name: countSeries[idx * 7]!.name,
       value: sumSessionsWeeklyTotals[idx]
         ? formatFloat((value / sumSessionsWeeklyTotals[idx]) * 100, 2)
         : 0,
@@ -204,13 +205,13 @@ function TeamStability({
       isEmpty={projects.length === 0}
       emptyMessage={t('No projects with release health enabled')}
       emptyAction={
-        <Button
+        <LinkButton
           size="sm"
           external
           href="https://docs.sentry.io/platforms/dotnet/guides/nlog/configuration/releases/#release-health"
         >
           {t('Learn More')}
-        </Button>
+        </LinkButton>
       }
       headers={[
         t('Project'),
@@ -250,7 +251,7 @@ export default TeamStability;
 
 const StyledPanelTable = styled(PanelTable)<{isEmpty: boolean}>`
   grid-template-columns: 1fr 0.2fr 0.2fr 0.2fr 0.2fr;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   white-space: nowrap;
   margin-bottom: 0;
   border: 0;

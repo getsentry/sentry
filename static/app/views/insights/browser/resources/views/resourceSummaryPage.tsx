@@ -1,16 +1,8 @@
 import React from 'react';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {t, tct} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import ResourceSummaryCharts from 'sentry/views/insights/browser/resources/components/charts/resourceSummaryCharts';
 import RenderBlockingSelector from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
@@ -24,14 +16,19 @@ import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 const {
   SPAN_SELF_TIME,
@@ -41,20 +38,38 @@ const {
   HTTP_RESPONSE_TRANSFER_SIZE,
   RESOURCE_RENDER_BLOCKING_STATUS,
   SPAN_OP,
-} = SpanMetricsField;
+} = SpanFields;
 
 function ResourceSummary() {
+  const moduleTitle = useModuleTitle(ModuleName.RESOURCE);
+  const moduleURL = useModuleURL(ModuleName.RESOURCE);
   const webVitalsModuleURL = useModuleURL('vital');
   const {groupId} = useParams();
   const filters = useResourceModuleFilters();
   const selectedSpanOp = filters[SPAN_OP];
-  const {
-    query: {transaction},
-  } = useLocation();
-  const {data, isLoading} = useSpanMetrics(
+
+  useSamplesDrawer({
+    Component: (
+      <SampleList
+        groupId={groupId!}
+        moduleName={ModuleName.RESOURCE}
+        transactionRoute={webVitalsModuleURL}
+        referrer={TraceViewSources.ASSETS_MODULE}
+      />
+    ),
+    moduleName: ModuleName.RESOURCE,
+    requiredParams: ['transaction'],
+  });
+
+  const {data, isPending} = useSpans(
     {
       search: MutableSearch.fromQueryObject({
         'span.group': groupId,
+        ...(filters[SpanFields.USER_GEO_SUBREGION]
+          ? {
+              [SpanFields.USER_GEO_SUBREGION]: `[${filters[SpanFields.USER_GEO_SUBREGION].join(',')}]`,
+            }
+          : {}),
       }),
       fields: [
         `avg(${SPAN_SELF_TIME})`,
@@ -62,118 +77,104 @@ function ResourceSummary() {
         `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`,
         `avg(${HTTP_RESPONSE_TRANSFER_SIZE})`,
         `sum(${SPAN_SELF_TIME})`,
-        'spm()',
+        'epm()',
         SPAN_OP,
         SPAN_DESCRIPTION,
-        'time_spent_percentage()',
         'project.id',
       ],
     },
     Referrer.RESOURCE_SUMMARY_METRICS_RIBBON
   );
   const spanMetrics = selectedSpanOp
-    ? data.find(item => item[SPAN_OP] === selectedSpanOp) ?? {}
-    : data[0] ?? {};
+    ? [data.find(item => item[SPAN_OP] === selectedSpanOp)]
+    : data;
 
   const uniqueSpanOps = new Set(data.map(item => item[SPAN_OP]));
 
   const isImage =
     filters[SPAN_OP] === ResourceSpanOps.IMAGE ||
     IMAGE_FILE_EXTENSIONS.includes(
-      spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]?.split('.').pop() || ''
+      spanMetrics?.[0]?.[SpanFields.SPAN_DESCRIPTION]?.split('.').pop() || ''
     ) ||
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     (uniqueSpanOps.size === 1 && spanMetrics[SPAN_OP] === ResourceSpanOps.IMAGE);
-
-  const crumbs = useModuleBreadcrumbs('resource');
 
   return (
     <React.Fragment>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              ...crumbs,
-              {
-                label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
-              },
-            ]}
-          />
+      <FrontendHeader
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        headerTitle={spanMetrics[SpanFields.SPAN_DESCRIPTION]}
+        breadcrumbs={[
+          {
+            label: moduleTitle,
+            to: moduleURL,
+          },
+          {
+            label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
+          },
+        ]}
+        module={ModuleName.RESOURCE}
+        hideDefaultTabs
+      />
 
-          <Layout.Title>{spanMetrics[SpanMetricsField.SPAN_DESCRIPTION]}</Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
-
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <HeaderContainer>
-                <ToolRibbon>
-                  <PageFilterBar condensed>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter />
-                  </PageFilterBar>
-
-                  <RenderBlockingSelector
-                    value={filters[RESOURCE_RENDER_BLOCKING_STATUS] || ''}
-                  />
-                </ToolRibbon>
-                <ResourceInfo
-                  isLoading={isLoading}
-                  avgContentLength={spanMetrics[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]}
-                  avgDecodedContentLength={
-                    spanMetrics[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`]
-                  }
-                  avgTransferSize={spanMetrics[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`]}
-                  avgDuration={spanMetrics[`avg(${SPAN_SELF_TIME})`]}
-                  throughput={spanMetrics['spm()']}
-                  timeSpentTotal={spanMetrics[`sum(${SPAN_SELF_TIME})`]}
-                  timeSpentPercentage={spanMetrics[`time_spent_percentage()`]}
-                />
-              </HeaderContainer>
-            </ModuleLayout.Full>
-
-            {isImage && (
+      <ModuleBodyUpsellHook moduleName={ModuleName.RESOURCE}>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <ModuleLayout.Layout>
               <ModuleLayout.Full>
-                <SampleImages groupId={groupId} projectId={data?.[0]?.['project.id']} />
+                <HeaderContainer>
+                  <ToolRibbon>
+                    <ModulePageFilterBar moduleName={ModuleName.RESOURCE} />
+                    <RenderBlockingSelector
+                      value={filters[RESOURCE_RENDER_BLOCKING_STATUS] || ''}
+                    />
+                    <SubregionSelector />
+                  </ToolRibbon>
+                  <ResourceInfo
+                    isLoading={isPending}
+                    avgContentLength={
+                      spanMetrics?.[0]?.[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`] ?? 0
+                    }
+                    avgDecodedContentLength={
+                      spanMetrics?.[0]?.[
+                        `avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`
+                      ] ?? 0
+                    }
+                    avgTransferSize={
+                      spanMetrics?.[0]?.[`avg(${HTTP_RESPONSE_TRANSFER_SIZE})`] ?? 0
+                    }
+                    avgDuration={spanMetrics?.[0]?.[`avg(${SPAN_SELF_TIME})`] ?? 0}
+                    throughput={spanMetrics?.[0]?.[`epm()`] ?? 0}
+                    timeSpentTotal={spanMetrics?.[0]?.[`sum(${SPAN_SELF_TIME})`] ?? 0}
+                  />
+                </HeaderContainer>
               </ModuleLayout.Full>
-            )}
 
-            <ResourceSummaryCharts groupId={groupId} />
+              {isImage && (
+                <ModuleLayout.Full>
+                  <SampleImages
+                    groupId={groupId!}
+                    projectId={data?.[0]?.['project.id']}
+                  />
+                </ModuleLayout.Full>
+              )}
 
-            <ModuleLayout.Full>
-              <ResourceSummaryTable />
-            </ModuleLayout.Full>
+              <ResourceSummaryCharts />
 
-            <ModuleLayout.Full>
-              <SampleList
-                transactionRoute={webVitalsModuleURL}
-                groupId={groupId}
-                moduleName={ModuleName.RESOURCE}
-                transactionName={transaction as string}
-                referrer={TraceViewSources.ASSETS_MODULE}
-              />
-            </ModuleLayout.Full>
-          </ModuleLayout.Layout>
-        </Layout.Main>
-      </Layout.Body>
+              <ModuleLayout.Full>
+                <ResourceSummaryTable />
+              </ModuleLayout.Full>
+            </ModuleLayout.Layout>
+          </Layout.Main>
+        </Layout.Body>
+      </ModuleBodyUpsellHook>
     </React.Fragment>
   );
 }
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="resource"
-      pageTitle={`${DATA_TYPE} ${t('Summary')}`}
-      features="insights-initial-modules"
-    >
+    <ModulePageProviders moduleName="resource" pageTitle={`${DATA_TYPE} ${t('Summary')}`}>
       <ResourceSummary />
     </ModulePageProviders>
   );

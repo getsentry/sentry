@@ -6,7 +6,7 @@ import {CellMeasurerCache} from 'react-virtualized';
 type Opts = {
   cellMeasurer: CellMeasurerCacheParams;
   deps: DependencyList;
-  ref: RefObject<List>;
+  ref: RefObject<List | null>;
 };
 function useVirtualizedList({cellMeasurer, deps, ref}: Opts) {
   const cache = useMemo(() => new CellMeasurerCache(cellMeasurer), [cellMeasurer]);
@@ -18,7 +18,7 @@ function useVirtualizedList({cellMeasurer, deps, ref}: Opts) {
 
   // Restart cache when items changes
   // XXX: this has potential to break the UI, especially with dynamic content
-  // in lists (e.g. ObjectInspector). Consider removing this as deps can easily
+  // in lists (e.g. StructuredEventData). Consider removing this as deps can easily
   // be forgotten to be memoized.
   //
   // The reason for high potential to break UI: updateList clears the cache, so

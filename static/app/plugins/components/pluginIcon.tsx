@@ -16,7 +16,6 @@ import jumpcloud from 'sentry-logos/logo-jumpcloud.svg';
 import msteams from 'sentry-logos/logo-msteams.svg';
 import opsgenie from 'sentry-logos/logo-opsgenie.svg';
 import pagerduty from 'sentry-logos/logo-pagerduty.svg';
-import phabricator from 'sentry-logos/logo-phabricator.svg';
 import pivotal from 'sentry-logos/logo-pivotaltracker.svg';
 import pushover from 'sentry-logos/logo-pushover.svg';
 import redmine from 'sentry-logos/logo-redmine.svg';
@@ -30,9 +29,8 @@ import victorops from 'sentry-logos/logo-victorops.svg';
 import visualstudio from 'sentry-logos/logo-visualstudio.svg';
 
 // Map of plugin id -> logo filename
-export const DEFAULT_ICON = placeholder;
-export const ICON_PATHS = {
-  _default: DEFAULT_ICON,
+const PLUGIN_ICONS = {
+  placeholder,
   sentry,
   browsers: sentry,
   device: sentry,
@@ -57,7 +55,6 @@ export const ICON_PATHS = {
   msteams,
   opsgenie,
   pagerduty,
-  phabricator,
   pivotal,
   pushover,
   redmine,
@@ -69,31 +66,65 @@ export const ICON_PATHS = {
   vsts,
   vercel,
   victorops,
-};
+} satisfies Record<string, string>;
 
-type Props = {
-  pluginId?: string;
+export interface PluginIconProps extends React.RefAttributes<HTMLDivElement> {
+  pluginId: keyof typeof PLUGIN_ICONS | (string & {});
+  className?: string;
+  /**
+   * @default 20
+   */
   size?: number;
-};
+}
 
-const PluginIcon = styled('div')<Props>`
-  position: relative;
+export function PluginIcon({pluginId, size = 20, ref, className}: PluginIconProps) {
+  return (
+    <StyledPluginIconContainer size={size} className={className}>
+      <StyledPluginIcon size={size} pluginSrc={getPluginIconSource(pluginId)} ref={ref} />
+    </StyledPluginIconContainer>
+  );
+}
+
+const StyledPluginIconContainer = styled('div')<{
+  size: number;
+}>`
   height: ${p => p.size}px;
   width: ${p => p.size}px;
   min-width: ${p => p.size}px;
+  background-color: ${p => p.theme.white};
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const StyledPluginIcon = styled('div')<{
+  pluginSrc: string;
+  size: number;
+}>`
+  position: relative;
+  height: ${p => p.size - p.size * 0.2}px;
+  width: ${p => p.size - p.size * 0.2}px;
+  min-width: ${p => p.size - p.size * 0.2}px;
   border-radius: 2px;
   border: 0;
   display: inline-block;
   background-size: contain;
   background-position: center center;
   background-repeat: no-repeat;
-  background-image: url(${({pluginId}) =>
-    (pluginId !== undefined && ICON_PATHS[pluginId]) || DEFAULT_ICON});
+  background-image: url(${p => p.pluginSrc});
 `;
 
-PluginIcon.defaultProps = {
-  pluginId: '_default',
-  size: 20,
-};
+function getPluginIconSource(
+  pluginId: PluginIconProps['pluginId']
+): (typeof PLUGIN_ICONS)[keyof typeof PLUGIN_ICONS] {
+  if (!pluginId) {
+    return PLUGIN_ICONS.placeholder;
+  }
 
-export default PluginIcon;
+  if (pluginId in PLUGIN_ICONS) {
+    return PLUGIN_ICONS[pluginId as keyof typeof PLUGIN_ICONS];
+  }
+
+  return PLUGIN_ICONS.placeholder;
+}

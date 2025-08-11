@@ -1,10 +1,9 @@
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -15,7 +14,8 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ApiApplication} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {ApiApplication} from 'sentry/types/user';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -24,6 +24,7 @@ type Authorization = {
   application: ApiApplication;
   homepageUrl: string;
   id: string;
+  organization: Organization | null;
   scopes: string[];
 };
 
@@ -32,11 +33,11 @@ function AccountAuthorizations() {
   const queryClient = useQueryClient();
   const ENDPOINT = '/api-authorizations/';
 
-  const {data, isLoading, isError, refetch} = useApiQuery<Authorization[]>([ENDPOINT], {
+  const {data, isPending, isError, refetch} = useApiQuery<Authorization[]>([ENDPOINT], {
     staleTime: 0,
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -47,7 +48,7 @@ function AccountAuthorizations() {
   const handleRevoke = async (authorization: Authorization) => {
     const oldData = data;
     setApiQueryData<Authorization[]>(queryClient, [ENDPOINT], prevData =>
-      prevData.filter(a => a.id !== authorization.id)
+      prevData?.filter(a => a.id !== authorization.id)
     );
     try {
       await api.requestPromise('/api-authorizations/', {
@@ -94,7 +95,13 @@ function AccountAuthorizations() {
                         </ExternalLink>
                       </Url>
                     )}
-                    <Scopes>{authorization.scopes.join(', ')}</Scopes>
+                    <DetailRow>{authorization.scopes.join(', ')}</DetailRow>
+                    {authorization.organization && (
+                      <DetailRow>
+                        {t('scopes are limited to ')}
+                        {authorization.organization.slug}
+                      </DetailRow>
+                    )}
                   </ApplicationDetails>
                   <Button
                     size="sm"
@@ -131,7 +138,7 @@ const ApplicationDetails = styled('div')`
 `;
 
 const ApplicationName = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(0.5)};
 `;
 
@@ -144,7 +151,7 @@ const Url = styled('div')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;
 
-const Scopes = styled('div')`
-  color: ${p => p.theme.gray300};
+const DetailRow = styled('div')`
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;

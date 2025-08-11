@@ -1,35 +1,52 @@
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/actions/button';
-import type {ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {space} from 'sentry/styles/space';
 
-interface FooterWithButtonsProps
-  extends Partial<Pick<ButtonProps, 'disabled' | 'onClick' | 'href'>> {
+interface FooterWithButtonsProps {
   buttonText: string;
+  disabled?: boolean;
   formFields?: Array<{name: string; value: any}>;
   formProps?: React.FormHTMLAttributes<HTMLFormElement>;
+  href?: string;
+  onClick?: ButtonProps['onClick'] | LinkButtonProps['onClick'];
 }
 
 export default function FooterWithButtons({
   buttonText,
+  disabled,
   formFields,
   formProps,
-  ...rest
+  href,
+  onClick,
 }: FooterWithButtonsProps) {
-  /**
-   * We use a form post here to replicate what we do with standard HTML views for the integration pipeline.
-   * Since this is a form post, we need to pass a hidden replica of the form inputs
-   * so we can submit this form instead of the one collecting the user inputs.
-   */
+  const buttonProps = {
+    priority: 'primary',
+    disabled,
+    onClick,
+    children: buttonText,
+  };
+
+  const button =
+    href === undefined ? (
+      <Button type="submit" {...(buttonProps as ButtonProps)} />
+    ) : (
+      <LinkButton href={href} {...(buttonProps as LinkButtonProps)} />
+    );
+
+  // We use a form post here to replicate what we do with standard HTML views
+  // for the integration pipeline. Since this is a form post, we need to pass a
+  // hidden replica of the form inputs so we can submit this form instead of
+  // the one collecting the user inputs.
   return (
     <Footer data-test-id="aws-lambda-footer-form" {...formProps}>
-      {formFields?.map(field => {
-        return <input type="hidden" key={field.name} {...field} />;
-      })}
-      <Button priority="primary" type="submit" size="xs" {...rest}>
-        {buttonText}
-      </Button>
+      {formFields?.map(field => (
+        <input type="hidden" key={field.name} {...field} />
+      ))}
+      {button}
     </Footer>
   );
 }

@@ -15,12 +15,14 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.services.integration import integration_service
 from sentry.models.commit import Commit
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.tasks.repository import repository_cascade_delete_on_hide
+from sentry.tasks.seer import cleanup_seer_repository_preferences
 
 
 class RepositorySerializer(serializers.Serializer):
@@ -46,7 +48,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    def put(self, request: Request, organization, repo_id) -> Response:
+    def put(self, request: Request, organization: Organization, repo_id) -> Response:
         if not request.user.is_authenticated:
             return Response(status=401)
 
@@ -74,7 +76,9 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 raise NotImplementedError
         if result.get("integrationId"):
             integration = integration_service.get_integration(
-                integration_id=result["integrationId"], organization_id=coerce_id_from(organization)
+                integration_id=result["integrationId"],
+                organization_id=coerce_id_from(organization),
+                status=ObjectStatus.ACTIVE,
             )
             if integration is None:
                 return Response({"detail": "Invalid integration id"}, status=400)
@@ -94,6 +98,15 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                     repo.delete_pending_deletion_option()
                 elif repo.status == ObjectStatus.HIDDEN and old_status != repo.status:
                     repository_cascade_delete_on_hide.apply_async(kwargs={"repo_id": repo.id})
+
+                    if repo.external_id and repo.provider:
+                        cleanup_seer_repository_preferences.apply_async(
+                            kwargs={
+                                "organization_id": repo.organization_id,
+                                "repo_external_id": repo.external_id,
+                                "repo_provider": repo.provider,
+                            }
+                        )
 
         return Response(serialize(repo, request.user))
 

@@ -6,12 +6,13 @@ from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.replica import control_replica_service
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.notifications.services import notifications_service
 
 logger = logging.getLogger(__name__)
@@ -33,12 +34,13 @@ class ExternalActor(ReplicatedRegionModel):
     provider = BoundedPositiveIntegerField(
         choices=(
             (ExternalProviders.EMAIL, "email"),
-            (ExternalProviders.SLACK, "slack"),
-            (ExternalProviders.MSTEAMS, "msteams"),
-            (ExternalProviders.PAGERDUTY, "pagerduty"),
-            (ExternalProviders.GITHUB, "github"),
-            (ExternalProviders.GITHUB_ENTERPRISE, "github_enterprise"),
-            (ExternalProviders.GITLAB, "gitlab"),
+            (ExternalProviders.SLACK, IntegrationProviderSlug.SLACK.value),
+            (ExternalProviders.MSTEAMS, IntegrationProviderSlug.MSTEAMS.value),
+            (ExternalProviders.PAGERDUTY, IntegrationProviderSlug.PAGERDUTY.value),
+            (ExternalProviders.GITHUB, IntegrationProviderSlug.GITHUB.value),
+            (ExternalProviders.GITHUB_ENTERPRISE, IntegrationProviderSlug.GITHUB_ENTERPRISE.value),
+            (ExternalProviders.GITLAB, IntegrationProviderSlug.GITLAB.value),
+            (ExternalProviders.JIRA_SERVER, IntegrationProviderSlug.JIRA_SERVER.value),
             # TODO: do migration to delete this from database
             (ExternalProviders.CUSTOM, "custom_scm"),
         ),
@@ -58,7 +60,7 @@ class ExternalActor(ReplicatedRegionModel):
 
         constraints = [
             models.CheckConstraint(
-                check=Q(user_id__isnull=False) | Q(team_id__isnull=False),
+                condition=Q(user_id__isnull=False) | Q(team_id__isnull=False),
                 name="external_actor_team_or_user",
             ),
         ]
@@ -68,7 +70,9 @@ class ExternalActor(ReplicatedRegionModel):
 
         # TODO: Extract this out of the delete method into the endpoint / controller instead.
         if self.team is not None:
-            integration = integration_service.get_integration(integration_id=self.integration_id)
+            integration = integration_service.get_integration(
+                integration_id=self.integration_id, status=ObjectStatus.ACTIVE
+            )
             if integration:
                 install = integration.get_installation(organization_id=self.organization.id)
                 team = self.team
@@ -87,21 +91,17 @@ class ExternalActor(ReplicatedRegionModel):
         )
 
 
-def process_resource_change(instance, **kwargs):
-    from sentry.models.organization import Organization
+def process_resource_change(instance: ExternalActor, **kwargs):
     from sentry.models.project import Project
     from sentry.tasks.codeowners import update_code_owners_schema
 
     def _spawn_task():
-        try:
-            update_code_owners_schema.apply_async(
-                kwargs={
-                    "organization": instance.organization,
-                    "integration": instance.integration_id,
-                }
-            )
-        except (Organization.DoesNotExist, Project.DoesNotExist):
-            pass
+        update_code_owners_schema.apply_async(
+            kwargs={
+                "organization": instance.organization_id,
+                "integration": instance.integration_id,
+            }
+        )
 
     transaction.on_commit(_spawn_task, router.db_for_write(Project))
 

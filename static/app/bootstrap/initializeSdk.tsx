@@ -1,14 +1,18 @@
 // eslint-disable-next-line simple-import-sort/imports
-import {browserHistory, createRoutes, match} from 'react-router';
 import * as Sentry from '@sentry/react';
-import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
-import type {Event} from '@sentry/types';
+import type {Event} from '@sentry/core';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import type {Config} from 'sentry/types/system';
 import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {getErrorDebugIds} from 'sentry/utils/getErrorDebugIds';
+import {
+  createRoutesFromChildren,
+  matchRoutes,
+  useLocation,
+  useNavigationType,
+} from 'react-router-dom';
+import {useEffect} from 'react';
 
 const SPA_MODE_ALLOW_URLS = [
   'localhost',
@@ -48,22 +52,30 @@ const shouldOverrideBrowserProfiling = window?.__initialData?.user?.isSuperuser;
  * having routing instrumentation in order to have a smaller bundle size.
  * (e.g.  `static/views/integrationPipeline`)
  */
-function getSentryIntegrations(routes?: Function) {
+function getSentryIntegrations() {
   const integrations = [
     Sentry.extraErrorDataIntegration({
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
-    Sentry.reactRouterV3BrowserTracingIntegration({
-      history: browserHistory as any,
-      routes: typeof routes === 'function' ? createRoutes(routes()) : [],
-      match,
-      enableLongAnimationFrame: true,
+    Sentry.reactRouterV6BrowserTracingIntegration({
+      useEffect,
+      useLocation,
+      useNavigationType,
+      createRoutesFromChildren,
+      matchRoutes,
       _experiments: {
-        enableInteractions: false,
+        enableStandaloneClsSpans: true,
+        enableStandaloneLcpSpans: true,
       },
+      linkPreviousTrace: 'session-storage',
     }),
     Sentry.browserProfilingIntegration(),
+    Sentry.thirdPartyErrorFilterIntegration({
+      filterKeys: ['sentry-spa'],
+      behaviour: 'apply-tag-if-contains-third-party-frames',
+    }),
+    Sentry.featureFlagsIntegration(),
   ];
 
   return integrations;
@@ -75,12 +87,13 @@ function getSentryIntegrations(routes?: Function) {
  * If `routes` is passed, we will instrument react-router. Not all
  * entrypoints require this.
  */
-export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}) {
+export function initializeSdk(config: Config) {
+  // NOTE: This config is mutated by `commonInitialization`
   const {apmSampling, sentryConfig, userIdentity} = config;
   const tracesSampleRate = apmSampling ?? 0;
   const extraTracePropagationTargets = SPA_DSN
     ? SPA_MODE_TRACE_PROPAGATION_TARGETS
-    : [...sentryConfig?.tracePropagationTargets];
+    : [...sentryConfig.tracePropagationTargets];
 
   Sentry.init({
     ...sentryConfig,
@@ -96,7 +109,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      */
     release: SENTRY_RELEASE_VERSION ?? sentryConfig?.release,
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.allowUrls,
-    integrations: getSentryIntegrations(routes),
+    integrations: getSentryIntegrations(),
     tracesSampleRate,
     profilesSampleRate: shouldOverrideBrowserProfiling ? 1 : 0.1,
     tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
@@ -111,14 +124,15 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       addExtraMeasurements(event);
       addUIElementTag(event);
 
-      event.spans = event.spans?.filter(span => {
+      const filteredSpans = event.spans?.filter(span => {
         return IGNORED_SPANS_BY_DESCRIPTION.every(
           partialDesc => !span.description?.includes(partialDesc)
         );
       });
 
       // If we removed any spans at the end above, the end timestamp needs to be adjusted again.
-      if (event.spans) {
+      if (filteredSpans && filteredSpans?.length !== event.spans?.length) {
+        event.spans = filteredSpans;
         const newEndTimestamp = Math.max(...event.spans.map(span => span.timestamp ?? 0));
         event.timestamp = newEndTimestamp;
       }
@@ -140,7 +154,10 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
        *
        * Ref: https://bugs.webkit.org/show_bug.cgi?id=215771
        */
-      'AbortError: Fetch is aborted',
+      /AbortError: Fetch is aborted/i,
+      /AbortError: The operation was aborted/i,
+      /AbortError: signal is aborted without reason/i,
+      /AbortError: The user aborted a request/i,
       /**
        * React internal error thrown when something outside react modifies the DOM
        * This is usually because of a browser extension or chrome translate page
@@ -170,57 +187,16 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
 
       handlePossibleUndefinedResponseBodyErrors(event);
       addEndpointTagToRequestError(event);
-
       lastEventId = event.event_id || hint.event_id;
 
       return event;
     },
+    enableLogs: true,
   });
-
-  if (process.env.NODE_ENV !== 'production') {
-    if (sentryConfig.environment === 'development' && process.env.NO_SPOTLIGHT !== '1') {
-      import('@spotlightjs/spotlight').then(Spotlight => {
-        /* #__PURE__ */ Spotlight.init();
-      });
-    }
-  }
-
-  // Event processor to fill the debug_meta field with debug IDs based on the
-  // files the error touched. (files inside the stacktrace)
-  const debugIdPolyfillEventProcessor = async (event: Event, hint: Sentry.EventHint) => {
-    if (!(hint.originalException instanceof Error)) {
-      return event;
-    }
-
-    try {
-      const debugIdMap = await getErrorDebugIds(hint.originalException);
-
-      // Fill debug_meta information
-      event.debug_meta = {};
-      event.debug_meta.images = [];
-      const images = event.debug_meta.images;
-      Object.keys(debugIdMap).forEach(filename => {
-        images.push({
-          type: 'sourcemap',
-          code_file: filename,
-          debug_id: debugIdMap[filename],
-        });
-      });
-    } catch (e) {
-      event.extra = event.extra || {};
-      event.extra.debug_id_fetch_error = String(e);
-    }
-
-    return event;
-  };
-  debugIdPolyfillEventProcessor.id = 'debugIdPolyfillEventProcessor';
-
-  Sentry.addEventProcessor(debugIdPolyfillEventProcessor);
 
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations
   Sentry.addEventProcessor((event: Sentry.Event, _hint?: Sentry.EventHint) => {
     event.tags = event.tags || {};
-    event.tags['timeOrigin.mode'] = _browserPerformanceTimeOriginMode;
     return event;
   });
 
@@ -296,7 +272,7 @@ function handlePossibleUndefinedResponseBodyErrors(event: Event): void {
   const causeErrorIsURBE = causeError?.type === 'UndefinedResponseBodyError';
 
   if (mainErrorIsURBE || causeErrorIsURBE) {
-    mainError.type = 'UndefinedResponseBodyError';
+    mainError!.type = 'UndefinedResponseBodyError';
     event.tags = {...event.tags, undefinedResponseBody: true};
     event.fingerprint = mainErrorIsURBE
       ? ['UndefinedResponseBodyError as main error']
@@ -305,7 +281,7 @@ function handlePossibleUndefinedResponseBodyErrors(event: Event): void {
 }
 
 export function addEndpointTagToRequestError(event: Event): void {
-  const errorMessage = event.exception?.values?.[0].value || '';
+  const errorMessage = event.exception?.values?.[0]!.value || '';
 
   // The capturing group here turns `GET /dogs/are/great 500` into just `GET /dogs/are/great`
   const requestErrorRegex = new RegExp('^([A-Za-z]+ (/[^/]+)+/) \\d+$');

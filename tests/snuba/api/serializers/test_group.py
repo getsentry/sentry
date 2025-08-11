@@ -6,21 +6,26 @@ from django.utils import timezone
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializerSnuba
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
+from sentry.issues.grouptype import (
+    GroupCategory,
+    PerformanceNPlusOneGroupType,
+    ProfileFileIOGroupType,
+)
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.options.user_option import UserOption
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.types import NotificationSettingsOptionEnum
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import PriorityLevel
+from sentry.users.models.user_option import UserOption
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -32,38 +37,32 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         self.day_ago = before_now(days=1)
         self.week_ago = before_now(days=7)
 
-    def test_permalink(self):
+    def test_permalink(self) -> None:
         group = self.create_group()
         result = serialize(group, self.user, serializer=GroupSerializerSnuba())
         assert "http://" in result["permalink"]
         assert f"{group.organization.slug}/issues/{group.id}" in result["permalink"]
 
-    def test_permalink_outside_org(self):
-        outside_user = self.create_user()
-        group = self.create_group()
-        result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
-        assert result["permalink"] is None
-
-    def test_priority_high(self):
+    def test_priority_high(self) -> None:
         outside_user = self.create_user()
         group = self.create_group(priority=PriorityLevel.HIGH)
         result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
         assert result["priority"] == "high"
 
-    def test_priority_medium(self):
+    def test_priority_medium(self) -> None:
         outside_user = self.create_user()
         group = self.create_group(priority=PriorityLevel.MEDIUM)
         result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
         assert result["priority"] == "medium"
 
-    def test_priority_none(self):
+    def test_priority_none(self) -> None:
         outside_user = self.create_user()
         group = self.create_group()
         result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
         assert result["priority"] is None
         assert result["priorityLockedAt"] is None
 
-    def test_is_ignored_with_expired_snooze(self):
+    def test_is_ignored_with_expired_snooze(self) -> None:
         now = timezone.now()
 
         user = self.create_user()
@@ -74,7 +73,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["status"] == "unresolved"
         assert result["statusDetails"] == {}
 
-    def test_is_ignored_with_valid_snooze(self):
+    def test_is_ignored_with_valid_snooze(self) -> None:
         now = timezone.now()
 
         user = self.create_user()
@@ -90,7 +89,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["statusDetails"]["ignoreUntil"] == snooze.until
         assert result["statusDetails"]["actor"] is None
 
-    def test_is_ignored_with_valid_snooze_and_actor(self):
+    def test_is_ignored_with_valid_snooze_and_actor(self) -> None:
         now = timezone.now()
 
         user = self.create_user()
@@ -101,7 +100,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["status"] == "ignored"
         assert result["statusDetails"]["actor"]["id"] == str(user.id)
 
-    def test_resolved_in_next_release(self):
+    def test_resolved_in_next_release(self) -> None:
         release = self.create_release(project=self.project, version="a")
         user = self.create_user()
         group = self.create_group(status=GroupStatus.RESOLVED)
@@ -113,7 +112,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["status"] == "resolved"
         assert result["statusDetails"] == {"inNextRelease": True, "actor": None}
 
-    def test_resolved_in_release(self):
+    def test_resolved_in_release(self) -> None:
         release = self.create_release(project=self.project, version="a")
         user = self.create_user()
         group = self.create_group(status=GroupStatus.RESOLVED)
@@ -125,7 +124,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["status"] == "resolved"
         assert result["statusDetails"] == {"inRelease": "a", "actor": None}
 
-    def test_resolved_with_actor(self):
+    def test_resolved_with_actor(self) -> None:
         release = self.create_release(project=self.project, version="a")
         user = self.create_user()
         group = self.create_group(status=GroupStatus.RESOLVED)
@@ -137,7 +136,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["status"] == "resolved"
         assert result["statusDetails"]["actor"]["id"] == str(user.id)
 
-    def test_resolved_in_commit(self):
+    def test_resolved_in_commit(self) -> None:
         repo = self.create_repo(project=self.project)
         commit = self.create_commit(repo=repo)
         user = self.create_user()
@@ -155,7 +154,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["statusDetails"]["inCommit"]["id"] == commit.key
 
     @mock.patch("sentry.models.Group.is_over_resolve_age")
-    def test_auto_resolved(self, mock_is_over_resolve_age):
+    def test_auto_resolved(self, mock_is_over_resolve_age: mock.MagicMock) -> None:
         mock_is_over_resolve_age.return_value = True
 
         user = self.create_user()
@@ -165,7 +164,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["status"] == "resolved"
         assert result["statusDetails"] == {"autoResolved": True}
 
-    def test_subscribed(self):
+    def test_subscribed(self) -> None:
         user = self.create_user()
         group = self.create_group()
 
@@ -177,7 +176,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["isSubscribed"]
         assert result["subscriptionDetails"] == {"reason": "unknown"}
 
-    def test_explicit_unsubscribed(self):
+    def test_explicit_unsubscribed(self) -> None:
         user = self.create_user()
         group = self.create_group()
 
@@ -189,7 +188,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert not result["isSubscribed"]
         assert not result["subscriptionDetails"]
 
-    def test_implicit_subscribed(self):
+    def test_implicit_subscribed(self) -> None:
         user = self.create_user()
         group = self.create_group()
 
@@ -307,7 +306,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
                 else subscription_details is None
             )
 
-    def test_global_no_conversations_overrides_group_subscription(self):
+    def test_global_no_conversations_overrides_group_subscription(self) -> None:
         user = self.create_user()
         group = self.create_group()
 
@@ -328,7 +327,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert not result["isSubscribed"]
         assert result["subscriptionDetails"] == {"disabled": True}
 
-    def test_project_no_conversations_overrides_group_subscription(self):
+    def test_project_no_conversations_overrides_group_subscription(self) -> None:
         user = self.create_user()
         group = self.create_group()
 
@@ -348,29 +347,29 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert not result["isSubscribed"]
         assert result["subscriptionDetails"] == {"disabled": True}
 
-    def test_no_user_unsubscribed(self):
+    def test_no_user_unsubscribed(self) -> None:
         group = self.create_group()
 
         result = serialize(group, serializer=GroupSerializerSnuba())
         assert not result["isSubscribed"]
 
-    def test_seen_stats(self):
+    def test_seen_stats(self) -> None:
         environment = self.create_environment(project=self.project)
         environment2 = self.create_environment(project=self.project)
 
         events = []
 
         for event_id, env, user_id, timestamp in [
-            ("a" * 32, environment, 1, iso_format(self.min_ago)),
-            ("b" * 32, environment, 2, iso_format(self.min_ago)),
-            ("c" * 32, environment2, 3, iso_format(self.week_ago)),
+            ("a" * 32, environment, 1, self.min_ago),
+            ("b" * 32, environment, 2, self.min_ago),
+            ("c" * 32, environment2, 3, self.week_ago),
         ]:
             events.append(
                 self.store_event(
                     data={
                         "event_id": event_id,
                         "fingerprint": ["put-me-in-group1"],
-                        "timestamp": timestamp,
+                        "timestamp": timestamp.isoformat(),
                         "environment": env.name,
                         "user": {"id": user_id},
                     },
@@ -390,7 +389,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         # should use group columns when no environments arg passed
         result = serialize(group, serializer=GroupSerializerSnuba(environment_ids=[]))
         assert result["count"] == "3"
-        assert iso_format(result["lastSeen"]) == iso_format(self.min_ago)
+        assert result["lastSeen"] == self.min_ago.replace(microsecond=0)
         assert result["firstSeen"] == group.first_seen
 
         # update this to something different to make sure it's being used
@@ -406,9 +405,10 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         )
         assert result["count"] == "3"
         # result is rounded down to nearest second
-        assert iso_format(result["lastSeen"]) == iso_format(self.min_ago)
-        assert iso_format(result["firstSeen"]) == iso_format(group_env.first_seen)
-        assert iso_format(group_env2.first_seen) > iso_format(group_env.first_seen)
+        assert result["lastSeen"] == self.min_ago.replace(microsecond=0)
+        assert result["firstSeen"] == group_env.first_seen
+        assert group_env2.first_seen is not None
+        assert group_env2.first_seen > group_env.first_seen
         assert result["userCount"] == 3
 
         result = serialize(
@@ -420,11 +420,11 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
             ),
         )
         assert result["userCount"] == 1
-        assert iso_format(result["lastSeen"]) == iso_format(self.week_ago)
-        assert iso_format(result["firstSeen"]) == iso_format(self.week_ago)
+        assert result["lastSeen"] == self.week_ago.replace(microsecond=0)
+        assert result["firstSeen"] == self.week_ago.replace(microsecond=0)
         assert result["count"] == "1"
 
-    def test_get_start_from_seen_stats(self):
+    def test_get_start_from_seen_stats(self) -> None:
         for days, expected in [(None, 30), (0, 14), (1000, 90)]:
             last_seen = None if days is None else before_now(days=days)
             start = GroupSerializerSnuba._get_start_from_seen_stats(
@@ -438,9 +438,9 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
                 }
             )
 
-            assert iso_format(start) == iso_format(before_now(days=expected))
+            assert start.replace(microsecond=0) == before_now(days=expected).replace(microsecond=0)
 
-    def test_skipped_date_timestamp_filters(self):
+    def test_skipped_date_timestamp_filters(self) -> None:
         group = self.create_group()
         serializer = GroupSerializerSnuba(
             search_filters=[
@@ -470,17 +470,30 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         result = serialize(group, self.user, serializer=serializer)
         assert result["id"] == str(group.id)
 
+    def test_issue_category(self) -> None:
+        group = self.create_group(type=PerformanceNPlusOneGroupType.type_id)
+        result = serialize(group, self.user, serializer=GroupSerializerSnuba())
+
+        assert result["issueCategory"] == GroupCategory.PERFORMANCE.name.lower()
+
+    @with_feature("organizations:issue-taxonomy")
+    def test_issue_category_v2(self) -> None:
+        group = self.create_group(type=PerformanceNPlusOneGroupType.type_id)
+        result = serialize(group, self.user, serializer=GroupSerializerSnuba())
+
+        assert result["issueCategory"] == GroupCategory.DB_QUERY.name.lower()
+
 
 class PerformanceGroupSerializerSnubaTest(
     APITestCase,
     SnubaTestCase,
     PerformanceIssueTestCase,
 ):
-    def test_perf_seen_stats(self):
+    def test_perf_seen_stats(self) -> None:
         proj = self.create_project()
 
         first_group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
-        timestamp = timezone.now() - timedelta(days=5)
+        timestamp = (timezone.now() - timedelta(days=5)).replace(microsecond=0)
         times = 5
         for _ in range(0, times):
             event_data = load_data(
@@ -516,8 +529,8 @@ class PerformanceGroupSerializerSnubaTest(
         )
 
         assert result["userCount"] == 2
-        assert iso_format(result["lastSeen"]) == iso_format(timestamp + timedelta(minutes=2))
-        assert iso_format(result["firstSeen"]) == iso_format(timestamp + timedelta(minutes=1))
+        assert result["lastSeen"] == (timestamp + timedelta(minutes=2))
+        assert result["firstSeen"] == (timestamp + timedelta(minutes=1))
         assert result["count"] == str(times + 1)
 
 
@@ -526,12 +539,14 @@ class ProfilingGroupSerializerSnubaTest(
     SnubaTestCase,
     SearchIssueTestMixin,
 ):
-    def test_profiling_seen_stats(self):
+    def test_profiling_seen_stats(self) -> None:
         proj = self.create_project()
         environment = self.create_environment(project=proj)
 
         first_group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group1"
-        timestamp = (timezone.now() - timedelta(days=5)).replace(hour=0, minute=0, second=0)
+        timestamp = (timezone.now() - timedelta(days=5)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
         times = 5
         for incr in range(0, times):
             # for user_0 - user_4, first_group
@@ -565,6 +580,6 @@ class ProfilingGroupSerializerSnubaTest(
         )
 
         assert result["userCount"] == 6
-        assert iso_format(result["lastSeen"]) == iso_format(timestamp + timedelta(minutes=5))
-        assert iso_format(result["firstSeen"]) == iso_format(timestamp)
+        assert result["lastSeen"] == (timestamp + timedelta(minutes=5))
+        assert result["firstSeen"] == timestamp
         assert result["count"] == str(times + 1)

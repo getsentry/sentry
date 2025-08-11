@@ -1,5 +1,6 @@
 import {Component} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -31,15 +32,16 @@ type Props = {
   targetIssueId: string;
   baseEventId?: string;
   className?: string;
+  hasSimilarityEmbeddingsProjectFeature?: boolean;
   organization?: Organization;
   shouldBeGrouped?: string;
   targetEventId?: string;
 };
 
 type State = {
-  baseEvent: Array<string>;
+  baseEvent: string[];
   loading: boolean;
-  targetEvent: Array<string>;
+  targetEvent: string[];
   SplitDiffAsync?: typeof SplitDiff;
 };
 
@@ -67,12 +69,12 @@ class IssueDiff extends Component<Props, State> {
       baseEventId,
       targetEventId,
       organization,
-      project,
       shouldBeGrouped,
       location,
+      hasSimilarityEmbeddingsProjectFeature,
     } = this.props;
     const hasSimilarityEmbeddingsFeature =
-      project.features.includes('similarity-embeddings') ||
+      hasSimilarityEmbeddingsProjectFeature ||
       location.query.similarityEmbeddings === '1';
 
     // Fetch component and event data
@@ -85,10 +87,18 @@ class IssueDiff extends Component<Props, State> {
           this.fetchEvent(baseIssueId, baseEventId ?? 'latest'),
           this.fetchEvent(targetIssueId, targetEventId ?? 'latest'),
         ]);
-
+        const includeLocation = false;
         const [baseEvent, targetEvent] = await Promise.all([
-          getStacktraceBody(baseEventData, hasSimilarityEmbeddingsFeature),
-          getStacktraceBody(targetEventData, hasSimilarityEmbeddingsFeature),
+          getStacktraceBody(
+            baseEventData,
+            hasSimilarityEmbeddingsFeature,
+            includeLocation
+          ),
+          getStacktraceBody(
+            targetEventData,
+            hasSimilarityEmbeddingsFeature,
+            includeLocation
+          ),
         ]);
 
         this.setState({
@@ -117,7 +127,7 @@ class IssueDiff extends Component<Props, State> {
             parent_transaction: this.getTransaction(
               targetEventData?.tags ? targetEventData.tags : []
             ),
-            shouldBeGrouped: shouldBeGrouped,
+            shouldBeGrouped,
           });
         }
       } catch {
@@ -187,9 +197,9 @@ const StyledIssueDiff = styled('div', {
 
   ${p =>
     p.loading &&
-    `
-        background-color: ${p.theme.background};
-        justify-content: center;
-        align-items: center;
-      `};
+    css`
+      background-color: ${p.theme.background};
+      justify-content: center;
+      align-items: center;
+    `};
 `;

@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -23,6 +24,10 @@ type ChildProps = {
 type Props = {
   children: (props: ChildProps) => React.ReactNode;
   /**
+   * Provide a URL for the done state to open in a new tab.
+   */
+  doneUrl: string;
+  /**
    * The list of tour steps.
    * The FeatureTourModal will manage state on the active step.
    */
@@ -31,10 +36,6 @@ type Props = {
    * Customize the text shown on the done button.
    */
   doneText?: string;
-  /**
-   * Provide a URL for the done state to open in a new tab.
-   */
-  doneUrl?: string;
   /**
    * Triggered when the tour is advanced.
    */
@@ -156,7 +157,7 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
     const {Body, steps, doneText, doneUrl, closeModal} = this.props;
     const {current} = this.state;
 
-    const step = steps[current] !== undefined ? steps[current] : steps[steps.length - 1];
+    const step = steps[current] === undefined ? steps[steps.length - 1]! : steps[current];
     const hasNext = steps[current + 1] !== undefined;
 
     return (
@@ -172,7 +173,7 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
           {step.image}
           <TourHeader>{step.title}</TourHeader>
           {step.body}
-          <TourButtonBar gap={1}>
+          <TourButtonBar>
             {step.actions && step.actions}
             {hasNext && (
               <Button priority="primary" onClick={this.handleAdvance}>
@@ -180,7 +181,7 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
               </Button>
             )}
             {!hasNext && (
-              <Button
+              <LinkButton
                 external
                 href={doneUrl}
                 onClick={closeModal}
@@ -188,7 +189,7 @@ class ModalContents extends Component<ContentsProps, ContentsState> {
                 aria-label={t('Complete tour')}
               >
                 {doneText}
-              </Button>
+              </LinkButton>
             )}
           </TourButtonBar>
           <StepCounter>{t('%s of %s', current + 1, steps.length)}</StepCounter>
@@ -221,9 +222,9 @@ const TourButtonBar = styled(ButtonBar)`
 
 const StepCounter = styled('div')`
   text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
-  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.subText};
 `;
 
 // Styled components that can be used to build tour content.

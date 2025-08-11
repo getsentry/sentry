@@ -24,7 +24,7 @@ from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import parse_stats_period, validate_interval
-from sentry.utils.sdk import set_measurement
+from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import bulk_snuba_queries
 
 TOP_FUNCTIONS_LIMIT = 50
@@ -71,7 +71,6 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    snuba_methods = ["GET"]
 
     def has_feature(self, organization: Organization, request: Request):
         return features.has(
@@ -83,7 +82,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             return Response(status=404)
 
         try:
-            params = self.get_snuba_params(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response({})
 
@@ -100,10 +99,9 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     "package",
                     "function",
                     "count()",
-                    "examples()",
                 ],
                 query=data.get("query"),
-                params=params,
+                snuba_params=snuba_params,
                 orderby=["-count()"],
                 limit=TOP_FUNCTIONS_LIMIT,
                 referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,
@@ -112,8 +110,10 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 transform_alias_to_input_format=True,
             )
 
-        def get_event_stats(_columns, query, params, _rollup, zerofill_results, _comparison_delta):
-            rollup = get_rollup_from_range(params["end"] - params["start"])
+        def get_event_stats(
+            _columns, query, snuba_params, _rollup, zerofill_results, _comparison_delta
+        ):
+            rollup = get_rollup_from_range(snuba_params.date_range)
 
             chunks = [
                 top_functions["data"][i : i + FUNCTIONS_PER_QUERY]
@@ -123,7 +123,8 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             builders = [
                 ProfileTopFunctionsTimeseriesQueryBuilder(
                     dataset=Dataset.Functions,
-                    params=params,
+                    params={},
+                    snuba_params=snuba_params,
                     interval=rollup,
                     top_events=chunk,
                     other=False,
@@ -132,7 +133,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     # It's possible to override the columns via
                     # the `yAxis` qs. So we explicitly ignore the
                     # columns, and hard code in the columns we want.
-                    timeseries_columns=[data["function"], "examples()"],
+                    timeseries_columns=[data["function"], "examples()", "all_examples()"],
                     config=QueryBuilderConfig(
                         skip_tag_resolution=True,
                     ),
@@ -150,8 +151,8 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 formatted_results = functions.format_top_events_timeseries_results(
                     result,
                     builder,
-                    params,
-                    rollup,
+                    rollup=rollup,
+                    snuba_params=snuba_params,
                     top_events={"data": chunk},
                     result_key_order=["project.id", "fingerprint"],
                 )
@@ -193,15 +194,15 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             get_event_stats,
             top_events=FUNCTIONS_PER_QUERY,
             query_column=data["function"],
-            additional_query_column="examples()",
-            params=params,
+            additional_query_columns=["examples()", "all_examples()"],
+            snuba_params=snuba_params,
             query=data.get("query"),
         )
 
         trending_functions = get_trends_data(stats_data)
 
         all_trending_functions_count = len(trending_functions)
-        set_measurement("profiling.top_functions", all_trending_functions_count)
+        set_span_attribute("profiling.top_functions", all_trending_functions_count)
 
         # Profiling functions have a resolution of ~10ms. To increase the confidence
         # of the results, the caller can specify a min threshold for the trend difference.
@@ -214,7 +215,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             ]
 
         filtered_trending_functions_count = all_trending_functions_count - len(trending_functions)
-        set_measurement(
+        set_span_attribute(
             "profiling.top_functions.below_threshold", filtered_trending_functions_count
         )
 
@@ -241,9 +242,14 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 key = f"{result['project']},{result['transaction']}"
                 formatted_result = {
                     "stats": stats_data[key][data["function"]],
-                    "worst": [
+                    "worst": [  # deprecated, migrate to `examples`
                         (ts, data[0]["count"][0])
                         for ts, data in stats_data[key]["examples()"]["data"]
+                        if data[0]["count"]  # filter out entries without an example
+                    ],
+                    "examples": [
+                        (ts, data[0]["count"][0])
+                        for ts, data in stats_data[key]["all_examples()"]["data"]
                         if data[0]["count"]  # filter out entries without an example
                     ],
                 }
@@ -266,7 +272,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 formatted_result.update(
                     {
                         k: functions[key][k]
-                        for k in ["fingerprint", "package", "function", "count()", "examples()"]
+                        for k in ["fingerprint", "package", "function", "count()"]
                     }
                 )
                 formatted_results.append(formatted_result)

@@ -7,17 +7,20 @@ import sortBy from 'lodash/sortBy';
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Button} from 'sentry/components/button';
-import type {SelectOption, SelectOptionOrSection} from 'sentry/components/compactSelect';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import type {
+  SelectOption,
+  SelectOptionOrSection,
+} from 'sentry/components/core/compactSelect';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {HybridFilterProps} from 'sentry/components/organizations/hybridFilter';
 import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
+import {DesyncedFilterMessage} from 'sentry/components/organizations/pageFilters/desyncedFilter';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconOpen, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -26,8 +29,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
-
-import {DesyncedFilterMessage} from '../pageFilters/desyncedFilter';
+import {useUser} from 'sentry/utils/useUser';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ProjectPageFilterMenuFooter} from './menuFooter';
 import {ProjectPageFilterTrigger} from './trigger';
@@ -70,6 +73,11 @@ export interface ProjectPageFilterProps
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
+  /**
+   * Optional prefix for the storage key, for areas of the app that need separate pagefilters (i.e Insights)
+   * TODO: ideally this can be determined by what's set in the PageFiltersContainer
+   */
+  storageNamespace?: string;
 }
 
 /**
@@ -91,8 +99,10 @@ export function ProjectPageFilter({
   projectOverride,
   resetParamsOnChange,
   footerMessage,
+  storageNamespace,
   ...selectProps
 }: ProjectPageFilterProps) {
+  const user = useUser();
   const router = useRouter();
   const routes = useRoutes();
   const organization = useOrganization();
@@ -106,13 +116,12 @@ export function ProjectPageFilter({
   );
 
   const showNonMemberProjects = useMemo(() => {
-    const {isSuperuser} = ConfigStore.get('user');
     const isOrgAdminOrManager =
       organization.orgRole === 'owner' || organization.orgRole === 'manager';
     const isOpenMembership = organization.features.includes('open-membership');
 
-    return isSuperuser || isOrgAdminOrManager || isOpenMembership;
-  }, [organization.orgRole, organization.features]);
+    return user.isSuperuser || isOrgAdminOrManager || isOpenMembership;
+  }, [user, organization.orgRole, organization.features]);
 
   const nonMemberProjects = useMemo(
     () => (showNonMemberProjects ? otherProjects : []),
@@ -171,10 +180,10 @@ export function ProjectPageFilter({
       if (!val.length) {
         return allowMultiple
           ? memberProjects.map(p => parseInt(p.id, 10))
-          : [parseInt(memberProjects[0]?.id, 10)];
+          : [parseInt(memberProjects[0]?.id!, 10)];
       }
 
-      return allowMultiple ? val : [val[0]];
+      return allowMultiple ? val : [val[0]!];
     },
     [memberProjects, allowMultiple]
   );
@@ -211,6 +220,7 @@ export function ProjectPageFilter({
         save: true,
         resetParams: resetParamsOnChange,
         environments: [], // Clear environments when switching projects
+        storageNamespace,
       });
     },
     [
@@ -222,11 +232,12 @@ export function ProjectPageFilter({
       routes,
       onChange,
       mapNormalValueToURLValue,
+      storageNamespace,
     ]
   );
 
   const onToggle = useCallback(
-    newValue => {
+    (newValue: any) => {
       trackAnalytics('projectselector.toggle', {
         action: newValue.length > value.length ? 'added' : 'removed',
         path: getRouteStringFromRoutes(routes),
@@ -251,7 +262,7 @@ export function ProjectPageFilter({
     });
   }, [onReset, routes, organization]);
 
-  const options = useMemo<SelectOptionOrSection<number>[]>(() => {
+  const options = useMemo<Array<SelectOptionOrSection<number>>>(() => {
     const hasProjects = !!memberProjects.length || !!nonMemberProjects.length;
     if (!hasProjects) {
       return [];
@@ -264,20 +275,27 @@ export function ProjectPageFilter({
         leadingItems: (
           <ProjectBadge project={project} avatarSize={16} hideName disableLink />
         ),
-        trailingItems: ({isFocused}) => (
+        trailingItems: ({isFocused}: any) => (
           <Fragment>
             <TrailingButton
               borderless
               size="zero"
               icon={<IconOpen />}
+              title={t('Project Details')}
               aria-label={t('Project Details')}
-              to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
+              to={
+                makeProjectsPathname({
+                  path: `/${project.slug}/`,
+                  organization,
+                }) + `?project=${project.id}`
+              }
               visible={isFocused}
             />
             <TrailingButton
               borderless
               size="zero"
               icon={<IconSettings />}
+              title={t('Project Settings')}
               aria-label={t('Project Settings')}
               to={`/settings/${organization.slug}/projects/${project.slug}/`}
               visible={isFocused}
@@ -295,7 +313,7 @@ export function ProjectPageFilter({
             />
           </Fragment>
         ),
-      };
+      } satisfies SelectOptionOrSection<number>;
     };
 
     const lastSelected = mapURLValueToNormalValue(pageFilterValue);
@@ -332,17 +350,16 @@ export function ProjectPageFilter({
 
   const desynced = desyncedFilters.has('projects');
   const defaultMenuWidth = useMemo(() => {
-    const flatOptions: SelectOption<number>[] = options.flatMap(item =>
+    const flatOptions: Array<SelectOption<number>> = options.flatMap(item =>
       'options' in item ? item.options : [item]
     );
 
     // ProjectPageFilter will try to expand to accommodate the longest project slug
-    const longestSlugLength = flatOptions
-      .slice(0, 25)
-      .reduce(
-        (acc, cur) => (String(cur.label).length > acc ? String(cur.label).length : acc),
-        0
-      );
+    const longestSlugLength = flatOptions.slice(0, 25).reduce(
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
+      (acc, cur) => (String(cur.label).length > acc ? String(cur.label).length : acc),
+      0
+    );
 
     // Calculate an appropriate width for the menu. It should be between 22  and 28em.
     // Within that range, the width is a function of the length of the longest slug.
@@ -361,7 +378,7 @@ export function ProjectPageFilter({
 
   const menuFooterMessage = useMemo(() => {
     if (selectionLimitExceeded) {
-      return hasStagedChanges =>
+      return (hasStagedChanges: any) =>
         hasStagedChanges
           ? tct(
               'Only up to [limit] projects can be selected at a time. You can still press “Clear” to see all projects.',
@@ -379,6 +396,7 @@ export function ProjectPageFilter({
     <HybridFilter
       {...selectProps}
       searchable
+      checkboxPosition="trailing"
       multiple={allowMultiple}
       options={options}
       value={value}
@@ -417,7 +435,6 @@ export function ProjectPageFilter({
             nonMemberProjects={nonMemberProjects}
             ready={projectsLoaded && pageFilterIsReady}
             desynced={desynced}
-            {...triggerProps}
           />
         ))
       }
@@ -428,9 +445,12 @@ export function ProjectPageFilter({
 }
 
 function shouldCloseOnInteractOutside(target: Element) {
-  // Don't close select menu when clicking on power hovercard ("Requires Business Plan")
-  const powerHovercard = document.querySelector("[data-test-id='power-hovercard']");
-  return !powerHovercard || !powerHovercard.contains(target);
+  // Don't close select menu when clicking on power hovercard ("Requires Business Plan") or disabled feature hovercard
+  const powerHovercard = target.closest('[data-test-id="power-hovercard"]');
+  const disabledFeatureHovercard = target.closest(
+    '[data-test-id="disabled-feature-hovercard"]'
+  );
+  return !powerHovercard && !disabledFeatureHovercard;
 }
 
 function checkboxWrapper(
@@ -449,6 +469,7 @@ function checkboxWrapper(
               featureName={t('Multiple Project Selection')}
             />
           }
+          data-test-id="disabled-feature-hovercard"
         >
           {typeof props.children === 'function' ? props.children(props) : props.children}
         </Hovercard>
@@ -459,7 +480,7 @@ function checkboxWrapper(
   );
 }
 
-const TrailingButton = styled(Button)<{visible: boolean}>`
+const TrailingButton = styled(LinkButton)<{visible: boolean}>`
   color: ${p => p.theme.subText};
   display: ${p => (p.visible ? 'block' : 'none')};
 `;

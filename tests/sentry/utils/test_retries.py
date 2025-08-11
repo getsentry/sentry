@@ -48,7 +48,7 @@ class ConditionalRetryPolicyTestCase(TestCase):
 
 
 class TimedRetryPolicyTestCase(TestCase):
-    def test_policy_success(self):
+    def test_policy_success(self) -> None:
         bomb = Exception("Boom!")
         callable = mock.MagicMock(side_effect=[bomb, mock.sentinel.OK])
 
@@ -60,7 +60,7 @@ class TimedRetryPolicyTestCase(TestCase):
         assert retry(callable) is mock.sentinel.OK
         assert callable.call_count == 2
 
-    def test_policy_failure(self):
+    def test_policy_failure(self) -> None:
         bomb = Exception("Boom!")
         callable = mock.MagicMock(side_effect=bomb)
 
@@ -69,16 +69,13 @@ class TimedRetryPolicyTestCase(TestCase):
         retry.clock.sleep = mock.MagicMock()
         retry.clock.time = mock.MagicMock(side_effect=[0, 0.15, 0.25])
 
-        try:
+        with pytest.raises(RetryException) as excinfo:
             retry(callable)
-        except RetryException as exception:
-            assert exception.exception is bomb
-        else:
-            self.fail(f"Expected {RetryException!r}!")
+        assert excinfo.value.exception is bomb
 
         assert callable.call_count == 2
 
-    def test_decorator(self):
+    def test_decorator(self) -> None:
         bomb = Exception("Boom!")
         callable = mock.MagicMock(side_effect=[bomb, mock.sentinel.OK])
 

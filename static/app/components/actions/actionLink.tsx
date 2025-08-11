@@ -1,7 +1,9 @@
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import ActionButton from './button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+
 import ConfirmableAction from './confirmableAction';
 
 const StyledAction = styled('a')<{disabled?: boolean}>`
@@ -10,7 +12,7 @@ const StyledAction = styled('a')<{disabled?: boolean}>`
   ${p => p.disabled && 'cursor: not-allowed;'}
 `;
 
-const StyledActionButton = styled(ActionButton)<{
+const StyledButton = styled(Button)<{
   disabled?: boolean;
   hasDropdown?: boolean;
 }>`
@@ -18,7 +20,9 @@ const StyledActionButton = styled(ActionButton)<{
   align-items: center;
 
   ${p => p.disabled && 'cursor: not-allowed;'}
-  ${p => p.hasDropdown && `border-radius: ${p.theme.borderRadiusLeft}`};
+  ${p =>
+    p.hasDropdown &&
+    `border-radius: ${p.theme.borderRadius} 0 0 ${p.theme.borderRadius}`};
 `;
 
 type ConfirmableActionProps = React.ComponentProps<typeof ConfirmableAction>;
@@ -27,7 +31,7 @@ type CommonProps = Omit<
   ConfirmableActionProps,
   'onConfirm' | 'confirmText' | 'children' | 'stopPropagation' | 'priority'
 > & {
-  children: React.ReactChild;
+  children: React.ReactNode;
   className?: string;
   confirmLabel?: string;
   confirmPriority?: ConfirmableActionProps['priority'];
@@ -38,9 +42,7 @@ type CommonProps = Omit<
 };
 
 type Props = CommonProps &
-  ({type?: 'button'} & Partial<
-    Omit<React.ComponentProps<typeof StyledActionButton>, 'as' | 'children'>
-  >);
+  ({type?: 'button'} & Partial<Omit<ButtonProps, 'as' | 'children' | 'ref'>>);
 
 export default function ActionLink({
   message,
@@ -65,9 +67,11 @@ export default function ActionLink({
 
   const action =
     type === 'button' ? (
-      <StyledActionButton {...actionCommonProps} />
+      <StyledButton size="xs" {...actionCommonProps} />
     ) : (
-      <StyledAction {...actionCommonProps} />
+      <StyledAction
+        {...(actionCommonProps as React.ComponentProps<typeof StyledAction>)}
+      />
     );
 
   if (shouldConfirm && onAction) {

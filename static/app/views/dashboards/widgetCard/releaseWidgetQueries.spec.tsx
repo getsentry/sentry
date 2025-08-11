@@ -169,7 +169,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
         },
       })
     );
-    expect(mock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mock).toHaveBeenCalledTimes(1));
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/metrics/data/',
       expect.objectContaining({
@@ -179,8 +179,8 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           groupBy: ['release'],
           includeSeries: 1,
           includeTotals: 1,
-          interval: '12h',
-          per_page: 100,
+          interval: '1h',
+          per_page: 28,
           project: [1],
           query: ' release:be1ddfb18126dd2cbde26bfe75488503280e716e',
           statsPeriod: '14d',
@@ -553,6 +553,12 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
                 release: 'string',
                 'session.status': 'string',
                 'sum(session)': 'integer',
+                fields: {
+                  'count_unique(user)': 'integer',
+                  release: 'string',
+                  'session.status': 'string',
+                  'sum(session)': 'integer',
+                },
               },
               title: 'sessions',
             },
@@ -599,7 +605,10 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           tableResults: [
             {
               data: [{'count_unique(user)': 51292.95404741901, id: '0'}],
-              meta: {'count_unique(user)': 'integer'},
+              meta: {
+                'count_unique(user)': 'integer',
+                fields: {'count_unique(user)': 'integer'},
+              },
               title: 'sessions',
             },
           ],
@@ -763,9 +772,9 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           ...singleQueryWidget,
           queries: [
             {
-              ...singleQueryWidget.queries[0],
+              ...singleQueryWidget.queries[0]!,
               name: 'New Legend Alias',
-              fields: [...singleQueryWidget.queries[0].fields, ''],
+              fields: [...singleQueryWidget.queries[0]!.fields, ''],
             },
           ],
         }}
@@ -821,5 +830,134 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     await waitFor(() => {
       expect(mock).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('fetches releases if required', async () => {
+    const dataMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+      body: SessionsFieldFixture(`session.all`),
+    });
+
+    const releasesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [
+        {id: 1, version: '0.0.1'},
+        {id: 2, version: '0.0.2'},
+      ],
+    });
+
+    const releasesWidget = {
+      title: 'Crash Rate',
+      interval: '5m',
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: [`count_unique(user)`],
+          aggregates: [`count_unique(user)`],
+          columns: ['release'],
+          orderby: '-count_unique(user)',
+        },
+      ],
+      widgetType: WidgetType.RELEASE,
+    };
+
+    const children = jest.fn(() => <div />);
+
+    const {rerender} = render(
+      <ReleaseWidgetQueries
+        api={api}
+        widget={releasesWidget}
+        organization={organization}
+        selection={selection}
+      >
+        {children}
+      </ReleaseWidgetQueries>
+    );
+
+    await waitFor(() => {
+      expect(dataMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(releasesMock).not.toHaveBeenCalled();
+
+    rerender(
+      <ReleaseWidgetQueries
+        api={api}
+        widget={{
+          ...releasesWidget,
+          queries: [
+            {
+              ...releasesWidget.queries[0]!,
+              orderby: '-release',
+            },
+          ],
+        }}
+        organization={organization}
+        selection={selection}
+      >
+        {children}
+      </ReleaseWidgetQueries>
+    );
+
+    await waitFor(() => {
+      expect(dataMock).toHaveBeenCalledTimes(2);
+    });
+
+    expect(releasesMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('escapes release versions with spaces and special characters', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+      body: MetricsFieldFixture(`session.status`),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [
+        {id: 1, version: 'this release has spaces'},
+        {id: 2, version: 'this_release_has_no_spaces'},
+        {id: 3, version: 'this release has (parens)'},
+        {id: 3, version: 'this_release_has_(parens)'},
+      ],
+    });
+    const queries = [
+      {
+        conditions: '',
+        fields: [`count_unique(user)`],
+        aggregates: [`count_unique(user)`],
+        columns: ['release'],
+        name: 'sessions',
+        orderby: '-release',
+      },
+    ];
+
+    const children = jest.fn(() => <div />);
+
+    render(
+      <ReleaseWidgetQueries
+        api={api}
+        widget={{...singleQueryWidget, queries}}
+        organization={organization}
+        selection={selection}
+      >
+        {children}
+      </ReleaseWidgetQueries>
+    );
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/metrics/data/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          query:
+            ' release:["this release has spaces",this_release_has_no_spaces,"this release has (parens)","this_release_has_(parens)"]',
+        }),
+      })
+    );
   });
 });

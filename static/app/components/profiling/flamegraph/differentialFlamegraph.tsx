@@ -68,30 +68,11 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
         },
       });
 
-      // Find p75 of the graphtree depth and set the view to 3/4 of that
-      const depths: number[] = [];
-      for (const frame of props.differentialFlamegraph.frames) {
-        if (frame.children.length > 0) {
-          continue;
-        }
-        depths.push(frame.depth);
-      }
-
-      if (depths.length > 0) {
-        depths.sort();
-        const d = depths[Math.floor(depths.length - 1 * 0.75)];
-        const depth = Math.max(d, 0);
-
-        newView.setConfigView(
-          newView.configView.withY(depth - (newView.configView.height * 3) / 4)
-        );
-      }
-
       return newView;
     },
 
     // We skip position.view dependency because it will go into an infinite loop
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [props.differentialFlamegraph, flamegraphCanvas, flamegraphTheme]
   );
 
@@ -159,7 +140,7 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
     return [flamegraphCanvasRef, flamegraphOverlayCanvasRef];
   }, [flamegraphCanvasRef, flamegraphOverlayCanvasRef]);
 
-  const flamegraphCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     flamegraphCanvases,
     props.canvasPoolManager,
     flamegraphCanvas,
@@ -195,11 +176,11 @@ export function DifferentialFlamegraph(props: DifferentialFlamegraphProps): Reac
 
   return (
     <FlamegraphZoomView
+      scheduler={props.scheduler}
       profileGroup={props.profileGroup}
       disableGrid
       disableCallOrderSort
       disableColorCoding
-      canvasBounds={flamegraphCanvasBounds}
       canvasPoolManager={props.canvasPoolManager}
       flamegraph={props.differentialFlamegraph}
       flamegraphRenderer={flamegraphRenderer}

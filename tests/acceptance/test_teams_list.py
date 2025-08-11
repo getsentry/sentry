@@ -17,20 +17,20 @@ class TeamsListTest(AcceptanceTestCase):
         # this should redirect to /settings/{}/teams/
         self.path = f"/organizations/{self.org.slug}/teams/"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_test_id("team-list")
 
         # team details link
-        self.browser.click('[data-test-id="team-list"] a[href]:first-child')
+        self.browser.click('a[data-test-id="team-link"]')
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
         # Click projects tab
-        self.browser.click(".nav-tabs li:nth-child(2) a")
+        self.browser.click('[role="tablist"] li:nth-child(2) a')
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-        # Click projects tab
-        self.browser.click(".nav-tabs li:nth-child(3) a")
+        # Click notifications tab
+        self.browser.click('[role="tablist"] li:nth-child(3) a')
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')

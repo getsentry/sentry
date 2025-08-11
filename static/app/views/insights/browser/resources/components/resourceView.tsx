@@ -1,24 +1,20 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getResourceTypeFilter} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import RenderBlockingSelector from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
 import ResourceTable from 'sentry/views/insights/browser/resources/components/tables/resourceTable';
 import {
   FONT_FILE_EXTENSIONS,
   IMAGE_FILE_EXTENSIONS,
 } from 'sentry/views/insights/browser/resources/constants';
-import {
-  DEFAULT_RESOURCE_TYPES,
-  RESOURCE_THROUGHPUT_UNIT,
-} from 'sentry/views/insights/browser/resources/settings';
+import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
 import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
 import {
   BrowserStarfishFields,
@@ -27,13 +23,11 @@ import {
 import {useResourceSort} from 'sentry/views/insights/browser/resources/utils/useResourceSort';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {TransactionSelector} from 'sentry/views/insights/common/views/spans/selectors/transactionSelector';
-import {SpanTimeCharts} from 'sentry/views/insights/common/views/spans/spanTimeCharts';
-import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/useModuleFilters';
-import {ModuleName} from 'sentry/views/insights/types';
+
+import {ResourceLandingPageCharts} from './charts/resourceLandingPageCharts';
 
 const {
   SPAN_OP: RESOURCE_TYPE,
-  SPAN_DOMAIN,
   TRANSACTION,
   RESOURCE_RENDER_BLOCKING_STATUS,
 } = BrowserStarfishFields;
@@ -47,22 +41,10 @@ function ResourceView() {
   const filters = useResourceModuleFilters();
   const sort = useResourceSort();
 
-  const spanTimeChartsFilters: ModuleFilters = {
-    'span.op': `[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
-    ...(filters[SPAN_DOMAIN] ? {[SPAN_DOMAIN]: filters[SPAN_DOMAIN]} : {}),
-  };
-
-  const extraQuery = getResourceTypeFilter(undefined, DEFAULT_RESOURCE_TYPES);
-
   return (
     <Fragment>
       <SpanTimeChartsContainer>
-        <SpanTimeCharts
-          moduleName={ModuleName.RESOURCE}
-          appliedFilters={spanTimeChartsFilters}
-          throughputUnit={RESOURCE_THROUGHPUT_UNIT}
-          extraQuery={extraQuery}
-        />
+        <ResourceLandingPageCharts />
       </SpanTimeChartsContainer>
 
       <DropdownContainer>
@@ -79,6 +61,7 @@ function ResourceView() {
 }
 
 function ResourceTypeSelector({value}: {value?: string}) {
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
   const hasImageView = organization.features.includes('insights-initial-modules');
@@ -112,7 +95,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
           organization,
           filter: newValue?.value,
         });
-        browserHistory.push({
+        navigate({
           ...location,
           query: {
             ...location.query,
@@ -125,7 +108,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
   );
 }
 
-export const SpanTimeChartsContainer = styled('div')`
+const SpanTimeChartsContainer = styled('div')`
   margin-bottom: ${space(2)};
 `;
 

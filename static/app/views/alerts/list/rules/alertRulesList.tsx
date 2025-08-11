@@ -7,9 +7,9 @@ import {
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import {Link} from 'sentry/components/core/link';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
@@ -31,12 +31,11 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-
-import FilterBar from '../../filterBar';
-import type {CombinedAlerts, CombinedMetricIssueAlerts} from '../../types';
-import {AlertRuleType, CombinedAlertType} from '../../types';
-import {getTeamParams, isIssueAlert} from '../../utils';
-import AlertHeader from '../header';
+import FilterBar from 'sentry/views/alerts/filterBar';
+import AlertHeader from 'sentry/views/alerts/list/header';
+import type {CombinedAlerts} from 'sentry/views/alerts/types';
+import {AlertRuleType, CombinedAlertType} from 'sentry/views/alerts/types';
+import {getTeamParams, isIssueAlert} from 'sentry/views/alerts/utils';
 
 import RuleListRow from './row';
 
@@ -79,7 +78,7 @@ function AlertRulesList() {
     data: ruleListResponse = [],
     refetch,
     getResponseHeader,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<Array<CombinedAlerts | null>>(
     getAlertListQueryKey(organization.slug, location.query),
@@ -110,6 +109,17 @@ function AlertRulesList() {
     });
   };
 
+  const handleChangeType = (alertType: CombinedAlertType[]) => {
+    const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...currentQuery,
+        alertType,
+      },
+    });
+  };
+
   const handleOwnerChange = (
     projectId: string,
     rule: CombinedAlerts,
@@ -122,7 +132,7 @@ function AlertRulesList() {
 
     const endpoint =
       rule.type === 'alert_rule'
-        ? `/organizations/${organization.slug}/alert-rules/${rule.id}`
+        ? `/organizations/${organization.slug}/alert-rules/${rule.id}/`
         : `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`;
     const updatedRule = {...rule, owner: ownerValue};
 
@@ -139,21 +149,16 @@ function AlertRulesList() {
   };
 
   const handleDeleteRule = async (projectId: string, rule: CombinedAlerts) => {
-    // TODO(davidenwang): Once we have edit apis for uptime alerts, fill this in
-    if (rule.type === CombinedAlertType.UPTIME) {
-      return;
-    }
+    const deleteEndpoints: Record<CombinedAlertType, string> = {
+      [CombinedAlertType.ISSUE]: `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`,
+      [CombinedAlertType.METRIC]: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
+      [CombinedAlertType.UPTIME]: `/projects/${organization.slug}/${projectId}/uptime/${rule.id}/`,
+      [CombinedAlertType.CRONS]: `/projects/${organization.slug}/${projectId}/monitors/${rule.id}/`,
+    };
 
     try {
-      await api.requestPromise(
-        isIssueAlert(rule)
-          ? `/projects/${organization.slug}/${projectId}/rules/${rule.id}/`
-          : `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
-        {
-          method: 'DELETE',
-        }
-      );
-      setApiQueryData<Array<CombinedMetricIssueAlerts | null>>(
+      await api.requestPromise(deleteEndpoints[rule.type], {method: 'DELETE'});
+      setApiQueryData<Array<CombinedAlerts | null>>(
         queryClient,
         getAlertListQueryKey(organization.slug, location.query),
         data => data?.filter(r => r?.id !== rule.id && r?.type !== rule.type)
@@ -170,7 +175,11 @@ function AlertRulesList() {
   const ruleList = ruleListResponse.filter(defined);
   const projectsFromResults = uniq(
     ruleList.flatMap(rule =>
-      rule.type === CombinedAlertType.UPTIME ? [rule.projectSlug] : rule.projects
+      rule.type === CombinedAlertType.UPTIME
+        ? [rule.projectSlug]
+        : rule.type === CombinedAlertType.CRONS
+          ? [rule.project.slug]
+          : rule.projects
     )
   );
   const ruleListPageLinks = getResponseHeader?.('Link');
@@ -191,7 +200,7 @@ function AlertRulesList() {
       <SentryDocumentTitle title={t('Alerts')} orgSlug={organization.slug} />
 
       <PageFiltersContainer>
-        <AlertHeader router={router} activeTab="rules" />
+        <AlertHeader activeTab="rules" />
         <Layout.Body>
           <Layout.Main fullWidth>
             <DataConsentBanner source="alerts" />
@@ -199,9 +208,11 @@ function AlertRulesList() {
               location={location}
               onChangeFilter={handleChangeFilter}
               onChangeSearch={handleChangeSearch}
+              onChangeAlertType={handleChangeType}
+              hasTypeFilter
             />
             <StyledPanelTable
-              isLoading={isLoading}
+              isLoading={isPending}
               isEmpty={ruleList.length === 0 && !isError}
               emptyMessage={t('No alert rules found for the current query.')}
               headers={[
@@ -209,7 +220,11 @@ function AlertRulesList() {
                   key="name"
                   role="columnheader"
                   aria-sort={
-                    sort.field !== 'name' ? 'none' : sort.asc ? 'ascending' : 'descending'
+                    sort.field === 'name'
+                      ? sort.asc
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
                   }
                   to={{
                     pathname: location.pathname,
@@ -227,7 +242,7 @@ function AlertRulesList() {
                   key="status"
                   role="columnheader"
                   aria-sort={
-                    !isAlertRuleSort ? 'none' : sort.asc ? 'ascending' : 'descending'
+                    isAlertRuleSort ? (sort.asc ? 'ascending' : 'descending') : 'none'
                   }
                   to={{
                     pathname: location.pathname,
@@ -261,7 +276,9 @@ function AlertRulesList() {
                       const isIssueAlertInstance = isIssueAlert(rule);
                       const keyPrefix = isIssueAlertInstance
                         ? AlertRuleType.ISSUE
-                        : AlertRuleType.METRIC;
+                        : rule.type === CombinedAlertType.UPTIME
+                          ? AlertRuleType.UPTIME
+                          : AlertRuleType.METRIC;
 
                       return (
                         <RuleListRow
@@ -270,7 +287,7 @@ function AlertRulesList() {
                           projectsLoaded={initiallyLoaded}
                           projects={projects as Project[]}
                           rule={rule}
-                          orgId={organization.slug}
+                          organization={organization}
                           onOwnerChange={handleOwnerChange}
                           onDelete={handleDeleteRule}
                           hasEditAccess={hasEditAccess}
@@ -324,11 +341,11 @@ const StyledSortLink = styled(Link)`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     overflow: initial;
   }
 
   grid-template-columns: minmax(250px, 4fr) auto auto 60px auto;
   white-space: nowrap;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;

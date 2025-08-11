@@ -13,7 +13,9 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.utils import handle_query_errors
+from sentry.models.organization import Organization
 from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_sdk_index, get_suggested_updates
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
 from sentry.utils.numbers import format_grouped_length
 
@@ -27,8 +29,18 @@ def by_project_id(sdk):
 
 
 def serialize(data, projects):
-    # filter out SDKs with empty sdk.name or sdk.version
-    nonempty_sdks = [sdk for sdk in data if sdk["sdk.name"] != "" and sdk["sdk.version"] != ""]
+    # filter out SDKs with empty sdk.name or sdk.version or invalid version
+    nonempty_sdks = []
+    for sdk in data:
+        if not sdk["sdk.name"] or not sdk["sdk.version"]:
+            continue
+
+        try:
+            version.parse(sdk["sdk.version"])
+        except version.InvalidVersion:
+            continue
+
+        nonempty_sdks.append(sdk)
 
     # Build datastructure of the latest version of each SDK in use for each
     # project we have events for.
@@ -77,7 +89,7 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         projects = self.get_projects(request, organization)
 
         len_projects = len(projects)
@@ -98,12 +110,12 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEndpoint):
                     "last_seen()",
                 ],
                 orderby=["-project"],
-                params={
-                    "start": timezone.now() - timedelta(days=1),
-                    "end": timezone.now(),
-                    "organization_id": organization.id,
-                    "project_id": [p.id for p in projects],
-                },
+                snuba_params=SnubaParams(
+                    start=timezone.now() - timedelta(days=1),
+                    end=timezone.now(),
+                    organization=organization,
+                    projects=projects,
+                ),
                 referrer="api.organization-sdk-updates",
             )
 
@@ -117,7 +129,7 @@ class OrganizationSdksEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         try:
             sdks = get_sdk_index()
         except Exception as e:

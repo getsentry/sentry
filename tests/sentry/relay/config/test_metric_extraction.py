@@ -6,14 +6,16 @@ from unittest import mock
 
 import pytest
 from django.utils import timezone
-from sentry_relay.processing import normalize_project_config
 
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleProjects
-from sentry.models.dashboard_widget import DashboardWidgetQuery, DashboardWidgetQueryOnDemand
+from sentry.models.dashboard_widget import (
+    DashboardWidgetQuery,
+    DashboardWidgetQueryOnDemand,
+    DashboardWidgetTypes,
+)
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
-from sentry.relay.config.experimental import TimeoutException
 from sentry.relay.config.metric_extraction import (
     _set_bulk_cached_query_chunk,
     get_current_widget_specs,
@@ -21,7 +23,6 @@ from sentry.relay.config.metric_extraction import (
 )
 from sentry.relay.types import RuleCondition
 from sentry.search.events.constants import VITAL_THRESHOLDS
-from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     MetricSpec,
@@ -175,9 +176,6 @@ def test_get_metric_extraction_config_with_double_write_env_alert(
 def test_get_metric_extraction_config_single_alert_with_mri(default_project: Project) -> None:
     with Feature(ON_DEMAND_METRICS):
         create_alert(
-            "sum(c:custom/page_load@millisecond)", "transaction.duration:>=1000", default_project
-        )
-        create_alert(
             "count(d:transactions/measurements.fcp@millisecond)",
             "transaction.duration:>=1000",
             default_project,
@@ -270,17 +268,29 @@ def test_get_metric_extraction_config_environment(
 
 
 @django_db_all
-def test_get_metric_extraction_config_single_standard_widget(default_project: Project) -> None:
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
+def test_get_metric_extraction_config_single_standard_widget(
+    default_project: Project, widget_type: int
+) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
-        create_widget(["count()"], "", default_project)
+        create_widget(["count()"], "", default_project, widget_type=widget_type)
 
         assert not get_metric_extraction_config(default_project)
 
 
 @django_db_all
-def test_get_metric_extraction_config_single_widget(default_project: Project) -> None:
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
+def test_get_metric_extraction_config_single_widget(
+    default_project: Project, widget_type: int
+) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
-        create_widget(["count()"], "transaction.duration:>=1000", default_project)
+        create_widget(
+            ["count()"], "transaction.duration:>=1000", default_project, widget_type=widget_type
+        )
 
         config = get_metric_extraction_config(default_project)
 
@@ -310,13 +320,20 @@ def test_get_metric_extraction_config_single_widget(default_project: Project) ->
 
 
 @django_db_all
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_get_metric_extraction_config_single_widget_multiple_aggregates(
     default_project: Project,
+    widget_type: int,
 ) -> None:
     # widget with multiple fields should result in multiple metrics
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
-            ["count()", "avg(transaction.duration)"], "transaction.duration:>=1000", default_project
+            ["count()", "avg(transaction.duration)"],
+            "transaction.duration:>=1000",
+            default_project,
+            widget_type=widget_type,
         )
 
         config = get_metric_extraction_config(default_project)
@@ -367,8 +384,12 @@ def test_get_metric_extraction_config_single_widget_multiple_aggregates(
 
 
 @django_db_all
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_get_metric_extraction_config_single_widget_multiple_count_if(
     default_project: Project,
+    widget_type: int,
 ) -> None:
     # widget with multiple fields should result in multiple metrics
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
@@ -377,7 +398,9 @@ def test_get_metric_extraction_config_single_widget_multiple_count_if(
             "count_if(transaction.duration, greater, 2000)",
             "count_if(transaction.duration, greaterOrEquals, 1000)",
         ]
-        create_widget(aggregates, "transaction.duration:>=1000", default_project)
+        create_widget(
+            aggregates, "transaction.duration:>=1000", default_project, widget_type=widget_type
+        )
 
         config = get_metric_extraction_config(default_project)
 
@@ -471,8 +494,12 @@ def test_get_metric_extraction_config_single_widget_multiple_count_if(
 
 
 @django_db_all
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_get_metric_extraction_config_multiple_aggregates_single_field(
     default_project: Project,
+    widget_type: int,
 ) -> None:
     # widget with multiple aggregates on the same field in a single metric
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
@@ -480,6 +507,7 @@ def test_get_metric_extraction_config_multiple_aggregates_single_field(
             ["sum(transaction.duration)", "avg(transaction.duration)"],
             "transaction.duration:>=1000",
             default_project,
+            widget_type=widget_type,
         )
 
         config = get_metric_extraction_config(default_project)
@@ -510,13 +538,27 @@ def test_get_metric_extraction_config_multiple_aggregates_single_field(
 
 
 @django_db_all
-def test_get_metric_extraction_config_multiple_widgets_duplicated(default_project: Project) -> None:
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
+def test_get_metric_extraction_config_multiple_widgets_duplicated(
+    default_project: Project, widget_type: int
+) -> None:
     # metrics should be deduplicated across widgets
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
-            ["count()", "avg(transaction.duration)"], "transaction.duration:>=1000", default_project
+            ["count()", "avg(transaction.duration)"],
+            "transaction.duration:>=1000",
+            default_project,
+            widget_type=widget_type,
         )
-        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+        create_widget(
+            ["count()"],
+            "transaction.duration:>=1000",
+            default_project,
+            "Dashboard 2",
+            widget_type=widget_type,
+        )
 
         config = get_metric_extraction_config(default_project)
 
@@ -567,12 +609,24 @@ def test_get_metric_extraction_config_multiple_widgets_duplicated(default_projec
 
 @django_db_all
 @override_options({"on_demand.max_widget_specs": 1})
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
     default_project: Project,
+    widget_type: int,
 ) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
-        create_widget(["count()"], "transaction.duration:>=1100", default_project)
-        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+        create_widget(
+            ["count()"], "transaction.duration:>=1100", default_project, widget_type=widget_type
+        )
+        create_widget(
+            ["count()"],
+            "transaction.duration:>=1000",
+            default_project,
+            "Dashboard 2",
+            widget_type=widget_type,
+        )
 
         with mock.patch("sentry_sdk.capture_exception") as capture_exception:
             config = get_metric_extraction_config(default_project)
@@ -592,12 +646,24 @@ def test_get_metric_extraction_config_multiple_widgets_above_max_limit(
 
 @django_db_all
 @override_options({"on_demand.max_widget_specs": 1})
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_get_metric_extraction_config_multiple_widgets_not_above_max_limit_identical_hashes(
     default_project: Project,
+    widget_type: int,
 ) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
-        create_widget(["count()"], "transaction.duration:>=1000", default_project)
-        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+        create_widget(
+            ["count()"], "transaction.duration:>=1000", default_project, widget_type=widget_type
+        )
+        create_widget(
+            ["count()"],
+            "transaction.duration:>=1000",
+            default_project,
+            "Dashboard 2",
+            widget_type=widget_type,
+        )
 
         with mock.patch("sentry_sdk.capture_exception") as capture_exception:
             config = get_metric_extraction_config(default_project)
@@ -608,17 +674,49 @@ def test_get_metric_extraction_config_multiple_widgets_not_above_max_limit_ident
 
 @django_db_all
 @override_options({"on_demand.max_widget_specs": 4, "on_demand_metrics.check_widgets.enable": True})
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_get_metric_extraction_config_multiple_widgets_above_max_limit_ordered_specs(
     default_project: Project,
+    widget_type: int,
 ) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
-        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 1")
-        create_widget(["count()"], "transaction.duration:>=1100", default_project, "Dashboard 2")
-        widget_query, _, _ = create_widget(
-            ["count()"], "transaction.duration:>=1200", default_project, "Dashboard 3"
+        create_widget(
+            ["count()"],
+            "transaction.duration:>=1000",
+            default_project,
+            "Dashboard 1",
+            widget_type=widget_type,
         )
-        create_widget(["count()"], "transaction.duration:>=1300", default_project, "Dashboard 4")
-        create_widget(["count()"], "transaction.duration:>=1400", default_project, "Dashboard 5")
+        create_widget(
+            ["count()"],
+            "transaction.duration:>=1100",
+            default_project,
+            "Dashboard 2",
+            widget_type=widget_type,
+        )
+        widget_query, _, _ = create_widget(
+            ["count()"],
+            "transaction.duration:>=1200",
+            default_project,
+            "Dashboard 3",
+            widget_type=widget_type,
+        )
+        create_widget(
+            ["count()"],
+            "transaction.duration:>=1300",
+            default_project,
+            "Dashboard 4",
+            widget_type=widget_type,
+        )
+        create_widget(
+            ["count()"],
+            "transaction.duration:>=1400",
+            default_project,
+            "Dashboard 5",
+            widget_type=widget_type,
+        )
 
         widget_query.widget.dashboard.last_visited = timezone.now() - timedelta(days=1)
         widget_query.widget.dashboard.save()
@@ -661,12 +759,24 @@ def test_get_metric_extraction_config_multiple_widgets_above_max_limit_ordered_s
 
 @django_db_all
 @override_options({"on_demand.max_widget_specs": 1, "on_demand.extended_max_widget_specs": 0})
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_get_metric_extraction_config_multiple_widgets_not_using_extended_specs(
     default_project: Project,
+    widget_type: int,
 ) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
-        create_widget(["count()"], "transaction.duration:>=1100", default_project)
-        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+        create_widget(
+            ["count()"], "transaction.duration:>=1100", default_project, widget_type=widget_type
+        )
+        create_widget(
+            ["count()"],
+            "transaction.duration:>=1000",
+            default_project,
+            "Dashboard 2",
+            widget_type=widget_type,
+        )
 
         with mock.patch("sentry_sdk.capture_exception") as capture_exception:
             config = get_metric_extraction_config(default_project)
@@ -686,8 +796,12 @@ def test_get_metric_extraction_config_multiple_widgets_not_using_extended_specs(
 
 @django_db_all
 @override_options({"on_demand.max_widget_specs": 0, "on_demand.extended_max_widget_specs": 1})
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_get_metric_extraction_config_multiple_widgets_above_extended_max_limit(
     default_project: Project,
+    widget_type: int,
 ) -> None:
     with (
         Feature({ON_DEMAND_METRICS_WIDGETS: True}),
@@ -695,8 +809,16 @@ def test_get_metric_extraction_config_multiple_widgets_above_extended_max_limit(
             {"on_demand.extended_widget_spec_orgs": [default_project.organization.id]}
         ),
     ):
-        create_widget(["count()"], "transaction.duration:>=1100", default_project)
-        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+        create_widget(
+            ["count()"], "transaction.duration:>=1100", default_project, widget_type=widget_type
+        )
+        create_widget(
+            ["count()"],
+            "transaction.duration:>=1000",
+            default_project,
+            "Dashboard 2",
+            widget_type=widget_type,
+        )
 
         with mock.patch("sentry_sdk.capture_exception") as capture_exception:
             config = get_metric_extraction_config(default_project)
@@ -716,8 +838,12 @@ def test_get_metric_extraction_config_multiple_widgets_above_extended_max_limit(
 
 @django_db_all
 @override_options({"on_demand.max_widget_specs": 0, "on_demand.extended_max_widget_specs": 2})
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_get_metric_extraction_config_multiple_widgets_under_extended_max_limit(
     default_project: Project,
+    widget_type: int,
 ) -> None:
     with (
         Feature({ON_DEMAND_METRICS_WIDGETS: True}),
@@ -725,8 +851,16 @@ def test_get_metric_extraction_config_multiple_widgets_under_extended_max_limit(
             {"on_demand.extended_widget_spec_orgs": [default_project.organization.id]}
         ),
     ):
-        create_widget(["count()"], "transaction.duration:>=1100", default_project)
-        create_widget(["count()"], "transaction.duration:>=1000", default_project, "Dashboard 2")
+        create_widget(
+            ["count()"], "transaction.duration:>=1100", default_project, widget_type=widget_type
+        )
+        create_widget(
+            ["count()"],
+            "transaction.duration:>=1000",
+            default_project,
+            "Dashboard 2",
+            widget_type=widget_type,
+        )
 
         config = get_metric_extraction_config(default_project)
 
@@ -736,11 +870,18 @@ def test_get_metric_extraction_config_multiple_widgets_under_extended_max_limit(
 
 
 @django_db_all
-def test_get_metric_extraction_config_alerts_and_widgets_off(default_project: Project) -> None:
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
+def test_get_metric_extraction_config_alerts_and_widgets_off(
+    default_project: Project, widget_type: int
+) -> None:
     # widgets should be skipped if the feature is off
     with Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: False}):
         create_alert("count()", "transaction.duration:>=1000", default_project)
-        create_widget(["count()"], "transaction.duration:>=1000", default_project)
+        create_widget(
+            ["count()"], "transaction.duration:>=1000", default_project, widget_type=widget_type
+        )
 
         config = get_metric_extraction_config(default_project)
 
@@ -759,7 +900,12 @@ def test_get_metric_extraction_config_alerts_and_widgets_off(default_project: Pr
 
 
 @django_db_all
-def test_get_metric_extraction_config_uses_cache_for_widgets(default_project: Project) -> None:
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
+def test_get_metric_extraction_config_uses_cache_for_widgets(
+    default_project: Project, widget_type: int
+) -> None:
     # widgets should be skipped if the feature is off
     original_set_bulk_cached_query = _set_bulk_cached_query_chunk
 
@@ -771,7 +917,9 @@ def test_get_metric_extraction_config_uses_cache_for_widgets(default_project: Pr
         ) as mock_set_cache_chunk_spy,
     ):
         mock_set_cache_chunk_spy.side_effect = original_set_bulk_cached_query
-        create_widget(["count()"], "transaction.duration:>=1000", default_project)
+        create_widget(
+            ["count()"], "transaction.duration:>=1000", default_project, widget_type=widget_type
+        )
 
         get_metric_extraction_config(default_project)
 
@@ -782,12 +930,20 @@ def test_get_metric_extraction_config_uses_cache_for_widgets(default_project: Pr
 
 
 @django_db_all
-def test_get_metric_extraction_config_alerts_and_widgets(default_project: Project) -> None:
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
+def test_get_metric_extraction_config_alerts_and_widgets(
+    default_project: Project, widget_type: int
+) -> None:
     # deduplication should work across alerts and widgets
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_alert("count()", "transaction.duration:>=1000", default_project)
         create_widget(
-            ["count()", "avg(transaction.duration)"], "transaction.duration:>=1000", default_project
+            ["count()", "avg(transaction.duration)"],
+            "transaction.duration:>=1000",
+            default_project,
+            widget_type=widget_type,
         )
 
         config = get_metric_extraction_config(default_project)
@@ -838,9 +994,19 @@ def test_get_metric_extraction_config_alerts_and_widgets(default_project: Projec
 
 
 @django_db_all
-def test_get_metric_extraction_config_with_failure_count(default_project: Project) -> None:
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
+def test_get_metric_extraction_config_with_failure_count(
+    default_project: Project, widget_type: int
+) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
-        create_widget(["failure_count()"], "transaction.duration:>=1000", default_project)
+        create_widget(
+            ["failure_count()"],
+            "transaction.duration:>=1000",
+            default_project,
+            widget_type=widget_type,
+        )
 
         config = get_metric_extraction_config(default_project)
 
@@ -943,13 +1109,18 @@ def test_get_metric_extraction_config_with_apdex(default_project: Project) -> No
     "field,query_hash",
     [("user", "899e9132"), ("geo.city", "a85d58a1"), ("non-existent-field", "f2d80826")],
 )
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_get_metric_extraction_config_with_count_unique(
-    default_project: Project, field: str, query_hash: str
+    default_project: Project, field: str, query_hash: str, widget_type: int
 ) -> None:
     duration = 1000
     query = f"transaction.duration:>={duration}"
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
-        widget_query, _, _ = create_widget([f"count_unique({field})"], query, default_project)
+        widget_query, _, _ = create_widget(
+            [f"count_unique({field})"], query, default_project, widget_type=widget_type
+        )
         assert widget_query.aggregates == [f"count_unique({field})"]
         assert widget_query.conditions == query
         assert widget_query.columns == []
@@ -970,14 +1141,18 @@ def test_get_metric_extraction_config_with_count_unique(
 @django_db_all
 @pytest.mark.parametrize("measurement_rating", ["good", "meh", "poor", "any"])
 @pytest.mark.parametrize("measurement", ["measurements.lcp"])
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_get_metric_extraction_config_with_count_web_vitals(
-    default_project: Project, measurement_rating: str, measurement: str
+    default_project: Project, measurement_rating: str, measurement: str, widget_type: int
 ) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
             [f"count_web_vitals({measurement}, {measurement_rating})"],
             "transaction.duration:>=1000",
             default_project,
+            widget_type=widget_type,
         )
 
         config = get_metric_extraction_config(default_project)
@@ -1198,7 +1373,12 @@ def test_get_metric_extraction_config_with_count_web_vitals(
 
 
 @django_db_all
-def test_get_metric_extraction_config_with_user_misery(default_project: Project) -> None:
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
+def test_get_metric_extraction_config_with_user_misery(
+    default_project: Project, widget_type: int
+) -> None:
     threshold = 100
     duration = 1000
     # User misery is extracted, querying is behind the version 2 feature flag
@@ -1207,6 +1387,7 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
             [f"user_misery({threshold})"],
             f"transaction.duration:>={duration}",
             default_project,
+            widget_type=widget_type,
         )
 
         config = get_metric_extraction_config(default_project)
@@ -1251,8 +1432,12 @@ def test_get_metric_extraction_config_with_user_misery(default_project: Project)
 
 
 @django_db_all
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_get_metric_extraction_config_user_misery_with_tag_columns(
     default_project: Project,
+    widget_type: int,
 ) -> None:
     threshold = 100
     duration = 1000
@@ -1263,6 +1448,7 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(
             default_project,
             "Dashboard",
             columns=["lcp.element", "custom"],
+            widget_type=widget_type,
         )
 
         config = get_metric_extraction_config(default_project)
@@ -1309,7 +1495,12 @@ def test_get_metric_extraction_config_user_misery_with_tag_columns(
 
 
 @django_db_all
-def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project: Project) -> None:
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
+def test_get_metric_extraction_config_epm_with_non_tag_columns(
+    default_project: Project, widget_type: int
+) -> None:
     duration = 1000
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
@@ -1318,6 +1509,7 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project: 
             default_project,
             "Dashboard",
             columns=["user.id", "user", "release"],
+            widget_type=widget_type,
         )
 
         config = get_metric_extraction_config(default_project)
@@ -1355,7 +1547,12 @@ def test_get_metric_extraction_config_epm_with_non_tag_columns(default_project: 
 
 @django_db_all
 @override_options({"on_demand.max_widget_cardinality.count": -1})
-def test_get_metric_extraction_config_with_high_cardinality(default_project: Project) -> None:
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
+def test_get_metric_extraction_config_with_high_cardinality(
+    default_project: Project, widget_type: int
+) -> None:
     duration = 1000
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         create_widget(
@@ -1363,6 +1560,7 @@ def test_get_metric_extraction_config_with_high_cardinality(default_project: Pro
             f"transaction.duration:>={duration}",
             default_project,
             columns=["user.id", "release", "count()"],
+            widget_type=widget_type,
         )
 
         config = get_metric_extraction_config(default_project)
@@ -1371,8 +1569,12 @@ def test_get_metric_extraction_config_with_high_cardinality(default_project: Pro
 
 
 @django_db_all
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_get_metric_extraction_config_multiple_widgets_with_high_cardinality(
     default_project: Project,
+    widget_type: int,
 ) -> None:
     duration = 1000
     with (
@@ -1388,6 +1590,7 @@ def test_get_metric_extraction_config_multiple_widgets_with_high_cardinality(
             default_project,
             columns=["user.id", "release", "count()"],
             title="Widget1",
+            widget_type=widget_type,
         )
         create_widget(
             ["epm()"],
@@ -1395,6 +1598,7 @@ def test_get_metric_extraction_config_multiple_widgets_with_high_cardinality(
             default_project,
             columns=["user.id", "release", "count()"],
             title="Widget2",
+            widget_type=widget_type,
         )
         create_widget(
             ["epm()"],
@@ -1402,6 +1606,7 @@ def test_get_metric_extraction_config_multiple_widgets_with_high_cardinality(
             default_project,
             columns=["user.id", "release", "count()"],
             title="Widget3",
+            widget_type=widget_type,
         )
 
         config = get_metric_extraction_config(default_project)
@@ -1413,7 +1618,12 @@ def test_get_metric_extraction_config_multiple_widgets_with_high_cardinality(
 
 @django_db_all
 @override_options({"on_demand.max_widget_cardinality.count": 1})
-def test_get_metric_extraction_config_with_extraction_enabled(default_project: Project) -> None:
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
+def test_get_metric_extraction_config_with_extraction_enabled(
+    default_project: Project, widget_type: int
+) -> None:
     duration = 1000
     with (
         Feature({ON_DEMAND_METRICS_WIDGETS: True}),
@@ -1431,6 +1641,7 @@ def test_get_metric_extraction_config_with_extraction_enabled(default_project: P
             f"transaction.duration:>={duration}",
             default_project,
             columns=["user.id", "release", "count()"],
+            widget_type=widget_type,
         )
 
         config = get_metric_extraction_config(default_project)
@@ -1445,8 +1656,12 @@ def test_get_metric_extraction_config_with_extraction_enabled(default_project: P
         "on_demand_metrics.widgets.use_stateful_extraction": True,
     }
 )
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_stateful_get_metric_extraction_config_with_extraction_disabled(
     default_project: Project,
+    widget_type: int,
 ) -> None:
     duration = 1000
     with (
@@ -1465,6 +1680,7 @@ def test_stateful_get_metric_extraction_config_with_extraction_disabled(
             f"transaction.duration:>={duration}",
             default_project,
             columns=["user.id", "release", "count()"],
+            widget_type=widget_type,
         )
 
         config = get_metric_extraction_config(default_project)
@@ -1474,8 +1690,12 @@ def test_stateful_get_metric_extraction_config_with_extraction_disabled(
 
 @django_db_all
 @override_options({"on_demand_metrics.widgets.use_stateful_extraction": True})
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_stateful_get_metric_extraction_config_multiple_widgets_with_extraction_partially_disabled(
     default_project: Project,
+    widget_type: int,
 ) -> None:
     duration = 1000
     with (
@@ -1495,6 +1715,7 @@ def test_stateful_get_metric_extraction_config_multiple_widgets_with_extraction_
             default_project,
             columns=["user.id", "release", "count()"],
             title="Widget1",
+            widget_type=widget_type,
         )
         create_widget(
             ["epm()"],
@@ -1502,6 +1723,7 @@ def test_stateful_get_metric_extraction_config_multiple_widgets_with_extraction_
             default_project,
             columns=["user.id", "release", "count()"],
             title="Widget2",
+            widget_type=widget_type,
         )
         create_widget(
             ["epm()"],
@@ -1509,6 +1731,7 @@ def test_stateful_get_metric_extraction_config_multiple_widgets_with_extraction_
             default_project,
             columns=["user.id", "release", "count()"],
             title="Widget3",
+            widget_type=widget_type,
         )
 
         config = get_metric_extraction_config(default_project)
@@ -1526,8 +1749,12 @@ def test_stateful_get_metric_extraction_config_multiple_widgets_with_extraction_
         "on_demand_metrics.widgets.use_stateful_extraction": True,
     }
 )
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_stateful_get_metric_extraction_config_enabled_with_multiple_versions(
     default_project: Project,
+    widget_type: int,
 ) -> None:
     duration = 1000
     with Feature(
@@ -1541,6 +1768,7 @@ def test_stateful_get_metric_extraction_config_enabled_with_multiple_versions(
             f"transaction.duration:>={duration}",
             default_project,
             columns=["user.id", "release", "count()"],
+            widget_type=widget_type,
         )
 
         process_widget_specs([widget_query.id])
@@ -1578,8 +1806,12 @@ def test_stateful_get_metric_extraction_config_enabled_with_multiple_versions(
         "on_demand_metrics.widgets.use_stateful_extraction": True,
     }
 )
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_stateful_get_metric_extraction_config_with_low_cardinality(
     default_project: Project,
+    widget_type: int,
 ) -> None:
     duration = 1000
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
@@ -1588,6 +1820,7 @@ def test_stateful_get_metric_extraction_config_with_low_cardinality(
             f"transaction.duration:>={duration}",
             default_project,
             columns=["user.id", "release", "count()"],
+            widget_type=widget_type,
         )
 
         config = get_metric_extraction_config(default_project)
@@ -1596,11 +1829,22 @@ def test_stateful_get_metric_extraction_config_with_low_cardinality(
 
 
 @django_db_all
-def test_get_metric_extraction_config_with_unicode_character(default_project: Project) -> None:
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
+def test_get_metric_extraction_config_with_unicode_character(
+    default_project: Project, widget_type: int
+) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
         # This will cause the Unicode bug to be raised for the current version
-        create_widget(["count()"], "user.name:Armén", default_project)
-        create_widget(["count()"], "user.name:Kevan", default_project, title="Dashboard Foo")
+        create_widget(["count()"], "user.name:Armén", default_project, widget_type=widget_type)
+        create_widget(
+            ["count()"],
+            "user.name:Kevan",
+            default_project,
+            title="Dashboard Foo",
+            widget_type=widget_type,
+        )
         config = get_metric_extraction_config(default_project)
 
         assert config
@@ -1657,11 +1901,14 @@ def test_get_metric_extraction_config_with_unicode_character(default_project: Pr
         ("epm()", "", []),
     ],
 )
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_get_metric_extraction_config_epm_eps(
-    default_project: Project, metric: str, query: str, query_hashes: list[str]
+    default_project: Project, metric: str, query: str, query_hashes: list[str], widget_type: int
 ) -> None:
     with Feature({ON_DEMAND_METRICS_WIDGETS: True}):
-        create_widget([metric], query, default_project)
+        create_widget([metric], query, default_project, widget_type=widget_type)
 
         config = get_metric_extraction_config(default_project)
 
@@ -1711,11 +1958,16 @@ def test_get_metric_extraction_config_epm_eps(
         ([], 0),  # Nothing.
     ],
 )
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_get_metrics_extraction_config_features_combinations(
-    enabled_features: str, number_of_metrics: int, default_project: Project
+    enabled_features: str, number_of_metrics: int, default_project: Project, widget_type: int
 ) -> None:
     create_alert("count()", "transaction.duration:>=10", default_project)
-    create_widget(["count()"], "transaction.duration:>=20", default_project)
+    create_widget(
+        ["count()"], "transaction.duration:>=20", default_project, widget_type=widget_type
+    )
 
     features = {feature: True for feature in enabled_features}
     with Feature(features):
@@ -1811,7 +2063,6 @@ def _on_demand_spec_from_widget(
 
 
 def _on_demand_spec_from_alert(project: Project, alert: AlertRule) -> OnDemandMetricSpec:
-    assert alert.snuba_query is not None
     return fetch_on_demand_metric_spec(
         project.organization.id,
         field=alert.snuba_query.aggregate,
@@ -1839,13 +2090,16 @@ def widget_to_metric_spec(query_hash: str, condition: RuleCondition | None = Non
 
 
 @django_db_all
-def test_include_environment_for_widgets(default_project: Project) -> None:
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
+def test_include_environment_for_widgets(default_project: Project, widget_type: int) -> None:
     aggr = "count()"
     query = "transaction.duration:>=10"
     condition: RuleCondition = {"name": "event.duration", "op": "gte", "value": 10.0}
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
-        widget, _, _ = create_widget([aggr], query, default_project)
+        widget, _, _ = create_widget([aggr], query, default_project, widget_type=widget_type)
         config = get_metric_extraction_config(default_project)
         # Because we have two specs we will have two metrics.
         # The second spec includes the environment tag as part of the query hash.
@@ -1873,7 +2127,12 @@ def test_include_environment_for_widgets(default_project: Project) -> None:
 
 @django_db_all
 @override_options({"on_demand_metrics.check_widgets.enable": True})
-def test_include_environment_for_widgets_with_multiple_env(default_project: Project) -> None:
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
+def test_include_environment_for_widgets_with_multiple_env(
+    default_project: Project, widget_type: int
+) -> None:
     aggrs = [
         "count()",
         "count_unique(user)",
@@ -1901,7 +2160,9 @@ def test_include_environment_for_widgets_with_multiple_env(default_project: Proj
     ]
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
-        widget_query, _, _ = create_widget(aggrs, query, default_project, columns=columns)
+        widget_query, _, _ = create_widget(
+            aggrs, query, default_project, columns=columns, widget_type=widget_type
+        )
         config = get_metric_extraction_config(default_project)
         assert config
 
@@ -1946,13 +2207,16 @@ def test_include_environment_for_widgets_with_multiple_env(default_project: Proj
 
 # Remove this test once we drop the current spec version
 @django_db_all
-def test_alert_and_widget_colliding(default_project: Project) -> None:
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
+def test_alert_and_widget_colliding(default_project: Project, widget_type: int) -> None:
     aggr = "count()"
     query = "transaction.duration:>=10"
     condition: RuleCondition = {"name": "event.duration", "op": "gte", "value": 10.0}
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
-        widget, _, _ = create_widget([aggr], query, default_project)
+        widget, _, _ = create_widget([aggr], query, default_project, widget_type=widget_type)
         config = get_metric_extraction_config(default_project)
         # Because we have two specs we will have two metrics.
         assert config and config["metrics"] == [
@@ -2010,17 +2274,21 @@ not_event_type_cond = {
         ("foo:bar", True, ["bdb73880", "54cee1ce"], foo_bar_condition),
     ],
 )
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_event_type(
     default_project: Project,
     query: str,
     config_assertion: bool,
     expected_hashes: list[str],
     expected_condition: RuleCondition | None,
+    widget_type: int,
 ) -> None:
     aggr = "count()"
 
     with Feature([ON_DEMAND_METRICS, ON_DEMAND_METRICS_WIDGETS]):
-        widget, _, _ = create_widget([aggr], query, default_project)
+        widget, _, _ = create_widget([aggr], query, default_project, widget_type=widget_type)
         config = get_metric_extraction_config(default_project)
         if not config_assertion:
             assert config is None
@@ -2034,18 +2302,24 @@ def test_event_type(
 
 
 @django_db_all
-def test_level_field(default_project: Project) -> None:
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
+def test_level_field(default_project: Project, widget_type: int) -> None:
     aggr = "count()"
     query = "level:irrelevant_value"
 
     with Feature(ON_DEMAND_METRICS_WIDGETS):
-        create_widget([aggr], query, default_project)
+        create_widget([aggr], query, default_project, widget_type=widget_type)
         config = get_metric_extraction_config(default_project)
         assert config is None
 
 
 @django_db_all
-def test_widget_modifed_after_on_demand(default_project: Project) -> None:
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
+def test_widget_modifed_after_on_demand(default_project: Project, widget_type: int) -> None:
     duration = 1000
     with Feature(
         {
@@ -2058,6 +2332,7 @@ def test_widget_modifed_after_on_demand(default_project: Project) -> None:
             f"transaction.duration:>={duration}",
             default_project,
             columns=["user.id", "release", "count()"],
+            widget_type=widget_type,
         )
 
         with mock.patch("sentry_sdk.capture_exception") as capture_exception:
@@ -2078,8 +2353,11 @@ def test_widget_modifed_after_on_demand(default_project: Project) -> None:
     ],
 )
 @django_db_all
+@pytest.mark.parametrize(
+    "widget_type", [DashboardWidgetTypes.DISCOVER, DashboardWidgetTypes.TRANSACTION_LIKE]
+)
 def test_get_current_widget_specs(
-    default_project: Project, current_version: SpecVersion, expected: set[str]
+    default_project: Project, current_version: SpecVersion, expected: set[str], widget_type: int
 ) -> None:
     for i, (version, hashes, state) in enumerate(
         (
@@ -2095,6 +2373,7 @@ def test_get_current_widget_specs(
             default_project,
             title=f"Dashboard {i}",
             columns=["user.id", "release", "count()"],
+            widget_type=widget_type,
         )
         DashboardWidgetQueryOnDemand.objects.create(
             dashboard_widget_query=widget_query,
@@ -2108,198 +2387,3 @@ def test_get_current_widget_specs(
     ):
         specs = get_current_widget_specs(default_project.organization)
     assert specs == expected
-
-
-@django_db_all
-def test_get_span_attribute_metrics(default_project: Project) -> None:
-    extraction_configs = [
-        {
-            "spanAttribute": "span.duration",
-            "aggregates": ["count", "p50", "p75", "p90", "p95", "p99"],
-            "unit": "millisecond",
-            "tags": ["foo"],
-            "conditions": [
-                {"id": 1, "value": "bar:baz"},
-                {"id": 2, "value": "abc:xyz"},
-            ],
-        },
-        {
-            "spanAttribute": "other_attribute",
-            "aggregates": ["count"],
-            "unit": "none",
-            "tags": ["mytag"],
-            "conditions": [{"id": 3, "value": ""}],
-        },
-    ]
-    for extraction_config in extraction_configs:
-        SpanAttributeExtractionRuleConfig.from_dict(extraction_config, 1, default_project)
-
-    config = get_metric_extraction_config(default_project)
-    assert not config
-
-    with Feature("organizations:custom-metrics-extraction-rule"):
-        config = get_metric_extraction_config(default_project)
-        assert config
-        assert sorted(config["metrics"], key=lambda x: x["mri"]) == [
-            {
-                "category": "span",
-                "condition": {"name": "span.data.bar", "op": "eq", "value": "baz"},
-                "field": None,
-                "mri": "c:custom/span_attribute_1@none",
-                "tags": [
-                    {"field": "span.data.bar", "key": "bar"},
-                    {"field": "span.data.foo", "key": "foo"},
-                ],
-            },
-            {
-                "category": "span",
-                "condition": {"name": "span.data.abc", "op": "eq", "value": "xyz"},
-                "field": None,
-                "mri": "c:custom/span_attribute_2@none",
-                "tags": [
-                    {"field": "span.data.abc", "key": "abc"},
-                    {"field": "span.data.foo", "key": "foo"},
-                ],
-            },
-            {
-                "category": "span",
-                "condition": {
-                    "inner": {"name": "span.data.other_attribute", "op": "eq", "value": None},
-                    "op": "not",
-                },
-                "field": None,
-                "mri": "c:custom/span_attribute_3@none",
-                "tags": [{"field": "span.data.mytag", "key": "mytag"}],
-            },
-            {
-                "category": "span",
-                "condition": {"name": "span.data.bar", "op": "eq", "value": "baz"},
-                "field": "span.duration",
-                "mri": "d:custom/span_attribute_1@none",
-                "tags": [
-                    {"field": "span.data.bar", "key": "bar"},
-                    {"field": "span.data.foo", "key": "foo"},
-                ],
-            },
-            {
-                "category": "span",
-                "condition": {"name": "span.data.abc", "op": "eq", "value": "xyz"},
-                "field": "span.duration",
-                "mri": "d:custom/span_attribute_2@none",
-                "tags": [
-                    {"field": "span.data.abc", "key": "abc"},
-                    {"field": "span.data.foo", "key": "foo"},
-                ],
-            },
-        ]
-
-
-@django_db_all
-def test_get_span_attribute_metrics_timeout_exception(default_project: Project) -> None:
-    with Feature("organizations:custom-metrics-extraction-rule"):
-        with mock.patch(
-            "sentry.relay.config.metric_extraction._generate_span_attribute_specs",
-            side_effect=TimeoutException,
-        ) as mock_get_span_attribute_specs:
-            mock_get_span_attribute_specs.__name__ = "_generate_span_attribute_specs"
-
-            config = get_metric_extraction_config(default_project)
-            assert config is None
-
-
-@django_db_all
-@override_options({"metric_extraction.max_span_attribute_specs": 1})
-def test_get_metric_extraction_config_span_attributes_above_max_limit(
-    default_project: Project,
-) -> None:
-
-    extraction_configs = [
-        {
-            "spanAttribute": "span.duration",
-            "aggregates": ["p50", "p75", "p90", "p95", "p99"],
-            "unit": "millisecond",
-            "tags": ["foo"],
-            "conditions": [
-                {"id": 1, "value": "bar:baz"},
-                {"id": 2, "value": "abc:xyz"},
-            ],
-        },
-        {
-            "spanAttribute": "other_attribute",
-            "aggregates": ["count"],
-            "unit": "none",
-            "tags": [],
-            "conditions": [{"id": 3, "value": ""}],
-        },
-    ]
-    for extraction_config in extraction_configs:
-        SpanAttributeExtractionRuleConfig.from_dict(extraction_config, 1, default_project)
-
-    with Feature("organizations:custom-metrics-extraction-rule"):
-        config = get_metric_extraction_config(default_project)
-
-        assert config
-        assert len(config["metrics"]) == 1
-
-
-@django_db_all
-@override_options(
-    {
-        "sentry-metrics.extrapolation.enable_transactions": True,
-        "sentry-metrics.extrapolation.enable_spans": True,
-    }
-)
-def test_get_metric_extrapolation_config(default_project: Project) -> None:
-    default_project.update_option("sentry:extrapolate_metrics", True)
-
-    # Create a dummy extraction rule to ensure there is at least one
-    # metric. Otherwise, the spec will be empty.
-    attr_config = {
-        "spanAttribute": "span.duration",
-        "aggregates": ["count"],
-        "unit": "none",
-        "tags": [],
-        "conditions": [{"id": 1, "value": "bar:baz"}],
-    }
-    SpanAttributeExtractionRuleConfig.from_dict(attr_config, 1, default_project)
-
-    with Feature(
-        ["organizations:metrics-extrapolation", "organizations:custom-metrics-extraction-rule"]
-    ):
-        config = get_metric_extraction_config(default_project)
-
-    assert config and config["extrapolate"]
-
-    # Generate boilerplate around minimal project config:
-    project_config = {
-        "allowedDomains": ["*"],
-        "piiConfig": None,
-        "trustedRelays": [],
-        "metricExtraction": config,
-    }
-
-    normalized = normalize_project_config(project_config)["metricExtraction"]["extrapolate"]
-    assert normalized == config["extrapolate"]
-
-
-@django_db_all
-def test_get_metric_extraction_config_when_on_demand_metrics_specs_timeout_exception(
-    default_project: Project, default_environment: Environment
-) -> None:
-    with Feature(ON_DEMAND_METRICS):
-        create_alert(
-            "count()",
-            "device.platform:android OR device.platform:ios",
-            default_project,
-            environment=default_environment,
-        )
-
-        with mock.patch(
-            "sentry.relay.config.metric_extraction.get_on_demand_metric_specs",
-            side_effect=TimeoutException,
-        ) as mock_get_on_demand_metric_specs:
-            mock_get_on_demand_metric_specs.__name__ = (
-                "get_on_demand_metric_specs"  # needs to be set for the mock to work
-            )
-            config = get_metric_extraction_config(default_project)
-            assert config is None

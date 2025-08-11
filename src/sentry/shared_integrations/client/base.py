@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
-from typing import Any, Literal, Self, TypedDict, Union, overload
+import logging
+from collections.abc import Callable, Mapping
+from typing import Any, Literal, Self, TypedDict, overload
 
 import sentry_sdk
 from django.core.cache import cache
@@ -11,8 +12,6 @@ from requests.exceptions import ConnectionError, HTTPError, Timeout
 
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
-from sentry.integrations.base import is_response_error, is_response_success
-from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.net.http import SafeSession
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import md5_text
@@ -25,10 +24,6 @@ from ..exceptions import (
     ApiTimeoutError,
 )
 from ..response.base import BaseApiResponse
-from ..track_response import TrackResponseMixin
-
-# TODO(mgaeta): HACK Fix the line where _request() returns "{}".
-BaseApiResponseX = Union[BaseApiResponse, Mapping[str, Any], Response]
 
 
 class SessionSettings(TypedDict):
@@ -41,16 +36,14 @@ class SessionSettings(TypedDict):
     cert: Any
 
 
-class BaseApiClient(TrackResponseMixin):
-    base_url: str | None = None
-
-    allow_text = False
+class BaseApiClient:
+    base_url: str = ""
 
     allow_redirects: bool | None = None
 
-    integration_type: str | None = None
+    integration_type: str  # abstract
 
-    log_path: str | None = None
+    logger = logging.getLogger(__name__)
 
     metrics_prefix: str | None = None
 
@@ -65,6 +58,10 @@ class BaseApiClient(TrackResponseMixin):
     # Timeout for both the connect and the read timeouts.
     # See: https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
     timeout: int = 30
+
+    @property
+    def name(self) -> str:
+        return getattr(self, f"{self.integration_type}_name")
 
     def __init__(
         self,
@@ -86,6 +83,30 @@ class BaseApiClient(TrackResponseMixin):
         #  upgrade.
         pass
 
+    def track_response_data(
+        self,
+        code: str | int,
+        error: Exception | None = None,
+        resp: Response | None = None,
+        extra: Mapping[str, str] | None = None,
+    ) -> None:
+        metrics.incr(
+            f"{self.metrics_prefix}.http_response",
+            sample_rate=1.0,
+            tags={self.integration_type: self.name, "status": code},
+        )
+
+        log_params = {
+            **(extra or {}),
+            "status_string": str(code),
+            "error": str(error)[:256] if error else None,
+        }
+        if self.integration_type:
+            log_params[self.integration_type] = self.name
+
+        log_params.update(getattr(self, "logging_context", None) or {})
+        self.logger.info("%s.http_response", self.integration_type, extra=log_params)
+
     def get_cache_prefix(self) -> str:
         return f"{self.integration_type}.{self.name}.client:"
 
@@ -103,16 +124,6 @@ class BaseApiClient(TrackResponseMixin):
         Allows subclasses to add hooks before sending requests out
         """
         return prepared_request
-
-    def _get_redis_key(self):
-        """
-        Returns the redis key for the integration or empty str if cannot make key
-        """
-        if not hasattr(self, "integration_id"):
-            return ""
-        if not self.integration_id:
-            return ""
-        return f"sentry-integration-error:{self.integration_id}"
 
     def is_response_fatal(self, resp: Response) -> bool:
         return False
@@ -148,14 +159,13 @@ class BaseApiClient(TrackResponseMixin):
         params: Mapping[str, str] | None = None,
         auth: tuple[str, str] | None = None,
         json: bool = True,
-        allow_text: bool | None = None,
+        allow_text: bool = False,
         allow_redirects: bool | None = None,
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         raw_response: Literal[True] = ...,
-    ) -> Response:
-        ...
+    ) -> Response: ...
 
     @overload
     def _request(
@@ -167,14 +177,13 @@ class BaseApiClient(TrackResponseMixin):
         params: Mapping[str, str] | None = None,
         auth: str | None = None,
         json: bool = True,
-        allow_text: bool | None = None,
+        allow_text: bool = False,
         allow_redirects: bool | None = None,
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         raw_response: bool = ...,
-    ) -> BaseApiResponseX:
-        ...
+    ) -> Any: ...
 
     def _request(
         self,
@@ -185,16 +194,13 @@ class BaseApiClient(TrackResponseMixin):
         params: Mapping[str, str] | None = None,
         auth: tuple[str, str] | str | None = None,
         json: bool = True,
-        allow_text: bool | None = None,
+        allow_text: bool = False,
         allow_redirects: bool | None = None,
         timeout: int | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         raw_response: bool = False,
-    ) -> BaseApiResponseX:
-        if allow_text is None:
-            allow_text = self.allow_text
-
+    ) -> Any | Response:
         if allow_redirects is None:
             allow_redirects = self.allow_redirects
 
@@ -209,11 +215,11 @@ class BaseApiClient(TrackResponseMixin):
         metrics.incr(
             f"{self.metrics_prefix}.http_request",
             sample_rate=1.0,
-            tags={str(self.integration_type): self.name},
+            tags={self.integration_type: self.name},
         )
 
         if self.integration_type:
-            sentry_sdk.Scope.get_isolation_scope().set_tag(self.integration_type, self.name)
+            sentry_sdk.get_isolation_scope().set_tag(self.integration_type, self.name)
 
         request = Request(
             method=method.upper(),
@@ -252,19 +258,15 @@ class BaseApiClient(TrackResponseMixin):
                 resp.raise_for_status()
         except RestrictedIPAddress as e:
             self.track_response_data("restricted_ip_address", e, extra=extra)
-            self.record_error(e)
             raise ApiHostError.from_exception(e) from e
         except ConnectionError as e:
             self.track_response_data("connection_error", e, extra=extra)
-            self.record_error(e)
             raise ApiHostError.from_exception(e) from e
         except Timeout as e:
             self.track_response_data("timeout", e, extra=extra)
-            self.record_error(e)
             raise ApiTimeoutError.from_exception(e) from e
         except RetryError as e:
             self.track_response_data("max_retries", e, extra=extra)
-            self.record_error(e)
             raise ApiRetryError.from_exception(e) from e
         except HTTPError as e:
             error_resp = e.response
@@ -272,11 +274,9 @@ class BaseApiClient(TrackResponseMixin):
                 self.track_response_data("unknown", e, extra=extra)
 
                 self.logger.exception("request.error", extra=extra)
-                self.record_error(e)
                 raise ApiError("Internal Error", url=full_url) from e
 
             self.track_response_data(error_resp.status_code, e, resp=error_resp, extra=extra)
-            self.record_error(e)
             raise ApiError.from_response(error_resp, url=full_url) from e
 
         except Exception as e:
@@ -288,20 +288,16 @@ class BaseApiClient(TrackResponseMixin):
             # Rather than worrying about what the other layers might be, we just stringify to detect this.
             if "ConnectionResetError" in str(e):
                 self.track_response_data("connection_reset_error", e, extra=extra)
-                self.record_error(e)
                 raise ApiConnectionResetError("Connection reset by peer", url=full_url) from e
             # The same thing can happen with an InvalidChunkLength exception, which is a subclass of HTTPError
             if "InvalidChunkLength" in str(e):
                 self.track_response_data("invalid_chunk_length", e, extra=extra)
-                self.record_error(e)
                 raise ApiError("Connection broken: invalid chunk length", url=full_url) from e
 
             # If it's not something we recognize, let the caller deal with it
             raise
 
         self.track_response_data(resp.status_code, None, resp, extra=extra)
-
-        self.record_response_for_disabling_integration(resp)
 
         if resp.status_code == 204:
             return {}
@@ -311,30 +307,35 @@ class BaseApiClient(TrackResponseMixin):
         )
 
     # subclasses should override ``request``
-    def request(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def request(self, *args: Any, **kwargs: Any) -> Any:
         return self._request(*args, **kwargs)
 
-    def delete(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def delete(self, *args: Any, **kwargs: Any) -> Any:
         return self.request("DELETE", *args, **kwargs)
 
-    def get_cache_key(self, path: str, query: str = "", data: str | None = "") -> str:
+    def get_cache_key(self, path: str, method: str, query: str = "", data: str | None = "") -> str:
         if not data:
-            return self.get_cache_prefix() + md5_text(self.build_url(path), query).hexdigest()
-        return self.get_cache_prefix() + md5_text(self.build_url(path), query, data).hexdigest()
+            return (
+                self.get_cache_prefix() + md5_text(self.build_url(path), method, query).hexdigest()
+            )
+        return (
+            self.get_cache_prefix()
+            + md5_text(self.build_url(path), method, query, data).hexdigest()
+        )
 
-    def check_cache(self, cache_key: str) -> BaseApiResponseX | None:
+    def check_cache(self, cache_key: str) -> Any | None:
         return cache.get(cache_key)
 
-    def set_cache(self, cache_key: str, result: BaseApiResponseX, cache_time: int) -> None:
+    def set_cache(self, cache_key: str, result: Any, cache_time: int) -> None:
         cache.set(cache_key, result, cache_time)
 
-    def _get_cached(self, path: str, method: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def _get_cached(self, path: str, method: str, *args: Any, **kwargs: Any) -> Any:
         data = kwargs.get("data", None)
         query = ""
         if kwargs.get("params", None):
             query = json.dumps(kwargs.get("params"))
 
-        key = self.get_cache_key(path, query, data)
+        key = self.get_cache_key(path, method, query, data)
         result = self.check_cache(key)
         if result is None:
             cache_time = kwargs.pop("cache_time", None) or self.cache_time
@@ -342,25 +343,25 @@ class BaseApiClient(TrackResponseMixin):
             self.set_cache(key, result, cache_time)
         return result
 
-    def get_cached(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def get_cached(self, path: str, *args: Any, **kwargs: Any) -> Any:
         return self._get_cached(path, "GET", *args, **kwargs)
 
-    def get(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def get(self, *args: Any, **kwargs: Any) -> Any:
         return self.request("GET", *args, **kwargs)
 
-    def patch(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def patch(self, *args: Any, **kwargs: Any) -> Any:
         return self.request("PATCH", *args, **kwargs)
 
-    def post(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def post(self, *args: Any, **kwargs: Any) -> Any:
         return self.request("POST", *args, **kwargs)
 
-    def put(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def put(self, *args: Any, **kwargs: Any) -> Any:
         return self.request("PUT", *args, **kwargs)
 
-    def head(self, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def head(self, *args: Any, **kwargs: Any) -> Any:
         return self.request("HEAD", *args, **kwargs)
 
-    def head_cached(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+    def head_cached(self, path: str, *args: Any, **kwargs: Any) -> Any:
         return self._get_cached(path, "HEAD", *args, **kwargs)
 
     def get_with_pagination(
@@ -370,9 +371,8 @@ class BaseApiClient(TrackResponseMixin):
         get_results: Callable[..., Any],
         *args: Any,
         **kwargs: Any,
-    ) -> Sequence[BaseApiResponse]:
+    ) -> list[Any]:
         page_size = self.page_size
-        offset = 0
         output = []
 
         for i in range(self.page_number_limit):
@@ -381,50 +381,7 @@ class BaseApiClient(TrackResponseMixin):
             num_results = len(results)
 
             output += results
-            offset += num_results
             # if the number is lower than our page_size, we can quit
             if num_results < page_size:
                 return output
         return output
-
-    def record_response_for_disabling_integration(self, response: Response):
-        redis_key = self._get_redis_key()
-        if not len(redis_key):
-            return
-        buffer = IntegrationRequestBuffer(redis_key)
-        if self.is_response_fatal(response):
-            buffer.record_fatal()
-        else:
-            if is_response_success(response):
-                buffer.record_success()
-                return
-            if is_response_error(response):
-                buffer.record_error()
-        if buffer.is_integration_broken():
-            # disable_integration(buffer, redis_key, self.integration_id)
-            self.logger.info(
-                "integration.should_disable",
-                extra={
-                    "integration_id": self.integration_id,
-                    "broken_range_day_counts": buffer._get_broken_range_from_buffer(),
-                },
-            )
-
-    def record_error(self, error: Exception):
-        redis_key = self._get_redis_key()
-        if not len(redis_key):
-            return
-        buffer = IntegrationRequestBuffer(redis_key)
-        if self.is_error_fatal(error):
-            buffer.record_fatal()
-        else:
-            buffer.record_error()
-        if buffer.is_integration_broken():
-            # disable_integration(buffer, redis_key, self.integration_id)
-            self.logger.info(
-                "integration.should_disable",
-                extra={
-                    "integration_id": self.integration_id,
-                    "broken_range_day_counts": buffer._get_broken_range_from_buffer(),
-                },
-            )

@@ -28,6 +28,7 @@ describe('EventsRequest', function () {
     query: '',
     children: () => null,
     partial: false,
+    includeAllArgs: false,
     includeTransformedData: true,
   };
 
@@ -494,7 +495,7 @@ describe('EventsRequest', function () {
         </EventsRequest>
       );
 
-      const generateExpected = name => {
+      const generateExpected = (name: any) => {
         return {
           seriesName: name,
           data: [
@@ -557,7 +558,7 @@ describe('EventsRequest', function () {
         </EventsRequest>
       );
 
-      const generateExpected = name => {
+      const generateExpected = (name: any) => {
         return {
           seriesName: name,
           data: [

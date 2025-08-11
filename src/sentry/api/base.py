@@ -6,10 +6,9 @@ import logging
 import time
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import quote as urlquote
 
-import orjson
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
@@ -25,16 +24,18 @@ from rest_framework.views import APIView
 from sentry_sdk import Scope
 
 from sentry import analytics, options, tsdb
+from sentry.analytics.events.release_set_commits import ReleaseSetCommitsLocalEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.exceptions import StaffRequired, SuperuserRequired
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
 from sentry.auth.staff import has_staff_option
-from sentry.models.environment import Environment
+from sentry.middleware import is_frontend_request
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo.base import SiloLimit, SiloMode
+from sentry.snuba.query_sources import QuerySource
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
@@ -69,7 +70,6 @@ from .permissions import (
 
 __all__ = [
     "Endpoint",
-    "EnvironmentMixin",
     "StatsMixin",
     "control_silo_endpoint",
     "region_silo_endpoint",
@@ -151,9 +151,9 @@ def apply_cors_headers(
         "Content-Type, Authentication, Authorization, Content-Encoding, "
         "sentry-trace, baggage, X-CSRFToken"
     )
-    response[
-        "Access-Control-Expose-Headers"
-    ] = "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, Endpoint, Retry-After, Link"
+    response["Access-Control-Expose-Headers"] = (
+        "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, Endpoint, Retry-After, Link"
+    )
 
     if request.META.get("HTTP_ORIGIN") == "null":
         # if ORIGIN header is explicitly specified as 'null' leave it alone
@@ -171,7 +171,7 @@ def apply_cors_headers(
     # to be sent.
     basehost = options.get("system.base-hostname")
     if basehost and origin:
-        if (
+        if "," not in origin and (
             origin.endswith(("://" + basehost, "." + basehost))
             or origin in settings.ALLOWED_CREDENTIAL_ORIGINS
         ):
@@ -187,7 +187,9 @@ class BaseEndpointMixin(abc.ABC):
     """
 
     @abc.abstractmethod
-    def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
+    def create_audit_entry(
+        self, request: Request, transaction_id=None, *, data: dict[str, Any], **kwargs
+    ):
         pass
 
     @abc.abstractmethod
@@ -221,18 +223,14 @@ class Endpoint(APIView):
 
     owner: ApiOwner = ApiOwner.UNOWNED
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
-    rate_limits: RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]] | Callable[
-        ..., RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]
-    ] = DEFAULT_RATE_LIMIT_CONFIG
+    rate_limits: (
+        RateLimitConfig
+        | dict[str, dict[RateLimitCategory, RateLimit]]
+        | Callable[..., RateLimitConfig | dict[str, dict[RateLimitCategory, RateLimit]]]
+    ) = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
-    snuba_methods: list[HTTP_METHOD_NAME] = []
 
-    def build_link_header(self, request: Request, path: str, rel: str):
-        # TODO(dcramer): it would be nice to expand this to support params to consolidate `build_cursor_link`
-        uri = request.build_absolute_uri(urlquote(path))
-        return f'<{uri}>; rel="{rel}">'
-
-    def build_cursor_link(self, request: Request, name: str, cursor: Cursor):
+    def build_cursor_link(self, request: HttpRequest, name: str, cursor: Cursor) -> str:
         if request.GET.get("cursor") is None:
             querystring = request.GET.urlencode()
         else:
@@ -294,7 +292,7 @@ class Endpoint(APIView):
 
         super().permission_denied(request, message, code)
 
-    def handle_exception(  # type: ignore[override]
+    def handle_exception_with_details(
         self,
         request: Request,
         exc: Exception,
@@ -317,7 +315,7 @@ class Endpoint(APIView):
             # Django REST Framework's built-in exception handler. If `settings.EXCEPTION_HANDLER`
             # exists and returns a response, that's used. Otherwise, `exc` is just re-raised
             # and caught below.
-            response = super().handle_exception(exc)
+            response = self.handle_exception(exc)
         except Exception as err:
             import sys
             import traceback
@@ -335,31 +333,10 @@ class Endpoint(APIView):
 
         return response
 
-    def create_audit_entry(self, request: Request, transaction_id=None, **kwargs):
-        return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
-
-    def load_json_body(self, request: Request):
-        """
-        Attempts to load the request body when it's JSON.
-
-        The end result is ``request.json_body`` having a value. When it can't
-        load the body as JSON, for any reason, ``request.json_body`` is None.
-
-        The request flow is unaffected and no exceptions are ever raised.
-        """
-
-        request.json_body = None
-
-        if not request.META.get("CONTENT_TYPE", "").startswith("application/json"):
-            return
-
-        if not len(request.body):
-            return
-
-        try:
-            request.json_body = orjson.loads(request.body)
-        except orjson.JSONDecodeError:
-            return
+    def create_audit_entry(
+        self, request: Request, transaction_id=None, *, data: dict[str, Any], **kwargs
+    ):
+        return create_audit_entry(request, transaction_id, audit_logger, data=data, **kwargs)
 
     def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
         # XXX: Since DRF 3.x, when the request is passed into
@@ -376,7 +353,7 @@ class Endpoint(APIView):
             if rv.auth is None:
                 rv.auth = orig_auth
             if rv.user is None:
-                rv.user = orig_user
+                rv.user = orig_user  # type: ignore[unreachable]  # the request here is partially initialized
         return rv
 
     def has_pagination(self, response: Response) -> bool:
@@ -390,17 +367,19 @@ class Endpoint(APIView):
         Identical to rest framework's dispatch except we add the ability
         to convert arguments (for common URL params).
         """
-        with sentry_sdk.start_span(op="base.dispatch.setup", description=type(self).__name__):
+        with sentry_sdk.start_span(op="base.dispatch.setup", name=type(self).__name__):
             self.args = args
             self.kwargs = kwargs
             request = self.initialize_request(request, *args, **kwargs)
-            self.load_json_body(request)
+            # XXX: without this seemingly useless access to `.body` we are
+            # unable to access `request.body` later on due to `rest_framework`
+            # loading the request body via `request.read()`
+            request.body
             self.request = request
             self.headers = self.default_response_headers  # deprecate?
 
-        # Tags that will ultimately flow into the metrics backend at the end of
-        # the request (happens via middleware/stats.py).
-        request._metric_tags = {}
+        if request.META.get("HTTP_REFERER"):
+            sentry_sdk.set_tag("http.referer", request.META.get("HTTP_REFERER"))
 
         start_time = time.time()
 
@@ -411,7 +390,7 @@ class Endpoint(APIView):
             origin = None
 
         try:
-            with sentry_sdk.start_span(op="base.dispatch.request", description=type(self).__name__):
+            with sentry_sdk.start_span(op="base.dispatch.request", name=type(self).__name__):
                 if origin:
                     if request.auth:
                         allowed_origins = request.auth.get_allowed_origins()
@@ -427,7 +406,12 @@ class Endpoint(APIView):
 
                 self.initial(request, *args, **kwargs)
 
+                if getattr(request, "access", None) is None:
+                    # setup default access
+                    request.access = access.from_request(request)
+
                 # Get the appropriate handler method
+                assert request.method is not None
                 method = request.method.lower()
                 if method in self.http_method_names and hasattr(self, method):
                     handler = getattr(self, method)
@@ -439,20 +423,16 @@ class Endpoint(APIView):
                 else:
                     handler = self.http_method_not_allowed
 
-                if getattr(request, "access", None) is None:
-                    # setup default access
-                    request.access = access.from_request(request)
-
             with sentry_sdk.start_span(
                 op="base.dispatch.execute",
-                description=".".join(
+                name=".".join(
                     getattr(part, "__name__", None) or str(part) for part in (type(self), handler)
                 ),
             ) as span:
                 response = handler(request, *args, **kwargs)
 
         except Exception as exc:
-            response = self.handle_exception(request, exc)
+            response = self.handle_exception_with_details(request, exc)
 
         if origin:
             self.add_cors_headers(request, response)
@@ -465,13 +445,14 @@ class Endpoint(APIView):
             if duration < (settings.SENTRY_API_RESPONSE_DELAY / 1000.0):
                 with sentry_sdk.start_span(
                     op="base.dispatch.sleep",
-                    description=type(self).__name__,
+                    name=type(self).__name__,
                 ) as span:
                     span.set_data("SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY)
                     time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0 - duration)
 
         # Only enforced in dev environment
         if settings.ENFORCE_PAGINATION:
+            assert request.method is not None
             if request.method.lower() == "get":
                 status = getattr(self.response, "status_code", 0)
                 # Response can either be Response or HttpResponse, check if
@@ -552,7 +533,7 @@ class Endpoint(APIView):
             cursor = self.get_cursor_from_request(request, cursor_cls)
             with sentry_sdk.start_span(
                 op="base.paginate.get_result",
-                description=type(self).__name__,
+                name=type(self).__name__,
             ) as span:
                 annotate_span_with_pagination_args(span, per_page)
                 paginator = get_paginator(paginator, paginator_cls, paginator_kwargs)
@@ -572,7 +553,7 @@ class Endpoint(APIView):
         if on_results:
             with sentry_sdk.start_span(
                 op="base.paginate.on_results",
-                description=type(self).__name__,
+                name=type(self).__name__,
             ):
                 results = on_results(cursor_result.results)
         else:
@@ -582,44 +563,27 @@ class Endpoint(APIView):
         self.add_cursor_headers(request, response, cursor_result)
         return response
 
-
-class EnvironmentMixin:
-    def _get_environment_func(self, request: Request, organization_id):
-        """\
-        Creates a function that when called returns the ``Environment``
-        associated with a request object, or ``None`` if no environment was
-        provided. If the environment doesn't exist, an ``Environment.DoesNotExist``
-        exception will be raised.
-
-        This returns as a callable since some objects outside of the API
-        endpoint need to handle the "environment was provided but does not
-        exist" state in addition to the two non-exceptional states (the
-        environment was provided and exists, or the environment was not
-        provided.)
+    def get_request_source(self, request: Request) -> QuerySource:
         """
-        return functools.partial(self._get_environment_from_request, request, organization_id)
+        This is an estimate of query source. Treat it more like a good guess and
+        don't write logic that depends on it. Used for monitoring only atm.
+        """
+        if is_frontend_request(request):
+            return QuerySource.FRONTEND
+        return QuerySource.API
 
-    def _get_environment_id_from_request(self, request: Request, organization_id):
-        environment = self._get_environment_from_request(request, organization_id)
-        return environment and environment.id
 
-    def _get_environment_from_request(self, request: Request, organization_id):
-        if not hasattr(request, "_cached_environment"):
-            environment_param = request.GET.get("environment")
-            if environment_param is None:
-                environment = None
-            else:
-                environment = Environment.get_for_organization_id(
-                    name=environment_param, organization_id=organization_id
-                )
-
-            request._cached_environment = environment
-
-        return request._cached_environment
+class StatsArgsDict(TypedDict):
+    start: datetime
+    end: datetime
+    rollup: int
+    environment_ids: list[int]
 
 
 class StatsMixin:
-    def _parse_args(self, request: Request, environment_id=None, restrict_rollups=True):
+    def _parse_args(
+        self, request: Request, environment_id=None, restrict_rollups=True
+    ) -> StatsArgsDict:
         """
         Parse common stats parameters from the query string. This includes
         `since`, `until`, and `resolution`.
@@ -685,13 +649,17 @@ class StatsMixin:
 
 class ReleaseAnalyticsMixin:
     def track_set_commits_local(self, request: Request, organization_id=None, project_ids=None):
-        analytics.record(
-            "release.set_commits_local",
-            user_id=request.user.id if request.user and request.user.id else None,
-            organization_id=organization_id,
-            project_ids=project_ids,
-            user_agent=request.META.get("HTTP_USER_AGENT", ""),
-        )
+        try:
+            analytics.record(
+                ReleaseSetCommitsLocalEvent(
+                    user_id=request.user.id if request.user and request.user.id else None,
+                    organization_id=organization_id,
+                    project_ids=project_ids,
+                    user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
 
 class EndpointSiloLimit(SiloLimit):

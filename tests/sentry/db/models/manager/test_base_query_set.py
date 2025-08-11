@@ -16,7 +16,7 @@ def catch_signal(signal):
 
 
 class TestUpdateWithReturning(TestCase):
-    def test(self):
+    def test(self) -> None:
         group_2 = self.create_group()
         ids = [self.group.id, group_2.id]
         returned = Group.objects.filter(id__in=ids).update_with_returning(
@@ -32,38 +32,42 @@ class TestUpdateWithReturning(TestCase):
         )
         assert {r for r in returned} == {(id_, "hi") for id_ in ids}
 
-    def test_empty_query(self):
+    def test_empty_query(self) -> None:
         assert [] == Group.objects.filter(id__in=[]).update_with_returning(
             returned_fields=["id"], message="hi"
         )
 
 
 class TestSendPostUpdateSignal(TestCase):
-    def test_not_triggered(self):
-        with catch_signal(post_update) as handler, override_options(
-            {"groups.enable-post-update-signal": True}
+    def test_not_triggered(self) -> None:
+        with (
+            catch_signal(post_update) as handler,
+            override_options({"groups.enable-post-update-signal": True}),
         ):
             self.group.message = "hi"
             self.group.save()
 
         assert not handler.called
 
-        with catch_signal(post_update) as handler, override_options(
-            {"groups.enable-post-update-signal": True}
+        with (
+            catch_signal(post_update) as handler,
+            override_options({"groups.enable-post-update-signal": True}),
         ):
             self.group.update(message="hi")
 
         assert not handler.called
 
-        with catch_signal(post_update) as handler, override_options(
-            {"groups.enable-post-update-signal": False}
+        with (
+            catch_signal(post_update) as handler,
+            override_options({"groups.enable-post-update-signal": False}),
         ):
             assert Group.objects.filter(id=self.group.id).update(message="hi") == 1
 
         assert not handler.called
 
-        with catch_signal(post_update) as handler, override_options(
-            {"groups.enable-post-update-signal": True}
+        with (
+            catch_signal(post_update) as handler,
+            override_options({"groups.enable-post-update-signal": True}),
         ):
             assert (
                 Group.objects.filter(id=self.group.id)
@@ -75,8 +79,9 @@ class TestSendPostUpdateSignal(TestCase):
         assert not handler.called
 
         # Test signal not fired when Django detects the query will return no results
-        with catch_signal(post_update) as handler, override_options(
-            {"groups.enable-post-update-signal": True}
+        with (
+            catch_signal(post_update) as handler,
+            override_options({"groups.enable-post-update-signal": True}),
         ):
             assert (
                 Group.objects.filter(id__in=[]).with_post_update_signal(True).update(message="hi")
@@ -85,7 +90,7 @@ class TestSendPostUpdateSignal(TestCase):
 
         assert not handler.called
 
-    def test_enable(self):
+    def test_enable(self) -> None:
         qs = Group.objects.all()
         assert not qs._with_post_update_signal
         new_qs = qs.with_post_update_signal(True)
@@ -93,10 +98,11 @@ class TestSendPostUpdateSignal(TestCase):
         assert not qs._with_post_update_signal
         assert new_qs._with_post_update_signal
 
-    def test_triggered(self):
+    def test_triggered(self) -> None:
         message = "hi"
-        with catch_signal(post_update) as handler, override_options(
-            {"groups.enable-post-update-signal": True}
+        with (
+            catch_signal(post_update) as handler,
+            override_options({"groups.enable-post-update-signal": True}),
         ):
             assert Group.objects.filter(id=self.group.id).update(message=message) == 1
 

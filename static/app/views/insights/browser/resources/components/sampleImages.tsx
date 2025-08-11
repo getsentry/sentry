@@ -3,31 +3,37 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
-import {useIndexedResourcesQuery} from 'sentry/views/insights/browser/resources/queries/useIndexedResourceQuery';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import type {SpanResponse} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
 type Props = {groupId: string; projectId?: number};
 
 export const LOCAL_STORAGE_SHOW_LINKS = 'performance-resources-images-showLinks';
 
-const {SPAN_GROUP, RAW_DOMAIN, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH, SPAN_OP} =
-  SpanIndexedField;
+const {
+  SPAN_GROUP,
+  RAW_DOMAIN,
+  SPAN_DESCRIPTION,
+  MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH,
+  SPAN_OP,
+} = SpanFields;
 const imageWidth = '200px';
 const imageHeight = '180px';
 
@@ -35,19 +41,28 @@ function SampleImages({groupId, projectId}: Props) {
   const [showLinks, setShowLinks] = useLocalStorageState(LOCAL_STORAGE_SHOW_LINKS, false);
   const filters = useResourceModuleFilters();
   const [showImages, setShowImages] = useState(showLinks);
-  const {data: settings, isLoading: isSettingsLoading} =
+  const {data: settings, isPending: isSettingsLoading} =
     usePerformanceGeneralProjectSettings(projectId);
   const isImagesEnabled = settings?.enable_images ?? false;
 
-  const {data: imageResources, isLoading: isLoadingImages} = useIndexedResourcesQuery({
-    queryConditions: [
-      `${SPAN_GROUP}:${groupId}`,
-      ...(filters[SPAN_OP] ? [`${SPAN_OP}:${filters[SPAN_OP]}`] : []),
-    ],
-    sorts: [{field: `measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`, kind: 'desc'}],
-    limit: 100,
-    referrer: 'api.performance.resources.sample-images',
-  });
+  const {data: imageResources, isPending: isLoadingImages} = useSpans(
+    {
+      fields: [
+        SpanFields.PROJECT,
+        SpanFields.SPAN_GROUP,
+        SpanFields.RAW_DOMAIN,
+        SpanFields.SPAN_DESCRIPTION,
+        SpanFields.MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH,
+      ],
+      limit: 100,
+      sorts: [{field: MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH, kind: 'desc'}],
+      search: [
+        `${SPAN_GROUP}:${groupId}`,
+        ...(filters[SPAN_OP] ? [`${SPAN_OP}:${filters[SPAN_OP]}`] : []),
+      ].join(' '),
+    },
+    'api.performance.resources.sample-images'
+  );
 
   const uniqueResources = new Set();
 
@@ -81,8 +96,16 @@ function SampleImages({groupId, projectId}: Props) {
   );
 }
 
+type ImageSpan = Pick<
+  SpanResponse,
+  | 'span.group'
+  | 'raw_domain'
+  | 'span.description'
+  | 'measurements.http.response_content_length'
+>;
+
 function SampleImagesChartPanelBody(props: {
-  images: ReturnType<typeof useIndexedResourcesQuery>['data'];
+  images: ImageSpan[];
   isImagesEnabled: boolean;
   isLoadingImages: boolean;
   isSettingsLoading: boolean;
@@ -147,7 +170,7 @@ function SampleImagesChartPanelBody(props: {
             src={src}
             showImage={isImagesEnabled}
             fileName={getFileNameFromDescription(resource[SPAN_DESCRIPTION])}
-            size={resource[`measurements.${HTTP_RESPONSE_CONTENT_LENGTH}`]}
+            size={resource[MEASUREMENT_HTTP_RESPONSE_CONTENT_LENGTH]}
             key={resource[SPAN_DESCRIPTION]}
           />
         );
@@ -156,15 +179,21 @@ function SampleImagesChartPanelBody(props: {
   );
 }
 
-function DisabledImages(props: {onClickShowLinks?: () => void}) {
+export function DisabledImages(props: {
+  onClickShowLinks?: () => void;
+  projectSlug?: string;
+}) {
   const {onClickShowLinks} = props;
+  const organization = useOrganization();
   const {
     selection: {projects: selectedProjects},
   } = usePageFilters();
   const {projects} = useProjects();
-  const firstProjectSelected = projects.find(
-    project => project.id === selectedProjects[0].toString()
-  );
+  const firstProjectSelected = props.projectSlug
+    ? {
+        slug: props.projectSlug,
+      }
+    : projects.find(project => project.id === selectedProjects[0]?.toString());
 
   return (
     <div>
@@ -178,9 +207,7 @@ function DisabledImages(props: {onClickShowLinks?: () => void}) {
       <ButtonContainer>
         <Button onClick={onClickShowLinks}>Only show links</Button>
         <Link
-          to={normalizeUrl(
-            `/settings/projects/${firstProjectSelected?.slug}/performance/`
-          )}
+          to={`/settings/${organization.slug}/projects/${firstProjectSelected?.slug}/performance/`}
         >
           <Button priority="primary" data-test-id="enable-sample-images-button">
             {t(' Enable in Settings')}
@@ -204,15 +231,6 @@ function ImageContainer(props: {
 
   const handleError = () => {
     setHasError(true);
-    Sentry.metrics.increment('performance.resource.image_load', 1, {
-      tags: {status: 'error'},
-    });
-  };
-
-  const handleLoad = () => {
-    Sentry.metrics.increment('performance.resource.image_load', 1, {
-      tags: {status: 'success'},
-    });
   };
 
   return (
@@ -227,7 +245,6 @@ function ImageContainer(props: {
           <img
             data-test-id="sample-image"
             onError={handleError}
-            onLoad={handleLoad}
             src={src}
             style={{
               width: '100%',
@@ -245,7 +262,7 @@ function ImageContainer(props: {
   );
 }
 
-function MissingImage() {
+export function MissingImage() {
   const theme = useTheme();
 
   return (

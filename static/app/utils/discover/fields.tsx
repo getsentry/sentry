@@ -3,17 +3,8 @@ import isEqual from 'lodash/isEqual';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
 import type {SelectValue} from 'sentry/types/core';
-import type {MetricType} from 'sentry/types/metrics';
 import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
-import {isMRIField} from 'sentry/utils/metrics/mri';
-import {
-  SESSIONS_FIELDS,
-  SESSIONS_OPERATIONS,
-} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
-import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
-import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
-
 import {
   AGGREGATION_FIELDS,
   AggregationKey,
@@ -23,9 +14,18 @@ import {
   getFieldDefinition,
   MEASUREMENT_FIELDS,
   MobileVital,
+  prettifyTagKey,
   SpanOpBreakdown,
   WebVital,
-} from '../fields';
+} from 'sentry/utils/fields';
+import {
+  SESSIONS_FIELDS,
+  SESSIONS_OPERATIONS,
+} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
+import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
+import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/constants';
+
+import {CONDITIONS_ARGUMENTS, DiscoverDatasets, WEB_VITALS_QUALITY} from './types';
 
 export type Sort = {
   field: string;
@@ -56,10 +56,7 @@ type ValidateColumnValueFunction = (data: {
   name: string;
 }) => boolean;
 
-export type ValidateColumnTypes =
-  | ColumnType[]
-  | MetricType[]
-  | ValidateColumnValueFunction;
+export type ValidateColumnTypes = ColumnType[] | ValidateColumnValueFunction;
 
 export type AggregateParameter =
   | {
@@ -78,7 +75,7 @@ export type AggregateParameter =
   | {
       dataType: string;
       kind: 'dropdown';
-      options: SelectValue<string>[];
+      options: Array<SelectValue<string>>;
       required: boolean;
       defaultValue?: string;
       placeholder?: string;
@@ -146,6 +143,33 @@ export enum DurationUnit {
   YEAR = 'year',
 }
 
+// Durations normalized to millisecond unit
+export const DURATION_UNIT_MULTIPLIERS: Record<DurationUnit, number> = {
+  nanosecond: 1 / 1000 ** 2,
+  microsecond: 1 / 1000,
+  millisecond: 1,
+  second: 1000,
+  minute: 1000 * 60,
+  hour: 1000 * 60 * 60,
+  day: 1000 * 60 * 60 * 24,
+  week: 1000 * 60 * 60 * 24 * 7,
+  month: 1000 * 60 * 60 * 24 * 30,
+  year: 1000 * 60 * 60 * 24 * 365,
+};
+
+export const DURATION_UNIT_LABELS: Record<DurationUnit, string> = {
+  nanosecond: 'ns',
+  microsecond: 'μs',
+  millisecond: 'ms',
+  second: 's',
+  minute: 'min',
+  hour: 'hr',
+  day: 'd',
+  week: 'wk',
+  month: 'mo',
+  year: 'yr',
+};
+
 export enum SizeUnit {
   BIT = 'bit',
   BYTE = 'byte',
@@ -163,6 +187,24 @@ export enum SizeUnit {
   EXABYTE = 'exabyte',
 }
 
+// Sizes normalized to byte unit
+export const SIZE_UNIT_MULTIPLIERS: Record<SizeUnit, number> = {
+  bit: 1 / 8,
+  byte: 1,
+  kibibyte: 1024,
+  mebibyte: 1024 ** 2,
+  gibibyte: 1024 ** 3,
+  tebibyte: 1024 ** 4,
+  pebibyte: 1024 ** 5,
+  exbibyte: 1024 ** 6,
+  kilobyte: 1000,
+  megabyte: 1000 ** 2,
+  gigabyte: 1000 ** 3,
+  terabyte: 1000 ** 4,
+  petabyte: 1000 ** 5,
+  exabyte: 1000 ** 6,
+};
+
 export enum RateUnit {
   PER_SECOND = '1/second',
   PER_MINUTE = '1/minute',
@@ -170,69 +212,25 @@ export enum RateUnit {
 }
 
 // Rates normalized to /second unit
-export const RATE_UNIT_MULTIPLIERS = {
+export const RATE_UNIT_MULTIPLIERS: Record<RateUnit, number> = {
   [RateUnit.PER_SECOND]: 1,
   [RateUnit.PER_MINUTE]: 1 / 60,
   [RateUnit.PER_HOUR]: 1 / (60 * 60),
 };
 
-export const RATE_UNIT_LABELS = {
+export const RATE_UNIT_LABELS: Record<RateUnit, string> = {
   [RateUnit.PER_SECOND]: '/s',
   [RateUnit.PER_MINUTE]: '/min',
   [RateUnit.PER_HOUR]: '/hr',
 };
 
-export const RATE_UNIT_TITLE = {
+export const RATE_UNIT_TITLE: Record<RateUnit, string> = {
   [RateUnit.PER_SECOND]: 'Per Second',
   [RateUnit.PER_MINUTE]: 'Per Minute',
   [RateUnit.PER_HOUR]: 'Per Hour',
 };
 
-const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
-  {
-    label: 'is equal to',
-    value: 'equals',
-  },
-  {
-    label: 'is not equal to',
-    value: 'notEquals',
-  },
-  {
-    label: 'is less than',
-    value: 'less',
-  },
-  {
-    label: 'is greater than',
-    value: 'greater',
-  },
-  {
-    label: 'is less than or equal to',
-    value: 'lessOrEquals',
-  },
-  {
-    label: 'is greater than or equal to',
-    value: 'greaterOrEquals',
-  },
-];
-
-const WEB_VITALS_QUALITY: SelectValue<string>[] = [
-  {
-    label: 'good',
-    value: 'good',
-  },
-  {
-    label: 'meh',
-    value: 'meh',
-  },
-  {
-    label: 'poor',
-    value: 'poor',
-  },
-  {
-    label: 'any',
-    value: 'any',
-  },
-];
+export type DataUnit = DurationUnit | SizeUnit | RateUnit | null;
 
 const getDocsAndOutputType = (key: AggregationKey) => {
   return {
@@ -243,6 +241,8 @@ const getDocsAndOutputType = (key: AggregationKey) => {
 
 // Refer to src/sentry/search/events/fields.py
 // Try to keep functions logically sorted, ie. all the count functions are grouped together
+// When dealing with errors or transactions datasets, use getAggregations() instead because
+// there are dataset-specific overrides
 export const AGGREGATIONS = {
   [AggregationKey.COUNT]: {
     ...getDocsAndOutputType(AggregationKey.COUNT),
@@ -296,7 +296,7 @@ export const AGGREGATIONS = {
       {
         kind: 'column',
         columnTypes: validateDenyListColumns(
-          ['string', 'duration', 'number'],
+          ['string', 'duration', 'number', 'integer'],
           ['id', 'issue', 'user.display']
         ),
         defaultValue: 'transaction.duration',
@@ -306,7 +306,7 @@ export const AGGREGATIONS = {
         kind: 'dropdown',
         options: CONDITIONS_ARGUMENTS,
         dataType: 'string',
-        defaultValue: CONDITIONS_ARGUMENTS[0].value,
+        defaultValue: CONDITIONS_ARGUMENTS[0]!.value,
         required: true,
       },
       {
@@ -338,7 +338,7 @@ export const AGGREGATIONS = {
         kind: 'dropdown',
         options: WEB_VITALS_QUALITY,
         dataType: 'string',
-        defaultValue: WEB_VITALS_QUALITY[0].value,
+        defaultValue: WEB_VITALS_QUALITY[0]!.value,
         required: true,
       },
     ],
@@ -353,6 +353,24 @@ export const AGGREGATIONS = {
   },
   [AggregationKey.EPM]: {
     ...getDocsAndOutputType(AggregationKey.EPM),
+    parameters: [],
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  [AggregationKey.SAMPLE_COUNT]: {
+    ...getDocsAndOutputType(AggregationKey.SAMPLE_COUNT),
+    parameters: [],
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  [AggregationKey.SAMPLE_EPS]: {
+    ...getDocsAndOutputType(AggregationKey.SAMPLE_EPS),
+    parameters: [],
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  [AggregationKey.SAMPLE_EPM]: {
+    ...getDocsAndOutputType(AggregationKey.SAMPLE_EPM),
     parameters: [],
     isSortable: true,
     multiPlotType: 'area',
@@ -574,15 +592,32 @@ export const AGGREGATIONS = {
     parameters: [],
     isSortable: true,
   },
+  [AggregationKey.PERFORMANCE_SCORE]: {
+    ...getDocsAndOutputType(AggregationKey.PERFORMANCE_SCORE),
+    parameters: [
+      {
+        kind: 'dropdown',
+        options: ['cls', 'fcp', 'inp', 'lcp', 'total', 'ttfb'].map(vital => ({
+          label: `measurements.score.${vital}`,
+          value: `measurements.score.${vital}`,
+        })),
+        dataType: 'number',
+        defaultValue: 'measurements.score.total',
+        required: true,
+      },
+    ],
+    isSortable: true,
+    multiPlotType: 'line',
+  },
 } as const;
 
 // TPM and TPS are aliases that are only used in Performance
-export const ALIASES = {
+const ALIASES = {
   tpm: AggregationKey.EPM,
   tps: AggregationKey.EPS,
 };
 
-assert(AGGREGATIONS as Readonly<{[key in AggregationKey]: Aggregation}>);
+assert(AGGREGATIONS as Readonly<Record<AggregationKey, Aggregation>>);
 
 export type AggregationKeyWithAlias = `${AggregationKey}` | keyof typeof ALIASES | '';
 
@@ -609,7 +644,7 @@ export type Aggregation = {
   /**
    * List of parameters for the function.
    */
-  parameters: Readonly<AggregateParameter[]>;
+  parameters: readonly AggregateParameter[];
   getFieldOverrides?: (
     data: DefaultValueInputs
   ) => Partial<Omit<AggregateParameter, 'kind'>>;
@@ -621,11 +656,6 @@ export type Aggregation = {
 };
 
 export const DEPRECATED_FIELDS: string[] = [FieldKey.CULPRIT];
-
-export type FieldTag = {
-  key: FieldKey;
-  name: FieldKey;
-};
 
 export const FIELD_TAGS = Object.freeze(
   Object.fromEntries(DISCOVER_FIELDS.map(item => [item, {key: item, name: item}]))
@@ -671,7 +701,7 @@ export function formatTagKey(key: string): string {
 // Allows for a less strict field key definition in cases we are returning custom strings as fields
 export type LooseFieldKey = FieldKey | string | '';
 
-export type MeasurementType =
+type MeasurementType =
   | FieldValueType.DURATION
   | FieldValueType.NUMBER
   | FieldValueType.INTEGER
@@ -679,6 +709,47 @@ export type MeasurementType =
 
 export function isSpanOperationBreakdownField(field: string) {
   return field.startsWith('spans.');
+}
+
+// Returns the AGGREGATIONS object with the expected defaults for the given dataset
+export function getAggregations(dataset: DiscoverDatasets) {
+  if (dataset === DiscoverDatasets.DISCOVER) {
+    return AGGREGATIONS;
+  }
+
+  return {
+    ...AGGREGATIONS,
+    [AggregationKey.COUNT_IF]: {
+      ...AGGREGATIONS[AggregationKey.COUNT_IF],
+      parameters: [
+        {
+          kind: 'column',
+          columnTypes: validateDenyListColumns(
+            ['string', 'duration', 'number', 'integer'],
+            ['id', 'issue', 'user.display']
+          ),
+          defaultValue:
+            dataset === DiscoverDatasets.TRANSACTIONS
+              ? 'transaction.duration'
+              : 'event.type',
+          required: true,
+        },
+        {
+          kind: 'dropdown',
+          options: CONDITIONS_ARGUMENTS,
+          dataType: 'string',
+          defaultValue: CONDITIONS_ARGUMENTS[0]!.value,
+          required: true,
+        },
+        {
+          kind: 'value',
+          dataType: 'string',
+          defaultValue: dataset === DiscoverDatasets.TRANSACTIONS ? '300' : 'error',
+          required: true,
+        },
+      ],
+    },
+  } as const;
 }
 
 export const SPAN_OP_RELATIVE_BREAKDOWN_FIELD = 'span_ops_breakdown.relative';
@@ -715,7 +786,7 @@ export const TRACING_FIELDS = [
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 ];
 
-export const TRANSACTION_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
+export const TRANSACTION_ONLY_FIELDS: Array<FieldKey | SpanOpBreakdown> = [
   FieldKey.TRANSACTION_DURATION,
   FieldKey.TRANSACTION_OP,
   FieldKey.TRANSACTION_STATUS,
@@ -731,7 +802,7 @@ export const ERROR_FIELDS = DISCOVER_FIELDS.filter(
   f => !TRANSACTION_ONLY_FIELDS.includes(f)
 );
 
-export const ERROR_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
+export const ERROR_ONLY_FIELDS: Array<FieldKey | SpanOpBreakdown> = [
   FieldKey.LOCATION,
   FieldKey.EVENT_TYPE,
   FieldKey.ERROR_TYPE,
@@ -764,13 +835,47 @@ export const ERRORS_AGGREGATION_FUNCTIONS = [
   AggregationKey.COUNT_UNIQUE,
   AggregationKey.EPS,
   AggregationKey.EPM,
+  AggregationKey.LAST_SEEN,
+];
+
+export const ERROR_UPSAMPLING_AGGREGATION_FUNCTIONS = [
+  AggregationKey.SAMPLE_COUNT,
+  AggregationKey.SAMPLE_EPS,
+  AggregationKey.SAMPLE_EPM,
+];
+
+export const TRANSACTIONS_AGGREGATION_FUNCTIONS = [
+  AggregationKey.COUNT,
+  AggregationKey.COUNT_IF,
+  AggregationKey.COUNT_UNIQUE,
+  AggregationKey.COUNT_MISERABLE,
+  AggregationKey.COUNT_WEB_VITALS,
+  AggregationKey.EPS,
+  AggregationKey.EPM,
+  AggregationKey.FAILURE_COUNT,
+  AggregationKey.MIN,
+  AggregationKey.MAX,
+  AggregationKey.SUM,
+  AggregationKey.ANY,
+  AggregationKey.P50,
+  AggregationKey.P75,
+  AggregationKey.P90,
+  AggregationKey.P95,
+  AggregationKey.P99,
+  AggregationKey.P100,
+  AggregationKey.PERCENTILE,
+  AggregationKey.AVG,
+  AggregationKey.APDEX,
+  AggregationKey.USER_MISERY,
+  AggregationKey.FAILURE_RATE,
+  AggregationKey.LAST_SEEN,
 ];
 
 // This list contains fields/functions that are available with profiling feature.
 export const PROFILING_FIELDS: string[] = [FieldKey.PROFILE_ID];
 
-export const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
-export const SPAN_OP_BREAKDOWN_PATTERN = /^spans\.([a-zA-Z0-9-_.]+)$/;
+const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
+const SPAN_OP_BREAKDOWN_PATTERN = /^spans\.([a-zA-Z0-9-_.]+)$/;
 
 export function isMeasurement(field: string): boolean {
   return MEASUREMENT_PATTERN.test(field);
@@ -778,6 +883,7 @@ export function isMeasurement(field: string): boolean {
 
 export function measurementType(field: string): MeasurementType {
   if (MEASUREMENT_FIELDS.hasOwnProperty(field)) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return MEASUREMENT_FIELDS[field].valueType as MeasurementType;
   }
 
@@ -787,21 +893,21 @@ export function measurementType(field: string): MeasurementType {
 export function getMeasurementSlug(field: string): string | null {
   const results = field.match(MEASUREMENT_PATTERN);
   if (results && results.length >= 2) {
-    return results[1];
+    return results[1]!;
   }
   return null;
 }
 
 const AGGREGATE_PATTERN = /^(\w+)\((.*)?\)$/;
 // Identical to AGGREGATE_PATTERN, but without the $ for newline, or ^ for start of line
-const AGGREGATE_BASE = /(\w+)\((.*)?\)/g;
+export const AGGREGATE_BASE = /(\w+)\((.*)?\)/g;
 
 export function getAggregateArg(field: string): string | null {
   // only returns the first argument if field is an aggregate
   const result = parseFunction(field);
 
   if (result && result.arguments.length > 0) {
-    return result.arguments[0];
+    return result.arguments[0]!;
   }
 
   return null;
@@ -811,40 +917,41 @@ export function parseFunction(field: string): ParsedFunction | null {
   const results = field.match(AGGREGATE_PATTERN);
   if (results && results.length === 3) {
     return {
-      name: results[1],
-      arguments: parseArguments(results[1], results[2]),
+      name: results[1]!,
+      arguments: parseArguments(results[2]!),
     };
   }
 
   return null;
 }
 
-export function parseArguments(functionText: string, columnText: string): string[] {
-  // Some functions take a quoted string for their arguments that may contain commas
-  // This function attempts to be identical with the similarly named parse_arguments
-  // found in src/sentry/search/events/fields.py
-  if (
-    (functionText !== 'to_other' &&
-      functionText !== 'count_if' &&
-      functionText !== 'spans_histogram') ||
-    columnText?.length === 0
-  ) {
-    return columnText ? columnText.split(',').map(result => result.trim()) : [];
+function _lookback(columnText: string, j: number, str: string) {
+  // For parse_arguments, check that the current character is preceeded by string
+  if (j < str.length) {
+    return false;
   }
+  return columnText.substring(j - str.length, j) === str;
+}
 
+function parseArguments(columnText: string): string[] {
   const args: string[] = [];
 
   let quoted = false;
+  let inTag = false;
   let escaped = false;
 
-  let i: number = 0;
-  let j: number = 0;
+  let i = 0;
+  let j = 0;
 
   while (j < columnText?.length) {
-    if (i === j && columnText[j] === '"') {
+    if (!inTag && i === j && columnText[j] === '"') {
       // when we see a quote at the beginning of
       // an argument, then this is a quoted string
       quoted = true;
+    } else if (!quoted && columnText[j] === '[' && _lookback(columnText, j, 'tags')) {
+      // when the argument begins with tags[,
+      // then this is the beginning of the tag that may contain commas
+      inTag = true;
     } else if (i === j && columnText[j] === ' ') {
       // argument has leading spaces, skip over them
       i += 1;
@@ -856,12 +963,16 @@ export function parseArguments(functionText: string, columnText: string): string
       // when we see a non-escaped quote while inside
       // of a quoted string, we should end it
       quoted = false;
+    } else if (inTag && !escaped && columnText[j] === ']') {
+      // when we see a non-escaped quote while inside
+      // of a quoted string, we should end it
+      inTag = false;
     } else if (quoted && escaped) {
       // when we are inside a quoted string and have
       // begun an escape character, we should end it
       escaped = false;
-    } else if (quoted && columnText[j] === ',') {
-      // when we are inside a quoted string and see
+    } else if ((quoted || inTag) && columnText[j] === ',') {
+      // when we are inside a quoted string or tag and see
       // a comma, it should not be considered an
       // argument separator
     } else if (columnText[j] === ',') {
@@ -884,7 +995,7 @@ export function parseArguments(functionText: string, columnText: string): string
 // `|` is an invalid field character, so it is used to determine whether a field is an equation or not
 export const EQUATION_PREFIX = 'equation|';
 const EQUATION_ALIAS_PATTERN = /^equation\[(\d+)\]$/;
-export const CALCULATED_FIELD_PREFIX = 'calculated|';
+const CALCULATED_FIELD_PREFIX = 'calculated|';
 
 export function isEquation(field: string): boolean {
   return field.startsWith(EQUATION_PREFIX);
@@ -906,7 +1017,7 @@ export function getEquationAliasIndex(field: string): number {
   const results = field.match(EQUATION_ALIAS_PATTERN);
 
   if (results && results.length === 2) {
-    return parseInt(results[1], 10);
+    return parseInt(results[1]!, 10);
   }
   return -1;
 }
@@ -939,7 +1050,9 @@ export function generateAggregateFields(
   const functions = Object.keys(AGGREGATIONS);
   const fields = Object.values(eventFields).map(field => field.field);
   functions.forEach(func => {
-    const parameters = AGGREGATIONS[func].parameters.map(param => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+    const parameters = AGGREGATIONS[func].parameters.map((param: any) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const overrides = AGGREGATIONS[func].getFieldOverrides;
       if (typeof overrides === 'undefined') {
         return param;
@@ -950,9 +1063,9 @@ export function generateAggregateFields(
       };
     });
 
-    if (parameters.every(param => typeof param.defaultValue !== 'undefined')) {
+    if (parameters.every((param: any) => typeof param.defaultValue !== 'undefined')) {
       const newField = `${func}(${parameters
-        .map(param => param.defaultValue)
+        .map((param: any) => param.defaultValue)
         .join(',')})`;
       if (!fields.includes(newField) && !excludeFields.includes(newField)) {
         fields.push(newField);
@@ -962,7 +1075,7 @@ export function generateAggregateFields(
   return fields.map(field => ({field})) as Field[];
 }
 
-export function isDerivedMetric(field: string): boolean {
+function isDerivedMetric(field: string): boolean {
   return field.startsWith(CALCULATED_FIELD_PREFIX);
 }
 
@@ -1053,7 +1166,7 @@ export function isAggregateFieldOrEquation(field: string): boolean {
  * Temporary hardcoded hack to enable testing derived metrics.
  * Can be removed after we get rid of getAggregateFields
  */
-export function isNumericMetrics(field: string): boolean {
+function isNumericMetrics(field: string): boolean {
   return [
     'session.crash_free_rate',
     'session.crashed',
@@ -1063,7 +1176,7 @@ export function isNumericMetrics(field: string): boolean {
   ].includes(field);
 }
 
-export function getAggregateFields(fields: string[]): string[] {
+function getAggregateFields(fields: string[]): string[] {
   return fields.filter(
     field =>
       isAggregateField(field) || isAggregateEquation(field) || isNumericMetrics(field)
@@ -1143,6 +1256,7 @@ export function aggregateFunctionOutputType(
   firstArg: string | undefined
 ): AggregationOutputType | null {
   const aggregate =
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     AGGREGATIONS[ALIASES[funcName] || funcName] ?? SESSIONS_OPERATIONS[funcName];
 
   // Attempt to use the function's outputType.
@@ -1159,14 +1273,17 @@ export function aggregateFunctionOutputType(
   }
 
   if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
 
   if (firstArg && STARFISH_FIELDS[firstArg]) {
-    return STARFISH_FIELDS[firstArg].outputType;
+    return STARFISH_FIELDS[firstArg]!.outputType;
   }
 
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (STARFISH_AGGREGATION_FIELDS[funcName]) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return STARFISH_AGGREGATION_FIELDS[funcName].defaultOutputType;
   }
 
@@ -1193,6 +1310,7 @@ export function errorsAndTransactionsAggregateFunctionOutputType(
   funcName: string,
   firstArg: string | undefined
 ): AggregationOutputType | null {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const aggregate = AGGREGATIONS[ALIASES[funcName] || funcName];
 
   // Attempt to use the function's outputType.
@@ -1227,32 +1345,6 @@ export function errorsAndTransactionsAggregateFunctionOutputType(
   return null;
 }
 
-export function sessionsAggregateFunctionOutputType(
-  funcName: string,
-  firstArg: string | undefined
-): AggregationOutputType | null {
-  const aggregate = SESSIONS_OPERATIONS[funcName];
-
-  // Attempt to use the function's outputType.
-  if (aggregate?.outputType) {
-    return aggregate.outputType;
-  }
-
-  // If the first argument is undefined and it is not required,
-  // then we attempt to get the default value.
-  if (!firstArg && aggregate?.parameters?.[0]) {
-    if (aggregate.parameters[0].required === false) {
-      firstArg = aggregate.parameters[0].defaultValue;
-    }
-  }
-
-  if (firstArg && SESSIONS_FIELDS.hasOwnProperty(firstArg)) {
-    return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
-  }
-
-  return null;
-}
-
 /**
  * Get the multi-series chart type for an aggregate function.
  */
@@ -1268,6 +1360,7 @@ export function aggregateMultiPlotType(field: string): PlotType {
   if (!AGGREGATIONS.hasOwnProperty(result.name)) {
     return 'area';
   }
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return AGGREGATIONS[result.name].multiPlotType;
 }
 
@@ -1322,9 +1415,7 @@ export function fieldAlignment(
   metadata?: Record<string, ColumnValueType>
 ): Alignments {
   let align: Alignments = 'left';
-  if (isMRIField(columnName)) {
-    return 'right';
-  }
+
   if (columnType) {
     align = alignedTypes.includes(columnType) ? 'right' : 'left';
   }
@@ -1342,19 +1433,19 @@ export function fieldAlignment(
 /**
  * Match on types that are legal to show on a timeseries chart.
  */
-export function isLegalYAxisType(match: ColumnType | MetricType) {
+export function isLegalYAxisType(match: ColumnType) {
   return ['number', 'integer', 'duration', 'percentage'].includes(match);
 }
 
 export function getSpanOperationName(field: string): string | null {
   const results = field.match(SPAN_OP_BREAKDOWN_PATTERN);
   if (results && results.length >= 2) {
-    return results[1];
+    return results[1]!;
   }
   return null;
 }
 
-export function getColumnType(column: Column): ColumnType {
+function getColumnType(column: Column): ColumnType {
   if (column.kind === 'function') {
     const outputType = aggregateFunctionOutputType(
       column.function[0],
@@ -1389,18 +1480,24 @@ export function hasDuplicate(columnList: Column[], column: Column): boolean {
 // Search categorizations for the new `SearchQueryBuilder` component.
 // Each Insights module page will have different points of interest for searching, so use these on a case-by-case basis
 
-export const TRANSACTION_FILTER_FIELDS: FilterKeySection = {
-  value: 'transaction_fields',
-  label: 'Transaction',
+const TRANSACTION_FILTERS: FilterKeySection = {
+  value: 'transaction_event_filters',
+  label: 'Event',
   children: [
     FieldKey.TRANSACTION_DURATION,
     FieldKey.TRANSACTION_OP,
     FieldKey.TRANSACTION_STATUS,
+    FieldKey.TRANSACTION,
+    SpanOpBreakdown.SPANS_BROWSER,
+    SpanOpBreakdown.SPANS_DB,
+    SpanOpBreakdown.SPANS_HTTP,
+    SpanOpBreakdown.SPANS_RESOURCE,
+    SpanOpBreakdown.SPANS_UI,
   ],
 };
 
-export const USER_FILTER_FIELDS: FilterKeySection = {
-  value: 'user_fields',
+const USER_FILTERS: FilterKeySection = {
+  value: 'user_filters',
   label: 'User',
   children: [
     FieldKey.USER,
@@ -1412,9 +1509,9 @@ export const USER_FILTER_FIELDS: FilterKeySection = {
   ],
 };
 
-export const GEO_FILTER_FIELDS: FilterKeySection = {
-  value: 'geo_fields',
-  label: 'Geographical',
+const GEO_FILTERS: FilterKeySection = {
+  value: 'geo_filters',
+  label: 'Geo',
   children: [
     FieldKey.GEO_CITY,
     FieldKey.GEO_COUNTRY_CODE,
@@ -1423,8 +1520,8 @@ export const GEO_FILTER_FIELDS: FilterKeySection = {
   ],
 };
 
-export const HTTP_FILTER_FIELDS: FilterKeySection = {
-  value: 'http_fields',
+const HTTP_FILTERS: FilterKeySection = {
+  value: 'http_filters',
   label: 'HTTP',
   children: [
     FieldKey.HTTP_METHOD,
@@ -1434,20 +1531,8 @@ export const HTTP_FILTER_FIELDS: FilterKeySection = {
   ],
 };
 
-export const SPAN_OP_FILTER_FIELDS: FilterKeySection = {
-  value: 'span_duration_fields',
-  label: 'Span Duration',
-  children: [
-    SpanOpBreakdown.SPANS_BROWSER,
-    SpanOpBreakdown.SPANS_DB,
-    SpanOpBreakdown.SPANS_HTTP,
-    SpanOpBreakdown.SPANS_RESOURCE,
-    SpanOpBreakdown.SPANS_UI,
-  ],
-};
-
-export const WEB_VITAL_FIELDS: FilterKeySection = {
-  value: 'web_vital_fields',
+const WEB_VITAL_FILTERS: FilterKeySection = {
+  value: 'web_filters',
   label: 'Web Vitals',
   children: [
     WebVital.CLS,
@@ -1460,8 +1545,8 @@ export const WEB_VITAL_FIELDS: FilterKeySection = {
   ],
 };
 
-export const MOBILE_VITAL_FIELDS: FilterKeySection = {
-  value: 'mobile_vital_fields',
+const MOBILE_VITAL_FILTERS: FilterKeySection = {
+  value: 'mobile_vitals_filters',
   label: 'Mobile Vitals',
   children: [
     MobileVital.APP_START_COLD,
@@ -1480,8 +1565,8 @@ export const MOBILE_VITAL_FIELDS: FilterKeySection = {
   ],
 };
 
-export const DEVICE_FIELDS: FilterKeySection = {
-  value: 'device_fields',
+const DEVICE_FILTERS: FilterKeySection = {
+  value: 'device_filters',
   label: 'Device',
   children: [
     FieldKey.DEVICE_ARCH,
@@ -1504,8 +1589,8 @@ export const DEVICE_FIELDS: FilterKeySection = {
   ],
 };
 
-export const RELEASE_FIELDS: FilterKeySection = {
-  value: 'release_fields',
+const RELEASE_FILTERS: FilterKeySection = {
+  value: 'release_filters',
   label: 'Release',
   children: [
     FieldKey.RELEASE,
@@ -1516,28 +1601,99 @@ export const RELEASE_FIELDS: FilterKeySection = {
   ],
 };
 
-export const MISC_FIELDS: FilterKeySection = {
-  value: 'misc_fields',
-  label: 'Misc',
-  children: [FieldKey.HAS, FieldKey.DIST],
+const ERROR_DETAIL_FILTERS: FilterKeySection = {
+  value: 'error_detail_filters',
+  label: 'Error',
+  children: [
+    FieldKey.LEVEL,
+    FieldKey.MESSAGE,
+    FieldKey.ERROR_TYPE,
+    FieldKey.ERROR_VALUE,
+    FieldKey.ERROR_MECHANISM,
+    FieldKey.ERROR_HANDLED,
+    FieldKey.ERROR_UNHANDLED,
+    FieldKey.ERROR_RECEIVED,
+    FieldKey.ERROR_MAIN_THREAD,
+  ],
+};
+
+const ERROR_EVENT_FILTERS: FilterKeySection = {
+  value: 'error_event_filters',
+  label: 'Event',
+  children: [
+    ...ERROR_DETAIL_FILTERS.children,
+    ...HTTP_FILTERS.children,
+    ...RELEASE_FILTERS.children,
+  ],
+};
+
+const COMBINED_EVENT_FILTERS: FilterKeySection = {
+  value: 'combined_event_filters',
+  label: 'Event',
+  children: [
+    ...TRANSACTION_FILTERS.children,
+    ...ERROR_DETAIL_FILTERS.children,
+    ...HTTP_FILTERS.children,
+    ...RELEASE_FILTERS.children,
+  ],
+};
+
+const USER_CONTEXT_FILTERS: FilterKeySection = {
+  value: 'user_context_filters',
+  label: 'User',
+  children: [
+    ...USER_FILTERS.children,
+    ...GEO_FILTERS.children,
+    ...DEVICE_FILTERS.children,
+  ],
+};
+
+const PERFORMANCE_FILTERS: FilterKeySection = {
+  value: 'performance_filters',
+  label: 'Performance',
+  children: [...WEB_VITAL_FILTERS.children, ...MOBILE_VITAL_FILTERS.children],
 };
 
 export const ALL_INSIGHTS_FILTER_KEY_SECTIONS: FilterKeySection[] = [
-  TRANSACTION_FILTER_FIELDS,
-  SPAN_OP_FILTER_FIELDS,
-  HTTP_FILTER_FIELDS,
-  WEB_VITAL_FIELDS,
-  RELEASE_FIELDS,
-  USER_FILTER_FIELDS,
-  GEO_FILTER_FIELDS,
-  // TODO: In the future, it would be ideal if we could be more 'smart' about which fields we expose here.
-  // For example, these mobile vitals are not necessary for a Python transaction, but they should be suggested for mobile SDK transactions
-  MOBILE_VITAL_FIELDS,
-  DEVICE_FIELDS,
-  MISC_FIELDS,
+  PERFORMANCE_FILTERS,
+  TRANSACTION_FILTERS,
+  USER_CONTEXT_FILTERS,
+];
+
+export const ERRORS_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
+  ERROR_EVENT_FILTERS,
+  USER_CONTEXT_FILTERS,
+];
+
+export const COMBINED_DATASET_FILTER_KEY_SECTIONS: FilterKeySection[] = [
+  PERFORMANCE_FILTERS,
+  COMBINED_EVENT_FILTERS,
+  USER_CONTEXT_FILTERS,
 ];
 
 // TODO: In followup PR, add this
 // export const PLATFORM_KEY_TO_FILTER_SECTIONS
 // will take in a project platform key, and output only the relevant filter key sections.
 // This way, users will not be suggested mobile fields for a backend transaction, for example.
+
+export function prettifyParsedFunction(func: ParsedFunction) {
+  // special case for `count(span.duration)` as we want to say `count(spans)`
+  if (
+    func.name === 'count' &&
+    func.arguments.length === 1 &&
+    func.arguments[0] === 'span.duration'
+  ) {
+    return 'count(spans)';
+  }
+
+  if (
+    func.name === 'count' &&
+    func.arguments.length === 1 &&
+    func.arguments[0] === 'message'
+  ) {
+    return 'count(logs)';
+  }
+
+  const args = func.arguments.map(prettifyTagKey);
+  return `${func.name}(${args.join(',')})`;
+}

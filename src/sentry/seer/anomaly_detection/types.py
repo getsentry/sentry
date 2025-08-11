@@ -1,14 +1,29 @@
-from enum import Enum
-from typing import TypedDict
+from enum import IntEnum, StrEnum
+from typing import NotRequired, TypedDict
 
 
-class AlertInSeer(TypedDict):
-    id: int
+class Anomaly(TypedDict):
+    anomaly_type: str
+    anomaly_score: float
 
 
 class TimeSeriesPoint(TypedDict):
     timestamp: float
     value: float
+    anomaly: NotRequired[Anomaly]
+
+
+class DataSourceType(IntEnum):
+    SNUBA_QUERY_SUBSCRIPTION = 1
+
+
+class AlertInSeer(TypedDict):
+    id: int | None
+    source_id: NotRequired[
+        int
+    ]  # during our dual processing rollout, some requests will be sending ID and some will send source_id/source_type
+    source_type: NotRequired[DataSourceType]
+    cur_window: NotRequired[TimeSeriesPoint]
 
 
 class AnomalyDetectionConfig(TypedDict):
@@ -26,8 +41,71 @@ class StoreDataRequest(TypedDict):
     timeseries: list[TimeSeriesPoint]
 
 
-class AnomalyType(Enum):
+class StoreDataResponse(TypedDict):
+    success: bool
+    message: NotRequired[str]
+
+
+class DetectAnomaliesRequest(TypedDict):
+    organization_id: int
+    project_id: int
+    config: AnomalyDetectionConfig
+    context: AlertInSeer | list[TimeSeriesPoint]
+
+
+class DetectHistoricalAnomaliesContext(TypedDict):
+    history: list[TimeSeriesPoint]
+    current: list[TimeSeriesPoint]
+
+
+class DetectHistoricalAnomaliesRequest(TypedDict):
+    organization_id: int
+    project_id: int
+    config: AnomalyDetectionConfig
+    context: DetectHistoricalAnomaliesContext
+
+
+class DeleteAlertDataRequest(TypedDict):
+    organization_id: int
+    project_id: NotRequired[int]
+    alert: AlertInSeer
+
+
+class DetectAnomaliesResponse(TypedDict):
+    success: bool
+    message: NotRequired[str]
+    timeseries: list[TimeSeriesPoint]
+
+
+class AnomalyType(StrEnum):
     HIGH_CONFIDENCE = "anomaly_higher_confidence"
     LOW_CONFIDENCE = "anomaly_lower_confidence"
     NONE = "none"
     NO_DATA = "no_data"
+
+
+class AnomalyDetectionSensitivity(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+class AnomalyDetectionSeasonality(StrEnum):
+    """All combinations of multi select fields for anomaly detection alerts
+    We do not anticipate adding more
+    """
+
+    AUTO = "auto"
+    HOURLY = "hourly"
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    HOURLY_DAILY = "hourly_daily"
+    HOURLY_WEEKLY = "hourly_weekly"
+    HOURLY_DAILY_WEEKLY = "hourly_daily_weekly"
+    DAILY_WEEKLY = "daily_weekly"
+
+
+class AnomalyDetectionThresholdType(IntEnum):
+    ABOVE = 0
+    BELOW = 1
+    ABOVE_AND_BELOW = 2

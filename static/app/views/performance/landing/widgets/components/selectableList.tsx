@@ -1,12 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Radio} from 'sentry/components/core/radio';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
-import Radio from 'sentry/components/radio';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -14,11 +13,11 @@ import {getConfigurePerformanceDocsLink} from 'sentry/utils/docs';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {CACHE_BASE_URL} from 'sentry/views/insights/cache/settings';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
-import {
-  MODULE_DOC_LINK,
-  MODULE_TITLE as HTTP_MODULE_TITLE,
-} from 'sentry/views/insights/http/settings';
+import {MODULE_DOC_LINK} from 'sentry/views/insights/http/settings';
+import {MODULE_DOC_LINK as QUEUE_MODULE_DOC_LINK} from 'sentry/views/insights/queues/settings';
+import {ModuleName} from 'sentry/views/insights/types';
 import {getIsMultiProject} from 'sentry/views/performance/utils';
 
 type Props = {
@@ -73,8 +72,8 @@ export const RightAlignedCell = styled('div')`
 `;
 
 export const Subtitle = styled('span')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.md};
   display: inline-block;
 `;
 
@@ -82,6 +81,15 @@ export const GrowLink = styled(Link)`
   flex-grow: 1;
   display: inherit;
 `;
+
+export function GenericWidgetEmptyStateWarning({message}: {message: React.ReactNode}) {
+  return (
+    <StyledEmptyStateWarning>
+      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <SecondaryMessage>{message}</SecondaryMessage>
+    </StyledEmptyStateWarning>
+  );
+}
 
 export function WidgetEmptyStateWarning() {
   return (
@@ -127,6 +135,26 @@ export function TimeConsumingDomainsWidgetEmptyStateWarning() {
   );
 }
 
+export function QueuesWidgetEmptyStateWarning() {
+  return (
+    <StyledEmptyStateWarning>
+      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <SecondaryMessage>
+        {tct(
+          'Transactions may be missing due to the filters above, a low sampling rate, or an error with instrumentation. Please see the [link] for more information.',
+          {
+            link: (
+              <ExternalLink href={QUEUE_MODULE_DOC_LINK}>
+                {t('Queues module documentation')}
+              </ExternalLink>
+            ),
+          }
+        )}
+      </SecondaryMessage>
+    </StyledEmptyStateWarning>
+  );
+}
+
 export function HighestCacheMissRateTransactionsWidgetEmptyStateWarning() {
   return (
     <StyledEmptyStateWarning>
@@ -150,6 +178,7 @@ export function HighestCacheMissRateTransactionsWidgetEmptyStateWarning() {
 export function WidgetAddInstrumentationWarning({type}: {type: 'db' | 'http'}) {
   const pageFilters = usePageFilters();
   const fullProjects = useProjects();
+  const httpModuleTitle = useModuleTitle(ModuleName.HTTP);
 
   const projects = pageFilters.selection.projects;
 
@@ -173,7 +202,7 @@ export function WidgetAddInstrumentationWarning({type}: {type: 'db' | 'http'}) {
         {tct(
           'No transactions with [spanCategory] spans found. You may need to add integrations to your [link] to capture these spans.',
           {
-            spanCategory: type === 'db' ? t('Database') : HTTP_MODULE_TITLE,
+            spanCategory: type === 'db' ? t('Database') : httpModuleTitle,
             link: (
               <ExternalLink href={docsLink}>
                 {t('performance monitoring setup')}
@@ -229,15 +258,15 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
 `;
 
 const PrimaryMessage = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray300};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin: 0 auto ${space(1)};
 `;
 
 const SecondaryMessage = styled('p')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
   max-width: 300px;
 `;
 
@@ -245,7 +274,7 @@ const ListItemContainer = styled('div')`
   display: flex;
   border-top: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const ItemRadioContainer = styled('div')`

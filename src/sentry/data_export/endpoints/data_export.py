@@ -6,16 +6,20 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationDataExportPermission, OrganizationEndpoint
+from sentry.api.helpers.environments import get_environment_id
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.errors import ErrorsQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.errors import PARSER_CONFIG_OVERRIDES
 from sentry.utils import metrics
 from sentry.utils.snuba import MAX_FIELDS
 
@@ -25,10 +29,11 @@ from ..processors.discover import DiscoverProcessor
 from ..tasks import assemble_download
 
 # To support more datasets we may need to change the QueryBuilder being used
-# for now only doing issuePlatform since the product is forcing our hand
 SUPPORTED_DATASETS = {
     "discover": Dataset.Discover,
     "issuePlatform": Dataset.IssuePlatform,
+    "transactions": Dataset.Transactions,
+    "errors": Dataset.Events,
 }
 
 
@@ -38,6 +43,7 @@ class DataExportQuerySerializer(serializers.Serializer):
 
     def validate(self, data):
         organization = self.context["organization"]
+        has_metrics = self.context["has_metrics"]
         query_info = data["query_info"]
 
         # Validate the project field, if provided
@@ -95,24 +101,32 @@ class DataExportQuerySerializer(serializers.Serializer):
             query_info["end"] = end.isoformat()
             dataset = query_info.get("dataset", "discover")
             if dataset not in SUPPORTED_DATASETS:
-                raise serializers.ValidationError(f"{dataset} is not support for csv exports")
+                raise serializers.ValidationError(f"{dataset} is not supported for csv exports")
 
             # validate the query string by trying to parse it
             processor = DiscoverProcessor(
                 discover_query=query_info,
-                organization_id=organization.id,
+                organization=organization,
             )
             try:
-                builder = DiscoverQueryBuilder(
+                query_builder_cls = DiscoverQueryBuilder
+                config = QueryBuilderConfig(
+                    auto_fields=True,
+                    auto_aggregations=True,
+                    has_metrics=has_metrics,
+                )
+                if dataset == "errors":
+                    query_builder_cls = ErrorsQueryBuilder
+                    config.parser_config_overrides = PARSER_CONFIG_OVERRIDES
+
+                builder = query_builder_cls(
                     SUPPORTED_DATASETS[dataset],
-                    processor.params,
+                    params={},
+                    snuba_params=processor.snuba_params,
                     query=query_info["query"],
                     selected_columns=fields.copy(),
                     equations=equations,
-                    config=QueryBuilderConfig(
-                        auto_fields=True,
-                        auto_aggregations=True,
-                    ),
+                    config=config,
                 )
                 builder.get_snql_query()
             except InvalidSearchQuery as err:
@@ -122,11 +136,41 @@ class DataExportQuerySerializer(serializers.Serializer):
 
 
 @region_silo_endpoint
-class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
+class DataExportEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationDataExportPermission,)
+
+    def get_features(self, organization: Organization, request: Request) -> dict[str, bool | None]:
+        feature_names = [
+            "organizations:dashboards-mep",
+            "organizations:mep-rollout-flag",
+            "organizations:performance-use-metrics",
+            "organizations:profiling",
+            "organizations:dynamic-sampling",
+            "organizations:use-metrics-layer",
+            "organizations:starfish-view",
+        ]
+        batch_features = features.batch_has(
+            feature_names,
+            organization=organization,
+            actor=request.user,
+        )
+
+        all_features = (
+            batch_features.get(f"organization:{organization.id}", {})
+            if batch_features is not None
+            else {}
+        )
+
+        for feature_name in feature_names:
+            if feature_name not in all_features:
+                all_features[feature_name] = features.has(
+                    feature_name, organization=organization, actor=request.user
+                )
+
+        return all_features
 
     def post(self, request: Request, organization) -> Response:
         """
@@ -140,10 +184,21 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
         # Get environment_id and limit if available
         try:
-            environment_id = self._get_environment_id_from_request(request, organization.id)
+            environment_id = get_environment_id(request, organization.id)
         except Environment.DoesNotExist as error:
             return Response(error, status=400)
         limit = request.data.get("limit")
+
+        batch_features = self.get_features(organization, request)
+
+        use_metrics = (
+            (
+                batch_features.get("organizations:mep-rollout-flag", False)
+                and batch_features.get("organizations:dynamic-sampling", False)
+            )
+            or batch_features.get("organizations:performance-use-metrics", False)
+            or batch_features.get("organizations:dashboards-mep", False)
+        )
 
         # Validate the data export payload
         serializer = DataExportQuerySerializer(
@@ -154,6 +209,7 @@ class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
                     request=request, organization=organization, project_ids=project_query
                 ),
                 "get_projects": lambda: self.get_projects(request, organization),
+                "has_metrics": use_metrics,
             },
         )
         if not serializer.is_valid():

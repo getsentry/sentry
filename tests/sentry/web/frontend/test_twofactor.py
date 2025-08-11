@@ -14,12 +14,12 @@ from sentry.utils.http import absolute_uri
 
 @control_silo_test
 class TwoFactorTest(TestCase):
-    def test_not_pending_2fa(self):
+    def test_not_pending_2fa(self) -> None:
         resp = self.client.get("/auth/2fa/")
         assert resp.status_code == 302
         assert resp["Location"] == "/auth/login/"
 
-    def test_no_2fa_configured(self):
+    def test_no_2fa_configured(self) -> None:
         user = self.create_user()
         self.login_as(user)
 
@@ -32,7 +32,7 @@ class TwoFactorTest(TestCase):
             ("/organizations/new/", 302),
         ]
 
-    def test_otp_challenge(self):
+    def test_otp_challenge(self) -> None:
         user = self.create_user()
         interface = TotpInterface()
         interface.enroll(user)
@@ -48,7 +48,9 @@ class TwoFactorTest(TestCase):
 
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=None)
     @mock.patch("time.sleep")
-    def test_otp_submit_error(self, mock_sleep, mock_validate):
+    def test_otp_submit_error(
+        self, mock_sleep: mock.MagicMock, mock_validate: mock.MagicMock
+    ) -> None:
         user = self.create_user()
         interface = TotpInterface()
         interface.enroll(user)
@@ -63,7 +65,7 @@ class TwoFactorTest(TestCase):
         assert "Invalid confirmation code" in resp.content.decode("utf8")
 
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=True)
-    def test_otp_submit_success(self, mock_validate):
+    def test_otp_submit_success(self, mock_validate: mock.MagicMock) -> None:
         user = self.create_user()
         interface = TotpInterface()
         interface.enroll(user)
@@ -81,8 +83,11 @@ class TwoFactorTest(TestCase):
 
     @mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=False)
     @mock.patch("time.sleep")
-    def test_rate_limit(self, mock_validate, mock_sleep):
+    def test_rate_limit(self, mock_validate: mock.MagicMock, mock_sleep: mock.MagicMock) -> None:
         user = self.create_user()
+        user.set_password("helloworld!")
+        user.save()
+
         interface = TotpInterface()
         interface.enroll(user)
 
@@ -105,3 +110,19 @@ class TwoFactorTest(TestCase):
         url = absolute_uri(reverse("sentry-account-settings-security"))
         assert url in msg.body
         assert "IP address: 127.0.0.1" in msg.body
+
+        with freeze_time("2000-01-01"):
+            # 2FA rate limiter is reset after updating the password
+            url = absolute_uri(reverse("sentry-api-0-user-password", args=[user.id]))
+            self.client.put(
+                url,
+                content_type="application/json",
+                data={
+                    "password": "helloworld!",
+                    "passwordNew": "testpassword",
+                    "passwordVerify": "testpassword",
+                },
+            )
+
+            resp = self.client.post("/auth/2fa/", data={"otp": "123456"}, follow=False)
+            assert resp.status_code != 429

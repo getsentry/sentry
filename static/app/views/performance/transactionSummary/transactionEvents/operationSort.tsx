@@ -4,9 +4,9 @@ import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
 
+import {Radio} from 'sentry/components/core/radio';
 import type {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import MenuItem from 'sentry/components/menuItem';
-import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -62,7 +62,7 @@ class OperationSort extends Component<Props, State> {
     this.setState(({isOpen}) => ({isOpen: !isOpen}));
   };
 
-  generateSortLink(field): LocationDescriptorObject | undefined {
+  generateSortLink(field: any): LocationDescriptorObject | undefined {
     const {eventView, tableMeta, location} = this.props;
     if (!tableMeta) {
       return undefined;
@@ -77,7 +77,7 @@ class OperationSort extends Component<Props, State> {
     };
   }
 
-  renderMenuItem(operation, title) {
+  renderMenuItem(operation: any, title: any) {
     const {eventView} = this.props;
     return (
       <DropdownMenuItem>
@@ -85,7 +85,7 @@ class OperationSort extends Component<Props, State> {
           <RadioLabel>
             <StyledRadio
               readOnly
-              radioSize="small"
+              size="sm"
               checked={eventView.sorts.some(({field}) => field === operation)}
               onClick={() => {
                 const sortLink = this.generateSortLink({field: operation});
@@ -130,7 +130,7 @@ class OperationSort extends Component<Props, State> {
         {({ref: popperRef, style, placement}) => (
           <DropdownWrapper
             ref={ref => {
-              (popperRef as Function)(ref);
+              (popperRef as CallableFunction)(ref);
               this.menuEl = ref;
             }}
             style={style}
@@ -231,7 +231,7 @@ const DropdownWrapper = styled('div')`
 `;
 
 const DropdownMenuItem = styled(MenuItem)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};
@@ -253,7 +253,7 @@ const RadioLabel = styled('label')`
   grid-template-columns: max-content auto;
   align-items: center;
   outline: none;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin: 0;
 `;
 

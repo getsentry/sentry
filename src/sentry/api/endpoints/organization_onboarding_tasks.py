@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -7,17 +8,20 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.models.organizationonboardingtask import OnboardingTaskStatus
+from sentry.api.serializers import serialize
+from sentry.models.organization import Organization
+from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 
 
 class OnboardingTaskPermission(OrganizationPermission):
-    scope_map = {"POST": ["org:read"]}
+    scope_map = {"POST": ["org:read"], "GET": ["org:read"]}
 
 
 @region_silo_endpoint
 class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (OnboardingTaskPermission,)
@@ -41,7 +45,7 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
         # Cannot skip unskippable tasks
         if (
             status == OnboardingTaskStatus.SKIPPED
-            and task_id not in onboarding_tasks.get_skippable_tasks()
+            and task_id not in onboarding_tasks.get_skippable_tasks(organization)
         ):
             return Response(status=422)
 
@@ -60,7 +64,23 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
             values=values,
         )
 
+        if created and task_id == OnboardingTask.FIRST_PROJECT:
+            scope = sentry_sdk.get_current_scope()
+            scope.set_extra("org", organization.id)
+            sentry_sdk.capture_message(
+                f"Onboarding task {task_id} was created unexpectedly. It should have been updated instead.",
+                level="warning",
+            )
+
         if rows_affected or created:
             onboarding_tasks.try_mark_onboarding_complete(organization.id)
 
         return Response(status=204)
+
+    def get(self, request: Request, organization: Organization) -> Response:
+        tasks_to_serialize = list(
+            onboarding_tasks.fetch_onboarding_tasks(organization, request.user)
+        )
+        serialized_tasks = serialize(tasks_to_serialize, request.user)
+
+        return Response({"onboardingTasks": serialized_tasks}, status=200)

@@ -1,5 +1,6 @@
 from django.db import models
 
+from sentry.constants import PROJECT_SLUG_MAX_LENGTH
 from sentry.db.models import BoundedBigIntegerField, region_silo_model, sane_repr
 from sentry.models.deletedentry import DeletedEntry
 
@@ -15,7 +16,7 @@ class DeletedProject(DeletedEntry):
     is deleted, the child is also marked for deletion as well).
     """
 
-    slug = models.CharField(max_length=50, null=True)
+    slug = models.CharField(max_length=PROJECT_SLUG_MAX_LENGTH, null=True)
     name = models.CharField(max_length=200, null=True)
 
     organization_id = BoundedBigIntegerField(null=True)

@@ -2,9 +2,9 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import {Button} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -23,6 +23,33 @@ import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
+import {excludeTransaction} from 'sentry/views/performance/landing/utils';
+import {VitalBar} from 'sentry/views/performance/landing/vitalsCards';
+import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
+import SelectableList, {
+  GrowLink,
+  ListClose,
+  RightAlignedCell,
+  Subtitle,
+  WidgetEmptyStateWarning,
+} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import {transformDiscoverToList} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToList';
+import {transformEventsRequestToVitals} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToVitals';
+import type {
+  GenericPerformanceWidgetProps,
+  PerformanceWidgetProps,
+  QueryDefinition,
+  WidgetDataResult,
+} from 'sentry/views/performance/landing/widgets/types';
+import {
+  eventsRequestQueryProps,
+  getMEPQueryParams,
+  QUERY_LIMIT_PARAM,
+  TOTAL_EXPANDABLE_ROWS_HEIGHT,
+} from 'sentry/views/performance/landing/widgets/utils';
+import type {ChartDefinition} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
@@ -32,35 +59,16 @@ import {
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
 import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
-import {_VitalChart} from 'sentry/views/performance/vitalDetail/vitalChart';
-
-import {excludeTransaction} from '../../utils';
-import {VitalBar} from '../../vitalsCards';
-import {Accordion} from '../components/accordion';
-import {GenericPerformanceWidget} from '../components/performanceWidget';
-import SelectableList, {
-  GrowLink,
-  ListClose,
-  RightAlignedCell,
-  Subtitle,
-  WidgetEmptyStateWarning,
-} from '../components/selectableList';
-import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
-import {transformEventsRequestToVitals} from '../transforms/transformEventsToVitals';
-import type {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {
-  eventsRequestQueryProps,
-  getMEPQueryParams,
-  QUERY_LIMIT_PARAM,
-  TOTAL_EXPANDABLE_ROWS_HEIGHT,
-} from '../utils';
-import type {ChartDefinition} from '../widgetDefinitions';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+import {VitalChartInner} from 'sentry/views/performance/vitalDetail/vitalChart';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToVitals>;
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
 };
+
+type ComponentData = React.ComponentProps<
+  GenericPerformanceWidgetProps<DataType>['Visualizations'][0]['component']
+>;
 
 function getVitalFields(baseField: string) {
   const poorCountField = `count_web_vitals(${baseField}, poor)`;
@@ -75,7 +83,7 @@ function getVitalFields(baseField: string) {
   return vitalFields;
 }
 
-export function transformFieldsWithStops(props: {
+function transformFieldsWithStops(props: {
   field: string;
   fields: string[];
   vitalStops: ChartDefinition['vitalStops'];
@@ -111,7 +119,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   const mepSetting = useMEPSettingContext();
   const {ContainerActions, eventView, organization, InteractiveTitle} = props;
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-  const field = props.fields[0];
+  const field = props.fields[0]!;
   const {setPageError} = usePageAlert();
 
   const {fieldsList, vitalFields, sortField} = transformFieldsWithStops({
@@ -123,7 +131,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   const Queries = {
     list: useMemo<QueryDefinition<DataType, WidgetDataResult>>(
       () => ({
-        fields: sortField,
+        fields: sortField!,
         component: provided => {
           const _eventView = provided.eventView.clone();
 
@@ -131,7 +139,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             field: propField,
           }));
 
-          _eventView.sorts = [{kind: 'desc', field: sortField}];
+          _eventView.sorts = [{kind: 'desc', field: sortField!}];
           if (canUseMetricsData(organization)) {
             _eventView.additionalConditions.setFilterValues('!transaction', [
               UNPARAMETERIZED_TRANSACTION,
@@ -193,8 +201,9 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           return (
             <EventsRequest
               {...requestProps}
+              includeAllArgs={false}
               limit={1}
-              currentSeriesNames={[sortField]}
+              currentSeriesNames={[sortField!]}
               includePrevious={false}
               partial={false}
               includeTransformedData
@@ -220,7 +229,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
     ),
   };
 
-  const settingToVital: {[x: string]: WebVital} = {
+  const settingToVital: Record<string, WebVital> = {
     [PerformanceWidgetSetting.WORST_LCP_VITALS]: WebVital.LCP,
     [PerformanceWidgetSetting.WORST_FCP_VITALS]: WebVital.FCP,
     [PerformanceWidgetSetting.WORST_FID_VITALS]: WebVital.FID,
@@ -231,11 +240,11 @@ export function VitalWidget(props: PerformanceWidgetProps) {
     // TODO(k-fish): Add analytics.
   };
 
-  const assembleAccordionItems = provided =>
+  const assembleAccordionItems = (provided: ComponentData) =>
     getItems(provided).map(item => ({header: item, content: getChart(provided)}));
 
-  const getChart = provided => (
-    <_VitalChart
+  const getChart = (provided: ComponentData) => (
+    <VitalChartInner
       {...provided.widgetData.chart}
       {...provided}
       field={field}
@@ -244,7 +253,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
     />
   );
 
-  const getItems = provided =>
+  const getItems = (provided: ComponentData) =>
     provided.widgetData.list.data.slice(0, QUERY_LIMIT_PARAM).map((listItem, i) => {
       const transaction = (listItem?.transaction as string | undefined) ?? '';
       const _eventView = eventView.clone();
@@ -252,15 +261,15 @@ export function VitalWidget(props: PerformanceWidgetProps) {
       const initialConditions = new MutableSearch(_eventView.query);
       initialConditions.addFilterValues('transaction', [transaction]);
 
-      const vital = settingToVital[props.chartSetting];
+      const vital = settingToVital[props.chartSetting]!;
 
       _eventView.query = initialConditions.formatString();
 
       const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
       const transactionTarget = transactionSummaryRouteWithQuery({
-        orgSlug: props.organization.slug,
-        projectID: listItem['project.id'],
-        transaction: listItem.transaction,
+        organization: props.organization,
+        projectID: listItem['project.id'] as string,
+        transaction: listItem.transaction as string,
         query: _eventView.generateQueryStringObject(),
         display: DisplayModes.VITALS,
       });
@@ -273,7 +282,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
         : transactionTarget;
 
       const data = {
-        [settingToVital[props.chartSetting]]: getVitalDataForListItem(
+        [settingToVital[props.chartSetting]!]: getVitalDataForListItem(
           listItem,
           vital,
           false
@@ -288,7 +297,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           <VitalBarCell>
             <VitalBar
               isLoading={provided.widgetData.list?.isLoading}
-              vital={settingToVital[props.chartSetting]}
+              vital={settingToVital[props.chartSetting]!}
               data={data}
               showBar
               showDurationDetail={false}
@@ -301,7 +310,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             <ListClose
               setSelectListIndex={setSelectListIndex}
               onClick={() =>
-                excludeTransaction(listItem.transaction, {
+                excludeTransaction(listItem.transaction!, {
                   eventView: props.eventView,
                   location,
                 })
@@ -312,46 +321,47 @@ export function VitalWidget(props: PerformanceWidgetProps) {
       );
     });
 
-  const visualizations = organization.features.includes('performance-new-widget-designs')
-    ? [
-        {
-          component: provided => (
-            <Accordion
-              expandedIndex={selectedListIndex}
-              setExpandedIndex={setSelectListIndex}
-              items={assembleAccordionItems(provided)}
-            />
-          ),
-          // accordion items height + chart height
-          height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
-          noPadding: true,
-        },
-      ]
-    : [
-        {
-          component: provided => (
-            <_VitalChart
-              {...provided.widgetData.chart}
-              {...provided}
-              field={field}
-              vitalFields={vitalFields}
-              grid={provided.grid}
-            />
-          ),
-          height: props.chartHeight,
-        },
-        {
-          component: provided => (
-            <SelectableList
-              selectedIndex={selectedListIndex}
-              setSelectedIndex={setSelectListIndex}
-              items={getItems(provided)}
-            />
-          ),
-          height: 30,
-          noPadding: true,
-        },
-      ];
+  const visualizations: GenericPerformanceWidgetProps<DataType>['Visualizations'] =
+    organization.features.includes('performance-new-widget-designs')
+      ? [
+          {
+            component: provided => (
+              <Accordion
+                expandedIndex={selectedListIndex}
+                setExpandedIndex={setSelectListIndex}
+                items={assembleAccordionItems(provided)}
+              />
+            ),
+            // accordion items height + chart height
+            height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
+            noPadding: true,
+          },
+        ]
+      : [
+          {
+            component: provided => (
+              <VitalChartInner
+                {...provided.widgetData.chart}
+                {...provided}
+                field={field}
+                vitalFields={vitalFields}
+                grid={provided.grid}
+              />
+            ),
+            height: props.chartHeight,
+          },
+          {
+            component: provided => (
+              <SelectableList
+                selectedIndex={selectedListIndex}
+                setSelectedIndex={setSelectListIndex}
+                items={getItems(provided)}
+              />
+            ),
+            height: 30,
+            noPadding: true,
+          },
+        ];
 
   return (
     <GenericPerformanceWidget<DataType>
@@ -369,10 +379,10 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           return <Subtitle />;
         }
 
-        const vital = settingToVital[props.chartSetting];
+        const vital = settingToVital[props.chartSetting]!;
 
         const data = {
-          [settingToVital[props.chartSetting]]: getVitalDataForListItem(
+          [settingToVital[props.chartSetting]!]: getVitalDataForListItem(
             listItem,
             vital,
             false
@@ -383,7 +393,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           <Subtitle>
             <VitalBar
               isLoading={provided.widgetData.list?.isLoading}
-              vital={settingToVital[props.chartSetting]}
+              vital={settingToVital[props.chartSetting]!}
               data={data}
               showBar={false}
               showDurationDetail={false}
@@ -394,7 +404,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
       }}
       EmptyComponent={WidgetEmptyStateWarning}
       HeaderActions={provided => {
-        const vital = settingToVital[props.chartSetting];
+        const vital = settingToVital[props.chartSetting]!;
         const target = vitalDetailRouteWithQuery({
           orgSlug: organization.slug,
           query: eventView.generateQueryStringObject(),
@@ -405,14 +415,14 @@ export function VitalWidget(props: PerformanceWidgetProps) {
         return (
           <Fragment>
             <div>
-              <Button
+              <LinkButton
                 onClick={handleViewAllClick}
                 to={target}
                 size="sm"
                 data-test-id="view-all-button"
               >
                 {t('View All')}
-              </Button>
+              </LinkButton>
             </div>
             {ContainerActions && <ContainerActions {...provided.widgetData.chart} />}
           </Fragment>
@@ -427,7 +437,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
 function getVitalDataForListItem(
   listItem: TableDataRow,
   vital: WebVital,
-  useAggregateAlias: boolean = true
+  useAggregateAlias = true
 ) {
   const vitalFields = getVitalFields(vital);
   const transformFieldName = (fieldName: string) =>
@@ -452,7 +462,7 @@ function getVitalDataForListItem(
   return vitalData;
 }
 
-export const VitalBarCell = styled(RightAlignedCell)`
+const VitalBarCell = styled(RightAlignedCell)`
   width: 120px;
   margin-left: ${space(1)};
   margin-right: ${space(1)};

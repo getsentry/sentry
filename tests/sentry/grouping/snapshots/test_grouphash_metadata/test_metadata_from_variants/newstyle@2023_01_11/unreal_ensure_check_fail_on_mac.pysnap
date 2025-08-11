@@ -1,0 +1,193 @@
+---
+created: '2025-02-28T13:16:30.843887+00:00'
+creator: sentry
+source: tests/sentry/grouping/test_grouphash_metadata.py
+---
+hash_basis: stacktrace
+hashing_metadata: {
+  "num_stacktraces": 1,
+  "stacktrace_location": "exception",
+  "stacktrace_type": "in_app"
+}
+---
+metrics with tags: {
+  "grouping.grouphashmetadata.event_hash_basis": {
+    "hash_basis": "stacktrace",
+    "is_hybrid_fingerprint": "False"
+  },
+  "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
+    "chained_exception": "False",
+    "stacktrace_location": "exception",
+    "stacktrace_type": "in_app"
+  }
+}
+---
+contributing variants:
+  app*
+    hash: "e7a1be23aff9a117598bb893ed4bedb4"
+    contributing component: exception
+    component:
+      app*
+        exception*
+          stacktrace*
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "-[FCocoaGameThread main]"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "-[UEAppDelegate runGameThread:]"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "GuardedMain"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "FEngineLoop::Tick"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "FSlateApplication::Tick"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "FSlateApplication::TickPlatform"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "FMacApplication::ProcessDeferredEvents"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "FMacApplication::ProcessEvent"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "FMacApplication::ProcessMouseUpEvent"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "FSlateApplication::OnMouseUp"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "FSlateApplication::ProcessMouseButtonUpEvent"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "FSlateApplication::RoutePointerUpEvent"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "SButton::OnMouseButtonUp"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "SButton::ExecuteOnClick"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "UButton::SlateHandleClicked"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "TMulticastScriptDelegate<T>::ProcessMulticastDelegate<T>"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "UObject::ProcessEvent"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "UFunction::Invoke"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "ProcessLocalScriptFunction"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "ProcessLocalFunction"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "ProcessScriptFunction<T>"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "ProcessLocalScriptFunction"
+            frame* (marked in-app by stack trace rule (family:native function:UE::Assert::Private::ExecCheckImplInternal* v+app -app ^-app))
+              function*
+                "UObject::execCallMathFunction"
+          type*
+            "Ensure failed"
+  system*
+    hash: "1bba3ace796a07d167af26959c6039c9"
+    contributing component: exception
+    component:
+      system*
+        exception*
+          stacktrace*
+            frame*
+              function*
+                "-[FCocoaGameThread main]"
+            frame*
+              function*
+                "-[UEAppDelegate runGameThread:]"
+            frame*
+              function*
+                "GuardedMain"
+            frame*
+              function*
+                "FEngineLoop::Tick"
+            frame*
+              function*
+                "FSlateApplication::Tick"
+            frame*
+              function*
+                "FSlateApplication::TickPlatform"
+            frame*
+              function*
+                "FMacApplication::ProcessDeferredEvents"
+            frame*
+              function*
+                "FMacApplication::ProcessEvent"
+            frame*
+              function*
+                "FMacApplication::ProcessMouseUpEvent"
+            frame*
+              function*
+                "FSlateApplication::OnMouseUp"
+            frame*
+              function*
+                "FSlateApplication::ProcessMouseButtonUpEvent"
+            frame*
+              function*
+                "FSlateApplication::RoutePointerUpEvent"
+            frame*
+              function*
+                "SButton::OnMouseButtonUp"
+            frame*
+              function*
+                "SButton::ExecuteOnClick"
+            frame*
+              function*
+                "UButton::SlateHandleClicked"
+            frame*
+              function*
+                "TMulticastScriptDelegate<T>::ProcessMulticastDelegate<T>"
+            frame*
+              function*
+                "UObject::ProcessEvent"
+            frame*
+              function*
+                "UFunction::Invoke"
+            frame*
+              function*
+                "ProcessLocalScriptFunction"
+            frame*
+              function*
+                "ProcessLocalFunction"
+            frame*
+              function*
+                "ProcessScriptFunction<T>"
+            frame*
+              function*
+                "ProcessLocalScriptFunction"
+            frame*
+              function*
+                "UObject::execCallMathFunction"
+            frame*
+              function*
+                "UE::Assert::Private::ExecCheckImplInternal"
+            frame*
+              function*
+                "FDebug::OptionallyLogFormattedEnsureMessageReturningFalseImpl"
+            frame*
+              function*
+                "FDebug::EnsureFailed"
+            frame*
+              function*
+                "TMulticastDelegateBase<T>::Broadcast<T>"
+          type*
+            "Ensure failed"

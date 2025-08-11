@@ -1,15 +1,15 @@
-import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
+import {Fragment, useCallback, useMemo} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import SearchBar from 'sentry/components/events/searchBar';
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
+import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/constants';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import {Tooltip} from 'sentry/components/tooltip';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -22,7 +22,6 @@ import {
   type DiscoverQueryProps,
   useGenericDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -32,52 +31,47 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
-import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   ModuleName,
-  SpanIndexedField,
-  type SpanIndexedResponse,
-  type SpanMetricsQueryFilters,
+  SpanFields,
+  type SpanQueryFilters,
+  type SpanResponse,
 } from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 import {useSpanSummarySort} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/useSpanSummarySort';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
-
-import Tab from '../../tabs';
 
 type DataRowKeys =
-  | SpanIndexedField.ID
-  | SpanIndexedField.TIMESTAMP
-  | SpanIndexedField.SPAN_DURATION
-  | SpanIndexedField.TRANSACTION_ID
-  | SpanIndexedField.TRACE
-  | SpanIndexedField.PROJECT;
+  | SpanFields.SPAN_ID
+  | SpanFields.TIMESTAMP
+  | SpanFields.SPAN_DURATION
+  | SpanFields.TRANSACTION_SPAN_ID
+  | SpanFields.TRACE
+  | SpanFields.PROJECT;
 
-type ColumnKeys =
-  | SpanIndexedField.ID
-  | SpanIndexedField.TIMESTAMP
-  | SpanIndexedField.SPAN_DURATION;
+type ColumnKeys = SpanFields.SPAN_ID | SpanFields.TIMESTAMP | SpanFields.SPAN_DURATION;
 
-type DataRow = Pick<SpanIndexedResponse, DataRowKeys> & {'transaction.duration': number};
+type DataRow = Pick<SpanResponse, DataRowKeys> & {'transaction.duration': number};
 
 type Column = GridColumnHeader<ColumnKeys>;
 
 const COLUMN_ORDER: Column[] = [
   {
-    key: SpanIndexedField.ID,
+    key: SpanFields.SPAN_ID,
     name: t('Span ID'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: SpanIndexedField.TIMESTAMP,
+    key: SpanFields.TIMESTAMP,
     name: t('Timestamp'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: SpanIndexedField.SPAN_DURATION,
+    key: SpanFields.SPAN_DURATION,
     name: t('Span Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -101,40 +95,39 @@ type Props = {
 export default function SpanSummaryTable(props: Props) {
   const {project} = props;
   const organization = useOrganization();
-  const supportedTags = useSpanFieldSupportedTags();
   const {spanSlug} = useParams();
   const navigate = useNavigate();
-  const [spanOp, groupId] = spanSlug.split(':');
+  const [spanOp, groupId] = spanSlug!.split(':');
 
   const location = useLocation();
   const {transaction} = location.query;
   const spansCursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
-  const spansQuery = decodeScalar(location.query.spansQuery);
+  const spansQuery = decodeScalar(location.query.spansQuery, '');
 
-  const filters: SpanMetricsQueryFilters = {
+  const filters: SpanQueryFilters = {
     'span.group': groupId,
     'span.op': spanOp,
     transaction: transaction as string,
   };
 
   const sort = useSpanSummarySort();
-  const spanSearchString = new MutableSearch(spansQuery ?? '').formatString();
+  const spanSearchString = new MutableSearch(spansQuery).formatString();
   const search = MutableSearch.fromQueryObject(filters);
   search.addStringMultiFilter(spanSearchString);
 
   const {
     data: rowData,
     pageLinks,
-    isLoading: isRowDataLoading,
-  } = useSpansIndexed(
+    isPending: isRowDataLoading,
+  } = useSpans(
     {
       fields: [
-        SpanIndexedField.ID,
-        SpanIndexedField.TRANSACTION_ID,
-        SpanIndexedField.TIMESTAMP,
-        SpanIndexedField.SPAN_DURATION,
-        SpanIndexedField.TRACE,
-        SpanIndexedField.PROJECT,
+        SpanFields.SPAN_ID,
+        SpanFields.TRANSACTION_SPAN_ID,
+        SpanFields.TIMESTAMP,
+        SpanFields.SPAN_DURATION,
+        SpanFields.TRACE,
+        SpanFields.PROJECT,
       ],
       search,
       limit: LIMIT,
@@ -144,7 +137,7 @@ export default function SpanSummaryTable(props: Props) {
     SpanSummaryReferrer.SPAN_SUMMARY_TABLE
   );
 
-  const transactionIds = rowData?.map(row => row[SpanIndexedField.TRANSACTION_ID]);
+  const transactionIds = rowData?.map(row => row[SpanFields.TRANSACTION_SPAN_ID]);
 
   const eventView = EventView.fromNewQueryWithLocation(
     {
@@ -160,7 +153,7 @@ export default function SpanSummaryTable(props: Props) {
   );
 
   const {
-    isLoading: isTxnDurationDataLoading,
+    isPending: isTxnDurationDataLoading,
     data: txnDurationData,
     isError: isTxnDurationError,
   } = useGenericDiscoverQuery<
@@ -187,50 +180,52 @@ export default function SpanSummaryTable(props: Props) {
   });
 
   // Restructure the transaction durations into a map for faster lookup
-  const transactionDurationMap = {};
+  const transactionDurationMap: Record<string, number> = {};
   txnDurationData?.data.forEach(datum => {
     transactionDurationMap[datum.id] = datum['transaction.duration'];
   });
 
   const mergedData: DataRow[] =
-    rowData?.map((row: Pick<SpanIndexedResponse, DataRowKeys>) => {
-      const transactionId = row[SpanIndexedField.TRANSACTION_ID];
+    rowData?.map((row: Pick<SpanResponse, DataRowKeys>) => {
+      const transactionId = row[SpanFields.TRANSACTION_SPAN_ID];
       const newRow = {
         ...row,
-        'transaction.duration': transactionDurationMap[transactionId],
+        'transaction.duration': transactionDurationMap[transactionId]!,
       };
       return newRow;
     }) ?? [];
 
   const handleCursor: CursorHandler = (cursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [QueryParameterNames.SPANS_CURSOR]: cursor},
     });
   };
 
-  const handleSearch = (searchString: string) => {
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        spansQuery: new MutableSearch(searchString).formatString(),
-      },
-    });
-  };
+  const handleSearch = useCallback(
+    (searchString: string) => {
+      navigate({
+        ...location,
+        query: {
+          ...location.query,
+          spansQuery: new MutableSearch(searchString).formatString(),
+        },
+      });
+    },
+    [location, navigate]
+  );
+  const projectIds = useMemo(() => eventView.project.slice(), [eventView]);
 
   return (
     <Fragment>
-      <StyledSearchBar
-        organization={organization}
-        projectIds={eventView.project}
-        query={spansQuery}
-        fields={eventView.fields}
-        placeholder={t('Search for span attributes')}
-        supportedTags={supportedTags}
-        dataset={DiscoverDatasets.SPANS_INDEXED}
-        onSearch={handleSearch}
-      />
+      <StyledSearchBarWrapper>
+        <SpanSearchQueryBuilder
+          projects={projectIds}
+          initialQuery={spansQuery}
+          onSearch={handleSearch}
+          searchSource="transaction_span_summary"
+        />
+      </StyledSearchBarWrapper>
       <VisuallyCompleteWithData
         id="SpanDetails-SpanDetailsTable"
         hasData={!!mergedData?.length}
@@ -253,6 +248,9 @@ export default function SpanSummaryTable(props: Props) {
                 location,
                 sort,
               }),
+            // This is now caught by noUncheckedIndexedAccess, ignoring for now as
+            // it seems related to some nasty grid editable generic.
+            // @ts-expect-error TS(2769): No overload matches this call.
             renderBodyCell: renderBodyCell(
               location,
               organization,
@@ -270,16 +268,17 @@ export default function SpanSummaryTable(props: Props) {
 function renderBodyCell(
   location: Location,
   organization: Organization,
-  spanOp: string = '',
-  isTxnDurationDataLoading: boolean
+  spanOp = '',
+  isTxnDurationDataLoading: boolean,
+  theme: Theme
 ) {
   return function (column: Column, dataRow: DataRow): React.ReactNode {
-    const {timestamp, span_id, trace, project} = dataRow;
-    const spanDuration = dataRow[SpanIndexedField.SPAN_DURATION];
-    const transactionId = dataRow[SpanIndexedField.TRANSACTION_ID];
+    const {timestamp, span_id, trace} = dataRow;
+    const spanDuration = dataRow[SpanFields.SPAN_DURATION];
+    const transactionId = dataRow[SpanFields.TRANSACTION_SPAN_ID];
     const transactionDuration = dataRow['transaction.duration'];
 
-    if (column.key === SpanIndexedField.SPAN_DURATION) {
+    if (column.key === SpanFields.SPAN_DURATION) {
       if (isTxnDurationDataLoading) {
         return <EmptySpanDurationBar />;
       }
@@ -306,7 +305,7 @@ function renderBodyCell(
       );
     }
 
-    if (column.key === SpanIndexedField.ID) {
+    if (column.key === SpanFields.SPAN_ID) {
       if (!defined(span_id)) {
         return null;
       }
@@ -314,7 +313,6 @@ function renderBodyCell(
       return (
         <SpanIdCell
           moduleName={ModuleName.OTHER}
-          projectSlug={project}
           spanId={span_id}
           timestamp={timestamp}
           traceId={trace}
@@ -333,7 +331,7 @@ function renderBodyCell(
     }
 
     const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE);
-    const rendered = fieldRenderer(dataRow, {location, organization});
+    const rendered = fieldRenderer(dataRow, {location, organization, theme});
 
     return rendered;
   };
@@ -349,12 +347,12 @@ const EmptySpanDurationBar = styled('div')`
   background-color: ${p => p.theme.gray100};
   padding-left: ${space(1)};
 
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.xs};
   font-variant-numeric: tabular-nums;
   line-height: 1;
 `;
 
-const StyledSearchBar = styled(SearchBar)`
+const StyledSearchBarWrapper = styled('div')`
   margin-bottom: ${space(2)};
 `;

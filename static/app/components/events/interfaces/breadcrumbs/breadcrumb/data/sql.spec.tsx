@@ -5,7 +5,7 @@ import {Sql} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/da
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 
 describe('Breadcrumb Data SQL', function () {
-  const {organization, router} = initializeOrg({
+  const {organization} = initializeOrg({
     router: {
       location: {query: {project: '0'}},
     },
@@ -32,7 +32,9 @@ UPDATE NOWAIT`,
         }}
         searchTerm=""
       />,
-      {organization, router}
+      {
+        organization,
+      }
     );
 
     expect(screen.getByText('SELECT db.id, db.project_id,')).toBeInTheDocument();

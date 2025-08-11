@@ -1,11 +1,12 @@
 import {Fragment, useEffect} from 'react';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import type {Event, Organization, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import theme from 'sentry/utils/theme';
 import ProjectOwnershipModal from 'sentry/views/settings/project/projectOwnership/modal';
 
 interface CreateOwnershipRuleProps extends ModalRenderProps {
@@ -50,8 +51,8 @@ function IssueOwnershipRuleModal({
   );
 }
 
-export const modalCss = css`
-  @media (min-width: ${theme.breakpoints.small}) {
+export const modalCss = (theme: Theme) => css`
+  @media (min-width: ${theme.breakpoints.sm}) {
     width: 80%;
   }
 `;

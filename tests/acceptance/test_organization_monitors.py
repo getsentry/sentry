@@ -9,7 +9,6 @@ from sentry.monitors.models import (
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorStatus,
-    MonitorType,
     ScheduleType,
 )
 from sentry.testutils.cases import AcceptanceTestCase
@@ -20,7 +19,7 @@ from sentry.testutils.silo import no_silo_test
 class OrganizationMontorsTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
-        self.path = f"/organizations/{self.organization.slug}/crons/"
+        self.path = f"/organizations/{self.organization.slug}/insights/crons/"
         self.team = self.create_team(organization=self.organization, name="Mariachi Band")
 
         self.project = self.create_project(
@@ -29,14 +28,15 @@ class OrganizationMontorsTest(AcceptanceTestCase):
         self.create_team_membership(self.team, user=self.user)
         self.login_as(self.user)
 
-    def test_empty_crons_page(self):
+    def test_empty_crons_page(self) -> None:
         self.browser.get(self.path)
         self.browser.wait_until(xpath="//h3[text()='Monitor Your Cron Jobs']")
 
-    def test_quick_start_flow(self):
+    def test_quick_start_flow(self) -> None:
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.click_when_visible("[aria-label='Create php Monitor']")
+
         self.browser.click_when_visible(xpath="//li[@role='tab']//*[text()='Manual']")
 
         self.browser.wait_until('[name="name"]')
@@ -50,7 +50,7 @@ class OrganizationMontorsTest(AcceptanceTestCase):
         self.browser.click_when_visible('button[aria-label="Create"]')
         self.browser.wait_until(xpath="//h1[text()='My Monitor']")
 
-    def test_create_cron_monitor(self):
+    def test_create_cron_monitor(self) -> None:
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.click_when_visible("a[aria-label='Add Monitor']")
@@ -75,11 +75,10 @@ class OrganizationMontorsTest(AcceptanceTestCase):
         self.browser.element_exists(xpath="//*[text()='Check-ins missed after 5 mins']")
         self.browser.element_exists(xpath="//*[text()='Check-ins longer than 10 mins or errors']")
 
-    def test_list_monitors(self):
+    def test_list_monitors(self) -> None:
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             name="My Monitor",
             config={
                 "schedule": "0 0 * * *",
@@ -114,11 +113,10 @@ class OrganizationMontorsTest(AcceptanceTestCase):
         self.browser.wait_until(xpath="//a//*[text()='My Monitor']")
         self.browser.wait_until('[data-test-id="monitor-checkin-tick"]')
 
-    def test_edit_monitor(self):
+    def test_edit_monitor(self) -> None:
         Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
-            type=MonitorType.CRON_JOB,
             name="My Monitor",
             config={
                 "schedule": "0 0 * * *",
@@ -131,7 +129,7 @@ class OrganizationMontorsTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.click_when_visible(xpath="//a//*[text()='My Monitor']")
-        self.browser.click_when_visible('a[aria-label="Edit"]')
+        self.browser.click_when_visible('a[aria-label="Edit Monitor"]')
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
         name_input = self.browser.find_element_by_name("name")

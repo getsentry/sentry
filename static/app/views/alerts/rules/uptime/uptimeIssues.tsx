@@ -3,32 +3,17 @@ import GroupList from 'sentry/components/issues/groupList';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
-import {IssueCategory} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {getUtcDateString} from 'sentry/utils/dates';
-import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 interface Props {
   project: Project;
+  ruleId: string;
 }
 
-export function UptimeIssues({project}: Props) {
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
-  const {start, end, period} = selection.datetime;
-  const timeProps =
-    start && end
-      ? {
-          start: getUtcDateString(start),
-          end: getUtcDateString(end),
-        }
-      : {
-          statsPeriod: period,
-        };
-
+export function UptimeIssues({project, ruleId}: Props) {
   // TODO(davidenwang): Replace this with an actual query for the specific uptime alert rule
-  const query = `issue.category:${IssueCategory.UPTIME}`;
+  const query = `issue.type:${IssueType.UPTIME_DOMAIN_FAILURE} tags[uptime_rule]:${ruleId}`;
 
   const emptyMessage = () => {
     return (
@@ -44,12 +29,13 @@ export function UptimeIssues({project}: Props) {
 
   return (
     <GroupList
-      orgSlug={organization.slug}
+      withChart={false}
+      withPagination={false}
+      withColumns={['assignee']}
       queryParams={{
         query,
         project: project.id,
-        limit: 20,
-        ...timeProps,
+        limit: 1,
       }}
       renderEmptyMessage={emptyMessage}
     />

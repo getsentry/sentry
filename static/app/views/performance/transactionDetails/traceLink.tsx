@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {tct, tn} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -52,6 +52,6 @@ export function TraceLink({event, traceMeta, source, quickTrace}: TraceLinkProps
   );
 }
 
-const StyledLink = styled(Link)<{}>`
-  font-size: ${p => p.theme.fontSizeSmall};
+const StyledLink = styled(Link)`
+  font-size: ${p => p.theme.fontSize.sm};
 `;

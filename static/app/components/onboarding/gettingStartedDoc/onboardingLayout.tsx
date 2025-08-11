@@ -1,29 +1,31 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  ConfigType,
-  Docs,
-  DocsParams,
+import {
+  type ConfigType,
+  type Docs,
+  type DocsParams,
+  ProductSolution,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {
   PlatformOptionsControl,
   useUrlPlatformOptions,
 } from 'sentry/components/onboarding/platformOptionsControl';
-import {
-  ProductSelection,
-  ProductSolution,
-} from 'sentry/components/onboarding/productSelection';
+import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey, Project} from 'sentry/types';
+import type {PlatformKey, Project, ProjectKey} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({
@@ -33,12 +35,11 @@ const ProductSelectionAvailabilityHook = HookOrDefault({
 
 export type OnboardingLayoutProps = {
   docsConfig: Docs<any>;
-  dsn: string;
+  dsn: ProjectKey['dsn'];
   platformKey: PlatformKey;
-  projectId: Project['id'];
-  projectSlug: Project['slug'];
+  project: Project;
+  projectKeyId: ProjectKey['id'];
   activeProductSelection?: ProductSolution[];
-  cdn?: string;
   configType?: ConfigType;
   newOrg?: boolean;
 };
@@ -46,32 +47,42 @@ export type OnboardingLayoutProps = {
 const EMPTY_ARRAY: never[] = [];
 
 export function OnboardingLayout({
-  cdn,
   docsConfig,
   dsn,
   platformKey,
-  projectId,
-  projectSlug,
+  project,
   activeProductSelection = EMPTY_ARRAY,
   newOrg,
+  projectKeyId,
   configType = 'onboarding',
 }: OnboardingLayoutProps) {
+  const api = useApi();
   const organization = useOrganization();
-  const {isLoading: isLoadingRegistry, data: registryData} =
+  const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const {platformOptions} = docsConfig;
+  const {urlPrefix, isSelfHosted} = useLegacyStore(ConfigStore);
 
-  const {introduction, steps, nextSteps} = useMemo(() => {
+  const {
+    introduction,
+    steps,
+    nextSteps,
+    onPlatformOptionsChange,
+    onProductSelectionChange,
+    onPageLoad,
+    onProductSelectionLoad,
+  } = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
-      cdn,
+      api,
+      projectKeyId,
       dsn,
       organization,
       platformKey,
-      projectId,
-      projectSlug,
+      project,
+      isLogsSelected: activeProductSelection.includes(ProductSolution.LOGS),
       isFeedbackSelected: false,
       isPerformanceSelected: activeProductSelection.includes(
         ProductSolution.PERFORMANCE_MONITORING
@@ -82,8 +93,15 @@ export function OnboardingLayout({
         isLoading: isLoadingRegistry,
         data: registryData,
       },
+      urlPrefix,
+      isSelfHosted,
       platformOptions: selectedOptions,
       newOrg,
+      profilingOptions: {
+        defaultProfilingMode: organization.features.includes('continuous-profiling')
+          ? 'continuous'
+          : 'transaction',
+      },
       replayOptions: {block: true, mask: true},
     };
 
@@ -95,9 +113,12 @@ export function OnboardingLayout({
         ...doc.verify(docParams),
       ],
       nextSteps: doc.nextSteps?.(docParams) || [],
+      onPlatformOptionsChange: doc.onPlatformOptionsChange?.(docParams),
+      onProductSelectionChange: doc.onProductSelectionChange?.(docParams),
+      onProductSelectionLoad: doc.onProductSelectionLoad?.(docParams),
+      onPageLoad: doc.onPageLoad?.(docParams),
     };
   }, [
-    cdn,
     activeProductSelection,
     docsConfig,
     dsn,
@@ -105,44 +126,71 @@ export function OnboardingLayout({
     newOrg,
     organization,
     platformKey,
-    projectId,
-    projectSlug,
+    project,
     registryData,
     selectedOptions,
     configType,
+    urlPrefix,
+    isSelfHosted,
+    api,
+    projectKeyId,
   ]);
 
+  useEffect(() => {
+    onPageLoad?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
-    <AuthTokenGeneratorProvider projectSlug={projectSlug}>
+    <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <Wrapper>
         <Header>
-          {introduction && <div>{introduction}</div>}
+          {introduction && <Introduction>{introduction}</Introduction>}
           {configType === 'onboarding' && (
             <ProductSelectionAvailabilityHook
               organization={organization}
               platform={platformKey}
+              onChange={onProductSelectionChange}
+              onLoad={onProductSelectionLoad}
             />
           )}
-          {platformOptions && !['customMetricsOnboarding'].includes(configType) ? (
-            <PlatformOptionsControl platformOptions={platformOptions} />
+          {platformOptions ? (
+            <PlatformOptionsControl
+              platformOptions={platformOptions}
+              onChange={onPlatformOptionsChange}
+            />
           ) : null}
         </Header>
         <Divider withBottomMargin />
-        <Steps>
+        <div>
           {steps.map(step => (
-            <Step key={step.title ?? step.type} {...step} />
+            <StyledStep key={step.title ?? step.type} {...step} />
           ))}
-        </Steps>
+        </div>
         {nextSteps.length > 0 && (
           <Fragment>
             <Divider />
-            <h4>{t('Next Steps')}</h4>
+            <h4>{t('Additional Information')}</h4>
             <List symbol="bullet">
               {nextSteps
                 .filter((step): step is Exclude<typeof step, null> => step !== null)
                 .map(step => (
                   <ListItem key={step.name}>
-                    <ExternalLink href={step.link}>{step.name}</ExternalLink>
+                    <ExternalLink
+                      href={step.link}
+                      onClick={() =>
+                        trackAnalytics('onboarding.next_step_clicked', {
+                          organization,
+                          platform: platformKey,
+                          project_id: project.id,
+                          products: activeProductSelection,
+                          step: step.name,
+                          newOrg: newOrg ?? false,
+                        })
+                      }
+                    >
+                      {step.name}
+                    </ExternalLink>
                     {': '}
                     {step.description}
                   </ListItem>
@@ -169,10 +217,10 @@ const Divider = styled('hr')<{withBottomMargin?: boolean}>`
   ${p => p.withBottomMargin && `margin-bottom: ${space(3)}`}
 `;
 
-const Steps = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+const StyledStep = styled(Step)`
+  :not(:last-child) {
+    margin-bottom: 1.5rem;
+  }
 `;
 
 const Wrapper = styled('div')`
@@ -186,5 +234,11 @@ const Wrapper = styled('div')`
     h5 {
       margin-bottom: 0;
     }
+  }
+`;
+
+const Introduction = styled('div')`
+  & > p:not(:last-child) {
+    margin-bottom: ${space(2)};
   }
 `;

@@ -5,11 +5,36 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
-feedback: 0004_index_together
-hybridcloud: 0016_add_control_cacheversion
-nodestore: 0002_nodestore_no_dictfield
-remote_subscriptions: 0003_drop_remote_subscription
-replays: 0004_index_together
-sentry: 0751_escalation_policies3
-social_auth: 0002_default_auto_field
-uptime: 0006_projectuptimesubscription_name_owner
+discover: 0003_discover_json_field
+
+explore: 0006_add_changed_reason_field_explore
+
+feedback: 0001_squashed_0004_index_together
+
+flags: 0001_squashed_0004_add_flag_audit_log_provider_column
+
+hybridcloud: 0023_correct_webhook_payload_constraint
+
+insights: 0002_backfill_team_starred
+
+monitors: 0008_fix_processing_error_keys
+
+nodestore: 0001_squashed_0002_nodestore_no_dictfield
+
+notifications: 0002_notificationmessage_jsonfield
+
+preprod: 0014_commitcomparisons_fk
+
+replays: 0006_add_bulk_delete_job
+
+sentry: 0966_groupopenperiod_data_pending_inc_detector_id_index
+
+social_auth: 0003_social_auth_json_field
+
+tempest: 0001_squashed_0002_make_message_type_nullable
+
+uptime: 0043_uptime_django_json_field
+
+workflow_engine: 0083_add_status_to_action
+
+escalation_policies: 0004_escalation_policies3

@@ -1,27 +1,25 @@
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import storyBook from 'sentry/stories/storyBook';
-import type {Actor, Member} from 'sentry/types';
+import * as Storybook from 'sentry/stories';
+import type {Actor} from 'sentry/types/core';
+import type {Member} from 'sentry/types/organization';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
 
-import Matrix, {type PropMatrix} from '../stories/matrix';
-import SideBySide from '../stories/sideBySide';
-
 import type {OrganizationBadgeProps} from './organizationBadge';
 import IdBadge from '.';
 
-export default storyBook(IdBadge, story => {
+export default Storybook.story('IdBadge', story => {
   story('Props', () => {
     const org = useOrganization();
 
-    const propMatrix: PropMatrix<OrganizationBadgeProps> = {
+    const propMatrix: Storybook.PropMatrix<OrganizationBadgeProps> = {
       avatarSize: [12, 16, 24],
     };
 
     return (
-      <Matrix<OrganizationBadgeProps>
+      <Storybook.PropMatrix<OrganizationBadgeProps>
         render={props => <IdBadge {...props} organization={org} />}
         propMatrix={propMatrix}
         selectedProps={['avatarSize']}
@@ -41,7 +39,7 @@ export default storyBook(IdBadge, story => {
       return <LoadingIndicator />;
     }
 
-    return <IdBadge team={teams[0]} />;
+    return <IdBadge team={teams[0]!} />;
   });
 
   story('Project', () => {
@@ -52,7 +50,7 @@ export default storyBook(IdBadge, story => {
       return <LoadingIndicator />;
     }
 
-    return <IdBadge project={myProject[0]} />;
+    return <IdBadge project={myProject[0]!} />;
   });
 
   story('User', () => {
@@ -88,7 +86,7 @@ export default storyBook(IdBadge, story => {
       teamRoleList: [],
       teamRoles: [],
       teams: [],
-      user: user,
+      user,
       flags: {
         'idp:provisioned': false,
         'idp:role-restricted': false,
@@ -115,15 +113,15 @@ export default storyBook(IdBadge, story => {
 
     const teamActor: Actor = {
       type: 'team',
-      id: teams[0].id,
-      name: teams[0].name,
+      id: teams[0]!.id,
+      name: teams[0]!.name,
     };
 
     return (
-      <SideBySide>
+      <Storybook.SideBySide>
         <IdBadge actor={userActor} />
         <IdBadge actor={teamActor} />
-      </SideBySide>
+      </Storybook.SideBySide>
     );
   });
 });

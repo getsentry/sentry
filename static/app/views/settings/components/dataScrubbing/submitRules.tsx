@@ -43,12 +43,12 @@ function getSubmitFormatRule(rule: Rule): PiiConfig {
   };
 }
 
-function submitRules(api: Client, endpoint: string, rules: Array<Rule>) {
+function submitRules(api: Client, endpoint: string, rules: Rule[]) {
   const applications: Applications = {};
   const submitFormatRules: Record<string, PiiConfig> = {};
 
   for (let i = 0; i < rules.length; i++) {
-    const rule = rules[i];
+    const rule = rules[i]!;
     const ruleId = String(i);
     submitFormatRules[ruleId] = getSubmitFormatRule(rule);
 
@@ -56,8 +56,8 @@ function submitRules(api: Client, endpoint: string, rules: Array<Rule>) {
       applications[rule.source] = [];
     }
 
-    if (!applications[rule.source].includes(ruleId)) {
-      applications[rule.source].push(ruleId);
+    if (!applications[rule.source]!.includes(ruleId)) {
+      applications[rule.source]!.push(ruleId);
     }
   }
 

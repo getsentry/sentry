@@ -1,16 +1,16 @@
 import {Component} from 'react';
 import type {Range} from 'react-date-range';
-import type {WithRouterProps} from 'react-router';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {DateRangePicker} from 'sentry/components/calendar';
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -19,7 +19,7 @@ import {
   isValidTime,
   setDateToTime,
 } from 'sentry/utils/dates';
-import domId from 'sentry/utils/domId';
+import {domId} from 'sentry/utils/domId';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -189,7 +189,7 @@ class BaseDateRange extends Component<Props, State> {
     // Subtract additional day  because we force the end date to be inclusive,
     // so when you pick Jan 1 the time becomes Jan 1 @ 23:59:59,
     // (or really, Jan 2 @ 00:00:00 - 1 second), while the start time is at 00:00
-    let minDate = getStartOfPeriodAgo('days', (maxPickableDays ?? MAX_PICKABLE_DAYS) - 2);
+    let minDate = getStartOfPeriodAgo('days', (maxPickableDays ?? MAX_PICKABLE_DAYS) - 1);
 
     let maxDate = new Date();
 
@@ -259,7 +259,7 @@ const StyledTimePicker = styled(TimePicker)`
 `;
 
 const UtcPicker = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   white-space: nowrap;
   display: flex;
   align-items: center;
@@ -270,7 +270,7 @@ const UtcPicker = styled('div')`
 
 const UtcPickerLabel = styled('label')`
   margin: 0;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   color: inherit;
 `;
 

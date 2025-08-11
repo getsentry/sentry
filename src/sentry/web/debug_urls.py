@@ -2,7 +2,6 @@ from django.urls import re_path
 from django.views.generic import TemplateView
 
 import sentry.web.frontend.debug.mail
-from sentry.integrations.web.debug.debug_notify_disable import DebugNotifyDisableView
 from sentry.web.frontend.debug import debug_auth_views
 from sentry.web.frontend.debug.debug_assigned_email import (
     DebugAssignedEmailView,
@@ -20,11 +19,7 @@ from sentry.web.frontend.debug.debug_cron_muted_monitor_email import DebugCronMu
 from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
 from sentry.web.frontend.debug.debug_feedback_issue import DebugFeedbackIssueEmailView
 from sentry.web.frontend.debug.debug_generic_issue import DebugGenericIssueEmailView
-from sentry.web.frontend.debug.debug_incident_activity_email import DebugIncidentActivityEmailView
 from sentry.web.frontend.debug.debug_incident_trigger_email import DebugIncidentTriggerEmailView
-from sentry.web.frontend.debug.debug_incident_trigger_email_activated_alert import (
-    DebugIncidentActivatedAlertTriggerEmailView,
-)
 from sentry.web.frontend.debug.debug_invalid_identity_email import DebugInvalidIdentityEmailView
 from sentry.web.frontend.debug.debug_mfa_added_email import DebugMfaAddedEmailView
 from sentry.web.frontend.debug.debug_mfa_removed_email import DebugMfaRemovedEmailView
@@ -62,9 +57,6 @@ from sentry.web.frontend.debug.debug_resolved_in_release_email import (
     DebugResolvedInReleaseEmailView,
     DebugResolvedInReleaseUpcomingEmailView,
 )
-from sentry.web.frontend.debug.debug_sentry_app_notify_disable import (
-    DebugSentryAppNotifyDisableView,
-)
 from sentry.web.frontend.debug.debug_setup_2fa_email import DebugSetup2faEmailView
 from sentry.web.frontend.debug.debug_sso_link_email import (
     DebugSsoLinkedEmailView,
@@ -80,12 +72,13 @@ from sentry.web.frontend.debug.debug_unable_to_fetch_commits_email import (
 )
 from sentry.web.frontend.debug.debug_unassigned_email import DebugUnassignedEmailView
 from sentry.web.frontend.debug.debug_weekly_report import DebugWeeklyReportView
+from sentry.web.frontend.react_page import ReactPageView
 
 urlpatterns = [
     re_path(r"^debug/mail/error-alert/$", sentry.web.frontend.debug.mail.alert),
     re_path(r"^debug/mail/feedback-alert/$", DebugFeedbackIssueEmailView.as_view()),
     re_path(
-        r"^debug/mail/performance-alert/(?P<sample_name>[^\/]+)?/$",
+        r"^debug/mail/performance-alert/(?P<sample_name>[^/]+)?/$",
         DebugPerformanceIssueEmailView.as_view(),
     ),
     re_path(r"^debug/mail/generic-alert/$", DebugGenericIssueEmailView.as_view()),
@@ -148,25 +141,24 @@ urlpatterns = [
     re_path(r"^debug/mail/sso-linked/$", DebugSsoLinkedEmailView.as_view()),
     re_path(r"^debug/mail/sso-unlinked/$", DebugSsoUnlinkedEmailView.as_view()),
     re_path(
-        r"^debug/mail/sso-unlinked/no-password$", DebugSsoUnlinkedNoPasswordEmailView.as_view()
+        r"^debug/mail/sso-unlinked/no-password/$", DebugSsoUnlinkedNoPasswordEmailView.as_view()
     ),
-    re_path(r"^debug/mail/incident-activity$", DebugIncidentActivityEmailView.as_view()),
-    re_path(r"^debug/mail/incident-trigger$", DebugIncidentTriggerEmailView.as_view()),
-    re_path(
-        r"^debug/mail/activated-incident-trigger$",
-        DebugIncidentActivatedAlertTriggerEmailView.as_view(),
-    ),
+    re_path(r"^debug/mail/incident-trigger/$", DebugIncidentTriggerEmailView.as_view()),
     re_path(r"^debug/mail/setup-2fa/$", DebugSetup2faEmailView.as_view()),
     re_path(r"^debug/embed/error-page/$", DebugErrorPageEmbedView.as_view()),
     re_path(r"^debug/trigger-error/$", DebugTriggerErrorView.as_view()),
     re_path(r"^debug/auth-confirm-identity/$", debug_auth_views.DebugAuthConfirmIdentity.as_view()),
     re_path(r"^debug/auth-confirm-link/$", debug_auth_views.DebugAuthConfirmLink.as_view()),
-    re_path(r"^debug/sudo/$", TemplateView.as_view(template_name="sentry/account/sudo.html")),
+    re_path(
+        r"^debug/sudo/$",
+        TemplateView.as_view(template_name="sentry/account/sudo.html"),
+        name="debug-sudo",
+    ),
     re_path(r"^debug/oauth/authorize/$", DebugOAuthAuthorizeView.as_view()),
     re_path(r"^debug/oauth/authorize/error/$", DebugOAuthAuthorizeErrorView.as_view()),
     re_path(r"^debug/chart-renderer/$", DebugChartRendererView.as_view()),
-    re_path(r"^debug/mail/notify-disable/$", DebugNotifyDisableView.as_view()),
-    re_path(r"^debug/mail/sentry-app-notify-disable/$", DebugSentryAppNotifyDisableView.as_view()),
     re_path(r"^debug/mail/cron-broken-monitor-email/$", DebugCronBrokenMonitorEmailView.as_view()),
     re_path(r"^debug/mail/cron-muted-monitor-email/$", DebugCronMutedMonitorEmailView.as_view()),
+    # Notifications Debugger
+    re_path(r"^debug/notifications/", ReactPageView.as_view(), name="debug-notifications"),
 ]

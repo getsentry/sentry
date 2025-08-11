@@ -1,9 +1,15 @@
 import re
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
 
+NOT_HAS_FILTER_ERROR_MESSAGE = """
+"!has" filter is not supported in this search.
+"""
+RATE_LIMIT_ERROR_MESSAGE = """
+Rate limit exceeded. Please try your query with a smaller date range or fewer projects.
+"""
 TIMEOUT_ERROR_MESSAGE = """
 Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects. Also consider a
 filter on the transaction field if you're filtering performance data.
@@ -11,6 +17,9 @@ filter on the transaction field if you're filtering performance data.
 TIMEOUT_SPAN_ERROR_MESSAGE = """
 Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects. Also consider a
 filter on the transaction field or tags.
+"""
+TIMEOUT_RPC_ERROR_MESSAGE = """
+Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.
 """
 PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
 PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
@@ -56,6 +65,11 @@ SPAN_IS_SEGMENT_ALIAS = "span.is_segment"
 SPAN_OP = "span.op"
 SPAN_DESCRIPTION = "span.description"
 SPAN_STATUS = "span.status"
+SPAN_CATEGORY = "span.category"
+TRACE = "trace"
+REPLAY_ALIAS = "replay"
+MESSAGING_OPERATION_TYPE_ALIAS = "messaging.operation.type"
+MESSAGING_OPERATION_NAME_ALIAS = "messaging.operation.name"
 
 
 class ThresholdDict(TypedDict):
@@ -99,7 +113,15 @@ WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS: dict[str, float] = {
     "inp": 0.30,
 }
 
+MAX_TAG_KEY_LENGTH = 200
 TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*)\]$")
+FLAG_KEY_RE = re.compile(r"^(flags)\[(?P<flag>.*)\]$")
+
+TYPED_TAG_KEY_RE = re.compile(
+    r"^(sentry_tags|tags)\[(?P<tag>.{0,200}),\s{0,200}(?P<type>.{0,200})\]$"
+)
+
+
 # Based on general/src/protocol/tags.rs in relay
 VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
 
@@ -127,9 +149,27 @@ RESULT_TYPES = {
     "date",
     "rate",
 }
+
+SizeUnit = Literal[
+    "bit",
+    "byte",
+    "kibibyte",
+    "mebibyte",
+    "gibibyte",
+    "tebibyte",
+    "pebibyte",
+    "exbibyte",
+    "kilobyte",
+    "megabyte",
+    "gigabyte",
+    "terabyte",
+    "petabyte",
+    "exabyte",
+]
+
 # event_search normalizes to bytes
 # based on https://getsentry.github.io/relay/relay_metrics/enum.InformationUnit.html
-SIZE_UNITS = {
+SIZE_UNITS: dict[SizeUnit, float] = {
     "bit": 8,
     "byte": 1,
     "kibibyte": 1 / 1024,
@@ -145,8 +185,20 @@ SIZE_UNITS = {
     "petabyte": 1 / 1000**5,
     "exabyte": 1 / 1000**6,
 }
+
+DurationUnit = Literal[
+    "nanosecond",
+    "microsecond",
+    "millisecond",
+    "second",
+    "minute",
+    "hour",
+    "day",
+    "week",
+]
+
 # event_search normalizes to seconds
-DURATION_UNITS = {
+DURATION_UNITS: dict[DurationUnit, float] = {
     "nanosecond": 1000**2,
     "microsecond": 1000,
     "millisecond": 1,
@@ -261,6 +313,8 @@ FUNCTION_ALIASES = {
 
 METRICS_FUNCTION_ALIASES: dict[str, str] = {}
 
+SPAN_MODULE_CATEGORY_VALUES = ["cache", "db", "http", "queue", "resource"]
+
 SPAN_FUNCTION_ALIASES = {
     "sps": "eps",
     "spm": "epm",
@@ -317,6 +371,7 @@ DEFAULT_METRIC_TAGS = {
     "device.class",
     "environment",
     "geo.country_code",
+    "user.geo.subregion",
     "has_profile",
     "histogram_outlier",
     "http.method",
@@ -337,6 +392,8 @@ DEFAULT_METRIC_TAGS = {
     "span.op",
     "trace.status",
     "messaging.destination.name",
+    "messaging.operation.name",
+    "messaging.operation.type",
 }
 SPAN_MESSAGING_LATENCY = "g:spans/messaging.message.receive.latency@millisecond"
 SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
@@ -355,9 +412,6 @@ SPAN_METRICS_MAP = {
     "mobile.total_frames": "g:spans/mobile.total_frames@none",
     "mobile.frames_delay": "g:spans/mobile.frames_delay@second",
     "messaging.message.receive.latency": SPAN_MESSAGING_LATENCY,
-}
-PROFILE_METRICS_MAP = {
-    "function.duration": "d:profiles/function.duration@millisecond",
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101
@@ -431,3 +485,17 @@ METRIC_FUNCTION_LIST_BY_TYPE = {
 # The limit in snuba currently for a single query is 131,535bytes, including room for other parameters picking 120,000
 # for now
 MAX_PARAMETERS_IN_ARRAY = 120_000
+
+SPANS_METRICS_TAGS = {SPAN_MODULE_ALIAS, SPAN_DESCRIPTION, SPAN_OP, SPAN_CATEGORY}
+
+SPANS_METRICS_FUNCTIONS = {
+    "spm",
+    "cache_miss_rate",
+    "http_response_rate",
+}
+
+METRICS_LAYER_UNSUPPORTED_TRANSACTION_METRICS_FUNCTIONS = {
+    "performance_score",
+    "weighted_performance_score",
+    "count_scores",
+}

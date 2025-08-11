@@ -3,8 +3,8 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconInfo, IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
@@ -12,20 +12,24 @@ import type useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
 import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatter';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
-import type {OnDimensionChange} from 'sentry/views/replays/detail/useVirtualizedInspector';
 
 interface Props extends ReturnType<typeof useCrumbHandlers> {
   currentHoverTime: number | undefined;
   currentTime: number;
   frame: BreadcrumbFrame;
   index: number;
+  onDimensionChange: (
+    index: number,
+    path: string,
+    expandedState: Record<string, boolean>
+  ) => void;
   startTimestampMs: number;
   style: CSSProperties;
   expandPaths?: string[];
-  onDimensionChange?: OnDimensionChange;
+  ref?: React.Ref<HTMLDivElement>;
 }
 
-export default function ConsoleLogRow({
+function ConsoleLogRow({
   currentHoverTime,
   currentTime,
   expandPaths,
@@ -37,9 +41,10 @@ export default function ConsoleLogRow({
   onDimensionChange,
   startTimestampMs,
   style,
+  ref,
 }: Props) {
   const handleDimensionChange = useCallback(
-    (path, expandedState, e) => onDimensionChange?.(index, path, expandedState, e),
+    (path: any, expandedState: any) => onDimensionChange?.(index, path, expandedState),
     [onDimensionChange, index]
   );
 
@@ -49,6 +54,7 @@ export default function ConsoleLogRow({
 
   return (
     <ConsoleLog
+      ref={ref}
       className={classNames({
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
@@ -83,6 +89,8 @@ export default function ConsoleLogRow({
   );
 }
 
+export default ConsoleLogRow;
+
 const ConsoleLog = styled('div')<{
   hasOccurred: boolean;
   level: undefined | string;
@@ -92,11 +100,12 @@ const ConsoleLog = styled('div')<{
   gap: ${space(0.75)};
   align-items: baseline;
   padding: ${space(0.5)} ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   background-color: ${p =>
     ['warning', 'error'].includes(String(p.level))
-      ? p.theme.alert[String(p.level)].backgroundLight
+      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        p.theme.alert[String(p.level)].backgroundLight
       : 'inherit'};
 
   color: ${p => p.theme.gray400};
@@ -130,11 +139,12 @@ const ICONS = {
 };
 
 const MediumFontSize = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 function ConsoleLevelIcon({level}: {level: string | undefined}) {
   return level && level in ICONS ? (
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     <MediumFontSize>{ICONS[level]}</MediumFontSize>
   ) : (
     <i />

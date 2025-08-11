@@ -7,19 +7,59 @@ import datetime
 import hmac
 from collections.abc import MutableMapping
 from hashlib import sha256
-from typing import Any, Protocol
+from typing import Any, Protocol, TypedDict
+from urllib.parse import urljoin
 
 from pydantic.fields import Field
-from typing_extensions import TypedDict
 
+from sentry import options
 from sentry.constants import SentryAppInstallationStatus
-from sentry.hybridcloud.rpc import RpcModel, RpcModelProtocolMeta
+from sentry.hybridcloud.rpc import RpcModel
+from sentry.sentry_apps.models.sentry_app_avatar import (
+    SentryAppAvatarPhotoTypes,
+    SentryAppAvatarTypes,
+)
+from sentry.sentry_apps.utils.errors import SentryAppErrorType
 
 
 class RpcApiApplication(RpcModel):
     id: int = -1
-    client_id: str = ""
-    client_secret: str = ""
+    client_id: str = Field(repr=False, default="")
+    client_secret: str = Field(repr=False, default="")
+
+
+class RpcSentryAppAvatar(RpcModel):
+    id: int = -1
+    ident: str | None = None
+    sentry_app_id: int = -1
+    avatar_type: int = 0
+    color: bool = False
+
+    AVATAR_TYPES = SentryAppAvatarTypes.get_choices()
+    url_path = "sentry-app-avatar"
+    FILE_TYPE = "avatar.file"
+
+    def __hash__(self) -> int:
+        # Mimic the behavior of hashing a Django ORM entity, for compatibility with
+        # serializers, as this avatar object is often used for that.
+        return id(self)
+
+    def get_avatar_type_display(self) -> str:
+        return self.AVATAR_TYPES[self.avatar_type][1]
+
+    def get_cache_key(self, size: int) -> str:
+        color_identifier = "color" if self.color else "simple"
+        return f"sentry_app_avatar:{self.sentry_app_id}:{color_identifier}:{size}"
+
+    def get_avatar_photo_type(self) -> SentryAppAvatarPhotoTypes:
+        return SentryAppAvatarPhotoTypes.LOGO if self.color else SentryAppAvatarPhotoTypes.ICON
+
+    def absolute_url(self) -> str:
+        """
+        Modified from AvatarBase.absolute_url for SentryAppAvatar
+        """
+        url_base = options.get("system.url-prefix")
+        return urljoin(url_base, f"/{self.url_path}/{self.ident}/")
 
 
 class RpcSentryAppService(RpcModel):
@@ -52,6 +92,7 @@ class RpcSentryApp(RpcModel):
     is_publish_request_inprogress: bool = False
     status: str = ""
     metadata: dict[str, Any] = Field(default_factory=dict)
+    avatars: list[RpcSentryAppAvatar] = Field(default_factory=list)
 
     def show_auth_info(self, access: Any) -> bool:
         encoded_scopes = set({"%s" % scope for scope in list(access.scopes)})
@@ -94,12 +135,16 @@ class RpcSentryAppComponent(RpcModel):
 
 class RpcSentryAppComponentContext(RpcModel):
     installation: RpcSentryAppInstallation
-    component: RpcSentryAppComponent
+    component: RpcSentryAppComponent | None = None
 
 
 class RpcAlertRuleActionResult(RpcModel):
     success: bool
     message: str
+    error_type: SentryAppErrorType | None
+    webhook_context: dict[str, Any] | None
+    public_context: dict[str, Any] | None
+    status_code: int | None
 
 
 class SentryAppEventDataInterface(Protocol):
@@ -109,22 +154,18 @@ class SentryAppEventDataInterface(Protocol):
     """
 
     @property
-    def id(self) -> str:
-        ...
+    def id(self) -> str: ...
 
     @property
-    def label(self) -> str:
-        ...
+    def label(self) -> str: ...
 
     @property
-    def actionType(self) -> str:
-        ...
+    def actionType(self) -> str: ...
 
-    def is_enabled(self) -> bool:
-        ...
+    def is_enabled(self) -> bool: ...
 
 
-class RpcSentryAppEventData(RpcModel, metaclass=RpcModelProtocolMeta):
+class RpcSentryAppEventData(RpcModel):
     id: str = ""
     label: str = ""
     action_type: str = ""

@@ -1,17 +1,20 @@
+import type {CloudResourceContext} from '@sentry/core';
+
+import type {CultureContext} from 'sentry/components/events/contexts/knownContext/culture';
+import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import type {
   AggregateSpanType,
-  MetricsSummary,
   RawSpanType,
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
-import type {IssueType, PlatformKey} from 'sentry/types';
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
-import type {IssueAttachment, IssueCategory} from './group';
+import type {IssueAttachment, IssueCategory, IssueType} from './group';
+import type {PlatformKey} from './project';
 import type {Release} from './release';
-import type {RawStacktrace, StackTraceMechanism, StacktraceType} from './stacktrace';
+import type {StackTraceMechanism, StacktraceType} from './stacktrace';
 
 export type Level = 'error' | 'fatal' | 'info' | 'warning' | 'sample' | 'unknown';
 
@@ -27,16 +30,12 @@ export type EventGroupComponent = {
 };
 export type EventGroupingConfig = {
   base: string | null;
-  changelog: string;
   delegates: string[];
-  hidden: boolean;
   id: string;
-  latest: boolean;
-  risk: number;
   strategies: string[];
 };
 
-export type VariantEvidence = {
+type VariantEvidence = {
   desc: string;
   fingerprint: string;
   cause_span_hashes?: string[];
@@ -48,14 +47,7 @@ export type VariantEvidence = {
   parent_span_ids?: string[];
 };
 
-type EventGroupVariantKey =
-  | 'built-in-fingerprint'
-  | 'custom-fingerprint'
-  | 'app'
-  | 'default'
-  | 'system';
-
-export enum EventGroupVariantType {
+export const enum EventGroupVariantType {
   CHECKSUM = 'checksum',
   FALLBACK = 'fallback',
   CUSTOM_FINGERPRINT = 'custom-fingerprint',
@@ -82,11 +74,11 @@ interface ChecksumVariant extends BaseVariant {
 }
 
 interface HasComponentGrouping {
-  client_values?: Array<string>;
+  client_values?: string[];
   component?: EventGroupComponent;
   config?: EventGroupingConfig;
   matched_rule?: string;
-  values?: Array<string>;
+  values?: string[];
 }
 
 interface ComponentVariant extends BaseVariant, HasComponentGrouping {
@@ -119,20 +111,18 @@ export type EventGroupVariant =
   | BuiltInFingerprintVariant
   | PerformanceProblemVariant;
 
-export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;
-
 /**
  * SDK Update metadata
  */
 type EnableIntegrationSuggestion = {
-  enables: Array<SDKUpdatesSuggestion>;
+  enables: SDKUpdatesSuggestion[];
   integrationName: string;
   type: 'enableIntegration';
   integrationUrl?: string | null;
 };
 
-export type UpdateSdkSuggestion = {
-  enables: Array<SDKUpdatesSuggestion>;
+type UpdateSdkSuggestion = {
+  enables: SDKUpdatesSuggestion[];
   newSdkVersion: string;
   sdkName: string;
   type: 'updateSdk';
@@ -140,7 +130,7 @@ export type UpdateSdkSuggestion = {
 };
 
 type ChangeSdkSuggestion = {
-  enables: Array<SDKUpdatesSuggestion>;
+  enables: SDKUpdatesSuggestion[];
   newSdkName: string;
   type: 'changeSdk';
   sdkUrl?: string | null;
@@ -158,7 +148,7 @@ export interface Thread {
   crashed: boolean;
   current: boolean;
   id: number;
-  rawStacktrace: RawStacktrace;
+  rawStacktrace: StacktraceType | null;
   stacktrace: StacktraceType | null;
   heldLocks?: Record<string, Lock> | null;
   name?: string | null;
@@ -183,7 +173,7 @@ export enum LockType {
 export type Frame = {
   absPath: string | null;
   colNo: number | null;
-  context: Array<[number, string]>;
+  context: Array<[number, string | null]>;
   filename: string | null;
   function: string | null;
   inApp: boolean;
@@ -198,8 +188,6 @@ export type Frame = {
   trust: any | null;
   vars: Record<string, any> | null;
   addrMode?: string;
-  isPrefix?: boolean;
-  isSentinel?: boolean;
   lock?: Lock | null;
   // map exists if the frame has a source map
   map?: string | null;
@@ -210,16 +198,10 @@ export type Frame = {
   symbolicatorStatus?: SymbolicatorStatus;
 };
 
-export enum FrameBadge {
-  SENTINEL = 'sentinel',
-  PREFIX = 'prefix',
-  GROUPING = 'grouping',
-}
-
 export type ExceptionValue = {
   mechanism: StackTraceMechanism | null;
   module: string | null;
-  rawStacktrace: RawStacktrace;
+  rawStacktrace: StacktraceType | null;
   stacktrace: StacktraceType | null;
   threadId: number | null;
   type: string;
@@ -230,32 +212,14 @@ export type ExceptionValue = {
 export type ExceptionType = {
   excOmitted: any | null;
   hasSystemFrames: boolean;
-  values?: Array<ExceptionValue>;
+  values?: ExceptionValue[];
 };
-
-export type TreeLabelPart =
-  | string
-  | {
-      classbase?: string;
-      datapath?: (string | number)[];
-      filebase?: string;
-      function?: string;
-      is_prefix?: boolean;
-      // is_sentinel is no longer being used,
-      // but we will still assess whether we will use this property in the near future.
-      is_sentinel?: boolean;
-      package?: string;
-      type?: string;
-    };
 
 // This type is incomplete
 export type EventMetadata = {
   current_level?: number;
-  current_tree_label?: TreeLabelPart[];
   directive?: string;
-  display_title_with_tree_label?: boolean;
   filename?: string;
-  finest_tree_label?: TreeLabelPart[];
   function?: string;
   message?: string;
   origin?: string;
@@ -303,21 +267,27 @@ export enum EntryType {
 
 export type EntryDebugMeta = {
   data: {
-    images: Array<Image | null>;
+    images?: Array<Image | null>;
+    sdk_info?: {
+      sdk_name: string;
+      version_major: number;
+      version_minor: number;
+      version_patchlevel: number;
+    };
   };
   type: EntryType.DEBUGMETA;
 };
 
 export type EntryBreadcrumbs = {
   data: {
-    values: Array<RawCrumb>;
+    values: RawCrumb[];
   };
   type: EntryType.BREADCRUMBS;
 };
 
 export type EntryThreads = {
   data: {
-    values?: Array<Thread>;
+    values?: Thread[];
   };
   type: EntryType.THREADS;
 };
@@ -350,21 +320,21 @@ type EntryMessage = {
   type: EntryType.MESSAGE;
 };
 
-export interface EntryRequestDataDefault {
+interface EntryRequestDataDefault {
   apiTarget: null;
-  method: string;
+  method: string | null;
   url: string;
-  cookies?: [key: string, value: string][];
-  data?: string | null | Record<string, any> | [key: string, value: any][];
-  env?: Record<string, string>;
+  cookies?: Array<[key: string, value: string] | null>;
+  data?: string | null | Record<string, any> | Array<[key: string, value: any]>;
+  env?: Record<string, string> | null;
   fragment?: string | null;
-  headers?: [key: string, value: string][];
+  headers?: Array<[key: string, value: string] | null>;
   inferredContentType?:
     | null
     | 'application/json'
     | 'application/x-www-form-urlencoded'
     | 'multipart/form-data';
-  query?: [key: string, value: string][] | string;
+  query?: Array<[key: string, value: string] | null> | string;
 }
 
 export interface EntryRequestDataGraphQl
@@ -418,7 +388,7 @@ export type Entry =
 
 // Contexts: https://develop.sentry.dev/sdk/event-payloads/contexts/
 
-export interface BaseContext {
+interface BaseContext {
   type: string;
 }
 
@@ -426,6 +396,7 @@ export enum DeviceContextKey {
   ARCH = 'arch',
   BATTERY_LEVEL = 'battery_level',
   BATTERY_STATUS = 'battery_status',
+  BATTERY_TEMPERATURE = 'battery_temperature',
   BOOT_TIME = 'boot_time',
   BRAND = 'brand',
   CHARGING = 'charging',
@@ -472,6 +443,7 @@ export interface DeviceContext
   [DeviceContextKey.ARCH]?: string;
   [DeviceContextKey.BATTERY_LEVEL]?: number;
   [DeviceContextKey.BATTERY_STATUS]?: string;
+  [DeviceContextKey.BATTERY_TEMPERATURE]?: number;
   [DeviceContextKey.BOOT_TIME]?: string;
   [DeviceContextKey.BRAND]?: string;
   [DeviceContextKey.CHARGING]?: boolean;
@@ -538,7 +510,7 @@ type OSContext = {
   version: string;
 };
 
-export enum OtelContextKey {
+enum OtelContextKey {
   ATTRIBUTES = 'attributes',
   RESOURCE = 'resource',
 }
@@ -572,6 +544,7 @@ export interface UnityContext {
 
 export enum MemoryInfoContextKey {
   ALLOCATED_BYTES = 'allocated_bytes',
+  TOTAL_ALLOCATED_BYTES = 'total_allocated_bytes',
   FRAGMENTED_BYTES = 'fragmented_bytes',
   HEAP_SIZE_BYTES = 'heap_size_bytes',
   HIGH_MEMORY_LOAD_THRESHOLD_BYTES = 'high_memory_load_threshold_bytes',
@@ -604,6 +577,7 @@ export interface MemoryInfoContext {
   [MemoryInfoContextKey.PAUSE_TIME_PERCENTAGE]?: number;
   [MemoryInfoContextKey.INDEX]?: number;
   [MemoryInfoContextKey.ALLOCATED_BYTES]?: number;
+  [MemoryInfoContextKey.TOTAL_ALLOCATED_BYTES]?: number;
   [MemoryInfoContextKey.FRAGMENTED_BYTES]?: number;
   [MemoryInfoContextKey.HEAP_SIZE_BYTES]?: number;
   [MemoryInfoContextKey.HIGH_MEMORY_LOAD_THRESHOLD_BYTES]?: number;
@@ -630,6 +604,10 @@ export interface ThreadPoolInfoContext {
   [ThreadPoolInfoContextKey.AVAILABLE_COMPLETION_PORT_THREADS]: number;
 }
 
+type MetricAlertContextType = {
+  alert_rule_id?: string;
+};
+
 export enum ProfileContextKey {
   PROFILE_ID = 'profile_id',
   PROFILER_ID = 'profiler_id',
@@ -648,24 +626,34 @@ export interface ReplayContext {
   [ReplayContextKey.REPLAY_ID]: string;
   type: string;
 }
-export interface BrowserContext {
+interface BrowserContext {
   name: string;
   version: string;
 }
 
-export interface ResponseContext {
+interface ResponseContext {
   data: unknown;
   type: 'response';
 }
 
+// event.contexts.flags can be overriden by the user so the type is not strict
+export type FeatureFlag = {flag?: string; result?: boolean};
+type Flags = {values?: FeatureFlag[]};
+
 export type EventContexts = {
+  'Current Culture'?: CultureContext;
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
   browser?: BrowserContext;
   client_os?: OSContext;
+  cloud_resource?: CloudResourceContext;
+  culture?: CultureContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
+  flags?: Flags;
   memory_info?: MemoryInfoContext;
+  metric_alert?: MetricAlertContextType;
+  missing_instrumentation?: MissingInstrumentationContext;
   os?: OSContext;
   otel?: OtelContext;
   // TODO (udameli): add better types here
@@ -683,33 +671,37 @@ export type EventContexts = {
 export type Measurement = {value: number; type?: string; unit?: string};
 
 export type EventTag = {key: string; value: string};
+export type EventTagWithMeta = EventTag & {meta?: Record<string, any>};
 
-export type EventUser = {
+type EventUser = {
   data?: string | null;
   email?: string;
+  geo?: {
+    city?: string;
+    country_code?: string;
+    region?: string;
+    subdivision?: string;
+  };
   id?: string;
   ip_address?: string;
   name?: string | null;
   username?: string | null;
 };
 
-export type PerformanceDetectorData = {
+type PerformanceDetectorData = {
   causeSpanIds: string[];
   offenderSpanIds: string[];
   parentSpanIds: string[];
   issueType?: IssueType;
 };
 
-type EventEvidenceDisplay = {
-  /**
-   * Used for alerting, probably not useful for the UI
-   */
+export type EventEvidenceDisplay = {
   important: boolean;
   name: string;
   value: string;
 };
 
-export type EventOccurrence = {
+type EventOccurrence = {
   detectionTime: string;
   eventId: string;
   /**
@@ -795,10 +787,10 @@ interface EventBase {
   release?: EventRelease | null;
   resolvedWith?: string[];
   sdk?: {
-    name: string;
-    version: string;
+    name: string | null;
+    version: string | null;
   } | null;
-  sdkUpdates?: Array<SDKUpdatesSuggestion>;
+  sdkUpdates?: SDKUpdatesSuggestion[];
   userReport?: any;
 }
 
@@ -813,16 +805,11 @@ export interface EventTransaction
   endTimestamp: number;
   // EntryDebugMeta is required for profiles to render in the span
   // waterfall with the correct symbolication statuses
-  entries: (
-    | EntrySpans
-    | EntryRequest
-    | EntryDebugMeta
-    | AggregateEntrySpans
-    | EntryBreadcrumbs
-  )[];
+  entries: Array<
+    EntrySpans | EntryRequest | EntryDebugMeta | AggregateEntrySpans | EntryBreadcrumbs
+  >;
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
-  _metrics_summary?: MetricsSummary;
   perfProblem?: PerformanceDetectorData;
 }
 
@@ -855,13 +842,9 @@ export interface AggregateEventTransaction
 }
 
 export interface EventError extends Omit<EventBase, 'entries' | 'type'> {
-  entries: (
-    | EntryException
-    | EntryStacktrace
-    | EntryRequest
-    | EntryThreads
-    | EntryDebugMeta
-  )[];
+  entries: Array<
+    EntryException | EntryStacktrace | EntryRequest | EntryThreads | EntryDebugMeta
+  >;
   type: EventOrGroupType.ERROR;
 }
 

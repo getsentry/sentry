@@ -3,15 +3,20 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
+import ast
 import logging
 import traceback
 
+import psycopg2.errors
 import sentry_sdk
+from django.apps import apps
+from django.contrib.postgres.fields.array import ArrayField
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.serializers import deserialize, serialize
 from django.core.serializers.base import DeserializationError
 from django.db import DatabaseError, IntegrityError, connections, models, router, transaction
 from django.db.models import Q
+from django.db.models.fields.json import JSONField
 from django.forms import model_to_dict
 from rest_framework.serializers import ValidationError as DjangoRestFrameworkValidationError
 
@@ -44,13 +49,14 @@ from sentry.backup.services.import_export.model import (
 from sentry.backup.services.import_export.service import DEFAULT_IMPORT_FLAGS, ImportExportService
 from sentry.db.models.base import BaseModel
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.outbox import outbox_context
-from sentry.models.user import User
-from sentry.models.userpermission import UserPermission
-from sentry.models.userrole import UserRoleUser
 from sentry.silo.base import SiloMode
+from sentry.users.models.user import User
+from sentry.users.models.userpermission import UserPermission
+from sentry.users.models.userrole import UserRoleUser
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +92,49 @@ def get_existing_import_chunk(
         min_inserted_pk=found_data["min_inserted_pk"],
         max_inserted_pk=found_data["max_inserted_pk"],
     )
+
+
+def fixup_array_fields[T: (str, str | bytes)](json_data: T) -> T:
+    # preserve for 3 versions as per https://docs.sentry.io/concepts/migration/#version-support-window
+    # so probably 2025.09 this can go away?
+    try:
+        contents = json.loads(json_data)
+    except Exception:  # let the actual import/export produce a better message
+        return json_data
+
+    for dct in contents:
+        model = apps.get_model(dct["model"])
+        for k, v in dct["fields"].items():
+            if isinstance(model._meta.get_field(k), ArrayField) and isinstance(v, str):
+                try:
+                    json.loads(v)
+                except Exception:
+                    # old ArrayField: value was not properly encoded as json
+                    dct["fields"][k] = json.dumps(ast.literal_eval(v))
+                else:
+                    pass
+    return json.dumps(contents)
+
+
+def fixup_json_fields[T: (str, str | bytes)](json_data: T) -> T:
+    # preserve for 3 versions as per https://docs.sentry.io/concepts/migration/#version-support-window
+    # so probably 2025.11 this can go away?
+    try:
+        contents = json.loads(json_data)
+    except Exception:  # let the actual import/export produce a better message
+        return json_data
+
+    for dct in contents:
+        model = apps.get_model(dct["model"])
+        for k, v in dct["fields"].items():
+            if isinstance(model._meta.get_field(k), JSONField) and isinstance(v, str):
+                try:
+                    # old PickledObjectField / JSONField is serialized to a string
+                    dct["fields"][k] = json.loads(v)
+                except ValueError:
+                    pass  # new JSONField already represents data directly rather than encoding
+
+    return json.dumps(contents)
 
 
 class UniversalImportExportService(ImportExportService):
@@ -208,7 +257,13 @@ class UniversalImportExportService(ImportExportService):
                 min_inserted_pk: int | None = None
                 max_inserted_pk: int | None = None
                 last_seen_ordinal = min_ordinal - 1
-                for deserialized_object in deserialize("json", json_data, use_natural_keys=False):
+
+                json_data = fixup_array_fields(json_data)
+                json_data = fixup_json_fields(json_data)
+
+                for deserialized_object in deserialize(
+                    "json", json_data, use_natural_keys=False, ignorenonexistent=True
+                ):
                     model_instance = deserialized_object.object
                     inst_model_name = get_model_name(model_instance)
 
@@ -365,38 +420,37 @@ class UniversalImportExportService(ImportExportService):
                     max_inserted_pk=max_inserted_pk,
                 )
 
-        except DeserializationError:
+        except DeserializationError as err:
             sentry_sdk.capture_exception()
+            reason = str(err) or "No additional information"
+            if err.__cause__:
+                reason += f", {err.__cause__}"
+
             return RpcImportError(
                 kind=RpcImportErrorKind.DeserializationFailed,
                 on=InstanceID(import_model_name),
-                reason="The submitted JSON could not be deserialized into Django model instances",
+                reason=f"The submitted JSON could not be deserialized into Django model instances. {reason}",
             )
 
         except DatabaseError as e:
-            # This race-detection code is a bit hacky, since it relies on string matching the error
-            # description from postgres but... ¯\_(ツ)_/¯.
-            if len(e.args) > 0:
-                desc = str(e.args[0])
-
-                # Any `UniqueViolation` indicates the possibility that we've lost a race. Check for
-                # this explicitly by seeing if an `ImportChunk` with a matching unique signature has
-                # been written to the database already.
-                if desc.startswith("UniqueViolation"):
-                    try:
-                        existing_import_chunk = get_existing_import_chunk(
-                            batch_model_name, import_flags, import_chunk_type, min_ordinal
-                        )
-                        if existing_import_chunk is not None:
-                            logger.warning("import_by_model.lost_import_race", extra=extra)
-                            return existing_import_chunk
-                    except Exception:
-                        sentry_sdk.capture_exception()
-                        return RpcImportError(
-                            kind=RpcImportErrorKind.Unknown,
-                            on=InstanceID(import_model_name),
-                            reason=f"Unknown internal error occurred: {traceback.format_exc()}",
-                        )
+            # Any `UniqueViolation` indicates the possibility that we've lost a race. Check for
+            # this explicitly by seeing if an `ImportChunk` with a matching unique signature has
+            # been written to the database already.
+            if isinstance(e.__cause__, psycopg2.errors.UniqueViolation):
+                try:
+                    existing_import_chunk = get_existing_import_chunk(
+                        batch_model_name, import_flags, import_chunk_type, min_ordinal
+                    )
+                    if existing_import_chunk is not None:
+                        logger.warning("import_by_model.lost_import_race", extra=extra)
+                        return existing_import_chunk
+                except Exception:
+                    sentry_sdk.capture_exception()
+                    return RpcImportError(
+                        kind=RpcImportErrorKind.Unknown,
+                        on=InstanceID(import_model_name),
+                        reason=f"Unknown internal error occurred: {traceback.format_exc()}",
+                    )
 
             # All non-`ImportChunk`-related kinds of `IntegrityError` mean that the user's data was
             # not properly sanitized against collision. This could be the fault of either the import
@@ -524,12 +578,12 @@ class UniversalImportExportService(ImportExportService):
                                 # well.
                                 break
                         else:
-                            # For models that may have circular references to themselves (unlikely),
-                            # keep track of the new pk in the input map as well.
                             nonlocal max_pk
                             if item.pk > max_pk:
                                 max_pk = item.pk
 
+                            # For models that may have circular references to themselves (unlikely),
+                            # keep track of the new pk in the input map as well.
                             in_pk_map.insert(model_name, item.pk, item.pk, ImportKind.Inserted)
                             out_pk_map.insert(model_name, item.pk, item.pk, ImportKind.Inserted)
                             yield item

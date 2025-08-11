@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
@@ -7,7 +7,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ProjectCodeOwnersEndpointTestCase(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.user = self.create_user("admin@sentry.io", is_superuser=True)
 
         self.login_as(user=self.user)
@@ -38,23 +38,23 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             "codeMappingId": self.code_mapping.id,
         }
 
-    def test_no_codeowners(self):
+    def test_no_codeowners(self) -> None:
         with self.feature({"organizations:integrations-codeowners": True}):
             resp = self.client.get(self.url)
         assert resp.status_code == 200
         assert resp.data == []
 
-    def test_without_feature_flag(self):
+    def test_without_feature_flag(self) -> None:
         with self.feature({"organizations:integrations-codeowners": False}):
             resp = self.client.get(self.url)
         assert resp.status_code == 403
         assert resp.data == {"detail": "You do not have permission to perform this action."}
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_codeowners_with_integration(self, get_codeowner_mock_file):
+    def test_codeowners_with_integration(self, get_codeowner_mock_file: MagicMock) -> None:
         code_owner = self.create_codeowners(self.project, self.code_mapping, raw="*.js @tiger-team")
         with self.feature({"organizations:integrations-codeowners": True}):
             resp = self.client.get(self.url)
@@ -67,10 +67,12 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert resp_data["provider"] == self.integration.provider
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_get_expanded_codeowners_with_integration(self, get_codeowner_mock_file):
+    def test_get_expanded_codeowners_with_integration(
+        self, get_codeowner_mock_file: MagicMock
+    ) -> None:
         code_owner = self.create_codeowners(self.project, self.code_mapping, raw="*.js @tiger-team")
         with self.feature({"organizations:integrations-codeowners": True}):
             resp = self.client.get(f"{self.url}?expand=codeMapping")
@@ -84,10 +86,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert resp_data["codeMapping"]["id"] == str(self.code_mapping.id)
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_basic_post(self, get_codeowner_mock_file):
+    def test_basic_post(self, get_codeowner_mock_file: MagicMock) -> None:
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 201, response.content
@@ -104,7 +106,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["teams_without_access"] == []
         assert errors["users_without_access"] == []
 
-    def test_empty_codeowners_text(self):
+    def test_empty_codeowners_text(self) -> None:
         self.data["raw"] = ""
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
@@ -112,10 +114,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert response.data == {"raw": ["This field may not be blank."]}
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_invalid_codeowners_text(self, get_codeowner_mock_file):
+    def test_invalid_codeowners_text(self, get_codeowner_mock_file: MagicMock) -> None:
         self.data["raw"] = "docs/*"
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
@@ -133,10 +135,12 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["users_without_access"] == []
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_cannot_find_external_user_name_association(self, get_codeowner_mock_file):
+    def test_cannot_find_external_user_name_association(
+        self, get_codeowner_mock_file: MagicMock
+    ) -> None:
         self.data["raw"] = "docs/*  @MeredithAnya"
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
@@ -154,10 +158,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["users_without_access"] == []
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_cannot_find_sentry_user_with_email(self, get_codeowner_mock_file):
+    def test_cannot_find_sentry_user_with_email(self, get_codeowner_mock_file: MagicMock) -> None:
         self.data["raw"] = "docs/*  someuser@sentry.io"
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
@@ -175,10 +179,12 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["users_without_access"] == []
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_cannot_find_external_team_name_association(self, get_codeowner_mock_file):
+    def test_cannot_find_external_team_name_association(
+        self, get_codeowner_mock_file: MagicMock
+    ) -> None:
         self.data["raw"] = "docs/*  @getsentry/frontend\nstatic/* @getsentry/frontend"
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
@@ -196,10 +202,12 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["users_without_access"] == []
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_cannot_find__multiple_external_name_association(self, get_codeowner_mock_file):
+    def test_cannot_find__multiple_external_name_association(
+        self, get_codeowner_mock_file: MagicMock
+    ) -> None:
         self.data["raw"] = "docs/*  @AnotherUser @getsentry/frontend @getsentry/docs"
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
@@ -216,14 +224,14 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["teams_without_access"] == []
         assert errors["users_without_access"] == []
 
-    def test_missing_code_mapping_id(self):
+    def test_missing_code_mapping_id(self) -> None:
         self.data.pop("codeMappingId")
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {"codeMappingId": ["This field is required."]}
 
-    def test_invalid_code_mapping_id(self):
+    def test_invalid_code_mapping_id(self) -> None:
         self.data["codeMappingId"] = 500
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
@@ -231,10 +239,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert response.data == {"codeMappingId": ["This code mapping does not exist."]}
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_no_duplicates_allowed(self, get_codeowner_mock_file):
+    def test_no_duplicates_allowed(self, get_codeowner_mock_file: MagicMock) -> None:
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
             assert response.status_code == 201, response.content
@@ -243,10 +251,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             assert response.data == {"codeMappingId": ["This code mapping is already in use."]}
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_schema_is_correct(self, get_codeowner_mock_file):
+    def test_schema_is_correct(self, get_codeowner_mock_file: MagicMock) -> None:
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 201, response.content
@@ -266,10 +274,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         }
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_schema_preserves_comments(self, get_codeowner_mock_file):
+    def test_schema_preserves_comments(self, get_codeowner_mock_file: MagicMock) -> None:
         self.data["raw"] = "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n"
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
@@ -290,10 +298,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         }
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_raw_email_correct_schema(self, get_codeowner_mock_file):
+    def test_raw_email_correct_schema(self, get_codeowner_mock_file: MagicMock) -> None:
         self.data["raw"] = f"docs/*    {self.user.email}   @getsentry/ecosystem\n"
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
@@ -314,10 +322,12 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         }
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_codeowners_scope_emails_to_org_security(self, get_codeowner_mock_file):
+    def test_codeowners_scope_emails_to_org_security(
+        self, get_codeowner_mock_file: MagicMock
+    ) -> None:
         self.user2 = self.create_user("user2@sentry.io")
         self.data = {
             "raw": "docs/*    @NisanthanNanthakumar   user2@sentry.io\n",
@@ -340,10 +350,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["users_without_access"] == []
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_multiple_codeowners_for_project(self, get_codeowner_mock_file):
+    def test_multiple_codeowners_for_project(self, get_codeowner_mock_file: MagicMock) -> None:
         code_mapping_2 = self.create_code_mapping(stack_root="src/")
         self.create_codeowners(code_mapping=code_mapping_2)
         with self.feature({"organizations:integrations-codeowners": True}):
@@ -351,10 +361,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert response.status_code == 201
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_users_without_access(self, get_codeowner_mock_file):
+    def test_users_without_access(self, get_codeowner_mock_file: MagicMock) -> None:
         user_2 = self.create_user("bar@example.com")
         self.create_member(organization=self.organization, user=user_2, role="member")
         team_2 = self.create_team(name="foo", organization=self.organization, members=[user_2])
@@ -379,10 +389,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert set(errors["users_without_access"]) == {user_2.email}
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_post_with_schema(self, get_codeowner_mock_file):
+    def test_post_with_schema(self, get_codeowner_mock_file: MagicMock) -> None:
         with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 201
@@ -402,10 +412,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         }
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_get(self, get_codeowner_mock_file):
+    def test_get(self, get_codeowner_mock_file: MagicMock) -> None:
         self.client.post(self.url, self.data)
         response = self.client.get(self.url)
 
@@ -444,10 +454,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         ]
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_get_rule_one_deleted_owner(self, get_codeowner_mock_file):
+    def test_get_rule_one_deleted_owner(self, get_codeowner_mock_file: MagicMock) -> None:
         self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
         self.create_member(
             user=self.member_user_delete,
@@ -475,10 +485,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             }
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_get_no_rule_deleted_owner(self, get_codeowner_mock_file):
+    def test_get_no_rule_deleted_owner(self, get_codeowner_mock_file: MagicMock) -> None:
         self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
         self.create_member(
             user=self.member_user_delete,
@@ -498,10 +508,10 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             assert response.data[0]["schema"] == {"$version": 1, "rules": []}
 
     @patch(
-        "sentry.integrations.mixins.repositories.RepositoryMixin.get_codeowner_file",
+        "sentry.integrations.source_code_management.repository.RepositoryIntegration.get_codeowner_file",
         return_value={"html_url": "https://github.com/test/CODEOWNERS"},
     )
-    def test_get_multiple_rules_deleted_owners(self, get_codeowner_mock_file):
+    def test_get_multiple_rules_deleted_owners(self, get_codeowner_mock_file: MagicMock) -> None:
         self.member_user_delete = self.create_user("member_delete@localhost", is_superuser=False)
         self.create_member(
             user=self.member_user_delete,
@@ -522,9 +532,9 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         self.external_delete_user2 = self.create_external_user(
             user=self.member_user_delete, external_name="@delete2", integration=self.integration
         )
-        self.data[
-            "raw"
-        ] = "docs/*  @delete\n*.py @getsentry/ecosystem @delete\n*.css @delete2\n*.rb @NisanthanNanthakumar"
+        self.data["raw"] = (
+            "docs/*  @delete\n*.py @getsentry/ecosystem @delete\n*.css @delete2\n*.rb @NisanthanNanthakumar"
+        )
 
         with self.feature({"organizations:integrations-codeowners": True}):
             self.client.post(self.url, self.data)

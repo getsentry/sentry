@@ -1,14 +1,19 @@
-import logging
-from enum import Enum
+from __future__ import annotations
 
-import jsonschema
+from collections.abc import Iterable
+from datetime import datetime
+from enum import Enum
+from typing import TYPE_CHECKING, TypedDict
+
 import sentry_sdk
 from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.models.grouphistory import (
     GroupHistoryStatus,
     bulk_record_group_history,
@@ -16,18 +21,10 @@ from sentry.models.grouphistory import (
 )
 from sentry.types.activity import ActivityType
 
-INBOX_REASON_DETAILS = {
-    "type": ["object", "null"],
-    "properties": {
-        "until": {"type": ["string", "null"], "format": "date-time"},
-        "count": {"type": ["integer", "null"]},
-        "window": {"type": ["integer", "null"]},
-        "user_count": {"type": ["integer", "null"]},
-        "user_window": {"type": ["integer", "null"]},
-    },
-    "required": [],
-    "additionalProperties": False,
-}
+if TYPE_CHECKING:
+    from sentry.models.team import Team
+    from sentry.users.models.user import User
+    from sentry.users.services.user import RpcUser
 
 
 class GroupInboxReason(Enum):
@@ -69,18 +66,15 @@ class GroupInbox(Model):
         indexes = (models.Index(fields=("project", "date_added")),)
 
 
-def add_group_to_inbox(group, reason, reason_details=None):
-    if reason_details is not None:
-        if "until" in reason_details and reason_details["until"] is not None:
-            reason_details["until"] = reason_details["until"].replace(microsecond=0).isoformat()
+def add_group_to_inbox(
+    group: Group,
+    reason: GroupInboxReason,
+    reason_details: InboxReasonDetails | None = None,
+) -> GroupInbox:
+    if reason_details is not None and reason_details["until"] is not None:
+        reason_details["until"] = reason_details["until"].replace(microsecond=0)
 
-    try:
-        jsonschema.validate(reason_details, INBOX_REASON_DETAILS)
-    except jsonschema.ValidationError:
-        logging.exception("GroupInbox invalid jsonschema: %s", reason_details)
-        reason_details = None
-
-    group_inbox, created = GroupInbox.objects.get_or_create(
+    group_inbox, _ = GroupInbox.objects.get_or_create(
         group=group,
         defaults={
             "project": group.project,
@@ -93,7 +87,11 @@ def add_group_to_inbox(group, reason, reason_details=None):
     return group_inbox
 
 
-def remove_group_from_inbox(group, action=None, user=None, referrer=None):
+def remove_group_from_inbox(
+    group: Group,
+    action: GroupInboxRemoveAction | None = None,
+    user: User | RpcUser | None = None,
+) -> None:
     try:
         group_inbox = GroupInbox.objects.get(group=group)
         group_inbox.delete()
@@ -110,8 +108,12 @@ def remove_group_from_inbox(group, action=None, user=None, referrer=None):
         pass
 
 
-def bulk_remove_groups_from_inbox(groups, action=None, user=None, referrer=None):
-    with sentry_sdk.start_span(description="bulk_remove_groups_from_inbox"):
+def bulk_remove_groups_from_inbox(
+    groups: BaseQuerySet[Group, Group],
+    action: GroupInboxRemoveAction | None = None,
+    user: User | RpcUser | Team | None = None,
+) -> None:
+    with sentry_sdk.start_span(name="bulk_remove_groups_from_inbox"):
         try:
             group_inbox = GroupInbox.objects.filter(group__in=groups)
             group_inbox.delete()
@@ -129,15 +131,29 @@ def bulk_remove_groups_from_inbox(groups, action=None, user=None, referrer=None)
                     ]
                 )
 
-                bulk_record_group_history(groups, GroupHistoryStatus.REVIEWED, actor=user)
+                bulk_record_group_history(list(groups), GroupHistoryStatus.REVIEWED, actor=user)
         except GroupInbox.DoesNotExist:
             pass
 
 
-def get_inbox_details(group_list):
+class InboxReasonDetails(TypedDict):
+    until: datetime | None
+    count: int | None
+    window: int | None
+    user_count: int | None
+    user_window: int | None
+
+
+class InboxDetails(TypedDict):
+    reason: int
+    reason_details: InboxReasonDetails | None
+    date_added: datetime
+
+
+def get_inbox_details(group_list: Iterable[Group]) -> dict[int, InboxDetails]:
     group_ids = [g.id for g in group_list]
     group_inboxes = GroupInbox.objects.filter(group__in=group_ids)
-    inbox_stats = {
+    return {
         gi.group_id: {
             "reason": gi.reason,
             "reason_details": gi.reason_details,
@@ -145,5 +161,3 @@ def get_inbox_details(group_list):
         }
         for gi in group_inboxes
     }
-
-    return inbox_stats

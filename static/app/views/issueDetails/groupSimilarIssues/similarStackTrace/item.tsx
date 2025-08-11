@@ -5,8 +5,8 @@ import classNames from 'classnames';
 import type {Location} from 'history';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
+import {Button} from 'sentry/components/core/button';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
@@ -23,14 +23,14 @@ import type {Project} from 'sentry/types/project';
 
 type Props = {
   groupId: Group['id'];
+  hasSimilarityEmbeddingsFeature: boolean;
   issue: Group;
   location: Location;
   orgId: Organization['id'];
   project: Project;
   aggregate?: {
     exception: number;
-    message: number;
-    shouldBeGrouped?: string;
+    message?: number;
   };
   score?: Record<string, any>;
   scoresByInterface?: {
@@ -41,6 +41,8 @@ type Props = {
 
 const initialState = {visible: true, checked: false, busy: false};
 
+const similarityEmbeddingScoreValues = [0.9, 0.925, 0.95, 0.975, 0.99, 1];
+
 type State = typeof initialState;
 
 class Item extends Component<Props, State> {
@@ -50,7 +52,7 @@ class Item extends Component<Props, State> {
     this.listener?.();
   }
 
-  listener = GroupingStore.listen(data => this.onGroupChange(data), undefined);
+  listener = GroupingStore.listen((data: any) => this.onGroupChange(data), undefined);
 
   handleToggle = () => {
     const {issue} = this.props;
@@ -62,21 +64,14 @@ class Item extends Component<Props, State> {
   };
 
   handleShowDiff = (event: React.MouseEvent) => {
-    const {orgId, groupId: baseIssueId, issue, project, aggregate, location} = this.props;
+    const {orgId, groupId: baseIssueId, issue, project, location} = this.props;
     const {id: targetIssueId} = issue;
 
-    const hasSimilarityEmbeddingsFeature =
-      project.features.includes('similarity-embeddings') ||
-      location.query.similarityEmbeddings === '1';
-    const shouldBeGrouped = hasSimilarityEmbeddingsFeature
-      ? aggregate?.shouldBeGrouped
-      : '';
     openDiffModal({
       baseIssueId,
       targetIssueId,
       project,
       orgId,
-      shouldBeGrouped,
       location,
     });
     event.stopPropagation();
@@ -87,7 +82,7 @@ class Item extends Component<Props, State> {
     // This is controlled via row click instead of only Checkbox
   };
 
-  onGroupChange = ({mergeState}) => {
+  onGroupChange = ({mergeState}: any) => {
     if (!mergeState) {
       return;
     }
@@ -101,7 +96,7 @@ class Item extends Component<Props, State> {
     }
 
     Object.keys(stateForId).forEach(key => {
-      if (stateForId[key] === this.state[key]) {
+      if (stateForId[key] === this.state[key as keyof State]) {
         return;
       }
       this.setState(prevState => ({
@@ -112,14 +107,11 @@ class Item extends Component<Props, State> {
   };
 
   render() {
-    const {aggregate, scoresByInterface, issue, project, location} = this.props;
+    const {aggregate, scoresByInterface, issue, hasSimilarityEmbeddingsFeature} =
+      this.props;
     const {visible, busy} = this.state;
-    const hasSimilarityEmbeddingsFeature =
-      project.features.includes('similarity-embeddings') ||
-      location.query.similarityEmbeddings === '1';
-    const similarInterfaces = hasSimilarityEmbeddingsFeature
-      ? ['exception', 'message', 'shouldBeGrouped']
-      : ['exception', 'message'];
+    const similarInterfaces: Array<'exception' | 'message'> =
+      hasSimilarityEmbeddingsFeature ? ['exception'] : ['exception', 'message'];
 
     if (!visible) {
       return null;
@@ -161,16 +153,19 @@ class Item extends Component<Props, State> {
             const avgScore = aggregate?.[interfaceName];
             const scoreList = scoresByInterface?.[interfaceName] || [];
 
-            // If hasSimilarityEmbeddingsFeature is on, avgScore can be a string
-            let scoreValue = avgScore;
-            if (
-              (typeof avgScore !== 'string' && hasSimilarityEmbeddingsFeature) ||
-              !hasSimilarityEmbeddingsFeature
-            ) {
-              // Check for valid number (and not NaN)
-              scoreValue =
-                typeof avgScore === 'number' && !Number.isNaN(avgScore) ? avgScore : 0;
+            // Check for valid number (and not NaN)
+            let scoreValue =
+              typeof avgScore === 'number' && !Number.isNaN(avgScore) ? avgScore : 0;
+            // If hasSimilarityEmbeddingsFeature is on, translate similarity score in range 0.9-1 to score between 1-5
+            if (hasSimilarityEmbeddingsFeature) {
+              for (let i = 0; i <= similarityEmbeddingScoreValues.length; i++) {
+                if (scoreValue <= similarityEmbeddingScoreValues[i]!) {
+                  scoreValue = i;
+                  break;
+                }
+              }
             }
+
             return (
               <Column key={interfaceName}>
                 {!hasSimilarityEmbeddingsFeature && (
@@ -181,9 +176,7 @@ class Item extends Component<Props, State> {
                   </Hovercard>
                 )}
                 {hasSimilarityEmbeddingsFeature && (
-                  <div>
-                    {typeof scoreValue === 'number' ? scoreValue.toFixed(4) : scoreValue}
-                  </div>
+                  <ScoreBar vertical score={scoreValue} />
                 )}
               </Column>
             );

@@ -15,41 +15,6 @@ from sentry.backup.scopes import RelocationScope
 from sentry.silo.base import SiloMode
 from sentry.utils import json
 
-# We have to be careful when removing fields from our model schemas, since exports created using
-# the old-but-still-in-the-support-window versions could have those fields set in the data they
-# provide. This dict serves as a map of all fields that have been deleted on HEAD but are still
-# valid in at least one of the versions we support. For example, since our current version
-# support window is two minor versions back, if we delete a field at version 24.5.N, we must
-# include an entry in this map for that field until that version is out of the support window
-# (in this case, we can remove shim once version 24.7.0 is released).
-#
-# NOTE TO FUTURE EDITORS: please keep the `DELETED_FIELDS` dict, and the subsequent `if` clause,
-# around even if the dict is empty, to ensure that there is a ready place to pop shims into. For
-# each entry in this dict, please leave a TODO comment pointed to a github issue for removing
-# the shim, noting in the comment which self-hosted release will trigger the removal.
-DELETED_FIELDS: dict[str, set[str]] = {
-    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
-    "sentry.team": {"actor"},
-    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
-    "sentry.rule": {"owner"},
-    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
-    "sentry.alertrule": {"owner"},
-    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
-    "sentry.grouphistory": {"actor"},
-}
-
-# When models are removed from the application, they will continue to be in exports
-# from previous releases. Models in this list are elided from data as imports are processed.
-#
-# NOTE TO FUTURE EDITORS: please keep the `DELETED_MODELS` set, and the subsequent `if` clause,
-# around even if the set is empty, to ensure that there is a ready place to pop shims into. For
-# each entry in this set, please leave a TODO comment pointed to a github issue for removing
-# the shim, noting in the comment which self-hosted release will trigger the removal.
-DELETED_MODELS = {
-    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
-    "sentry.actor"
-}
-
 
 class NormalizedModelName:
     """
@@ -95,28 +60,23 @@ class NormalizedModelName:
 #
 # TODO(getsentry/team-ospo#190): We should find a better way to store this information than a magic
 # list in this file. We should probably make a field (or method?) on `BaseModel` instead.
-@unique
-class RelocationRootModels(Enum):
-    """
-    Record the "root" models for a given `RelocationScope`.
-    """
-
-    Excluded: list[NormalizedModelName] = []
-    User = [NormalizedModelName("sentry.user")]
-    Organization = [NormalizedModelName("sentry.organization")]
-    Config = [
-        NormalizedModelName("sentry.controloption"),
-        NormalizedModelName("sentry.option"),
-        NormalizedModelName("sentry.relay"),
-        NormalizedModelName("sentry.relayusage"),
-        NormalizedModelName("sentry.userrole"),
-    ]
+_ROOT_MODELS: tuple[NormalizedModelName, ...] = (
+    # RelocationScope.User
+    NormalizedModelName("sentry.user"),
+    # RelocationScope.Organization
+    NormalizedModelName("sentry.organization"),
+    # RelocationScope.Config
+    NormalizedModelName("sentry.controloption"),
+    NormalizedModelName("sentry.option"),
+    NormalizedModelName("sentry.relay"),
+    NormalizedModelName("sentry.relayusage"),
+    NormalizedModelName("sentry.userrole"),
+    # RelocationScope.Global
     # TODO(getsentry/team-ospo#188): Split out extension scope root models from this list.
-    Global = [
-        NormalizedModelName("sentry.apiapplication"),
-        NormalizedModelName("sentry.integration"),
-        NormalizedModelName("sentry.sentryapp"),
-    ]
+    NormalizedModelName("sentry.apiapplication"),
+    NormalizedModelName("sentry.integration"),
+    NormalizedModelName("sentry.sentryapp"),
+)
 
 
 @unique
@@ -433,6 +393,10 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
             if model._meta.app_label in {"sessions", "sites", "test", "getsentry"}:
                 continue
 
+            # exclude proxy models since the backup test is already done on a parent if needed
+            if model._meta.proxy:
+                continue
+
             foreign_keys: dict[str, ForeignField] = dict()
             uniques: set[frozenset[str]] = {
                 frozenset(combo) for combo in model._meta.unique_together
@@ -538,10 +502,7 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
             )
 
     # Get a flat list of "root" models, then mark all of them as non-dangling.
-    relocation_root_models: list[NormalizedModelName] = []
-    for root_models in RelocationRootModels:
-        relocation_root_models.extend(root_models.value)
-    for model_name in relocation_root_models:
+    for model_name in _ROOT_MODELS:
         model_dependencies_dict[model_name].dangling = False
 
     # TODO(getsentry/team-ospo#190): In practice, we can treat `AlertRule`'s dependency on
@@ -715,7 +676,7 @@ def merge_users_for_model_in_org(
     """
 
     from sentry.models.organization import Organization
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
     model_relations = dependencies()[get_model_name(model)]
     user_refs = {k for k, v in model_relations.foreign_keys.items() if v.model == User}

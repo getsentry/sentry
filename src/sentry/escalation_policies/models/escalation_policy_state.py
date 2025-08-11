@@ -34,5 +34,5 @@ class EscalationPolicyState(models.Model):
     date_updated = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        app_label = "sentry"
-        db_table = "sentry_escalation_policy_state"
+        app_label = "escalation_policies"
+        db_table = "escalation_policies_escalation_policy_state"

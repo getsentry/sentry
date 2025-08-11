@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.views.link_identity import SUCCESS_LINKED_MESSAGE, build_linking_url
 from sentry.integrations.slack.views.unlink_identity import (
@@ -5,9 +7,11 @@ from sentry.integrations.slack.views.unlink_identity import (
     build_unlinking_url,
 )
 from sentry.integrations.slack.webhooks.base import NOT_LINKED_MESSAGE
-from sentry.models.identity import Identity
+from sentry.integrations.types import EventLifecycleOutcome
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.helpers import get_response_text
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
 
@@ -15,7 +19,7 @@ from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 class SlackLinkIdentityViewTest(SlackCommandsTest):
     """Slack Linking Views are returned on Control Silo"""
 
-    def test_link_user_identity(self):
+    def test_link_user_identity(self) -> None:
         linking_url = build_linking_url(
             self.integration, self.external_id, self.channel_id, self.response_url
         )
@@ -31,21 +35,27 @@ class SlackLinkIdentityViewTest(SlackCommandsTest):
 class SlackCommandsLinkUserTest(SlackCommandsTest):
     """Slash commands results are generated on Region Silo"""
 
-    def test_link_command(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_link_command(self, mock_record: MagicMock) -> None:
         data = self.send_slack_message("link")
         assert "Link your Slack identity" in get_response_text(data)
 
-    def test_link_command_already_linked(self):
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_link_command_already_linked(self, mock_record: MagicMock) -> None:
         self.link_user()
         data = self.send_slack_message("link")
         assert "You are already linked as" in get_response_text(data)
+
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
 
 
 @control_silo_test
 class SlackUnlinkIdentityViewTest(SlackCommandsTest):
     """Slack Linking Views are returned on Control Silo"""
 
-    def test_unlink_user_identity_auth(self):
+    def test_unlink_user_identity_auth(self) -> None:
         self.link_user()
 
         unlinking_url = build_unlinking_url(
@@ -62,7 +72,7 @@ class SlackUnlinkIdentityViewTest(SlackCommandsTest):
             in response.content.decode("utf-8")
         )
 
-    def test_unlink_user_identity(self):
+    def test_unlink_user_identity(self) -> None:
         self.link_user()
 
         unlinking_url = build_unlinking_url(
@@ -80,7 +90,7 @@ class SlackUnlinkIdentityViewTest(SlackCommandsTest):
         assert text == SUCCESS_UNLINKED_MESSAGE
         assert not Identity.objects.filter(external_id=self.slack_id).exists()
 
-    def test_404(self):
+    def test_404(self) -> None:
         self.link_user()
 
         unlinking_url = build_unlinking_url(
@@ -102,11 +112,17 @@ class SlackUnlinkIdentityViewTest(SlackCommandsTest):
 class SlackCommandsUnlinkUserTest(SlackCommandsTest):
     """Slash commands results are generated on Region Silo"""
 
-    def test_unlink_command(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_unlink_command(self, mock_record: MagicMock) -> None:
         self.link_user()
         data = self.send_slack_message("unlink")
         assert "to unlink your identity" in get_response_text(data)
 
-    def test_unlink_command_already_unlinked(self):
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_unlink_command_already_unlinked(self, mock_record: MagicMock) -> None:
         data = self.send_slack_message("unlink")
         assert NOT_LINKED_MESSAGE in get_response_text(data)
+
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)

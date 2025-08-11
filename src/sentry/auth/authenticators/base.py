@@ -4,6 +4,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any, Literal, Self
 
 from django.core.cache import cache
+from django.http import HttpRequest
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
@@ -14,8 +15,8 @@ from sentry.utils.otp import TOTP, generate_secret_key
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
 
-    from sentry.models.authenticator import Authenticator
-    from sentry.models.user import User
+    from sentry.users.models.authenticator import Authenticator
+    from sentry.users.models.user import User
 
 
 class ActivationResult:
@@ -32,8 +33,8 @@ class ActivationMessageResult(ActivationResult):
         self.type = type
         self.message = message
 
-    def __str__(self):
-        return self.message
+    def __str__(self) -> str:
+        return str(self.message)
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__}: {self.message}>"
@@ -66,13 +67,18 @@ class AuthenticatorInterface:
     is_backup_interface = False
     enroll_button = _("Enroll")
     configure_button = _("Info")
-    remove_button: str | _StrPromise | None = _("Remove")
+    remove_button: str | _StrPromise | None = _("Remove 2FA method")
     is_available = True
     allow_multi_enrollment = False
     allow_rotation_in_place = False
+    authenticator: Authenticator | None
+    status: EnrollmentStatus
+    _unbound_config: dict[Any, Any]
 
     def __init__(
-        self, authenticator=None, status: EnrollmentStatus = EnrollmentStatus.EXISTING
+        self,
+        authenticator: Authenticator | None = None,
+        status: EnrollmentStatus = EnrollmentStatus.EXISTING,
     ) -> None:
         self.authenticator = authenticator
         self.status = status
@@ -109,7 +115,7 @@ class AuthenticatorInterface:
         return type(self).activate is not AuthenticatorInterface.activate
 
     @property
-    def can_validate_otp(self):
+    def can_validate_otp(self) -> bool:
         """If the interface is able to validate OTP codes then this returns
         `True`.
         """
@@ -136,13 +142,14 @@ class AuthenticatorInterface:
         """This method is invoked if a new config is required."""
         return {}
 
-    def activate(self, request: Request):
+    def activate(self, request: HttpRequest) -> ActivationResult | None:
         """If an authenticator overrides this then the method is called
         when the dialog for authentication is brought up.  The returned string
         is then rendered in the UI.
         """
         # This method needs to be empty for the default
         # `requires_activation` property to make sense.
+        return None
 
     def enroll(self, user: User) -> None:
         """Invoked to enroll a user for this interface.  If already enrolled
@@ -150,7 +157,7 @@ class AuthenticatorInterface:
 
         If `disallow_new_enrollment` is `True`, raises exception: `NewEnrollmentDisallowed`.
         """
-        from sentry.models.authenticator import Authenticator
+        from sentry.users.models.authenticator import Authenticator
 
         if self.disallow_new_enrollment:
             raise NewEnrollmentDisallowed
@@ -183,7 +190,7 @@ class AuthenticatorInterface:
         """
         return False
 
-    def validate_response(self, request: Request, challenge, response):
+    def validate_response(self, request: Request, challenge, response) -> bool:
         """If the activation generates a challenge that needs to be
         responded to this validates the response for that challenge.  This
         is only ever called for challenges emitted by the activation of this
@@ -192,7 +199,7 @@ class AuthenticatorInterface:
         return False
 
 
-class OtpMixin:
+class OtpMixin(AuthenticatorInterface):
     # mixed in from base class
     config: dict[str, Any]
     authenticator: Authenticator | None

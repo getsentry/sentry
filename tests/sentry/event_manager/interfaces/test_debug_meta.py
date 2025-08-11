@@ -9,7 +9,7 @@ def make_debug_meta_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"debug_meta": data})
         mgr.normalize()
-        evt = eventstore.backend.create_event(data=mgr.get_data())
+        evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
         interface = evt.interfaces.get("debug_meta")
         insta_snapshot(
             {"errors": evt.data.get("errors"), "to_json": interface and interface.to_json()}
@@ -27,11 +27,11 @@ def make_debug_meta_snapshot(insta_snapshot):
         {"images": [None]},
     ],
 )
-def test_null_values(make_debug_meta_snapshot, input):
+def test_null_values(make_debug_meta_snapshot, input) -> None:
     make_debug_meta_snapshot(input)
 
 
-def test_apple_behavior(make_debug_meta_snapshot):
+def test_apple_behavior(make_debug_meta_snapshot) -> None:
     image_name = (
         "/var/containers/Bundle/Application/"
         "B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest"
@@ -60,7 +60,7 @@ def test_apple_behavior(make_debug_meta_snapshot):
     )
 
 
-def test_apple_behavior_with_arch(make_debug_meta_snapshot):
+def test_apple_behavior_with_arch(make_debug_meta_snapshot) -> None:
     image_name = (
         "/var/containers/Bundle/Application/"
         "B33C37A8-F933-4B6B-9FFA-152282BFDF13/SentryTest.app/SentryTest"
@@ -90,7 +90,7 @@ def test_apple_behavior_with_arch(make_debug_meta_snapshot):
     )
 
 
-def test_symbolic_behavior(make_debug_meta_snapshot):
+def test_symbolic_behavior(make_debug_meta_snapshot) -> None:
     make_debug_meta_snapshot(
         {
             "images": [
@@ -112,7 +112,7 @@ def test_symbolic_behavior(make_debug_meta_snapshot):
     )
 
 
-def test_symbolic_behavior_with_arch(make_debug_meta_snapshot):
+def test_symbolic_behavior_with_arch(make_debug_meta_snapshot) -> None:
     make_debug_meta_snapshot(
         {
             "images": [
@@ -135,7 +135,7 @@ def test_symbolic_behavior_with_arch(make_debug_meta_snapshot):
     )
 
 
-def test_proguard_behavior(make_debug_meta_snapshot):
+def test_proguard_behavior(make_debug_meta_snapshot) -> None:
     make_debug_meta_snapshot(
         {"images": [{"type": "proguard", "uuid": "C05B4DDD-69A7-3840-A649-32180D341587"}]}
     )

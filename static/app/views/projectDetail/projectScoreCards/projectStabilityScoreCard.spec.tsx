@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {SessionFieldWithOperation} from 'sentry/types';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
 import ProjectStabilityScoreCard from 'sentry/views/projectDetail/projectScoreCards/projectStabilityScoreCard';
 
 describe('ProjectDetail > ProjectStability', function () {
@@ -59,7 +59,7 @@ describe('ProjectDetail > ProjectStability', function () {
           environment: [],
           field: SessionFieldWithOperation.CRASH_FREE_RATE_USERS,
           project: 1,
-          interval: '1d',
+          interval: '1h',
           statsPeriod: '14d',
           query: 'test-query',
         },
@@ -103,7 +103,7 @@ describe('ProjectDetail > ProjectStability', function () {
           environment: [],
           field: SessionFieldWithOperation.CRASH_FREE_RATE_SESSIONS,
           project: 1,
-          interval: '1d',
+          interval: '1h',
           statsPeriod: '14d',
           query: 'test-query',
         },

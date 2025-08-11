@@ -45,7 +45,7 @@ class SentryAppService(PluginService):
         return "sentry_app"
 
     def has_alert_rule_action(self) -> bool:
-        from sentry.models.integrations.sentry_app_component import SentryAppComponent
+        from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 
         exists: bool = SentryAppComponent.objects.filter(
             sentry_app_id=self.service.id, type="alert-rule-action"

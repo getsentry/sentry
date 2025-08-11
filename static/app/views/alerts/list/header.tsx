@@ -1,11 +1,9 @@
-import type {InjectedRouter} from 'react-router';
-
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {TabList} from 'sentry/components/core/tabs';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
-import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {IconSettings} from 'sentry/icons';
@@ -13,13 +11,16 @@ import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useRouter from 'sentry/utils/useRouter';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 type Props = {
   activeTab: 'stream' | 'rules' | 'policies' | 'schedules' | 'occurrences';
-  router: InjectedRouter;
+  // router: InjectedRouter;
 };
 
-function AlertHeader({router, activeTab}: Props) {
+function AlertHeader({activeTab}: Props) {
+  const router = useRouter();
   const organization = useOrganization();
   const {selection} = usePageFilters();
   /**
@@ -32,11 +33,15 @@ function AlertHeader({router, activeTab}: Props) {
   };
 
   const alertRulesLink = (
-    <li className={activeTab === 'rules' ? 'active' : ''}>
-      <GlobalSelectionLink to={`/organizations/${organization.slug}/alerts/rules/`}>
-        {t('Alert Rules')}
-      </GlobalSelectionLink>
-    </li>
+    <TabList.Item
+      key="rules"
+      to={makeAlertsPathname({
+        path: '/rules/',
+        organization,
+      })}
+    >
+      {t('Alert Rules')}
+    </TabList.Item>
   );
 
   return (
@@ -53,7 +58,7 @@ function AlertHeader({router, activeTab}: Props) {
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <CreateAlertButton
             organization={organization}
             iconProps={{size: 'sm'}}
@@ -70,7 +75,7 @@ function AlertHeader({router, activeTab}: Props) {
             {t('Create Alert')}
           </CreateAlertButton>
           <FeedbackWidgetButton />
-          <Button
+          <LinkButton
             size="sm"
             onClick={handleNavigateToSettings}
             href="#"
@@ -79,33 +84,38 @@ function AlertHeader({router, activeTab}: Props) {
           />
         </ButtonBar>
       </Layout.HeaderActions>
-      <Layout.HeaderNavTabs underlined>
-        {alertRulesLink}
-        <li className={activeTab === 'stream' ? 'active' : ''}>
-          <GlobalSelectionLink to={`/organizations/${organization.slug}/alerts/`}>
+      <Layout.HeaderTabs value={activeTab}>
+        <TabList hideBorder>
+          {alertRulesLink}
+          <TabList.Item
+            key="stream"
+            to={makeAlertsPathname({
+              path: '/',
+              organization,
+            })}
+          >
             {t('History')}
-          </GlobalSelectionLink>
-        </li>
-        <li className={activeTab === 'policies' ? 'active' : ''}>
-          <GlobalSelectionLink to={`/organizations/${organization.slug}/alerts/policies`}>
+          </TabList.Item>
+          <TabList.Item
+            key="policies"
+            to={`/organizations/${organization.slug}/alerts/policies`}
+          >
             {t('Escalation Policies')}
-          </GlobalSelectionLink>
-        </li>
-        <li className={activeTab === 'schedules' ? 'active' : ''}>
-          <GlobalSelectionLink
+          </TabList.Item>
+          <TabList.Item
+            key="schedules"
             to={`/organizations/${organization.slug}/alerts/schedules`}
           >
             {t('Schedules')}
-          </GlobalSelectionLink>
-        </li>
-        <li className={activeTab === 'occurrences' ? 'active' : ''}>
-          <GlobalSelectionLink
+          </TabList.Item>
+          <TabList.Item
+            key="occurrences"
             to={`/organizations/${organization.slug}/alerts/occurrences`}
           >
             {t('Occurrences')}
-          </GlobalSelectionLink>
-        </li>
-      </Layout.HeaderNavTabs>
+          </TabList.Item>
+        </TabList>
+      </Layout.HeaderTabs>
     </Layout.Header>
   );
 }

@@ -1,7 +1,7 @@
 from fixtures.page_objects.organization_integration_settings import (
     OrganizationSentryAppDetailViewPage,
 )
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -24,7 +24,7 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
         self.browser.get(url)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def test_add_sentry_app(self):
+    def test_add_sentry_app(self) -> None:
         self.load_page(self.sentry_app.slug)
 
         detail_view_page = OrganizationSentryAppDetailViewPage(browser=self.browser)
@@ -35,7 +35,7 @@ class OrganizationSentryAppDetailedView(AcceptanceTestCase):
             organization_id=self.organization.id, sentry_app=self.sentry_app
         )
 
-    def test_uninstallation(self):
+    def test_uninstallation(self) -> None:
         self.installation = self.create_sentry_app_installation(
             slug=self.sentry_app.slug,
             organization=self.organization,

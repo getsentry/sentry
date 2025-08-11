@@ -1,18 +1,21 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink, Link} from 'sentry/components/core/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {browserHistory} from 'sentry/utils/browserHistory';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+import useApi from 'sentry/utils/useApi';
+import {useParams} from 'sentry/utils/useParams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type InviteDetails = {
@@ -20,81 +23,68 @@ type InviteDetails = {
   hasAuthProvider: boolean;
   needs2fa: boolean;
   needsAuthentication: boolean;
-  needsEmailVerification: boolean;
   orgSlug: string;
   requireSso: boolean;
   ssoProvider?: string;
 };
 
-type Props = RouteComponentProps<{memberId: string; token: string; orgId?: string}, {}>;
-
-type State = DeprecatedAsyncView['state'] & {
-  acceptError: boolean | undefined;
-  accepting: boolean | undefined;
+function AcceptActions({
+  inviteDetails,
+  isAccepting,
+  acceptInvite,
+}: {
+  acceptInvite: () => void;
   inviteDetails: InviteDetails;
-};
+  isAccepting: boolean;
+}) {
+  return (
+    <Fragment>
+      {inviteDetails.hasAuthProvider && !inviteDetails.requireSso && (
+        <p data-test-id="action-info-sso">
+          {tct(
+            `Note that [orgSlug] has enabled Single Sign-On (SSO) using
+             [authProvider]. You may join the organization by authenticating with
+             the organization's SSO provider or via your standard account authentication.`,
+            {
+              orgSlug: <strong>{inviteDetails.orgSlug}</strong>,
+              authProvider: inviteDetails.ssoProvider,
+            }
+          )}
+        </p>
+      )}
+      <Actions>
+        <ActionsLeft>
+          {inviteDetails.hasAuthProvider && !inviteDetails.requireSso && (
+            <LinkButton
+              data-test-id="sso-login"
+              priority="primary"
+              href={`/auth/login/${inviteDetails.orgSlug}/`}
+            >
+              {t('Join with %s', inviteDetails.ssoProvider)}
+            </LinkButton>
+          )}
 
-class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
-  disableErrorReport = false;
+          <Button
+            data-test-id="join-organization"
+            priority="primary"
+            busy={isAccepting}
+            disabled={isAccepting}
+            onClick={acceptInvite}
+          >
+            {t('Join the %s organization', inviteDetails.orgSlug)}
+          </Button>
+        </ActionsLeft>
+      </Actions>
+    </Fragment>
+  );
+}
 
-  get orgSlug(): string | null {
-    const {params} = this.props;
-    if (params.orgId) {
-      return params.orgId;
-    }
-    const customerDomain = ConfigStore.get('customerDomain');
-    if (customerDomain?.subdomain) {
-      return customerDomain.subdomain;
-    }
-    return null;
-  }
+function ExistingMemberAlert() {
+  const api = useApi({persistInFlight: true});
+  const user = ConfigStore.get('user');
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {memberId, token} = this.props.params;
-    if (this.orgSlug) {
-      return [['inviteDetails', `/accept-invite/${this.orgSlug}/${memberId}/${token}/`]];
-    }
-    return [['inviteDetails', `/accept-invite/${memberId}/${token}/`]];
-  }
-
-  getTitle() {
-    return t('Accept Organization Invite');
-  }
-
-  handleLogout = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    await logout(this.api);
-    window.location.replace('/auth/login/');
-  };
-
-  handleAcceptInvite = async () => {
-    const {memberId, token} = this.props.params;
-
-    this.setState({accepting: true});
-    try {
-      if (this.orgSlug) {
-        await this.api.requestPromise(
-          `/accept-invite/${this.orgSlug}/${memberId}/${token}/`,
-          {
-            method: 'POST',
-          }
-        );
-      } else {
-        await this.api.requestPromise(`/accept-invite/${memberId}/${token}/`, {
-          method: 'POST',
-        });
-      }
-      browserHistory.replace(`/${this.state.inviteDetails.orgSlug}/`);
-    } catch {
-      this.setState({acceptError: true});
-    }
-    this.setState({accepting: false});
-  };
-
-  get existingMemberAlert() {
-    const user = ConfigStore.get('user');
-
-    return (
+  return (
+    <Alert.Container>
       <Alert type="warning" data-test-id="existing-member">
         {tct(
           'Your account ([email]) is already a member of this organization. [switchLink:Switch accounts]?',
@@ -104,212 +94,217 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
               <Link
                 to=""
                 data-test-id="existing-member-link"
-                onClick={this.handleLogout}
+                onClick={e => {
+                  e.preventDefault();
+                  logout(api);
+                }}
               />
             ),
           }
         )}
       </Alert>
-    );
-  }
+    </Alert.Container>
+  );
+}
 
-  get authenticationActions() {
-    const {inviteDetails} = this.state;
-
-    return (
-      <Fragment>
-        {!inviteDetails.requireSso && (
-          <p data-test-id="action-info-general">
-            {t(
-              `To continue, you must either create a new account, or login to an
-              existing Sentry account.`
-            )}
-          </p>
+function Warning2fa({inviteDetails}: {inviteDetails: InviteDetails}) {
+  const sentryUrl = ConfigStore.get('links').sentryUrl;
+  return (
+    <Fragment>
+      <p data-test-id="2fa-warning">
+        {tct(
+          'To continue, [orgSlug] requires all members to configure two-factor authentication.',
+          {orgSlug: inviteDetails.orgSlug}
         )}
+      </p>
+      <Actions>
+        <LinkButton
+          external
+          priority="primary"
+          href={`${sentryUrl}/settings/account/security/`}
+        >
+          {t('Configure Two-Factor Auth')}
+        </LinkButton>
+      </Actions>
+    </Fragment>
+  );
+}
 
-        {inviteDetails.hasAuthProvider && (
-          <p data-test-id="action-info-sso">
-            {inviteDetails.requireSso
-              ? tct(
-                  `Note that [orgSlug] has required Single Sign-On (SSO) using
-               [authProvider]. You may create an account by authenticating with
-               the organization's SSO provider.`,
-                  {
-                    orgSlug: <strong>{inviteDetails.orgSlug}</strong>,
-                    authProvider: inviteDetails.ssoProvider,
-                  }
-                )
-              : tct(
-                  `Note that [orgSlug] has enabled Single Sign-On (SSO) using
-               [authProvider]. You may create an account by authenticating with
-               the organization's SSO provider.`,
-                  {
-                    orgSlug: <strong>{inviteDetails.orgSlug}</strong>,
-                    authProvider: inviteDetails.ssoProvider,
-                  }
-                )}
-          </p>
-        )}
+function AuthenticationActions({inviteDetails}: {inviteDetails: InviteDetails}) {
+  return (
+    <Fragment>
+      {!inviteDetails.requireSso && (
+        <p data-test-id="action-info-general">
+          {t(
+            `To continue, you must either create a new account, or login to an
+            existing Sentry account.`
+          )}
+        </p>
+      )}
 
-        <Actions>
-          <ActionsLeft>
-            {inviteDetails.hasAuthProvider && (
-              <Button
-                data-test-id="sso-login"
-                priority="primary"
-                href={`/auth/login/${inviteDetails.orgSlug}/`}
-              >
-                {t('Join with %s', inviteDetails.ssoProvider)}
-              </Button>
-            )}
-            {!inviteDetails.requireSso && (
-              <Button
-                data-test-id="create-account"
-                priority="primary"
-                href="/auth/register/"
-              >
-                {t('Create a new account')}
-              </Button>
-            )}
-          </ActionsLeft>
-          {!inviteDetails.requireSso && (
-            <ExternalLink
-              href="/auth/login/"
-              openInNewTab={false}
-              data-test-id="link-with-existing"
+      {inviteDetails.hasAuthProvider && (
+        <p data-test-id="action-info-sso">
+          {inviteDetails.requireSso
+            ? tct(
+                `Note that [orgSlug] has required Single Sign-On (SSO) using
+             [authProvider]. You may create an account by authenticating with
+             the organization's SSO provider.`,
+                {
+                  orgSlug: <strong>{inviteDetails.orgSlug}</strong>,
+                  authProvider: inviteDetails.ssoProvider,
+                }
+              )
+            : tct(
+                `Note that [orgSlug] has enabled Single Sign-On (SSO) using
+             [authProvider]. You may create an account by authenticating with
+             the organization's SSO provider.`,
+                {
+                  orgSlug: <strong>{inviteDetails.orgSlug}</strong>,
+                  authProvider: inviteDetails.ssoProvider,
+                }
+              )}
+        </p>
+      )}
+
+      <Actions>
+        <ActionsLeft>
+          {inviteDetails.hasAuthProvider && (
+            <LinkButton
+              data-test-id="sso-login"
+              priority="primary"
+              href={`/auth/login/${inviteDetails.orgSlug}/`}
             >
-              {t('Login using an existing account')}
-            </ExternalLink>
+              {t('Join with %s', inviteDetails.ssoProvider)}
+            </LinkButton>
           )}
-        </Actions>
-      </Fragment>
-    );
+          {!inviteDetails.requireSso && (
+            <LinkButton
+              data-test-id="create-account"
+              priority="primary"
+              href="/auth/register/"
+            >
+              {t('Create a new account')}
+            </LinkButton>
+          )}
+        </ActionsLeft>
+        {!inviteDetails.requireSso && (
+          <ExternalLink
+            href="/auth/login/"
+            openInNewTab={false}
+            data-test-id="link-with-existing"
+          >
+            {t('Login using an existing account')}
+          </ExternalLink>
+        )}
+      </Actions>
+    </Fragment>
+  );
+}
+
+function AcceptOrganizationInvite() {
+  const api = useApi({persistInFlight: true});
+  const params = useParams<{memberId: string; token: string; orgId?: string}>();
+
+  const orgSlug = params.orgId || ConfigStore.get('customerDomain')?.subdomain || null;
+
+  const {
+    data: inviteDetails,
+    isPending,
+    isError,
+  } = useApiQuery<InviteDetails>(
+    orgSlug
+      ? [`/accept-invite/${orgSlug}/${params.memberId}/${params.token}/`]
+      : [`/accept-invite/${params.memberId}/${params.token}/`],
+    {
+      staleTime: Infinity,
+      retry: false,
+    }
+  );
+
+  const {
+    mutate: acceptInvite,
+    isPending: isAccepting,
+    isError: isAcceptError,
+  } = useMutation({
+    mutationFn: () =>
+      api.requestPromise(
+        orgSlug
+          ? `/accept-invite/${orgSlug}/${params.memberId}/${params.token}/`
+          : `/accept-invite/${params.memberId}/${params.token}/`,
+        {
+          method: 'POST',
+        }
+      ),
+    onSuccess: () => {
+      if (inviteDetails?.orgSlug) {
+        testableWindowLocation.assign(`/${inviteDetails.orgSlug}/`);
+      }
+    },
+  });
+
+  if (isPending) {
+    return <LoadingIndicator />;
   }
 
-  get warning2fa() {
-    const {inviteDetails} = this.state;
-
+  if (isError) {
     return (
-      <Fragment>
-        <p data-test-id="2fa-warning">
-          {tct(
-            'To continue, [orgSlug] requires all members to configure two-factor authentication.',
-            {orgSlug: inviteDetails.orgSlug}
-          )}
-        </p>
-        <Actions>
-          <Button priority="primary" to="/settings/account/security/">
-            {t('Configure Two-Factor Auth')}
-          </Button>
-        </Actions>
-      </Fragment>
-    );
-  }
-
-  get warningEmailVerification() {
-    const {inviteDetails} = this.state;
-
-    return (
-      <Fragment>
-        <p data-test-id="email-verification-warning">
-          {tct(
-            'To continue, [orgSlug] requires all members to verify their email address.',
-            {orgSlug: inviteDetails.orgSlug}
-          )}
-        </p>
-        <Actions>
-          <Button priority="primary" to="/settings/account/emails/">
-            {t('Verify Email Address')}
-          </Button>
-        </Actions>
-      </Fragment>
-    );
-  }
-
-  get acceptActions() {
-    const {inviteDetails, accepting} = this.state;
-
-    return (
-      <Fragment>
-        {inviteDetails.hasAuthProvider && !inviteDetails.requireSso && (
-          <p data-test-id="action-info-sso">
+      <NarrowLayout>
+        <Alert.Container>
+          <Alert type="warning" showIcon={false}>
             {tct(
-              `Note that [orgSlug] has enabled Single Sign-On (SSO) using
-               [authProvider]. You may join the organization by authenticating with
-               the organization's SSO provider or via your standard account authentication.`,
+              'This organization invite link is invalid. It may be expired, or you may need to [switchLink:sign in with a different account].',
               {
-                orgSlug: <strong>{inviteDetails.orgSlug}</strong>,
-                authProvider: inviteDetails.ssoProvider,
+                switchLink: (
+                  <Link
+                    to=""
+                    data-test-id="existing-member-link"
+                    onClick={e => {
+                      e.preventDefault();
+                      logout(api, `/accept/${params.memberId}/${params.token}/`);
+                    }}
+                  />
+                ),
               }
             )}
-          </p>
-        )}
-        <Actions>
-          <ActionsLeft>
-            {inviteDetails.hasAuthProvider && !inviteDetails.requireSso && (
-              <Button
-                data-test-id="sso-login"
-                priority="primary"
-                href={`/auth/login/${inviteDetails.orgSlug}/`}
-              >
-                {t('Join with %s', inviteDetails.ssoProvider)}
-              </Button>
-            )}
-
-            <Button
-              data-test-id="join-organization"
-              priority="primary"
-              disabled={accepting}
-              onClick={this.handleAcceptInvite}
-            >
-              {t('Join the %s organization', inviteDetails.orgSlug)}
-            </Button>
-          </ActionsLeft>
-        </Actions>
-      </Fragment>
-    );
-  }
-
-  renderError() {
-    return (
-      <NarrowLayout>
-        <Alert type="warning">
-          {t('This organization invite link is no longer valid.')}
-        </Alert>
+          </Alert>
+        </Alert.Container>
       </NarrowLayout>
     );
   }
 
-  renderBody() {
-    const {inviteDetails, acceptError} = this.state;
-
-    return (
-      <NarrowLayout>
-        <SettingsPageHeader title={t('Accept organization invite')} />
-        {acceptError && (
-          <Alert type="error">
+  return (
+    <NarrowLayout>
+      <SentryDocumentTitle title={t('Accept Organization Invite')} />
+      <SettingsPageHeader title={t('Accept organization invite')} />
+      {isAcceptError && (
+        <Alert.Container>
+          <Alert type="error" showIcon={false}>
             {t('Failed to join this organization. Please try again')}
           </Alert>
-        )}
-        <InviteDescription data-test-id="accept-invite">
-          {tct('[orgSlug] is using Sentry to track and debug errors.', {
-            orgSlug: <strong>{inviteDetails.orgSlug}</strong>,
-          })}
-        </InviteDescription>
-        {inviteDetails.needsAuthentication
-          ? this.authenticationActions
-          : inviteDetails.existingMember
-            ? this.existingMemberAlert
-            : inviteDetails.needs2fa
-              ? this.warning2fa
-              : inviteDetails.needsEmailVerification
-                ? this.warningEmailVerification
-                : inviteDetails.requireSso
-                  ? this.authenticationActions
-                  : this.acceptActions}
-      </NarrowLayout>
-    );
-  }
+        </Alert.Container>
+      )}
+      <InviteDescription data-test-id="accept-invite">
+        {tct('[orgSlug] is using Sentry to track and debug errors.', {
+          orgSlug: <strong>{inviteDetails.orgSlug}</strong>,
+        })}
+      </InviteDescription>
+      {inviteDetails.needsAuthentication ? (
+        <AuthenticationActions inviteDetails={inviteDetails} />
+      ) : inviteDetails.existingMember ? (
+        <ExistingMemberAlert />
+      ) : inviteDetails.needs2fa ? (
+        <Warning2fa inviteDetails={inviteDetails} />
+      ) : inviteDetails.requireSso ? (
+        <AuthenticationActions inviteDetails={inviteDetails} />
+      ) : (
+        <AcceptActions
+          inviteDetails={inviteDetails}
+          isAccepting={isAccepting}
+          acceptInvite={acceptInvite}
+        />
+      )}
+    </NarrowLayout>
+  );
 }
 
 const Actions = styled('div')`

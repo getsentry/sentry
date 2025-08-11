@@ -2,8 +2,10 @@ import trimStart from 'lodash/trimStart';
 
 import type {Client, ResponseMeta} from 'sentry/api';
 import type {SearchBarProps} from 'sentry/components/events/searchBar';
-import type {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
+import type {PageFilters, SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import type {TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -13,27 +15,30 @@ import {isEquation} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {DisplayType, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/types';
+import {getNumEquations} from 'sentry/views/dashboards/utils';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
-
-import type {DisplayType, Widget, WidgetQuery} from '../types';
-import {WidgetType} from '../types';
-import {getNumEquations} from '../utils';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import {ErrorsConfig} from './errors';
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
+import {LogsConfig} from './logs';
 import {ReleasesConfig} from './releases';
+import {SpansConfig} from './spans';
 import {TransactionsConfig} from './transactions';
 
 export type WidgetBuilderSearchBarProps = {
   getFilterWarning: SearchBarProps['getFilterWarning'];
   onClose: SearchBarProps['onClose'];
   onSearch: SearchBarProps['onSearch'];
-  organization: Organization;
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
   dataset?: DiscoverDatasets;
+  disabled?: boolean;
+  portalTarget?: HTMLElement | null;
 };
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
@@ -41,12 +46,19 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * Dataset specific search bar for the 'Filter' step in the
    * widget builder.
    */
-  SearchBar: (props: WidgetBuilderSearchBarProps) => JSX.Element;
+  SearchBar: (props: WidgetBuilderSearchBarProps) => React.JSX.Element;
+  /**
+   * Default field to add to the widget query when adding a new field.
+   */
+  defaultField: QueryFieldValue;
   /**
    * Default query to display when dataset is selected in the
    * Widget Builder.
    */
   defaultWidgetQuery: WidgetQuery;
+  /**
+   * Whether or not the current dataset supports adding equations.
+   */
   enableEquations: boolean;
   /**
    * Field options to display in the Column selectors for
@@ -120,8 +132,9 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getCustomFieldRenderer?: (
     field: string,
     meta: MetaType,
+    widget?: Widget,
     organization?: Organization
-  ) => ReturnType<typeof getFieldRenderer> | null;
+  ) => ReturnType<typeof getFieldRenderer>;
   /**
    * Generate field header used for mapping column
    * names to more desirable values in tables.
@@ -149,7 +162,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     pageFilters: PageFilters,
     onDemandControlContext?: OnDemandControlContext,
     referrer?: string,
-    mepSetting?: MEPState | null
+    mepSetting?: MEPState | null,
+    samplingMode?: SamplingMode
   ) => Promise<[SeriesResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Get the result type of the series. ie duration, size, percentage, etc
@@ -172,7 +186,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     limit?: number,
     cursor?: string,
     referrer?: string,
-    mepSetting?: MEPState | null
+    mepSetting?: MEPState | null,
+    samplingMode?: SamplingMode
   ) => Promise<[TableResponse, string | undefined, ResponseMeta | undefined]>;
   /**
    * Generate the list of sort options for table
@@ -181,7 +196,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getTableSortOptions?: (
     organization: Organization,
     widgetQuery: WidgetQuery
-  ) => SelectValue<string>[];
+  ) => Array<SelectValue<string>>;
   /**
    * Generate the list of sort options for timeseries
    * displays on the 'Sort by' step of the Widget Builder.
@@ -223,7 +238,11 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
       ? typeof ErrorsConfig
       : T extends WidgetType.TRANSACTIONS
         ? typeof TransactionsConfig
-        : typeof ErrorsAndTransactionsConfig;
+        : T extends WidgetType.LOGS
+          ? typeof LogsConfig
+          : T extends WidgetType.SPANS
+            ? typeof SpansConfig
+            : typeof ErrorsAndTransactionsConfig;
 
 export function getDatasetConfig(
   widgetType?: WidgetType
@@ -232,7 +251,9 @@ export function getDatasetConfig(
   | typeof ReleasesConfig
   | typeof ErrorsAndTransactionsConfig
   | typeof ErrorsConfig
-  | typeof TransactionsConfig {
+  | typeof TransactionsConfig
+  | typeof LogsConfig
+  | typeof SpansConfig {
   switch (widgetType) {
     case WidgetType.ISSUE:
       return IssuesConfig;
@@ -242,6 +263,10 @@ export function getDatasetConfig(
       return ErrorsConfig;
     case WidgetType.TRANSACTIONS:
       return TransactionsConfig;
+    case WidgetType.LOGS:
+      return LogsConfig;
+    case WidgetType.SPANS:
+      return SpansConfig;
     case WidgetType.DISCOVER:
     default:
       return ErrorsAndTransactionsConfig;

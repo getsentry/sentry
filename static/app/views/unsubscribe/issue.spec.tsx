@@ -5,7 +5,9 @@ import UnsubscribeIssue from 'sentry/views/unsubscribe/issue';
 
 describe('UnsubscribeIssue', function () {
   const params = {orgId: 'acme', id: '9876'};
-  let mockUpdate, mockGet;
+  let mockUpdate: jest.Mock;
+  let mockGet: jest.Mock;
+
   beforeEach(() => {
     mockUpdate = MockApiClient.addMockResponse({
       url: '/organizations/acme/unsubscribe/issue/9876/?_=signature-value',
@@ -33,7 +35,10 @@ describe('UnsubscribeIssue', function () {
     });
     render(
       <UnsubscribeIssue {...routerProps} location={router.location} params={params} />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('selected issue')).toBeInTheDocument();
@@ -51,7 +56,10 @@ describe('UnsubscribeIssue', function () {
     });
     render(
       <UnsubscribeIssue {...routerProps} location={router.location} params={params} />,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('selected issue')).toBeInTheDocument();

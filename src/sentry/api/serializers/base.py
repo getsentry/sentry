@@ -7,6 +7,9 @@ from typing import Any, TypeVar
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
+
 logger = logging.getLogger(__name__)
 
 K = TypeVar("K")
@@ -26,7 +29,7 @@ def register(type: Any) -> Callable[[type[K]], type[K]]:
 
 def serialize(
     objects: Any | Sequence[Any],
-    user: Any | None = None,
+    user: User | RpcUser | AnonymousUser | None = None,
     serializer: Any | None = None,
     **kwargs: Any,
 ) -> Any:
@@ -61,10 +64,10 @@ def serialize(
                 pass
         else:
             return objects
-    with sentry_sdk.start_span(op="serialize", description=type(serializer).__name__) as span:
+    with sentry_sdk.start_span(op="serialize", name=type(serializer).__name__) as span:
         span.set_data("Object Count", len(objects))
 
-        with sentry_sdk.start_span(op="serialize.get_attrs", description=type(serializer).__name__):
+        with sentry_sdk.start_span(op="serialize.get_attrs", name=type(serializer).__name__):
             attrs = serializer.get_attrs(
                 # avoid passing NoneType's to the serializer as they're allowed and
                 # filtered out of serialize()
@@ -73,7 +76,7 @@ def serialize(
                 **kwargs,
             )
 
-        with sentry_sdk.start_span(op="serialize.iterate", description=type(serializer).__name__):
+        with sentry_sdk.start_span(op="serialize.iterate", name=type(serializer).__name__):
             return [serializer(o, attrs=attrs.get(o, {}), user=user, **kwargs) for o in objects]
 
 
@@ -81,7 +84,11 @@ class Serializer:
     """A Serializer class contains the logic to serialize a specific type of object."""
 
     def __call__(
-        self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+        self,
+        obj: Any,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> Mapping[str, Any] | None:
         """See documentation for `serialize`."""
         if obj is None:
@@ -89,7 +96,7 @@ class Serializer:
         return self._serialize(obj, attrs, user, **kwargs)
 
     def get_attrs(
-        self, item_list: Sequence[Any], user: Any, **kwargs: Any
+        self, item_list: Sequence[Any], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> MutableMapping[Any, Any]:
         """
         Fetch all of the associated data needed to serialize the objects in `item_list`.
@@ -102,7 +109,11 @@ class Serializer:
         return {}
 
     def _serialize(
-        self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+        self,
+        obj: Any,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> Mapping[str, Any] | None:
         try:
             return self.serialize(obj, attrs, user, **kwargs)
@@ -111,7 +122,11 @@ class Serializer:
             return None
 
     def serialize(
-        self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+        self,
+        obj: Any,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> Mapping[str, Any]:
         """
         Convert an arbitrary python object `obj` to an object that only contains primitives.

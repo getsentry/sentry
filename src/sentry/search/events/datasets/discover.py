@@ -10,6 +10,7 @@ from snuba_sdk import (
     Condition,
     CurriedFunction,
     Direction,
+    Entity,
     Function,
     Identifier,
     Lambda,
@@ -107,6 +108,8 @@ class DiscoverDatasetConfig(DatasetConfig):
         "user_misery()",
     }
     non_nullable_keys = {"event.type"}
+    nullable_context_keys = {"thread.id"}
+    use_entity_prefix_for_fields: bool = False
 
     def __init__(self, builder: BaseQueryBuilder):
         self.builder = builder
@@ -136,6 +139,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             TRACE_PARENT_SPAN_ALIAS: self._trace_parent_span_converter,
             "performance.issue_ids": self._performance_issue_ids_filter_converter,
             EVENT_TYPE_ALIAS: self._event_type_filter_converter,
+            "transaction": self._transaction_filter_converter,
         }
 
     @property
@@ -380,7 +384,10 @@ class DiscoverDatasetConfig(DatasetConfig):
                 SnQLFunction(
                     "to_other",
                     required_args=[
-                        ColumnArg("column", allowed_columns=["release", "trace.parent_span", "id"]),
+                        ColumnArg(
+                            "column",
+                            allowed_columns=["release", "trace.parent_span", "id", "trace.span"],
+                        ),
                         SnQLStringArg("value", unquote=True, unescape_quotes=True),
                     ],
                     optional_args=[
@@ -645,18 +652,16 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ),
                 SnQLFunction(
                     "eps",
-                    snql_aggregate=lambda args, alias: Function(
-                        "divide", [Function("count", []), args["interval"]], alias
+                    snql_aggregate=lambda args, alias: function_aliases.resolve_eps(
+                        args, alias, self.builder
                     ),
                     optional_args=[IntervalDefault("interval", 1, None)],
                     default_result_type="rate",
                 ),
                 SnQLFunction(
                     "epm",
-                    snql_aggregate=lambda args, alias: Function(
-                        "divide",
-                        [Function("count", []), Function("divide", [args["interval"], 60])],
-                        alias,
+                    snql_aggregate=lambda args, alias: function_aliases.resolve_epm(
+                        args, alias, self.builder
                     ),
                     optional_args=[IntervalDefault("interval", 1, None)],
                     default_result_type="rate",
@@ -992,14 +997,6 @@ class DiscoverDatasetConfig(DatasetConfig):
                     default_result_type="number",
                 ),
                 SnQLFunction(
-                    "weighted_performance_score",
-                    required_args=[
-                        NumericColumn("column"),
-                    ],
-                    snql_aggregate=self._resolve_weighted_web_vital_score_function,
-                    default_result_type="number",
-                ),
-                SnQLFunction(
                     "opportunity_score",
                     required_args=[
                         NumericColumn("column"),
@@ -1041,6 +1038,48 @@ class DiscoverDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="integer",
                     private=True,
+                ),
+                SnQLFunction(
+                    "upsampled_count",
+                    required_args=[],
+                    snql_aggregate=lambda args, alias: Function(
+                        "toInt64",
+                        [
+                            Function(
+                                "sum",
+                                [
+                                    Function(
+                                        "ifNull",
+                                        [
+                                            Column(
+                                                "sample_weight",
+                                                entity=Entity("events", alias="events"),
+                                            ),
+                                            1,
+                                        ],
+                                    )
+                                ],
+                            )
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                SnQLFunction(
+                    "upsampled_eps",
+                    snql_aggregate=lambda args, alias: function_aliases.resolve_upsampled_eps(
+                        args, alias, self.builder
+                    ),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="rate",
+                ),
+                SnQLFunction(
+                    "upsampled_epm",
+                    snql_aggregate=lambda args, alias: function_aliases.resolve_upsampled_epm(
+                        args, alias, self.builder
+                    ),
+                    optional_args=[IntervalDefault("interval", 1, None)],
+                    default_result_type="rate",
                 ),
             ]
         }
@@ -1119,98 +1158,97 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     @cached_property
     def _resolve_project_threshold_config(self) -> SelectType:
-        org_id = (
-            self.builder.params.organization.id
-            if self.builder.params.organization is not None
-            else None
-        )
-        project_ids = self.builder.params.project_ids
-
-        project_threshold_configs = (
-            ProjectTransactionThreshold.objects.filter(
-                organization_id=org_id,
-                project_id__in=project_ids,
-            )
-            .order_by("project_id")
-            .values_list("project_id", "threshold", "metric")
-        )
-
-        transaction_threshold_configs = (
-            ProjectTransactionThresholdOverride.objects.filter(
-                organization_id=org_id,
-                project_id__in=project_ids,
-            )
-            .order_by("project_id")
-            .values_list("transaction", "project_id", "threshold", "metric")
-        )
-
-        num_project_thresholds = project_threshold_configs.count()
-        sentry_sdk.set_tag("project_threshold.count", num_project_thresholds)
-        sentry_sdk.set_tag(
-            "project_threshold.count.grouped",
-            format_grouped_length(num_project_thresholds, [10, 100, 250, 500]),
-        )
-
-        num_transaction_thresholds = transaction_threshold_configs.count()
-        sentry_sdk.set_tag("txn_threshold.count", num_transaction_thresholds)
-        sentry_sdk.set_tag(
-            "txn_threshold.count.grouped",
-            format_grouped_length(num_transaction_thresholds, [10, 100, 250, 500]),
-        )
-
-        if (
-            num_project_thresholds + num_transaction_thresholds
-            > MAX_QUERYABLE_TRANSACTION_THRESHOLDS
-        ):
-            raise InvalidSearchQuery(
-                f"Exceeded {MAX_QUERYABLE_TRANSACTION_THRESHOLDS} configured transaction thresholds limit, try with fewer Projects."
-            )
-
-        # Arrays need to have toUint64 casting because clickhouse will define the type as the narrowest possible type
-        # that can store listed argument types, which means the comparison will fail because of mismatched types
         project_thresholds = {}
         project_threshold_config_keys = []
         project_threshold_config_values = []
-        for project_id, threshold, metric in project_threshold_configs:
-            metric = TRANSACTION_METRICS[metric]
-            if (
-                threshold == DEFAULT_PROJECT_THRESHOLD
-                and metric == DEFAULT_PROJECT_THRESHOLD_METRIC
-            ):
-                # small optimization, if the configuration is equal to the default,
-                # we can skip it in the final query
-                continue
-
-            project_thresholds[project_id] = (metric, threshold)
-            project_threshold_config_keys.append(Function("toUInt64", [project_id]))
-            project_threshold_config_values.append((metric, threshold))
 
         project_threshold_override_config_keys = []
         project_threshold_override_config_values = []
-        for transaction, project_id, threshold, metric in transaction_threshold_configs:
-            metric = TRANSACTION_METRICS[metric]
-            if (
-                project_id in project_thresholds
-                and threshold == project_thresholds[project_id][1]
-                and metric == project_thresholds[project_id][0]
-            ):
-                # small optimization, if the configuration is equal to the project
-                # configs, we can skip it in the final query
-                continue
 
-            elif (
-                project_id not in project_thresholds
-                and threshold == DEFAULT_PROJECT_THRESHOLD
-                and metric == DEFAULT_PROJECT_THRESHOLD_METRIC
-            ):
-                # small optimization, if the configuration is equal to the default
-                # and no project configs were set, we can skip it in the final query
-                continue
+        org_id = self.builder.params.organization_id
+        project_ids = self.builder.params.project_ids
 
-            project_threshold_override_config_keys.append(
-                (Function("toUInt64", [project_id]), transaction)
+        if org_id is not None:
+            project_threshold_configs = (
+                ProjectTransactionThreshold.objects.filter(
+                    organization_id=org_id,
+                    project_id__in=project_ids,
+                )
+                .order_by("project_id")
+                .values_list("project_id", "threshold", "metric")
             )
-            project_threshold_override_config_values.append((metric, threshold))
+
+            transaction_threshold_configs = (
+                ProjectTransactionThresholdOverride.objects.filter(
+                    organization_id=org_id,
+                    project_id__in=project_ids,
+                )
+                .order_by("project_id")
+                .values_list("transaction", "project_id", "threshold", "metric")
+            )
+
+            num_project_thresholds = project_threshold_configs.count()
+            sentry_sdk.set_tag("project_threshold.count", num_project_thresholds)
+            sentry_sdk.set_tag(
+                "project_threshold.count.grouped",
+                format_grouped_length(num_project_thresholds, [10, 100, 250, 500]),
+            )
+
+            num_transaction_thresholds = transaction_threshold_configs.count()
+            sentry_sdk.set_tag("txn_threshold.count", num_transaction_thresholds)
+            sentry_sdk.set_tag(
+                "txn_threshold.count.grouped",
+                format_grouped_length(num_transaction_thresholds, [10, 100, 250, 500]),
+            )
+
+            if (
+                num_project_thresholds + num_transaction_thresholds
+                > MAX_QUERYABLE_TRANSACTION_THRESHOLDS
+            ):
+                raise InvalidSearchQuery(
+                    f"Exceeded {MAX_QUERYABLE_TRANSACTION_THRESHOLDS} configured transaction thresholds limit, try with fewer Projects."
+                )
+
+            # Arrays need to have toUint64 casting because clickhouse will define the type as the narrowest possible type
+            # that can store listed argument types, which means the comparison will fail because of mismatched types
+            for project_id, threshold, metric in project_threshold_configs:
+                metric_name = TRANSACTION_METRICS[metric]
+                if (
+                    threshold == DEFAULT_PROJECT_THRESHOLD
+                    and metric_name == DEFAULT_PROJECT_THRESHOLD_METRIC
+                ):
+                    # small optimization, if the configuration is equal to the default,
+                    # we can skip it in the final query
+                    continue
+
+                project_thresholds[project_id] = (metric_name, threshold)
+                project_threshold_config_keys.append(Function("toUInt64", [project_id]))
+                project_threshold_config_values.append((metric_name, threshold))
+
+            for transaction, project_id, threshold, metric in transaction_threshold_configs:
+                metric_name = TRANSACTION_METRICS[metric]
+                if (
+                    project_id in project_thresholds
+                    and threshold == project_thresholds[project_id][1]
+                    and metric_name == project_thresholds[project_id][0]
+                ):
+                    # small optimization, if the configuration is equal to the project
+                    # configs, we can skip it in the final query
+                    continue
+
+                elif (
+                    project_id not in project_thresholds
+                    and threshold == DEFAULT_PROJECT_THRESHOLD
+                    and metric_name == DEFAULT_PROJECT_THRESHOLD_METRIC
+                ):
+                    # small optimization, if the configuration is equal to the default
+                    # and no project configs were set, we can skip it in the final query
+                    continue
+
+                project_threshold_override_config_keys.append(
+                    (Function("toUInt64", [project_id]), transaction)
+                )
+                project_threshold_override_config_values.append((metric_name, threshold))
 
         project_threshold_config_index: SelectType = Function(
             "indexOf",
@@ -1708,58 +1746,6 @@ class DiscoverDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_weighted_web_vital_score_function(
-        self,
-        args: Mapping[str, Column],
-        alias: str,
-    ) -> SelectType:
-        column = args["column"]
-        if column.key not in [
-            "score.lcp",
-            "score.fcp",
-            "score.fid",
-            "score.cls",
-            "score.ttfb",
-        ]:
-            raise InvalidSearchQuery(
-                "weighted_performance_score only supports performance score measurements"
-            )
-        total_score_column = self.builder.column("measurements.score.total")
-        return Function(
-            "greatest",
-            [
-                Function(
-                    "least",
-                    [
-                        Function(
-                            "divide",
-                            [
-                                Function(
-                                    "sum",
-                                    [column],
-                                ),
-                                Function(
-                                    "countIf",
-                                    [
-                                        Function(
-                                            "greaterOrEquals",
-                                            [
-                                                total_score_column,
-                                                0,
-                                            ],
-                                        )
-                                    ],
-                                ),
-                            ],
-                        ),
-                        1.0,
-                    ],
-                ),
-                0.0,
-            ],
-            alias,
-        )
-
     def _resolve_web_vital_opportunity_score_function(
         self,
         args: Mapping[str, Column],
@@ -1775,7 +1761,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             "score.total",
         ]:
             raise InvalidSearchQuery(
-                "weighted_performance_score only supports performance score measurements"
+                "opportunity_score only supports performance score measurements"
             )
 
         weight_column = (
@@ -1865,7 +1851,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         value = to_list(search_filter.value.value)
         # `unknown` is a special value for when there is no issue associated with the event
         group_short_ids = [v for v in value if v and v != "unknown"]
-        general_group_filter_values = ["" for v in value if not v or v == "unknown"]
+        general_group_filter_values = [0 for v in value if not v or v == "unknown"]
 
         if group_short_ids and self.builder.params.organization is not None:
             try:
@@ -2014,5 +2000,22 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ["transaction"],
             ]:
                 return None
+
+        return self.builder.default_filter_converter(search_filter)
+
+    def _transaction_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
+        if self.builder.dataset == Dataset.Transactions:
+            operator = search_filter.operator
+            value = search_filter.value.value
+
+            if operator in ("=", "!=") and value == "":
+                # !has:transaction
+                if operator == "=":
+                    raise InvalidSearchQuery(
+                        "All events have a transaction so this query wouldn't return anything"
+                    )
+                else:
+                    # All events have a "transaction" since we map null -> unparam so no need to filter
+                    return None
 
         return self.builder.default_filter_converter(search_filter)

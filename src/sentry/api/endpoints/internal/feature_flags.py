@@ -13,7 +13,7 @@ from sentry.runner.settings import configure, discover_configs
 @all_silo_endpoint
 class InternalFeatureFlagsEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
-    owner = ApiOwner.OPEN_SOURCE
+    owner = ApiOwner.HYBRID_CLOUD
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
@@ -46,7 +46,7 @@ class InternalFeatureFlagsEndpoint(Endpoint):
             for valid_flag in valid_feature_flags:
                 match_found = False
                 new_string = (
-                    f'\nSENTRY_FEATURES["{valid_flag}"]={request.data.get(valid_flag,False)}\n'
+                    f'\nSENTRY_FEATURES["{valid_flag}"]={request.data.get(valid_flag, False)}\n'
                 )
                 # Search for the string match and update lines
                 for i, line in enumerate(lines):

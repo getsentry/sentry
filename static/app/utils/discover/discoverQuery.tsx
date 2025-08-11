@@ -2,13 +2,13 @@ import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
 
 import type {DiscoverQueryProps, GenericChildrenProps} from './genericDiscoverQuery';
-import GenericDiscoverQuery, {useGenericDiscoverQuery} from './genericDiscoverQuery';
+import {GenericDiscoverQuery, useGenericDiscoverQuery} from './genericDiscoverQuery';
 
 /**
  * An individual row in a DiscoverQuery result
  */
 export type TableDataRow = {
-  [key: string]: React.ReactText;
+  [key: string]: string | number;
   id: string;
 };
 
@@ -16,7 +16,7 @@ export type TableDataRow = {
  * A DiscoverQuery result including rows and metadata.
  */
 export type TableData = {
-  data: Array<TableDataRow>;
+  data: TableDataRow[];
   meta?: MetaType;
 };
 
@@ -24,19 +24,19 @@ export type TableData = {
  * A DiscoverQuery result including rows and metadata from the events endpoint.
  */
 export type EventsTableData = {
-  data: Array<TableDataRow>;
+  data: TableDataRow[];
   meta?: EventsMetaType;
 };
 
 export type TableDataWithTitle = TableData & {title: string};
 
-export type DiscoverQueryPropsWithThresholds = DiscoverQueryProps & {
+type DiscoverQueryPropsWithThresholds = DiscoverQueryProps & {
   transactionName?: string;
   transactionThreshold?: number;
   transactionThresholdMetric?: TransactionThresholdMetric;
 };
 
-export type DiscoverQueryComponentProps = DiscoverQueryPropsWithThresholds & {
+type DiscoverQueryComponentProps = DiscoverQueryPropsWithThresholds & {
   children: (props: GenericChildrenProps<TableData>) => React.ReactNode;
 };
 
@@ -52,11 +52,11 @@ function shouldRefetchData(
 }
 
 function DiscoverQuery(props: DiscoverQueryComponentProps) {
-  const afterFetch = (data, _) => {
+  const afterFetch = (data: any, _: any) => {
     const {fields, ...otherMeta} = data.meta ?? {};
     return {
       ...data,
-      meta: {...fields, ...otherMeta},
+      meta: {...fields, ...otherMeta, fields},
     };
   };
   return (
@@ -70,11 +70,11 @@ function DiscoverQuery(props: DiscoverQueryComponentProps) {
 }
 
 export function useDiscoverQuery(props: Omit<DiscoverQueryComponentProps, 'children'>) {
-  const afterFetch = (data, _) => {
+  const afterFetch = (data: any, _: any) => {
     const {fields, ...otherMeta} = data.meta ?? {};
     return {
       ...data,
-      meta: {...fields, ...otherMeta},
+      meta: {...fields, ...otherMeta, fields},
     };
   };
 

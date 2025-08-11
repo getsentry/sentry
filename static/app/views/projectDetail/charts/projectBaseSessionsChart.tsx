@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import type {InjectedRouter} from 'react-router';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import type {LegendComponentOption, LineSeriesOption} from 'echarts';
@@ -21,15 +20,15 @@ import {RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {EChartEventHandler, Series} from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {DisplayModes} from 'sentry/views/projectDetail/projectCharts';
 import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 import {sessionTerm} from 'sentry/views/releases/utils/sessionTerm';
-
-import {DisplayModes} from '../projectCharts';
 
 import ProjectSessionsAnrRequest from './projectSessionsAnrRequest';
 import ProjectSessionsChartRequest from './projectSessionsChartRequest';
@@ -44,7 +43,6 @@ type Props = {
     | DisplayModes.STABILITY;
   onTotalValuesChange: (value: number | null) => void;
   organization: Organization;
-  router: InjectedRouter;
   selection: PageFilters;
   title: string;
   disablePrevious?: boolean;
@@ -55,7 +53,6 @@ type Props = {
 function ProjectBaseSessionsChart({
   title,
   organization,
-  router,
   selection,
   api,
   onTotalValuesChange,
@@ -79,7 +76,7 @@ function ProjectBaseSessionsChart({
     <Fragment>
       {getDynamicText({
         value: (
-          <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+          <ChartZoom period={period} start={start} end={end} utc={utc}>
             {zoomRenderProps => (
               <Request
                 api={api}
@@ -218,6 +215,7 @@ class Chart extends Component<ChartProps, ChartState> {
     type: 'legendselectchanged';
   }> = ({selected}) => {
     const seriesSelection = Object.keys(selected).reduce((state, key) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       state[key] = selected[key];
       return state;
     }, {});

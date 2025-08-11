@@ -1,6 +1,5 @@
 import type {UserEnrolledAuthenticator} from './auth';
 import type {Avatar, Scope} from './core';
-import type {UserExperiments} from './experiments';
 
 /**
  * Avatars are a more primitive version of User.
@@ -22,15 +21,20 @@ export type AvatarUser = {
   };
 };
 
+export enum StacktraceOrder {
+  DEFAULT = -1, // Equivalent to `MOST_RECENT_FIRST`
+  MOST_RECENT_LAST = 1,
+  MOST_RECENT_FIRST = 2,
+}
+
 export interface User extends Omit<AvatarUser, 'options'> {
   canReset2fa: boolean;
   dateJoined: string;
-  emails: {
+  emails: Array<{
     email: string;
     id: string;
     is_verified: boolean;
-  }[];
-  experiments: Partial<UserExperiments>;
+  }>;
   flags: {newsletter_consent_prompt: boolean};
   has2fa: boolean;
   hasPasswordAuth: boolean;
@@ -46,9 +50,12 @@ export interface User extends Omit<AvatarUser, 'options'> {
     avatarType: Avatar['avatarType'];
     clock24Hours: boolean;
     defaultIssueEvent: 'recommended' | 'latest' | 'oldest';
-    issueDetailsNewExperienceQ42023: boolean;
     language: string;
-    stacktraceOrder: number;
+    prefersChonkUI: boolean;
+    prefersIssueDetailsStreamlinedUI: boolean | null;
+    prefersNextjsInsightsOverview: boolean;
+    prefersStackedNavigation: boolean | null;
+    stacktraceOrder: StacktraceOrder;
     theme: 'system' | 'light' | 'dark';
     timezone: string;
   };
@@ -120,5 +127,3 @@ export type InternetProtocol = {
   lastSeen: string;
   regionCode: string | null;
 };
-
-export type SubscriptionDetails = {disabled?: boolean; reason?: string};

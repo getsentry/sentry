@@ -11,18 +11,12 @@ from bitfield import TypedClassBitField
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BoundedBigIntegerField,
-    BoundedPositiveIntegerField,
-    Model,
-    control_silo_model,
-    sane_repr,
-)
+from sentry.db.models import BoundedPositiveIntegerField, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
+from sentry.hybridcloud.models.outbox import ControlOutbox
 from sentry.hybridcloud.outbox.base import ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.models.outbox import ControlOutbox
 from sentry.types.region import find_regions_for_orgs
 
 logger = logging.getLogger("sentry.authprovider")
@@ -32,20 +26,6 @@ SCIM_INTERNAL_INTEGRATION_OVERVIEW = (
     "integration. It is needed to provide the token used to provision members and teams. If this integration is "
     "deleted, your SCIM integration will stop working!"
 )
-
-
-@control_silo_model
-class AuthProviderDefaultTeams(Model):
-    # Completely defunct model.
-    __relocation_scope__ = RelocationScope.Excluded
-
-    authprovider_id = BoundedBigIntegerField()
-    team_id = BoundedBigIntegerField()
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_authprovider_default_teams"
-        unique_together = ()
 
 
 @control_silo_model
@@ -106,7 +86,7 @@ class AuthProvider(ReplicatedControlModel):
 
     __repr__ = sane_repr("organization_id", "provider")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.provider
 
     def get_provider(self):
@@ -122,11 +102,11 @@ class AuthProvider(ReplicatedControlModel):
         return get_scim_token(self.flags.scim_enabled, self.organization_id, self.provider)
 
     def enable_scim(self, user):
-        from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-        from sentry.models.integrations.sentry_app_installation_for_provider import (
+        from sentry.sentry_apps.logic import SentryAppCreator
+        from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+        from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
             SentryAppInstallationForProvider,
         )
-        from sentry.sentry_apps.apps import SentryAppCreator
 
         if (
             not self.get_provider().can_use_scim(self.organization_id, user)
@@ -186,7 +166,7 @@ class AuthProvider(ReplicatedControlModel):
 
     def disable_scim(self):
         from sentry import deletions
-        from sentry.models.integrations.sentry_app_installation_for_provider import (
+        from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
             SentryAppInstallationForProvider,
         )
 
@@ -212,7 +192,13 @@ class AuthProvider(ReplicatedControlModel):
             self.flags.scim_enabled = False
 
     def get_audit_log_data(self):
-        return {"provider": self.provider, "config": self.config}
+        provider = self.provider
+        # NOTE(isabella): for both standard fly SSO and fly-non-partner SSO, we should record the
+        # provider as "fly" in the audit log entry data; the only difference between the two is
+        # that the latter can be disabled by customers
+        if "fly" in self.provider:
+            provider = "fly"
+        return {"provider": provider, "config": self.config}
 
     def outboxes_for_mark_invalid_sso(self, user_id: int) -> list[ControlOutbox]:
         return [

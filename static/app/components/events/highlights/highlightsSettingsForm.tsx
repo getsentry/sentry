@@ -1,11 +1,11 @@
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {ExternalLink} from 'sentry/components/core/link';
 import {CONTEXT_DOCS_LINK} from 'sentry/components/events/contexts/utils';
 import Form, {type FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
@@ -17,7 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 interface HighlightsSettingsFormProps {
-  projectSlug;
+  projectSlug: any;
 }
 
 export default function HighlightsSettingsForm({
@@ -72,6 +72,7 @@ export default function HighlightsSettingsForm({
             type: 'string',
             multiline: true,
             autosize: true,
+            monospace: true,
             rows: 1,
             placeholder: t('environment, release, my-tag'),
             label: t('Highlighted Tags'),
@@ -84,6 +85,7 @@ export default function HighlightsSettingsForm({
             type: 'textarea',
             multiline: true,
             autosize: true,
+            monospace: true,
             rows: 1,
             placeholder: t('{"browser": ["name"], "my-ctx": ["my-key"]}'),
             label: t('Highlighted Context'),

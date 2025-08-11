@@ -1,23 +1,25 @@
-import type {RouteComponentProps} from 'react-router';
-
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import {ExternalLink} from 'sentry/components/core/link';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {fields} from 'sentry/data/forms/projectIssueGrouping';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {EventGroupingConfig, Organization, Project} from 'sentry/types';
+import type {EventGroupingConfig} from 'sentry/types/event';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-type Props = RouteComponentProps<{}, {projectId: string}> & {
+type Props = RouteComponentProps<{projectId: string}> & {
   organization: Organization;
   project: Project;
 };
@@ -26,12 +28,12 @@ export default function ProjectIssueGrouping({organization, project, params}: Pr
   const queryKey = `/projects/${organization.slug}/${project.slug}/grouping-configs/`;
   const {
     data: groupingConfigs,
-    isLoading,
+    isPending,
     isError,
     refetch,
-  } = useApiQuery<EventGroupingConfig[]>([queryKey], {staleTime: 0, cacheTime: 0});
+  } = useApiQuery<EventGroupingConfig[]>([queryKey], {staleTime: 0, gcTime: 0});
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -49,6 +51,7 @@ export default function ProjectIssueGrouping({organization, project, params}: Pr
   const endpoint = `/projects/${organization.slug}/${project.slug}/`;
 
   const access = new Set(organization.access.concat(project.access));
+  const activeSuperUser = isActiveSuperuser();
   const hasAccess = hasEveryAccess(['project:write'], {organization, project});
 
   const jsonFormProps = {
@@ -78,7 +81,7 @@ export default function ProjectIssueGrouping({organization, project, params}: Pr
         )}
       </TextBlock>
 
-      <PermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
 
       <Form
         saveOnBlur
@@ -99,6 +102,15 @@ export default function ProjectIssueGrouping({organization, project, params}: Pr
           title={t('Stack Trace Rules')}
           fields={[fields.groupingEnhancements]}
         />
+
+        {activeSuperUser && (
+          <JsonForm
+            {...jsonFormProps}
+            title={t('Derived Grouping Enhancements')}
+            fields={[fields.derivedGroupingEnhancements]}
+            disabled
+          />
+        )}
       </Form>
     </SentryDocumentTitle>
   );

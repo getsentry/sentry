@@ -1,17 +1,24 @@
 import omit from 'lodash/omit';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {PageFilters} from 'sentry/types/core';
-import type {
-  DashboardDetails,
-  DashboardListItem,
-  Widget,
+import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
+import {TOP_N} from 'sentry/utils/discover/types';
+import type {QueryClient} from 'sentry/utils/queryClient';
+import {getQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
+import {
+  type DashboardDetails,
+  type DashboardListItem,
+  DisplayType,
+  type Widget,
 } from 'sentry/views/dashboards/types';
 import {flattenErrors} from 'sentry/views/dashboards/utils';
+import {getResultsLimit} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 export function fetchDashboards(api: Client, orgSlug: string) {
   const promise: Promise<DashboardListItem[]> = api.requestPromise(
@@ -27,7 +34,7 @@ export function fetchDashboards(api: Client, orgSlug: string) {
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]] as string);
+      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
     } else {
       addErrorMessage(t('Unable to fetch dashboards'));
     }
@@ -51,7 +58,7 @@ export function createDashboard(
       method: 'POST',
       data: {
         title,
-        widgets: widgets.map(widget => omit(widget, ['tempId'])),
+        widgets: widgets.map(widget => omit(widget, ['tempId'])).map(_enforceWidgetLimit),
         duplicate,
         projects,
         environment,
@@ -73,7 +80,7 @@ export function createDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]] as string);
+      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
     } else {
       addErrorMessage(t('Unable to create dashboard'));
     }
@@ -97,6 +104,41 @@ export function updateDashboardVisit(
   return promise;
 }
 
+export async function updateDashboardFavorite(
+  api: Client,
+  queryClient: QueryClient,
+  organization: Organization,
+  dashboardId: string | string[],
+  isFavorited: boolean
+): Promise<void> {
+  try {
+    await api.requestPromise(
+      `/organizations/${organization.slug}/dashboards/${dashboardId}/favorite/`,
+      {
+        method: 'PUT',
+        data: {
+          isFavorited,
+        },
+      }
+    );
+    queryClient.invalidateQueries({
+      queryKey: getQueryKey(organization),
+    });
+    addSuccessMessage(isFavorited ? t('Added as favorite') : t('Removed as favorite'));
+  } catch (response) {
+    const errorResponse = response?.responseJSON ?? null;
+    if (errorResponse) {
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]!]! as string);
+    } else if (isFavorited) {
+      addErrorMessage(t('Unable to favorite dashboard'));
+    } else {
+      addErrorMessage(t('Unable to unfavorite dashboard'));
+    }
+    throw response;
+  }
+}
+
 export function fetchDashboard(
   api: Client,
   orgId: string,
@@ -114,7 +156,7 @@ export function fetchDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]] as string);
+      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
     } else {
       addErrorMessage(t('Unable to load dashboard'));
     }
@@ -131,7 +173,7 @@ export function updateDashboard(
     dashboard;
   const data = {
     title,
-    widgets: widgets.map(widget => omit(widget, ['tempId'])),
+    widgets: widgets.map(widget => omit(widget, ['tempId'])).map(_enforceWidgetLimit),
     projects,
     environment,
     period,
@@ -161,7 +203,7 @@ export function updateDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]] as string);
+      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
     } else {
       addErrorMessage(t('Unable to update dashboard'));
     }
@@ -187,7 +229,7 @@ export function deleteDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]] as string);
+      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
     } else {
       addErrorMessage(t('Unable to delete dashboard'));
     }
@@ -217,6 +259,37 @@ export function validateWidgetRequest(
   ] as const;
 }
 
+export function updateDashboardPermissions(
+  api: Client,
+  orgId: string,
+  dashboard: DashboardDetails | DashboardListItem
+): Promise<DashboardDetails> {
+  const {permissions} = dashboard;
+  const data = {
+    permissions,
+  };
+  const promise: Promise<DashboardDetails> = api.requestPromise(
+    `/organizations/${orgId}/dashboards/${dashboard.id}/`,
+    {
+      method: 'PUT',
+      data,
+    }
+  );
+
+  promise.catch(response => {
+    const errorResponse = response?.responseJSON ?? null;
+
+    if (errorResponse) {
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]!]! as string);
+    } else {
+      addErrorMessage(t('Unable to update dashboard permissions'));
+    }
+  });
+
+  return promise;
+}
+
 export function validateWidget(
   api: Client,
   orgId: string,
@@ -226,4 +299,37 @@ export function validateWidget(
   const widgetQuery = validateWidgetRequest(orgId, widget, selection);
   const promise: Promise<undefined> = api.requestPromise(widgetQuery[0], widgetQuery[1]);
   return promise;
+}
+
+/**
+ * Enforces a limit on the widget if it is a chart and has a grouping
+ *
+ * This ensures that widgets from previously created dashboards will have
+ * a limit applied properly when editing old dashboards that did not have
+ * this validation in place.
+ */
+function _enforceWidgetLimit(widget: Widget) {
+  if (
+    widget.displayType === DisplayType.TABLE ||
+    widget.displayType === DisplayType.BIG_NUMBER
+  ) {
+    return widget;
+  }
+
+  const hasColumns = widget.queries.some(query => query.columns.length > 0);
+  if (hasColumns && !defined(widget.limit)) {
+    // The default we historically assign for charts with a grouping is 5,
+    // continue using that default unless there are conditions which make 5
+    // too large to automatically apply.
+    const maxLimit = getResultsLimit(
+      widget.queries.length,
+      widget.queries[0]!.aggregates.length
+    );
+    return {
+      ...widget,
+      limit: Math.min(maxLimit, TOP_N),
+    };
+  }
+
+  return widget;
 }

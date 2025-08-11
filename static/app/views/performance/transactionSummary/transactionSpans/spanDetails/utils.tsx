@@ -1,34 +1,42 @@
 import type {Query} from 'history';
 
+import type {Organization} from 'sentry/types/organization';
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 function generateSpanDetailsRoute({
-  orgSlug,
+  organization,
   spanSlug,
+  view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   spanSlug: SpanSlug;
+  view?: DomainView;
 }): string {
   const spanComponent = `${encodeURIComponent(spanSlug.op)}:${spanSlug.group}`;
-  return `/organizations/${orgSlug}/performance/summary/spans/${spanComponent}/`;
+  return `${getTransactionSummaryBaseUrl(organization, view)}/spans/${spanComponent}/`;
 }
 
 export function spanDetailsRouteWithQuery({
-  orgSlug,
+  organization,
   transaction,
   query,
   spanSlug,
   projectID,
+  view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   query: Query;
   spanSlug: SpanSlug;
   transaction: string;
   projectID?: string | string[];
+  view?: DomainView;
 }) {
   const pathname = generateSpanDetailsRoute({
-    orgSlug,
+    organization,
     spanSlug,
+    view,
   });
 
   return {
@@ -45,29 +53,23 @@ export function spanDetailsRouteWithQuery({
   };
 }
 
-export function generateQuerySummaryRoute({
-  orgSlug,
-  group,
-}: {
-  group: string;
-  orgSlug: string;
-}): string {
-  return `/organizations/${orgSlug}/insights/database/spans/span/${group}/`;
+function generateQuerySummaryRoute({base, group}: {base: string; group: string}): string {
+  return `${base}/spans/span/${group}/`;
 }
 
 export function querySummaryRouteWithQuery({
-  orgSlug,
+  base,
   query,
   group,
   projectID,
 }: {
+  base: string;
   group: string;
-  orgSlug: string;
   query: Query;
   projectID?: string | string[];
 }) {
   const pathname = generateQuerySummaryRoute({
-    orgSlug,
+    base,
     group,
   });
 
@@ -83,7 +85,7 @@ export function querySummaryRouteWithQuery({
   };
 }
 
-export function generateResourceSummaryRoute({
+function generateResourceSummaryRoute({
   baseUrl,
   group,
 }: {

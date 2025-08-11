@@ -1,14 +1,18 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import urlencode
+
+import pytest
 
 from fixtures.page_objects.transaction_summary import TransactionSummaryPage
 from sentry.models.assistant import AssistantActivity
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
 FEATURES = {"organizations:performance-view": True}
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 def make_event(event_data):
@@ -40,7 +44,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
         self.page = TransactionSummaryPage(self.browser)
 
     @patch("django.utils.timezone.now")
-    def test_with_data(self, mock_now):
+    def test_with_data(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now()
 
         # Create a transaction
@@ -52,7 +56,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
                 "transaction": "/country_by_code/",
                 "message": "This is bad",
                 "event_id": "b" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -64,7 +68,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.page.wait_until_loaded()
 
     @patch("django.utils.timezone.now")
-    def test_view_details_from_summary(self, mock_now):
+    def test_view_details_from_summary(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now()
 
         event = make_event(
@@ -83,7 +87,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.page.wait_until_loaded()
 
     @patch("django.utils.timezone.now")
-    def test_tags_page(self, mock_now):
+    def test_tags_page(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now()
 
         tags_path = "/organizations/{}/performance/summary/tags/?{}".format(
@@ -102,7 +106,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.page.wait_until_loaded()
 
     @patch("django.utils.timezone.now")
-    def test_transaction_vitals(self, mock_now):
+    def test_transaction_vitals(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now()
 
         vitals_path = "/organizations/{}/performance/summary/vitals/?{}".format(
@@ -123,7 +127,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.page.wait_until_loaded()
 
     @patch("django.utils.timezone.now")
-    def test_transaction_vitals_filtering(self, mock_now):
+    def test_transaction_vitals_filtering(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now()
 
         vitals_path = "/organizations/{}/performance/summary/vitals/?{}".format(
@@ -183,7 +187,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.page.wait_until_loaded()
 
     @patch("django.utils.timezone.now")
-    def test_transaction_threshold_modal(self, mock_now):
+    def test_transaction_threshold_modal(self, mock_now: MagicMock) -> None:
         mock_now.return_value = before_now()
 
         # Create a transaction
@@ -195,7 +199,7 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
                 "transaction": "/country_by_code/",
                 "message": "This is bad",
                 "event_id": "b" * 32,
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).isoformat(),
             },
             project_id=self.project.id,
         )

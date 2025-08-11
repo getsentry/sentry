@@ -5,9 +5,11 @@ import posixpath
 from collections.abc import Callable, Mapping
 from typing import Any
 
+import sentry_sdk
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import ParseDebugIdError
 
+from sentry import options
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.lang.native.utils import (
@@ -22,6 +24,7 @@ from sentry.lang.native.utils import (
     signal_from_data,
 )
 from sentry.models.eventerror import EventError
+from sentry.options.rollout import in_random_rollout
 from sentry.stacktraces.functions import trim_function_name
 from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
 from sentry.utils import metrics
@@ -38,6 +41,39 @@ MINIDUMP_ATTACHMENT_TYPE = "event.minidump"
 
 # Attachment type used for Apple Crash Reports
 APPLECRASHREPORT_ATTACHMENT_TYPE = "event.applecrashreport"
+
+# Rules for rewriting the debug file of the first module
+# in an Electron minidump.
+#
+# Such minidumps frequently contain root modules
+# with nonsensical debug file names, which results from packagers like
+# electron-forge. Consequently, the module won't be found on the official
+# Electron symbol source.
+#
+# To fix this, we rewrite the debug file name of the first module
+# according to these rules for Electron minidumps before doing the lookup.
+# The rules are tried in order and only the first that matches is applied.
+#
+# The rewrites we perform are as follows:
+#
+# * /PATH/TO/FILE Framework -> /PATH/TO/Electron Framework
+# * /PATH/TO/FILE Helper (FOOBAR) -> /PATH/TO/Electron Helper (FOOBAR)
+# * /PATH/TO/FILE.exe.pdb -> /PATH/TO/electron.exe.pdb
+# * /PATH/TO/FILE -> /PATH/TO/electron
+#
+# These were determined by examining logs of successful downloads from the Electron symbol
+# source.
+#
+# The rewriting itself is performed by Symbolicator. We can't do it before
+# because we only gain access to the modules contained in the minidump
+# during stackwalking.
+#
+# NOTE: These regexes and replacement strings are written in the syntax the Rust regex crate accepts!
+ELECTRON_FIRST_MODULE_REWRITE_RULES = [
+    {"from": "[^/\\\\]+ (?<suffix>Framework|Helper( \\(.+\\))?)$", "to": "Electron $suffix"},
+    {"from": "[^/\\\\]+\\.exe\\.pdb$", "to": "electron.exe.pdb"},
+    {"from": "[^/\\\\]+$", "to": "electron"},
+]
 
 
 def _merge_frame(new_frame, symbolicated, platform="native"):
@@ -98,6 +134,8 @@ def _merge_frame(new_frame, symbolicated, platform="native"):
 def _handle_image_status(status, image, os, data):
     if status in ("found", "unused"):
         return
+    elif status == "unsupported":
+        error = SymbolicationFailed(type=EventError.NATIVE_UNSUPPORTED_DSYM)
     elif status == "missing":
         package = image.get("code_file")
         if not package:
@@ -129,6 +167,8 @@ def _handle_image_status(status, image, os, data):
         error = SymbolicationFailed(type=EventError.FETCH_TOO_LARGE)
     elif status == "fetching_failed":
         error = SymbolicationFailed(type=EventError.FETCH_GENERIC_ERROR)
+    elif status == "timeout":
+        error = SymbolicationFailed(type=EventError.FETCH_TIMEOUT)
     elif status == "other":
         error = SymbolicationFailed(type=EventError.UNKNOWN_ERROR)
     else:
@@ -281,11 +321,31 @@ def process_minidump(symbolicator: Symbolicator, data: Any) -> Any:
         logger.error("Missing minidump for minidump event")
         return
 
+    # We do module rewriting only for Electron minidumps.
+    # See the documentation of `ELECTRON_FIRST_MODULE_REWRITE_RULES`.
+    #
+    # Electron minidumps can be detected via the "prod" key in the
+    # "crashpad" context.
+    if get_path(data, "contexts", "crashpad", "prod") == "Electron":
+        rewrite_first_module = ELECTRON_FIRST_MODULE_REWRITE_RULES
+    else:
+        rewrite_first_module = []
+
     metrics.incr("process.native.symbolicate.request")
-    response = symbolicator.process_minidump(minidump.data)
+    response = symbolicator.process_minidump(
+        data.get("platform"), minidump.data, rewrite_first_module
+    )
 
     if _handle_response_status(data, response):
         _merge_full_response(data, response)
+
+        # Emit Apple symbol stats
+        apple_symbol_stats = response.get("apple_symbol_stats")
+        if apple_symbol_stats:
+            try:
+                emit_apple_symbol_stats(apple_symbol_stats, data)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
     return data
 
@@ -297,10 +357,18 @@ def process_applecrashreport(symbolicator: Symbolicator, data: Any) -> Any:
         return
 
     metrics.incr("process.native.symbolicate.request")
-    response = symbolicator.process_applecrashreport(report.data)
+    response = symbolicator.process_applecrashreport(data.get("platform"), report.data)
 
     if _handle_response_status(data, response):
         _merge_full_response(data, response)
+
+        # Emit Apple symbol stats
+        apple_symbol_stats = response.get("apple_symbol_stats")
+        if apple_symbol_stats:
+            try:
+                emit_apple_symbol_stats(apple_symbol_stats, data)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
     return data
 
@@ -404,10 +472,20 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     signal = signal_from_data(data)
 
     metrics.incr("process.native.symbolicate.request")
-    response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules, signal=signal)
+    response = symbolicator.process_payload(
+        platform=data.get("platform"), stacktraces=stacktraces, modules=modules, signal=signal
+    )
 
     if not _handle_response_status(data, response):
         return data
+
+    # Emit Apple symbol stats
+    apple_symbol_stats = response.get("apple_symbol_stats")
+    if apple_symbol_stats:
+        try:
+            emit_apple_symbol_stats(apple_symbol_stats, data)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
     assert len(modules) == len(response["modules"]), (modules, response)
 
@@ -453,6 +531,87 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         sinfo.stacktrace["frames"] = new_frames
 
     return data
+
+
+def emit_apple_symbol_stats(apple_symbol_stats, data):
+    os_name = get_path(data, "contexts", "os", "name") or get_path(
+        data, "contexts", "os", "raw_description"
+    )
+    os_version = get_path(data, "contexts", "os", "version")
+    # See https://develop.sentry.dev/sdk/data-model/event-payloads/contexts/
+    is_simulator = get_path(data, "contexts", "device", "simulator", default=False)
+
+    if os_version:
+        os_version = os_version.split(".", 1)[0]
+
+    if neither := apple_symbol_stats.get("neither"):
+        metrics.incr(
+            "apple_symbol_availability_v2",
+            amount=neither,
+            tags={
+                "availability": "neither",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
+            sample_rate=1.0,
+        )
+
+    if both := apple_symbol_stats.get("both"):
+        metrics.incr(
+            "apple_symbol_availability_v2",
+            amount=both,
+            tags={
+                "availability": "both",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
+            sample_rate=1.0,
+        )
+
+    if old := apple_symbol_stats.get("old"):
+        metrics.incr(
+            "apple_symbol_availability_v2",
+            amount=len(old),
+            tags={
+                "availability": "old",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
+            sample_rate=1.0,
+        )
+
+        # This is done to temporally collect information about the events for which symx is not working correctly.
+        if in_random_rollout("symbolicate.symx-logging-rate") and os_name and os_version:
+            os_description = os_name + str(os_version)
+            if os_description in options.get("symbolicate.symx-os-description-list"):
+                with sentry_sdk.isolation_scope() as scope:
+                    scope.set_tag("os", os_description)
+                    scope.set_context(
+                        "Event Info",
+                        {
+                            "project": data.get("project"),
+                            "id": data.get("event_id"),
+                            "modules": old,
+                            "os": os_description,
+                        },
+                    )
+                    sentry_sdk.capture_message("Failed to find symbols using symx")
+
+    if symx := apple_symbol_stats.get("symx"):
+        metrics.incr(
+            "apple_symbol_availability_v2",
+            amount=symx,
+            tags={
+                "availability": "symx",
+                "os_name": os_name,
+                "os_version": os_version,
+                "is_simulator": is_simulator,
+            },
+            sample_rate=1.0,
+        )
 
 
 def get_native_symbolication_function(

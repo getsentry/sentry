@@ -1,38 +1,34 @@
+import type {Theme} from '@emotion/react';
 import {ASAP} from 'downsample/methods/ASAP';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
-import {t} from 'sentry/locale';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {Project} from 'sentry/types/project';
-import type EventView from 'sentry/utils/discover/eventView';
 import type {AggregationKeyWithAlias, Field, Sort} from 'sentry/utils/discover/fields';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {
-  platformToPerformanceType,
-  ProjectPerformanceType,
-} from 'sentry/views/performance/utils';
-
 import type {
   NormalizedTrendsTransaction,
   TrendFunction,
   TrendParameter,
   TrendsTransaction,
   TrendView,
-} from '../types';
+} from 'sentry/views/performance/trends/types';
 import {
   TrendChangeType,
   TrendFunctionField,
   TrendParameterColumn,
   TrendParameterLabel,
-} from '../types';
+} from 'sentry/views/performance/trends/types';
+import {
+  platformToPerformanceType,
+  ProjectPerformanceType,
+} from 'sentry/views/performance/utils';
 
-export const DEFAULT_TRENDS_STATS_PERIOD = '14d';
 export const DEFAULT_MAX_DURATION = '15min';
 
 export const TRENDS_FUNCTIONS: TrendFunction[] = [
@@ -107,49 +103,35 @@ export const TRENDS_PARAMETERS: TrendParameter[] = [
   },
 ];
 
-export const trendToColor = {
-  [TrendChangeType.IMPROVED]: {
-    lighter: theme.green200,
-    default: theme.green300,
-  },
-  [TrendChangeType.REGRESSION]: {
-    lighter: theme.red200,
-    default: theme.red300,
-  },
-  neutral: {
-    lighter: theme.yellow200,
-    default: theme.yellow300,
-  },
-  // TODO remove this once backend starts sending
-  // TrendChangeType.IMPROVED as change type
-  improvement: {
-    lighter: theme.green200,
-    default: theme.green300,
-  },
-};
+export function makeTrendToColorMapping(theme: Theme) {
+  return {
+    [TrendChangeType.IMPROVED]: {
+      lighter: theme.green200,
+      default: theme.green300,
+    },
+    [TrendChangeType.REGRESSION]: {
+      lighter: theme.red200,
+      default: theme.red300,
+    },
+    neutral: {
+      lighter: theme.yellow200,
+      default: theme.yellow300,
+    },
+    // TODO remove this once backend starts sending
+    // TrendChangeType.IMPROVED as change type
+    improvement: {
+      lighter: theme.green200,
+      default: theme.green300,
+    },
+  };
+}
 
-export const trendSelectedQueryKeys = {
-  [TrendChangeType.IMPROVED]: 'improvedSelected',
-  [TrendChangeType.REGRESSION]: 'regressionSelected',
-};
-
-export const trendUnselectedSeries = {
+const trendUnselectedSeries = {
   [TrendChangeType.IMPROVED]: 'improvedUnselectedSeries',
   [TrendChangeType.REGRESSION]: 'regressionUnselectedSeries',
 };
 
-export const trendCursorNames = {
-  [TrendChangeType.IMPROVED]: 'improvedCursor',
-  [TrendChangeType.REGRESSION]: 'regressionCursor',
-};
-
 const TOKEN_KEYS_SUPPORTED_IN_METRICS_TRENDS = ['transaction', 'tpm()'];
-
-export function resetCursors() {
-  const cursors = {};
-  Object.values(trendCursorNames).forEach(cursor => (cursors[cursor] = undefined)); // Resets both cursors
-  return cursors;
-}
 
 export function getCurrentTrendFunction(
   location: Location,
@@ -158,15 +140,15 @@ export function getCurrentTrendFunction(
   const trendFunctionField =
     _trendFunctionField ?? decodeScalar(location?.query?.trendFunction);
   const trendFunction = TRENDS_FUNCTIONS.find(({field}) => field === trendFunctionField);
-  return trendFunction || TRENDS_FUNCTIONS[1];
+  return trendFunction || TRENDS_FUNCTIONS[1]!;
 }
 
 function getDefaultTrendParameter(
   projects: Project[],
-  projectIds: Readonly<number[]>
+  projectIds: readonly number[]
 ): TrendParameter {
   const performanceType = platformToPerformanceType(projects, projectIds);
-  const trendParameter = performanceTypeToTrendParameterLabel(performanceType);
+  const trendParameter = performanceTypeToTrendParameterLabel(performanceType!);
 
   return trendParameter;
 }
@@ -174,7 +156,7 @@ function getDefaultTrendParameter(
 export function getCurrentTrendParameter(
   location: Location,
   projects: Project[],
-  projectIds: Readonly<number[]>
+  projectIds: readonly number[]
 ): TrendParameter {
   const trendParameterLabel = decodeScalar(location?.query?.trendParameter);
   const trendParameter = TRENDS_PARAMETERS.find(
@@ -209,7 +191,7 @@ export function performanceTypeToTrendParameterLabel(
   }
 }
 
-export function generateTrendFunctionAsString(
+function generateTrendFunctionAsString(
   trendFunction: TrendFunctionField,
   trendParameter: string
 ): string {
@@ -233,23 +215,12 @@ export function transformDeltaSpread(from: number, to: number) {
   return {fromSeconds, toSeconds, showDigits};
 }
 
-export function getTrendProjectId(
-  trend: NormalizedTrendsTransaction,
-  projects?: Project[]
-): string | undefined {
-  if (!trend.project || !projects) {
-    return undefined;
-  }
-  const transactionProject = projects.find(project => project.slug === trend.project);
-  return transactionProject?.id;
-}
-
 export function modifyTrendView(
   trendView: TrendView,
   location: Location,
   trendsType: TrendChangeType,
   projects: Project[],
-  canUseMetricsTrends: boolean = false
+  canUseMetricsTrends = false
 ) {
   const trendFunction = getCurrentTrendFunction(location);
   const trendParameter = getCurrentTrendParameter(location, projects, trendView.project);
@@ -275,9 +246,7 @@ export function modifyTrendView(
     );
   }
 
-  if (!canUseMetricsTrends) {
-    trendView.query = getLimitTransactionItems(trendView.query);
-  } else {
+  if (canUseMetricsTrends) {
     const query = new MutableSearch(trendView.query);
     if (query.freeText.length > 0) {
       const parsedFreeText = query.freeText.join(' ');
@@ -290,23 +259,14 @@ export function modifyTrendView(
       token => token.key && TOKEN_KEYS_SUPPORTED_IN_METRICS_TRENDS.includes(token.key)
     );
     trendView.query = query.formatString();
+  } else {
+    trendView.query = getLimitTransactionItems(trendView.query);
   }
 
   trendView.interval = getQueryInterval(location, trendView);
 
   trendView.sorts = [trendSort];
   trendView.fields = fields;
-}
-
-export function modifyTrendsViewDefaultPeriod(eventView: EventView, location: Location) {
-  const {query} = location;
-
-  const hasStartAndEnd = query.start && query.end;
-
-  if (!query.statsPeriod && !hasStartAndEnd) {
-    eventView.statsPeriod = DEFAULT_TRENDS_STATS_PERIOD;
-  }
-  return eventView;
 }
 
 function getQueryInterval(location: Location, eventView: TrendView) {
@@ -324,26 +284,13 @@ function getQueryInterval(location: Location, eventView: TrendView) {
   return intervalFromQueryParam || intervalFromSmoothing;
 }
 
-export function transformValueDelta(value: number, trendType: TrendChangeType) {
-  const absoluteValue = Math.abs(value);
-
-  const changeLabel =
-    trendType === TrendChangeType.REGRESSION ? t('slower') : t('faster');
-
-  const seconds = absoluteValue / 1000;
-
-  const fixedDigits = absoluteValue > 1000 || absoluteValue < 10 ? 1 : 0;
-
-  return {seconds, fixedDigits, changeLabel};
-}
-
 /**
  * This will normalize the trends transactions while the current trend function and current data are out of sync
  * To minimize extra renders with missing results.
  */
 export function normalizeTrends(
-  data: Array<TrendsTransaction>
-): Array<NormalizedTrendsTransaction> {
+  data: TrendsTransaction[]
+): NormalizedTrendsTransaction[] {
   const received_at = moment(); // Adding the received time for the transaction so calls to get baseline always line up with the transaction
   return data.map(row => {
     return {
@@ -354,21 +301,9 @@ export function normalizeTrends(
   });
 }
 
-export function getSelectedQueryKey(trendChangeType: TrendChangeType) {
-  return trendSelectedQueryKeys[trendChangeType];
-}
-
 export function getUnselectedSeries(trendChangeType: TrendChangeType) {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return trendUnselectedSeries[trendChangeType];
-}
-
-export function movingAverage(data, index, size) {
-  return (
-    data
-      .slice(index - size, index)
-      .map(a => a.value)
-      .reduce((a, b) => a + b, 0) / size
-  );
 }
 
 /**
@@ -388,16 +323,12 @@ function getLimitTransactionItems(query: string) {
   return limitQuery.formatString();
 }
 
-export const smoothTrend = (data: [number, number][], resolution = 100) => {
+const smoothTrend = (data: Array<[number, number]>, resolution = 100) => {
   return ASAP(data, resolution);
 };
 
 export const replaceSeriesName = (seriesName: string) => {
   return ['p50', 'p75'].find(aggregate => seriesName.includes(aggregate));
-};
-
-export const replaceSmoothedSeriesName = (seriesName: string) => {
-  return `Smoothed ${['p50', 'p75'].find(aggregate => seriesName.includes(aggregate))}`;
 };
 
 export function transformEventStatsSmoothed(data?: Series[], seriesName?: string) {
@@ -421,6 +352,8 @@ export function transformEventStatsSmoothed(data?: Series[], seriesName?: string
       currentData.map(({name, value}) => [Number(name), value])
     );
 
+    // smoothed is not iterable - only indexable
+    // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < smoothed.length; i++) {
       const point = smoothed[i] as any;
       const value = point.y;
@@ -449,13 +382,6 @@ export function transformEventStatsSmoothed(data?: Series[], seriesName?: string
   };
 }
 
-export function modifyTransactionNameTrendsQuery(trendView: TrendView) {
-  const query = new MutableSearch(trendView.query);
-  query.setFilterValues('tpm()', ['>0.1']);
-  trendView.query = query.formatString();
-}
-
 export function getTopTrendingEvents(location: Location) {
   return decodeScalar(location?.query?.topEvents);
 }
-export {platformToPerformanceType};

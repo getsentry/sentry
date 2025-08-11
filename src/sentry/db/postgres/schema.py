@@ -1,8 +1,10 @@
+from django.contrib.postgres.constraints import ExclusionConstraint
 from django.db.backends.postgresql.schema import (
     DatabaseSchemaEditor as PostgresDatabaseSchemaEditor,
 )
-from django.db.models import Field
+from django.db.models import Field, Model
 from django.db.models.base import ModelBase
+from django.db.models.constraints import BaseConstraint
 from django_zero_downtime_migrations.backends.postgres.schema import (
     DatabaseSchemaEditorMixin,
     Unsafe,
@@ -10,13 +12,9 @@ from django_zero_downtime_migrations.backends.postgres.schema import (
 )
 
 unsafe_mapping = {
-    Unsafe.ADD_COLUMN_DEFAULT: (
-        "Adding {}.{} as column with a default is safe, but you need to take additional steps.\n"
-        "Follow this guide: https://develop.sentry.dev/database-migrations/#adding-columns-with-a-default"
-    ),
     Unsafe.ADD_COLUMN_NOT_NULL: (
-        "Adding {}.{} as a not null column is unsafe.\n"
-        "More info: https://develop.sentry.dev/database-migrations/#adding-not-null-to-columns"
+        "Adding {}.{} as a not null column with no default is unsafe. Provide a default using db_default. \n"
+        "More info: https://develop.sentry.dev/api-server/application-domains/database-migrations/#adding-columns-with-a-default"
     ),
     Unsafe.ALTER_COLUMN_TYPE: (
         "Altering the type of column {}.{} in this way is unsafe\n"
@@ -62,6 +60,20 @@ def translate_unsafeoperation_exception(func):
     return inner
 
 
+class MakeBtreeGistSchemaEditor(PostgresDatabaseSchemaEditor):
+    """workaround for https://code.djangoproject.com/ticket/36374"""
+
+    def create_model(self, model: type[Model]) -> None:
+        if any(isinstance(c, ExclusionConstraint) for c in model._meta.constraints):
+            self.execute("CREATE EXTENSION IF NOT EXISTS btree_gist;")
+        super().create_model(model)
+
+    def add_constraint(self, model: type[Model], constraint: BaseConstraint) -> None:
+        if isinstance(constraint, ExclusionConstraint):
+            self.execute("CREATE EXTENSION IF NOT EXISTS btree_gist;")
+        super().add_constraint(model, constraint)
+
+
 class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDatabaseSchemaEditor):
     add_field = translate_unsafeoperation_exception(PostgresDatabaseSchemaEditor.add_field)
     alter_field = translate_unsafeoperation_exception(PostgresDatabaseSchemaEditor.alter_field)
@@ -79,23 +91,27 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
             "More info here: https://develop.sentry.dev/database-migrations/#renaming-tables"
         )
 
-    def delete_model(self, model):
+    def delete_model(self, model, is_safe=False):
         """
         It's never safe to delete a model using the standard migration process
         """
-        raise UnsafeOperationException(
-            f"Deleting the {model.__name__} model is unsafe.\n"
-            "More info here: https://develop.sentry.dev/database-migrations/#tables"
-        )
+        if not is_safe:
+            raise UnsafeOperationException(
+                f"Deleting the {model.__name__} model is unsafe.\n"
+                "More info here: https://develop.sentry.dev/database-migrations/#deleting-tables"
+            )
+        super(DatabaseSchemaEditorMixin, self).delete_model(model)
 
-    def remove_field(self, model, field):
+    def remove_field(self, model, field, is_safe=False):
         """
         It's never safe to remove a field using the standard migration process
         """
-        raise UnsafeOperationException(
-            f"Removing the {model.__name__}.{field.name} field is unsafe.\n"
-            "More info here: https://develop.sentry.dev/database-migrations/#columns"
-        )
+        if not is_safe:
+            raise UnsafeOperationException(
+                f"Removing the {model.__name__}.{field.name} field is unsafe.\n"
+                "More info here: https://develop.sentry.dev/database-migrations/#deleting-columns"
+            )
+        super(DatabaseSchemaEditorMixin, self).remove_field(model, field)
 
 
 class DatabaseSchemaEditorProxy:
@@ -130,7 +146,7 @@ class DatabaseSchemaEditorProxy:
     def schema_editor(self):
         if self._schema_editor is None:
             schema_editor_cls = (
-                SafePostgresDatabaseSchemaEditor if self.safe else PostgresDatabaseSchemaEditor
+                SafePostgresDatabaseSchemaEditor if self.safe else MakeBtreeGistSchemaEditor
             )
             schema_editor = schema_editor_cls(*self.args, **self.kwargs)
             schema_editor.__enter__()

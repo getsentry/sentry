@@ -4,14 +4,18 @@ import {escapeDoubleQuotes} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {safeURL} from 'sentry/utils/url/safeURL';
 
+// Create a string representation of the regex so we need to create a new regex
+// for each use to avoid carrying over state
+export const TAG_VALUE_ESCAPE_PATTERN = '[:\\s\\(\\)\\\\"]';
+
 // remove leading and trailing whitespace and remove double spaces
-export function formatQueryString(query: string): string {
+function formatQueryString(query: string): string {
   return query.trim().replace(/\s+/g, ' ');
 }
 
 export function addQueryParamsToExistingUrl(
   origUrl: string,
-  queryParams: object
+  queryParams: Record<PropertyKey, unknown>
 ): string {
   const url = safeURL(origUrl);
 
@@ -28,7 +32,7 @@ export function addQueryParamsToExistingUrl(
   return `${url.protocol}//${url.host}${url.pathname}?${qs.stringify(query)}`;
 }
 
-type QueryValue = string | string[] | undefined | null;
+export type QueryValue = string | string[] | undefined | null;
 
 /**
  * Append a tag key:value to a query string.
@@ -46,7 +50,10 @@ export function appendTagCondition(
       ? query
       : '';
 
-  if (typeof value === 'string' && /[:\s\(\)\\"]/g.test(value)) {
+  if (
+    typeof value === 'string' &&
+    new RegExp(TAG_VALUE_ESCAPE_PATTERN, 'g').test(value)
+  ) {
     value = `"${escapeDoubleQuotes(value)}"`;
   }
   if (currentQuery) {
@@ -140,7 +147,27 @@ export function decodeSorts(value: QueryValue, fallback?: string): Sort[] {
   );
 }
 
+export function decodeBoolean(value: QueryValue): boolean | undefined;
+export function decodeBoolean(value: QueryValue, fallback: boolean): boolean;
+export function decodeBoolean(
+  value: QueryValue,
+  fallback?: boolean
+): boolean | undefined {
+  const unwrapped = decodeScalar(value);
+
+  if (unwrapped === 'true') {
+    return true;
+  }
+
+  if (unwrapped === 'false') {
+    return false;
+  }
+
+  return fallback;
+}
+
 const queryString = {
+  decodeBoolean,
   decodeInteger,
   decodeList,
   decodeScalar,

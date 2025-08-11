@@ -15,16 +15,16 @@ from sentry.auth.services.auth import (
 )
 from sentry.auth.services.auth.serial import serialize_api_key, serialize_auth_provider
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.outbox import outbox_context
-from sentry.models.user import User
 from sentry.organizations.services.organization.service import organization_service
 from sentry.signals import sso_enabled
 from sentry.silo.safety import unguarded_write
+from sentry.users.models.user import User
 
 
 class DatabaseBackedAuthService(AuthService):
@@ -47,10 +47,14 @@ class DatabaseBackedAuthService(AuthService):
         provider_config: dict[str, Any],
         user_id: int | None = None,
         sender: str | None = None,
+        equivalent_providers: list[str] | None = None,
     ) -> None:
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthProvider))):
+            possible_providers = [provider_key] + (equivalent_providers or [])
             auth_provider_query = AuthProvider.objects.filter(
-                organization_id=organization_id, provider=provider_key, config=provider_config
+                organization_id=organization_id,
+                provider__in=possible_providers,
+                config=provider_config,
             )
             if not auth_provider_query.exists():
                 auth_provider = AuthProvider.objects.create(
@@ -76,10 +80,19 @@ class DatabaseBackedAuthService(AuthService):
                     )
 
     def create_auth_identity(
-        self, *, provider: str, config: Mapping[str, Any], user_id: int, ident: str
+        self,
+        *,
+        provider: str,
+        config: Mapping[str, Any],
+        user_id: int,
+        ident: str,
+        equivalent_providers: list[str] | None = None,
     ) -> None:
         with enforce_constraints(transaction.atomic(router.db_for_write(AuthIdentity))):
-            auth_provider = AuthProvider.objects.filter(provider=provider, config=config).first()
+            possible_providers = [provider] + (equivalent_providers or [])
+            auth_provider = AuthProvider.objects.filter(
+                provider__in=possible_providers, config=config
+            ).first()
             if auth_provider is None:
                 return
             # Add Auth identity for partner's SSO if it doesn't exist

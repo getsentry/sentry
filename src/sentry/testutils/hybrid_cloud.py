@@ -14,9 +14,12 @@ from django.db import connections, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
 
 from sentry.db.postgres.transactions import in_test_transaction_enforcement
+from sentry.deletions.models.scheduleddeletion import (
+    BaseScheduledDeletion,
+    get_regional_scheduled_deletion,
+)
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.scheduledeletion import BaseScheduledDeletion, get_regional_scheduled_deletion
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -122,7 +125,7 @@ class EnforceNoCrossTransactionWrapper:
             raise CrossTransactionAssertionError(
                 f"Found mixed open transactions between dbs {open_transactions}"
             )
-        if open_transactions and not (self.alias in open_transactions):
+        if open_transactions and self.alias not in open_transactions:
             raise CrossTransactionAssertionError(
                 f"Transaction opened for db {open_transactions}, but command running against db {self.alias}"
             )
@@ -238,9 +241,9 @@ def simulate_on_commit(request: Any):
         if is_django_test_case:
             simulated_transaction_watermarks.state[conn.alias] = 2
         else:
-            simulated_transaction_watermarks.state[
-                conn.alias
-            ] = simulated_transaction_watermarks.get_transaction_depth(conn)
+            simulated_transaction_watermarks.state[conn.alias] = (
+                simulated_transaction_watermarks.get_transaction_depth(conn)
+            )
 
     functools.update_wrapper(new_atomic_exit, _old_atomic_exit)
     functools.update_wrapper(new_atomic_on_commit, _old_transaction_on_commit)

@@ -9,7 +9,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
 
 describe('Incident Rules Create', function () {
-  let eventStatsMock;
+  let eventStatsMock: any;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -28,6 +28,10 @@ describe('Incident Rules Create', function () {
     eventStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: EventsStatsFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/anomalies/',
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/alert-rules/available-actions/',
@@ -71,6 +75,7 @@ describe('Incident Rules Create', function () {
             statsPeriod: '9998m',
             yAxis: 'count()',
             referrer: 'api.organization-event-stats',
+            dataset: 'errors',
           },
         })
       )

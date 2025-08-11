@@ -16,7 +16,7 @@ defaults:
 jobs:
   did-migration-change:
     name: check if any migration changes
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
     # Map a step output to a job output
     outputs:
@@ -35,11 +35,8 @@ jobs:
 
   sql:
     name: Generate SQL
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 8
-    strategy:
-      matrix:
-        pg-version: ['14']
 
     needs: did-migration-change
     if: needs.did-migration-change.outputs.added == 'true'
@@ -53,7 +50,7 @@ jobs:
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         with:
-          pg-version: ${{ matrix.pg-version }}
+          mode: migrations
 
       - name: Apply migrations
         run: |
@@ -68,11 +65,11 @@ jobs:
         id: file
         run: |
           echo 'added<<EOF' >> "$GITHUB_OUTPUT"
-          git diff --diff-filter=A --name-only origin/master HEAD -- 'src/sentry/*/migrations/*' 'src/sentry/migrations/*' >> "$GITHUB_OUTPUT"
+          git diff --diff-filter=A --name-only origin/master HEAD -- 'src/sentry/*/migrations/*' 'src/sentry/migrations/*' ':!*/__init__.py' >> "$GITHUB_OUTPUT"
           echo 'EOF' >> "$GITHUB_OUTPUT"
 
       - name: Generate SQL for migration
-        uses: getsentry/action-migrations@4d8ed0388dfc0774302bbfd5204e518f9ac4f066 # main
+        uses: getsentry/action-migrations@9f4400077fa0d5216d2f251d3228380e5a774d7d # v1.3.0
         env:
           SENTRY_LOG_LEVEL: ERROR
         with:

@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -8,11 +7,11 @@ import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import Feature from 'sentry/components/acl/feature';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import CreateAlertButton from 'sentry/components/createAlertButton';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
-import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -24,13 +23,16 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
 import ProjectScoreCards from './projectScoreCards/projectScoreCards';
@@ -47,7 +49,7 @@ type RouteParams = {
   projectId: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<RouteParams> & {
   organization: Organization;
 };
 
@@ -73,6 +75,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
     organization.slug,
     false
   );
+  const prefersStackedNav = usePrefersStackedNav();
 
   const visibleCharts = useMemo(() => {
     if (hasTransactions || hasSessions) {
@@ -82,7 +85,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
   }, [hasTransactions, hasSessions]);
 
   const onRetryProjects = useCallback(() => {
-    fetchOrganizationDetails(api, params.orgId, true, false);
+    fetchOrganizationDetails(api, params.orgId!);
   }, [api, params.orgId]);
 
   const handleSearch = useCallback(
@@ -101,7 +104,7 @@ export default function ProjectDetail({router, location, organization}: Props) {
   const tagValueLoader = useCallback(
     (key: string, search: string) => {
       return fetchTagValues({
-        api: api,
+        api,
         orgSlug: organization.slug,
         tagKey: key,
         search,
@@ -150,12 +153,12 @@ export default function ProjectDetail({router, location, organization}: Props) {
       >
         <Layout.Page>
           <NoProjectMessage organization={organization}>
-            <Layout.Header>
-              <Layout.HeaderContent>
+            <Layout.Header unified={prefersStackedNav}>
+              <Layout.HeaderContent unified={prefersStackedNav}>
                 <Breadcrumbs
                   crumbs={[
                     {
-                      to: `/organizations/${params.orgId}/projects/`,
+                      to: makeProjectsPathname({path: '/', organization}),
                       label: t('Projects'),
                     },
                     {label: t('Project Details')},
@@ -176,9 +179,9 @@ export default function ProjectDetail({router, location, organization}: Props) {
               </Layout.HeaderContent>
 
               <Layout.HeaderActions>
-                <ButtonBar gap={1}>
+                <ButtonBar>
                   <FeedbackWidgetButton />
-                  <Button
+                  <LinkButton
                     size="sm"
                     to={
                       // if we are still fetching project, we can use project slug to build issue stream url and let the redirect handle it
@@ -188,14 +191,14 @@ export default function ProjectDetail({router, location, organization}: Props) {
                     }
                   >
                     {t('View All Issues')}
-                  </Button>
+                  </LinkButton>
                   <CreateAlertButton
                     size="sm"
                     organization={organization}
                     projectSlug={params.projectId}
                     aria-label={t('Create Alert')}
                   />
-                  <Button
+                  <LinkButton
                     size="sm"
                     icon={<IconSettings />}
                     aria-label={t('Settings')}
@@ -206,7 +209,6 @@ export default function ProjectDetail({router, location, organization}: Props) {
             </Layout.Header>
 
             <Layout.Body noRowGap>
-              {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
               <Layout.Main>
                 <ProjectFiltersWrapper>
                   <ProjectFilters
@@ -234,25 +236,25 @@ export default function ProjectDetail({router, location, organization}: Props) {
                 {isProjectStabilized && (
                   <Fragment>
                     {visibleCharts.map((id, index) => (
-                      <ProjectCharts
-                        location={location}
-                        organization={organization}
-                        router={router}
-                        key={`project-charts-${id}`}
-                        chartId={id}
-                        chartIndex={index}
-                        projectId={project?.id}
-                        hasSessions={hasSessions}
-                        hasTransactions={!!hasTransactions}
-                        visibleCharts={visibleCharts}
-                        query={query}
-                        project={project}
-                      />
+                      <ErrorBoundary mini key={`project-charts-${id}`}>
+                        <ProjectCharts
+                          location={location}
+                          organization={organization}
+                          chartId={id}
+                          chartIndex={index}
+                          projectId={project?.id}
+                          hasSessions={hasSessions}
+                          hasTransactions={!!hasTransactions}
+                          visibleCharts={visibleCharts}
+                          query={query}
+                          project={project}
+                        />
+                      </ErrorBoundary>
                     ))}
                     <ProjectIssues
                       organization={organization}
                       location={location}
-                      projectId={selection.projects[0]}
+                      projectId={selection.projects[0]!}
                       query={query}
                       api={api}
                     />
@@ -264,14 +266,14 @@ export default function ProjectDetail({router, location, organization}: Props) {
                 <Feature features="incidents" organization={organization}>
                   <ProjectLatestAlerts
                     organization={organization}
-                    projectSlug={params.projectId}
+                    projectSlug={params.projectId!}
                     location={location}
                     isProjectStabilized={isProjectStabilized}
                   />
                 </Feature>
                 <ProjectLatestReleases
                   organization={organization}
-                  projectSlug={params.projectId}
+                  projectSlug={params.projectId!}
                   location={location}
                   isProjectStabilized={isProjectStabilized}
                   project={project}
@@ -292,10 +294,4 @@ export default function ProjectDetail({router, location, organization}: Props) {
 
 const ProjectFiltersWrapper = styled('div')`
   margin-bottom: ${space(2)};
-`;
-
-const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    margin-bottom: 0;
-  }
 `;

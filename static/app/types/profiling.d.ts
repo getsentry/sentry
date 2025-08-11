@@ -1,6 +1,5 @@
 declare namespace Profiling {
   type Release = import('sentry/types').Release;
-  type SpeedscopeSchema = import('sentry/utils/profiling/speedscope').SpeedscopeSchema;
 
   type Image = import('sentry/types/debugImage').Image;
 
@@ -142,6 +141,12 @@ declare namespace Profiling {
     profile: ContinuousProfile;
   }
 
+  interface SentryAndroidContinuousProfileChunk extends Omit<Schema, 'profiles'> {
+    profiles: ReadonlyArray<Readonly<Profiling.EventedProfile>>;
+    androidClock: string;
+    measurements?: ContinuousMeasurements;
+  }
+
   ////////////////
   interface RawProfileBase {
     endValue: number;
@@ -164,6 +169,7 @@ declare namespace Profiling {
     weights: number[];
     samples: number[][];
     samples_profiles?: number[][];
+    samples_examples?: number[][];
     sample_durations_ns?: number[];
     type: 'sampled';
   }
@@ -217,6 +223,20 @@ declare namespace Profiling {
     scriptId?: number;
   };
 
+  type FunctionMetric = {
+    avg: number;
+    count: number;
+    examples: Exclude<ProfileReference, string>[];
+    fingerprint: number;
+    in_app: boolean;
+    name: string;
+    p75: number;
+    p95: number;
+    p99: number;
+    package: string;
+    sum: number;
+  };
+
   type ProfileInput =
     | Profiling.Schema
     | JSSelfProfiling.Trace
@@ -230,8 +250,40 @@ declare namespace Profiling {
     profiles: ReadonlyArray<ProfileInput>;
   };
 
+  type BaseTransactionProfileReference = {
+    profile_id: string;
+    end?: number;
+    start?: number;
+  };
+
+  type BaseContinuousProfileReference = {
+    end: number;
+    profiler_id: string;
+    start: number;
+    thread_id: string;
+  };
+
+  type BaseProfileReference =
+    | BaseTransactionProfileReference
+    | BaseContinuousProfileReference;
+
+  type TransactionProfileReference = BaseTransactionProfileReference & {
+    project_id: number;
+  };
+
+  type ContinuousProfileReference = BaseContinuousProfileReference & {
+    project_id: number;
+    transaction_id: string | undefined;
+    chunk_id: string;
+  };
+
+  type ProfileReference =
+    | TransactionProfileReference
+    | ContinuousProfileReference
+    | string;
+
   // We have extended the speedscope schema to include some additional metadata and measurements
-  interface Schema extends SpeedscopeSchema {
+  interface Schema {
     metadata: {
       androidAPILevel: number;
       deviceClassification: string;
@@ -255,5 +307,17 @@ declare namespace Profiling {
     profileID: string;
     projectID: number;
     measurements?: Measurements;
+    profiles: ReadonlyArray<
+      Readonly<
+        Profiling.EventedProfile | Profiling.SampledProfile | JSSelfProfiling.Trace
+      >
+    >;
+    shared: {
+      frames: ReadonlyArray<Omit<Profiling.FrameInfo, 'key'>>;
+      profile_ids?: ReadonlyArray<string>[];
+      profiles?: ReadonlyArray<ProfileReference>;
+    };
+    activeProfileIndex?: number;
+    metrics?: FunctionMetric[];
   }
 }

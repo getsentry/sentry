@@ -1,11 +1,9 @@
-import type {RouteComponentProps} from 'react-router';
-
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -15,7 +13,9 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {ApiApplication} from 'sentry/types';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {ApiApplication} from 'sentry/types/user';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import Row from 'sentry/views/settings/account/apiApplications/row';
@@ -23,7 +23,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 
 const ROUTE_PREFIX = '/settings/account/api/';
 
-type Props = RouteComponentProps<{}, {}>;
+type Props = RouteComponentProps;
 
 function ApiApplications({router}: Props) {
   const api = useApi();
@@ -32,12 +32,13 @@ function ApiApplications({router}: Props) {
   const ENDPOINT = '/api-applications/';
 
   const {
-    data: appList,
+    data: appList = [],
     isLoading,
     isError,
     refetch,
   } = useApiQuery<ApiApplication[]>([ENDPOINT], {
     staleTime: 0,
+    enabled: !isDemoModeActive(),
   });
 
   if (isLoading) {
@@ -64,8 +65,8 @@ function ApiApplications({router}: Props) {
   };
 
   const handleRemoveApplication = (app: ApiApplication) => {
-    setApiQueryData<any>(queryClient, [ENDPOINT], oldAppList =>
-      oldAppList.filter(a => a.id !== app.id)
+    setApiQueryData<any>(queryClient, [ENDPOINT], (oldAppList: any) =>
+      oldAppList.filter((a: any) => a.id !== app.id)
     );
   };
 
@@ -91,12 +92,12 @@ function ApiApplications({router}: Props) {
         <PanelHeader>{t('Application Name')}</PanelHeader>
 
         <PanelBody>
-          {!isEmpty ? (
+          {isEmpty ? (
+            <EmptyMessage>{t("You haven't created any applications yet.")}</EmptyMessage>
+          ) : (
             appList.map(app => (
               <Row key={app.id} app={app} onRemove={handleRemoveApplication} />
             ))
-          ) : (
-            <EmptyMessage>{t("You haven't created any applications yet.")}</EmptyMessage>
           )}
         </PanelBody>
       </Panel>

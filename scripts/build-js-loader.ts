@@ -1,4 +1,5 @@
-/* eslint-disable no-console */
+'use strict';
+
 import fs from 'node:fs';
 import {minify} from 'terser';
 import * as ts from 'typescript';

@@ -3,18 +3,19 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import QuickTrace from 'sentry/components/quickTrace';
 import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 
 describe('Quick Trace', function () {
-  let location;
-  let organization;
+  let location: any;
+  let organization: Organization;
 
   const initialize = () => {
     const context = initializeOrg();
     organization = context.organization;
   };
 
-  function makeQuickTraceEvents(generation, {n = 1, parentId = null} = {}) {
+  function makeQuickTraceEvents(generation: number, {n = 1, parentId = null} = {}) {
     const events: QuickTraceEvent[] = [];
     for (let i = 0; i < n; i++) {
       const suffix = n > 1 ? `-${i}` : '';
@@ -41,17 +42,22 @@ describe('Quick Trace', function () {
     return events;
   }
 
-  function makeTransactionEventFixture(id) {
+  function makeTransactionEventFixture(id: string | number) {
     return {
       id: `e${id}`,
       type: 'transaction',
       startTimestamp: 1615921516.132774,
       endTimestamp: 1615921517.924861,
+      contexts: {
+        trace: {
+          trace_id: `trace-id`,
+        },
+      },
     };
   }
 
-  function makeTransactionHref(pid: string, eid: string, transaction: string) {
-    return `/organizations/${organization.slug}/performance/${pid}:${eid}/?transaction=${transaction}`;
+  function makeTransactionHref(eid: string, timestamp: number) {
+    return `/organizations/org-slug/traces/trace/trace-id/?eventId=${eid}&statsPeriod=14d&timestamp=${timestamp}`;
   }
 
   beforeEach(function () {
@@ -73,7 +79,6 @@ describe('Quick Trace', function () {
           }}
           anchor="left"
           errorDest="issue"
-          transactionDest="performance"
           location={location}
           organization={organization}
         />
@@ -93,7 +98,6 @@ describe('Quick Trace', function () {
           }}
           anchor="left"
           errorDest="issue"
-          transactionDest="performance"
           location={location}
           organization={organization}
         />
@@ -111,7 +115,6 @@ describe('Quick Trace', function () {
           }}
           anchor="left"
           errorDest="issue"
-          transactionDest="performance"
           location={location}
           organization={organization}
         />
@@ -135,13 +138,12 @@ describe('Quick Trace', function () {
           }}
           anchor="left"
           errorDest="issue"
-          transactionDest="performance"
           location={location}
           organization={organization}
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(1);
+      expect(nodes).toHaveLength(1);
       expect(nodes[0]).toHaveTextContent('This Event');
     });
 
@@ -155,13 +157,12 @@ describe('Quick Trace', function () {
           }}
           anchor="left"
           errorDest="issue"
-          transactionDest="performance"
           location={location}
           organization={organization}
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(2);
+      expect(nodes).toHaveLength(2);
       ['This Event', '1 Child'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
       );
@@ -182,13 +183,12 @@ describe('Quick Trace', function () {
           }}
           anchor="left"
           errorDest="issue"
-          transactionDest="performance"
           location={location}
           organization={organization}
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(2);
+      expect(nodes).toHaveLength(2);
       ['This Event', '3 Children'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
       );
@@ -204,13 +204,12 @@ describe('Quick Trace', function () {
           }}
           anchor="left"
           errorDest="issue"
-          transactionDest="performance"
           location={location}
           organization={organization}
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(2);
+      expect(nodes).toHaveLength(2);
       ['Parent', 'This Event'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
       );
@@ -233,13 +232,12 @@ describe('Quick Trace', function () {
           }}
           anchor="left"
           errorDest="issue"
-          transactionDest="performance"
           location={location}
           organization={organization}
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(4);
+      expect(nodes).toHaveLength(4);
       ['Root', '1 Ancestor', 'Parent', 'This Event'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
       );
@@ -267,13 +265,12 @@ describe('Quick Trace', function () {
           }}
           anchor="left"
           errorDest="issue"
-          transactionDest="performance"
           location={location}
           organization={organization}
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(4);
+      expect(nodes).toHaveLength(4);
       ['Root', '3 Ancestors', 'Parent', 'This Event'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
       );
@@ -293,13 +290,12 @@ describe('Quick Trace', function () {
           }}
           anchor="left"
           errorDest="issue"
-          transactionDest="performance"
           location={location}
           organization={organization}
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(3);
+      expect(nodes).toHaveLength(3);
       ['This Event', '1 Child', '1 Descendant'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
       );
@@ -326,13 +322,12 @@ describe('Quick Trace', function () {
           }}
           anchor="left"
           errorDest="issue"
-          transactionDest="performance"
           location={location}
           organization={organization}
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(3);
+      expect(nodes).toHaveLength(3);
       ['This Event', '1 Child', '3 Descendants'].forEach((text, i) =>
         expect(nodes[i]).toHaveTextContent(text)
       );
@@ -364,13 +359,12 @@ describe('Quick Trace', function () {
           }}
           anchor="left"
           errorDest="issue"
-          transactionDest="performance"
           location={location}
           organization={organization}
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(6);
+      expect(nodes).toHaveLength(6);
       ['Root', '3 Ancestors', 'Parent', 'This Event', '1 Child', '3 Descendants'].forEach(
         (text, i) => expect(nodes[i]).toHaveTextContent(text)
       );
@@ -395,26 +389,24 @@ describe('Quick Trace', function () {
           }}
           anchor="left"
           errorDest="issue"
-          transactionDest="performance"
           location={location}
           organization={organization}
         />
       );
       const nodes = await screen.findAllByTestId('event-node');
-      expect(nodes.length).toEqual(6);
+      expect(nodes).toHaveLength(6);
       [
-        makeTransactionHref('p0', 'e0', 't0'),
-        makeTransactionHref('p1', 'e1', 't1'),
-        makeTransactionHref('p2', 'e2', 't2'),
+        makeTransactionHref('e0', 1615921516.132774),
+        makeTransactionHref('e1', 1615921516.132774),
+        makeTransactionHref('e2', 1615921516.132774),
         undefined, // the "This Event" node has no target
-        makeTransactionHref('p4', 'e4', 't4'),
-        makeTransactionHref('p5', 'e5', 't5'),
+        makeTransactionHref('e4', 1615921516.132774),
+        makeTransactionHref('e5', 1615921516.132774),
       ].forEach((target, i) => {
-        const linkNode = nodes[i].children[0];
         if (target) {
-          expect(linkNode).toHaveAttribute('href', target);
+          expect(nodes[i]?.parentNode).toHaveAttribute('href', target);
         } else {
-          expect(linkNode).not.toHaveAttribute('href');
+          expect(nodes[i]?.parentNode).not.toHaveAttribute('href');
         }
       });
     });
@@ -434,13 +426,12 @@ describe('Quick Trace', function () {
           }}
           anchor="left"
           errorDest="issue"
-          transactionDest="performance"
           location={location}
           organization={organization}
         />
       );
       const items = await screen.findAllByTestId('dropdown-item');
-      expect(items.length).toEqual(3);
+      expect(items).toHaveLength(3);
       // can't easily assert the target is correct since it uses an onClick handler
     });
   });

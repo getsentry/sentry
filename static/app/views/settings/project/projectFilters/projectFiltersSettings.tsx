@@ -1,4 +1,5 @@
 import {Component, Fragment, useCallback} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import iconAndroid from 'sentry-logos/logo-android.svg';
 import iconChrome from 'sentry-logos/logo-chrome.svg';
@@ -11,17 +12,17 @@ import iconSafari from 'sentry-logos/logo-safari.svg';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Switch} from 'sentry/components/core/switch';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
-import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
-import FieldLabel from 'sentry/components/forms/fieldGroup/fieldLabel';
+import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
+import {FieldLabel} from 'sentry/components/forms/fieldGroup/fieldLabel';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -29,7 +30,6 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
-import Switch from 'sentry/components/switchButton';
 import filterGroups, {
   customFilterFields,
   getOptionsData,
@@ -38,6 +38,7 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -82,7 +83,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   chrome: {
     icon: iconChrome,
     title: 'Chrome',
-    helpText: 'Version 62 and lower',
+    helpText: 'Version 63 and lower',
     legacy: false,
   },
   safari: {
@@ -130,7 +131,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   ie: {
     icon: iconIe,
     title: 'Internet Explorer',
-    helpText: 'Verison 11 and lower',
+    helpText: 'Version 11 and lower',
     legacy: false,
   },
   ie_pre_9: {
@@ -204,18 +205,20 @@ type RowState = {
 };
 
 class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
-  constructor(props) {
+  constructor(props: RowProps) {
     super(props);
 
-    let initialSubfilters;
+    let initialSubfilters: any;
     if (props.data.active === true) {
       initialSubfilters = new Set(
         Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
-          key => !LEGACY_BROWSER_SUBFILTERS[key].legacy
+          key =>
+            !LEGACY_BROWSER_SUBFILTERS[key as keyof typeof LEGACY_BROWSER_SUBFILTERS]
+              .legacy
         )
       );
     } else if (props.data.active === false) {
-      initialSubfilters = new Set();
+      initialSubfilters = new Set<string>();
     } else {
       initialSubfilters = new Set(props.data.active);
     }
@@ -227,13 +230,15 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
     };
   }
 
-  handleToggleSubfilters = (subfilter, e) => {
+  handleToggleSubfilters = (subfilter: boolean, e: React.MouseEvent) => {
     let {subfilters} = this.state;
 
     if (subfilter === true) {
       subfilters = new Set(
         Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
-          key => !LEGACY_BROWSER_SUBFILTERS[key].legacy
+          key =>
+            !LEGACY_BROWSER_SUBFILTERS[key as keyof typeof LEGACY_BROWSER_SUBFILTERS]
+              .legacy
         )
       );
     } else if (subfilter === false) {
@@ -263,7 +268,7 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
             <FieldLabel disabled={disabled}>
               {t('Filter out legacy browsers')}:
             </FieldLabel>
-            <ButtonBar gap={1}>
+            <ButtonBar>
               <Button
                 priority="link"
                 borderless
@@ -291,12 +296,14 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
         <FilterGrid>
           {Object.keys(LEGACY_BROWSER_SUBFILTERS)
             .filter(key => {
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               if (!LEGACY_BROWSER_SUBFILTERS[key].legacy) {
                 return true;
               }
               return this.state.subfilters.has(key);
             })
             .map(key => {
+              // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
               const subfilter = LEGACY_BROWSER_SUBFILTERS[key];
               return (
                 <FilterGridItem key={key}>
@@ -307,10 +314,13 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
                   </div>
                   <Switch
                     aria-label={`${subfilter.title} ${subfilter.helpText}`}
-                    isActive={this.state.subfilters.has(key)}
-                    isDisabled={disabled}
-                    css={{flexShrink: 0, marginLeft: 6}}
-                    toggle={this.handleToggleSubfilters.bind(this, key)}
+                    checked={this.state.subfilters.has(key)}
+                    disabled={disabled}
+                    css={css`
+                      flex-shrink: 0;
+                      margin-left: 6;
+                    `}
+                    onChange={this.handleToggleSubfilters.bind(this, key)}
                     size="lg"
                   />
                 </FilterGridItem>
@@ -360,18 +370,25 @@ function CustomFilters({project, disabled}: {disabled: boolean; project: Project
               ...featureProps,
             })}
 
-          {customFilterFields.map(field => (
-            <FieldFromConfig
-              key={field.name}
-              field={field}
-              disabled={disabled || !hasFeature}
-            />
-          ))}
+          {customFilterFields
+            .filter(field => {
+              if (defined(field.feature)) {
+                return organization.features.includes(field.feature);
+              }
+              return true;
+            })
+            .map(field => (
+              <FieldFromConfig
+                key={field.name}
+                field={field}
+                disabled={disabled || !hasFeature}
+              />
+            ))}
 
           {hasFeature && project.options?.['filters:error_messages'] && (
             <PanelAlert type="warning" data-test-id="error-message-disclaimer">
               {t(
-                "Minidumps, errors in the minified production build of React, and Internet Explorer's i18n errors cannot be filtered by message."
+                "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
               )}
             </PanelAlert>
           )}
@@ -405,12 +422,12 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
 
   const {
     data: filterListData,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<Filter[]>([`/projects/${organization.slug}/${projectSlug}/filters/`], {
     staleTime: 0,
-    cacheTime: 0,
+    gcTime: 0,
   });
 
   const filterList = filterListData ?? [];
@@ -433,7 +450,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
     []
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -452,6 +469,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                 const fieldProps = {
                   name: filter.id,
                   disabled: !hasAccess,
+                  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   ...filterDescriptions[filter.id],
                 };
 
@@ -469,7 +487,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       onFieldChange={(name, value) => {
                         trackAnalytics('settings.inbound_filter_updated', {
                           organization,
-                          project_id: parseInt(project.id as string, 10),
+                          project_id: parseInt(project.id, 10),
                           filter: name,
                           new_state:
                             filter.id === 'legacy-browsers' && value instanceof Set
@@ -480,22 +498,15 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                         });
                       }}
                     >
-                      {filter.id !== 'legacy-browsers' ? (
-                        <FieldFromConfig
-                          key={filter.id}
-                          getData={data => ({active: data[filter.id]})}
-                          field={{
-                            type: 'boolean',
-                            ...fieldProps,
-                          }}
-                        />
-                      ) : (
+                      {filter.id === 'legacy-browsers' ? (
                         <FormField
                           inline={false}
                           {...fieldProps}
-                          getData={data => ({subfilters: [...data[filter.id]]})}
+                          getData={(data: any) => ({
+                            subfilters: [...data[filter.id]],
+                          })}
                         >
-                          {({onChange, onBlur}) => (
+                          {({onChange, onBlur}: any) => (
                             <LegacyBrowserFilterRow
                               key={filter.id}
                               data={filter}
@@ -506,6 +517,15 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                             />
                           )}
                         </FormField>
+                      ) : (
+                        <FieldFromConfig
+                          key={filter.id}
+                          getData={data => ({active: data[filter.id]})}
+                          field={{
+                            type: 'boolean',
+                            ...fieldProps,
+                          }}
+                        />
                       )}
                     </NestedForm>
                   </PanelItem>
@@ -523,7 +543,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                   onFieldChange={(name, value) => {
                     trackAnalytics('settings.inbound_filter_updated', {
                       organization,
-                      project_id: parseInt(project.id as string, 10),
+                      project_id: parseInt(project.id, 10),
                       filter: name,
                       new_state: value ? 'enabled' : 'disabled',
                     });
@@ -538,22 +558,16 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                       type: 'boolean',
                       name: 'filters:react-hydration-errors',
                       label: t('Filter out hydration errors'),
-                      help: organization.features.includes(
-                        'session-replay-hydration-error-issue-creation'
-                      )
-                        ? tct(
-                            'React falls back to do a full re-render on a page. [replaySettings: Hydration Errors created from captured replays] are excluded from this setting.',
-                            {
-                              replaySettings: (
-                                <Link
-                                  to={`/settings/projects/${project.slug}/replays/#sentry-replay_hydration_error_issues_help`}
-                                />
-                              ),
-                            }
-                          )
-                        : t(
-                            'React falls back to do a full re-render on a page and these errors are often not actionable.'
+                      help: tct(
+                        'React falls back to do a full re-render on a page. [replaySettings: Hydration Errors created from captured replays] are excluded from this setting.',
+                        {
+                          replaySettings: (
+                            <Link
+                              to={`/settings/${organization.slug}/projects/${project.slug}/replays/#sentry-replay_hydration_error_issues_help`}
+                            />
                           ),
+                        }
+                      ),
                       disabled: !hasAccess,
                     }}
                   />
@@ -571,7 +585,7 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
                   onFieldChange={(name, value) => {
                     trackAnalytics('settings.inbound_filter_updated', {
                       organization,
-                      project_id: parseInt(project.id as string, 10),
+                      project_id: parseInt(project.id, 10),
                       filter: name,
                       new_state: value ? 'enabled' : 'disabled',
                     });
@@ -650,14 +664,14 @@ const FilterGridIcon = styled('img')`
 `;
 
 const FilterTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   white-space: nowrap;
 `;
 
 const FilterDescription = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   white-space: nowrap;
 `;
 

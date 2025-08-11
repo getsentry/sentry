@@ -28,6 +28,10 @@ type Props = Omit<
 };
 
 class ProjectBaseEventsChart extends Component<Props> {
+  defaultProps = {
+    dataset: DiscoverDatasets.METRICS_ENHANCED,
+  };
+
   componentDidMount() {
     this.fetchTotalCount();
   }
@@ -39,14 +43,15 @@ class ProjectBaseEventsChart extends Component<Props> {
   }
 
   async fetchTotalCount() {
-    const {api, organization, selection, onTotalValuesChange, query} = this.props;
+    const {api, organization, selection, onTotalValuesChange, query, dataset} =
+      this.props;
     const {projects, environments, datetime} = selection;
 
     try {
       const totals = await fetchTotalCount(api, organization.slug, {
         field: [],
         query,
-        dataset: DiscoverDatasets.METRICS_ENHANCED,
+        dataset,
         environment: environments,
         project: projects.map(proj => String(proj)),
         ...normalizeDateTimeParams(datetime),
@@ -60,7 +65,7 @@ class ProjectBaseEventsChart extends Component<Props> {
 
   render() {
     const {
-      router,
+      location,
       organization,
       selection,
       api,
@@ -69,6 +74,7 @@ class ProjectBaseEventsChart extends Component<Props> {
       field,
       title,
       help,
+      dataset,
       ...eventsChartProps
     } = this.props;
     const {projects, environments, datetime} = selection;
@@ -78,14 +84,14 @@ class ProjectBaseEventsChart extends Component<Props> {
       value: (
         <EventsChart
           {...eventsChartProps}
-          router={router}
+          location={location}
           organization={organization}
           showLegend
           yAxis={yAxis}
           query={query}
           api={api}
           projects={projects}
-          dataset={DiscoverDatasets.METRICS_ENHANCED}
+          dataset={dataset}
           environments={environments}
           start={start}
           end={end}

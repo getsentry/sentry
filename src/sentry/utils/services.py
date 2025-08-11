@@ -6,11 +6,10 @@ import inspect
 import logging
 import threading
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any, TypeVar
-
-from rest_framework.request import Request
+from typing import Any
 
 from sentry import options
+from sentry.conf.types.service_options import ServiceOptions
 from sentry.utils.concurrent import Executor, FutureSet, ThreadedExecutor, TimedFuture
 
 # TODO: adjust modules to import from new location -- the weird `as` syntax is for mypy
@@ -18,31 +17,25 @@ from sentry.utils.lazy_service_wrapper import LazyServiceWrapper as LazyServiceW
 from sentry.utils.lazy_service_wrapper import Service as Service
 
 from .imports import import_string
-from .types import AnyCallable
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar("T")
 
-CallableT = TypeVar("CallableT", bound=Callable[..., object])
-
-
-def resolve_callable(value: str | CallableT) -> CallableT:
-    if callable(value):
-        return value
-    elif isinstance(value, str):
+def resolve_callable[CallableT: Callable[..., object]](value: str | CallableT) -> CallableT:
+    if isinstance(value, str):
         return import_string(value)
+    elif callable(value):
+        return value
     else:
         raise TypeError("Expected callable or string")
 
 
 class Context:
-    def __init__(self, request: Request, backends: dict[type[Service | None], Service]):
-        self.request = request
+    def __init__(self, backends: dict[type[Service | None], Service]):
         self.backends = backends
 
     def copy(self) -> Context:
-        return Context(self.request, self.backends.copy())
+        return Context(self.backends.copy())
 
 
 Selector = Callable[
@@ -51,7 +44,7 @@ Selector = Callable[
 ]
 
 Callback = Callable[
-    [Context, str, Mapping[str, Any], Sequence[str], Sequence[TimedFuture]],
+    [Context, str, Mapping[str, Any], Sequence[str], Sequence[TimedFuture[Any] | None]],
     None,
 ]
 
@@ -175,9 +168,7 @@ class Delegator:
             # state, we are entering the delegator for the first time and need
             # to create a new context.
             if context is None:
-                from sentry.app import env  # avoids a circular import
-
-                context = Context(env.request, {})
+                context = Context({})
 
             # If this thread already has an active backend for this base class,
             # we can safely call that backend synchronously without delegating.
@@ -253,7 +244,7 @@ class Delegator:
             # executed before the primary request is queued.  This is such a
             # strange usage pattern that I don't think it's worth optimizing
             # for.)
-            results = [None] * len(selected_backend_names)
+            results: list[TimedFuture[Any] | None] = [None] * len(selected_backend_names)
             for i, backend_name in enumerate(selected_backend_names[1:], 1):
                 try:
                     backend, executor = self.backends[backend_name]
@@ -276,7 +267,7 @@ class Delegator:
             # calling thread. (We don't have to protect this from ``KeyError``
             # since we already ensured that the primary backend exists.)
             backend, executor = self.backends[selected_backend_names[0]]
-            results[0] = executor.submit(
+            result = results[0] = executor.submit(
                 functools.partial(call_backend_method, context.copy(), backend, is_primary=True),
                 priority=0,
                 block=True,
@@ -289,14 +280,13 @@ class Delegator:
                     )
                 )
 
-            result: TimedFuture = results[0]
             return result.result()
 
         return execute
 
 
 def build_instance_from_options(
-    options: Mapping[str, object],
+    options: ServiceOptions,
     *,
     default_constructor: Callable[..., object] | None = None,
 ) -> object:
@@ -313,9 +303,9 @@ def build_instance_from_options(
     return constructor(**options.get("options", {}))
 
 
-def build_instance_from_options_of_type(
+def build_instance_from_options_of_type[T](
     tp: type[T],
-    options: Mapping[str, object],
+    options: ServiceOptions,
     *,
     default_constructor: Callable[..., T] | None = None,
 ) -> T:
@@ -364,17 +354,17 @@ class ServiceDelegator(Delegator, Service):
     def __init__(
         self,
         backend_base: str,
-        backends: Mapping[str, Mapping[str, Any]],
-        selector_func: str | AnyCallable,
-        callback_func: str | AnyCallable | None = None,
+        backends: Mapping[str, ServiceOptions],
+        selector_func: str | Selector,
+        callback_func: str | Callback | None = None,
     ):
         super().__init__(
             import_string(backend_base),
             {
                 name: (
-                    build_instance_from_options(options),
-                    build_instance_from_options(
-                        options.get("executor", {}), default_constructor=ThreadedExecutor
+                    build_instance_from_options_of_type(Service, options),
+                    build_instance_from_options_of_type(
+                        Executor, options.get("executor", {}), default_constructor=ThreadedExecutor
                     ),
                 )
                 for name, options in backends.items()
@@ -435,9 +425,7 @@ def make_writebehind_selector(
         else:
             intkey = key
 
-        if not isinstance(intkey, int):
-            logger.error("make_writebehind_selector.invalid", extra={"received_type": type(intkey)})
-            return [move_from]
+        assert isinstance(intkey, int), intkey
 
         if rollout_rate < 0:
             if (intkey % 10000) / 10000 < rollout_rate * -1.0:

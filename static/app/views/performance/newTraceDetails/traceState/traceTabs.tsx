@@ -1,21 +1,19 @@
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
-
 import {
   isAutogroupedNode,
+  isEAPErrorNode,
+  isEAPSpanNode,
   isMissingInstrumentationNode,
-  isNoDataNode,
   isSpanNode,
   isTraceErrorNode,
   isTraceNode,
   isTransactionNode,
-} from '../guards';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
 export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   if (isTransactionNode(node)) {
@@ -25,7 +23,7 @@ export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
     );
   }
 
-  if (isSpanNode(node)) {
+  if (isSpanNode(node) || isEAPSpanNode(node)) {
     return node.value.op + (node.value.description ? ' - ' + node.value.description : '');
   }
 
@@ -34,19 +32,19 @@ export function getTraceTabTitle(node: TraceTreeNode<TraceTree.NodeValue>) {
   }
 
   if (isMissingInstrumentationNode(node)) {
-    return t('Missing Instrumentation');
+    return t('No Instrumentation');
   }
 
   if (isTraceErrorNode(node)) {
     return node.value.message ?? node.value.title ?? 'Error';
   }
 
-  if (isTraceNode(node)) {
-    return t('Trace');
+  if (isEAPErrorNode(node)) {
+    return node.value.description ?? 'Error';
   }
 
-  if (isNoDataNode(node)) {
-    return t('Empty');
+  if (isTraceNode(node)) {
+    return t('Trace');
   }
 
   Sentry.captureMessage('Unknown node type in trace drawer');
@@ -64,7 +62,7 @@ export type TraceTabsReducerState = {
   tabs: Tab[];
 };
 
-export type TraceTabsReducerAction =
+type TraceTabsReducerAction =
   | {payload: TraceTabsReducerState; type: 'initialize tabs reducer'}
   | {
       payload: Tab['node'] | number;
@@ -73,7 +71,6 @@ export type TraceTabsReducerAction =
     }
   | {type: 'pin tab'}
   | {payload: number; type: 'unpin tab'}
-  | {type: 'clear'}
   | {type: 'clear clicked tab'};
 
 export function traceTabsReducer(
@@ -147,7 +144,7 @@ export function traceTabsReducer(
         return index !== action.payload;
       });
 
-      const nextTabIsPersistent = typeof newTabs[newTabs.length - 1].node === 'string';
+      const nextTabIsPersistent = typeof newTabs[newTabs.length - 1]!.node === 'string';
       if (nextTabIsPersistent) {
         if (!state.last_clicked_tab && !state.current_tab) {
           throw new Error(
@@ -156,8 +153,8 @@ export function traceTabsReducer(
         }
 
         const nextTab = nextTabIsPersistent
-          ? state.last_clicked_tab ?? state.current_tab
-          : newTabs[newTabs.length - 1];
+          ? (state.last_clicked_tab ?? state.current_tab)
+          : newTabs[newTabs.length - 1]!;
 
         return {
           ...state,
@@ -167,16 +164,16 @@ export function traceTabsReducer(
         };
       }
 
-      if (state.current_tab?.node === state.tabs[action.payload].node) {
+      if (state.current_tab?.node === state.tabs[action.payload]!.node) {
         return {
           ...state,
-          current_tab: newTabs[newTabs.length - 1],
+          current_tab: newTabs[newTabs.length - 1]!,
           last_clicked_tab: state.last_clicked_tab,
           tabs: newTabs,
         };
       }
 
-      const next = state.last_clicked_tab ?? newTabs[newTabs.length - 1];
+      const next = state.last_clicked_tab ?? newTabs[newTabs.length - 1]!;
 
       return {
         ...state,
@@ -186,12 +183,11 @@ export function traceTabsReducer(
       };
     }
 
-    case 'clear clicked tab':
-    case 'clear': {
+    case 'clear clicked tab': {
       const next =
         state.last_clicked_tab === state.current_tab
-          ? state.tabs[state.tabs.length - 1]
-          : state.current_tab;
+          ? state.tabs[state.tabs.length - 1]!
+          : state.current_tab!;
       return {
         ...state,
         current_tab: next,

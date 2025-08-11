@@ -1,7 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -11,23 +10,16 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import TeamSettings from 'sentry/views/settings/organizationTeams/teamSettings';
 
 describe('TeamSettings', function () {
-  const {routerProps} = initializeOrg();
-
   beforeEach(function () {
     TeamStore.reset();
     MockApiClient.clearMockResponses();
-    jest.spyOn(window.location, 'assign');
-  });
-
-  afterEach(function () {
-    jest.mocked(window.location.assign).mockRestore();
   });
 
   it('can change slug', async function () {
+    const organization = OrganizationFixture();
     const team = TeamFixture();
     const putMock = MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team.slug}/`,
@@ -37,7 +29,14 @@ describe('TeamSettings', function () {
       },
     });
 
-    render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />);
+    const {router} = render(<TeamSettings team={team} />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/teams/${team.slug}/settings/`,
+        },
+        route: '/settings/:orgId/teams/:teamId/settings/',
+      },
+    });
 
     const input = screen.getByRole('textbox', {name: 'Team Slug'});
 
@@ -56,8 +55,10 @@ describe('TeamSettings', function () {
     );
 
     await waitFor(() =>
-      expect(browserHistory.replace).toHaveBeenCalledWith(
-        '/settings/org-slug/teams/new-slug/settings/'
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: '/settings/org-slug/teams/new-slug/settings/',
+        })
       )
     );
   });
@@ -66,8 +67,14 @@ describe('TeamSettings', function () {
     const team = TeamFixture();
     const organization = OrganizationFixture({access: []});
 
-    render(<TeamSettings {...routerProps} team={team} params={{teamId: team.slug}} />, {
+    render(<TeamSettings team={team} />, {
       organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/teams/${team.slug}/settings/`,
+        },
+        route: '/settings/:orgId/teams/:teamId/settings/',
+      },
     });
 
     expect(screen.getByTestId('button-remove-team')).toBeDisabled();
@@ -75,19 +82,27 @@ describe('TeamSettings', function () {
 
   it('can remove team', async function () {
     const team = TeamFixture({hasAccess: true});
+    const organization = OrganizationFixture();
     const deleteMock = MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team.slug}/`,
       method: 'DELETE',
     });
     TeamStore.loadInitialData([team]);
 
-    render(<TeamSettings {...routerProps} params={{teamId: team.slug}} team={team} />);
+    const {router} = render(<TeamSettings team={team} />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/teams/${team.slug}/settings/`,
+        },
+        route: '/settings/:orgId/teams/:teamId/settings/',
+      },
+    });
+    renderGlobalModal();
 
     // Click "Remove Team button
     await userEvent.click(screen.getByRole('button', {name: 'Remove Team'}));
 
     // Wait for modal
-    renderGlobalModal();
     await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalledWith(
@@ -98,9 +113,32 @@ describe('TeamSettings', function () {
     );
 
     await waitFor(() =>
-      expect(browserHistory.replace).toHaveBeenCalledWith('/settings/org-slug/teams/')
+      expect(router.location.pathname).toBe('/settings/org-slug/teams/')
     );
 
     expect(TeamStore.getAll()).toEqual([]);
+  });
+
+  it('cannot modify idp:provisioned teams regardless of role', function () {
+    const team = TeamFixture({hasAccess: true, flags: {'idp:provisioned': true}});
+    const organization = OrganizationFixture({access: []});
+
+    render(<TeamSettings team={team} />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/teams/${team.slug}/settings/`,
+        },
+        route: '/settings/:orgId/teams/:teamId/settings/',
+      },
+    });
+
+    expect(
+      screen.getByText(
+        "This team is managed through your organization's identity provider. These settings cannot be modified."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Team Slug'})).toBeDisabled();
+    expect(screen.getByTestId('button-remove-team')).toBeDisabled();
   });
 });

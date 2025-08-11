@@ -1,16 +1,20 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {Client} from 'sentry/api';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
+
+const theme = ThemeFixture();
 
 describe('ErrorsConfig', function () {
   describe('getCustomFieldRenderer', function () {
@@ -37,22 +41,26 @@ describe('ErrorsConfig', function () {
     it('links trace ids to performance', async function () {
       const customFieldRenderer = ErrorsConfig.getCustomFieldRenderer!('trace', {});
       render(
-        customFieldRenderer!(
+        customFieldRenderer(
           {trace: 'abcd'},
           {
             organization,
             location: router.location,
+            theme,
             eventView: new EventView({
               ...baseEventViewOptions,
               fields: [{field: 'trace'}],
             }),
           }
         ) as React.ReactElement<any, any>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
       await userEvent.click(await screen.findByText('abcd'));
       expect(router.push).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/performance/trace/abcd/',
+        pathname: '/organizations/org-slug/dashboards/trace/abcd/',
         query: {
           pageEnd: undefined,
           pageStart: undefined,
@@ -65,11 +73,12 @@ describe('ErrorsConfig', function () {
       const project = ProjectFixture();
       const customFieldRenderer = ErrorsConfig.getCustomFieldRenderer!('id', {});
       render(
-        customFieldRenderer!(
+        customFieldRenderer(
           {id: 'defg', 'project.name': project.slug},
           {
             organization,
             location: router.location,
+            theme,
             eventView: new EventView({
               ...baseEventViewOptions,
               fields: [{field: 'id'}],
@@ -77,7 +86,10 @@ describe('ErrorsConfig', function () {
             }),
           }
         ) as React.ReactElement<any, any>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(await screen.findByText('defg'));
@@ -85,16 +97,16 @@ describe('ErrorsConfig', function () {
         pathname: `/organizations/org-slug/discover/${project.slug}:defg/`,
         query: {
           display: undefined,
-          environment: [],
-          field: ['id'],
+          environment: undefined,
+          field: 'id',
           id: undefined,
           interval: undefined,
           name: undefined,
-          project: [parseInt(project.id, 10)],
+          project: project.id,
           query: '',
-          sort: [],
+          sort: undefined,
           topEvents: undefined,
-          widths: [],
+          widths: undefined,
           yAxis: 'count()',
           pageEnd: undefined,
           pageStart: undefined,
@@ -105,7 +117,9 @@ describe('ErrorsConfig', function () {
   });
 
   describe('getEventsRequest', function () {
-    let api, organization, mockEventsRequest;
+    let api!: Client;
+    let organization!: ReturnType<typeof OrganizationFixture>;
+    let mockEventsRequest!: jest.Mock;
 
     beforeEach(function () {
       MockApiClient.clearMockResponses();
@@ -152,7 +166,9 @@ describe('ErrorsConfig', function () {
   });
 
   describe('getSeriesRequest', function () {
-    let api, organization, mockEventsRequest;
+    let api!: Client;
+    let organization!: ReturnType<typeof OrganizationFixture>;
+    let mockEventsRequest!: jest.Mock;
 
     beforeEach(function () {
       MockApiClient.clearMockResponses();

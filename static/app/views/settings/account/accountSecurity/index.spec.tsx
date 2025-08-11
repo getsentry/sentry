@@ -12,6 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ModalStore from 'sentry/stores/modalStore';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import AccountSecurity from 'sentry/views/settings/account/accountSecurity';
 import AccountSecurityWrapper from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
 
@@ -23,8 +24,6 @@ const AUTH_ENDPOINT = '/auth/';
 describe('AccountSecurity', function () {
   const router = RouterFixture();
   beforeEach(function () {
-    jest.spyOn(window.location, 'assign').mockImplementation(() => {});
-
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
@@ -36,20 +35,9 @@ describe('AccountSecurity', function () {
     });
   });
 
-  afterEach(function () {
-    jest.mocked(window.location.assign).mockRestore();
-  });
-
   function renderComponent() {
     return render(
-      <AccountSecurityWrapper
-        location={router.location}
-        route={router.routes[0]}
-        routes={router.routes}
-        router={router}
-        routeParams={router.params}
-        params={{...router.params, authId: '15'}}
-      >
+      <AccountSecurityWrapper>
         <AccountSecurity
           deleteDisabled={false}
           authenticators={[]}
@@ -59,7 +47,7 @@ describe('AccountSecurity', function () {
           onDisable={jest.fn()}
           orgsRequire2fa={[]}
           location={router.location}
-          route={router.routes[0]}
+          route={router.routes[0]!}
           routes={router.routes}
           router={router}
           routeParams={router.params}
@@ -177,7 +165,7 @@ describe('AccountSecurity', function () {
       await screen.findAllByRole('status', {name: 'Authentication Method Active'})
     ).toHaveLength(2);
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]!);
 
     renderGlobalModal();
     await userEvent.click(screen.getByTestId('confirm-button'));
@@ -217,7 +205,7 @@ describe('AccountSecurity', function () {
 
     expect(
       await screen.findByText(
-        'Two-factor authentication is required for organization(s): test 1 and test 2.'
+        'Two-factor authentication is required for organization(s): test-1 and test-2.'
       )
     ).toBeInTheDocument();
   });
@@ -294,7 +282,7 @@ describe('AccountSecurity', function () {
     renderComponent();
 
     expect(await screen.findByText('Authenticator App')).toBeInTheDocument();
-    expect(screen.getByText('U2F (Universal 2nd Factor)')).toBeInTheDocument();
+    expect(screen.getByText('Passkey / Biometric / Security Key')).toBeInTheDocument();
     expect(screen.queryByText('Text Message')).not.toBeInTheDocument();
   });
 
@@ -406,14 +394,16 @@ describe('AccountSecurity', function () {
     });
 
     renderComponent();
+    renderGlobalModal();
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Sign out of all devices'})
     );
+    await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
     expect(mock).toHaveBeenCalled();
     await waitFor(() =>
-      expect(window.location.assign).toHaveBeenCalledWith('/auth/login/')
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith('/auth/login/')
     );
   });
 });

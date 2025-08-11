@@ -1,7 +1,6 @@
 from typing import Any
 from unittest import mock
 
-import pytest
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.test import override_settings
@@ -15,8 +14,9 @@ from sentry.features.base import (
     SystemFeature,
     UserFeature,
 )
-from sentry.models.user import User
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 
@@ -32,9 +32,6 @@ class MockBatchHandler(features.BatchFeatureHandler):
         return True
 
     def batch_has(self, feature_names, *args: Any, projects=None, organization=None, **kwargs: Any):
-        if isinstance(feature_names, str):
-            feature_names = [feature_names]
-
         feature_results = {
             feature_name: True for feature_name in feature_names if feature_name in self.features
         }
@@ -48,7 +45,7 @@ class MockBatchHandler(features.BatchFeatureHandler):
         return {"unscoped": feature_results}
 
     def _check_for_batch(self, feature_name, organization, actor):
-        return True if feature_name in self.features else None
+        raise NotImplementedError
 
 
 class MockUserBatchHandler(features.BatchFeatureHandler):
@@ -62,7 +59,7 @@ class MockUserBatchHandler(features.BatchFeatureHandler):
 
 
 class FeatureManagerTest(TestCase):
-    def test_feature_registry(self):
+    def test_feature_registry(self) -> None:
         manager = features.FeatureManager()
         assert manager.all() == {}
 
@@ -75,7 +72,7 @@ class FeatureManagerTest(TestCase):
             "projects:feature3",
         }
 
-    def test_feature_registry_api_expose(self):
+    def test_feature_registry_api_expose(self) -> None:
         manager = features.FeatureManager()
         assert manager.all() == {}
 
@@ -94,7 +91,7 @@ class FeatureManagerTest(TestCase):
             == exposed | hidden
         )
 
-    def test_feature_register_default(self):
+    def test_feature_register_default(self) -> None:
         manager = features.FeatureManager()
         manager.add("organizations:red-paint", OrganizationFeature, default=False)
 
@@ -110,7 +107,7 @@ class FeatureManagerTest(TestCase):
             manager.add("organizations:red-paint", OrganizationFeature, default=False)
             assert settings.SENTRY_FEATURES["organizations:red-paint"] is True
 
-    def test_handlers(self):
+    def test_handlers(self) -> None:
         project_flag = "projects:test_handlers"
         test_user = self.create_user()
 
@@ -158,7 +155,7 @@ class FeatureManagerTest(TestCase):
             project_flag, mock.sentinel.organization, [p1, p2, p3, p4], actor=test_user
         ) == {p1: True, p2: False, p3: True, p4: False}
 
-    def test_entity_handler(self):
+    def test_entity_handler(self) -> None:
         test_org = self.create_organization()
         # Add a registered handler
         registered_handler = mock.Mock()
@@ -197,7 +194,25 @@ class FeatureManagerTest(TestCase):
             assert manager.has("organizations:settings-feature", test_org) == "test"
             assert len(entity_handler.mock_calls) == 2
 
-    def test_has_for_batch(self):
+    def test_entity_handler_has_capture_error(self) -> None:
+        test_org = self.create_organization()
+
+        handler = mock.Mock(spec=features.FeatureHandler)
+        handler.has.side_effect = Exception("something bad")
+        handler.features = {"organizations:faulty"}
+
+        manager = features.FeatureManager()
+        manager.add("organizations:faulty", OrganizationFeature)
+        manager.add_entity_handler(handler)
+        with (
+            mock.patch("sentry.features.manager.sentry_sdk.capture_exception") as mock_capture,
+            override_options({"features.error.capture_rate": 1.0}),
+        ):
+            res = manager.has("organizations:faulty", test_org)
+            assert res is False
+            assert mock_capture.call_count == 1
+
+    def test_has_for_batch(self) -> None:
         test_user = self.create_user()
         test_org = self.create_organization()
 
@@ -253,7 +268,27 @@ class FeatureManagerTest(TestCase):
 
         assert null_handler.hit_counter == 2
 
-    def test_batch_has(self):
+    def test_has_for_batch_capture_error(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        handler = mock.Mock(spec=features.BatchFeatureHandler)
+        handler.features = {"organizations:faulty"}
+        handler.has_for_batch.side_effect = ValueError("invalid thing")
+
+        manager = features.FeatureManager()
+        manager.add("oragnizations:faulty", OrganizationFeature)
+        manager.add_handler(handler)
+
+        with (
+            mock.patch("sentry.features.manager.sentry_sdk.capture_exception") as mock_capture,
+            override_options({"features.error.capture_rate": 1.0}),
+        ):
+            res = manager.has_for_batch("organizations:faulty", org, [project])
+            assert res == {}
+            assert mock_capture.call_count == 1
+
+    def test_batch_has(self) -> None:
         manager = features.FeatureManager()
         manager.add("auth:register")
         manager.add("organizations:feature", OrganizationFeature)
@@ -272,7 +307,7 @@ class FeatureManagerTest(TestCase):
         assert ret is not None
         assert ret[f"project:{self.project.id}"]["projects:feature"]
 
-    def test_batch_has_error(self):
+    def test_batch_has_error(self) -> None:
         manager = features.FeatureManager()
         manager.add("organizations:feature", OrganizationFeature)
         manager.add("projects:feature", ProjectFeature)
@@ -280,10 +315,15 @@ class FeatureManagerTest(TestCase):
         handler.batch_has.side_effect = Exception("something bad")
         manager.add_entity_handler(handler)
 
-        ret = manager.batch_has(["auth:register"], actor=self.user)
-        assert ret is None
+        with (
+            mock.patch("sentry.features.manager.sentry_sdk.capture_exception") as mock_capture,
+            override_options({"features.error.capture_rate": 1.0}),
+        ):
+            ret = manager.batch_has(["auth:register"], actor=self.user)
+            assert ret is None
+            assert mock_capture.call_count == 1
 
-    def test_batch_has_no_entity(self):
+    def test_batch_has_no_entity(self) -> None:
         manager = features.FeatureManager()
         manager.add("auth:register")
         manager.add("organizations:feature", OrganizationFeature)
@@ -302,7 +342,7 @@ class FeatureManagerTest(TestCase):
         assert ret is not None
         assert ret[f"project:{self.project.id}"]["projects:feature"]
 
-    def test_batch_has_no_entity_multiple_projects(self):
+    def test_batch_has_no_entity_multiple_projects(self) -> None:
         manager = features.FeatureManager()
         manager.add("projects:feature", ProjectFeature)
         manager.add_handler(MockBatchHandler())
@@ -313,7 +353,7 @@ class FeatureManagerTest(TestCase):
         for project in projects:
             assert result[f"project:{project.id}"]["projects:feature"]
 
-    def test_has(self):
+    def test_has(self) -> None:
         manager = features.FeatureManager()
         manager.add("auth:register")
         manager.add("organizations:feature", OrganizationFeature)
@@ -324,7 +364,7 @@ class FeatureManagerTest(TestCase):
         assert manager.has("projects:feature", actor=self.user, project=self.project)
         assert manager.has("auth:register", actor=self.user)
 
-    def test_user_flag(self):
+    def test_user_flag(self) -> None:
         manager = features.FeatureManager()
         manager.add("users:feature", UserFeature)
         manager.add_handler(MockUserBatchHandler())
@@ -337,7 +377,7 @@ class FeatureManagerTest(TestCase):
         ):
             manager.add("users:feature-2", UserFeature, True)
 
-    def test_entity_feature_shim(self):
+    def test_entity_feature_shim(self) -> None:
         manager = features.FeatureManager()
 
         manager.add("feat:1", OrganizationFeature)
@@ -354,7 +394,7 @@ class FeatureManagerTest(TestCase):
         assert "feat:4" in manager.entity_features
         assert "feat:5" in manager.entity_features
 
-    def test_all(self):
+    def test_all(self) -> None:
         manager = features.FeatureManager()
 
         manager.add("feat:org", OrganizationFeature)
@@ -363,14 +403,3 @@ class FeatureManagerTest(TestCase):
 
         assert list(manager.all().keys()) == ["feat:org", "feat:project", "feat:system"]
         assert list(manager.all(OrganizationFeature).keys()) == ["feat:org"]
-
-    def test_option_features(self):
-        manager = features.FeatureManager()
-        manager.add("organizations:some-test", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
-        manager.add("projects:some-test", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
-        assert manager.option_features == {"organizations:some-test", "projects:some-test"}
-
-    def test_invalid_option_features(self):
-        manager = features.FeatureManager()
-        with pytest.raises(NotImplementedError):
-            manager.add("users:some-test", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)

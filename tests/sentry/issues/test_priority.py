@@ -1,9 +1,11 @@
 from unittest.mock import MagicMock, patch
 
+from sentry.api.helpers.group_index.update import handle_priority
 from sentry.issues.priority import (
     PRIORITY_TO_GROUP_HISTORY_STATUS,
     PriorityChangeReason,
     auto_update_priority,
+    update_priority,
 )
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
@@ -110,3 +112,48 @@ class TestUpdatesPriority(TestCase):
 
         assert Activity.objects.filter(group=self.group).count() == 0
         assert GroupHistory.objects.filter(group=self.group).count() == 0
+
+    @patch("sentry.issues.attributes.send_snapshot_values")
+    def test_priority_update_sends_snapshot(self, mock_send_snapshot_values: MagicMock) -> None:
+        self.group = self.create_group(
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            priority=PriorityLevel.HIGH,
+        )
+
+        update_priority(
+            group=self.group,
+            priority=PriorityLevel.MEDIUM,
+            sender="test",
+            reason=PriorityChangeReason.ONGOING,
+            project=self.project,
+        )
+        assert self.group.priority == PriorityLevel.MEDIUM
+        mock_send_snapshot_values.assert_called_with(None, self.group, False)
+
+    def test_user_updates_priority_locked_group(self) -> None:
+        self.group = self.create_group(
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ONGOING,
+            priority=PriorityLevel.HIGH,
+        )
+
+        handle_priority(
+            priority=PriorityLevel.MEDIUM.to_str(),
+            group_list=[self.group],
+            acting_user=self.user,
+            project_lookup={self.group.project_id: self.project},
+        )
+
+        assert self.group.priority == PriorityLevel.MEDIUM
+        assert self.group.priority_locked_at is not None
+
+        handle_priority(
+            priority=PriorityLevel.LOW.to_str(),
+            group_list=[self.group],
+            acting_user=self.user,
+            project_lookup={self.group.project_id: self.project},
+        )
+
+        assert self.group.priority == PriorityLevel.LOW
+        assert self.group.priority_locked_at is not None

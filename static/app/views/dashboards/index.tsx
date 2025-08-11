@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 
 import type {Client} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotFound from 'sentry/components/errors/notFound';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -14,28 +14,22 @@ import OrgDashboards from './orgDashboards';
 import {DashboardState} from './types';
 import {DashboardBasicFeature} from './view';
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = RouteComponentProps & {
   api: Client;
   children: React.ReactNode;
   organization: Organization;
 };
 
 function DashboardsV2Container(props: Props) {
-  const {organization, api, location, children} = props;
+  const {organization, children} = props;
 
   if (organization.features.includes('dashboards-edit')) {
     return <Fragment>{children}</Fragment>;
   }
-  const params = {...props.params, orgId: organization.slug};
 
   return (
     <DashboardBasicFeature organization={organization}>
-      <OrgDashboards
-        api={api}
-        location={location}
-        params={params}
-        organization={organization}
-      >
+      <OrgDashboards>
         {({dashboard, dashboards, error, onDashboardUpdate}) => {
           return error ? (
             <NotFound />
@@ -43,6 +37,7 @@ function DashboardsV2Container(props: Props) {
             <ErrorBoundary>
               <DashboardDetail
                 {...props}
+                key={dashboard.id}
                 initialState={DashboardState.VIEW}
                 dashboard={dashboard}
                 dashboards={dashboards}

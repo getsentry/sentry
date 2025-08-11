@@ -52,11 +52,7 @@ class Dataset(Enum):
     indexed spans are similar to indexed transactions in the fields available to search
     """
 
-    MetricsSummaries = "metrics_summaries"
-    """
-    Summaries of all metrics within a span. Used to correlate indexed
-    spans to a metric.
-    """
+    EventsAnalyticsPlatform = "events_analytics_platform"
 
 
 @unique
@@ -64,6 +60,8 @@ class EntityKey(Enum):
     Events = "events"
     Sessions = "sessions"
     Spans = "spans"
+    EAPItemsSpan = "eap_items_span"
+    EAPItems = "eap_items"
     Transactions = "transactions"
     MetricsSets = "metrics_sets"
     MetricsCounters = "metrics_counters"
@@ -76,9 +74,9 @@ class EntityKey(Enum):
     GenericOrgMetricsCounters = "generic_org_metrics_counters"
     IssuePlatform = "search_issues"
     Functions = "functions"
-    MetricsSummaries = "metrics_summaries"
 
 
 @unique
 class StorageKey(Enum):
     ProfileChunks = "profile_chunks"
+    SearchIssues = "search_issues"

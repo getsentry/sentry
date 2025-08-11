@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-import abc
 import logging
-from collections.abc import Mapping, Sequence
+from abc import ABC
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
@@ -13,20 +12,25 @@ from django.urls import ResolverMatch, resolve
 from rest_framework import status
 
 from sentry.api.base import ONE_DAY
+from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
-from sentry.integrations.errors import IntegrationMiddlewareException
+from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
+from sentry.integrations.middleware.metrics import (
+    MiddlewareHaltReason,
+    MiddlewareOperationEvent,
+    MiddlewareOperationType,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.ratelimits import backend as ratelimiter
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
 from sentry.types.region import Region, find_regions_for_orgs, get_region_by_name
 from sentry.utils import metrics
+from sentry.utils.options import sample_modulo
 
 logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
@@ -53,22 +57,14 @@ class RegionResult:
         self.error = error
 
 
-class BaseRequestParser(abc.ABC):
+class BaseRequestParser(ABC):
     """Base Class for Integration Request Parsers"""
 
-    _METRIC_SUCCESS_KEY = "integrations.middleware.request_parser.success"
-    _METRIC_FAILURE_KEY = "integrations.middleware.request_parser.failure"
-    _METRICS_INFO_KEY = "integrations.middleware.request_parser.info"
+    provider: ClassVar[str]
+    """The integration provider identifier"""
 
-    @property
-    def provider(self) -> str:
-        raise NotImplementedError("'provider' property is required by IntegrationClassification")
-
-    @property
-    def webhook_identifier(self) -> WebhookProviderIdentifier:
-        raise NotImplementedError(
-            "'webhook_identifier' property is required for outboxing. Refer to WebhookProviderIdentifier enum."
-        )
+    webhook_identifier: ClassVar[WebhookProviderIdentifier]
+    """The webhook provider identifier"""
 
     def __init__(self, request: HttpRequest, response_handler: ResponseHandler):
         self.request = request
@@ -81,19 +77,20 @@ class BaseRequestParser(abc.ABC):
     # Common Helpers
 
     def ensure_control_silo(self):
-        if SiloMode.get_current_mode() != SiloMode.CONTROL:
-            metrics.incr(
-                self._METRIC_FAILURE_KEY + ".silo_error",
-                sample_rate=1.0,
-                tags={"path": self.request.path, "silo": SiloMode.get_current_mode().value},
+        with MiddlewareOperationEvent(
+            operation_type=MiddlewareOperationType.ENSURE_CONTROL_SILO,
+            integration_name=self.provider,
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "path": self.request.path,
+                    "silo": SiloMode.get_current_mode().value,
+                }
             )
-            logger.error(
-                "ensure_control_silo_error",
-                extra={"path": self.request.path, "silo": SiloMode.get_current_mode()},
-            )
-            raise SiloLimit.AvailabilityError(
-                "Integration Request Parsers should only be run on the control silo."
-            )
+            if SiloMode.get_current_mode() != SiloMode.CONTROL:
+                raise SiloLimit.AvailabilityError(
+                    "Integration Request Parsers should only be run on the control silo."
+                )
 
     def is_json_request(self) -> bool:
         if not self.request.headers:
@@ -108,24 +105,13 @@ class BaseRequestParser(abc.ABC):
         """
         self.ensure_control_silo()
 
-        try:
+        with MiddlewareOperationEvent(
+            operation_type=MiddlewareOperationType.GET_CONTROL_RESPONSE,
+            integration_name=self.provider,
+        ).capture() as lifecycle:
+            lifecycle.add_extra("path", self.request.path)
             response = self.response_handler(self.request)
-            metrics.incr(
-                self._METRIC_SUCCESS_KEY + ".response_handler_success",
-                sample_rate=1.0,
-                tags={"path": self.request.path},
-            )
             return response
-        except Exception as e:
-            metrics.incr(
-                self._METRIC_FAILURE_KEY + ".response_handler_error",
-                sample_rate=1.0,
-                tags={"path": self.request.path, "error": str(e)},
-            )
-            logger.exception(
-                "response_handler_error", extra={"path": self.request.path, "error": e}
-            )
-            raise IntegrationMiddlewareException(e)
 
     def get_response_from_region_silo(self, region: Region) -> HttpResponseBase:
         with metrics.timer(
@@ -134,43 +120,25 @@ class BaseRequestParser(abc.ABC):
             sample_rate=1.0,
         ):
             region_client = RegionSiloClient(region, retry=True)
-            try:
-                http_response = region_client.proxy_request(incoming_request=self.request)
-                metrics.incr(
-                    self._METRIC_SUCCESS_KEY + ".proxy_request_to_region_success",
-                    sample_rate=1.0,
-                    tags={"path": self.request.path, "region": region.name},
+            with MiddlewareOperationEvent(
+                operation_type=MiddlewareOperationType.GET_REGION_RESPONSE,
+                integration_name=self.provider,
+                region=region.name,
+            ).capture() as lifecycle:
+                lifecycle.add_extras(
+                    {
+                        "path": self.request.path,
+                        "region": region.name,
+                    }
                 )
-                return http_response
-            except ApiError as e:
-                metrics.incr(
-                    self._METRIC_FAILURE_KEY + ".proxy_request_to_region_error.api_retry_error",
-                    sample_rate=1.0,
-                    tags={"path": self.request.path, "region": region.name, "error": str(e)},
-                )
-                logger.exception(
-                    ".proxy_request_to_region_error.api_retry_error",
-                    extra={"path": self.request.path, "region": region.name, "error": e},
-                )
-                raise
-            except Exception as e:
-                metrics.incr(
-                    self._METRIC_FAILURE_KEY + ".proxy_request_to_region_error",
-                    sample_rate=1.0,
-                    tags={"path": self.request.path, "region": region.name, "error": str(e)},
-                )
-                logger.exception(
-                    "proxy_request_to_region_error",
-                    extra={"path": self.request.path, "region": region.name, "error": e},
-                )
-                raise IntegrationMiddlewareException(e)
 
-    def get_responses_from_region_silos(
-        self, regions: Sequence[Region]
-    ) -> Mapping[str, RegionResult]:
+                http_response = region_client.proxy_request(incoming_request=self.request)
+                return http_response
+
+    def get_responses_from_region_silos(self, regions: list[Region]) -> dict[str, RegionResult]:
         """
         Used to handle the requests on a given list of regions (synchronously).
-        Returns a mapping of region name to response/exception.
+        Returns a dict of region name to response/exception.
         """
         self.ensure_control_silo()
 
@@ -185,34 +153,16 @@ class BaseRequestParser(abc.ABC):
                 region = future_to_region[future]
                 try:
                     region_response = future.result()
-                # This will capture errors from this silo and any 4xx/5xx responses from others
                 except Exception as e:
-                    # Metric will be collected by `get_response_from_region_silo`
-                    logger.exception(
-                        "region_proxy_error", extra={"region": region.name, "error": e}
-                    )
                     region_to_response_map[region.name] = RegionResult(error=e)
                 else:
                     region_to_response_map[region.name] = RegionResult(response=region_response)
-
-        if len(region_to_response_map) == 0:
-            region_names = ", ".join(region.name for region in regions)
-            metrics.incr(
-                self._METRIC_FAILURE_KEY + ".no_region_response",
-                sample_rate=1.0,
-                tags={"path": self.request.path, "regions": region_names},
-            )
-            logger.error(
-                "region_no_response",
-                extra={"path": self.request.path, "regions": region_names},
-            )
-            return region_to_response_map
 
         return region_to_response_map
 
     def get_response_from_webhookpayload(
         self,
-        regions: Sequence[Region],
+        regions: list[Region],
         identifier: int | str | None = None,
         integration_id: int | None = None,
     ):
@@ -235,18 +185,9 @@ class BaseRequestParser(abc.ABC):
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 
-    def get_response_from_webhookpayload_for_integration(
-        self, regions: Sequence[Region], integration: Integration | RpcIntegration
-    ):
-        """
-        Used to create outboxes for provided regions to handle the webhooks asynchronously.
-        Responds to the webhook provider with a 202 Accepted status.
-        """
-        return self.get_response_from_webhookpayload(
-            regions=regions, identifier=integration.id, integration_id=integration.id
-        )
-
-    def get_mailbox_identifier(self, integration: RpcIntegration, data: Mapping[str, Any]) -> str:
+    def get_mailbox_identifier(
+        self, integration: RpcIntegration | Integration, data: dict[str, Any]
+    ) -> str:
         """
         Used by integrations with higher hook volumes to create smaller mailboxes
         that can be delivered in parallel. Requires the integration to implement
@@ -264,29 +205,11 @@ class BaseRequestParser(abc.ABC):
             # buckets for the next day.
             cache.set(use_buckets_key, 1, timeout=ONE_DAY)
             use_buckets = True
-            metrics.incr(
-                self._METRICS_INFO_KEY + ".activate_buckets",
-                sample_rate=1.0,
-                tags={"provider": self.provider, "integration_id": integration.id},
-            )
-            logger.info(
-                "integrations.parser.activate_buckets",
-                extra={"provider": self.provider, "integration_id": integration.id},
-            )
         if not use_buckets:
             return str(integration.id)
 
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
-            metrics.incr(
-                self._METRICS_INFO_KEY + ".no_bucket_id",
-                sample_rate=1.0,
-                tags={"provider": self.provider, "integration_id": integration.id},
-            )
-            logger.info(
-                "integrations.parser.no_bucket_id",
-                extra={"provider": self.provider, "integration_id": integration.id},
-            )
             return str(integration.id)
 
         # Split high volume integrations into 100 buckets.
@@ -295,7 +218,7 @@ class BaseRequestParser(abc.ABC):
 
         return f"{integration.id}:{bucket_number}"
 
-    def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
+    def mailbox_bucket_id(self, data: dict[str, Any]) -> int | None:
         raise NotImplementedError(
             "You must implement mailbox_bucket_id to use bucketed identifiers"
         )
@@ -305,16 +228,21 @@ class BaseRequestParser(abc.ABC):
         first_region = regions[0]
         response_map = self.get_responses_from_region_silos(regions=[first_region])
         region_result = response_map[first_region.name]
-        if region_result.error is not None:
-            # We want to fail loudly so that devs know this error happened on the region silo (for now)
-            error = SiloClientError(region_result.error)
-            metrics.incr(
-                self._METRIC_FAILURE_KEY + ".get_response_from_first_region_error",
-                sample_rate=1.0,
-                tags={"path": self.request.path, "error": str(error)},
+        with MiddlewareOperationEvent(
+            operation_type=MiddlewareOperationType.GET_RESPONSE_FROM_FIRST_REGION,
+            integration_name=self.provider,
+            region=first_region.name,
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "path": self.request.path,
+                    "region": first_region.name,
+                }
             )
-            raise SiloClientError(error)
-        return region_result.response
+            if region_result.error is not None:
+                # We want to fail loudly so that devs know this error happened on the region silo (for now)
+                raise SiloClientError(region_result.error)
+            return region_result.response
 
     def get_response_from_all_regions(self):
         regions = self.get_regions_from_organizations()
@@ -322,17 +250,17 @@ class BaseRequestParser(abc.ABC):
         successful_responses = [
             result for result in response_map.values() if result.response is not None
         ]
-        if len(successful_responses) == 0:
-            error_map_str = ", ".join(
-                f"{region}: {result.error}" for region, result in response_map.items()
-            )
-            metrics.incr(
-                self._METRIC_FAILURE_KEY + ".get_response_from_all_regions_error",
-                sample_rate=1.0,
-                tags={"path": self.request.path, "errors": error_map_str},
-            )
-            raise SiloClientError("No successful region responses", error_map_str)
-        return successful_responses[0].response
+        with MiddlewareOperationEvent(
+            operation_type=MiddlewareOperationType.GET_RESPONSE_FROM_ALL_REGIONS,
+            integration_name=self.provider,
+        ).capture() as lifecycle:
+            lifecycle.add_extra("path", self.request.path)
+            if len(successful_responses) == 0:
+                error_map_str = ", ".join(
+                    f"{region}: {result.error}" for region, result in response_map.items()
+                )
+                raise SiloClientError("No successful region responses", error_map_str)
+            return successful_responses[0].response
 
     # Required Overrides
 
@@ -346,7 +274,7 @@ class BaseRequestParser(abc.ABC):
 
     def get_integration_from_request(self) -> Integration | None:
         """
-        Parse the request to retreive organizations to forward the request to.
+        Parse the request to retrieve integration the request pertains to.
         Should be overwritten by implementation.
         """
         return None
@@ -355,49 +283,74 @@ class BaseRequestParser(abc.ABC):
 
     def get_organizations_from_integration(
         self, integration: Integration | RpcIntegration | None = None
-    ) -> Sequence[RpcOrganizationSummary]:
+    ) -> list[RpcOrganizationMapping]:
         """
         Use the get_integration_from_request() method to identify organizations associated with
         the integration request.
         """
-        if not integration:
-            integration = self.get_integration_from_request()
-        if not integration:
-            metrics.incr(
-                self._METRIC_FAILURE_KEY + ".no_integration",
-                sample_rate=1.0,
-                tags={"path": self.request.path},
+        with MiddlewareOperationEvent(
+            operation_type=MiddlewareOperationType.GET_ORGS_FROM_INTEGRATION,
+            integration_name=self.provider,
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "path": self.request.path,
+                }
             )
-            logger.info("%s.no_integration", self.provider, extra={"path": self.request.path})
-            raise Integration.DoesNotExist()
-        organization_integrations = OrganizationIntegration.objects.filter(
-            integration_id=integration.id
-        )
+            if not integration:
+                integration = self.get_integration_from_request()
+            if not integration:
+                raise Integration.DoesNotExist()
 
-        if organization_integrations.count() == 0:
-            metrics.incr(
-                self._METRIC_FAILURE_KEY + ".no_organization_integrations",
-                sample_rate=1.0,
-                tags={"path": self.request.path},
+            lifecycle.add_extra("integration_id", integration.id)
+
+            organization_integrations = OrganizationIntegration.objects.filter(
+                integration_id=integration.id,
+                status=ObjectStatus.ACTIVE,
             )
-            logger.info(
-                "%s.no_organization_integrations", self.provider, extra={"path": self.request.path}
+
+            if organization_integrations.count() == 0:
+                lifecycle.record_halt(
+                    halt_reason=MiddlewareHaltReason.ORG_INTEGRATION_DOES_NOT_EXIST
+                )
+                return []
+
+            organization_ids = [oi.organization_id for oi in organization_integrations]
+            all_organizations = organization_mapping_service.get_many(
+                organization_ids=organization_ids
             )
-            raise OrganizationIntegration.DoesNotExist()
-        organization_ids = [oi.organization_id for oi in organization_integrations]
-        return organization_mapping_service.get_many(organization_ids=organization_ids)
+
+            # (1-TARGET_RATE)% of integrations will return all the organizations
+            if not sample_modulo("hybrid_cloud.integration_region_targeting_rate", integration.id):
+                return all_organizations
+
+            # (TARGET_RATE)% of integrations will attempt to target a specific organization
+            return self.filter_organizations_from_request(organizations=all_organizations)
+
+    def filter_organizations_from_request(
+        self,
+        organizations: list[RpcOrganizationMapping],
+    ) -> list[RpcOrganizationMapping]:
+        """
+        Parse the request to retrieve the organization to forward the request to.
+        Should be overwritten by implementation.
+        """
+        return organizations
 
     def get_regions_from_organizations(
-        self, organizations: Sequence[RpcOrganizationSummary] | None = None
-    ) -> Sequence[Region]:
+        self, organizations: list[RpcOrganizationMapping] | None = None
+    ) -> list[Region]:
         """
         Use the get_organizations_from_integration() method to identify forwarding regions.
         """
         if not organizations:
             organizations = self.get_organizations_from_integration()
 
+        if len(organizations) == 0:
+            return []
+
         region_names = find_regions_for_orgs([org.id for org in organizations])
         return sorted([get_region_by_name(name) for name in region_names], key=lambda r: r.name)
 
     def get_default_missing_integration_response(self) -> HttpResponse:
-        return HttpResponse(status=400)
+        return HttpResponse(status=status.HTTP_400_BAD_REQUEST)

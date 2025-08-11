@@ -8,8 +8,8 @@ from sentry.hybridcloud.outbox.signals import process_control_outbox, process_re
 
 if TYPE_CHECKING:
     from sentry.db.models import BaseModel
+    from sentry.hybridcloud.models.outbox import ControlOutboxBase, RegionOutboxBase
     from sentry.hybridcloud.outbox.base import HasControlReplicationHandlers, ReplicatedRegionModel
-    from sentry.models.outbox import ControlOutboxBase, RegionOutboxBase
 
 _outbox_categories_for_scope: dict[int, set[OutboxCategory]] = {}
 _used_categories: set[OutboxCategory] = set()
@@ -17,7 +17,7 @@ _used_categories: set[OutboxCategory] = set()
 
 class OutboxCategory(IntEnum):
     USER_UPDATE = 0
-    WEBHOOK_PROXY = 1
+    WEBHOOK_PROXY = 1  # no longer in use
     ORGANIZATION_UPDATE = 2
     ORGANIZATION_MEMBER_UPDATE = 3
     UNUSED_TWO = 4
@@ -36,8 +36,7 @@ class OutboxCategory(IntEnum):
     PROVISION_ORGANIZATION = 17
     POST_ORGANIZATION_PROVISION = 18
     UNUSED_ONE = 19
-    # No longer in use.
-    DISABLE_AUTH_PROVIDER = 20
+    DISABLE_AUTH_PROVIDER = 20  # no longer in use
     RESET_IDP_FLAGS = 21
     MARK_INVALID_SSO = 22
     SUBSCRIPTION_UPDATE = 23
@@ -55,8 +54,11 @@ class OutboxCategory(IntEnum):
     ISSUE_COMMENT_UPDATE = 34
     EXTERNAL_ACTOR_UPDATE = 35
 
-    RELOCATION_EXPORT_REQUEST = 36
-    RELOCATION_EXPORT_REPLY = 37
+    RELOCATION_EXPORT_REQUEST = 36  # no longer in use
+    RELOCATION_EXPORT_REPLY = 37  # no longer in use
+
+    SEND_VERCEL_INVOICE = 38
+    FTC_CONSENT = 39
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
@@ -129,7 +131,7 @@ class OutboxCategory(IntEnum):
         object_identifier: int | None = None,
         outbox: type[RegionOutboxBase] | None = None,
     ) -> RegionOutboxBase:
-        from sentry.models.outbox import RegionOutbox
+        from sentry.hybridcloud.models.outbox import RegionOutbox
 
         scope = self.get_scope()
 
@@ -156,7 +158,7 @@ class OutboxCategory(IntEnum):
         object_identifier: int | None = None,
         outbox: type[ControlOutboxBase] | None = None,
     ) -> list[ControlOutboxBase]:
-        from sentry.models.outbox import ControlOutbox
+        from sentry.hybridcloud.models.outbox import ControlOutbox
 
         scope = self.get_scope()
 
@@ -189,7 +191,7 @@ class OutboxCategory(IntEnum):
         from sentry.integrations.models.integration import Integration
         from sentry.models.apiapplication import ApiApplication
         from sentry.models.organization import Organization
-        from sentry.models.user import User
+        from sentry.users.models.user import User
 
         assert (model is not None) ^ (
             object_identifier is not None
@@ -263,6 +265,8 @@ class OutboxScope(IntEnum):
             OutboxCategory.PARTNER_ACCOUNT_UPDATE,
             OutboxCategory.UNUSED_FOUR,
             OutboxCategory.ISSUE_COMMENT_UPDATE,
+            OutboxCategory.SEND_VERCEL_INVOICE,
+            OutboxCategory.FTC_CONSENT,
         },
     )
     USER_SCOPE = scope_categories(
@@ -276,6 +280,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.AUTH_IDENTITY_UPDATE,
         },
     )
+    # Webhook scope is no longer in use
     WEBHOOK_SCOPE = scope_categories(2, {OutboxCategory.WEBHOOK_PROXY})
     AUDIT_LOG_SCOPE = scope_categories(3, {OutboxCategory.AUDIT_LOG_EVENT})
     USER_IP_SCOPE = scope_categories(
@@ -296,11 +301,8 @@ class OutboxScope(IntEnum):
             OutboxCategory.SENTRY_APP_UPDATE,
         },
     )
-    # Deprecate?
-    TEAM_SCOPE = scope_categories(
-        7,
-        set(),
-    )
+    # No longer in use
+    TEAM_SCOPE = scope_categories(7, set())
     PROVISION_SCOPE = scope_categories(
         8,
         {
@@ -308,6 +310,7 @@ class OutboxScope(IntEnum):
         },
     )
     SUBSCRIPTION_SCOPE = scope_categories(9, {OutboxCategory.SUBSCRIPTION_UPDATE})
+    # relocation scope is no longer in use.
     RELOCATION_SCOPE = scope_categories(
         10, {OutboxCategory.RELOCATION_EXPORT_REQUEST, OutboxCategory.RELOCATION_EXPORT_REPLY}
     )

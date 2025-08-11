@@ -43,10 +43,7 @@ describe('StackTracePreview', () => {
     ).toBeInTheDocument();
   });
 
-  it.each([
-    ['stack-trace-content', []],
-    ['stack-trace-content-v2', ['grouping-stacktrace-ui']],
-  ])('renders %s', async (component, features) => {
+  it.each([['stack-trace-content', []]])('renders %s', async (component, features) => {
     const frame: Frame = {
       colNo: 0,
       filename: 'file.js',
@@ -69,7 +66,7 @@ describe('StackTracePreview', () => {
       stacktrace: {
         hasSystemFrames: false,
         registers: {},
-        framesOmitted: 0,
+        framesOmitted: null,
         frames: [frame],
       },
       mechanism: null,
@@ -108,5 +105,7 @@ describe('StackTracePreview', () => {
     await userEvent.hover(screen.getByText(/Preview Trigger/));
 
     expect(await screen.findByTestId(component)).toBeInTheDocument();
+    // Hide the platform icon for stack trace previews
+    expect(screen.queryAllByRole('img')).toHaveLength(1);
   });
 });

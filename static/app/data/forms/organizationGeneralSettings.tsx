@@ -1,8 +1,8 @@
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {JsonFormObject} from 'sentry/components/forms/types';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {BaseRole} from 'sentry/types/organization';
 import slugify from 'sentry/utils/slugify';
 
 // Export route to make these forms searchable by label/help
@@ -22,8 +22,13 @@ const formGroups: JsonFormObject[] = [
         transformInput: slugify,
         saveOnBlur: false,
         saveMessageAlertType: 'info',
-        saveMessage: t(
-          'You will be redirected to the new organization slug after saving'
+        saveMessage: tct(
+          'Changing your organization slug will break organization tokens, may impact integrations, and break links to your organization. You will be redirected to the new slug after saving. [link:Learn more]',
+          {
+            link: (
+              <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/22291009858971-Can-I-update-my-Sentry-Organization-slug" />
+            ),
+          }
         ),
       },
       {
@@ -45,94 +50,24 @@ const formGroups: JsonFormObject[] = [
         visible: () => !ConfigStore.get('isSelfHostedErrorsOnly'),
       },
       {
-        name: 'aiSuggestedSolution',
+        name: 'enablePrReviewTestGeneration',
         type: 'boolean',
-        label: t('AI Suggested Solution'),
+        label: tct('Enable PR Review and Test Generation [badge]', {
+          badge: <FeatureBadge type="beta" style={{marginBottom: '2px'}} />,
+        }),
         help: tct(
-          'Opt-in to [link:ai suggested solution] to get AI help on how to solve an issue.',
+          'Use AI to generate feedback and tests in pull requests [link:Learn more]',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/ai-suggested-solution/" />
+              <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/sentry-prevent-ai/" />
             ),
           }
         ),
-        visible: () => !ConfigStore.get('isSelfHostedErrorsOnly'),
-      },
-      {
-        name: 'uptimeAutodetection',
-        type: 'boolean',
-        label: t('Automatically Configure Uptime Alerts'),
-        help: t('Detect most-used URLs for uptime monitoring.'),
-        // TOOD(epurkhiser): Currently there's no need for users to change this
-        // setting as it will just be confusing. In the future when
-        // autodetection is used for suggested URLs it will make more sense to
-        // for users to have the option to disable this.
-        visible: false,
-      },
-    ],
-  },
-
-  {
-    title: 'Membership',
-    fields: [
-      {
-        name: 'defaultRole',
-        type: 'select',
-        label: t('Default Role'),
-        // seems weird to have choices in initial form data
-        choices: ({initialData} = {}) =>
-          initialData?.orgRoleList?.map((r: BaseRole) => [r.id, r.name]) ?? [],
-        help: t('The default role new members will receive'),
-        disabled: ({access}) => !access.has('org:admin'),
-      },
-      {
-        name: 'openMembership',
-        type: 'boolean',
-        label: t('Open Membership'),
-        help: t('Allow organization members to freely join any team'),
-      },
-      {
-        name: 'allowMemberProjectCreation',
-        type: 'boolean',
-        label: t('Let Members Create Projects'),
-        help: t('Allow organization members to create and configure new projects.'),
-      },
-      {
-        name: 'eventsMemberAdmin',
-        type: 'boolean',
-        label: t('Let Members Delete Events'),
-        help: t(
-          'Allow members to delete events (including the delete & discard action) by granting them the `event:admin` scope.'
-        ),
-      },
-      {
-        name: 'alertsMemberWrite',
-        type: 'boolean',
-        label: t('Let Members Create and Edit Alerts'),
-        help: t(
-          'Allow members to create, edit, and delete alert rules by granting them the `alerts:write` scope.'
-        ),
-      },
-      {
-        name: 'attachmentsRole',
-        type: 'select',
-        choices: ({initialData = {}}) =>
-          initialData?.orgRoleList?.map((r: BaseRole) => [r.id, r.name]) ?? [],
-        label: t('Attachments Access'),
-        help: t(
-          'Role required to download event attachments, such as native crash reports or log files.'
-        ),
-        visible: ({features}) => features.has('event-attachments'),
-      },
-      {
-        name: 'debugFilesRole',
-        type: 'select',
-        choices: ({initialData = {}}) =>
-          initialData?.orgRoleList?.map((r: BaseRole) => [r.id, r.name]) ?? [],
-        label: t('Debug Files Access'),
-        help: t(
-          'Role required to download debug information files, proguard mappings and source maps.'
-        ),
+        visible: ({model}) => {
+          // Show field when AI features are enabled (hideAiFeatures is false)
+          const hideAiFeatures = model.getValue('hideAiFeatures');
+          return hideAiFeatures;
+        },
       },
     ],
   },

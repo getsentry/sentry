@@ -5,7 +5,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useOverlay} from '@react-aria/overlays';
 import {useOverlayTriggerState} from '@react-stately/overlays';
-import {truncate} from '@sentry/utils';
+import {truncate} from '@sentry/core';
 import type {VisualMapComponentOption} from 'echarts';
 import type {Location} from 'history';
 import memoize from 'lodash/memoize';
@@ -38,11 +38,11 @@ import type {
 } from 'sentry/utils/performance/segmentExplorer/tagKeyHistogramQuery';
 import TagTransactionsQuery from 'sentry/utils/performance/segmentExplorer/tagTransactionsQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
+import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-
-import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
-import Tab from '../tabs';
-import {eventsRouteWithQuery} from '../transactionEvents/utils';
 
 import {parseHistogramBucketInfo, trackTagPageInteraction} from './utils';
 
@@ -111,6 +111,7 @@ function TagsHeatMap(
     aggregateColumn,
   } = props;
 
+  const {view} = useDomainViewFilters();
   const chartRef = useRef<ReactEchartsRef>(null);
   const [chartElement, setChartElement] = useState<VirtualReference | undefined>();
   const [overlayElement, setOverlayElement] = useState<HTMLElement | null>(null);
@@ -131,7 +132,7 @@ function TagsHeatMap(
     : undefined;
   const tagData = tableData?.tags?.data ? tableData.tags.data : undefined;
 
-  const rowKey = histogramData && findRowKey(histogramData[0]);
+  const rowKey = histogramData && findRowKey(histogramData[0]!);
 
   // Reverse since e-charts takes the axis labels in the opposite order.
   const columnNames = tagData ? tagData.map(tag => tag.tags_value).reverse() : [];
@@ -154,7 +155,7 @@ function TagsHeatMap(
 
   _data?.sort((a, b) => {
     const i = b[0] === a[0] ? 1 : 0;
-    return b[i] - a[i];
+    return b[i]! - a[i]!;
   });
 
   // TODO(k-fish): Cleanup options
@@ -225,7 +226,7 @@ function TagsHeatMap(
       dataArray: _data,
       label: {
         show: true,
-        formatter: data => formatAbbreviatedNumber(data.value[2]),
+        formatter: (data: any) => formatAbbreviatedNumber(data.value[2]),
       },
       emphasis: {
         itemStyle: {
@@ -236,7 +237,7 @@ function TagsHeatMap(
     } as any); // TODO(k-fish): Fix heatmap data typing
   }
 
-  const onChartClick = bucket => {
+  const onChartClick = (bucket: any) => {
     const htmlEvent = bucket.event.event;
     // Make a copy of the dims because echarts can remove elements after this click happens.
     // TODO(k-fish): Look at improving this to respond properly to resize events.
@@ -252,7 +253,7 @@ function TagsHeatMap(
     if (histogramBucketInfo && histogramData) {
       const row = histogramData[bucket.dataIndex];
       const currentBucketStart = parseInt(
-        `${row[histogramBucketInfo.histogramField]}`,
+        `${row![histogramBucketInfo.histogramField]}`,
         10
       );
       const currentBucketEnd = currentBucketStart + histogramBucketInfo.bucketSize;
@@ -333,13 +334,13 @@ function TagsHeatMap(
                 if (isTransactionsLoading) {
                   return (
                     <LoadingContainer>
-                      <LoadingIndicator size={40} hideMessage />
+                      <LoadingIndicator size={40} />
                     </LoadingContainer>
                   );
                 }
 
                 const moreEventsTarget = eventsRouteWithQuery({
-                  orgSlug: organization.slug,
+                  organization,
                   transaction: transactionName,
                   projectID: decodeScalar(location.query.project),
                   query: {
@@ -350,13 +351,12 @@ function TagsHeatMap(
 
                 return (
                   <div>
-                    {!transactionTableData?.data.length ? <Placeholder /> : null}
+                    {transactionTableData?.data.length ? null : <Placeholder />}
                     {[...(transactionTableData?.data ?? [])].slice(0, 3).map(row => {
                       const target = generateLinkToEventInTraceView({
                         eventId: row.id,
-                        traceSlug: row.trace?.toString(),
-                        projectSlug: (row.project || row['project.name']).toString(),
-                        timestamp: row.timestamp,
+                        traceSlug: row.trace?.toString()!,
+                        timestamp: row.timestamp!,
                         location: {
                           ...location,
                           query: {
@@ -365,8 +365,8 @@ function TagsHeatMap(
                           },
                         },
                         organization,
-                        transactionName,
                         source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+                        view,
                       });
 
                       return (
@@ -401,7 +401,8 @@ function TagsHeatMap(
       </PositionWrapper>
     );
 
-  const histogramBucketInfo = histogramData && parseHistogramBucketInfo(histogramData[0]);
+  const histogramBucketInfo =
+    histogramData && parseHistogramBucketInfo(histogramData[0]!);
 
   return (
     <StyledPanel>

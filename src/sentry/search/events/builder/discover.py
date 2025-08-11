@@ -23,6 +23,7 @@ from snuba_sdk import (
 from sentry.api import event_search
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
+from sentry.options.rollout import in_rollout_group
 from sentry.search.events import constants
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.datasets.base import DatasetConfig
@@ -51,7 +52,7 @@ class DiscoverQueryBuilder(BaseQueryBuilder):
         "trace.span",
         "trace.parent_span",
     }
-    duration_fields = {"transaction.duration"}
+    duration_fields = {"transaction.duration", "span.duration"}
 
     def load_config(
         self,
@@ -85,6 +86,36 @@ class DiscoverQueryBuilder(BaseQueryBuilder):
             raw_field = "tags[group_id]"
 
         return super().resolve_field(raw_field, alias)
+
+    def resolve_projects(self) -> list[int]:
+        if self.params.organization_id and in_rollout_group(
+            "sentry.search.events.project.check_event", self.params.organization_id
+        ):
+            if self.dataset == Dataset.Discover:
+                project_ids = [
+                    proj.id
+                    for proj in self.params.projects
+                    if proj.flags.has_transactions or proj.first_event is not None
+                ]
+            elif self.dataset == Dataset.Events:
+                project_ids = [
+                    proj.id for proj in self.params.projects if proj.first_event is not None
+                ]
+            elif self.dataset in [Dataset.Transactions, Dataset.IssuePlatform]:
+                project_ids = [
+                    proj.id for proj in self.params.projects if proj.flags.has_transactions
+                ]
+            else:
+                return super().resolve_projects()
+
+            if len(project_ids) == 0:
+                raise InvalidSearchQuery(
+                    "All the projects in your query haven't received data yet, so no query was ran"
+                )
+            else:
+                return project_ids
+        else:
+            return super().resolve_projects()
 
     def get_function_result_type(
         self,
@@ -129,6 +160,11 @@ class DiscoverQueryBuilder(BaseQueryBuilder):
             name = f"tags[{name}]"
 
         if name in constants.TIMESTAMP_FIELDS:
+            if not self.start or not self.end:
+                raise InvalidSearchQuery(
+                    f"Cannot query the {name} field without a valid date range"
+                )
+
             if (
                 operator in ["<", "<="]
                 and value < self.start
@@ -170,6 +206,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         config = config if config is not None else QueryBuilderConfig()
         config.auto_fields = False
         config.equation_config = {"auto_add": True, "aggregates_only": True}
+        self.interval = interval
         super().__init__(
             dataset,
             params,
@@ -180,7 +217,6 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
             config=config,
         )
 
-        self.interval = interval
         self.granularity = Granularity(interval)
 
         self.limit = None if limit is None else Limit(limit)
@@ -219,7 +255,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
             dataset=self.dataset.value,
             app_id="default",
             query=Query(
-                match=Entity(self.dataset.value),
+                match=Entity(self._get_entity_name()),
                 select=self.select,
                 where=self.where,
                 having=self.having,
@@ -365,6 +401,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
             resolved_field = self.resolve_column(self.prefixed_to_tag_map.get(field, field))
 
             values: set[Any] = set()
+            array_values: list[Any] = []
             for event in top_events:
                 if field in event:
                     alias = field
@@ -374,11 +411,12 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                     continue
 
                 # Note that because orderby shouldn't be an array field its not included in the values
-                if isinstance(event.get(alias), list):
-                    continue
+                event_value = event.get(alias)
+                if isinstance(event_value, list) and event_value not in array_values:
+                    array_values.append(event_value)
                 else:
-                    values.add(event.get(alias))
-            values_list = list(values)
+                    values.add(event_value)
+            values_list = list(values) + array_values
 
             if values_list:
                 if field == "timestamp" or field.startswith("timestamp.to_"):
@@ -415,6 +453,21 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                             conditions.append(And(conditions=[null_condition, non_none_condition]))
                     else:
                         conditions.append(null_condition)
+                elif any(isinstance(value, list) for value in values_list):
+                    list_conditions = []
+                    for values in values_list:
+                        # This depends on a weird clickhouse behaviour where the best way to compare arrays is to do
+                        # array("foo", "bar") IN array("foo", "bar") == 1
+                        list_conditions.append(
+                            Condition(resolved_field, Op.IN if not other else Op.NOT_IN, values)
+                        )
+                    if len(list_conditions) > 1:
+                        if not other:
+                            conditions.append(Or(conditions=list_conditions))
+                        else:
+                            conditions.append(And(conditions=list_conditions))
+                    else:
+                        conditions.extend(list_conditions)
                 else:
                     conditions.append(
                         Condition(resolved_field, Op.IN if not other else Op.NOT_IN, values_list)

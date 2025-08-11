@@ -7,7 +7,7 @@ import {
 import {GroupPriorityDropdown} from 'sentry/components/badge/groupPriority';
 import {t} from 'sentry/locale';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
-import {type Group, PriorityLevel} from 'sentry/types';
+import {type Group, PriorityLevel} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useApi from 'sentry/utils/useApi';
@@ -61,7 +61,7 @@ function GroupPriority({group, onChange}: GroupDetailsPriorityProps) {
 
   // We can assume that when there is not `priorityLockedAt`, there were no
   // user edits to the priority.
-  const lastEditedBy = !group.priorityLockedAt ? 'system' : undefined;
+  const lastEditedBy = group.priorityLockedAt ? undefined : 'system';
 
   return (
     <GroupPriorityDropdown

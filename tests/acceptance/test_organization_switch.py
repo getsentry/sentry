@@ -34,7 +34,7 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
 
         self.login_as(self.user)
 
-    def test_organization_switches(self):
+    def test_organization_switches(self) -> None:
         def navigate_to_issues_page(org_slug):
             issues_url = OrganizationSwitchTest.url_creator("issues", org_slug)
             self.browser.get(issues_url)
@@ -55,8 +55,9 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
             for page in ["issues", "releases", "discover", "user-feedback"]
         ]
 
-        with self.settings(SENTRY_SINGLE_ORGANIZATION=False), self.feature(
-            "organizations:discover"
+        with (
+            self.settings(SENTRY_SINGLE_ORGANIZATION=False),
+            self.feature("organizations:discover"),
         ):
             for transition_url in transition_urls:
                 navigate_to_issues_page(self.organization.slug)

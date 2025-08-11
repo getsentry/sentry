@@ -1,43 +1,84 @@
 from __future__ import annotations
 
-from collections import defaultdict, namedtuple
-from collections.abc import Sequence
+import logging
+from collections import defaultdict
+from collections.abc import Mapping, Sequence
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from django.db.models.signals import post_save
 
 from sentry import options
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
+from sentry.issues.ignored import IGNORED_CONDITION_FIELDS
+from sentry.issues.ongoing import TRANSITION_AFTER_DAYS
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import record_group_history_from_activity_type
+from sentry.models.groupopenperiod import update_group_open_period
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.project import Project
-from sentry.models.user import User
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_ignored, issue_unignored, issue_unresolved
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.utils import json
 
-ActivityInfo = namedtuple("ActivityInfo", ("activity_type", "activity_data"))
+logger = logging.getLogger(__name__)
+
+
+def infer_substatus(
+    new_status: int | None,
+    new_substatus: int | None,
+    status_details: Mapping[str, Any],
+    group_list: Sequence[Group],
+) -> int | None:
+    if new_substatus is not None:
+        return new_substatus
+
+    if new_status == GroupStatus.IGNORED:
+        if status_details.get("untilEscalating"):
+            return GroupSubStatus.UNTIL_ESCALATING
+
+        if any(status_details.get(key) is not None for key in IGNORED_CONDITION_FIELDS):
+            return GroupSubStatus.UNTIL_CONDITION_MET
+
+        return GroupSubStatus.FOREVER
+
+    if new_status == GroupStatus.UNRESOLVED:
+        new_substatus = GroupSubStatus.ONGOING
+
+        # Set the group substatus back to NEW if it was unignored withing 7 days of when it was first seen
+        if len(group_list) == 1:
+            if group_list[0].status == GroupStatus.IGNORED:
+                is_new_group = group_list[0].first_seen > datetime.now(timezone.utc) - timedelta(
+                    days=TRANSITION_AFTER_DAYS
+                )
+                return GroupSubStatus.NEW if is_new_group else GroupSubStatus.ONGOING
+            if group_list[0].status == GroupStatus.RESOLVED:
+                return GroupSubStatus.REGRESSED
+
+            return GroupSubStatus.ONGOING
+
+    return new_substatus
 
 
 def handle_status_update(
     group_list: Sequence[Group],
     projects: Sequence[Project],
-    project_lookup: dict[int, Project],
+    project_lookup: Mapping[int, Project],
     new_status: int,
     new_substatus: int | None,
     is_bulk: bool,
     status_details: dict[str, Any],
-    acting_user: User | None,
+    acting_user: RpcUser | User | None,
     sender: Any,
-) -> ActivityInfo:
+) -> None:
     """
     Update the status for a list of groups and create entries for Activity and GroupHistory.
     This currently handles unresolving or ignoring groups.
-
-    Returns a tuple of (activity_type, activity_data) for the activity that was created.
     """
     activity_data = {}
     activity_type = (
@@ -45,6 +86,7 @@ def handle_status_update(
         if new_status == GroupStatus.IGNORED
         else ActivityType.SET_UNRESOLVED.value
     )
+    update_open_period = False
     if new_status == GroupStatus.UNRESOLVED:
         for group in group_list:
             if group.status == GroupStatus.IGNORED:
@@ -56,6 +98,9 @@ def handle_status_update(
                     sender=sender,
                 )
             else:
+                # The unresolution here is a manual unresolve for a resolved issue by a user.
+                # This change should reopen the existing open period instead of creating a new one.
+                update_open_period = True
                 issue_unresolved.send_robust(
                     project=project_lookup[group.project_id],
                     user=acting_user,
@@ -108,6 +153,12 @@ def handle_status_update(
         )
         record_group_history_from_activity_type(group, activity_type, actor=acting_user)
 
+        if update_open_period:
+            update_group_open_period(
+                group=group,
+                new_status=GroupStatus.UNRESOLVED,
+            )
+
         # TODO(dcramer): we need a solution for activity rollups
         # before sending notifications on bulk changes
         if not is_bulk:
@@ -125,11 +176,9 @@ def handle_status_update(
             )
 
         if not options.get("groups.enable-post-update-signal"):
-            post_save.send(
+            post_save.send_robust(
                 sender=Group,
                 instance=group,
                 created=False,
                 update_fields=["status", "substatus"],
             )
-
-    return ActivityInfo(activity_type, activity_data)

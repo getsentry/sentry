@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
@@ -8,16 +9,24 @@ import sentry_sdk
 from django.utils import timezone
 
 from sentry import analytics
+from sentry.analytics.events.alert_rule_ui_component_webhook_sent import (
+    AlertRuleUiComponentWebhookSentEvent,
+)
 from sentry.api.paginator import OffsetPaginator
-from sentry.api.serializers import AppPlatformEvent
-from sentry.constants import SentryAppInstallationStatus
+from sentry.constants import ObjectStatus, SentryAppInstallationStatus
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.msteams import MsTeamsClient
+from sentry.integrations.msteams.metrics import record_lifecycle_termination_level
+from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
 from sentry.integrations.services.integration import (
     IntegrationService,
     RpcIntegration,
@@ -34,11 +43,18 @@ from sentry.integrations.services.integration.serial import (
     serialize_integration_external_project,
     serialize_organization_integration,
 )
-from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.rules.actions.notify_event_service import find_alert_rule_action_ui_component
+from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
+from sentry.sentry_apps.metrics import (
+    SentryAppEventType,
+    SentryAppInteractionEvent,
+    SentryAppInteractionType,
+)
+from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.webhooks import MetricAlertActionType, SentryAppResourceType
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import json, metrics
+from sentry.utils import json
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
 if TYPE_CHECKING:
@@ -78,29 +94,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 organizationintegration__organization_id=organization_id,
                 provider__in=provider_keys,
             ),
-        )
-
-    def page_organization_integrations_ids(
-        self,
-        *,
-        organization_id: int,
-        statuses: list[int],
-        provider_key: str | None = None,
-        args: RpcPaginationArgs,
-    ) -> RpcPaginationResult:
-        queryset = OrganizationIntegration.objects.filter(
-            organization_id=organization_id,
-            status__in=statuses,
-        )
-
-        if provider_key:
-            queryset = queryset.filter(integration__provider=provider_key.lower())
-
-        return args.do_hybrid_cloud_pagination(
-            description="page_organization_integrations_ids",
-            paginator_cls=OffsetPaginator,
-            order_by="integration__name",
-            queryset=queryset,
         )
 
     def get_integrations(
@@ -184,6 +177,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         has_grace_period: bool | None = None,
         grace_period_expired: bool | None = None,
         limit: int | None = None,
+        name: str | None = None,
     ) -> list[RpcOrganizationIntegration]:
         oi_kwargs: dict[str, Any] = {}
         if org_integration_ids is not None:
@@ -203,6 +197,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if grace_period_expired:
             # Used by getsentry
             oi_kwargs["grace_period_end__lte"] = timezone.now()
+        if name is not None:
+            oi_kwargs["integration__name"] = name
 
         if not oi_kwargs:
             return []
@@ -363,6 +359,60 @@ class DatabaseBackedIntegrationService(IntegrationService):
         )
         return ois[0] if len(ois) > 0 else None
 
+    def start_grace_period_for_provider(
+        self,
+        *,
+        organization_id: int,
+        provider: str,
+        grace_period_end: datetime,
+        status: int | None = ObjectStatus.ACTIVE,
+        skip_oldest: bool = False,
+    ) -> list[RpcOrganizationIntegration]:
+        filter_kwargs = {
+            "organization_id": organization_id,
+            "integration__provider": provider,
+        }
+        all_ois_filter_kwargs: dict[str, Any] = {
+            "integration__provider": provider,
+        }
+
+        if status is not None:
+            filter_kwargs["status"] = status
+            all_ois_filter_kwargs["status"] = status
+
+        current_org_ois = OrganizationIntegration.objects.filter(**filter_kwargs)
+        ois_to_update = list(current_org_ois.values_list("id", flat=True))
+
+        if skip_oldest:
+            all_ois_filter_kwargs["integration__in"] = current_org_ois.values_list(
+                "integration_id", flat=True
+            )
+
+            # Get all associated OrganizationIntegrations for the Integrations used by this org
+            all_ois = (
+                OrganizationIntegration.objects.filter(**all_ois_filter_kwargs)
+                .order_by("id")
+                .distinct()
+            )
+
+            # Create mapping of integration_id to list of OrganizationIntegrations
+            integration_to_ois: dict[int, list[OrganizationIntegration]] = defaultdict(list)
+            for oi in all_ois:
+                integration_to_ois[oi.integration_id].append(oi)
+
+            for integration, ois in integration_to_ois.items():
+                # Check if the oldest OrganizationIntegration for the Integration belongs to THIS organization
+                # If not we want to start the grace period for this org's OrganizationIntegration
+                if integration_to_ois[integration][0].organization_id == organization_id:
+                    ois_to_update.remove(integration_to_ois[integration][0].id)
+
+        updated_ois = self.update_organization_integrations(
+            org_integration_ids=ois_to_update,
+            grace_period_end=grace_period_end,
+        )
+
+        return updated_ois
+
     def add_organization(self, *, integration_id: int, org_ids: list[int]) -> RpcIntegration | None:
         try:
             integration = Integration.objects.get(id=integration_id)
@@ -381,48 +431,46 @@ class DatabaseBackedIntegrationService(IntegrationService):
         new_status: int,
         incident_attachment_json: str,
         organization_id: int,
-        metric_value: str | None = None,
+        metric_value: float,
         notification_uuid: str | None = None,
     ) -> bool:
         try:
-            sentry_app = SentryApp.objects.get(id=sentry_app_id)
-        except SentryApp.DoesNotExist:
-            logger.info(
-                "metric_alert_webhook.missing_sentryapp",
-                extra={
-                    "sentry_app_id": sentry_app_id,
-                    "organization_id": organization_id,
-                },
+            new_status_str = INCIDENT_STATUS[IncidentStatus(new_status)].lower()
+            event = SentryAppEventType(
+                f"{SentryAppResourceType.METRIC_ALERT}.{MetricAlertActionType(new_status_str)}"
             )
+        except ValueError as e:
+            sentry_sdk.capture_exception(e)
             return False
 
-        metrics.incr("notifications.sent", instance=sentry_app.slug, skip_internal=False)
+        with SentryAppInteractionEvent(
+            operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
+            event_type=event,
+        ).capture() as lifecycle:
+            try:
+                sentry_app = SentryApp.objects.get(id=sentry_app_id)
+            except SentryApp.DoesNotExist as e:
+                sentry_sdk.capture_exception(e)
+                lifecycle.record_failure(e)
+                return False
 
-        try:
-            install = SentryAppInstallation.objects.get(
-                organization_id=organization_id,
-                sentry_app=sentry_app,
-                status=SentryAppInstallationStatus.INSTALLED,
-            )
-        except SentryAppInstallation.DoesNotExist:
-            logger.info(
-                "metric_alert_webhook.missing_installation",
-                extra={
-                    "action": action_id,
-                    "incident": incident_id,
-                    "organization_id": organization_id,
-                    "sentry_app_id": sentry_app.id,
-                },
-                exc_info=True,
-            )
-            return False
+            try:
+                install = SentryAppInstallation.objects.get(
+                    organization_id=organization_id,
+                    sentry_app=sentry_app,
+                    status=SentryAppInstallationStatus.INSTALLED,
+                )
+            except SentryAppInstallation.DoesNotExist as e:
+                sentry_sdk.capture_exception(e)
+                lifecycle.record_failure(e)
+                return False
 
-        app_platform_event = AppPlatformEvent(
-            resource="metric_alert",
-            action=INCIDENT_STATUS[IncidentStatus(new_status)].lower(),
-            install=install,
-            data=json.loads(incident_attachment_json),
-        )
+            app_platform_event = AppPlatformEvent(
+                resource=SentryAppResourceType.METRIC_ALERT,
+                action=MetricAlertActionType(new_status_str),
+                install=install,
+                data=json.loads(incident_attachment_json),
+            )
 
         # Can raise errors if client returns >= 400
         send_and_save_webhook_request(
@@ -434,12 +482,16 @@ class DatabaseBackedIntegrationService(IntegrationService):
         alert_rule_action_ui_component = find_alert_rule_action_ui_component(app_platform_event)
 
         if alert_rule_action_ui_component:
-            analytics.record(
-                "alert_rule_ui_component_webhook.sent",
-                organization_id=organization_id,
-                sentry_app_id=sentry_app.id,
-                event=f"{app_platform_event.resource}.{app_platform_event.action}",
-            )
+            try:
+                analytics.record(
+                    AlertRuleUiComponentWebhookSentEvent(
+                        organization_id=organization_id,
+                        sentry_app_id=sentry_app.id,
+                        event=f"{app_platform_event.resource}.{app_platform_event.action}",
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
         return alert_rule_action_ui_component
 
     def send_msteams_incident_alert_notification(
@@ -447,12 +499,20 @@ class DatabaseBackedIntegrationService(IntegrationService):
     ) -> bool:
         integration = Integration.objects.get(id=integration_id)
         client = MsTeamsClient(integration)
-        try:
-            client.send_card(channel, attachment)
-            return True
-        except ApiError:
-            logger.info("rule.fail.msteams_post", exc_info=True)
-        return False
+
+        with MessagingInteractionEvent(
+            interaction_type=MessagingInteractionType.SEND_INCIDENT_ALERT_NOTIFICATION,
+            spec=MsTeamsMessagingSpec(),
+        ).capture() as lifecycle:
+            try:
+                client.send_card(channel, attachment)
+                return True
+            except ApiError as e:
+                record_lifecycle_termination_level(lifecycle, e)
+            except Exception as e:
+                lifecycle.add_extras({"integration_id": integration_id, "channel": channel})
+                lifecycle.record_failure(e)
+            return False
 
     def delete_integration(self, *, integration_id: int) -> None:
         try:

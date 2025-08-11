@@ -9,7 +9,7 @@ from sentry.models.group import Group
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils.dates import to_datetime
@@ -21,7 +21,7 @@ def timestamp(d):
     return t - (t % 3600)
 
 
-def has_shape(data, shape, allow_empty=False):
+def has_shape(data, shape):
     """
     Determine if a data object has the provided shape
 
@@ -33,18 +33,16 @@ def has_shape(data, shape, allow_empty=False):
     A tuple is the same shape if it has the same length as `shape` and all the
     values have the same shape as the corresponding value in `shape`
     Any other object simply has to have the same type.
-    If `allow_empty` is set, lists and dicts in `data` will pass even if they are empty.
     """
-    if not isinstance(data, type(shape)):
-        return False
+    assert isinstance(data, type(shape))
     if isinstance(data, dict):
         return (
-            (allow_empty or len(data) > 0)
+            len(data) > 0
             and all(has_shape(k, list(shape.keys())[0]) for k in data.keys())
             and all(has_shape(v, list(shape.values())[0]) for v in data.values())
         )
     elif isinstance(data, list):
-        return (allow_empty or len(data) > 0) and all(has_shape(v, shape[0]) for v in data)
+        return len(data) > 0 and all(has_shape(v, shape[0]) for v in data)
     elif isinstance(data, tuple):
         return len(data) == len(shape) and all(
             has_shape(data[i], shape[i]) for i in range(len(data))
@@ -85,10 +83,11 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                     "fingerprint": [["group-1"], ["group-2"]][
                         (r // 600) % 2
                     ],  # Switch every 10 mins
-                    "timestamp": iso_format(self.now + timedelta(seconds=r)),
+                    "timestamp": (self.now + timedelta(seconds=r)).isoformat(),
                     "tags": {
                         "foo": "bar",
                         "baz": "quux",
+                        "region": ["US", "EU"][(r // 7200) % 3],
                         # Switch every 2 hours
                         "environment": [env1, None][(r // 7200) % 3],
                         "sentry:user": f"id:user{r // 3300}",
@@ -131,7 +130,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             environment=env1,
         )
 
-    def test_range_single(self):
+    def test_range_single(self) -> None:
         env1 = "test"
         project = self.create_project()
         for r in range(0, 600 * 6 * 4, 300):  # Every 10 min for 4 hours
@@ -141,11 +140,12 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
                     "message": "message 1",
                     "platform": "python",
                     "fingerprint": ["group-1"],
-                    "timestamp": iso_format(self.now + timedelta(seconds=r)),
+                    "timestamp": (self.now + timedelta(seconds=r)).isoformat(),
                     "tags": {
                         "foo": "bar",
                         "baz": "quux",
                         # Switch every 2 hours
+                        "region": "US",
                         "environment": [env1, None][(r // 7200) % 3],
                         "sentry:user": f"id:user{r // 3300}",
                     },
@@ -177,7 +177,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             ]
         }
 
-    def test_range_groups(self):
+    def test_range_groups(self) -> None:
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_range(
             TSDBModel.group,
@@ -230,7 +230,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             == {}
         )
 
-    def test_range_releases(self):
+    def test_range_releases(self) -> None:
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_range(
             TSDBModel.release,
@@ -248,7 +248,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             ]
         }
 
-    def test_range_project(self):
+    def test_range_project(self) -> None:
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_range(
             TSDBModel.project,
@@ -266,7 +266,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             ]
         }
 
-    def test_range_environment_filter(self):
+    def test_range_environment_filter(self) -> None:
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_range(
             TSDBModel.project,
@@ -321,7 +321,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             ]
         }
 
-    def test_range_rollups(self):
+    def test_range_rollups(self) -> None:
         # Daily
         daystart = self.now.replace(hour=0)  # day buckets start on day boundaries
         dts = [daystart + timedelta(days=i) for i in range(2)]
@@ -348,7 +348,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {self.proj1.id: expected}
 
-    def test_distinct_counts_series_users(self):
+    def test_distinct_counts_series_users(self) -> None:
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_distinct_counts_series(
             TSDBModel.users_affected_by_group,
@@ -395,7 +395,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             == {}
         )
 
-    def get_distinct_counts_totals_users(self):
+    def test_get_distinct_counts_totals_users(self) -> None:
         assert self.db.get_distinct_counts_totals(
             TSDBModel.users_affected_by_group,
             [self.proj1group1.id],
@@ -404,7 +404,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             rollup=3600,
             tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {
-            self.proj1group1.id: 2  # 2 unique users overall
+            self.proj1group1.id: 5  # 5 unique users overall
         }
 
         assert self.db.get_distinct_counts_totals(
@@ -425,7 +425,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             self.now + timedelta(hours=4),
             rollup=3600,
             tenant_ids={"referrer": "r", "organization_id": 1234},
-        ) == {self.proj1.id: 2}
+        ) == {self.proj1.id: 5}
 
         assert (
             self.db.get_distinct_counts_totals(
@@ -439,22 +439,41 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             == {}
         )
 
-    def test_most_frequent(self):
-        assert self.db.get_most_frequent(
-            TSDBModel.frequent_issues_by_project,
-            [self.proj1.id],
+    def test_get_distinct_counts_totals_users__with_conditions(self) -> None:
+        assert self.db.get_distinct_counts_totals(
+            TSDBModel.users_affected_by_group,
+            [self.proj1group1.id],
             self.now,
             self.now + timedelta(hours=4),
             rollup=3600,
             tenant_ids={"referrer": "r", "organization_id": 1234},
-        ) in [
-            {self.proj1.id: [(self.proj1group1.id, 2.0), (self.proj1group2.id, 1.0)]},
-            {self.proj1.id: [(self.proj1group2.id, 2.0), (self.proj1group1.id, 1.0)]},
-        ]  # Both issues equally frequent
-
+            conditions=[("tags[region]", "=", "US")],
+        ) == {
+            self.proj1group1.id: 2  # 5 unique users with US tag
+        }
+        assert self.db.get_distinct_counts_totals(
+            TSDBModel.users_affected_by_group,
+            [self.proj1group1.id],
+            self.now,
+            self.now + timedelta(hours=4),
+            rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
+            conditions=[("tags[region]", "=", "EU")],
+        ) == {
+            self.proj1group1.id: 3  # 3 unique users with EU tag
+        }
+        assert self.db.get_distinct_counts_totals(
+            TSDBModel.users_affected_by_group,
+            [self.proj1group1.id],
+            self.now,
+            self.now + timedelta(hours=4),
+            rollup=3600,
+            tenant_ids={"referrer": "r", "organization_id": 1234},
+            conditions=[("tags[region]", "=", "MARS")],
+        ) == {self.proj1group1.id: 0}
         assert (
-            self.db.get_most_frequent(
-                TSDBModel.frequent_issues_by_project,
+            self.db.get_distinct_counts_totals(
+                TSDBModel.users_affected_by_group,
                 [],
                 self.now,
                 self.now + timedelta(hours=4),
@@ -464,7 +483,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             == {}
         )
 
-    def test_frequency_series(self):
+    def test_frequency_series(self) -> None:
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         assert self.db.get_frequency_series(
             TSDBModel.frequent_releases_by_group,
@@ -503,7 +522,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             == {}
         )
 
-    def test_result_shape(self):
+    def test_result_shape(self) -> None:
         """
         Tests that the results from the different TSDB methods have the
         expected format.
@@ -511,83 +530,47 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
         project_id = self.proj1.id
         dts = [self.now + timedelta(hours=i) for i in range(4)]
 
-        results = self.db.get_most_frequent(
-            TSDBModel.frequent_issues_by_project,
-            [project_id],
-            dts[0],
-            dts[0],
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        )
-        assert has_shape(results, {1: [(1, 1.0)]})
-
-        results = self.db.get_most_frequent_series(
-            TSDBModel.frequent_issues_by_project,
-            [project_id],
-            dts[0],
-            dts[0],
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        )
-        assert has_shape(results, {1: [(1, {1: 1.0})]})
-
         items = {
             # {project_id: (issue_id, issue_id, ...)}
             project_id: (self.proj1group1.id, self.proj1group2.id)
         }
-        results = self.db.get_frequency_series(
+        results1 = self.db.get_frequency_series(
             TSDBModel.frequent_issues_by_project,
             items,
             dts[0],
             dts[-1],
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
-        assert has_shape(results, {1: [(1, {1: 1})]})
+        assert has_shape(results1, {1: [(1, {1: 1})]})
 
-        results = self.db.get_frequency_totals(
-            TSDBModel.frequent_issues_by_project,
-            items,
-            dts[0],
-            dts[-1],
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        )
-        assert has_shape(results, {1: {1: 1}})
-
-        results = self.db.get_range(
+        results2 = self.db.get_range(
             TSDBModel.project,
             [project_id],
             dts[0],
             dts[-1],
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
-        assert has_shape(results, {1: [(1, 1)]})
+        assert has_shape(results2, {1: [(1, 1)]})
 
-        results = self.db.get_distinct_counts_series(
+        results3 = self.db.get_distinct_counts_series(
             TSDBModel.users_affected_by_project,
             [project_id],
             dts[0],
             dts[-1],
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
-        assert has_shape(results, {1: [(1, 1)]})
+        assert has_shape(results3, {1: [(1, 1)]})
 
-        results = self.db.get_distinct_counts_totals(
+        results4 = self.db.get_distinct_counts_totals(
             TSDBModel.users_affected_by_project,
             [project_id],
             dts[0],
             dts[-1],
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
-        assert has_shape(results, {1: 1})
+        assert has_shape(results4, {1: 1})
 
-        results = self.db.get_distinct_counts_union(
-            TSDBModel.users_affected_by_project,
-            [project_id],
-            dts[0],
-            dts[-1],
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        )
-        assert has_shape(results, 1)
-
-    def test_calculated_limit(self):
+    def test_calculated_limit(self) -> None:
 
         with patch("sentry.tsdb.snuba.raw_snql_query") as snuba:
             # 24h test
@@ -612,7 +595,7 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
             assert snuba.call_args.args[0].query.limit == Limit(5)
 
     @patch("sentry.utils.snuba.OVERRIDE_OPTIONS", new={"consistent": True})
-    def test_tsdb_with_consistent(self):
+    def test_tsdb_with_consistent(self) -> None:
         with patch("sentry.utils.snuba._apply_cache_and_build_results") as snuba:
             rollup = 3600
             end = self.now
@@ -660,7 +643,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
         self.proj1group2 = all_groups[1]
         self.defaultenv = Environment.objects.get(name=defaultenv)
 
-    def test_range_group_manual_group_time_rollup(self):
+    def test_range_group_manual_group_time_rollup(self) -> None:
         project = self.create_project()
 
         # these are the only granularities/rollups that be actually be used
@@ -702,7 +685,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
                 tenant_ids={"referrer": "test", "organization_id": 1},
             ) == {group_info.group.id: [(ts, 1) for ts in series_ts]}
 
-    def test_range_groups_mult(self):
+    def test_range_groups_mult(self) -> None:
         now = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
@@ -736,7 +719,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
             ]
         }
 
-    def test_range_groups_simple(self):
+    def test_range_groups_simple(self) -> None:
         project = self.create_project()
         now = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group5"
@@ -774,7 +757,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
             ]
         }
 
-    def test_range_groups(self):
+    def test_range_groups(self) -> None:
         dts = [self.now + timedelta(hours=i) for i in range(4)]
         # Multiple groups
         assert self.db.get_range(
@@ -810,7 +793,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
             == {}
         )
 
-    def test_get_distinct_counts_totals_users(self):
+    def test_get_distinct_counts_totals_users(self) -> None:
         assert self.db.get_distinct_counts_totals(
             TSDBModel.users_affected_by_generic_group,
             [self.proj1group1.id],
@@ -845,7 +828,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
             == {}
         )
 
-    def test_get_sums(self):
+    def test_get_sums(self) -> None:
         assert self.db.get_sums(
             model=TSDBModel.group_generic,
             keys=[self.proj1group1.id, self.proj1group2.id],
@@ -854,7 +837,17 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
             tenant_ids={"referrer": "test", "organization_id": 1},
         ) == {self.proj1group1.id: 12, self.proj1group2.id: 12}
 
-    def test_get_data_or_conditions_parsed(self):
+    def test_get_sums__with_conditions(self) -> None:
+        assert self.db.get_sums(
+            model=TSDBModel.group_generic,
+            keys=[self.proj1group1.id, self.proj1group2.id],
+            start=self.now,
+            end=self.now + timedelta(hours=4),
+            tenant_ids={"referrer": "test", "organization_id": 1},
+            conditions=[("tags[environment]", "=", str(self.env1.name))],
+        ) == {self.proj1group1.id: 6, self.proj1group2.id: 6}
+
+    def test_get_data_or_conditions_parsed(self) -> None:
         """
         Verify parsing the legacy format with nested OR conditions works
         """
@@ -901,7 +894,7 @@ class AddJitterToSeriesTest(TestCase):
         assert to_datetime(series[0]) == expected_start
         assert to_datetime(series[-1]) == expected_end
 
-    def test(self):
+    def test(self) -> None:
         self.run_test(
             end=datetime(2022, 5, 18, 10, 23, 4, tzinfo=UTC),
             interval=timedelta(hours=1),
@@ -932,6 +925,6 @@ class AddJitterToSeriesTest(TestCase):
             expected_end=datetime(2022, 5, 18, 22, 32, 53, tzinfo=UTC),
         )
 
-    def test_empty_series(self):
+    def test_empty_series(self) -> None:
         assert self.db._add_jitter_to_series([], datetime(2022, 5, 18, 10, 23, 4), 60, 127) == []
         assert self.db._add_jitter_to_series([], datetime(2022, 5, 18, 10, 23, 4), 60, None) == []

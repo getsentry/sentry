@@ -1,4 +1,5 @@
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {GroupsFixture} from 'sentry-fixture/groups';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -18,15 +19,12 @@ import AlertBuilderProjectProvider from 'sentry/views/alerts/builder/projectProv
 import ProjectAlertsCreate from 'sentry/views/alerts/create';
 
 jest.unmock('sentry/utils/recreateRoute');
-// updateOnboardingTask triggers an out of band state update
-jest.mock('sentry/actionCreators/onboardingTasks');
 jest.mock('sentry/actionCreators/members', () => ({
   fetchOrgMembers: jest.fn(() => Promise.resolve([])),
   indexMembersByProject: jest.fn(() => {
     return {};
   }),
 }));
-jest.mock('react-router');
 jest.mock('sentry/utils/analytics', () => ({
   metric: {
     startSpan: jest.fn(() => ({
@@ -73,6 +71,17 @@ describe('ProjectAlertsCreate', function () {
       method: 'POST',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/integrations/?integrationType=messaging`,
+      body: [],
+    });
+    const providerKeys = ['slack', 'discord', 'msteams'];
+    providerKeys.forEach(providerKey => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/config/integrations/?provider_key=${providerKey}`,
+        body: {providers: [GitHubIntegrationProviderFixture({key: providerKey})]},
+      });
+    });
   });
 
   afterEach(function () {
@@ -108,7 +117,9 @@ describe('ProjectAlertsCreate', function () {
           />
         </AlertBuilderProjectProvider>
       </AlertsContainer>,
-      {organization, router}
+      {
+        organization,
+      }
     );
 
     return {
@@ -125,7 +136,7 @@ describe('ProjectAlertsCreate', function () {
     await waitFor(() => {
       expect(wrapper.router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
-          pathname: '/organizations/org-slug/alerts/new/metric',
+          pathname: '/organizations/org-slug/alerts/new/metric/',
           query: {
             aggregate: 'count()',
             dataset: 'events',
@@ -162,7 +173,7 @@ describe('ProjectAlertsCreate', function () {
         'The issue is older or newer than...',
       ]);
 
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[1]);
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[1]!);
 
       await userEvent.click(screen.getByText('Save Rule'));
 
@@ -197,7 +208,7 @@ describe('ProjectAlertsCreate', function () {
         body: ProjectAlertRuleFixture(),
       });
       // delete node
-      await userEvent.click(screen.getByLabelText('Delete Node'));
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]!);
 
       // Change name of alert rule
       await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
@@ -264,7 +275,7 @@ describe('ProjectAlertsCreate', function () {
         'Send a notification to all legacy integrations',
       ]);
 
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[1]);
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[1]!);
 
       await userEvent.click(screen.getByText('Save Rule'));
 
@@ -292,7 +303,7 @@ describe('ProjectAlertsCreate', function () {
     });
 
     describe('updates and saves', function () {
-      let mock;
+      let mock: any;
 
       beforeEach(function () {
         mock = MockApiClient.addMockResponse({
@@ -349,9 +360,9 @@ describe('ProjectAlertsCreate', function () {
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
-          expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
-          });
+          expect(wrapper.router.push).toHaveBeenCalledWith(
+            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+          );
         });
       });
 
@@ -404,9 +415,9 @@ describe('ProjectAlertsCreate', function () {
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
-          expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
-          });
+          expect(wrapper.router.push).toHaveBeenCalledWith(
+            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+          );
         });
       });
 
@@ -417,7 +428,7 @@ describe('ProjectAlertsCreate', function () {
         await userEvent.click(screen.getByPlaceholderText('Enter Alert Name'));
         await userEvent.paste('myname');
         // delete one condition
-        await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
+        await userEvent.click(screen.getAllByLabelText('Delete Node')[0]!);
 
         // Add a new filter
         await selectEvent.select(screen.getByText('Add optional filter...'), [
@@ -453,9 +464,9 @@ describe('ProjectAlertsCreate', function () {
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
-          expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
-          });
+          expect(wrapper.router.push).toHaveBeenCalledWith(
+            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+          );
         });
       });
 
@@ -499,9 +510,9 @@ describe('ProjectAlertsCreate', function () {
         expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
         await waitFor(() => {
-          expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
-          });
+          expect(wrapper.router.push).toHaveBeenCalledWith(
+            '/organizations/org-slug/alerts/rules/project-slug/1/details/'
+          );
         });
       });
     });
@@ -511,8 +522,8 @@ describe('ProjectAlertsCreate', function () {
     it('valid preview table', async () => {
       const groups = GroupsFixture();
       const date = new Date();
-      for (let i = 0; i < groups.length; i++) {
-        groups[i].lastTriggered = String(date);
+      for (const group of groups) {
+        group.lastTriggered = String(date);
       }
       const mock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/rules/preview/',
@@ -551,7 +562,6 @@ describe('ProjectAlertsCreate', function () {
       for (const group of groups) {
         expect(screen.getByText(group.shortId)).toBeInTheDocument();
       }
-      expect(screen.getAllByText('3mo ago')[0]).toBeInTheDocument();
     });
 
     it('invalid preview alert', async () => {
@@ -561,8 +571,8 @@ describe('ProjectAlertsCreate', function () {
         statusCode: 400,
       });
       createWrapper();
-      // delete existion condition
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
+      // delete existion conditions
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]!);
 
       await waitFor(() => {
         expect(mock).toHaveBeenCalled();
@@ -605,6 +615,12 @@ describe('ProjectAlertsCreate', function () {
 
     it('shows error for incompatible conditions', async () => {
       createWrapper();
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]!);
+
+      await selectEvent.select(screen.getByText('Add optional trigger...'), [
+        'A new issue is created',
+      ]);
+
       const anyDropdown = screen.getByText('any');
       expect(anyDropdown).toBeInTheDocument();
       await selectEvent.select(anyDropdown, ['all']);
@@ -619,12 +635,18 @@ describe('ProjectAlertsCreate', function () {
         'true'
       );
 
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]!);
       expect(screen.queryByText(errorText)).not.toBeInTheDocument();
     });
 
     it('test any filterMatch', async () => {
       createWrapper();
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]!);
+
+      await selectEvent.select(screen.getByText('Add optional trigger...'), [
+        'A new issue is created',
+      ]);
+
       const allDropdown = screen.getByText('all');
       await selectEvent.select(allDropdown, ['any']);
       await selectEvent.select(screen.getByText('Add optional filter...'), [
@@ -640,7 +662,7 @@ describe('ProjectAlertsCreate', function () {
 
       expect(screen.getByText(errorText)).toBeInTheDocument();
 
-      await userEvent.click(screen.getAllByLabelText('Delete Node')[1]);
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[1]!);
       await userEvent.clear(screen.getByDisplayValue('10'));
       await userEvent.click(document.body);
 
@@ -667,9 +689,8 @@ describe('ProjectAlertsCreate', function () {
       method: 'POST',
       body: ProjectAlertRuleFixture(),
     });
-
-    createWrapper({organization: {features: ['noisy-alert-warning']}});
-    await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
+    createWrapper();
+    await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]!);
 
     await selectEvent.select(screen.getByText('Add action...'), [
       'Suggested Assignees, Team, or Member',
@@ -700,8 +721,8 @@ describe('ProjectAlertsCreate', function () {
   });
 
   it('does not display noisy alert banner for legacy integrations', async function () {
-    createWrapper({organization: {features: ['noisy-alert-warning']}});
-    await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]);
+    createWrapper();
+    await userEvent.click((await screen.findAllByLabelText('Delete Node'))[0]!);
 
     await selectEvent.select(screen.getByText('Add action...'), [
       'Send a notification to all legacy integrations',

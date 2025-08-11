@@ -1,8 +1,8 @@
 import {useCallback, useEffect, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -15,7 +15,7 @@ import {alertDetailsLink} from './utils';
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{alertId: string}, {}>;
+} & RouteComponentProps<{alertId: string}>;
 
 /**
  * Reirects from an incident to the incident's metric alert details page

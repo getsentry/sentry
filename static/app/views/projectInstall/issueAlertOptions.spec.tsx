@@ -1,144 +1,83 @@
-import {
-  MOCK_RESP_INCONSISTENT_INTERVALS,
-  MOCK_RESP_INCONSISTENT_PLACEHOLDERS,
-  MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID,
-  MOCK_RESP_VERBOSE,
-} from 'sentry-fixture/ruleConditions';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import selectEvent from 'sentry-test/selectEvent';
 
-import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
+import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import type {IssueAlertOptionsProps} from 'sentry/views/projectInstall/issueAlertOptions';
+import IssueAlertOptions, {
+  RuleAction,
+} from 'sentry/views/projectInstall/issueAlertOptions';
 
 describe('IssueAlertOptions', function () {
-  const {organization} = initializeOrg();
-  const URL = `/projects/${organization.slug}/rule-conditions/`;
-  const props = {
-    onChange: jest.fn(),
+  const notificationProps: IssueAlertNotificationProps = {
+    actions: [],
+    channel: 'channel',
+    integration: OrganizationIntegrationsFixture(),
+    provider: 'slack',
+    providersToIntegrations: {},
+    querySuccess: true,
+    shouldRenderSetupButton: false,
+    setActions: jest.fn(),
+    setChannel: jest.fn(),
+    setIntegration: jest.fn(),
+    setProvider: jest.fn(),
   };
-  beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/rule-conditions/`,
-      body: MOCK_RESP_VERBOSE,
-    });
-  });
+
+  const mockOnChange = jest.fn();
+  const getComponent = (props: Partial<IssueAlertOptionsProps> = {}) => (
+    <IssueAlertOptions
+      notificationProps={notificationProps}
+      onFieldChange={mockOnChange}
+      {...props}
+    />
+  );
+
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });
 
-  it('should render only the `Default Rule` and `Create Later` option on empty response:[]', () => {
-    MockApiClient.addMockResponse({
-      url: URL,
-      body: [],
-    });
-
-    render(<IssueAlertOptions {...props} />, {organization});
-    expect(screen.getAllByRole('radio')).toHaveLength(2);
-  });
-
-  it('should render only the `Default Rule` and `Create Later` option on empty response:{}', () => {
-    MockApiClient.addMockResponse({
-      url: URL,
-      body: {},
-    });
-
-    render(<IssueAlertOptions {...props} />, {organization});
-    expect(screen.getAllByRole('radio')).toHaveLength(2);
-  });
-
-  it('should render only the `Default Rule` and `Create Later` option on responses with different allowable intervals', () => {
-    MockApiClient.addMockResponse({
-      url: URL,
-      body: MOCK_RESP_INCONSISTENT_INTERVALS,
-    });
-
-    render(<IssueAlertOptions {...props} />, {organization});
-    expect(screen.getAllByRole('radio')).toHaveLength(2);
-  });
-
-  it('should render all(three) options on responses with different placeholder values', () => {
-    MockApiClient.addMockResponse({
-      url: URL,
-      body: MOCK_RESP_INCONSISTENT_PLACEHOLDERS,
-    });
-    render(<IssueAlertOptions {...props} />, {organization});
-    expect(screen.getAllByRole('radio')).toHaveLength(3);
-  });
-
-  it('should ignore conditions that are not `sentry.rules.conditions.event_frequency.EventFrequencyCondition` and `sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition`', async () => {
-    MockApiClient.addMockResponse({
-      url: URL,
-      body: MOCK_RESP_ONLY_IGNORED_CONDITIONS_INVALID,
-    });
-
-    render(<IssueAlertOptions {...props} />, {organization});
-    expect(screen.getAllByRole('radio')).toHaveLength(3);
-    await selectEvent.select(screen.getByText('Select...'), 'users affected by');
-    expect(props.onChange).toHaveBeenCalledWith(
-      expect.objectContaining({
-        defaultRules: false,
-        shouldCreateCustomRule: true,
-      })
-    );
-  });
-
-  it('should render all(three) options on a valid response', () => {
-    MockApiClient.addMockResponse({
-      url: URL,
-      body: MOCK_RESP_VERBOSE,
-    });
-
-    render(<IssueAlertOptions {...props} />);
-    expect(screen.getAllByRole('radio')).toHaveLength(3);
-  });
-
-  it('should pre-populate fields from server response', async () => {
-    MockApiClient.addMockResponse({
-      url: URL,
-      body: MOCK_RESP_VERBOSE,
-    });
-
-    render(<IssueAlertOptions {...props} />);
-    await selectEvent.select(screen.getByText('occurrences of'), 'users affected by');
-    await selectEvent.select(screen.getByText('one minute'), '30 days');
-    expect(props.onChange).toHaveBeenCalledWith(
-      expect.objectContaining({
-        defaultRules: false,
-        shouldCreateCustomRule: true,
-      })
-    );
-  });
-
   it('should pre-fill threshold value after a valid server response', () => {
-    MockApiClient.addMockResponse({
-      url: URL,
-      body: MOCK_RESP_VERBOSE,
-    });
-
-    render(<IssueAlertOptions {...props} />);
+    render(getComponent());
     expect(screen.getByTestId('range-input')).toHaveValue(10);
   });
 
   it('should provide fallthroughType with issue action', async () => {
-    MockApiClient.addMockResponse({
-      url: URL,
-      body: MOCK_RESP_VERBOSE,
-    });
-
-    render(<IssueAlertOptions {...props} organization={organization} />);
+    render(getComponent());
     await userEvent.click(screen.getByLabelText(/When there are more than/i));
-    expect(props.onChange).toHaveBeenCalledWith(
-      expect.objectContaining({
-        actions: [
-          {
-            id: 'sentry.mail.actions.NotifyEmailAction',
-            targetType: 'IssueOwners',
-            fallthroughType: 'ActiveMembers',
-          },
-        ],
+    expect(mockOnChange).toHaveBeenCalledWith('alertSetting', 1);
+  });
+
+  it('should render alert configuration if `Default` or `Custom` alerts are selected', async () => {
+    render(getComponent());
+
+    // Default will be RuleAction.DEFAULT_ALERT
+    expect(screen.getByRole('checkbox', {name: 'Notify via email'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', {
+        name: 'Notify via integration (Slack, Discord, MS Teams, etc.)',
       })
-    );
+    ).toBeInTheDocument();
+
+    // Select RuleAction.CUSTOMIZED_ALERTS
+    await userEvent.click(screen.getByLabelText(/When there are more than/i));
+    expect(screen.getByRole('checkbox', {name: 'Notify via email'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', {
+        name: 'Notify via integration (Slack, Discord, MS Teams, etc.)',
+      })
+    ).toBeInTheDocument();
+  });
+
+  it('should not render notification configuration if `Create Alerts Later` is selected', () => {
+    render(getComponent({alertSetting: RuleAction.CREATE_ALERT_LATER}));
+    expect(
+      screen.queryByRole('checkbox', {name: 'Notify via email'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', {
+        name: 'Notify via integration (Slack, Discord, MS Teams, etc.)',
+      })
+    ).not.toBeInTheDocument();
   });
 });

@@ -37,7 +37,7 @@ class WaterfallModel {
   filterSpans: FilterSpans | undefined = undefined;
   searchQuery: string | undefined = undefined;
   hiddenSpanSubTrees: Set<string>;
-  traceBounds: Array<TraceBound>;
+  traceBounds: TraceBound[];
   focusedSpanIds: Set<string> | undefined = undefined;
   traceInfo: TraceInfo | undefined = undefined;
 
@@ -165,14 +165,14 @@ class WaterfallModel {
 
         let tagKeys: string[] = [];
         let tagValues: string[] = [];
-        const tags: {[tag_name: string]: string} | undefined = span?.tags;
+        const tags: Record<string, string> | undefined = span?.tags;
 
         if (tags) {
           tagKeys = Object.keys(tags);
           tagValues = Object.values(tags);
         }
 
-        const data: {[data_name: string]: any} | undefined = span?.data ?? {};
+        const data: Record<string, any> | undefined = span?.data ?? {};
 
         let dataKeys: string[] = [];
         let dataValues: string[] = [];
@@ -283,8 +283,8 @@ class WaterfallModel {
         };
       },
       {
-        traceStartTimestamp: this.traceBounds[0].traceStartTimestamp,
-        traceEndTimestamp: this.traceBounds[0].traceEndTimestamp,
+        traceStartTimestamp: this.traceBounds[0]!.traceStartTimestamp,
+        traceEndTimestamp: this.traceBounds[0]!.traceEndTimestamp,
       }
     );
   };

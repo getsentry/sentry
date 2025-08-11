@@ -1,30 +1,31 @@
 import {Fragment, useEffect} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
-import {Button, LinkButton} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NavTabs from 'sentry/components/navTabs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
   IntegrationProvider,
-  Organization,
   OrganizationIntegration,
   PluginWithProjectList,
-} from 'sentry/types';
-import {singleLineRenderer} from 'sentry/utils/marked';
+} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -44,15 +45,12 @@ import IntegrationExternalUserMappings from './integrationExternalUserMappings';
 import IntegrationItem from './integrationItem';
 import IntegrationMainSettings from './integrationMainSettings';
 import IntegrationRepos from './integrationRepos';
-import IntegrationServerlessFunctions from './integrationServerlessFunctions';
+import {IntegrationServerlessFunctions} from './integrationServerlessFunctions';
 
-type Props = RouteComponentProps<
-  {
-    integrationId: string;
-    providerKey: string;
-  },
-  {}
->;
+type Props = RouteComponentProps<{
+  integrationId: string;
+  providerKey: string;
+}>;
 
 const TABS = [
   'repos',
@@ -82,29 +80,26 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   const {integrationId, providerKey} = params;
   const {
     data: config = {providers: []},
-    isLoading: isLoadingConfig,
+    isPending: isLoadingConfig,
     isError: isErrorConfig,
     refetch: refetchConfig,
-    remove: removeConfig,
   } = useApiQuery<{
     providers: IntegrationProvider[];
   }>([`/organizations/${organization.slug}/config/integrations/`], {staleTime: 0});
   const {
     data: integration,
-    isLoading: isLoadingIntegration,
+    isPending: isLoadingIntegration,
     isError: isErrorIntegration,
     refetch: refetchIntegration,
-    remove: removeIntegration,
   } = useApiQuery<OrganizationIntegration>(
     makeIntegrationQuery(organization, integrationId),
     {staleTime: 0}
   );
   const {
     data: plugins,
-    isLoading: isLoadingPlugins,
+    isPending: isLoadingPlugins,
     isError: isErrorPlugins,
     refetch: refetchPlugins,
-    remove: removePlugins,
   } = useApiQuery<PluginWithProjectList[] | null>(makePluginQuery(organization), {
     staleTime: 0,
   });
@@ -154,9 +149,11 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   }
 
   const onTabChange = (value: Tab) => {
+    // XXX: Omit the cursor to prevent paginating the next tab's queries.
+    const {cursor: _, ...query} = location.query;
     router.push({
       pathname: location.pathname,
-      query: {...location.query, tab: value},
+      query: {...query, tab: value},
     });
   };
 
@@ -164,13 +161,17 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
    * Refetch everything, this could be improved to reload only the right thing
    */
   const onUpdateIntegration = () => {
-    removePlugins();
+    queryClient.removeQueries({queryKey: makePluginQuery(organization)});
     refetchPlugins();
 
-    removeConfig();
+    queryClient.removeQueries({
+      queryKey: [`/organizations/${organization.slug}/config/integrations/`],
+    });
     refetchConfig();
 
-    removeIntegration();
+    queryClient.removeQueries({
+      queryKey: makeIntegrationQuery(organization, integrationId),
+    });
     refetchIntegration();
   };
 
@@ -254,7 +255,7 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
         <LinkButton
           aria-label={t('Open this server in the Discord app')}
           size="sm"
-          href={`discord://discord.com/channels/${integration.externalId}`}
+          href={`https://discord.com/channels/${integration.externalId}`}
         >
           {t('Open in Discord')}
         </LinkButton>
@@ -378,23 +379,27 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
         )}
 
         {instructions && instructions.length > 0 && (
-          <Alert type="info">
-            {instructions.length === 1 ? (
-              <span
-                dangerouslySetInnerHTML={{__html: singleLineRenderer(instructions[0])}}
-              />
-            ) : (
-              <List symbol={<IconArrow size="xs" direction="right" />}>
-                {instructions.map((instruction, i) => (
-                  <ListItem key={i}>
-                    <span
-                      dangerouslySetInnerHTML={{__html: singleLineRenderer(instruction)}}
-                    />
-                  </ListItem>
-                )) ?? null}
-              </List>
-            )}
-          </Alert>
+          <Alert.Container>
+            <Alert type="info" showIcon={false}>
+              {instructions.length === 1 ? (
+                <span
+                  dangerouslySetInnerHTML={{__html: singleLineRenderer(instructions[0]!)}}
+                />
+              ) : (
+                <List symbol={<IconArrow size="xs" direction="right" />}>
+                  {instructions.map((instruction, i) => (
+                    <ListItem key={i}>
+                      <span
+                        dangerouslySetInnerHTML={{
+                          __html: singleLineRenderer(instruction),
+                        }}
+                      />
+                    </ListItem>
+                  )) ?? null}
+                </List>
+              )}
+            </Alert>
+          </Alert.Container>
         )}
 
         {provider.features.includes('alert-rule') && <IntegrationAlertRules />}
@@ -436,37 +441,57 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
     }
   }
 
-  // renders everything below header
   function renderMainContent() {
     const hasStacktraceLinking = provider!.features.includes('stacktrace-link');
     const hasCodeOwners =
       provider!.features.includes('codeowners') &&
       organization.features.includes('integrations-codeowners');
-    // if no code mappings, render the single tab
-    if (!hasStacktraceLinking) {
+    const hasUserMapping = provider!.features.includes('user-mapping');
+
+    const tabs: Array<[Tab, string]> = [];
+    const stackTraceLinkingTabs: Array<[Tab, string]> = hasStacktraceLinking
+      ? [
+          ['repos', t('Repositories')],
+          ['codeMappings', t('Code Mappings')],
+        ]
+      : [];
+
+    const codeOwnerTabs: Array<[Tab, string]> = hasCodeOwners
+      ? [
+          ['userMappings', t('User Mappings')],
+          ['teamMappings', t('Team Mappings')],
+        ]
+      : [];
+
+    // User mappings are mutually exclusive with stacktrace linking
+    // and code owners, so only render the main settings tab and user mappings.
+    const userMappingTabs: Array<[Tab, string]> = hasUserMapping
+      ? [
+          ['repos', t('Settings')],
+          ['userMappings', t('User Mappings')],
+        ]
+      : [];
+
+    const allTabs = tabs
+      .concat(stackTraceLinkingTabs)
+      .concat(codeOwnerTabs)
+      .concat(userMappingTabs);
+
+    if (allTabs.length === 0) {
       return renderMainTab();
     }
-    // otherwise render the tab view
-    const tabs = [
-      ['repos', t('Repositories')],
-      ['codeMappings', t('Code Mappings')],
-      ...(hasCodeOwners ? [['userMappings', t('User Mappings')]] : []),
-      ...(hasCodeOwners ? [['teamMappings', t('Team Mappings')]] : []),
-    ] as [id: Tab, label: string][];
 
     return (
       <Fragment>
-        <NavTabs underlined>
-          {tabs.map(tabTuple => (
-            <li
-              key={tabTuple[0]}
-              className={tab === tabTuple[0] ? 'active' : ''}
-              onClick={() => onTabChange(tabTuple[0])}
-            >
-              <CapitalizedLink>{tabTuple[1]}</CapitalizedLink>
-            </li>
-          ))}
-        </NavTabs>
+        <TabsContainer>
+          <Tabs value={tab} onChange={onTabChange}>
+            <TabList>
+              {allTabs.map(tabTuple => (
+                <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
+              ))}
+            </TabList>
+          </Tabs>
+        </TabsContainer>
         {renderTabContent()}
       </Fragment>
     );
@@ -500,13 +525,13 @@ function ConfigureIntegration({params, router, routes, location}: Props) {
   );
 }
 
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
+
 export default ConfigureIntegration;
 
 const BackButtonWrapper = styled('div')`
   margin-bottom: ${space(2)};
   width: 100%;
-`;
-
-const CapitalizedLink = styled('a')`
-  text-transform: capitalize;
 `;

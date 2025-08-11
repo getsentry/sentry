@@ -1,17 +1,15 @@
-import {Fragment} from 'react';
-
-import ExternalLink from 'sentry/components/links/externalLink';
-import List from 'sentry/components/list/';
-import ListItem from 'sentry/components/list/listItem';
+import {ExternalLink} from 'sentry/components/core/link';
+import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
+  ContentBlock,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportJavaScriptInstallStep,
   getCrashReportModalConfigDescription,
@@ -19,97 +17,118 @@ import {
   getFeedbackConfigureDescription,
   getFeedbackSDKSetupSnippet,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {
   getReplayConfigureDescription,
   getReplaySDKSetupSnippet,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
+import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
+import {getJavascriptFullStackOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
-const getInstallConfig = () => [
-  {
-    type: StepType.INSTALL,
-    description: tct(
-      'Configure your app automatically with the [wizardLink:Sentry wizard].',
-      {
-        wizardLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/#install" />
-        ),
-      }
-    ),
-    configurations: [
-      {
-        language: 'bash',
-        code: `npx @sentry/wizard@latest -i sveltekit`,
-      },
-    ],
-  },
-];
+const getConfigStep = ({isSelfHosted, organization, project}: Params): ContentBlock[] => {
+  const urlParam = isSelfHosted ? '' : '--saas';
+
+  return [
+    {
+      type: 'text',
+      text: tct(
+        'Configure your app automatically by running the [wizardLink:Sentry wizard] in the root of your project.',
+        {
+          wizardLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/#install" />
+          ),
+        }
+      ),
+    },
+    {
+      type: 'code',
+      language: 'bash',
+      code: `npx @sentry/wizard@latest -i sveltekit ${urlParam}  --org ${organization.slug} --project ${project.slug}`,
+    },
+  ];
+};
 
 const onboarding: OnboardingConfig = {
-  install: () => getInstallConfig(),
-  configure: () => [
+  install: (params: Params) => [
     {
-      type: StepType.CONFIGURE,
-      configurations: [
+      title: t('Automatic Configuration (Recommended)'),
+      content: getConfigStep(params),
+    },
+  ],
+  configure: params => [
+    {
+      collapsible: true,
+      title: t('Manual Configuration'),
+      content: [
         {
-          description: (
-            <Fragment>
-              {t(
-                'The Sentry wizard will automatically patch your application to configure the Sentry SDK:'
-              )}
-              <List symbol="bullet">
-                <ListItem>
-                  {tct(
-                    'Create or update [hookClientCode:src/hooks.client.js] and [hookServerCode:src/hooks.server.js] with the default [sentryInitCode:Sentry.init] call and SvelteKit hooks handlers.',
-                    {
-                      hookClientCode: <code />,
-                      hookServerCode: <code />,
-                      sentryInitCode: <code />,
-                    }
-                  )}
-                </ListItem>
-                <ListItem>
-                  {tct(
-                    'Update [code:vite.config.js] to add source maps upload and auto-instrumentation via Vite plugins.',
-                    {
-                      code: <code />,
-                    }
-                  )}
-                </ListItem>
-                <ListItem>
-                  {tct(
-                    'Create [sentryClircCode:.sentryclirc] and [sentryPropertiesCode:sentry.properties] files with configuration for sentry-cli (which is used when automatically uploading source maps).',
-                    {
-                      sentryClircCode: <code />,
-                      sentryPropertiesCode: <code />,
-                    }
-                  )}
-                </ListItem>
-              </List>
-              <p>
-                {tct(
-                  'Alternatively, you can also [manualSetupLink:set up the SDK manually].',
-                  {
-                    manualSetupLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/" />
-                    ),
-                  }
-                )}
-              </p>
-            </Fragment>
+          type: 'text',
+          text: tct(
+            'Alternatively, you can also set up the SDK manually, by following the [manualSetupLink:manual setup docs].',
+            {
+              manualSetupLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/sveltekit/manual-setup/" />
+              ),
+            }
+          ),
+        },
+        {
+          type: 'custom',
+          content: <CopyDsnField params={params} />,
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Start your development server and visit [code:/sentry-example-page] if you have set it up. Click the button to trigger a test error.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        {
+          type: 'text',
+          text: t(
+            'Or, trigger a sample error by calling a function that does not exist somewhere in your application.'
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'Javascript',
+              language: 'javascript',
+              code: `myUndefinedFunction();`,
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: t(
+            'If you see an issue in your Sentry Issues, you have successfully set up Sentry.'
           ),
         },
       ],
     },
   ],
-  verify: () => [],
 };
 
 const replayOnboarding: OnboardingConfig = {
-  install: () => getInstallConfig(),
+  install: (params: Params) => [
+    {
+      type: StepType.INSTALL,
+      content: getConfigStep(params),
+    },
+  ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
@@ -125,7 +144,7 @@ const replayOnboarding: OnboardingConfig = {
               language: 'javascript',
               code: getReplaySDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/sveltekit";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
                 mask: params.replayOptions?.mask,
                 block: params.replayOptions?.block,
               }),
@@ -136,21 +155,26 @@ const replayOnboarding: OnboardingConfig = {
       ],
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
 const feedbackOnboarding: OnboardingConfig = {
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/sveltekit]) installed, minimum version 7.85.0.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
+          type: 'text',
+          text: tct(
+            'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/sveltekit]) installed, minimum version 7.85.0.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        ...getConfigStep(params),
+      ],
     },
   ],
   configure: (params: Params) => [
@@ -171,7 +195,7 @@ const feedbackOnboarding: OnboardingConfig = {
               language: 'javascript',
               code: getFeedbackSDKSetupSnippet({
                 importStatement: `import * as Sentry from "@sentry/sveltekit";`,
-                dsn: params.dsn,
+                dsn: params.dsn.public,
                 feedbackOptions: params.feedbackOptions,
               }),
             },
@@ -205,12 +229,22 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const profilingOnboarding = getJavascriptFullStackOnboarding({
+  basePackage: '@sentry/sveltekit',
+  browserProfilingLink:
+    'https://docs.sentry.io/platforms/javascript/guides/sveltekit/profiling/browser-profiling/',
+  nodeProfilingLink:
+    'https://docs.sentry.io/platforms/javascript/guides/sveltekit/profiling/node-profiling/',
+});
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboardingNpm: replayOnboarding,
-  customMetricsOnboarding: getJSMetricsOnboarding({getInstallConfig}),
+  replayOnboarding,
   crashReportOnboarding,
+  featureFlagOnboarding,
+  profilingOnboarding,
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
 };
 
 export default docs;

@@ -2,7 +2,6 @@ from datetime import timedelta
 
 from django.urls import reverse
 
-from sentry.testutils.helpers.datetime import iso_format
 from sentry.utils.cursors import Cursor
 from sentry.utils.samples import load_data
 from tests.snuba.api.endpoints.test_organization_events_facets_performance import (
@@ -52,13 +51,12 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
         self,
         name="exampleTransaction",
         duration=100,
-        tags=None,
         project_id=None,
         lcp=None,
         user_id=None,
+        *,
+        tags,
     ):
-        if tags is None:
-            tags = []
         if project_id is None:
             project_id = self.project.id
         event = load_data("transaction")
@@ -67,8 +65,8 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
             {
                 "transaction": name,
                 "event_id": f"{self._transaction_count:02x}".rjust(32, "0"),
-                "start_timestamp": iso_format(self.two_mins_ago - timedelta(seconds=duration)),
-                "timestamp": iso_format(self.two_mins_ago),
+                "start_timestamp": (self.two_mins_ago - timedelta(seconds=duration)).isoformat(),
+                "timestamp": self.two_mins_ago.isoformat(),
             }
         )
         if user_id:
@@ -87,7 +85,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
         self._transaction_count += 1
         self.store_event(data=event, project_id=project_id)
 
-    def test_multiple_projects_not_allowed(self):
+    def test_multiple_projects_not_allowed(self) -> None:
         response = self.do_request(
             {
                 "aggregateColumn": "transaction.duration",
@@ -99,12 +97,12 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
             "detail": "You cannot view facet performance for multiple projects."
         }
 
-    def test_missing_tags_column(self):
+    def test_missing_tags_column(self) -> None:
         response = self.do_request({})
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "'aggregateColumn' must be provided."}
 
-    def test_no_access(self):
+    def test_no_access(self) -> None:
         request = {
             "aggregateColumn": "transaction.duration",
             "sort": "-frequency",
@@ -120,7 +118,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
         )
         assert error_response.status_code == 404
 
-    def test_num_buckets_error(self):
+    def test_num_buckets_error(self) -> None:
         self.setup_transactions()
         request = {
             "aggregateColumn": "transaction.duration",
@@ -137,7 +135,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
             "detail": "'numBucketsPerKey' must be provided for the performance histogram."
         }
 
-    def test_tag_key_histograms(self):
+    def test_tag_key_histograms(self) -> None:
         self.setup_transactions()
         request = {
             "aggregateColumn": "transaction.duration",
@@ -174,7 +172,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
         assert tag_data[0]["tags_value"] == "red"
         assert tag_data[1]["tags_value"] == "blue"
 
-    def test_no_top_tags(self):
+    def test_no_top_tags(self) -> None:
         self.setup_transactions()
         request = {
             "aggregateColumn": "transaction.duration",
@@ -194,7 +192,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
         tag_data = data_response.data["tags"]["data"]
         assert tag_data == []
 
-    def test_tag_key_histogram_buckets(self):
+    def test_tag_key_histogram_buckets(self) -> None:
         self.setup_transactions()
         request = {
             "aggregateColumn": "transaction.duration",
@@ -236,7 +234,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
         assert histogram_data[2]["tags_value"] == "green"
         assert histogram_data[2]["tags_key"] == "color"
 
-    def test_histograms_omit_empty_measurements(self):
+    def test_histograms_omit_empty_measurements(self) -> None:
         self.setup_transactions()
         request = {
             "aggregateColumn": "transaction.duration",
@@ -277,7 +275,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
         assert histogram_data[2]["tags_value"] == "green"
         assert histogram_data[2]["tags_key"] == "color"
 
-    def test_histogram_user_field(self):
+    def test_histogram_user_field(self) -> None:
         self.setup_transactions()
         self.store_transaction(
             tags=[["color", "blue"], ["many", "yes"]], duration=4000, user_id=555
@@ -302,7 +300,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
         assert tag_data[0]["count"] == 1
         assert tag_data[0]["tags_value"] == "id:555"
 
-    def test_histogram_pagination(self):
+    def test_histogram_pagination(self) -> None:
         self.setup_transactions()
         request = {
             "aggregateColumn": "transaction.duration",
@@ -323,7 +321,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
         tag_data = data_response.data["tags"]["data"]
         assert len(tag_data) == 1
 
-    def test_histogram_sorting(self):
+    def test_histogram_sorting(self) -> None:
         self.setup_transactions()
         request = {
             "aggregateColumn": "transaction.duration",
@@ -349,7 +347,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(
         assert tag_data[0]["tags_value"] == "green"
         assert tag_data[0]["count"] == 1
 
-    def test_histogram_high_buckets(self):
+    def test_histogram_high_buckets(self) -> None:
         for i in range(10):
             self.store_transaction(tags=[["fruit", "apple"]], duration=i * 100 + 50)
             self.store_transaction(tags=[["fruit", "orange"]], duration=i * 100 + 1000 + 50)

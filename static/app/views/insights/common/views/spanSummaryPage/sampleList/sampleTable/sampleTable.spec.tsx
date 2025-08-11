@@ -1,13 +1,13 @@
 import {
   render,
+  screen,
   waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import {t} from 'sentry/locale';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import type {PageFilters} from 'sentry/types/core';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 import SampleTable from './sampleTable';
 
@@ -39,8 +39,8 @@ describe('SampleTable', function () {
   });
 
   describe('When all data is available', () => {
-    it('should finsh loading', async () => {
-      const container = render(
+    it('should finish loading', async () => {
+      render(
         <SampleTable
           groupId="groupId123"
           moduleName={ModuleName.OTHER}
@@ -49,11 +49,11 @@ describe('SampleTable', function () {
         />
       );
 
-      await waitForElementToBeRemoved(() => container.queryByTestId('loading-indicator'));
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     });
 
     it('should never show no results', async () => {
-      const container = render(
+      render(
         <SampleTable
           groupId="groupId123"
           moduleName={ModuleName.OTHER}
@@ -62,12 +62,12 @@ describe('SampleTable', function () {
         />
       );
 
-      await expectNever(() => container.getByText('No results found for your query'));
-      expect(container.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      await expectNever(() => screen.getByText('No results found for your query'));
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     });
 
     it('should show span IDs by default', async () => {
-      const container = render(
+      render(
         <SampleTable
           groupId="groupId123"
           moduleName={ModuleName.OTHER}
@@ -77,19 +77,17 @@ describe('SampleTable', function () {
       );
 
       await waitFor(() =>
-        expect(container.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
       );
 
-      expect(container.queryAllByTestId('grid-head-cell')[0]).toHaveTextContent(
-        'Span ID'
-      );
-      expect(container.queryAllByTestId('grid-body-cell')[0]).toHaveTextContent(
+      expect(screen.queryAllByTestId('grid-head-cell')[0]).toHaveTextContent('Span ID');
+      expect(screen.queryAllByTestId('grid-body-cell')[0]).toHaveTextContent(
         'span-id123'
       );
     });
 
     it('should show transaction IDs instead of span IDs when in columnOrder', async () => {
-      const container = render(
+      render(
         <SampleTable
           groupId="groupId123"
           moduleName={ModuleName.OTHER}
@@ -98,17 +96,17 @@ describe('SampleTable', function () {
           columnOrder={[
             {
               key: 'transaction_id',
-              name: t('Event ID'),
+              name: 'Event ID',
               width: COL_WIDTH_UNDEFINED,
             },
             {
               key: 'profile_id',
-              name: t('Profile'),
+              name: 'Profile',
               width: COL_WIDTH_UNDEFINED,
             },
             {
               key: 'avg_comparison',
-              name: t('Compared to Average'),
+              name: 'Compared to Average',
               width: COL_WIDTH_UNDEFINED,
             },
           ]}
@@ -116,13 +114,11 @@ describe('SampleTable', function () {
       );
 
       await waitFor(() =>
-        expect(container.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
       );
 
-      expect(container.queryAllByTestId('grid-head-cell')[0]).toHaveTextContent(
-        'Event ID'
-      );
-      expect(container.queryAllByTestId('grid-body-cell')[0]).toHaveTextContent(
+      expect(screen.queryAllByTestId('grid-head-cell')[0]).toHaveTextContent('Event ID');
+      expect(screen.queryAllByTestId('grid-body-cell')[0]).toHaveTextContent(
         'transaction-id123'.slice(0, 8)
       );
     });
@@ -131,14 +127,24 @@ describe('SampleTable', function () {
   describe('When there is missing data', () => {
     it('should display no query results', async () => {
       MockApiClient.addMockResponse({
-        url: '/api/0/organizations/org-slug/spans-samples/?firstBound=0.6666666666666666&lowerBound=0&query=span.group%3AgroupId123%20transaction%3A%2Fendpoint%20transaction.method%3AGET&secondBound=1.3333333333333333&statsPeriod=14d&upperBound=2',
+        url: '/api/0/organizations/org-slug/spans-samples/',
         method: 'GET',
+        match: [
+          MockApiClient.matchQuery({
+            firstBound: 0.6666666666666666,
+            lowerBound: 0,
+            query: 'span.group:groupId123 transaction:/endpoint transaction.method:GET',
+            secondBound: 1.3333333333333333,
+            statsPeriod: '14d',
+            upperBound: 2,
+          }),
+        ],
         body: {
           data: [],
         },
       });
 
-      const container = render(
+      render(
         <SampleTable
           groupId="groupId123"
           moduleName={ModuleName.OTHER}
@@ -146,10 +152,8 @@ describe('SampleTable', function () {
           transactionName="/endpoint"
         />
       );
-      await waitForElementToBeRemoved(() => container.queryByTestId('loading-indicator'));
-      expect(
-        container.queryByText('No results found for your query')
-      ).toBeInTheDocument();
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+      expect(screen.getByText('No results found for your query')).toBeInTheDocument();
     });
   });
 });
@@ -160,8 +164,8 @@ const initializeMockRequests = () => {
     body: {
       data: [
         {
-          [SpanMetricsField.SPAN_OP]: 'db',
-          [`avg(${SpanMetricsField.SPAN_SELF_TIME})`]: 0.52,
+          [SpanFields.SPAN_OP]: 'db',
+          [`avg(${SpanFields.SPAN_SELF_TIME})`]: 0.52,
         },
       ],
     },
@@ -215,8 +219,18 @@ const initializeMockRequests = () => {
     ],
   });
   MockApiClient.addMockResponse({
-    url: '/api/0/organizations/org-slug/spans-samples/?firstBound=0.6666666666666666&lowerBound=0&query=span.group%3AgroupId123%20transaction%3A%2Fendpoint%20transaction.method%3AGET&secondBound=1.3333333333333333&statsPeriod=14d&upperBound=2',
+    url: '/api/0/organizations/org-slug/spans-samples/',
     method: 'GET',
+    match: [
+      MockApiClient.matchQuery({
+        firstBound: 0.6666666666666666,
+        lowerBound: 0,
+        query: 'span.group:groupId123 transaction:/endpoint transaction.method:GET',
+        secondBound: 1.3333333333333333,
+        statsPeriod: '14d',
+        upperBound: 2,
+      }),
+    ],
     body: {
       data: [
         {
@@ -224,7 +238,7 @@ const initializeMockRequests = () => {
           'span.self_time': 1.5,
           timestamp: '2023-05-21T19:30:06+00:00',
           span_id: 'span-id123',
-          'transaction.id': 'transaction-id123',
+          'transaction.span_id': 'transaction-id123',
         },
       ],
     },

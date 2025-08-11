@@ -63,7 +63,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
   const enabled = !!traceId;
   const {
     data: issuePlatformData,
-    isLoading: isLoadingIssuePlatform,
+    isPending: isLoadingIssuePlatform,
     isError: isErrorIssuePlatform,
   } = useApiQuery<TraceEventResponse>(
     [
@@ -88,7 +88,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
           sort: '-timestamp',
           start,
           end,
-          project: project,
+          project,
         },
       },
     ],
@@ -96,7 +96,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
   );
   const {
     data: discoverData,
-    isLoading: isLoadingDiscover,
+    isPending: isLoadingDiscover,
     isError: isErrorDiscover,
   } = useApiQuery<{
     data: TimelineEvent[];
@@ -125,7 +125,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
           sort: '-timestamp',
           start,
           end,
-          project: project,
+          project,
         },
       },
     ],
@@ -158,14 +158,15 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
         culprit: event.culprit,
         id: event.id,
         'issue.id': Number(event.groupID),
-        message: event.message,
         project: event.projectID,
         // The project name for current event is not used
         'project.name': '',
         timestamp: event.dateCreated!,
         title: event.title,
         transaction: '',
-        'event.type': event['event.type'],
+        'event.type': event.type === 'default' ? 'default' : 'error',
+        'error.value': [event.message],
+        'stack.function': [],
       });
     }
     const timestamps = events.map(e => new Date(e.timestamp).getTime());

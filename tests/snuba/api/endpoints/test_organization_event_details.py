@@ -6,24 +6,19 @@ from django.urls import NoReverseMatch, reverse
 from sentry.models.group import Group
 from sentry.search.events import constants
 from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-def format_project_event(project_id_or_slug, event_id):
-    return f"{project_id_or_slug}:{event_id}"
-
-
 class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
     def setUp(self):
         super().setUp()
-        min_ago = iso_format(before_now(minutes=1))
-        two_min_ago = iso_format(before_now(minutes=2))
-        three_min_ago = iso_format(before_now(minutes=3))
+        min_ago = before_now(minutes=1).isoformat()
+        two_min_ago = before_now(minutes=2).isoformat()
+        three_min_ago = before_now(minutes=3).isoformat()
 
         self.login_as(user=self.user)
         self.project = self.create_project()
@@ -58,7 +53,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         )
         self.groups = list(Group.objects.all().order_by("id"))
 
-    def test_performance_flag(self):
+    def test_performance_flag(self) -> None:
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
@@ -75,7 +70,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert response.data["id"] == "a" * 32
         assert response.data["projectSlug"] == self.project.slug
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
@@ -92,8 +87,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert response.data["id"] == "a" * 32
         assert response.data["projectSlug"] == self.project.slug
 
-    @override_options({"api.id-or-slug-enabled": True})
-    def test_simple_with_id(self):
+    def test_simple_with_id(self) -> None:
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
@@ -110,8 +104,8 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert response.data["id"] == "a" * 32
         assert response.data["projectSlug"] == self.project.slug
 
-    def test_simple_transaction(self):
-        min_ago = iso_format(before_now(minutes=1))
+    def test_simple_transaction(self) -> None:
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "event_id": "d" * 32,
@@ -119,7 +113,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
                 "transaction": "api.issue.delete",
                 "spans": [],
                 "contexts": {"trace": {"op": "foobar", "trace_id": "a" * 32, "span_id": "a" * 16}},
-                "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
+                "start_timestamp": before_now(minutes=1, seconds=5).isoformat(),
                 "timestamp": min_ago,
             },
             project_id=self.project.id,
@@ -138,7 +132,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert response.data["id"] == "d" * 32
         assert response.data["type"] == "transaction"
 
-    def test_no_access_missing_feature(self):
+    def test_no_access_missing_feature(self) -> None:
         with self.feature({"organizations:discover-basic": False}):
             url = reverse(
                 "sentry-api-0-organization-event-details",
@@ -152,7 +146,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
             response = self.client.get(url, format="json")
             assert response.status_code == 404, response.content
 
-    def test_access_non_member_project(self):
+    def test_access_non_member_project(self) -> None:
         # Add a new user to a project and then access events on project they are not part of.
         member_user = self.create_user()
         team = self.create_team(members=[member_user])
@@ -184,7 +178,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
             response = self.client.get(url, format="json")
         assert response.status_code == 404, response.content
 
-    def test_no_event(self):
+    def test_no_event(self) -> None:
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
@@ -199,7 +193,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
 
         assert response.status_code == 404, response.content
 
-    def test_invalid_event_id(self):
+    def test_invalid_event_id(self) -> None:
         with pytest.raises(NoReverseMatch):
             reverse(
                 "sentry-api-0-organization-event-details",
@@ -210,11 +204,11 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
                 },
             )
 
-    def test_long_trace_description(self):
+    def test_long_trace_description(self) -> None:
         data = load_data("transaction")
         data["event_id"] = "d" * 32
-        data["timestamp"] = iso_format(before_now(minutes=1))
-        data["start_timestamp"] = iso_format(before_now(minutes=1) - timedelta(seconds=5))
+        data["timestamp"] = before_now(minutes=1).isoformat()
+        data["start_timestamp"] = (before_now(minutes=1) - timedelta(seconds=5)).isoformat()
         data["contexts"]["trace"]["description"] = "b" * 512
         self.store_event(data=data, project_id=self.project.id)
 
@@ -237,7 +231,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert trace["parent_span_id"] == original_trace["parent_span_id"]
         assert trace["description"][:-3] in original_trace["description"]
 
-    def test_blank_fields(self):
+    def test_blank_fields(self) -> None:
         url = reverse(
             "sentry-api-0-organization-event-details",
             kwargs={
@@ -258,12 +252,12 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert response.data["id"] == "a" * 32
         assert response.data["projectSlug"] == self.project.slug
 
-    def test_out_of_retention(self):
+    def test_out_of_retention(self) -> None:
         self.store_event(
             data={
                 "event_id": "d" * 32,
                 "message": "oh no",
-                "timestamp": iso_format(before_now(days=2)),
+                "timestamp": before_now(days=2).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -286,7 +280,7 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
 
         assert response.status_code == 404, response.content
 
-    def test_generic_event(self):
+    def test_generic_event(self) -> None:
         occurrence, _ = self.process_occurrence(
             project_id=self.project.id,
             event_data={
@@ -338,7 +332,7 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
             tags={"span.group": "26b881987e4bad99"},
         )
 
-    def test_get_without_feature(self):
+    def test_get_without_feature(self) -> None:
         response = self.client.get(self.url, {"averageColumn": "span.self_time"})
         assert response.status_code == 200, response.content
         entries = response.data["entries"]  # type: ignore[attr-defined]
@@ -347,7 +341,7 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
                 for span in entry["data"]:
                     assert span.get(self.RESULT_COLUMN) is None
 
-    def test_get(self):
+    def test_get(self) -> None:
         with self.feature("organizations:insights-initial-modules"):
             response = self.client.get(self.url, {"averageColumn": "span.self_time"})
         assert response.status_code == 200, response.content
@@ -360,7 +354,7 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
                     if span["op"] == "django.middleware":
                         assert self.RESULT_COLUMN not in span
 
-    def test_get_multiple_columns(self):
+    def test_get_multiple_columns(self) -> None:
         self.store_span_metric(
             2,
             internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
@@ -381,10 +375,10 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
                             "avg(span.self_time)": 1.0,
                             "avg(span.duration)": 2.0,
                         }
-                    if span["op"] == "django.middlewares":
+                    if span["op"] == "django.middleware":
                         assert self.RESULT_COLUMN not in span
 
-    def test_nan_column(self):
+    def test_nan_column(self) -> None:
         # If there's nothing stored for a metric, span.duration in this case the query returns nan
         with self.feature("organizations:insights-initial-modules"):
             response = self.client.get(
@@ -397,10 +391,10 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
                 for span in entry["data"]:
                     if span["op"] == "db":
                         assert span[self.RESULT_COLUMN] == {"avg(span.self_time)": 1.0}
-                    if span["op"] == "django.middlewares":
+                    if span["op"] == "django.middleware":
                         assert self.RESULT_COLUMN not in span
 
-    def test_invalid_column(self):
+    def test_invalid_column(self) -> None:
         # If any columns are invalid, ignore average field in results completely
         response = self.client.get(
             self.url, {"averageColumn": ["span.self_time", "span.everything"]}

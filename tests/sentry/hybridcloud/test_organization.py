@@ -11,7 +11,6 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
-from sentry.models.user import User
 from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcOrganizationMember,
@@ -26,7 +25,8 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, assume_test_silo_mode_of
+from sentry.users.models.user import User
 
 
 def basic_filled_out_org() -> tuple[Organization, list[User]]:
@@ -99,6 +99,7 @@ def assert_project_equals(orm_project: Project, project: RpcProject) -> None:
     assert project.slug == orm_project.slug
     assert project.organization_id == orm_project.organization_id
     assert project.name == orm_project.name
+    assert project.first_event == orm_project.first_event
 
 
 @assume_test_silo_mode(SiloMode.REGION)
@@ -360,3 +361,24 @@ def test_send_sso_unlink_emails() -> None:
     assert len(mail.outbox) == 2
     assert "Action Required" in mail.outbox[0].subject
     assert "Single Sign-On" in mail.outbox[0].body
+
+
+@django_db_all(transaction=True)
+@all_silo_test
+def test_get_aggregate_project_flags() -> None:
+    org = Factories.create_organization()
+    project1 = Factories.create_project(organization_id=org.id, name="test-project-1")
+    project2 = Factories.create_project(organization_id=org.id, name="test-project-2")
+    flags = organization_service.get_aggregate_project_flags(organization_id=org.id)
+    assert flags.has_insights_http is False
+    assert flags.has_cron_checkins is False
+
+    with assume_test_silo_mode_of(Project):
+        project1.flags.has_insights_http = True
+        project1.update(flags=F("flags").bitor(Project.flags.has_insights_http))
+        project2.flags.has_insights_http = True
+        project2.update(flags=F("flags").bitor(Project.flags.has_cron_checkins))
+
+    flags = organization_service.get_aggregate_project_flags(organization_id=org.id)
+    assert flags.has_insights_http is True
+    assert flags.has_cron_checkins is True

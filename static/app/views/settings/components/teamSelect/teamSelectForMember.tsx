@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -15,7 +15,7 @@ import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Member, Organization, Team} from 'sentry/types';
+import type {Member, Organization, Team} from 'sentry/types/organization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {RoleOverwritePanelAlert} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
@@ -98,7 +98,6 @@ function TeamSelect({
     <Panel>
       <TeamPanelHeader hasButtons>
         <div>{t('Team')}</div>
-        <div />
         <div>
           <TeamRoleColumnLabel />
         </div>
@@ -151,7 +150,7 @@ function TeamRow({
         </Link>
       </div>
 
-      <div>
+      <div style={{whiteSpace: 'nowrap'}}>
         <TeamRoleSelect
           disabled={disabled}
           size="xs"
@@ -179,7 +178,7 @@ function TeamRow({
 
 const GRID_TEMPLATE = `
   display: grid;
-  grid-template-columns: minmax(100px, 1fr) minmax(0px, 100px) 200px 95px;
+  grid-template-columns: minmax(100px, 1fr) minmax(0px, 100px) 200px;
   gap: ${space(1)};
 
   > div:last-child {

@@ -1,7 +1,7 @@
-""" This module offers the same functionality as sessions_v2, but pulls its data
+"""This module offers the same functionality as sessions_v2, but pulls its data
 from the `metrics` dataset instead of `sessions`.
 
-Do not call this module directly. Use the `release_health` service instead. """
+Do not call this module directly. Use the `release_health` service instead."""
 
 import logging
 from abc import ABC, abstractmethod
@@ -30,6 +30,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.release_health.base import (
     GroupByFieldName,
+    GroupKeyDict,
     ProjectId,
     SessionsQueryFunction,
     SessionsQueryGroup,
@@ -59,13 +60,6 @@ logger = logging.getLogger(__name__)
 
 Scalar = Union[int, float, None]
 
-#: Group key as featured in output format
-GroupKeyDict = TypedDict(
-    "GroupKeyDict",
-    {"project": int, "release": str, "environment": str, "session.status": str},
-    total=False,
-)
-
 
 #: Group key as featured in metrics format
 class MetricsGroupKeyDict(TypedDict, total=False):
@@ -79,6 +73,7 @@ class SessionStatus(Enum):
     CRASHED = "crashed"
     ERRORED = "errored"
     HEALTHY = "healthy"
+    UNHANDLED = "unhandled"
 
 
 ALL_STATUSES = frozenset(iter(SessionStatus))
@@ -123,8 +118,8 @@ class GroupKey:
 
 
 class Group(TypedDict):
-    series: MutableMapping[SessionsQueryFunction, list[SessionsQueryValue]]
-    totals: MutableMapping[SessionsQueryFunction, SessionsQueryValue]
+    series: dict[SessionsQueryFunction, list[SessionsQueryValue]]
+    totals: dict[SessionsQueryFunction, SessionsQueryValue]
 
 
 def default_for(field: SessionsQueryFunction) -> SessionsQueryValue:
@@ -148,14 +143,12 @@ class Field(ABC):
         self.metric_fields = self._get_metric_fields(raw_groupby, status_filter)
 
     @abstractmethod
-    def _get_session_status(self, metric_field: MetricField) -> SessionStatus | None:
-        ...
+    def _get_session_status(self, metric_field: MetricField) -> SessionStatus | None: ...
 
     @abstractmethod
     def _get_metric_fields(
         self, raw_groupby: Sequence[str], status_filter: StatusFilter
-    ) -> Sequence[MetricField]:
-        ...
+    ) -> Sequence[MetricField]: ...
 
     def extract_values(
         self,
@@ -250,6 +243,7 @@ class CountField(Field):
                 self.status_to_metric_field[SessionStatus.ABNORMAL],
                 self.status_to_metric_field[SessionStatus.CRASHED],
                 self.status_to_metric_field[SessionStatus.ERRORED],
+                self.status_to_metric_field[SessionStatus.UNHANDLED],
             ]
         return [self.get_all_field()]
 
@@ -273,6 +267,7 @@ class SumSessionField(CountField):
         SessionStatus.ABNORMAL: MetricField(None, SessionMRI.ABNORMAL.value),
         SessionStatus.CRASHED: MetricField(None, SessionMRI.CRASHED.value),
         SessionStatus.ERRORED: MetricField(None, SessionMRI.ERRORED.value),
+        SessionStatus.UNHANDLED: MetricField(None, SessionMRI.UNHANDLED.value),
         None: MetricField(None, SessionMRI.ALL.value),
     }
 
@@ -306,6 +301,7 @@ class CountUniqueUser(CountField):
         SessionStatus.ABNORMAL: MetricField(None, SessionMRI.ABNORMAL_USER.value),
         SessionStatus.CRASHED: MetricField(None, SessionMRI.CRASHED_USER.value),
         SessionStatus.ERRORED: MetricField(None, SessionMRI.ERRORED_USER.value),
+        SessionStatus.UNHANDLED: MetricField(None, SessionMRI.UNHANDLED_USER.value),
         None: MetricField(None, SessionMRI.ALL_USER.value),
     }
 
@@ -349,6 +345,8 @@ class SimpleForwardingField(Field):
         "crash_free_rate(user)": SessionMRI.CRASH_FREE_USER_RATE,
         "anr_rate()": SessionMRI.ANR_RATE,
         "foreground_anr_rate()": SessionMRI.FOREGROUND_ANR_RATE,
+        "unhandled_rate(session)": SessionMRI.UNHANDLED_RATE,
+        "unhandled_rate(user)": SessionMRI.UNHANDLED_USER_RATE,
     }
 
     def __init__(self, name: str, raw_groupby: Sequence[str], status_filter: StatusFilter):
@@ -387,6 +385,8 @@ FIELD_MAP: Mapping[SessionsQueryFunction, type[Field]] = {
     "crash_free_rate(user)": SimpleForwardingField,
     "anr_rate()": SimpleForwardingField,
     "foreground_anr_rate()": SimpleForwardingField,
+    "unhandled_rate(session)": SimpleForwardingField,
+    "unhandled_rate(user)": SimpleForwardingField,
 }
 PREFLIGHT_QUERY_COLUMNS = {"release.timestamp"}
 VirtualOrderByName = Literal["release.timestamp"]
@@ -587,9 +587,9 @@ def run_sessions_query(
                 # Create entry in default dict:
                 output_groups[GroupKey(session_status=status)]
 
-    result_groups: Sequence[SessionsQueryGroup] = [
+    result_groups: list[SessionsQueryGroup] = [
         # Convert group keys back to dictionaries:
-        {"by": group_key.to_output_dict(), **group}  # type: ignore[typeddict-item]
+        {"by": group_key.to_output_dict(), **group}
         for group_key, group in output_groups.items()
     ]
     result_groups = _order_by_preflight_query_results(
@@ -671,14 +671,14 @@ def _order_by_preflight_query_results(
                 # This could occur for example, when ordering by `-release.timestamp` and
                 # some of the latest releases in Postgres do not have matching data in
                 # metrics dataset
-                group_key_dict = {orderby_field: elem}
+                group_key_dict: GroupKeyDict = {orderby_field: elem}
                 for key in groupby:
                     if key == orderby_field:
                         continue
                     # Added a mypy ignore here because this is a one off as result groups
                     # will never have null group values except when the group exists in the
                     # preflight query but not in the metrics dataset
-                    group_key_dict.update({key: None})  # type: ignore[dict-item]
+                    group_key_dict.update({key: None})
                 result_groups += [{"by": group_key_dict, **default_group_gen_func()}]
 
         # Pop extra groups returned to match request limit
@@ -704,14 +704,16 @@ def _extract_status_filter_from_conditions(
     """Split conditions into metrics conditions and a filter on session.status"""
     if not conditions:
         return conditions, None
-    where, status_filters = zip(*map(_transform_single_condition, conditions))
-    where = [condition for condition in where if condition is not None]
-    status_filters = [f for f in status_filters if f is not None]
-    if status_filters:
-        status_filters = frozenset.intersection(*status_filters)
-    else:
-        status_filters = None
-    return where, status_filters
+    where_values = []
+    status_values = []
+    for condition in conditions:
+        cand_where, cand_status = _transform_single_condition(condition)
+        if cand_where is not None:
+            where_values.append(cand_where)
+        if cand_status is not None:
+            status_values.append(cand_status)
+
+    return where_values, frozenset.intersection(*status_values) if status_values else None
 
 
 def _transform_single_condition(

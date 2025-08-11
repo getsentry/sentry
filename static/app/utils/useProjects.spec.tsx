@@ -10,16 +10,14 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const org = OrganizationFixture();
 function TestContext({children}: {children?: ReactNode}) {
-  return (
-    <OrganizationContext.Provider value={org}>{children}</OrganizationContext.Provider>
-  );
+  return <OrganizationContext value={org}>{children}</OrganizationContext>;
 }
 
 describe('useProjects', function () {
   const mockProjects = [ProjectFixture()];
 
   it('provides projects from the team store', function () {
-    act(() => void ProjectsStore.loadInitialData(mockProjects));
+    act(() => ProjectsStore.loadInitialData(mockProjects));
 
     const {result} = renderHook(useProjects, {wrapper: TestContext});
     const {projects} = result.current;
@@ -28,7 +26,7 @@ describe('useProjects', function () {
   });
 
   it('loads more projects when using onSearch', async function () {
-    act(() => void ProjectsStore.loadInitialData(mockProjects));
+    act(() => ProjectsStore.loadInitialData(mockProjects));
 
     const newProject3 = ProjectFixture({id: '3', slug: 'test-project3'});
     const newProject4 = ProjectFixture({id: '4', slug: 'test-project4'});
@@ -65,7 +63,7 @@ describe('useProjects', function () {
   });
 
   it('provides only the specified slugs', async function () {
-    act(() => void ProjectsStore.loadInitialData(mockProjects));
+    act(() => ProjectsStore.loadInitialData(mockProjects));
 
     const projectFoo = ProjectFixture({id: '3', slug: 'foo'});
     const mockRequest = MockApiClient.addMockResponse({
@@ -82,17 +80,17 @@ describe('useProjects', function () {
     expect(result.current.initiallyLoaded).toBe(false);
     expect(mockRequest).toHaveBeenCalled();
 
-    await waitFor(() => expect(result.current.projects.length).toBe(1));
+    await waitFor(() => expect(result.current.projects).toHaveLength(1));
 
     const {projects} = result.current;
     expect(projects).toEqual(expect.arrayContaining([projectFoo]));
   });
 
   it('only loads slugs when needed', function () {
-    act(() => void ProjectsStore.loadInitialData(mockProjects));
+    act(() => ProjectsStore.loadInitialData(mockProjects));
 
     const {result} = renderHook(useProjects, {
-      initialProps: {slugs: [mockProjects[0].slug]},
+      initialProps: {slugs: [mockProjects[0]!.slug]},
       wrapper: TestContext,
     });
 

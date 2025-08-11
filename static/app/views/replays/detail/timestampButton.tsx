@@ -1,38 +1,69 @@
 import type {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
-import {Tooltip} from 'sentry/components/tooltip';
+import Duration from 'sentry/components/duration/duration';
+import ReplayTooltipTime from 'sentry/components/replays/replayTooltipTime';
 import {IconPlay} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
-import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   startTimestampMs: number;
-  timestampMs: string | number | Date;
+  timestampMs: number;
   className?: string;
-  format?: 'mm:ss' | 'mm:ss.SSS';
   onClick?: (event: MouseEvent) => void;
+  precision?: 'sec' | 'ms';
 };
 
-function TimestampButton({
+export default function TimestampButton({
   className,
-  format = 'mm:ss',
+  precision = 'sec',
   onClick,
   startTimestampMs,
   timestampMs,
 }: Props) {
+  const [prefs] = useReplayPrefs();
+  const timestampType = prefs.timestampType;
+
+  const organization = useOrganization();
+  const analyticsArea = useAnalyticsArea();
+
   return (
-    <Tooltip title={<DateTime seconds date={timestampMs} />} skipWrapper>
+    <Tooltip
+      title={
+        <div>
+          <ReplayTooltipTime
+            timestampMs={timestampMs}
+            startTimestampMs={startTimestampMs}
+          />
+        </div>
+      }
+      skipWrapper
+    >
       <StyledButton
         as={onClick ? 'button' : 'span'}
-        onClick={onClick}
+        onClick={event => {
+          onClick?.(event);
+          trackAnalytics('replay.details-timestamp-button-clicked', {
+            organization,
+            area: analyticsArea,
+          });
+        }}
         className={className}
       >
         <IconPlay size="xs" />
-        {formatReplayDuration(
-          Math.abs(new Date(timestampMs).getTime() - startTimestampMs),
-          format === 'mm:ss.SSS'
+        {timestampType === 'absolute' ? (
+          <DateTime timeOnly seconds date={timestampMs} />
+        ) : (
+          <Duration
+            duration={[Math.abs(timestampMs - startTimestampMs), 'ms']}
+            precision={precision}
+          />
         )}
       </StyledButton>
     </Tooltip>
@@ -53,5 +84,3 @@ const StyledButton = styled('button')`
   padding: 0;
   height: 100%;
 `;
-
-export default TimestampButton;

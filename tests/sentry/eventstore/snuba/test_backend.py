@@ -1,20 +1,23 @@
 from unittest import mock
+from unittest.mock import MagicMock
+
+from snuba_sdk import Column, Condition, Op
 
 from sentry.eventstore.base import Filter
 from sentry.eventstore.models import Event
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import snuba
 from sentry.utils.samples import load_data
 
 
 class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
-        self.two_min_ago = iso_format(before_now(minutes=2))
+        self.min_ago = before_now(minutes=1)
+        self.two_min_ago = before_now(minutes=2)
         self.project1 = self.create_project()
         self.project2 = self.create_project()
 
@@ -24,7 +27,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group1"],
-                "timestamp": self.two_min_ago,
+                "timestamp": self.two_min_ago.isoformat(),
                 "tags": {"foo": "1"},
             },
             project_id=self.project1.id,
@@ -35,7 +38,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group1"],
-                "timestamp": self.min_ago,
+                "timestamp": self.min_ago.isoformat(),
                 "tags": {"foo": "1"},
             },
             project_id=self.project2.id,
@@ -46,15 +49,15 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group2"],
-                "timestamp": self.min_ago,
+                "timestamp": self.min_ago.isoformat(),
                 "tags": {"foo": "1"},
             },
             project_id=self.project2.id,
         )
 
         event_data = load_data("transaction")
-        event_data["timestamp"] = iso_format(before_now(minutes=1))
-        event_data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=1))
+        event_data["timestamp"] = before_now(minutes=1).isoformat()
+        event_data["start_timestamp"] = before_now(minutes=1, seconds=1).isoformat()
         event_data["event_id"] = "d" * 32
 
         self.transaction_event = self.store_event(data=event_data, project_id=self.project1.id)
@@ -63,8 +66,8 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             platform="transaction-n-plus-one",
             fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group3"],
         )
-        event_data_2["timestamp"] = iso_format(before_now(seconds=30))
-        event_data_2["start_timestamp"] = iso_format(before_now(seconds=31))
+        event_data_2["timestamp"] = before_now(seconds=30).isoformat()
+        event_data_2["start_timestamp"] = before_now(seconds=31).isoformat()
         event_data_2["event_id"] = "e" * 32
 
         self.transaction_event_2 = self.create_performance_issue(
@@ -74,27 +77,17 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         event_data_3 = load_data(
             "transaction-n-plus-one", fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group3"]
         )
-        event_data_3["timestamp"] = iso_format(before_now(seconds=30))
-        event_data_3["start_timestamp"] = iso_format(before_now(seconds=31))
+        event_data_3["timestamp"] = before_now(seconds=30).isoformat()
+        event_data_3["start_timestamp"] = before_now(seconds=31).isoformat()
         event_data_3["event_id"] = "f" * 32
 
         self.transaction_event_3 = self.create_performance_issue(
             event_data=event_data_3, project_id=self.project2.id
         )
 
-        """
-        event_data_4 = load_data("transaction")
-        event_data_4["timestamp"] = iso_format(before_now(seconds=30))
-        event_data_4["start_timestamp"] = iso_format(before_now(seconds=31))
-
-        event_data_4["event_id"] = "g" * 32
-
-        self.transaction_event_4 = self.store_event(data=event_data_4, project_id=self.project2.id)
-        """
-
         self.eventstore = SnubaEventStorage()
 
-    def test_get_events(self):
+    def test_get_events(self) -> None:
         events = self.eventstore.get_events(
             filter=Filter(
                 project_ids=[self.project1.id, self.project2.id],
@@ -132,7 +125,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert events[2].event_id == "a" * 32
 
     @mock.patch("sentry.nodestore.get_multi")
-    def test_get_unfetched_events(self, get_multi):
+    def test_get_unfetched_events(self, get_multi: MagicMock) -> None:
         events = self.eventstore.get_unfetched_events(
             filter=Filter(project_ids=[self.project1.id]),
             tenant_ids={"organization_id": 123, "referrer": "r"},
@@ -141,7 +134,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert get_multi.call_count == 0
 
     @mock.patch("sentry.nodestore.get_multi")
-    def test_get_unfetched_transactions(self, get_multi):
+    def test_get_unfetched_transactions(self, get_multi: MagicMock) -> None:
         transactions_proj1 = self.eventstore.get_unfetched_transactions(
             filter=Filter(project_ids=[self.project1.id]),
             tenant_ids={"organization_id": self.project1.organization_id},
@@ -156,7 +149,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert len(transactions_proj2) == 2
         assert get_multi.call_count == 0
 
-    def test_get_event_by_id(self):
+    def test_get_event_by_id(self) -> None:
         # Get valid event
         event = self.eventstore.get_event_by_id(self.project1.id, "a" * 32)
 
@@ -178,13 +171,13 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert event.get_event_type() == "transaction"
         assert event.project_id == self.project2.id
 
-    def test_get_event_by_id_cached(self):
+    def test_get_event_by_id_cached(self) -> None:
         # Simulate getting an event that exists in eventstore but has not yet been written to snuba.
         with mock.patch("sentry.eventstore.snuba.backend.Event") as mock_event:
             dummy_event = Event(
                 project_id=self.project2.id,
                 event_id="1" * 32,
-                data={"something": "hi", "timestamp": self.min_ago, "type": "error"},
+                data={"something": "hi", "timestamp": self.min_ago.isoformat(), "type": "error"},
             )
             mock_event.return_value = dummy_event
             event = self.eventstore.get_event_by_id(self.project2.id, "1" * 32)
@@ -193,7 +186,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         # Now we store the event properly, so it will exist in Snuba.
         self.store_event(
-            data={"event_id": "1" * 32, "timestamp": self.min_ago, "type": "error"},
+            data={"event_id": "1" * 32, "timestamp": self.min_ago.isoformat(), "type": "error"},
             project_id=self.project2.id,
         )
 
@@ -205,14 +198,14 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert event.project_id == self.project2.id
         assert event.group_id == event.group.id
 
-    def test_get_event_beyond_retention(self):
+    def test_get_event_beyond_retention(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "d" * 32,
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group2"],
-                "timestamp": iso_format(before_now(days=14)),
+                "timestamp": before_now(days=14).isoformat(),
                 "tags": {"foo": "1"},
             },
             project_id=self.project2.id,
@@ -222,38 +215,53 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
             assert event is None
 
-    def test_get_adjacent_event_ids(self):
+    def test_get_adjacent_event_ids(self) -> None:
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
+        assert event is not None
 
-        _filter = Filter(project_ids=[self.project1.id, self.project2.id])
+        filter = Filter(project_ids=[self.project1.id, self.project2.id])
 
-        prev_event, next_event = self.eventstore.get_adjacent_event_ids(event, filter=_filter)
+        prev_event, next_event = self.eventstore.get_adjacent_event_ids(event, filter=filter)
 
         assert prev_event == (str(self.project1.id), "a" * 32)
 
         # Events with the same timestamp are sorted by event_id
         assert next_event == (str(self.project2.id), "c" * 32)
 
-        # Returns None if no event
-        prev_event_none, next_event_none = self.eventstore.get_adjacent_event_ids(
-            None, filter=_filter
+        # Returns None if the prev event is outside the start window
+        period_filter = Filter(
+            project_ids=[self.project1.id, self.project2.id],
+            start=self.min_ago,
         )
+        prev_event, next_event = self.eventstore.get_adjacent_event_ids(event, filter=period_filter)
+        assert prev_event is None
+        assert next_event == (str(self.project2.id), "c" * 32)
 
-        assert prev_event_none is None
-        assert next_event_none is None
+        # Returns None if the next event is outside the end window
+        period_filter = Filter(
+            project_ids=[self.project1.id, self.project2.id],
+            end=self.min_ago,
+        )
+        prev_event, next_event = self.eventstore.get_adjacent_event_ids(event, filter=period_filter)
+        assert prev_event == (str(self.project1.id), "a" * 32)
+        assert next_event is None
+
+        # Returns None if no event
+        prev_event, next_event = self.eventstore.get_adjacent_event_ids(None, filter=filter)
+
+        assert prev_event is None
+        assert next_event is None
 
         # Returns None if the query fails for a known reason
         with mock.patch(
             "sentry.utils.snuba.bulk_raw_query", side_effect=snuba.QueryOutsideRetentionError()
         ):
-            prev_event_none, next_event_none = self.eventstore.get_adjacent_event_ids(
-                event, filter=_filter
-            )
+            prev_event, next_event = self.eventstore.get_adjacent_event_ids(event, filter=filter)
 
-        assert prev_event_none is None
-        assert next_event_none is None
+        assert prev_event is None
+        assert next_event is None
 
-    def test_adjacent_event_ids_same_timestamp(self):
+    def test_adjacent_event_ids_same_timestamp(self) -> None:
         project = self.create_project()
 
         event1 = self.store_event(
@@ -262,7 +270,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group"],
-                "timestamp": self.min_ago,
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=project.id,
         )
@@ -272,7 +280,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
                 "type": "default",
                 "platform": "python",
                 "fingerprint": ["group"],
-                "timestamp": self.min_ago,
+                "timestamp": self.min_ago.isoformat(),
             },
             project_id=project.id,
         )
@@ -300,7 +308,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert prev_event == (str(project.id), "a" * 32)
         assert next_event is None
 
-    def test_transaction_get_next_prev_event_id(self):
+    def test_transaction_get_next_prev_event_id(self) -> None:
         group = self.transaction_event_2.group
         _filter = Filter(
             project_ids=[self.project2.id],
@@ -321,3 +329,302 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
 
         assert prev_event is None
         assert next_event == (str(self.project2.id), self.transaction_event_3.event_id)
+
+    def test_get_adjacent_event_ids_snql(self) -> None:
+        project = self.create_project()
+        data = {
+            "type": "default",
+            "platform": "python",
+            "fingerprint": ["group"],
+        }
+        self.store_event(
+            data={**data, "event_id": "a" * 32, "timestamp": before_now(minutes=10).isoformat()},
+            project_id=project.id,
+        )
+        event1 = self.store_event(
+            data={**data, "event_id": "b" * 32, "timestamp": before_now(minutes=4).isoformat()},
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={**data, "event_id": "c" * 32, "timestamp": before_now(minutes=3).isoformat()},
+            project_id=project.id,
+        )
+        event3 = self.store_event(
+            data={**data, "event_id": "d" * 32, "timestamp": before_now(minutes=2).isoformat()},
+            project_id=project.id,
+        )
+        self.store_event(
+            data={**data, "event_id": "e" * 32, "timestamp": before_now(minutes=0).isoformat()},
+            project_id=project.id,
+        )
+
+        # Finds next and previous IDs
+        prev_ids, next_ids = self.eventstore.get_adjacent_event_ids_snql(
+            organization_id=event2.organization.id,
+            project_id=event2.project_id,
+            group_id=event2.group_id,
+            environments=[],
+            event=event2,
+        )
+
+        assert prev_ids == (str(event1.project_id), event1.event_id)
+        assert next_ids == (str(event3.project_id), event3.event_id)
+
+        # Filter previous events that are outside of the start window
+        prev_ids, _ = self.eventstore.get_adjacent_event_ids_snql(
+            organization_id=event1.organization.id,
+            project_id=event1.project_id,
+            group_id=event1.group_id,
+            environments=[],
+            event=event1,
+            start=before_now(minutes=5),
+        )
+        assert prev_ids is None
+
+        # Filter next events that are outside of the end window
+        _, next_ids = self.eventstore.get_adjacent_event_ids_snql(
+            organization_id=event3.organization.id,
+            project_id=event3.project_id,
+            group_id=event3.group_id,
+            environments=[],
+            event=event3,
+            end=before_now(minutes=1),
+        )
+        assert next_ids is None
+
+    def test_get_adjacent_event_ids_snql_order_of_event_ids(self) -> None:
+        project = self.create_project()
+        event1 = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": self.two_min_ago.isoformat(),
+            },
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=project.id,
+        )
+        event3 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": before_now(minutes=0).isoformat(),
+            },
+            project_id=project.id,
+        )
+        prev_ids, next_ids = self.eventstore.get_adjacent_event_ids_snql(
+            organization_id=event2.organization.id,
+            project_id=event2.project_id,
+            group_id=event2.group_id,
+            environments=[],
+            event=event2,
+        )
+
+        assert prev_ids == (str(event1.project_id), event1.event_id)
+        assert next_ids == (str(event3.project_id), event3.event_id)
+
+    def test_adjacent_event_ids_same_timestamp_snql(self) -> None:
+        project = self.create_project()
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=project.id,
+        )
+
+        # the 2 events should be in the same group
+        assert event1.group_id == event2.group_id
+        # the 2 events should have the same timestamp
+        assert event1.datetime == event2.datetime
+
+        prev_ids, next_ids = self.eventstore.get_adjacent_event_ids_snql(
+            organization_id=event1.organization.id,
+            project_id=event1.project_id,
+            group_id=event1.group_id,
+            environments=[],
+            event=event1,
+        )
+
+        assert prev_ids is None
+        assert next_ids == (str(project.id), event2.event_id)
+
+        prev_ids, next_ids = self.eventstore.get_adjacent_event_ids_snql(
+            organization_id=event2.organization.id,
+            project_id=event2.project_id,
+            group_id=event2.group_id,
+            environments=[],
+            event=event2,
+        )
+
+        assert prev_ids == (str(project.id), event1.event_id)
+        assert next_ids is None
+
+    def test_adjacent_event_ids_with_query_conditions(self) -> None:
+        project = self.create_project()
+        event_a = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": self.min_ago.isoformat(),
+                "tags": {"organization.slug": "sentry"},
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=project.id,
+        )
+        event_c = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": self.min_ago.isoformat(),
+                "tags": {"organization.slug": "sentry"},
+            },
+            project_id=project.id,
+        )
+
+        query_conditions = [Condition(Column("tags[organization.slug]"), Op.EQ, "sentry")]
+
+        prev_ids, next_ids = self.eventstore.get_adjacent_event_ids_snql(
+            organization_id=event_a.organization.id,
+            project_id=event_a.project_id,
+            group_id=event_a.group_id,
+            environments=[],
+            event=event_a,
+            conditions=query_conditions,
+        )
+
+        assert prev_ids is None
+        assert next_ids == (str(event_c.project_id), event_c.event_id)
+
+        prev_ids, next_ids = self.eventstore.get_adjacent_event_ids_snql(
+            organization_id=event_c.organization.id,
+            project_id=event_c.project_id,
+            group_id=event_c.group_id,
+            environments=[],
+            event=event_c,
+            conditions=query_conditions,
+        )
+
+        assert prev_ids == (str(event_a.project_id), event_a.event_id)
+        assert next_ids is None
+
+    def test_adjacent_event_ids_with_date_range_conditions(self) -> None:
+        project = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": before_now(hours=1).isoformat(),
+            },
+            project_id=project.id,
+        )
+        event_b = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": before_now(hours=2).isoformat(),
+            },
+            project_id=project.id,
+        )
+        event_c = self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": before_now(hours=3).isoformat(),
+            },
+            project_id=project.id,
+        )
+        event_d = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": before_now(hours=4).isoformat(),
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": before_now(hours=5).isoformat(),
+            },
+            project_id=project.id,
+        )
+
+        # -> E (5h ago), D (4h ago), C (3h ago), B (2h ago), A (1h ago), now
+        date_range_conditions = [
+            Condition(Column("timestamp"), Op.LT, before_now(hours=1.5)),
+            Condition(Column("timestamp"), Op.GT, before_now(hours=4.5)),
+        ]
+
+        prev_ids, next_ids = self.eventstore.get_adjacent_event_ids_snql(
+            organization_id=event_b.organization.id,
+            project_id=event_b.project_id,
+            group_id=event_b.group_id,
+            environments=[],
+            event=event_b,
+            conditions=date_range_conditions,
+        )
+
+        assert prev_ids == (str(event_c.project_id), event_c.event_id)
+        assert next_ids is None
+
+        prev_ids, next_ids = self.eventstore.get_adjacent_event_ids_snql(
+            organization_id=event_d.organization.id,
+            project_id=event_d.project_id,
+            group_id=event_d.group_id,
+            environments=[],
+            event=event_d,
+            conditions=date_range_conditions,
+        )
+
+        assert prev_ids is None
+        assert next_ids == (str(event_c.project_id), event_c.event_id)

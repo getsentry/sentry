@@ -1,3 +1,4 @@
+from django.http import HttpRequest
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -6,12 +7,12 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.serializers.base import serialize
-from sentry.api.serializers.models.user import DetailedSelfUserSerializer
 from sentry.models.organization import Organization
+from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.utils import auth, metrics
 from sentry.utils.hashlib import md5_text
 from sentry.web.forms.accounts import AuthenticationForm
-from sentry.web.frontend.base import OrganizationMixin
+from sentry.web.frontend.base import OrganizationMixin, determine_active_organization
 
 
 @control_silo_endpoint
@@ -23,8 +24,8 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
     # Disable authentication and permission requirements.
     permission_classes = ()
 
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
-        self.determine_active_organization(request)
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> Response:
+        self.active_organization = determine_active_organization(request)
         return super().dispatch(request, *args, **kwargs)
 
     def post(

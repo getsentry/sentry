@@ -5,8 +5,8 @@ from typing import Any
 
 import orjson
 
-from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
+from sentry.integrations.slack.message_builder.types import SlackBlock
 from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import BaseNotification
@@ -34,7 +34,7 @@ class SlackNotificationsMessageBuilder(BlockSlackMessageBuilder):
             self.recipient, ExternalProviders.SLACK
         )
         actions = self.notification.get_message_actions(self.recipient, ExternalProviders.SLACK)
-        callback_id = orjson.dumps(callback_id_raw).decode() if callback_id_raw else None
+        block_id = orjson.dumps(callback_id_raw).decode() if callback_id_raw else None
 
         first_block_text = ""
         if title_link:
@@ -61,6 +61,4 @@ class SlackNotificationsMessageBuilder(BlockSlackMessageBuilder):
         if actions_block:
             blocks.append({"type": "actions", "elements": [action for action in actions_block]})
 
-        return self._build_blocks(
-            *blocks, fallback_text=text if text else None, callback_id=callback_id
-        )
+        return self._build_blocks(*blocks, fallback_text=text if text else None, block_id=block_id)

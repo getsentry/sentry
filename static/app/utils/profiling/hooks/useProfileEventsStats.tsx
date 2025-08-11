@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {transformStatsResponse} from 'sentry/utils/profiling/hooks/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -11,7 +11,6 @@ interface UseProfileEventsStatsOptions<F> {
   dataset: 'discover' | 'profiles' | 'profileFunctions';
   referrer: string;
   yAxes: readonly F[];
-  continuousProfilingCompat?: boolean;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   interval?: string;
@@ -19,7 +18,6 @@ interface UseProfileEventsStatsOptions<F> {
 }
 
 export function useProfileEventsStats<F extends string>({
-  continuousProfilingCompat,
   dataset,
   datetime,
   interval,
@@ -38,11 +36,7 @@ export function useProfileEventsStats<F extends string>({
   }
 
   if (dataset === 'discover') {
-    if (continuousProfilingCompat) {
-      query = `(has:profile.id OR (has:profiler.id has:thread.id)) ${query ? `(${query})` : ''}`;
-    } else {
-      query = `has:profile.id ${query ? `(${query})` : ''}`;
-    }
+    query = `(has:profile.id OR (has:profiler.id has:thread.id)) ${query ? `(${query})` : ''}`;
   }
 
   const path = `/organizations/${organization.slug}/events-stats/`;
@@ -56,6 +50,7 @@ export function useProfileEventsStats<F extends string>({
       yAxis: yAxes,
       interval,
       query,
+      partial: 1,
     },
   };
 

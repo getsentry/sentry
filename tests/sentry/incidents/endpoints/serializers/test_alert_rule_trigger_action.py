@@ -1,11 +1,18 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
+import pytest
 import responses
 
 from sentry.api.serializers import serialize
-from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
+from sentry.incidents.logic import (
+    AlertTarget,
+    InvalidTriggerActionError,
+    create_alert_rule_trigger,
+    create_alert_rule_trigger_action,
+)
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
+from sentry.integrations.discord.client import DISCORD_BASE_URL
 from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.testutils.cases import TestCase
 
@@ -32,7 +39,7 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         assert result["integrationId"] == action.integration_id
         assert result["dateCreated"] == action.date_added
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         alert_rule = self.create_alert_rule()
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
         action = create_alert_rule_trigger_action(
@@ -46,11 +53,10 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         assert result["desc"] == action.target_display
 
     @responses.activate
-    def test_discord(self):
-        base_url: str = "https://discord.com/api/v10"
+    def test_discord(self) -> None:
         responses.add(
             method=responses.GET,
-            url=f"{base_url}/channels/channel-id",
+            url=f"{DISCORD_BASE_URL}/channels/channel-id",
             json={"guild_id": "guild_id", "name": "guild_id", "type": ChannelType.GUILD_TEXT.value},
         )
 
@@ -78,11 +84,10 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         assert str(action.target_display) in result["desc"]
 
     @responses.activate
-    def test_discord_channel_id_none(self):
-        base_url: str = "https://discord.com/api/v10"
+    def test_discord_channel_id_none(self) -> None:
         responses.add(
             method=responses.GET,
-            url=f"{base_url}/channels/None",
+            url=f"{DISCORD_BASE_URL}/channels/None",
             json={
                 "guild_id": "guild_id",
                 "name": "guild_id",
@@ -101,23 +106,20 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
             },
         )
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
-        action = create_alert_rule_trigger_action(
-            trigger,
-            AlertRuleTriggerAction.Type.DISCORD,
-            AlertRuleTriggerAction.TargetType.SPECIFIC,
-            target_identifier=None,
-            integration_id=integration.id,
-        )
-
-        result = serialize(action)
-        self.assert_action_serialized(action, result)
-        assert result["desc"] == "Send a Discord notification to "
+        with pytest.raises(InvalidTriggerActionError):
+            create_alert_rule_trigger_action(
+                trigger,
+                AlertRuleTriggerAction.Type.DISCORD,
+                AlertRuleTriggerAction.TargetType.SPECIFIC,
+                target_identifier=None,
+                integration_id=integration.id,
+            )
 
     @patch(
         "sentry.incidents.logic.get_target_identifier_display_for_integration",
-        return_value=("123", "test"),
+        return_value=AlertTarget("123", "test"),
     )
-    def test_pagerduty_priority(self, mock_get):
+    def test_pagerduty_priority(self, mock_get: MagicMock) -> None:
         alert_rule = self.create_alert_rule()
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
         priority = "critical"
@@ -138,9 +140,9 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
     @responses.activate
     @patch(
         "sentry.incidents.logic.get_alert_rule_trigger_action_opsgenie_team",
-        return_value=("123", "test"),
+        return_value=AlertTarget("123", "test"),
     )
-    def test_opsgenie_priority(self, mock_get):
+    def test_opsgenie_priority(self, mock_get: MagicMock) -> None:
         alert_rule = self.create_alert_rule()
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
         priority = "critical"

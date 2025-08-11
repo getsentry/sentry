@@ -2,22 +2,28 @@ import type {Client} from 'sentry/api';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import type {Group, Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
+import {IssuesSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
+import {
+  ISSUE_FIELD_TO_HEADER_MAP,
+  ISSUE_FIELDS,
+} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
+import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboards/widgetBuilder/issueWidget/utils';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getSortLabel,
   IssueSortOptions,
 } from 'sentry/views/issueList/utils';
-
-import type {Widget, WidgetQuery} from '../types';
-import {DEFAULT_TABLE_LIMIT, DisplayType} from '../types';
-import {IssuesSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
-import {ISSUE_FIELD_TO_HEADER_MAP} from '../widgetBuilder/issueWidget/fields';
-import {generateIssueWidgetFieldOptions} from '../widgetBuilder/issueWidget/utils';
 
 import type {DatasetConfig} from './base';
 
@@ -34,6 +40,11 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
 const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_EXPAND = ['owners'];
 
+const DEFAULT_FIELD: QueryFieldValue = {
+  field: 'issue',
+  kind: FieldValueKind.FIELD,
+};
+
 type EndpointParams = Partial<PageFilters['datetime']> & {
   environment: string[];
   project: number[];
@@ -49,6 +60,7 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
 };
 
 export const IssuesConfig: DatasetConfig<never, Group[]> = {
+  defaultField: DEFAULT_FIELD,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   enableEquations: false,
   disableSortOptions,
@@ -67,7 +79,7 @@ function disableSortOptions(_widgetQuery: WidgetQuery) {
   return {
     disableSort: false,
     disableSortDirection: true,
-    disableSortReason: t('Issues dataset does not yet support descending order'),
+    disableSortReason: t('Issues dataset does not yet support sorting in opposite order'),
   };
 }
 
@@ -108,8 +120,10 @@ export function transformIssuesResponseToTable(
     }) => {
       const transformedResultProps: Omit<TableDataRow, 'id'> = {};
       Object.keys(resultProps)
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         .filter(key => ['number', 'string'].includes(typeof resultProps[key]))
         .forEach(key => {
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           transformedResultProps[key] = resultProps[key];
         });
 
@@ -155,7 +169,11 @@ export function transformIssuesResponseToTable(
       transformedTableResults.push(transformedTableResult);
     }
   );
-  return {data: transformedTableResults} as TableData;
+
+  return {
+    data: transformedTableResults,
+    meta: {fields: ISSUE_FIELDS},
+  };
 }
 
 function getTableRequest(

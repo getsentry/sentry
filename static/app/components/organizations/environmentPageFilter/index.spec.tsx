@@ -46,6 +46,7 @@ describe('EnvironmentPageFilter', function () {
     render(<EnvironmentPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu
@@ -70,14 +71,15 @@ describe('EnvironmentPageFilter', function () {
     render(<EnvironmentPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu
     await userEvent.click(screen.getByRole('button', {name: 'All Envs'}));
 
     // Select prod & stage by clicking on their checkboxes
-    await fireEvent.click(screen.getByRole('checkbox', {name: 'Select prod'}));
-    await fireEvent.click(screen.getByRole('checkbox', {name: 'Select stage'}));
+    fireEvent.click(screen.getByRole('checkbox', {name: 'Select prod'}));
+    fireEvent.click(screen.getByRole('checkbox', {name: 'Select stage'}));
 
     // Click "Apply"
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -94,6 +96,7 @@ describe('EnvironmentPageFilter', function () {
     render(<EnvironmentPageFilter onReset={onReset} />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open the menu, select project-1
@@ -118,6 +121,7 @@ describe('EnvironmentPageFilter', function () {
     render(<EnvironmentPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Confirm initial selection
@@ -160,6 +164,7 @@ describe('EnvironmentPageFilter', function () {
     render(<EnvironmentPageFilter />, {
       router: desyncRouter,
       organization: desyncOrganization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu

@@ -5,7 +5,6 @@ from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
-from sentry.integrations.models.integration import Integration
 from sentry.middleware.integrations.parsers.bitbucket_server import BitbucketServerRequestParser
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.silo.base import SiloMode
@@ -23,16 +22,9 @@ class BitbucketServerRequestParserTest(TestCase):
     region = Region("us", 1, "https://us.testserver", RegionCategory.MULTI_TENANT)
     region_config = (region,)
 
-    def get_integration(self) -> Integration:
-        return self.create_integration(
-            organization=self.organization,
-            external_id="bitbucketserver:1",
-            provider="bitbucket_server",
-        )
-
     @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_routing_webhook(self):
+    def test_routing_webhook(self) -> None:
         region_route = reverse(
             "sentry-extensions-bitbucketserver-webhook",
             kwargs={"organization_id": self.organization.id, "integration_id": self.integration.id},

@@ -1,4 +1,9 @@
-import type {fullSnapshotEvent, incrementalSnapshotEvent, serializedNodeWithId} from 'sentry/utils/replays/types';
+import type {
+  fullSnapshotEvent,
+  incrementalSnapshotEvent,
+  RecordingFrame,
+  serializedNodeWithId,
+} from 'sentry/utils/replays/types';
 import {EventType, NodeType} from 'sentry/utils/replays/types';
 
 interface FullSnapshotEvent extends fullSnapshotEvent {
@@ -23,15 +28,17 @@ export function RRWebInitFrameEventsFixture({
   height?: number;
   href?: string;
   width?: number;
-}) {
+}): RecordingFrame[] {
   return [
     {
       type: EventType.DomContentLoaded,
       timestamp: timestamp.getTime(), // rrweb timestamps are in ms
+      data: {},
     },
     {
       type: EventType.Load,
       timestamp: timestamp.getTime(), // rrweb timestamps are in ms
+      data: {},
     },
     {
       type: EventType.Meta,
@@ -75,14 +82,14 @@ export function RRWebIncrementalSnapshotFrameEventFixture({
   timestamp,
   data,
 }: {
-  timestamp: Date;
   data: incrementalSnapshotEvent['data'];
+  timestamp: Date;
 }): IncrementalSnapshotEvent {
   return {
     type: EventType.IncrementalSnapshot,
     timestamp: timestamp.getTime(),
     data,
-  }
+  };
 }
 
 export function RRWebDOMFrameFixture({

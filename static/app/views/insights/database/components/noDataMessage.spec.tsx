@@ -65,7 +65,7 @@ describe('NoDataMessage', () => {
     await tick(); // There is no visual indicator, this awaits the promise resolve
 
     expect(
-      screen.queryByText(textWithMarkupMatcher('No queries found.'))
+      screen.getByText(textWithMarkupMatcher('No queries found.'))
     ).toBeInTheDocument();
     expect(
       screen.queryByText(
@@ -86,7 +86,7 @@ describe('NoDataMessage', () => {
     await tick(); // There is no visual indicator, this awaits the promise resolve
 
     expect(
-      screen.queryByText(textWithMarkupMatcher('No queries found.'))
+      screen.getByText(textWithMarkupMatcher('No queries found.'))
     ).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -121,7 +121,7 @@ describe('NoDataMessage', () => {
       )
     ).toBeInTheDocument();
 
-    expect(screen.getAllByRole('link')[0]).toHaveAttribute(
+    expect(screen.getAllByRole('link')[1]).toHaveAttribute(
       'href',
       '/organizations/org-slug/projects/awful-api/'
     );

@@ -1,18 +1,20 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
   getCrashReportSDKInstallFirstStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
-import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -39,7 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })->create();`;
 
 const getConfigureSnippet = (params: Params) =>
-  `SENTRY_LARAVEL_DSN=${params.dsn}${
+  `SENTRY_LARAVEL_DSN=${params.dsn.public}${
     params.isPerformanceSelected
       ? `
 # Specify a fixed sample rate
@@ -51,26 +53,33 @@ SENTRY_TRACES_SAMPLE_RATE=1.0`
 # Set a sampling rate for profiling - this is relative to traces_sample_rate
 SENTRY_PROFILES_SAMPLE_RATE=1.0`
       : ''
+  }${
+    params.isLogsSelected
+      ? `
+# Enable logs to be sent to Sentry
+SENTRY_ENABLE_LOGS=true
+# Configure logging to use both file and Sentry
+LOG_CHANNEL=stack
+LOG_STACK=single,sentry_logs`
+      : ''
   }`;
 
-const getMetricsInstallSnippet = () => `
-composer install sentry/sentry-laravel
-
-composer update sentry/sentry-laravel -W`;
-
 const onboarding: OnboardingConfig = {
-  introduction: () =>
-    tct(
-      'This guide is for Laravel 11.0 an up. We also provide instructions for [otherVersionsLink:other versions] as well as [lumenSpecificLink:Lumen-specific instructions].',
-      {
-        otherVersionsLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/" />
-        ),
-        lumenSpecificLink: (
-          <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/lumen/" />
-        ),
-      }
-    ),
+  introduction: () => (
+    <p>
+      {tct(
+        'This guide is for Laravel 11.0 an up. We also provide instructions for [otherVersionsLink:other versions] as well as [lumenSpecificLink:Lumen-specific instructions].',
+        {
+          otherVersionsLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/" />
+          ),
+          lumenSpecificLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/lumen/" />
+          ),
+        }
+      )}
+    </p>
+  ),
   install: (params: Params) => [
     {
       type: StepType.INSTALL,
@@ -121,20 +130,54 @@ const onboarding: OnboardingConfig = {
         {
           description: t('Configure the Sentry DSN with this command:'),
           language: 'shell',
-          code: `php artisan sentry:publish --dsn=${params.dsn}`,
+          code: `php artisan sentry:publish --dsn=${params.dsn.public}`,
         },
         {
           description: tct(
-            'It creates the config file ([sentryPHPCode:config/sentry.php]) and adds the [dsnCode:DSN] to your [envCode:.env] file where you can add further configuration options:',
-            {sentryPHPCode: <code />, dsnCode: <code />, envCode: <code />}
+            'It creates the config file ([code:config/sentry.php]) and adds the [code:DSN] to your [code:.env] file where you can add further configuration options:',
+            {code: <code />}
           ),
           language: 'shell',
           code: getConfigureSnippet(params),
         },
+        ...(params.isLogsSelected
+          ? [
+              {
+                description: tct(
+                  'To configure Sentry as a log channel, add the following config to the [code:channels] section in [code:config/logging.php]. If this file does not exist, run [code:php artisan config:publish logging] to publish it:',
+                  {code: <code />}
+                ),
+                language: 'php',
+                code: `'channels' => [
+    // ...
+    'sentry_logs' => [
+        'driver' => 'sentry_logs',
+        // The minimum logging level at which this handler will be triggered
+        // Available levels: debug, info, notice, warning, error, critical, alert, emergency
+        'level' => env('LOG_LEVEL', 'info'), // defaults to \`debug\` if not set
+    ],
+],`,
+              },
+            ]
+          : []),
+        {
+          description: (
+            <Alert.Container>
+              <Alert type="warning" showIcon={false}>
+                {tct(
+                  'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
+                  {
+                    code: <code />,
+                  }
+                )}
+              </Alert>
+            </Alert.Container>
+          ),
+        },
       ],
     },
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       configurations: [
@@ -148,118 +191,39 @@ const onboarding: OnboardingConfig = {
           language: 'shell',
           code: 'php artisan sentry:test',
         },
+        ...(params.isLogsSelected
+          ? [
+              {
+                description: tct(
+                  "Once you have configured Sentry as a log channel, you can use Laravel's built-in logging functionality to send logs to Sentry:",
+                  {code: <code />}
+                ),
+                language: 'php',
+                code: `use Illuminate\\Support\\Facades\\Log;
+
+// Log to all channels in the stack (including Sentry)
+Log::info('This is an info message');
+Log::warning('User {id} failed to login.', ['id' => $user->id]);
+Log::error('This is an error message');
+
+// Log directly to the Sentry channel
+Log::channel('sentry')->error('This will only go to Sentry');`,
+              },
+              {
+                description: tct(
+                  'You can also test your configuration using the Sentry logger directly:',
+                  {code: <code />}
+                ),
+                language: 'php',
+                code: `\\Sentry\\logger()->info('A test log message');
+\\Sentry\\logger()->flush();`,
+              },
+            ]
+          : []),
       ],
     },
   ],
   nextSteps: () => [],
-};
-
-const customMetricsOnboarding: OnboardingConfig = {
-  install: () => [
-    {
-      type: StepType.INSTALL,
-      description: tct(
-        'You need a minimum version [codeVersionLaravel:4.2.0] of the Laravel SDK and a minimum version [codeVersion:4.3.0] of the PHP SDK installed',
-        {
-          codeVersionLaravel: <code />,
-          codeVersion: <code />,
-        }
-      ),
-      configurations: [
-        {
-          language: 'bash',
-          code: getMetricsInstallSnippet(),
-        },
-      ],
-    },
-  ],
-  configure: () => [
-    {
-      type: StepType.CONFIGURE,
-      description: tct(
-        'Once the SDK is installed or updated, you can enable code locations being emitted with your metrics in your [code:config/sentry.php] file:',
-        {
-          code: <code />,
-        }
-      ),
-      configurations: [
-        {
-          code: [
-            {
-              label: 'PHP',
-              value: 'php',
-              language: 'php',
-              code: `'attach_metric_code_locations' => true,`,
-            },
-          ],
-        },
-      ],
-    },
-  ],
-  verify: () => [
-    {
-      type: StepType.VERIFY,
-      description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges].",
-        {
-          codeCounters: <code />,
-          codeSets: <code />,
-          codeDistribution: <code />,
-          codeGauge: <code />,
-          codeNamespace: <code />,
-        }
-      ),
-      configurations: [
-        {
-          description: metricTagsExplanation,
-        },
-        {
-          description: t('Try out these examples:'),
-          code: [
-            {
-              label: 'Counter',
-              value: 'counter',
-              language: 'php',
-              code: exampleSnippets.php.counter,
-            },
-            {
-              label: 'Distribution',
-              value: 'distribution',
-              language: 'php',
-              code: exampleSnippets.php.distribution,
-            },
-            {
-              label: 'Set',
-              value: 'set',
-              language: 'php',
-              code: exampleSnippets.php.set,
-            },
-            {
-              label: 'Gauge',
-              value: 'gauge',
-              language: 'php',
-              code: exampleSnippets.php.gauge,
-            },
-          ],
-        },
-        {
-          description: t(
-            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
-          ),
-        },
-        {
-          description: tct(
-            'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
-            {
-              docsLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/metrics/" />
-              ),
-            }
-          ),
-        },
-      ],
-    },
-  ],
 };
 
 const crashReportOnboarding: OnboardingConfig = {
@@ -285,7 +249,7 @@ const crashReportOnboarding: OnboardingConfig = {
   @if(app()->bound('sentry') && app('sentry')->getLastEventId())
   <div class="subtitle">Error ID: {{ app('sentry')->getLastEventId() }}</div>
   <script>
-    Sentry.init({ dsn: '${params.dsn}' });
+    Sentry.init({ dsn: '${params.dsn.public}' });
     Sentry.showReportDialog({
       eventId: '{{ app('sentry')->getLastEventId() }}'
     });
@@ -352,11 +316,89 @@ class Handler extends ExceptionHandler
   nextSteps: () => [],
 };
 
+const profilingOnboarding: OnboardingConfig = {
+  introduction: () => (
+    <p>
+      {tct(
+        'This guide is for Laravel 11.0 an up. We also provide instructions for [otherVersionsLink:other versions] as well as [lumenSpecificLink:Lumen-specific instructions].',
+        {
+          otherVersionsLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/" />
+          ),
+          lumenSpecificLink: (
+            <ExternalLink href="https://docs.sentry.io/platforms/php/guides/laravel/other-versions/lumen/" />
+          ),
+        }
+      )}
+    </p>
+  ),
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      configurations: [
+        {
+          description: tct('Install the [code:sentry/sentry-laravel] package:', {
+            code: <code />,
+          }),
+          language: 'bash',
+          code: `composer require sentry/sentry-laravel`,
+        },
+        {
+          description: t('Install the Excimer extension via PECL:'),
+          language: 'bash',
+          code: 'pecl install excimer',
+        },
+        {
+          description: tct(
+            "The Excimer PHP extension supports PHP 7.2 and up. Excimer requires Linux or macOS and doesn't support Windows. For additional ways to install Excimer, see [sentryPhpDocumentationLink: Sentry documentation].",
+            {
+              sentryPhpDocumentationLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/php/profiling/#installation" />
+              ),
+            }
+          ),
+        },
+      ],
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      configurations: [
+        {
+          description: t('Configure the Sentry DSN with this command:'),
+          language: 'shell',
+          code: `php artisan sentry:publish --dsn=${params.dsn.public}`,
+        },
+        {
+          description: tct(
+            'It creates the config file ([code:config/sentry.php]) and adds the [code:DSN] to your [code:.env] file where you can add further configuration options:',
+            {code: <code />}
+          ),
+          language: 'shell',
+          code: getConfigureSnippet(params),
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      description: t(
+        'Verify that profiling is working correctly by simply using your application.'
+      ),
+      configurations: [],
+    },
+  ],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  customMetricsOnboarding,
+  profilingOnboarding,
   crashReportOnboarding,
+  feedbackOnboardingJsLoader,
 };
 
 export default docs;

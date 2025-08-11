@@ -7,8 +7,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
-import RepositoryStore from 'sentry/stores/repositoryStore';
-import type {ReleaseProject} from 'sentry/types';
+import type {ReleaseProject} from 'sentry/types/release';
 import {ReleaseContext} from 'sentry/views/releases/detail';
 
 import Commits from './commits';
@@ -16,14 +15,14 @@ import Commits from './commits';
 describe('Commits', () => {
   const release = ReleaseFixture();
   const project = ReleaseProjectFixture() as Required<ReleaseProject>;
-  const {routerProps, router, organization} = initializeOrg({
+  const {router, organization} = initializeOrg({
     router: {params: {release: release.version}},
   });
   const repos = [RepositoryFixture({integrationId: '1'})];
 
   function renderComponent() {
     return render(
-      <ReleaseContext.Provider
+      <ReleaseContext
         value={{
           release,
           project,
@@ -34,9 +33,12 @@ describe('Commits', () => {
           releaseMeta: {} as any,
         }}
       >
-        <Commits releaseRepos={[]} projectSlug={project.slug} {...routerProps} />
-      </ReleaseContext.Provider>,
-      {router}
+        <Commits />
+      </ReleaseContext>,
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
   }
 
@@ -46,7 +48,12 @@ describe('Commits', () => {
       url: `/organizations/${organization.slug}/repos/`,
       body: repos,
     });
-    RepositoryStore.init();
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/releases/${encodeURIComponent(
+        release.version
+      )}/repositories/`,
+      body: repos,
+    });
   });
 
   it('should render no repositories message', async () => {
@@ -133,7 +140,7 @@ describe('Commits', () => {
       integrationId: '1',
     });
     // Current repo is stored in query parameter activeRepo
-    const {router: newRouterContext, routerProps: newRouterProps} = initializeOrg({
+    const {router: newRouterContext} = initializeOrg({
       router: {
         params: {release: release.version},
         location: {query: {activeRepo: otherRepo.name}},
@@ -157,7 +164,7 @@ describe('Commits', () => {
       ],
     });
     render(
-      <ReleaseContext.Provider
+      <ReleaseContext
         value={{
           release,
           project,
@@ -168,9 +175,12 @@ describe('Commits', () => {
           releaseMeta: {} as any,
         }}
       >
-        <Commits releaseRepos={[]} projectSlug={project.slug} {...newRouterProps} />
-      </ReleaseContext.Provider>,
-      {router: newRouterContext}
+        <Commits />
+      </ReleaseContext>,
+      {
+        router: newRouterContext,
+        deprecatedRouterMocks: true,
+      }
     );
     expect(await screen.findByRole('button')).toHaveTextContent(otherRepo.name);
     expect(screen.queryByText('example/repo-name')).not.toBeInTheDocument();

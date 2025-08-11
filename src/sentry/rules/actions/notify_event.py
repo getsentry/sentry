@@ -29,7 +29,7 @@ class NotifyEventAction(EventAction):
 
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None
-    ) -> Generator[CallbackFuture, None, None]:
+    ) -> Generator[CallbackFuture]:
         group = event.group
 
         for plugin_ in self.get_plugins():
@@ -38,5 +38,12 @@ class NotifyEventAction(EventAction):
             if not safe_execute(plugin.should_notify, group=group, event=event):
                 continue
 
-            metrics.incr("notifications.sent", instance=plugin.slug, skip_internal=False)
+            metrics.incr(
+                "notifications.sent",
+                instance=plugin.slug,
+                tags={
+                    "issue_type": event.group.issue_type.slug,
+                },
+                skip_internal=False,
+            )
             yield self.future(plugin.rule_notify)

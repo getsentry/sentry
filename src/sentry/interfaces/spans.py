@@ -58,7 +58,7 @@ class Spans(Interface):
 
     @classmethod
     def to_python(cls, data, **kwargs):
-        spans = [Span.to_python_subpath(data, [i], **kwargs) for i, span in enumerate(data)]
+        spans = [Span.to_python(data[i], **kwargs) for i, span in enumerate(data)]
         return super().to_python({"spans": spans}, **kwargs)
 
     def __iter__(self):

@@ -14,13 +14,12 @@ from slack_sdk.web import SlackResponse
 from slack_sdk.webhook import WebhookResponse
 
 from sentry import options
-from sentry.integrations.slack.utils import set_signing_secret
+from sentry.integrations.slack.utils.auth import set_signing_secret
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.models.identity import Identity
 from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.helpers import find_identity, install_slack, link_team, link_user
+from sentry.testutils.helpers import install_slack, link_team, link_user
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -28,7 +27,7 @@ class SlackCommandsTest(APITestCase, TestCase):
     endpoint = "sentry-integration-slack-commands"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.slack_id = "UXXXXXXX1"
@@ -57,9 +56,6 @@ class SlackCommandsTest(APITestCase, TestCase):
             }
         )
         return orjson.loads(response.content)
-
-    def find_identity(self) -> Identity | None:
-        return find_identity(idp=self.idp, user=self.user)
 
     def link_user(self) -> None:
         return link_user(user=self.user, idp=self.idp, slack_id=self.slack_id)

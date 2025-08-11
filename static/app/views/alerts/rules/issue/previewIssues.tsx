@@ -2,16 +2,17 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import ListItem from 'sentry/components/list/listItem';
 import type {CursorHandler} from 'sentry/components/pagination';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import type {Member, Project} from 'sentry/types';
 import type {IssueAlertRule, UnsavedIssueAlertRule} from 'sentry/types/alerts';
+import type {Member} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,7 +22,7 @@ import PreviewTable from './previewTable';
 const SENTRY_ISSUE_ALERT_DOCS_URL =
   'https://docs.sentry.io/product/alerts/alert-types/#issue-alerts';
 
-function PreviewText({issueCount, previewError}) {
+function PreviewText({issueCount, previewError}: any) {
   if (previewError) {
     return (
       <Fragment>
@@ -114,7 +115,7 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
 
           const hits = resp?.getResponseHeader('X-Hits');
           const count = typeof hits !== 'undefined' && hits ? parseInt(hits, 10) : 0;
-          setPreviewGroups(data.map(g => g.id));
+          setPreviewGroups(data.map((g: any) => g.id));
           setPreviewError(false);
           setPageLinks(resp?.getResponseHeader('Link') ?? '');
           setIssueCount(count);
@@ -194,7 +195,7 @@ export function PreviewIssues({members, rule, project}: PreviewIssuesProps) {
 
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const StepHeader = styled('h5')`
@@ -203,13 +204,13 @@ const StepHeader = styled('h5')`
 
 const StyledFieldHelp = styled(FieldHelp)`
   margin-top: 0;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     margin-left: -${space(4)};
   }
 `;
 
 const ContentIndent = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     margin-left: ${space(4)};
   }
 `;

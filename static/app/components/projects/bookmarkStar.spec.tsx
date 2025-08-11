@@ -7,22 +7,14 @@ import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 describe('BookmarkStar', function () {
-  const project = ProjectFixture();
-
-  beforeEach(function () {
-    ProjectsStore.loadInitialData([project]);
-  });
-
   afterEach(function () {
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', function () {
-    render(<BookmarkStar organization={OrganizationFixture()} project={project} />);
-  });
-
   it('can star', async function () {
+    const project = ProjectFixture();
+    ProjectsStore.loadInitialData([project]);
     render(<BookmarkStar organization={OrganizationFixture()} project={project} />);
 
     const projectMock = MockApiClient.addMockResponse({
@@ -46,12 +38,9 @@ describe('BookmarkStar', function () {
   });
 
   it('can unstar', async function () {
-    render(
-      <BookmarkStar
-        organization={OrganizationFixture()}
-        project={ProjectFixture({isBookmarked: true})}
-      />
-    );
+    const project = ProjectFixture({isBookmarked: true});
+    ProjectsStore.loadInitialData([project]);
+    render(<BookmarkStar organization={OrganizationFixture()} project={project} />);
 
     const projectMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',

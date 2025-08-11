@@ -70,7 +70,7 @@ describe('memoizeByReference', () => {
     const _discard = memoized(1);
     const result = memoized(2);
 
-    expect(result).toEqual(2);
+    expect(result).toBe(2);
     expect(fn).toHaveBeenCalledTimes(2);
   });
 });

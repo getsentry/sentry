@@ -1,6 +1,9 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import PlatformPicker from 'sentry/components/platformPicker';
+import {gaming} from 'sentry/data/platformCategories';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/utils/analytics');
@@ -58,7 +61,7 @@ describe('PlatformPicker', function () {
   it('should clear the platform when clear is clicked', async function () {
     const props = {
       ...baseProps,
-      platform: 'java',
+      platform: 'javascript-react',
       setPlatform: jest.fn(),
     };
 
@@ -69,41 +72,35 @@ describe('PlatformPicker', function () {
   });
 
   it('platforms shall be sorted alphabetically', function () {
-    render(<PlatformPicker setPlatform={jest.fn()} defaultCategory="popular" />);
+    render(<PlatformPicker setPlatform={jest.fn()} defaultCategory="browser" />);
 
     const alphabeticallyOrderedPlatformNames = [
-      'Android',
       'Angular',
-      'ASP.NET Core',
+      'Astro',
       'Browser JavaScript',
-      'Django',
-      'Express',
-      'FastAPI',
-      'Flask',
+      'Dart',
+      'Ember',
       'Flutter',
-      'Go',
-      'iOS',
-      'Java',
-      'Laravel',
-      'Nest.js',
+      'Gatsby',
       'Next.js',
-      'Node.js',
-      'PHP',
-      'Python',
-      'Rails',
+      'Nuxt',
       'React',
       'React Native',
-      'Ruby',
-      'Spring Boot',
+      'React Router Framework',
+      'Remix',
+      'Solid',
+      'SolidStart',
+      'Svelte',
+      'SvelteKit',
+      'TanStack Start React',
       'Unity',
       'Vue',
-      '.NET',
     ];
 
     const platformNames = screen.getAllByRole('heading', {level: 3});
 
     platformNames.forEach((platform, index) => {
-      expect(platform).toHaveTextContent(alphabeticallyOrderedPlatformNames[index]);
+      expect(platform).toHaveTextContent(alphabeticallyOrderedPlatformNames[index]!);
     });
   });
 
@@ -120,5 +117,38 @@ describe('PlatformPicker', function () {
     await userEvent.type(screen.getByRole('textbox'), 'er');
 
     expect(screen.getByTestId('platform-other')).toBeInTheDocument();
+  });
+
+  it('shows gaming tab and consoles when the feature flag is enabled', async function () {
+    render(
+      <PlatformPicker
+        setPlatform={jest.fn()}
+        organization={OrganizationFixture({
+          features: ['project-creation-games-tab'],
+        })}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Gaming'}));
+
+    for (const platform of gaming) {
+      expect(screen.getByTestId(`platform-${platform}`)).toBeInTheDocument();
+    }
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Browser'}));
+
+    await userEvent.type(screen.getByPlaceholderText('Filter Platforms'), 'play');
+
+    expect(screen.getByTestId(`platform-playstation`)).toBeInTheDocument();
+  });
+
+  it('does not show gaming tab when feature flag is disabled', async function () {
+    render(<PlatformPicker setPlatform={jest.fn()} />);
+
+    expect(screen.queryByRole('tab', {name: 'Gaming'})).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByPlaceholderText('Filter Platforms'), 'play');
+
+    expect(screen.queryByTestId(`platform-playstation`)).not.toBeInTheDocument();
   });
 });

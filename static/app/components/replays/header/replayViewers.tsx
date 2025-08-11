@@ -1,4 +1,4 @@
-import AvatarList from 'sentry/components/avatar/avatarList';
+import AvatarList from 'sentry/components/core/avatar/avatarList';
 import Placeholder from 'sentry/components/placeholder';
 import type {User} from 'sentry/types/user';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -24,11 +24,11 @@ export default function ReplayViewers({projectId, replayId}: Props) {
   const projectSlug = project?.slug;
   const url = `/projects/${organization.slug}/${projectSlug}/replays/${replayId}/viewed-by/`;
 
-  const {data, isError, isLoading} = useApiQuery<TResponseData>([url], {
+  const {data, isError, isPending} = useApiQuery<TResponseData>([url], {
     staleTime: 0,
   });
 
-  return isLoading || isError ? (
+  return isPending || isError ? (
     <Placeholder width="55px" height="27px" />
   ) : (
     <AvatarList avatarSize={25} users={data?.data.viewed_by} />

@@ -1,23 +1,33 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {FunctionName} from 'sentry/components/events/interfaces/frame/functionName';
+import GroupingIndicator from 'sentry/components/events/interfaces/frame/groupingIndicator';
+import {
+  getPlatform,
+  isDotnet,
+  trimPackage,
+} from 'sentry/components/events/interfaces/frame/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {Tooltip} from 'sentry/components/tooltip';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import Truncate from 'sentry/components/truncate';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Frame, Meta, PlatformKey} from 'sentry/types';
+import type {Frame} from 'sentry/types/event';
+import type {Meta} from 'sentry/types/group';
+import type {PlatformKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
 
-import {FunctionName} from '../functionName';
-import GroupingIndicator from '../groupingIndicator';
-import {getPlatform, isDotnet, trimPackage} from '../utils';
-
-import OriginalSourceInfo from './originalSourceInfo';
+/**
+ * File paths can get very long, so increase it for the tooltips within this component.
+ */
+export const FRAME_TOOLTIP_MAX_WIDTH = 750;
 
 type Props = {
   frame: Frame;
@@ -26,6 +36,10 @@ type Props = {
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
+  /**
+   * Determines if the frame potentially originates from a third party
+   */
+  isPotentiallyThirdParty?: boolean;
   isUsedForGrouping?: boolean;
   meta?: Record<any, any>;
 };
@@ -38,13 +52,18 @@ function DefaultTitle({
   isHoverPreviewed,
   isUsedForGrouping,
   meta,
+  isPotentiallyThirdParty,
 }: Props) {
-  const title: Array<React.ReactElement> = [];
+  const title: React.ReactElement[] = [];
   const framePlatform = getPlatform(frame.platform, platform);
   const tooltipDelay = isHoverPreviewed ? SLOW_TOOLTIP_DELAY : undefined;
 
   const handleExternalLink = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.stopPropagation();
+    if (isPotentiallyThirdParty && frame.absPath && isUrl(frame.absPath)) {
+      event.preventDefault();
+      openNavigateToExternalLinkModal({linkText: frame.absPath});
+    }
   };
 
   const getModule = (): GetPathNameOutput | undefined => {
@@ -108,9 +127,13 @@ function DefaultTitle({
           title={frame.absPath}
           disabled={!enablePathTooltip}
           delay={tooltipDelay}
+          maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
+          position="auto-start"
         >
           <code key="filename" className="filename" data-test-id="filename">
-            {!!pathNameOrModule.meta && !pathNameOrModule.value ? (
+            {isPotentiallyThirdParty && frame.absPath ? (
+              <Truncate value={frame.absPath} maxLength={100} leftTrim />
+            ) : !!pathNameOrModule.meta && !pathNameOrModule.value ? (
               <AnnotatedText
                 value={pathNameOrModule.value}
                 meta={pathNameOrModule.meta}
@@ -127,7 +150,13 @@ function DefaultTitle({
     // we want to show a litle (?) icon that on hover shows the actual filename
     if (shouldPrioritizeModuleName && frame.filename) {
       title.push(
-        <Tooltip key={frame.filename} title={frame.filename} delay={tooltipDelay}>
+        <Tooltip
+          key={frame.filename}
+          title={frame.filename}
+          delay={tooltipDelay}
+          maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
+          position="auto-start"
+        >
           <a className="in-at real-filename">
             <IconQuestion size="xs" />
           </a>
@@ -192,17 +221,25 @@ function DefaultTitle({
     );
   }
 
-  if (defined(frame.origAbsPath)) {
+  if (defined(frame.origAbsPath) && (frame.mapUrl || frame.map)) {
+    const text = (frame.mapUrl ?? frame.map) as string;
     title.push(
-      <Tooltip
+      <StyledQuestionTooltip
         key="info-tooltip"
-        title={<OriginalSourceInfo mapUrl={frame.mapUrl} map={frame.map} />}
+        isHoverable
+        size="xs"
         delay={tooltipDelay}
-      >
-        <a className="in-at original-src">
-          <IconQuestion size="xs" />
-        </a>
-      </Tooltip>
+        overlayStyle={{maxWidth: 400, wordBreak: 'break-all'}}
+        skipWrapper
+        title={
+          <Fragment>
+            <div>
+              <strong>{t('Source Map')}</strong>
+            </div>
+            {text}
+          </Fragment>
+        }
+      />
     );
   }
 
@@ -228,4 +265,8 @@ const InFramePosition = styled('span')`
 
 const StyledGroupingIndicator = styled(GroupingIndicator)`
   margin-left: ${space(0.75)};
+`;
+
+const StyledQuestionTooltip = styled(QuestionTooltip)`
+  margin-left: ${space(0.5)};
 `;

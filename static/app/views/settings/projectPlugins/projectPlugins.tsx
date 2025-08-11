@@ -1,8 +1,7 @@
 import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
 
 import Access from 'sentry/components/acl/access';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
@@ -11,6 +10,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct} from 'sentry/locale';
 import type {Plugin} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import RouteError from 'sentry/views/routeError';
@@ -24,7 +24,7 @@ type Props = {
   organization: Organization;
   plugins: Plugin[];
   project: Project;
-} & RouteComponentProps<{}, {}>;
+} & RouteComponentProps;
 
 class ProjectPlugins extends Component<Props> {
   render() {
@@ -55,7 +55,9 @@ class ProjectPlugins extends Component<Props> {
                   ? tct(
                       "Legacy Integrations must be configured per-project. It's recommended to prefer organization integrations over the legacy project integrations when available. Visit the [link:organization integrations] settings to manage them.",
                       {
-                        link: <Link to={`/settings/${organization.slug}/integrations`} />,
+                        link: (
+                          <Link to={`/settings/${organization.slug}/integrations/`} />
+                        ),
                       }
                     )
                   : t(

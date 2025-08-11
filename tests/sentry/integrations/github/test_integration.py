@@ -4,39 +4,56 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Any
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import ANY, MagicMock, patch
 from urllib.parse import urlencode, urlparse
 
 import orjson
 import pytest
 import responses
+from django.http import HttpResponse
 from django.urls import reverse
 
 import sentry
 from fixtures.github import INSTALLATION_EVENT_EXAMPLE
 from sentry.constants import ObjectStatus
-from sentry.integrations.github import (
+from sentry.integrations.github import client
+from sentry.integrations.github import integration as github_integration
+from sentry.integrations.github.client import MINIMUM_REQUESTS, GithubSetupApiClient
+from sentry.integrations.github.integration import (
     API_ERRORS,
-    MINIMUM_REQUESTS,
+    GitHubInstallationError,
+    GitHubIntegration,
     GitHubIntegrationProvider,
-    client,
+    OAuthLoginView,
 )
-from sentry.integrations.github.integration import GitHubIntegration
-from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.utils.code_mapping import Repo, RepoTree
+from sentry.integrations.source_code_management.commit_context import (
+    CommitInfo,
+    FileBlameInfo,
+    SourceLineInfo,
+)
+from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.organizations.absolute_url import generate_organization_url
+from sentry.organizations.services.organization import organization_service
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import (
+    assert_count_of_metric,
+    assert_failure_metric,
+    assert_success_metric,
+)
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils.cache import cache
 
 TREE_RESPONSES = {
@@ -89,7 +106,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.installation_id = "install_1"
@@ -111,6 +128,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
         with mock.patch.object(client, "get_jwt", return_value="jwt_token_1"):
             yield
 
+    @pytest.fixture(autouse=True)
+    def stub_get_jwt_function(self):
+        with mock.patch("sentry.integrations.github.utils.get_jwt", return_value="jwt_token_1"):
+            yield
+
     def _stub_github(self):
         """This stubs the calls related to a Github App"""
         self.gh_org = "Test-Organization"
@@ -128,11 +150,23 @@ class GitHubIntegrationTest(IntegrationTestCase):
         responses.add(
             responses.POST,
             self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
-            json={"token": self.access_token, "expires_at": self.expires_at},
+            json={
+                "token": self.access_token,
+                "expires_at": self.expires_at,
+                "permissions": {
+                    "administration": "read",
+                    "contents": "read",
+                    "issues": "write",
+                    "metadata": "read",
+                    "pull_requests": "read",
+                },
+                "repository_selection": "all",
+            },
         )
 
         repositories: dict[str, Any] = {
             "xyz": {
+                "name": "xyz",
                 "full_name": "Test-Organization/xyz",
                 "default_branch": "master",
             },
@@ -206,6 +240,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 "id": self.installation_id,
                 "app_id": self.app_id,
                 "account": {
+                    "id": 60591805,
                     "login": "Test Organization",
                     "avatar_url": "http://example.com/avatar.png",
                     "html_url": "https://github.com/Test-Organization",
@@ -215,6 +250,42 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         responses.add(responses.GET, self.base_url + "/repos/Test-Organization/foo/hooks", json=[])
+
+        # Mock response from GH /users/memberships endpoint
+        # (what is this user's role in each org, with this integration installed on)
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/user/memberships/orgs",
+            json=[
+                {
+                    "state": "active",
+                    "role": "admin",
+                    "organization": {
+                        "login": "santry",
+                        "id": 1,
+                        "avatar_url": "https://all-the.bufo.zone/bufo-adding-bugs-to-the-code.gif",
+                    },
+                },
+                {
+                    "state": "disabled",
+                    "role": "admin",
+                    "organization": {
+                        "login": "bufo-bot",
+                        "id": 2,
+                        "avatar_url": "https://all-the.bufo.zone/bufo-achieving-coding-flow.png",
+                    },
+                },
+                {
+                    "state": "active",
+                    "role": "member",
+                    "organization": {
+                        "login": "poggers-org",
+                        "id": 3,
+                        "avatar_url": "https://all-the.bufo.zone/bufo-bonk.png",
+                    },
+                },
+            ],
+        )
 
         # Logic to get a tree for a repo
         # https://api.github.com/repos/getsentry/sentry/git/trees/master?recursive=1
@@ -226,7 +297,42 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 status=values["status_code"],
             )
 
+    def _setup_with_existing_installations(self):
+        self.installation_info = {
+            "installations": [
+                {
+                    "id": 1,
+                    "target_type": "Organization",
+                    "account": {
+                        "login": "santry",
+                        "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+                    },
+                },
+                {
+                    "id": 2,
+                    "target_type": "User",
+                    "account": {
+                        "login": "bufo-bot",
+                        "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+                    },
+                },
+            ]
+        }
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/user/installations",
+            json=self.installation_info,
+        )
+
+    def _setup_without_existing_installations(self):
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/user/installations",
+            json={"installations": []},
+        )
+
     def assert_setup_flow(self):
+
         resp = self.client.get(self.init_path)
         assert resp.status_code == 302
         redirect = urlparse(resp["Location"])
@@ -235,15 +341,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert redirect.path == "/login/oauth/authorize"
         assert (
             redirect.query
-            == "client_id=github-client-id&state=9cae5e88803f35ed7970fc131e6e65d3&redirect_uri=http://testserver/extensions/github/setup/"
+            == f"client_id=github-client-id&state={self.pipeline.signature}&redirect_uri=http://testserver/extensions/github/setup/"
         )
-
         resp = self.client.get(
             "{}?{}".format(
                 self.setup_path,
-                urlencode(
-                    {"code": "12345678901234567890", "state": "9cae5e88803f35ed7970fc131e6e65d3"}
-                ),
+                urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
             )
         )
         assert resp.status_code == 302
@@ -256,7 +359,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         resp = self.client.get(
             "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
         )
-
+        # Call to the Github installations/installation_id endpoint
         auth_header = responses.calls[2].request.headers["Authorization"]
         assert auth_header == "Bearer jwt_token_1"
 
@@ -264,7 +367,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         return resp
 
     @responses.activate
-    def test_plugin_migration(self):
+    def test_plugin_migration(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             accessible_repo = Repository.objects.create(
                 organization_id=self.organization.id,
@@ -295,7 +398,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
 
     @responses.activate
-    def test_basic_flow(self):
+    def test_basic_flow(self) -> None:
         with self.tasks():
             self.assert_setup_flow()
 
@@ -310,6 +413,14 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "icon": "http://example.com/avatar.png",
             "domain_name": "github.com/Test-Organization",
             "account_type": "Organization",
+            "account_id": 60591805,
+            "permissions": {
+                "administration": "read",
+                "contents": "read",
+                "issues": "write",
+                "metadata": "read",
+                "pull_requests": "read",
+            },
         }
         oi = OrganizationIntegration.objects.get(
             integration=integration, organization_id=self.organization.id
@@ -317,7 +428,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert oi.config == {}
 
     @responses.activate
-    def test_github_installed_on_another_org(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_github_installed_on_another_org(self, mock_record: MagicMock) -> None:
         self._stub_github()
         # First installation should be successful
         self.assert_setup_flow()
@@ -337,10 +449,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
         self.setup_path_2 = "{}?{}".format(
             self.setup_path,
-            urlencode(
-                {"code": "12345678901234567890", "state": "9cae5e88803f35ed7970fc131e6e65d3"}
-            ),
+            urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
         )
+        mock_record.reset_mock()
         with self.feature({"system:multi-region": True}):
             resp = self.client.get(self.init_path_2)
             resp = self.client.get(self.setup_path_2)
@@ -358,6 +469,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 f', "{generate_organization_url(self.organization_2.slug)}");'.encode()
                 in resp.content
             )
+            assert_failure_metric(mock_record, GitHubInstallationError.INSTALLATION_EXISTS)
 
         # Delete the Integration
         integration = Integration.objects.get(external_id=self.installation_id)
@@ -379,7 +491,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ).exists()
 
     @responses.activate
-    def test_installation_not_found(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_installation_not_found(self, mock_record: MagicMock) -> None:
         # Add a 404 for an org to responses
         responses.replace(
             responses.GET, self.base_url + f"/app/installations/{self.installation_id}", status=404
@@ -396,12 +509,15 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 ),
             )
         )
-        assert b"Invalid installation request." in resp.content
+        assert b"Invalid state" in resp.content
+        assert_failure_metric(mock_record, GitHubInstallationError.INVALID_STATE)
 
     @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @override_options({"github-app.webhook-secret": ""})
-    def test_github_user_mismatch(self):
+    def test_github_user_mismatch(self, mock_record: MagicMock) -> None:
         self._stub_github()
+        self._setup_without_existing_installations()
 
         # Emulate GitHub installation
         init_path_1 = "{}?{}".format(
@@ -445,9 +561,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
         setup_path_2 = "{}?{}".format(
             self.setup_path,
-            urlencode(
-                {"code": "12345678901234567890", "state": "9cae5e88803f35ed7970fc131e6e65d3"}
-            ),
+            urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
         )
         with self.feature({"system:multi-region": True}):
             resp = self.client.get(init_path_2)
@@ -455,10 +569,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
             assert resp.status_code == 200
             assert b'window.opener.postMessage({"success":false' in resp.content
-            assert b"Invalid installation request." in resp.content
+            assert b"Authenticated user is not the same as who installed the app" in resp.content
+            assert_failure_metric(mock_record, GitHubInstallationError.USER_MISMATCH)
 
     @responses.activate
-    def test_disable_plugin_when_fully_migrated(self):
+    def test_disable_plugin_when_fully_migrated(self) -> None:
         self._stub_github()
 
         with assume_test_silo_mode(SiloMode.REGION):
@@ -487,11 +602,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert "github" not in [p.slug for p in plugins.for_project(project)]
 
     @responses.activate
-    def test_get_repositories_search_param(self):
+    def test_get_repositories_search_param(self) -> None:
         with self.tasks():
             self.assert_setup_flow()
 
-        querystring = urlencode({"q": "org:Test Organization ex"})
+        querystring = urlencode({"q": "fork:true org:Test Organization ex"})
         responses.add(
             responses.GET,
             f"{self.base_url}/search/repositories?{querystring}",
@@ -514,26 +629,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ]
 
     @responses.activate
-    def test_get_repositories_all_and_pagination(self):
-        """Fetch all repositories and test the pagination logic."""
-        with self.tasks():
-            self.assert_setup_flow()
-
-        integration = Integration.objects.get(provider=self.provider.key)
-        installation = get_installation_of_type(
-            GitHubIntegration, integration, self.organization.id
-        )
-
-        with patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1):
-            result = installation.get_repositories(fetch_max_pages=True)
-            assert result == [
-                {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
-                {"name": "bar", "identifier": "Test-Organization/bar", "default_branch": "main"},
-                {"name": "baz", "identifier": "Test-Organization/baz", "default_branch": "master"},
-            ]
-
-    @responses.activate
-    def test_get_repositories_only_first_page(self):
+    def test_get_repositories_all_and_pagination(self) -> None:
         """Fetch all repositories and test the pagination logic."""
         with self.tasks():
             self.assert_setup_flow()
@@ -547,10 +643,34 @@ class GitHubIntegrationTest(IntegrationTestCase):
             result = installation.get_repositories()
             assert result == [
                 {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
+                {"name": "bar", "identifier": "Test-Organization/bar", "default_branch": "main"},
+                {"name": "baz", "identifier": "Test-Organization/baz", "default_branch": "master"},
             ]
 
     @responses.activate
-    def test_get_stacktrace_link_file_exists(self):
+    def test_get_repositories_only_first_page(self) -> None:
+        """Fetch all repositories and test the pagination logic."""
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        with (
+            patch.object(
+                sentry.integrations.github.client.GitHubBaseClient, "page_number_limit", 1
+            ),
+            patch.object(sentry.integrations.github.client.GitHubBaseClient, "page_size", 1),
+        ):
+            result = installation.get_repositories()
+            assert result == [
+                {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
+            ]
+
+    @responses.activate
+    def test_get_stacktrace_link_file_exists(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         with assume_test_silo_mode(SiloMode.REGION):
@@ -579,7 +699,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert result == "https://github.com/Test-Organization/foo/blob/1234567/README.md"
 
     @responses.activate
-    def test_get_stacktrace_link_file_doesnt_exists(self):
+    def test_get_stacktrace_link_file_doesnt_exists(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
@@ -609,40 +729,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert not result
 
     @responses.activate
-    def test_get_stacktrace_link_no_org_integration(self):
-        self.assert_setup_flow()
-        integration = Integration.objects.get(provider=self.provider.key)
-
-        with assume_test_silo_mode(SiloMode.REGION):
-            repo = Repository.objects.create(
-                organization_id=self.organization.id,
-                name="Test-Organization/foo",
-                url="https://github.com/Test-Organization/foo",
-                provider="integrations:github",
-                external_id=123,
-                config={"name": "Test-Organization/foo"},
-                integration_id=integration.id,
-            )
-        path = "README.md"
-        version = "master"
-        default = "master"
-        responses.add(
-            responses.HEAD,
-            self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
-            status=404,
-        )
-        OrganizationIntegration.objects.get(
-            integration=integration, organization_id=self.organization.id
-        ).delete()
-        installation = get_installation_of_type(
-            GitHubIntegration, integration, self.organization.id
-        )
-        result = installation.get_stacktrace_link(repo, path, default, version)
-
-        assert not result
-
-    @responses.activate
-    def test_get_stacktrace_link_use_default_if_version_404(self):
+    def test_get_stacktrace_link_use_default_if_version_404(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
@@ -676,7 +763,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert result == "https://github.com/Test-Organization/foo/blob/master/README.md"
 
     @responses.activate
-    def test_get_message_from_error(self):
+    def test_get_message_from_error(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         installation = get_installation_of_type(
@@ -697,7 +784,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
     @responses.activate
-    def test_github_prevent_install_until_pending_deletion_is_complete(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_github_prevent_install_until_pending_deletion_is_complete(
+        self, mock_record: MagicMock
+    ) -> None:
         self._stub_github()
         # First installation should be successful
         self.assert_setup_flow()
@@ -714,6 +804,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         self._stub_github()
 
+        mock_record.reset_mock()
         with self.feature({"system:multi-region": True}):
             resp = self.client.get(
                 "{}?{}".format(self.init_path, urlencode({"installation_id": self.installation_id}))
@@ -724,7 +815,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                     urlencode(
                         {
                             "code": "12345678901234567890",
-                            "state": "9cae5e88803f35ed7970fc131e6e65d3",
+                            "state": self.pipeline.signature,
                         }
                     ),
                 )
@@ -742,6 +833,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
             in resp.content
         )
 
+        assert_failure_metric(mock_record, GitHubInstallationError.PENDING_DELETION)
+
         # Delete the original Integration
         oi.delete()
         integration.delete()
@@ -753,9 +846,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         resp = self.client.get(
             "{}?{}".format(
                 self.setup_path,
-                urlencode(
-                    {"code": "12345678901234567890", "state": "9cae5e88803f35ed7970fc131e6e65d3"}
-                ),
+                urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
             )
         )
         self.assertDialogSuccess(resp)
@@ -809,7 +900,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
             ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
         ]
         for repo, branch, files in list:
-            result[f"{self.gh_org}/{repo}"] = RepoTree(Repo(f"{self.gh_org}/{repo}", branch), files)
+            result[f"{self.gh_org}/{repo}"] = RepoTree(
+                RepoAndBranch(f"{self.gh_org}/{repo}", branch), files
+            )
         return result
 
     def _expected_cached_repos(self):
@@ -821,13 +914,13 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ]
 
     @responses.activate
-    def test_get_trees_for_org_works(self):
+    def test_get_trees_for_org_works(self) -> None:
         """Fetch the tree representation of a repo"""
         installation = self.get_installation_helper()
         cache.clear()
         self.set_rate_limit()
         expected_trees = self._expected_trees()
-        repos_key = "githubtrees:repositories:Test-Organization"
+        repos_key = f"githubtrees:repositories:{self.organization.id}"
         repo_key = lambda x: f"github:repo:Test-Organization/{x}:source-code"
         # Check that the cache is clear
         assert cache.get(repos_key) is None
@@ -844,9 +937,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert trees == expected_trees
 
     @responses.activate
-    def test_get_trees_for_org_prevent_exhaustion_some_repos(self):
+    def test_get_trees_for_org_prevent_exhaustion_some_repos(self) -> None:
         """Some repos will hit the network but the rest will grab from the cache."""
-        repos_key = "githubtrees:repositories:Test-Organization"
+        repos_key = f"githubtrees:repositories:{self.organization.id}"
         cache.clear()
         installation = self.get_installation_helper()
         expected_trees = self._expected_trees(
@@ -859,7 +952,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
             ]
         )
 
-        with patch("sentry.integrations.github.client.MINIMUM_REQUESTS", new=5, autospec=False):
+        with patch(
+            "sentry.integrations.source_code_management.repo_trees.MINIMUM_REQUESTS_REMAINING",
+            new=5,
+            autospec=False,
+        ):
             # We start with one request left before reaching the minimum remaining requests floor
             self.set_rate_limit(remaining=6)
             assert cache.get(repos_key) is None
@@ -885,7 +982,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
 
     @responses.activate
-    def test_get_trees_for_org_rate_limit_401(self):
+    def test_get_trees_for_org_rate_limit_401(self) -> None:
         """Sometimes the rate limit API fails from the get go."""
         # Generic test set up
         cache.clear()  # TODO: Investigate why it did not work in the setUp method
@@ -927,7 +1024,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
     @responses.activate
-    def test_get_trees_for_org_makes_API_requests_before_MAX_CONNECTION_ERRORS_is_hit(self):
+    def test_get_trees_for_org_makes_API_requests_before_MAX_CONNECTION_ERRORS_is_hit(self) -> None:
         """
         If some requests fail, but `MAX_CONNECTION_ERRORS` isn't hit, requests will continue
         to be made to the API.
@@ -948,7 +1045,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         cache.clear()
 
         with patch(
-            "sentry.integrations.github.client.MAX_CONNECTION_ERRORS",
+            "sentry.integrations.source_code_management.repo_trees.MAX_CONNECTION_ERRORS",
             new=2,
         ):
 
@@ -964,7 +1061,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
 
     @responses.activate
-    def test_get_trees_for_org_falls_back_to_cache_once_MAX_CONNECTION_ERRORS_is_hit(self):
+    def test_get_trees_for_org_falls_back_to_cache_once_MAX_CONNECTION_ERRORS_is_hit(self) -> None:
         """Once `MAX_CONNECTION_ERRORS` requests fail, the rest will grab from the cache."""
         installation = self.get_installation_helper()
         self.set_rate_limit()
@@ -982,7 +1079,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         cache.clear()
 
         with patch(
-            "sentry.integrations.github.client.MAX_CONNECTION_ERRORS",
+            "sentry.integrations.source_code_management.repo_trees.MAX_CONNECTION_ERRORS",
             new=1,
         ):
 
@@ -999,7 +1096,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
 
     @responses.activate
-    def test_get_commit_context_all_frames(self):
+    def test_get_commit_context_all_frames(self) -> None:
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         with assume_test_silo_mode(SiloMode.REGION):
@@ -1077,7 +1174,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         ]
 
     @responses.activate
-    def test_source_url_matches(self):
+    def test_source_url_matches(self) -> None:
         installation = self.get_installation_helper()
 
         test_cases = [
@@ -1095,7 +1192,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             assert installation.source_url_matches(source_url) == matches
 
     @responses.activate
-    def test_extract_branch_from_source_url(self):
+    def test_extract_branch_from_source_url(self) -> None:
         installation = self.get_installation_helper()
         integration = Integration.objects.get(provider=self.provider.key)
 
@@ -1114,7 +1211,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert installation.extract_branch_from_source_url(repo, source_url) == "master"
 
     @responses.activate
-    def test_extract_source_path_from_source_url(self):
+    def test_extract_source_path_from_source_url(self) -> None:
         installation = self.get_installation_helper()
         integration = Integration.objects.get(provider=self.provider.key)
 
@@ -1134,3 +1231,625 @@ class GitHubIntegrationTest(IntegrationTestCase):
             installation.extract_source_path_from_source_url(repo, source_url)
             == "src/sentry/integrations/github/integration.py"
         )
+
+    @responses.activate
+    def test_get_stacktrace_link_with_special_chars(self) -> None:
+        """Test that URLs with special characters (like square brackets) are properly encoded"""
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        filepath = "src/components/[id]/test.py"
+        branch = "master"
+        responses.add(
+            responses.HEAD,
+            f"{self.base_url}/repos/{repo.name}/contents/{filepath}?ref={branch}",
+        )
+        source_url = installation.get_stacktrace_link(repo, filepath, branch, branch)
+        assert (
+            source_url
+            == "https://github.com/Test-Organization/foo/blob/master/src/components/%5Bid%5D/test.py"
+        )
+
+    @responses.activate
+    def test_get_stacktrace_link_avoid_double_quote(self) -> None:
+        """Test that URLs with special characters (like square brackets) are properly encoded"""
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        with assume_test_silo_mode(SiloMode.REGION):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Test-Organization/foo",
+                url="https://github.com/Test-Organization/foo",
+                provider="integrations:github",
+                external_id=123,
+                config={"name": "Test-Organization/foo"},
+                integration_id=integration.id,
+            )
+
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        filepath = "src/components/test%20id/test.py"
+        branch = "master"
+        responses.add(
+            responses.HEAD,
+            f"{self.base_url}/repos/{repo.name}/contents/{filepath}?ref={branch}",
+        )
+        source_url = installation.get_stacktrace_link(repo, filepath, branch, branch)
+        assert (
+            source_url
+            == "https://github.com/Test-Organization/foo/blob/master/src/components/test%20id/test.py"
+        )
+
+    @responses.activate
+    def test_get_account_id(self) -> None:
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+        assert installation.get_account_id() == 60591805
+
+    @responses.activate
+    def test_get_account_id_backfill_missing(self) -> None:
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        del integration.metadata["account_id"]
+        integration.save()
+
+        integration_id = integration.id
+
+        # Checking that the account_id doesn't exist before we "backfill" it
+        integration = Integration.objects.get(id=integration_id)
+        assert integration.metadata.get("account_id") is None
+
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+        assert installation.get_account_id() == 60591805
+
+        integration = Integration.objects.get(id=integration_id)
+        assert integration.metadata["account_id"] == 60591805
+
+    @with_feature("organizations:integrations-scm-multi-org")
+    @with_feature("organizations:github-multi-org")
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch.object(github_integration, "render_react_view", return_value=HttpResponse())
+    def test_github_installation_calls_ui(
+        self, mock_render: MagicMock, mock_record: MagicMock
+    ) -> None:
+        self._setup_with_existing_installations()
+        installations = [
+            {
+                "installation_id": "1",
+                "github_account": "santry",
+                "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+            },
+            {
+                "installation_id": "2",
+                "github_account": "bufo-bot",
+                "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+            },
+            {
+                "installation_id": "-1",
+                "github_account": "Integrate with a new GitHub organization",
+                "avatar_url": "",
+            },
+        ]
+
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 302
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "github.com"
+        assert redirect.path == "/login/oauth/authorize"
+        assert (
+            redirect.query
+            == f"client_id=github-client-id&state={self.pipeline.signature}&redirect_uri=http://testserver/extensions/github/setup/"
+        )
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
+            )
+        )
+
+        serialized_organization = organization_service.serialize_organization(
+            id=self.organization.id, as_user=serialize_rpc_user(self.user)
+        )
+        mock_render.assert_called_with(
+            request=ANY,
+            pipeline_name="githubInstallationSelect",
+            props={
+                "installation_info": installations,
+                "has_scm_multi_org": True,
+                "organization_slug": self.organization.slug,
+                "organization": serialized_organization,
+            },
+        )
+
+        # SLO assertions
+        assert_success_metric(mock_record)
+
+    @with_feature("organizations:integrations-scm-multi-org")
+    @with_feature("organizations:github-multi-org")
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_github_installation_stores_chosen_installation(self, mock_record: MagicMock) -> None:
+        self._setup_with_existing_installations()
+        chosen_installation_id = "1"
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id=chosen_installation_id,
+            name="santry",
+        )
+
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/app/installations/{chosen_installation_id}",
+            json={
+                "id": chosen_installation_id,
+                "app_id": self.app_id,
+                "account": {
+                    "id": chosen_installation_id,
+                    "login": "poggers-org",
+                    "avatar_url": "http://example.com/bufo-pog.png",
+                    "html_url": "https://github.com/pog-organization",
+                    "type": "Organization",
+                },
+            },
+        )
+
+        # Initiate the OAuthView
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 302
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "github.com"
+        assert redirect.path == "/login/oauth/authorize"
+        assert (
+            redirect.query
+            == f"client_id=github-client-id&state={self.pipeline.signature}&redirect_uri=http://testserver/extensions/github/setup/"
+        )
+
+        # We just got resp. from GH, continue with OAuthView -> GithubOrganizationSelection
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
+            )
+        )
+        assert resp.status_code == 200
+
+        # We rendered the GithubOrganizationSelection UI and the user chose an installation
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode(
+                    {
+                        "code": "12345678901234567890",
+                        "state": self.pipeline.signature,
+                        "chosen_installation_id": chosen_installation_id,
+                    }
+                ),
+            )
+        )
+
+        assert resp.status_code == 200
+        auth_header = responses.calls[4].request.headers["Authorization"]
+        assert auth_header == "Bearer jwt_token_1"
+        assert (
+            responses.calls[4].request.url
+            == f"https://api.github.com/app/installations/{chosen_installation_id}"
+        )
+
+        self.assertDialogSuccess(resp)
+
+        # Affirm OrganizationIntegration is created
+        integration = Integration.objects.get(external_id=chosen_installation_id)
+        assert integration.provider == "github"
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id, integration=integration
+        ).exists()
+
+        # SLO assertions
+        assert_success_metric(mock_record)
+
+    @with_feature("organizations:integrations-scm-multi-org")
+    @with_feature("organizations:github-multi-org")
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_github_installation_fails_on_invalid_installation(
+        self, mock_record: MagicMock
+    ) -> None:
+        self._setup_with_existing_installations()
+
+        # Initiate the OAuthView
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 302
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "github.com"
+        assert redirect.path == "/login/oauth/authorize"
+        assert (
+            redirect.query
+            == f"client_id=github-client-id&state={self.pipeline.signature}&redirect_uri=http://testserver/extensions/github/setup/"
+        )
+
+        # We just got resp. from GH, continue with OAuthView -> GithubOrganizationSelection
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
+            )
+        )
+        assert resp.status_code == 200
+
+        # We rendered the GithubOrganizationSelection UI and
+        # the attacker modified the installation id with their own
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode(
+                    {
+                        "code": "12345678901234567890",
+                        "state": self.pipeline.signature,
+                        "chosen_installation_id": "98765",
+                    }
+                ),
+            )
+        )
+
+        self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
+        assert (
+            b'{"success":false,"data":{"error":"User does not have access to given installation."}'
+            in resp.content
+        )
+        assert (
+            b"Your GitHub account does not have owner privileges for the chosen organization."
+            in resp.content
+        )
+        assert b'window.opener.postMessage({"success":false' in resp.content
+
+        # SLO assertions
+
+        # OAuth_login (success): redirect to log into GH ->
+        # organization_select (success): redirect to UI selection page->
+        # OAuth_login (success): we returned the UI redirect so work back up callstack ->
+        # organization_select (failure): given installation_id was invalid
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=4
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+        )
+
+        assert_failure_metric(mock_record, GitHubInstallationError.INVALID_INSTALLATION)
+
+    @with_feature(
+        {"organizations:github-multi-org": True, "organizations:integrations-scm-multi-org": False}
+    )
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch.object(github_integration, "render_react_view", return_value=HttpResponse())
+    def test_github_installation_calls_ui_no_biz_plan(
+        self, mock_render: MagicMock, mock_record: MagicMock
+    ) -> None:
+        self._setup_with_existing_installations()
+        installations = [
+            {
+                "installation_id": "1",
+                "github_account": "santry",
+                "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+            },
+            {
+                "installation_id": "2",
+                "github_account": "bufo-bot",
+                "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+            },
+            {
+                "installation_id": "-1",
+                "github_account": "Integrate with a new GitHub organization",
+                "avatar_url": "",
+            },
+        ]
+
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 302
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "github.com"
+        assert redirect.path == "/login/oauth/authorize"
+        assert (
+            redirect.query
+            == f"client_id=github-client-id&state={self.pipeline.signature}&redirect_uri=http://testserver/extensions/github/setup/"
+        )
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
+            )
+        )
+
+        serialized_organization = organization_service.serialize_organization(
+            id=self.organization.id, as_user=serialize_rpc_user(self.user)
+        )
+        mock_render.assert_called_with(
+            request=ANY,
+            pipeline_name="githubInstallationSelect",
+            props={
+                "installation_info": installations,
+                "has_scm_multi_org": False,
+                "organization_slug": self.organization.slug,
+                "organization": serialized_organization,
+            },
+        )
+
+        # SLO assertions
+        assert_success_metric(mock_record)
+
+    @with_feature(
+        {"organizations:github-multi-org": True, "organizations:integrations-scm-multi-org": False}
+    )
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch.object(github_integration, "render_react_view", return_value=HttpResponse())
+    def test_errors_when_invalid_access_to_multi_org(
+        self, mock_render: MagicMock, mock_record: MagicMock
+    ) -> None:
+        self._setup_with_existing_installations()
+        installations = [
+            {
+                "installation_id": "1",
+                "github_account": "santry",
+                "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+            },
+            {
+                "installation_id": "2",
+                "github_account": "bufo-bot",
+                "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+            },
+            {
+                "installation_id": "-1",
+                "github_account": "Integrate with a new GitHub organization",
+                "avatar_url": "",
+            },
+        ]
+
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 302
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "github.com"
+        assert redirect.path == "/login/oauth/authorize"
+        assert (
+            redirect.query
+            == f"client_id=github-client-id&state={self.pipeline.signature}&redirect_uri=http://testserver/extensions/github/setup/"
+        )
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
+            )
+        )
+
+        serialized_organization = organization_service.serialize_organization(
+            id=self.organization.id, as_user=serialize_rpc_user(self.user)
+        )
+        mock_render.assert_called_with(
+            request=ANY,
+            pipeline_name="githubInstallationSelect",
+            props={
+                "installation_info": installations,
+                "has_scm_multi_org": False,
+                "organization_slug": self.organization.slug,
+                "organization": serialized_organization,
+            },
+        )
+
+        # We rendered the GithubOrganizationSelection UI and the user chose to skip
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode(
+                    {
+                        "code": "12345678901234567890",
+                        "state": self.pipeline.signature,
+                        "chosen_installation_id": "12345",
+                    }
+                ),
+            )
+        )
+
+        self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
+        assert (
+            b'{"success":false,"data":{"error":"Your organization does not have access to this feature."}}'
+            in resp.content
+        )
+        assert b'window.opener.postMessage({"success":false' in resp.content
+        assert_failure_metric(mock_record, GitHubInstallationError.FEATURE_NOT_AVAILABLE)
+
+    @with_feature("organizations:integrations-scm-multi-org")
+    @with_feature("organizations:github-multi-org")
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_github_installation_skips_chosen_installation(self, mock_record: MagicMock) -> None:
+        self._setup_with_existing_installations()
+
+        # Initiate the OAuthView
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 302
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "github.com"
+        assert redirect.path == "/login/oauth/authorize"
+        assert (
+            redirect.query
+            == f"client_id=github-client-id&state={self.pipeline.signature}&redirect_uri=http://testserver/extensions/github/setup/"
+        )
+
+        # We just got resp. from GH, continue with OAuthView -> GithubOrganizationSelection
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
+            )
+        )
+        assert resp.status_code == 200
+
+        # We rendered the GithubOrganizationSelection UI and the user chose to skip
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode(
+                    {
+                        "code": "12345678901234567890",
+                        "state": self.pipeline.signature,
+                        "chosen_installation_id": "-1",
+                    }
+                ),
+            )
+        )
+        # GitHubInstallation redirects user to GH to choose a new organization
+        assert resp.status_code == 302
+
+        # Send to GitHubInstallation the chosen organization
+        resp = self.client.get(
+            "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
+        )
+
+        auth_header = responses.calls[4].request.headers["Authorization"]
+        assert auth_header == "Bearer jwt_token_1"
+        assert (
+            responses.calls[4].request.url
+            == f"https://api.github.com/app/installations/{self.installation_id}"
+        )
+
+        self.assertDialogSuccess(resp)
+
+        # Affirm OrganizationIntegration is created
+        integration = Integration.objects.get(external_id=self.installation_id)
+        assert integration.provider == "github"
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id, integration=integration
+        ).exists()
+
+        # SLO assertions
+        assert_success_metric(mock_record)
+
+    @with_feature("organizations:integrations-scm-multi-org")
+    @with_feature("organizations:github-multi-org")
+    @responses.activate
+    def test_github_installation_gets_owner_orgs(self) -> None:
+        self._setup_with_existing_installations()
+        pipeline_view = OAuthLoginView()
+        pipeline_view.client = GithubSetupApiClient(self.access_token)
+
+        owner_orgs = pipeline_view._get_owner_github_organizations()
+
+        assert owner_orgs == ["santry"]
+
+    @with_feature("organizations:integrations-scm-multi-org")
+    @with_feature("organizations:github-multi-org")
+    @responses.activate
+    def test_github_installation_filters_valid_installations(self) -> None:
+        self._setup_with_existing_installations()
+        pipeline_view = OAuthLoginView()
+        pipeline_view.client = GithubSetupApiClient(self.access_token)
+
+        owner_orgs = pipeline_view._get_owner_github_organizations()
+        assert owner_orgs == ["santry"]
+
+        installation_info = pipeline_view._get_eligible_multi_org_installations(
+            owner_orgs=owner_orgs
+        )
+
+        assert installation_info == [
+            {
+                "installation_id": "1",
+                "github_account": "santry",
+                "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pitchforks.png",
+            },
+            {
+                "installation_id": "2",
+                "github_account": "bufo-bot",
+                "avatar_url": "https://github.com/knobiknows/all-the-bufo/raw/main/all-the-bufo/bufo-pog.png",
+            },
+        ]
+
+    @with_feature("organizations:integrations-scm-multi-org")
+    @with_feature("organizations:github-multi-org")
+    @responses.activate
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_github_installation_validates_installing_organization(
+        self, mock_record: MagicMock
+    ) -> None:
+        self._setup_with_existing_installations()
+        chosen_installation_id = "1"
+
+        # Initiate the OAuthView
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 302
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "github.com"
+        assert redirect.path == "/login/oauth/authorize"
+        assert (
+            redirect.query
+            == f"client_id=github-client-id&state={self.pipeline.signature}&redirect_uri=http://testserver/extensions/github/setup/"
+        )
+
+        # We just got resp. from GH, continue with OAuthView -> GithubOrganizationSelection
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode({"code": "12345678901234567890", "state": self.pipeline.signature}),
+            )
+        )
+        assert resp.status_code == 200
+
+        # Create a new organization and switch to it
+        self.create_organization(name="new-org", owner=self.user)
+        self.login_as(self.user)
+
+        # Try to continue the installation with the new organization
+        resp = self.client.get(
+            "{}?{}".format(
+                self.setup_path,
+                urlencode(
+                    {
+                        "code": "12345678901234567890",
+                        "state": self.pipeline.signature,
+                        "chosen_installation_id": chosen_installation_id,
+                    }
+                ),
+            )
+        )
+
+        self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
+        assert (
+            b'{"success":false,"data":{"error":"Your organization does not have access to this feature."}}'
+            in resp.content
+        )
+        assert b'window.opener.postMessage({"success":false' in resp.content
+        assert_failure_metric(mock_record, GitHubInstallationError.FEATURE_NOT_AVAILABLE)

@@ -1,5 +1,3 @@
-import 'intersection-observer'; // polyfill
-
 import {useEffect, useState} from 'react';
 
 /**
@@ -14,7 +12,7 @@ export function useIsStuck(el: HTMLElement | null) {
     }
 
     const observer = new IntersectionObserver(
-      ([entry]) => setIsStuck(entry.intersectionRatio < 1),
+      ([entry]) => setIsStuck(entry!.intersectionRatio < 1),
       {
         rootMargin: '-1px 0px 0px 0px',
         threshold: [1],

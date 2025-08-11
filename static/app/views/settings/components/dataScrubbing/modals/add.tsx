@@ -1,6 +1,5 @@
 import {t} from 'sentry/locale';
-
-import type {Rule} from '../types';
+import type {Rule} from 'sentry/views/settings/components/dataScrubbing/types';
 
 import ModalManager from './modalManager';
 
@@ -11,7 +10,7 @@ function Add({savedRules, ...props}: Props) {
   const handleGetNewRules = (
     values: Parameters<ModalManagerProps['onGetNewRules']>[0]
   ) => {
-    return [...savedRules, {...values, id: savedRules.length}] as Array<Rule>;
+    return [...savedRules, {...values, id: savedRules.length}] as Rule[];
   };
 
   return (

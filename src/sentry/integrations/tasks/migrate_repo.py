@@ -8,6 +8,9 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_control_tasks
+from sentry.taskworker.retry import Retry
 
 
 @instrumented_task(
@@ -16,10 +19,18 @@ from sentry.tasks.base import instrumented_task, retry
     default_retry_delay=60 * 5,
     max_retries=5,
     silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_control_tasks,
+        retry=Retry(
+            times=5,
+            delay=60 * 5,
+        ),
+        processing_deadline_duration=60,
+    ),
 )
 @retry(exclude=(Integration.DoesNotExist, Repository.DoesNotExist, Organization.DoesNotExist))
 def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> None:
-    from sentry.mediators.plugins.migrator import Migrator
+    from sentry.plugins.migrator import Migrator
 
     integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:
@@ -30,6 +41,7 @@ def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> Non
     if repo is None:
         raise Repository.DoesNotExist
 
+    # all RepositoryIntegrations should have this method
     if hasattr(installation, "has_repo_access") and installation.has_repo_access(repo):
         # This probably shouldn't happen, but log it just in case.
         if repo.integration_id is not None and repo.integration_id != integration_id:
@@ -64,4 +76,4 @@ def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> Non
         if organization is None:
             raise Organization.DoesNotExist
 
-        Migrator.run(integration=integration, organization=organization)
+        Migrator(integration=integration, organization=organization).run()

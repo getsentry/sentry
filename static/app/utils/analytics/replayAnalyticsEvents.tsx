@@ -1,13 +1,16 @@
 import type {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import type {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
-import type {ReferrerTableType} from 'sentry/views/replays/replayTable/tableCell';
 
 export type ReplayEventParameters = {
-  'replay.accessibility-issue-clicked': {
-    issue_description: string;
-    issue_impact: string | undefined;
+  'replay.ai-summary.chapter-clicked': {
+    chapter_type?: 'error' | 'feedback';
   };
-  'replay.canvas-detected-banner-clicked': {};
+  'replay.ai-summary.regenerate-requested': {
+    area: string;
+  };
+  'replay.canvas-detected-banner-clicked': {
+    sdk_needs_update?: boolean;
+  };
   'replay.details-data-loaded': {
     be_errors: number;
     fe_errors: number;
@@ -58,23 +61,31 @@ export type ReplayEventParameters = {
     seconds: number;
     user_email: string;
   };
+  'replay.details-timestamp-button-clicked': {
+    area: string;
+  };
+
   'replay.frame-after-background': {
     frame: string;
   };
+  'replay.gaps_detected': {
+    gaps: number;
+    max_gap: number;
+    replay_duration: number;
+  };
+  'replay.hydration-error.issue-details-opened': Record<string, unknown>;
+  'replay.hydration-modal.slider-interaction': Record<string, unknown>;
 
-  'replay.hydration-error.issue-details-opened': {};
-  'replay.hydration-modal.slider-interaction': {};
   'replay.hydration-modal.tab-change': {
     tabKey: string;
   };
-
   // similar purpose as "replay.details-viewed", however we're capturing the navigation action
   // in order to also include a project platform
   'replay.list-navigate-to-details': {
     platform: string | undefined;
     project_id: string | undefined;
     referrer: string;
-    referrer_table?: ReferrerTableType;
+    referrer_table?: 'main' | 'selector-widget';
   };
   'replay.list-paginated': {
     direction: 'next' | 'prev';
@@ -86,7 +97,7 @@ export type ReplayEventParameters = {
     seconds: number;
     user_email: string;
   };
-  'replay.list-view-setup-sidebar': {};
+  'replay.list-view-setup-sidebar': Record<string, unknown>;
   'replay.play-pause': {
     context: string;
     mobile: boolean;
@@ -107,30 +118,26 @@ export type ReplayEventParameters = {
   'replay.render-missing-replay-alert': {
     surface: string;
   };
-  'replay.render-player': {
-    aspect_ratio: 'portrait' | 'landscape';
-    context: string;
-    // What scale is the video as a percent, bucketed into ranges of 10% increments
-    // example:
-    //  - The video is shown at 25% the normal size
-    //  - in CSS we use the statement `transform: scale(0.25);`
-    //  - The logged value is `20`, because the scale is in the range of 20% to 30%.
-    scale_bucket: 0 | 10 | 20 | 30 | 40 | 50 | 60 | 70 | 80 | 90 | 100;
-  };
   'replay.search': {
     search_keys: string;
   };
+  'replay.timeline.zoom-in': Record<string, unknown>;
+  'replay.timeline.zoom-out': Record<string, unknown>;
   'replay.toggle-fullscreen': {
     context: string;
     fullscreen: boolean;
     user_email: string;
   };
+  'replay.view-html': {
+    breadcrumb_type: string;
+  };
 };
 
-export type ReplayEventKey = keyof ReplayEventParameters;
+type ReplayEventKey = keyof ReplayEventParameters;
 
 export const replayEventMap: Record<ReplayEventKey, string | null> = {
-  'replay.accessibility-issue-clicked': 'Clicked Replay Accessibility Issue',
+  'replay.ai-summary.chapter-clicked': 'Clicked Replay AI Summary Chapter',
+  'replay.ai-summary.regenerate-requested': 'Requested to Regenerate Replay AI Summary',
   'replay.canvas-detected-banner-clicked': 'Clicked Canvas Detected in Replay Banner',
   'replay.details-data-loaded': 'Replay Details Data Loaded',
   'replay.details-has-hydration-error': 'Replay Details Has Hydration Error',
@@ -142,6 +149,7 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.details-resource-docs-clicked': 'Replay Details Resource Docs Clicked',
   'replay.details-tab-changed': 'Changed Replay Details Tab',
   'replay.details-time-spent': 'Time Spent Viewing Replay Details',
+  'replay.details-timestamp-button-clicked': 'Clicked Timestamp in Replay Details',
   'replay.frame-after-background': 'Replay Frame Following Background Frame',
   'replay.hydration-error.issue-details-opened': 'Hydration Issue Details Opened',
   'replay.hydration-modal.slider-interaction': 'Hydration Modal Slider Clicked',
@@ -151,12 +159,15 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.list-sorted': 'Sorted Replay List',
   'replay.list-time-spent': 'Time Spent Viewing Replay List',
   'replay.list-view-setup-sidebar': 'Views Set Up Replays Sidebar',
+  'replay.gaps_detected': 'Number of Gaps in Replay Timeline',
   'replay.play-pause': 'Played/Paused Replay',
   'replay.rage-click-sdk-banner.dismissed': 'Replay Rage Click SDK Banner Dismissed',
   'replay.rage-click-sdk-banner.rendered': 'Replay Rage Click SDK Banner Rendered',
   'replay.render-issues-group-list': 'Render Issues Detail Replay List',
   'replay.render-missing-replay-alert': 'Render Missing Replay Alert',
-  'replay.render-player': 'Rendered ReplayPlayer',
   'replay.search': 'Searched Replay',
+  'replay.timeline.zoom-in': 'Zoomed In Replay Timeline',
+  'replay.timeline.zoom-out': 'Zoomed Out Replay Timeline',
   'replay.toggle-fullscreen': 'Toggled Replay Fullscreen',
+  'replay.view-html': 'Clicked "View HTML" in Replay Breadcrumb',
 };

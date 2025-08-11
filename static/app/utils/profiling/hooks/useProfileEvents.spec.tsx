@@ -14,9 +14,7 @@ const {organization} = initializeOrg();
 function TestContext({children}: {children?: ReactNode}) {
   return (
     <QueryClientProvider client={makeTestQueryClient()}>
-      <OrganizationContext.Provider value={organization}>
-        {children}
-      </OrganizationContext.Provider>
+      <OrganizationContext value={organization}>{children}</OrganizationContext>
     </QueryClientProvider>
   );
 }
@@ -32,9 +30,9 @@ describe('useProfileEvents', function () {
     function TestContextUsingTransactions({children}: {children?: ReactNode}) {
       return (
         <QueryClientProvider client={makeTestQueryClient()}>
-          <OrganizationContext.Provider value={organizationUsingTransactions}>
+          <OrganizationContext value={organizationUsingTransactions}>
             {children}
-          </OrganizationContext.Provider>
+          </OrganizationContext>
         </QueryClientProvider>
       );
     }
@@ -52,7 +50,7 @@ describe('useProfileEvents', function () {
       match: [
         MockApiClient.matchQuery({
           dataset: 'discover',
-          query: 'has:profile.id (transaction:foo)',
+          query: '(has:profile.id OR (has:profiler.id has:thread.id)) (transaction:foo)',
         }),
       ],
     });
@@ -91,7 +89,7 @@ describe('useProfileEvents', function () {
     });
 
     await waitFor(() => result.current.isError);
-    await waitFor(() => expect(result.current.status).toEqual('error'));
+    await waitFor(() => expect(result.current.status).toBe('error'));
   });
 });
 

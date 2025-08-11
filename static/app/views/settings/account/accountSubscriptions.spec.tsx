@@ -32,6 +32,8 @@ describe('AccountSubscriptions', function () {
 
     expect(mock).not.toHaveBeenCalled();
 
+    expect(await screen.findByText('Product & Feature Updates')).toBeInTheDocument();
+
     await userEvent.click(
       screen.getByRole('checkbox', {name: 'Product & Feature Updates'})
     );
@@ -40,10 +42,10 @@ describe('AccountSubscriptions', function () {
       ENDPOINT,
       expect.objectContaining({
         method: 'PUT',
-        data: {
+        data: expect.objectContaining({
           listId: 2,
           subscribed: false,
-        },
+        }),
       })
     );
   });
@@ -62,18 +64,22 @@ describe('AccountSubscriptions', function () {
     });
     render(<AccountSubscriptions />);
 
+    // wait for the mock GET Request to resolve
+    const elements = await screen.findAllByText('Sentry Newsletter');
+    expect(elements).toHaveLength(2);
+
     await userEvent.click(
-      screen.getAllByRole('checkbox', {name: 'Sentry Newsletter'})[0]
+      screen.getAllByRole('checkbox', {name: 'Sentry Newsletter'})[0]!
     );
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
       expect.objectContaining({
         method: 'PUT',
-        data: {
+        data: expect.objectContaining({
           listId: 1,
           subscribed: true,
-        },
+        }),
       })
     );
   });

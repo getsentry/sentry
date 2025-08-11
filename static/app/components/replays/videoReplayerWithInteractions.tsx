@@ -1,21 +1,17 @@
 import type {Theme} from '@emotion/react';
-import {type eventWithTime, Replayer} from '@sentry-internal/rrweb';
+import {Replayer} from '@sentry-internal/rrweb';
 
-import {
-  VideoReplayer,
-  type VideoReplayerConfig,
-} from 'sentry/components/replays/videoReplayer';
-import type {ClipWindow, VideoEvent} from 'sentry/utils/replays/types';
-
-type RootElem = HTMLDivElement | null;
+import type {VideoReplayerConfig} from 'sentry/components/replays/videoReplayer';
+import {VideoReplayer} from 'sentry/components/replays/videoReplayer';
+import type {ClipWindow, RecordingFrame, VideoEvent} from 'sentry/utils/replays/types';
 
 interface VideoReplayerWithInteractionsOptions {
   durationMs: number;
-  events: eventWithTime[];
+  eventsWithSnapshots: RecordingFrame[];
   onBuffer: (isBuffering: boolean) => void;
   onFinished: () => void;
   onLoaded: (event: any) => void;
-  root: RootElem;
+  root: HTMLDivElement;
   speed: number;
   start: number;
   theme: Theme;
@@ -35,7 +31,7 @@ export class VideoReplayerWithInteractions {
 
   constructor({
     videoEvents,
-    events,
+    eventsWithSnapshots,
     root,
     start,
     videoApiPrefix,
@@ -64,65 +60,8 @@ export class VideoReplayerWithInteractions {
       config: this.config,
     });
 
-    root?.classList.add('video-replayer');
-
-    const isTouchStart = (e: eventWithTime) => {
-      return e.type === 3 && 'type' in e.data && e.data.type === 7;
-    };
-
-    const isTouchEnd = (e: eventWithTime) => {
-      return e.type === 3 && 'type' in e.data && e.data.type === 9;
-    };
-
-    const eventsWithSnapshots: eventWithTime[] = [];
-    events.forEach((e, index) => {
-      // For taps, sometimes the timestamp difference between TouchStart
-      // and TouchEnd is too small. This clamps the tap to a min time
-      // if the difference is less, so that the rrweb tap is visible and obvious.
-      if (isTouchStart(e) && index < events.length - 2) {
-        const nextEvent = events[index + 1];
-        if (isTouchEnd(nextEvent)) {
-          nextEvent.timestamp = Math.max(nextEvent.timestamp, e.timestamp + 500);
-        }
-      }
-      eventsWithSnapshots.push(e);
-      if (e.type === 4) {
-        // Create a mock full snapshot event, in order to render rrweb gestures properly
-        // Need to add one for every meta event we see
-        // The hardcoded data.node.id here should match the ID of the data being sent
-        // in the `positions` arrays
-        const fullSnapshotEvent = {
-          type: 2,
-          data: {
-            node: {
-              type: 0,
-              childNodes: [
-                {
-                  type: 1,
-                  name: 'html',
-                  publicId: '',
-                  systemId: '',
-                },
-                {
-                  type: 2,
-                  tagName: 'html',
-                  attributes: {
-                    lang: 'en',
-                  },
-                  childNodes: [],
-                },
-              ],
-              id: 0,
-            },
-          },
-          timestamp: e.timestamp,
-        };
-        eventsWithSnapshots.push(fullSnapshotEvent);
-      }
-    });
-
     this.replayer = new Replayer(eventsWithSnapshots, {
-      root: root as Element,
+      root,
       blockClass: 'sentry-block',
       mouseTail: {
         duration: 0.75 * 1000,

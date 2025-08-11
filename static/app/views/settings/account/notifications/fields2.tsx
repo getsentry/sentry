@@ -1,12 +1,15 @@
 import {Fragment} from 'react';
+import upperFirst from 'lodash/upperFirst';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import type {Field} from 'sentry/components/forms/types';
-import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {getDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
+import {DataCategoryExact} from 'sentry/types/core';
+import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
-export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
+export const NOTIFICATION_SETTING_FIELDS = {
   alerts: {
     name: 'alerts',
     type: 'select',
@@ -54,7 +57,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
       // This is a little hack to prevent this field from being empty.
       // TODO(nisanthan): need to prevent showing the clearable on. the multi-select when its only 1 value.
       if (!val || val.length === 0) {
-        throw Error('Invalid selection. Field cannot be empty.');
+        throw new Error('Invalid selection. Field cannot be empty.');
       }
     },
   },
@@ -91,6 +94,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   email: {
     name: 'email routing',
     type: 'blank',
+    choices: undefined,
     label: t('Email Routing'),
     help: t('Change the email address that receives notifications.'),
   },
@@ -107,13 +111,13 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   brokenMonitors: {
     name: 'brokenMonitors',
     type: 'select',
-    label: t('Broken Monitors'),
+    label: t('Broken Cron Monitors'),
     choices: [
       ['always', t('On')],
       ['never', t('Off')],
     ],
     help: t(
-      'Notifications for monitors that have been in a failing state for a prolonged period of time'
+      'Notifications for Cron Monitors that have been in a failing state for a prolonged period of time'
     ),
   },
   // legacy options
@@ -137,6 +141,52 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
     ],
     help: t("When you resolve an unassigned issue, we'll auto-assign it to you."),
   },
+} satisfies Record<string, Field>;
+
+const CATEGORY_QUOTA_FIELDS = Object.values(DATA_CATEGORY_INFO)
+  .filter(
+    categoryInfo =>
+      categoryInfo.isBilledCategory &&
+      // Exclude Seer categories as they will be handled by a combined quotaSeerBudget field
+      categoryInfo.name !== DataCategoryExact.SEER_AUTOFIX &&
+      categoryInfo.name !== DataCategoryExact.SEER_SCANNER
+  )
+  .map(categoryInfo => {
+    return {
+      name: 'quota' + upperFirst(categoryInfo.plural),
+      label: categoryInfo.titleName,
+      help: tct(
+        `Receive notifications about your [displayName] quotas. [learnMore:Learn more]`,
+        {
+          displayName: categoryInfo.displayName,
+          learnMore: (
+            <ExternalLink href={getPricingDocsLinkForEventType(categoryInfo.name)} />
+          ),
+        }
+      ),
+      choices: [
+        ['always', t('On')],
+        ['never', t('Off')],
+      ] as const,
+    };
+  });
+
+// Define the combined Seer budget field
+const quotaSeerBudgetField = {
+  // This maps to NotificationSettingEnum.QUOTA_SEER_BUDGET
+  name: 'quotaSeerBudget',
+  label: t('Seer Budget'),
+  help: tct(`Receive notifications for your Seer budget. [learnMore:Learn more]`, {
+    learnMore: (
+      <ExternalLink
+        href={getPricingDocsLinkForEventType(DataCategoryExact.SEER_AUTOFIX)}
+      />
+    ),
+  }),
+  choices: [
+    ['always', t('On')],
+    ['never', t('Off')],
+  ] as const,
 };
 
 // TODO(isabella): Once spend vis notifs are GA, remove this
@@ -151,81 +201,8 @@ export const QUOTA_FIELDS = [
       ['never', t('100%')],
     ] as const,
   },
-  {
-    name: 'quotaErrors',
-    label: t('Errors'),
-    help: tct('Receive notifications about your error quotas. [learnMore:Learn more]', {
-      learnMore: <ExternalLink href={getDocsLinkForEventType('error')} />,
-    }),
-    choices: [
-      ['always', t('On')],
-      ['never', t('Off')],
-    ] as const,
-  },
-  {
-    name: 'quotaTransactions',
-    label: t('Transactions'),
-    help: tct(
-      'Receive notifications about your transaction quota. [learnMore:Learn more]',
-      {
-        learnMore: <ExternalLink href={getDocsLinkForEventType('transaction')} />,
-      }
-    ),
-    choices: [
-      ['always', t('On')],
-      ['never', t('Off')],
-    ] as const,
-  },
-  {
-    name: 'quotaSpans',
-    label: t('Spans'),
-    help: tct('Receive notifications about your spans quotas. [learnMore:Learn more]', {
-      learnMore: <ExternalLink href={getDocsLinkForEventType('span')} />,
-    }),
-    choices: [
-      ['always', t('On')],
-      ['never', t('Off')],
-    ] as const,
-  },
-  {
-    name: 'quotaReplays',
-    label: t('Replays'),
-    help: tct('Receive notifications about your replay quotas. [learnMore:Learn more]', {
-      learnMore: <ExternalLink href={getDocsLinkForEventType('replay')} />,
-    }),
-    choices: [
-      ['always', t('On')],
-      ['never', t('Off')],
-    ] as const,
-  },
-  {
-    name: 'quotaAttachments',
-    label: t('Attachments'),
-    help: tct(
-      'Receive notifications about your attachment quota. [learnMore:Learn more]',
-      {
-        learnMore: <ExternalLink href={getDocsLinkForEventType('attachment')} />,
-      }
-    ),
-    choices: [
-      ['always', t('On')],
-      ['never', t('Off')],
-    ] as const,
-  },
-  {
-    name: 'quotaMonitorSeats',
-    label: t('Cron Monitors'),
-    help: tct(
-      'Receive notifications about your cron monitor quotas. [learnMore:Learn more]',
-      {
-        learnMore: <ExternalLink href={getDocsLinkForEventType('monitorSeat')} />,
-      }
-    ),
-    choices: [
-      ['always', t('On')],
-      ['never', t('Off')],
-    ] as const,
-  },
+  ...CATEGORY_QUOTA_FIELDS,
+  quotaSeerBudgetField,
   {
     name: 'quotaSpendAllocations',
     label: (

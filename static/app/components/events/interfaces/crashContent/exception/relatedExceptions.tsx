@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {ExceptionValue, StackTraceMechanism} from 'sentry/types';
+import type {ExceptionValue} from 'sentry/types/event';
+import type {StackTraceMechanism} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
 type ExceptionGroupContextProps = {
@@ -61,7 +62,7 @@ function ExceptionLink({exception, link, onExceptionClick}: ExceptionLinkProps) 
         // Schedule the scroll event for next render because it may not be visible until expanded
         setTimeout(() => {
           const linkedElement = document.getElementById(`exception-${exceptionId}`);
-          linkedElement?.scrollIntoView?.({behavior: 'smooth'});
+          linkedElement?.scrollIntoView?.({behavior: 'smooth', block: 'center'});
         }, 0);
       }}
     >
@@ -149,7 +150,7 @@ export function RelatedExceptions({
   newestFirst,
   onExceptionClick,
 }: ExceptionGroupContextProps) {
-  if (!mechanism || !mechanism.is_exception_group) {
+  if (!mechanism?.is_exception_group) {
     return null;
   }
 
@@ -178,8 +179,8 @@ export function RelatedExceptions({
 }
 
 const Heading = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.md};
   margin: ${space(1)} 0 ${space(0.5)} 0;
   color: ${p => p.theme.subText};
 `;

@@ -1,11 +1,17 @@
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
-from sentry.issues.escalating_group_forecast import ONE_EVENT_FORECAST, EscalatingGroupForecast
-from sentry.issues.grouptype import ErrorGroupType, PerformanceP95EndpointRegressionGroupType
+from sentry.grouping.grouptype import ErrorGroupType
+from sentry.issues.analytics import IssueForecastSaved
+from sentry.issues.escalating.escalating_group_forecast import (
+    ONE_EVENT_FORECAST,
+    EscalatingGroupForecast,
+)
+from sentry.issues.grouptype import PerformanceP95EndpointRegressionGroupType
 from sentry.models.group import Group, GroupStatus
 from sentry.tasks.weekly_escalating_forecast import run_escalating_forecast
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response
 
@@ -24,8 +30,8 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             group_list.append(group)
         return group_list
 
-    @patch("sentry.issues.forecasts.generate_and_save_missing_forecasts.delay")
-    @patch("sentry.issues.escalating.query_groups_past_counts")
+    @patch("sentry.issues.escalating.forecasts.generate_and_save_missing_forecasts.delay")
+    @patch("sentry.issues.escalating.escalating.query_groups_past_counts")
     def test_empty_escalating_forecast(
         self,
         mock_query_groups_past_counts: MagicMock,
@@ -46,8 +52,8 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             assert fetched_forecast and fetched_forecast.forecast == ONE_EVENT_FORECAST
         assert mock_generate_and_save_missing_forecasts.call_count == 1
 
-    @patch("sentry.issues.forecasts.generate_and_save_missing_forecasts.delay")
-    @patch("sentry.issues.escalating.query_groups_past_counts")
+    @patch("sentry.issues.escalating.forecasts.generate_and_save_missing_forecasts.delay")
+    @patch("sentry.issues.escalating.escalating.query_groups_past_counts")
     def test_empty_sd_escalating_forecast(
         self,
         mock_query_groups_past_counts: MagicMock,
@@ -70,7 +76,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
         assert mock_generate_and_save_missing_forecasts.call_count == 0
 
     @patch("sentry.analytics.record")
-    @patch("sentry.issues.forecasts.query_groups_past_counts")
+    @patch("sentry.issues.escalating.forecasts.query_groups_past_counts")
     def test_single_group_escalating_forecast(
         self,
         mock_query_groups_past_counts: MagicMock,
@@ -96,10 +102,13 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
                 second=0, microsecond=0
             ) == approximate_date_added.replace(second=0, microsecond=0)
             assert fetched_forecast.date_added < approximate_date_added
-            record_mock.assert_called_with("issue_forecasts.saved", num_groups=1)
+            assert_last_analytics_event(
+                record_mock,
+                IssueForecastSaved(num_groups=1),
+            )
 
     @patch("sentry.analytics.record")
-    @patch("sentry.issues.forecasts.query_groups_past_counts")
+    @patch("sentry.issues.escalating.forecasts.query_groups_past_counts")
     def test_single_sd_group_escalating_forecast(
         self,
         mock_query_groups_past_counts: MagicMock,
@@ -124,7 +133,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             self.assertNotIn("issue_forecasts.saved", record_mock.call_args)
 
     @patch("sentry.analytics.record")
-    @patch("sentry.issues.forecasts.query_groups_past_counts")
+    @patch("sentry.issues.escalating.forecasts.query_groups_past_counts")
     def test_multiple_groups_escalating_forecast(
         self,
         mock_query_groups_past_counts: MagicMock,
@@ -151,10 +160,13 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
                     second=0, microsecond=0
                 ) == approximate_date_added.replace(second=0, microsecond=0)
                 assert fetched_forecast.date_added < approximate_date_added
-                record_mock.assert_called_with("issue_forecasts.saved", num_groups=3)
+                assert_last_analytics_event(
+                    record_mock,
+                    IssueForecastSaved(num_groups=3),
+                )
 
     @patch("sentry.analytics.record")
-    @patch("sentry.issues.forecasts.query_groups_past_counts")
+    @patch("sentry.issues.escalating.forecasts.query_groups_past_counts")
     def test_multiple_sd_groups_escalating_forecast(
         self,
         mock_query_groups_past_counts: MagicMock,
@@ -179,7 +191,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
                 self.assertNotIn("issue_forecasts.saved", record_mock.call_args)
 
     @patch("sentry.analytics.record")
-    @patch("sentry.issues.forecasts.query_groups_past_counts")
+    @patch("sentry.issues.escalating.forecasts.query_groups_past_counts")
     def test_update_group_escalating_forecast(
         self,
         mock_query_groups_past_counts: MagicMock,
@@ -205,10 +217,13 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             assert first_fetched_forecast is not None
             assert second_fetched_forecast is not None
             assert first_fetched_forecast.date_added < second_fetched_forecast.date_added
-            record_mock.assert_called_with("issue_forecasts.saved", num_groups=1)
+            assert_last_analytics_event(
+                record_mock,
+                IssueForecastSaved(num_groups=1),
+            )
 
     @patch("sentry.analytics.record")
-    @patch("sentry.issues.forecasts.query_groups_past_counts")
+    @patch("sentry.issues.escalating.forecasts.query_groups_past_counts")
     def test_update_sd_group_escalating_forecast(
         self,
         mock_query_groups_past_counts: MagicMock,

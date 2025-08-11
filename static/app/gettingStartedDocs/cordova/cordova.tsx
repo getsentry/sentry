@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportJavaScriptInstallStep,
   getCrashReportModalConfigDescription,
@@ -19,7 +19,7 @@ type Params = DocsParams;
 const getConfigureSnippet = (params: Params) => `
 onDeviceReady: function() {
   var Sentry = cordova.require('sentry-cordova.Sentry');
-  Sentry.init({ dsn: '${params.dsn}' });
+  Sentry.init({ dsn: '${params.dsn.public}' });
 }`;
 
 const onboarding: OnboardingConfig = {
@@ -39,10 +39,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'You should [initCode:init] the SDK in the [deviceReadyCode:deviceReady] function, to make sure the native integrations runs. For more details about Cordova [link:click here]',
+        'You should [code:init] the SDK in the [code:deviceReady] function, to make sure the native integrations runs. For more details about Cordova [link:click here]',
         {
-          initCode: <code />,
-          deviceReadyCode: <code />,
+          code: <code />,
           link: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/cordova/" />
           ),

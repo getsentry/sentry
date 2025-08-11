@@ -5,16 +5,16 @@ import {space} from 'sentry/styles/space';
 import DeviceClassBreakdownBarChart from 'sentry/views/insights/mobile/appStarts/components/charts/deviceClassBreakdownBarChart';
 import StartDurationWidget from 'sentry/views/insights/mobile/appStarts/components/startDurationWidget';
 
-function SummaryWidgets({additionalFilters}) {
+function SummaryWidgets({additionalFilters}: any) {
   return (
     <WidgetLayout>
       <div style={{gridArea: '1 / 1'}}>
-        <StartDurationWidget additionalFilters={additionalFilters} chartHeight={120} />
+        <StartDurationWidget additionalFilters={additionalFilters} />
       </div>
       <div style={{gridArea: '1 / 2'}}>
         <DeviceClassBreakdownBarChart
           additionalFilters={additionalFilters}
-          chartHeight={120}
+          chartHeight={220}
         />
       </div>
     </WidgetLayout>
@@ -25,9 +25,8 @@ export default SummaryWidgets;
 
 const WidgetLayout = styled('div')`
   display: grid;
-  grid-template-rows: 200px;
   grid-template-columns: 1fr 1fr;
-  gap: ${space(1.5)};
+  gap: ${space(2)};
 
   ${Panel} {
     height: 100%;

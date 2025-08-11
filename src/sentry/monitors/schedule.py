@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from croniter import croniter
+from cronsim import CronSim
 from dateutil import rrule
 
 from sentry.monitors.types import IntervalUnit, ScheduleConfig
@@ -38,8 +38,8 @@ def get_next_schedule(
     # of granularity we're able to support
 
     if schedule.type == "crontab":
-        iterator = croniter(schedule.crontab, reference_ts)
-        return iterator.get_next(datetime).replace(second=0, microsecond=0)
+        iter = CronSim(schedule.crontab, reference_ts)
+        return next(iter).replace(second=0, microsecond=0)
 
     if schedule.type == "interval":
         rule = rrule.rrule(
@@ -77,11 +77,8 @@ def get_prev_schedule(
     >>> 05:30
     """
     if schedule.type == "crontab":
-        return (
-            croniter(schedule.crontab, reference_ts)
-            .get_prev(datetime)
-            .replace(second=0, microsecond=0)
-        )
+        iter = CronSim(schedule.crontab, reference_ts, reverse=True)
+        return next(iter).replace(second=0, microsecond=0)
 
     if schedule.type == "interval":
         rule = rrule.rrule(

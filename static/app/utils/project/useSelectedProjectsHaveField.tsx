@@ -6,7 +6,7 @@ import type {Project} from 'sentry/types/project';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
-function getSelectedProjectList(
+export function getSelectedProjectList(
   selectedProjects: PageFilters['projects'],
   projects: Project[]
 ) {
@@ -18,7 +18,9 @@ function getSelectedProjectList(
     acc[project.id] = project;
     return acc;
   }, {});
-  return selectedProjects.map(id => projectsByProjectId[id]).filter(Boolean);
+  return selectedProjects
+    .map(id => projectsByProjectId[id])
+    .filter((project): project is Project => !!project);
 }
 
 export default function useSelectedProjectsHaveField(field: keyof Project) {

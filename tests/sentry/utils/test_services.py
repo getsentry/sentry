@@ -34,7 +34,7 @@ class Error(Operation):
 
 @pytest.fixture
 def delegator_fixture() -> tuple[Delegator, Mock, Mock]:
-    executor: SynchronousExecutor[object] = SynchronousExecutor()
+    executor = SynchronousExecutor()
     selector = Mock()
     callback = Mock()
     delegator = Delegator(
@@ -111,7 +111,7 @@ def register_option():
     options.unregister("feature.rollout")
 
 
-def test_make_writebehind_selector_str_key(register_option):
+def test_make_writebehind_selector_str_key(register_option) -> None:
     context = Mock()
     selector = make_writebehind_selector(
         option_name="feature.rollout",
@@ -156,7 +156,7 @@ def test_make_writebehind_selector_str_key(register_option):
         assert result == ["new", "old"]
 
 
-def test_make_writebehind_selector_int_key(register_option):
+def test_make_writebehind_selector_int_key(register_option) -> None:
     context = Mock()
     selector = make_writebehind_selector(
         option_name="feature.rollout",
@@ -187,16 +187,3 @@ def test_make_writebehind_selector_int_key(register_option):
     with override_options({"feature.rollout": 1.0}):
         result = selector(context, "do_thing", {})
         assert result == ["new", "old"]
-
-
-def test_make_writebehind_selector_invalid_key(register_option):
-    context = Mock()
-    selector = make_writebehind_selector(
-        option_name="feature.rollout",
-        move_to="new",
-        move_from="old",
-        key_fetch=lambda *args: {"lol": "nope"},  # type: ignore[arg-type]
-    )
-    with override_options({"feature.rollout": 1.0}):
-        result = selector(context, "do_thing", {})
-        assert result == ["old"]

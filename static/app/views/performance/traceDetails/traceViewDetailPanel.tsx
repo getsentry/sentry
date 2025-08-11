@@ -1,13 +1,14 @@
-import {createRef, Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import Alert from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
-import {Chunk} from 'sentry/components/events/contexts/chunk';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {
   isNotMarkMeasurement,
@@ -34,9 +35,7 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {
   ErrorDot,
   ErrorLevel,
@@ -47,16 +46,15 @@ import {
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EntryBreadcrumbs, EventTransaction, Organization} from 'sentry/types';
+import type {EntryBreadcrumbs, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
@@ -65,10 +63,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
-
-import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 
 import type {EventDetail} from './newTraceDetailsContent';
 import {Row, Tags} from './styles';
@@ -137,7 +134,7 @@ function BreadCrumbsSection({
   organization: Organization;
 }) {
   const [showBreadCrumbs, setShowBreadCrumbs] = useState(false);
-  const breadCrumbsContainerRef = createRef<HTMLDivElement>();
+  const breadCrumbsContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setTimeout(() => {
@@ -190,8 +187,8 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     return <LoadingIndicator />;
   }
 
-  const {user, contexts, projectSlug} = detail.event;
-  const {feedback} = contexts ?? {};
+  const {projectSlug} = detail.event;
+
   const eventJsonUrl = `/api/0/projects/${organization.slug}/${detail.traceFullDetailedEvent.project_slug}/events/${detail.traceFullDetailedEvent.event_id}/json/`;
   const project = projects.find(proj => proj.slug === detail.event?.projectSlug);
   const {errors, performance_issues} = detail.traceFullDetailedEvent;
@@ -222,6 +219,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     const {measurements} = detail.event;
 
     const measurementKeys = Object.keys(measurements ?? {})
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
       .sort();
 
@@ -234,10 +232,11 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
         {measurementKeys.map(measurement => (
           <Row
             key={measurement}
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
           >
             <PerformanceDuration
-              milliseconds={Number(measurements[measurement].value.toFixed(3))}
+              milliseconds={Number(measurements[measurement]!.value.toFixed(3))}
               abbreviation
             />
           </Row>
@@ -252,7 +251,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     }
 
     const target = generateProfileFlamechartRoute({
-      orgSlug: organization.slug,
+      organization,
       projectSlug: detail.traceFullDetailedEvent.project_slug,
       profileId: detail.traceFullDetailedEvent.profile_id,
     });
@@ -260,7 +259,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
     function handleOnClick() {
       trackAnalytics('profiling_views.go_to_flamegraph', {
         organization,
-        source: 'performance.trace_view',
+        source: 'performance.trace_view.details',
       });
     }
 
@@ -274,7 +273,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
   return (
     <Wrapper>
       <Actions>
-        <Button
+        <LinkButton
           size="sm"
           icon={<IconOpen />}
           href={eventJsonUrl}
@@ -286,7 +285,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
           }
         >
           {t('JSON')} (<FileSize bytes={detail.event?.size} />)
-        </Button>
+        </LinkButton>
       </Actions>
 
       <Title>
@@ -309,34 +308,36 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
       </Title>
 
       {hasIssues && (
-        <Alert
-          system
-          defaultExpanded
-          type="error"
-          expand={[
-            ...detail.traceFullDetailedEvent.errors,
-            ...detail.traceFullDetailedEvent.performance_issues,
-          ].map(error => (
-            <ErrorMessageContent key={error.event_id}>
-              <ErrorDot level={error.level} />
-              <ErrorLevel>{error.level}</ErrorLevel>
-              <ErrorTitle>
-                <Link to={generateIssueEventTarget(error, organization)}>
-                  {error.title}
-                </Link>
-              </ErrorTitle>
-            </ErrorMessageContent>
-          ))}
-        >
-          <ErrorMessageTitle>
-            {tn(
-              '%s issue occurred in this transaction.',
-              '%s issues occurred in this transaction.',
-              detail.traceFullDetailedEvent.errors.length +
-                detail.traceFullDetailedEvent.performance_issues.length
-            )}
-          </ErrorMessageTitle>
-        </Alert>
+        <Alert.Container>
+          <Alert
+            system
+            defaultExpanded
+            type="error"
+            expand={[
+              ...detail.traceFullDetailedEvent.errors,
+              ...detail.traceFullDetailedEvent.performance_issues,
+            ].map(error => (
+              <ErrorMessageContent key={error.event_id}>
+                <ErrorDot level={error.level} />
+                <ErrorLevel>{error.level}</ErrorLevel>
+                <ErrorTitle>
+                  <Link to={generateIssueEventTarget(error, organization)}>
+                    {error.title}
+                  </Link>
+                </ErrorTitle>
+              </ErrorMessageContent>
+            ))}
+          >
+            <ErrorMessageTitle>
+              {tn(
+                '%s issue occurred in this transaction.',
+                '%s issues occurred in this transaction.',
+                detail.traceFullDetailedEvent.errors.length +
+                  detail.traceFullDetailedEvent.performance_issues.length
+              )}
+            </ErrorMessageTitle>
+          </Alert>
+        </Alert.Container>
       )}
 
       <StyledTable className="table key-value">
@@ -355,7 +356,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
           <Row title={t('Description')}>
             <Link
               to={transactionSummaryRouteWithQuery({
-                orgSlug: organization.slug,
+                organization,
                 transaction: detail.traceFullDetailedEvent.transaction,
                 query: omit(location.query, Object.values(PAGE_URL_PARAM)),
                 projectID: String(detail.traceFullDetailedEvent.project_id),
@@ -442,37 +443,12 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
           hideBreadCrumbs
         />
       )}
-      {!isEmptyObject(feedback) && (
-        <Chunk
-          key="feedback"
-          type="feedback"
-          alias="feedback"
-          group={undefined}
-          event={detail.event}
-          value={feedback}
-        />
-      )}
-      {user && !isEmptyObject(user) && (
-        <Chunk
-          key="user"
-          type="user"
-          alias="user"
-          group={undefined}
-          event={detail.event}
-          value={user}
-        />
-      )}
       <EventExtraData event={detail.event} />
       <EventSdk sdk={detail.event.sdk} meta={detail.event._meta?.sdk} />
-      {detail.event._metrics_summary ? (
-        <CustomMetricsEventData
-          projectId={detail.event.projectID}
-          metricsSummary={detail.event._metrics_summary}
-          startTimestamp={detail.event.startTimestamp}
-        />
-      ) : null}
       <BreadCrumbsSection event={detail.event} organization={organization} />
-      {projectSlug && <EventAttachments event={detail.event} projectSlug={projectSlug} />}
+      {project && (
+        <EventAttachments event={detail.event} project={project} group={undefined} />
+      )}
       {project && <EventViewHierarchy event={detail.event} project={project} />}
       {projectSlug && (
         <EventRRWebIntegration
@@ -515,7 +491,7 @@ function SpanDetailsBody({
         <ProfilesProvider
           orgSlug={organization.slug}
           projectSlug={detail.event.projectSlug}
-          profileId={profileId || ''}
+          profileMeta={profileId || ''}
         >
           <ProfileContext.Consumer>
             {profiles => (
@@ -534,9 +510,7 @@ function SpanDetailsBody({
   );
 }
 
-export function isEventDetail(
-  detail: EventDetail | SpanDetailProps
-): detail is EventDetail {
+function isEventDetail(detail: EventDetail | SpanDetailProps): detail is EventDetail {
   return !('span' in detail);
 }
 
@@ -598,7 +572,7 @@ const Title = styled(FlexBox)`
 
 const TransactionOp = styled('div')`
   font-size: 25px;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   max-width: 600px;
   ${p => p.theme.overflowEllipsis}
 `;
@@ -618,7 +592,7 @@ const Measurements = styled('div')`
   padding-top: 10px;
 `;
 
-const StyledButton = styled(Button)`
+const StyledButton = styled(LinkButton)`
   position: absolute;
   top: ${space(0.75)};
   right: ${space(0.5)};

@@ -1,14 +1,14 @@
 import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import type {Client, ResponseMeta} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Redirect from 'sentry/components/redirect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -106,7 +106,7 @@ const ProjectDetails = withApi(ProjectDetailsInner);
 
 type Params = {orgId: string; projectId: string} & Record<string, any>;
 
-type Props = RouteComponentProps<Params, {}>;
+type Props = RouteComponentProps<Params>;
 
 type RedirectOptions = {
   orgId: string;
@@ -147,9 +147,11 @@ const redirectDeprecatedProjectRoute = (generateRedirectRoute: RedirectCallback)
             if (!hasProjectId || !organizationId) {
               if (error && error.status === 404) {
                 return (
-                  <Alert type="error">
-                    {t('The project you were looking for was not found.')}
-                  </Alert>
+                  <Alert.Container>
+                    <Alert type="error" showIcon={false}>
+                      {t('The project you were looking for was not found.')}
+                    </Alert>
+                  </Alert.Container>
                 );
               }
 

@@ -1,10 +1,10 @@
-import Alert from 'sentry/components/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
 export const getFeedbackConfigureDescription = ({
@@ -16,6 +16,23 @@ export const getFeedbackConfigureDescription = ({
 }) =>
   tct(
     'To set up the integration, add the following to your Sentry initialization. There are many options you can pass to the [code:integrations] constructor to customize your form. [break] [break] You can even [linkButton:link the widget to a custom button] if you don’t want to use our auto-injected floating button. Learn more about configuring User Feedback by reading the [linkConfig:configuration docs].',
+    {
+      code: <code />,
+      break: <br />,
+      linkConfig: <ExternalLink href={linkConfig} />,
+      linkButton: <ExternalLink href={linkButton} />,
+    }
+  );
+
+export const getFeedbackConfigureMobileDescription = ({
+  linkConfig,
+  linkButton,
+}: {
+  linkButton: string;
+  linkConfig: string;
+}) =>
+  tct(
+    'To set up the integration, add the following to your Sentry initialization. There are many options you can pass to the [code:integrations] constructor to customize your form. [break] [break] You can even [linkButton:customize your button] style. Learn more about configuring User Feedback by reading the [linkConfig:configuration docs].',
     {
       code: <code />,
       break: <br />,
@@ -58,16 +75,18 @@ export const getCrashReportInstallDescription = () =>
 
 export function FeedbackOnboardingWebApiBanner() {
   return (
-    <Alert type="info" showIcon>
-      {tct(
-        `When a user experiences an error, Sentry provides the ability to collect additional feedback. You can use an endpoint in Sentry to submit it. [link:Read our docs] to learn more.`,
-        {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/api/projects/submit-user-feedback/" />
-          ),
-        }
-      )}
-    </Alert>
+    <Alert.Container>
+      <Alert type="info">
+        {tct(
+          `When a user experiences an error, Sentry provides the ability to collect additional feedback. You can use an endpoint in Sentry to submit it. [link:Read our docs] to learn more.`,
+          {
+            link: (
+              <ExternalLink href="https://docs.sentry.io/api/projects/submit-user-feedback/" />
+            ),
+          }
+        )}
+      </Alert>
+    </Alert.Container>
   );
 }
 
@@ -118,7 +137,7 @@ export const getCrashReportModalConfigDescription = ({link}: {link: string}) =>
     {code: <code />, link: <ExternalLink href={link} />}
   );
 
-const getCrashReportModalSnippetJavaScript = params => [
+const getCrashReportModalSnippetJavaScript = (params: any) => [
   {
     code: [
       {
@@ -127,7 +146,7 @@ const getCrashReportModalSnippetJavaScript = params => [
         language: 'html',
         code: `<script>
   Sentry.init({
-    dsn: "${params.dsn}",
+    dsn: "${params.dsn.public}",
     beforeSend(event, hint) {
       // Check if it is an exception, and if so, show the report dialog
       if (event.exception && event.event_id) {
@@ -142,7 +161,7 @@ const getCrashReportModalSnippetJavaScript = params => [
   },
 ];
 
-export const getCrashReportJavaScriptInstallStep = params => [
+export const getCrashReportJavaScriptInstallStep = (params: any) => [
   {
     type: StepType.INSTALL,
     description: getCrashReportModalInstallDescriptionJavaScript(),
@@ -155,13 +174,13 @@ export function getCrashReportSDKInstallFirstStep(params: DocsParams) {
     params.sourcePackageRegistries && !params.sourcePackageRegistries.isLoading;
   const version =
     (dataLoaded &&
-      params.sourcePackageRegistries.data?.['sentry.javascript.browser'].version) ??
+      params.sourcePackageRegistries.data?.['sentry.javascript.browser']!.version) ??
     '';
   const hash =
     (dataLoaded &&
-      params.sourcePackageRegistries.data?.['sentry.javascript.browser'].files[
+      params.sourcePackageRegistries.data?.['sentry.javascript.browser']!.files[
         'bundle.min.js'
-      ].checksums['sha384-base64']) ??
+      ]!.checksums['sha384-base64']) ??
     '';
 
   return {
@@ -181,13 +200,13 @@ export function getCrashReportSDKInstallFirstStep(params: DocsParams) {
   };
 }
 
-const getGenericScript = params => [
+const getGenericScript = (params: any) => [
   {
     label: 'HTML',
     value: 'html',
     language: 'html',
     code: `<script>
-  Sentry.init({ dsn: "${params.dsn}" });
+  Sentry.init({ dsn: "${params.dsn.public}" });
   Sentry.showReportDialog({
     eventId: "{{ event_id }}",
   });
@@ -195,7 +214,7 @@ const getGenericScript = params => [
   },
 ];
 
-export const getCrashReportGenericInstallStep = params => [
+export const getCrashReportGenericInstallStep = (params: any) => [
   {
     type: StepType.INSTALL,
     configurations: [
@@ -216,7 +235,7 @@ export const getCrashReportGenericInstallStep = params => [
   },
 ];
 
-export const getCrashReportBackendInstallStep = params => [
+export const getCrashReportBackendInstallStep = (params: any) => [
   {
     type: StepType.INSTALL,
     configurations: [
@@ -242,13 +261,13 @@ export function getCrashReportSDKInstallFirstStepRails(params: DocsParams) {
     params.sourcePackageRegistries && !params.sourcePackageRegistries.isLoading;
   const version =
     (dataLoaded &&
-      params.sourcePackageRegistries.data?.['sentry.javascript.browser'].version) ??
+      params.sourcePackageRegistries.data?.['sentry.javascript.browser']!.version) ??
     '';
   const hash =
     (dataLoaded &&
-      params.sourcePackageRegistries.data?.['sentry.javascript.browser'].files[
+      params.sourcePackageRegistries.data?.['sentry.javascript.browser']!.files[
         'bundle.min.js'
-      ].checksums['sha384-base64']) ??
+      ]!.checksums['sha384-base64']) ??
     '';
 
   return {
@@ -268,7 +287,7 @@ export function getCrashReportSDKInstallFirstStepRails(params: DocsParams) {
   };
 }
 
-export const getCrashReportPHPInstallStep = params => [
+export const getCrashReportPHPInstallStep = (params: any) => [
   {
     type: StepType.INSTALL,
     configurations: [
@@ -297,7 +316,7 @@ export const getCrashReportPHPInstallStep = params => [
             language: 'html',
             code: `<?php if (\Sentry\SentrySdk::getCurrentHub()->getLastEventId()) { ?>
 <script>
-  Sentry.init({ dsn: "${params.dsn}" });
+  Sentry.init({ dsn: "${params.dsn.public}" });
   Sentry.showReportDialog({
     eventId:
       "<?php echo \Sentry\SentrySdk::getCurrentHub()->getLastEventId(); ?>",

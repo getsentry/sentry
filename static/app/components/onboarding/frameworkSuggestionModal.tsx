@@ -1,28 +1,28 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
+import {Button} from 'sentry/components/core/button';
+import {Radio} from 'sentry/components/core/radio';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import {useIsCreatingProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import Radio from 'sentry/components/radio';
-import categoryList, {createablePlatforms} from 'sentry/data/platformPickerCategories';
+import {createablePlatforms, getCategoryList} from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  OnboardingSelectedSDK,
-  Organization,
-  PlatformIntegration,
-  PlatformKey,
-} from 'sentry/types';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformIntegration, PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -42,16 +42,18 @@ const topGoFrameworks: PlatformKey[] = [
   'go-gin',
   'go-http',
   'go-iris',
-  'go-martini',
   'go-negroni',
 ];
 
 export const topJavascriptFrameworks: PlatformKey[] = [
   'javascript-nextjs',
   'javascript-react',
+  'javascript-react-router',
   'javascript-vue',
+  'javascript-nuxt',
   'javascript-angular',
   'javascript-solid',
+  'javascript-solidstart',
   'javascript-remix',
   'javascript-svelte',
   'javascript-sveltekit',
@@ -93,7 +95,7 @@ const topJavaFrameworks: PlatformKey[] = [
   'java-log4j2',
 ];
 
-export const languageDescriptions = {
+export const languageDescriptions: Partial<Record<PlatformKey, string>> = {
   [SupportedLanguages.JAVASCRIPT]: t(
     'Our JavaScript framework SDKs include all the features of our Browser Javascript SDK with additional features specific to that framework'
   ),
@@ -114,13 +116,13 @@ export const languageDescriptions = {
   ),
 };
 
-type Props = ModalRenderProps & {
+interface FrameworkSuggestionModalProps extends ModalRenderProps {
   onConfigure: (selectedFramework: OnboardingSelectedSDK) => void;
   onSkip: () => void;
   organization: Organization;
   selectedPlatform: OnboardingSelectedSDK;
   newOrg?: boolean;
-};
+}
 
 export function FrameworkSuggestionModal({
   Body,
@@ -132,10 +134,12 @@ export function FrameworkSuggestionModal({
   CloseButton,
   organization,
   newOrg,
-}: Props) {
+}: FrameworkSuggestionModalProps) {
+  const isCreatingProjectAndRules = useIsCreatingProjectAndRules();
+
   const [selectedFramework, setSelectedFramework] = useState<
     OnboardingSelectedSDK | undefined
-  >(undefined);
+  >(selectedPlatform);
 
   const frameworks = platforms.filter(
     platform =>
@@ -212,15 +216,7 @@ export function FrameworkSuggestionModal({
     );
 
     onConfigure(selectedFramework);
-    closeModal();
-  }, [
-    selectedPlatform,
-    selectedFramework,
-    organization,
-    onConfigure,
-    closeModal,
-    newOrg,
-  ]);
+  }, [selectedPlatform, selectedFramework, organization, onConfigure, newOrg]);
 
   const handleSkip = useCallback(() => {
     trackAnalytics(
@@ -233,10 +229,51 @@ export function FrameworkSuggestionModal({
       }
     );
     onSkip();
-    closeModal();
-  }, [selectedPlatform, organization, closeModal, onSkip, newOrg]);
+  }, [selectedPlatform, organization, onSkip, newOrg]);
 
-  const listEntries = [...topFrameworksOrdered, ...otherFrameworksSortedAlphabetically];
+  const handleClick = useCallback(() => {
+    if (selectedFramework?.key === selectedPlatform.key) {
+      handleSkip();
+    } else {
+      handleConfigure();
+    }
+  }, [handleSkip, handleConfigure, selectedFramework, selectedPlatform]);
+
+  const debounceHandleClick = useMemo(
+    () => debounce(handleClick, 2000, {leading: true, trailing: false}),
+    [handleClick]
+  );
+
+  const listEntries: PlatformIntegration[] = [
+    ...topFrameworksOrdered,
+    ...otherFrameworksSortedAlphabetically,
+  ];
+
+  const listEntriesWithVanilla: PlatformIntegration[] = [
+    {
+      id: selectedPlatform.key,
+      type: selectedPlatform.type,
+      name: t('Nope, Vanilla'),
+      language: selectedPlatform.key,
+      link: selectedPlatform.link,
+    },
+    ...listEntries,
+  ];
+
+  useEffect(() => {
+    const documentElement = document.querySelector('[role="dialog"] [role="document"]');
+    if (
+      !(documentElement instanceof HTMLElement) ||
+      listEntriesWithVanilla.length <= COLLAPSE_COUNT
+    ) {
+      return;
+    }
+    documentElement.style.minHeight = '631px';
+  }, [listEntriesWithVanilla.length]);
+
+  const categories = useMemo(() => {
+    return getCategoryList(organization);
+  }, [organization]);
 
   return (
     <Fragment>
@@ -249,53 +286,73 @@ export function FrameworkSuggestionModal({
         <Description>{languageDescriptions[selectedPlatform.key]}</Description>
         <StyledPanel>
           <StyledPanelBody>
-            <Frameworks>
-              {listEntries.map((framework, index) => {
-                const frameworkCategory =
-                  categoryList.find(category => {
-                    return category.platforms?.has(framework.id);
-                  })?.id ?? 'all';
-
+            <CollapsePanel
+              items={listEntriesWithVanilla.length}
+              collapseCount={COLLAPSE_COUNT}
+              buttonTitle={tn(
+                'Hidden Framework',
+                'Hidden Frameworks',
+                listEntriesWithVanilla.length - COLLAPSE_COUNT
+              )}
+            >
+              {({isExpanded, showMoreButton}) => {
+                const items = isExpanded
+                  ? listEntriesWithVanilla
+                  : listEntriesWithVanilla.slice(0, COLLAPSE_COUNT);
                 return (
-                  <Framework key={framework.id}>
-                    <RadioLabel
-                      index={index}
-                      onClick={() =>
-                        setSelectedFramework({
-                          key: framework.id,
-                          type: framework.type,
-                          language: framework.language,
-                          category: frameworkCategory,
-                        })
-                      }
-                    >
-                      <RadioBox
-                        radioSize="small"
-                        checked={selectedFramework?.key === framework.id}
-                        readOnly
-                      />
-                      <FrameworkIcon size={24} platform={framework.id} />
-                      {framework.name}
-                    </RadioLabel>
-                  </Framework>
+                  <Fragment>
+                    <PlatformList>
+                      {items.map((platform, index) => {
+                        const platformCategory =
+                          categories.find(category => {
+                            return category.platforms?.has(platform.id);
+                          })?.id ?? 'all';
+
+                        return (
+                          <PlatformListItem key={platform.id}>
+                            <RadioLabel
+                              index={index}
+                              onClick={() =>
+                                setSelectedFramework({
+                                  key: platform.id,
+                                  type: platform.type,
+                                  language: platform.language,
+                                  category: platformCategory,
+                                  link: platform.link,
+                                  name: platform.name,
+                                })
+                              }
+                            >
+                              <RadioBox
+                                size="sm"
+                                checked={selectedFramework?.key === platform.id}
+                                readOnly
+                              />
+                              <PlatformListItemIcon size={24} platform={platform.id} />
+                              {platform.name}
+                            </RadioLabel>
+                          </PlatformListItem>
+                        );
+                      })}
+                    </PlatformList>
+                    {showMoreButton && (
+                      <ShowMoreButtonWrapper>{showMoreButton}</ShowMoreButtonWrapper>
+                    )}
+                  </Fragment>
                 );
-              })}
-            </Frameworks>
+              }}
+            </CollapsePanel>
           </StyledPanelBody>
         </StyledPanel>
       </Body>
       <Footer>
-        <Actions>
-          <Button onClick={handleSkip}>{t('Skip')}</Button>
-          <Button
-            priority="primary"
-            onClick={handleConfigure}
-            disabled={!selectedFramework}
-            title={!selectedFramework ? t('Select a framework to configure') : undefined}
-          >
-            {t('Configure SDK')}
-          </Button>
-        </Actions>
+        <Button
+          priority="primary"
+          onClick={debounceHandleClick}
+          busy={isCreatingProjectAndRules}
+        >
+          {t('Configure SDK')}
+        </Button>
       </Footer>
     </Fragment>
   );
@@ -311,7 +368,7 @@ function TopFrameworksImage({frameworks}: {frameworks: PlatformIntegration[]}) {
     <TopFrameworksImageWrapper>
       <TopFrameworkIcon
         size={84}
-        platform={top3[1].id}
+        platform={top3[1]!.id}
         angle={-34}
         radius={8}
         offset={-74}
@@ -319,7 +376,7 @@ function TopFrameworksImage({frameworks}: {frameworks: PlatformIntegration[]}) {
       />
       <TopFrameworkIcon
         size={84}
-        platform={top3[2].id}
+        platform={top3[2]!.id}
         angle={34}
         radius={8}
         offset={+74}
@@ -327,7 +384,7 @@ function TopFrameworksImage({frameworks}: {frameworks: PlatformIntegration[]}) {
       />
       <TopFrameworkIcon
         size={84}
-        platform={top3[0].id}
+        platform={top3[0]!.id}
         angle={0}
         radius={8}
         offset={0}
@@ -342,7 +399,7 @@ const Header = styled('header')`
   height: 30px;
 
   margin: -${space(4)} -${space(2)} 0 -${space(3)};
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin: -${space(4)} -${space(4)} 0 -${space(4)};
   }
 `;
@@ -354,13 +411,14 @@ const TopFrameworkIcon = styled(PlatformIcon, {
   position: absolute;
   top: 50%;
   left: 50%;
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 const TopFrameworksImageWrapper = styled('div')`
   position: relative;
   width: 256px;
   height: 108px;
+  min-height: 108px;
   margin: 0px auto ${space(2)};
 `;
 
@@ -374,10 +432,12 @@ const Description = styled(TextBlock)`
   text-align: center;
 `;
 
-const Frameworks = styled(List)`
+const PlatformList = styled(List)`
+  margin: 0 !important;
+  gap: 0;
   display: block; /* Needed to prevent list item from stretching if the list is scrollable (Safari) */
   overflow-y: auto;
-  max-height: 550px;
+  max-height: 631px;
 `;
 
 const StyledPanel = styled(Panel)`
@@ -392,7 +452,17 @@ const StyledPanelBody = styled(PanelBody)`
   min-height: 0;
 `;
 
-const Framework = styled(ListItem)`
+const ShowMoreButtonWrapper = styled('div')`
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  > :first-child {
+    flex: 1;
+  }
+`;
+
+const PlatformListItem = styled(ListItem)`
   min-height: 40px;
   display: grid;
   text-align: left;
@@ -402,7 +472,7 @@ const Framework = styled(ListItem)`
   }
 `;
 
-const FrameworkIcon = styled(PlatformIcon)`
+const PlatformListItemIcon = styled(PlatformIcon)`
   border: 1px solid ${p => p.theme.innerBorder};
 `;
 
@@ -421,13 +491,6 @@ const RadioBox = styled(Radio)`
   padding: ${space(0.5)};
 `;
 
-const Actions = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${space(1)};
-  width: 100%;
-`;
-
 // Style the modals document and section elements as flex containers
 // to allow the list of frameworks to dynamically grow and shrink with the dialog / screen height
 export const modalCss = css`
@@ -435,7 +498,7 @@ export const modalCss = css`
     display: flex;
     flex-direction: column;
     max-height: 80vh;
-    min-height: 500px;
+    min-height: 550px;
   }
   section {
     display: flex;

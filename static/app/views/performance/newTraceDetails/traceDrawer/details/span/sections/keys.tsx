@@ -1,6 +1,8 @@
 import {Fragment, useMemo} from 'react';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 
-import {Button} from 'sentry/components/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import {
   rawSpanKeys,
   type RawSpanType,
@@ -12,36 +14,19 @@ import {
 } from 'sentry/components/events/interfaces/spans/utils';
 import {OpsDot} from 'sentry/components/events/opsBreakdown';
 import FileSize from 'sentry/components/fileSize';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  KeyValueListDataItem,
-  MetricsExtractionRule,
-  Organization,
-} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {getUtcDateString} from 'sentry/utils/dates';
-import {getMetricsUrl} from 'sentry/utils/metrics';
-import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
-import {MetricDisplayType} from 'sentry/utils/metrics/types';
-import {createVirtualMRI} from 'sentry/utils/metrics/virtualMetricsContext';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import useOrganization from 'sentry/utils/useOrganization';
-import {isSpanNode} from 'sentry/views/performance/newTraceDetails/guards';
 import {
   type SectionCardKeyValueList,
   TraceDrawerComponents,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {
-  type TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceDrawerActionValueKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {isSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-import {openExtractionRuleCreateModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleCreateModal';
-import {useMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
 
 const SIZE_DATA_KEYS = [
   'Encoded Body Size',
@@ -54,8 +39,8 @@ const SIZE_DATA_KEYS = [
 ];
 
 function partitionSizes(data: RawSpanType['data']): {
-  nonSizeKeys: {[key: string]: unknown};
-  sizeKeys: {[key: string]: number};
+  nonSizeKeys: Record<string, unknown>;
+  sizeKeys: Record<string, number>;
 } {
   if (!data) {
     return {
@@ -63,16 +48,19 @@ function partitionSizes(data: RawSpanType['data']): {
       nonSizeKeys: {},
     };
   }
-  const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
-    if (data.hasOwnProperty(key) && defined(data[key])) {
-      try {
-        keys[key] = parseFloat(data[key]);
-      } catch (e) {
-        keys[key] = data[key];
+  const sizeKeys = SIZE_DATA_KEYS.reduce(
+    (keys, key) => {
+      if (data.hasOwnProperty(key) && defined(data[key])) {
+        try {
+          keys[key] = parseFloat(data[key]);
+        } catch (e) {
+          keys[key] = data[key];
+        }
       }
-    }
-    return keys;
-  }, {});
+      return keys;
+    },
+    {} as Record<string, number>
+  );
 
   const nonSizeKeys = {...data};
   SIZE_DATA_KEYS.forEach(key => delete nonSizeKeys[key]);
@@ -83,105 +71,30 @@ function partitionSizes(data: RawSpanType['data']): {
   };
 }
 
-function getSpanTimeWindow(timestamp: number) {
-  // Convert 30 minutes to miliseconds
-  const thirtyMinutesInMiliSeconds = 30 * 60 * 1000;
-
-  // Calculate the start and end of the time window
-  const startTime = timestamp - thirtyMinutesInMiliSeconds;
-  const endTime = timestamp + thirtyMinutesInMiliSeconds;
-
-  return {
-    startTime: startTime,
-    endTime: endTime,
-  };
-}
-
-function getNonSizeKeyActionData({
-  organization,
-  extractionRules,
-  spanAttribute,
-  projectId,
-  spanTimestamp,
-}: {
-  organization: Organization;
-  spanAttribute: string;
-  spanTimestamp: number;
-  extractionRules?: MetricsExtractionRule[];
-  projectId?: string;
-}): Pick<KeyValueListDataItem, 'actionButton' | 'actionButtonAlwaysVisible'> {
-  if (!hasCustomMetricsExtractionRules(organization)) {
-    return {};
+function getSpanAggregateMeasurements(node: TraceTreeNode<TraceTree.Span>) {
+  if (!/^ai\.pipeline($|\.)/.test(node.value.op ?? '')) {
+    return [];
   }
 
-  const extractionRule = extractionRules?.find(
-    rule => rule.spanAttribute === spanAttribute
-  );
-
-  if (extractionRule) {
-    const virtualMRI = createVirtualMRI(extractionRule);
-    const spanTimeWindow = getSpanTimeWindow(spanTimestamp * 1000);
-    return {
-      actionButton: (
-        <Link
-          to={getMetricsUrl(organization.slug, {
-            start: getUtcDateString(spanTimeWindow.startTime),
-            end: getUtcDateString(spanTimeWindow.endTime),
-            project: [extractionRule.projectId],
-            widgets: [
-              {
-                mri: virtualMRI,
-                displayType: MetricDisplayType.BAR,
-                aggregation: extractionRule.aggregates[0],
-                query: '',
-                groupBy: undefined,
-                condition: extractionRule.conditions[0].id,
-              },
-            ],
-          })}
-        >
-          {t('Open in Metrics')}
-        </Link>
-      ),
-      actionButtonAlwaysVisible: true,
-    };
-  }
-
-  return {
-    actionButton: (
-      <Button
-        borderless
-        aria-label={t('Extract as metric')}
-        onClick={() =>
-          openExtractionRuleCreateModal({
-            projectId: projectId,
-            initialData: {
-              spanAttribute,
-            },
-          })
-        }
-        size="zero"
-        icon={<IconAdd size="xs" />}
-        title={t('Extract as metric')}
-      />
-    ),
-    actionButtonAlwaysVisible: false,
-  };
-}
-
-export function SpanKeys({
-  node,
-  projectId,
-}: {
-  node: TraceTreeNode<TraceTree.Span>;
-  projectId?: string;
-}) {
-  const organization = useOrganization();
-  const {data: extractionRules} = useMetricsExtractionRules({
-    orgId: organization.slug,
-    projectId,
+  let sum = 0;
+  TraceTree.ForEachChild(node, n => {
+    if (
+      isSpanNode(n) &&
+      typeof n?.value?.measurements?.ai_total_tokens_used?.value === 'number'
+    ) {
+      sum += n.value.measurements.ai_total_tokens_used.value;
+    }
   });
+  return [
+    {
+      key: 'ai.pipeline',
+      subject: 'sum(ai_total_tokens_used)',
+      value: sum,
+    },
+  ];
+}
 
+export function hasSpanKeys(node: TraceTreeNode<TraceTree.Span>, theme: Theme) {
   const span = node.value;
   const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
   const allZeroSizes = SIZE_DATA_KEYS.map(key => sizeKeys[key]).every(
@@ -190,31 +103,37 @@ export function SpanKeys({
   const unknownKeys = Object.keys(span).filter(key => {
     return !isHiddenDataKey(key) && !rawSpanKeys.has(key as any);
   });
+  const timingKeys = getSpanSubTimings(span, theme) ?? [];
+  const aggregateMeasurements: SectionCardKeyValueList =
+    getSpanAggregateMeasurements(node);
 
-  const timingKeys = getSpanSubTimings(span) ?? [];
+  return (
+    allZeroSizes ||
+    unknownKeys.length > 0 ||
+    timingKeys.length > 0 ||
+    aggregateMeasurements.length > 0 ||
+    Object.keys(nonSizeKeys).length > 0 ||
+    Object.keys(sizeKeys).length > 0
+  );
+}
+
+export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
+  const theme = useTheme();
+  const span = node.value;
+  const projectIds = node.event?.projectID;
+  const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
+  const allZeroSizes = SIZE_DATA_KEYS.map(key => sizeKeys[key]).every(
+    value => value === 0
+  );
+  const unknownKeys = Object.keys(span).filter(key => {
+    return !isHiddenDataKey(key) && !rawSpanKeys.has(key as any);
+  });
+
+  const timingKeys = getSpanSubTimings(span, theme) ?? [];
   const items: SectionCardKeyValueList = [];
 
   const aggregateMeasurements: SectionCardKeyValueList = useMemo(() => {
-    if (!/^ai\.pipeline($|\.)/.test(node.value.op ?? '')) {
-      return [];
-    }
-
-    let sum = 0;
-    TraceTreeNode.ForEachChild(node, n => {
-      if (
-        isSpanNode(n) &&
-        typeof n?.value?.measurements?.ai_total_tokens_used?.value === 'number'
-      ) {
-        sum += n.value.measurements.ai_total_tokens_used.value;
-      }
-    });
-    return [
-      {
-        key: 'ai.pipeline',
-        subject: 'sum(ai_total_tokens_used)',
-        value: sum,
-      },
-    ];
+    return getSpanAggregateMeasurements(node);
   }, [node]);
 
   if (allZeroSizes) {
@@ -236,7 +155,7 @@ export function SpanKeys({
   }
   Object.entries(sizeKeys).forEach(([key, value]) => {
     items.push({
-      key: key,
+      key,
       subject: key,
       value: (
         <Fragment>
@@ -244,32 +163,50 @@ export function SpanKeys({
           {value >= 1024 && <span>{` (${value} B)`}</span>}
         </Fragment>
       ),
+      actionButton: (
+        <TraceDrawerComponents.KeyValueAction
+          rowKey={key}
+          rowValue={value}
+          kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
+          projectIds={projectIds}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
     });
   });
   Object.entries(nonSizeKeys).forEach(([key, value]) => {
     if (!isHiddenDataKey(key)) {
       items.push({
-        key: key,
+        key,
         subject: key,
         value: value as string | number,
-        ...getNonSizeKeyActionData({
-          organization,
-          extractionRules,
-          spanAttribute: key,
-          projectId,
-          spanTimestamp: span.timestamp,
-        }),
+        actionButton: (
+          <TraceDrawerComponents.KeyValueAction
+            rowKey={key}
+            rowValue={value as string | number}
+            kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
+            projectIds={projectIds}
+          />
+        ),
+        actionButtonAlwaysVisible: true,
       });
     }
   });
   unknownKeys.forEach(key => {
-    if (key !== 'event' && key !== 'childTransactions') {
-      items.push({
-        key: key,
-        subject: key,
-        value: span[key],
-      });
-    }
+    items.push({
+      key,
+      subject: key,
+      value: (span as any)[key],
+      actionButton: (
+        <TraceDrawerComponents.KeyValueAction
+          rowKey={key}
+          rowValue={(span as any)[key]}
+          kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
+          projectIds={projectIds}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
+    });
   });
   timingKeys.forEach(timing => {
     items.push({
@@ -282,6 +219,15 @@ export function SpanKeys({
         </TraceDrawerComponents.FlexBox>
       ),
       value: getPerformanceDuration(Number(timing.duration) * 1000),
+      actionButton: (
+        <TraceDrawerComponents.KeyValueAction
+          rowKey={timing.name}
+          rowValue={getPerformanceDuration(Number(timing.duration) * 1000)}
+          kind={TraceDrawerActionValueKind.ADDITIONAL_DATA}
+          projectIds={projectIds}
+        />
+      ),
+      actionButtonAlwaysVisible: true,
     });
   });
 

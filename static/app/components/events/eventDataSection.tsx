@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {ExternalLink} from 'sentry/components/core/link';
 import {DataSection} from 'sentry/components/events/styles';
-import Anchor from 'sentry/components/links/anchor';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconLink} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -23,11 +22,6 @@ export interface EventDataSectionProps {
   actions?: React.ReactNode;
   className?: string;
   /**
-   * If the section has a guide associated to it, you may specify the guide
-   * target and it will wrap the title with a GuideAnchor
-   */
-  guideTarget?: string;
-  /**
    * A description shown in a QuestionTooltip
    */
   help?: React.ReactNode;
@@ -36,6 +30,7 @@ export interface EventDataSectionProps {
    * you want the overlay to be interactive)
    */
   isHelpHoverable?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
   /**
    * Should the permalink be enabled for this section?
    *
@@ -75,21 +70,12 @@ export function EventDataSection({
   title,
   help,
   actions,
-  guideTarget,
   wrapTitle = true,
   showPermalink = true,
   isHelpHoverable = false,
   ...props
 }: EventDataSectionProps) {
-  let titleNode = wrapTitle ? <h3>{title}</h3> : title;
-
-  titleNode = guideTarget ? (
-    <GuideAnchor target={guideTarget} position="bottom">
-      {titleNode}
-    </GuideAnchor>
-  ) : (
-    titleNode
-  );
+  const titleNode = wrapTitle ? <h3>{title}</h3> : title;
 
   return (
     <DataSection ref={scrollToSection} className={className || ''} {...props}>
@@ -98,7 +84,7 @@ export function EventDataSection({
           <Title>
             {showPermalink ? (
               <Permalink className="permalink">
-                <PermalinkAnchor href={`#${type}`}>
+                <PermalinkAnchor href={`#${type}`} openInNewTab={false}>
                   <StyledIconLink size="xs" color="subText" />
                 </PermalinkAnchor>
                 {titleNode}
@@ -136,7 +122,7 @@ const StyledIconLink = styled(IconLink)`
   transition: opacity 100ms;
 `;
 
-const PermalinkAnchor = styled(Anchor)`
+const PermalinkAnchor = styled(ExternalLink)`
   display: flex;
   align-items: center;
   position: absolute;
@@ -162,8 +148,8 @@ const SectionHeader = styled('div')`
   & h3,
   & h3 a {
     color: ${p => p.theme.subText};
-    font-size: ${p => p.theme.fontSizeMedium};
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-size: ${p => p.theme.fontSize.md};
+    font-weight: ${p => p.theme.fontWeight.bold};
   }
 
   & h3 {
@@ -173,16 +159,16 @@ const SectionHeader = styled('div')`
 
   & small {
     color: ${p => p.theme.textColor};
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     margin-right: ${space(0.5)};
     margin-left: ${space(0.5)};
   }
   & small > span {
     color: ${p => p.theme.textColor};
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     & > small {
       margin-left: ${space(1)};
       display: inline-block;
@@ -195,7 +181,7 @@ const SectionHeader = styled('div')`
   }
 `;
 
-export const SectionContents = styled('div')`
+const SectionContents = styled('div')`
   position: relative;
 `;
 

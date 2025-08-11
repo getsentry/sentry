@@ -7,7 +7,7 @@ from sentry.utils.strings import truncatechars
 
 if TYPE_CHECKING:
     from sentry.models.auditlogentry import AuditLogEntry
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 
 # AuditLogEvents with custom render functions
@@ -100,6 +100,16 @@ class MemberPendingAuditLogEvent(AuditLogEvent):
         return f"required member {user_display_name} to setup 2FA"
 
 
+class OrgAddAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(event_id=10, name="ORG_ADD", api_name="org.create")
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        if channel := audit_log_entry.data.get("channel"):
+            return f"created the organization with {channel} integration"
+        return "created the organization"
+
+
 class OrgEditAuditLogEvent(AuditLogEvent):
     def __init__(self):
         super().__init__(event_id=11, name="ORG_EDIT", api_name="org.edit")
@@ -170,7 +180,7 @@ class ProjectPerformanceDetectionSettingsAuditLogEvent(AuditLogEvent):
 
     def render(self, audit_log_entry: AuditLogEntry):
         from sentry.api.endpoints.project_performance_issue_settings import (
-            internal_only_project_settings_to_group_map as map,
+            project_settings_to_group_map as map,
         )
 
         data = audit_log_entry.data
@@ -341,21 +351,17 @@ class InternalIntegrationDisabledAuditLogEvent(AuditLogEvent):
         return f"disabled internal integration {integration_name}".format(**audit_log_entry.data)
 
 
-class DataSecrecyWaivedAuditLogEvent(AuditLogEvent):
+class MonitorAddAuditLogEvent(AuditLogEvent):
     def __init__(self):
         super().__init__(
-            event_id=1141,
-            name="DATA_SECRECY_WAIVED",
-            api_name="data-secrecy.waived",
+            event_id=120,
+            name="MONITOR_ADD",
+            api_name="monitor.add",
         )
 
     def render(self, audit_log_entry: AuditLogEntry):
         entry_data = audit_log_entry.data
-        access_start = entry_data.get("access_start", None)
-        access_end = entry_data.get("access_end", None)
+        name = entry_data.get("name")
+        upsert = entry_data.get("upsert")
 
-        rendered_text = "waived data secrecy"
-        if access_start is not None and access_end is not None:
-            rendered_text += f" from {access_start} to {access_end}"
-
-        return rendered_text
+        return f"added{" upsert " if upsert else " "}monitor {name}"

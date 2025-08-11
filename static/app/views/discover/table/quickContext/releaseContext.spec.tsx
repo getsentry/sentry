@@ -1,3 +1,4 @@
+import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReleaseFixture} from 'sentry-fixture/release';
 
@@ -11,7 +12,7 @@ import {QueryClientProvider} from 'sentry/utils/queryClient';
 import ReleaseContext from './releaseContext';
 import {defaultRow, mockedCommit, mockedUser1, mockedUser2} from './testUtils';
 
-export const mockedReleaseWithHealth = ReleaseFixture({
+const mockedReleaseWithHealth = ReleaseFixture({
   id: '1',
   shortVersion: 'sentry-android-shop@1.2.0',
   version: 'sentry-android-shop@1.2.0',
@@ -83,7 +84,7 @@ describe('Quick Context Content Release Column', function () {
   });
 
   it('Renders Commit Count and Author when user is in list of authors', async () => {
-    jest.spyOn(ConfigStore, 'get').mockImplementation(() => mockedUser1);
+    ConfigStore.loadInitialData(ConfigFixture({user: mockedUser1}));
     renderReleaseContext();
 
     expect(await screen.findByText(/4/i)).toBeInTheDocument();

@@ -25,7 +25,7 @@ class MigrationsRunTest(TransactionTestCase):
     def invoke(self, *args, **kwargs):
         return self.runner.invoke(self.command, args, obj={}, **kwargs)
 
-    def test_index_creation(self):
+    def test_index_creation(self) -> None:
         with override_settings(
             INSTALLED_APPS=("fixtures.safe_migrations_apps.migration_test_app",),
             MIGRATION_MODULES={},
@@ -61,11 +61,14 @@ class MigrationsRunTest(TransactionTestCase):
                 matched = filter_queries("CREATE INDEX", queries)
                 assert len(matched) == 0
 
-    def test_migration_skipped_by_router(self):
-        with override_settings(
-            INSTALLED_APPS=("fixtures.safe_migrations_apps.migration_test_app",),
-            MIGRATION_MODULES={},
-        ), patch.object(router, "allow_migrate") as mock_allow:
+    def test_migration_skipped_by_router(self) -> None:
+        with (
+            override_settings(
+                INSTALLED_APPS=("fixtures.safe_migrations_apps.migration_test_app",),
+                MIGRATION_MODULES={},
+            ),
+            patch.object(router, "allow_migrate") as mock_allow,
+        ):
             mock_allow.return_value = False
 
             result = self.invoke("run", "migration_test_app", "0001")

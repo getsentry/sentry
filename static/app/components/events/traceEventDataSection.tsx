@@ -1,12 +1,15 @@
-import {createContext, useCallback, useState} from 'react';
+import {useCallback} from 'react';
+import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {Tooltip} from 'sentry/components/tooltip';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -14,13 +17,14 @@ import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const sortByOptions = {
   'recent-first': t('Newest'),
   'recent-last': t('Oldest'),
 };
 
-export const displayOptions = {
+export const stackTraceDisplayOptionLabels = {
   'absolute-addresses': t('Absolute addresses'),
   'absolute-file-paths': t('Absolute file paths'),
   minified: t('Unsymbolicated'),
@@ -28,44 +32,26 @@ export const displayOptions = {
   'verbose-function-names': t('Verbose function names'),
 };
 
-type State = {
-  display: Array<keyof typeof displayOptions>;
-  fullStackTrace: boolean;
-  sortBy: keyof typeof sortByOptions;
-};
-
-type ChildProps = Omit<State, 'sortBy'> & {recentFirst: boolean};
-
 type Props = {
-  children: (childProps: ChildProps) => React.ReactNode;
+  children: React.ReactNode;
   eventId: Event['id'];
-  fullStackTrace: boolean;
   hasAbsoluteAddresses: boolean;
   hasAbsoluteFilePaths: boolean;
-  hasAppOnlyFrames: boolean;
   hasMinified: boolean;
   hasNewestFirst: boolean;
   hasVerboseFunctionNames: boolean;
   platform: PlatformKey;
   projectSlug: Project['slug'];
-  recentFirst: boolean;
   stackTraceNotFound: boolean;
   title: React.ReactNode;
   type: string;
-  wrapTitle?: boolean;
+  isNestedSection?: boolean;
 };
-
-export const TraceEventDataSectionContext = createContext<ChildProps | undefined>(
-  undefined
-);
 
 export function TraceEventDataSection({
   type,
   title,
-  wrapTitle,
   stackTraceNotFound,
-  fullStackTrace,
-  recentFirst,
   children,
   platform,
   projectSlug,
@@ -75,16 +61,21 @@ export function TraceEventDataSection({
   hasVerboseFunctionNames,
   hasAbsoluteFilePaths,
   hasAbsoluteAddresses,
-  hasAppOnlyFrames,
+  isNestedSection = false,
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
-  const [state, setState] = useState<State>({
-    sortBy: recentFirst ? 'recent-first' : 'recent-last',
-    fullStackTrace: !hasAppOnlyFrames ? true : fullStackTrace,
-    display: [],
-  });
+  const {
+    displayOptions,
+    isNewestFramesFirst,
+    isFullStackTrace,
+    forceFullStackTrace,
+    setDisplayOptions,
+    setIsNewestFramesFirst,
+    setIsFullStackTrace,
+  } = useStacktraceContext();
 
   const isMobile = isMobilePlatform(platform);
 
@@ -104,9 +95,9 @@ export function TraceEventDataSection({
         }
       );
 
-      setState(currentState => ({...currentState, fullStackTrace: isFullOptionClicked}));
+      setIsFullStackTrace(isFullOptionClicked);
     },
-    [organization, platform, projectSlug, isMobile]
+    [organization, platform, projectSlug, isMobile, setIsFullStackTrace]
   );
 
   const handleSortByChange = useCallback(
@@ -125,13 +116,13 @@ export function TraceEventDataSection({
         }
       );
 
-      setState(currentState => ({...currentState, sortBy: val}));
+      setIsNewestFramesFirst(isRecentFirst);
     },
-    [organization, platform, projectSlug, isMobile]
+    [organization, platform, projectSlug, isMobile, setIsNewestFramesFirst]
   );
 
   const handleDisplayChange = useCallback(
-    (vals: (keyof typeof displayOptions)[]) => {
+    (vals: typeof displayOptions) => {
       if (vals.includes('raw-stack-trace')) {
         trackAnalytics('stack-trace.display_option_raw_stack_trace_clicked', {
           organization,
@@ -140,7 +131,7 @@ export function TraceEventDataSection({
           is_mobile: isMobile,
           checked: true,
         });
-      } else if (state.display.includes('raw-stack-trace')) {
+      } else if (displayOptions.includes('raw-stack-trace')) {
         trackAnalytics('stack-trace.display_option_raw_stack_trace_clicked', {
           organization,
           project_slug: projectSlug,
@@ -158,7 +149,7 @@ export function TraceEventDataSection({
           is_mobile: isMobile,
           checked: true,
         });
-      } else if (state.display.includes('absolute-addresses')) {
+      } else if (displayOptions.includes('absolute-addresses')) {
         trackAnalytics('stack-trace.display_option_absolute_addresses_clicked', {
           organization,
           project_slug: projectSlug,
@@ -176,7 +167,7 @@ export function TraceEventDataSection({
           is_mobile: isMobile,
           checked: true,
         });
-      } else if (state.display.includes('absolute-file-paths')) {
+      } else if (displayOptions.includes('absolute-file-paths')) {
         trackAnalytics('stack-trace.display_option_absolute_file_paths_clicked', {
           organization,
           project_slug: projectSlug,
@@ -199,7 +190,7 @@ export function TraceEventDataSection({
             checked: true,
           }
         );
-      } else if (state.display.includes('minified')) {
+      } else if (displayOptions.includes('minified')) {
         trackAnalytics(
           platform.startsWith('javascript')
             ? 'stack-trace.display_option_minified_clicked'
@@ -222,7 +213,7 @@ export function TraceEventDataSection({
           is_mobile: isMobile,
           checked: true,
         });
-      } else if (state.display.includes('verbose-function-names')) {
+      } else if (displayOptions.includes('verbose-function-names')) {
         trackAnalytics('stack-trace.display_option_verbose_function_names_clicked', {
           organization,
           project_slug: projectSlug,
@@ -232,63 +223,66 @@ export function TraceEventDataSection({
         });
       }
 
-      setState(currentState => ({...currentState, display: vals}));
+      setDisplayOptions(vals);
     },
-    [organization, platform, projectSlug, isMobile, state]
+    [organization, platform, projectSlug, isMobile, displayOptions, setDisplayOptions]
   );
 
-  function getDisplayOptions(): {
+  function getDisplayOptions(): Array<{
     label: string;
-    value: keyof typeof displayOptions;
+    value: (typeof displayOptions)[number];
     disabled?: boolean;
     tooltip?: string;
-  }[] {
+  }> {
     if (
       platform === 'objc' ||
       platform === 'native' ||
       platform === 'cocoa' ||
-      platform === 'nintendo-switch'
+      platform === 'nintendo-switch' ||
+      platform === 'playstation' ||
+      platform === 'xbox'
     ) {
       return [
         {
-          label: displayOptions['absolute-addresses'],
+          label: stackTraceDisplayOptionLabels['absolute-addresses'],
           value: 'absolute-addresses',
-          disabled: state.display.includes('raw-stack-trace') || !hasAbsoluteAddresses,
-          tooltip: state.display.includes('raw-stack-trace')
+          disabled: displayOptions.includes('raw-stack-trace') || !hasAbsoluteAddresses,
+          tooltip: displayOptions.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
-            : !hasAbsoluteAddresses
-              ? t('Absolute addresses not available')
-              : undefined,
+            : hasAbsoluteAddresses
+              ? undefined
+              : t('Absolute addresses not available'),
         },
         {
-          label: displayOptions['absolute-file-paths'],
+          label: stackTraceDisplayOptionLabels['absolute-file-paths'],
           value: 'absolute-file-paths',
-          disabled: state.display.includes('raw-stack-trace') || !hasAbsoluteFilePaths,
-          tooltip: state.display.includes('raw-stack-trace')
+          disabled: displayOptions.includes('raw-stack-trace') || !hasAbsoluteFilePaths,
+          tooltip: displayOptions.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
-            : !hasAbsoluteFilePaths
-              ? t('Absolute file paths not available')
-              : undefined,
+            : hasAbsoluteFilePaths
+              ? undefined
+              : t('Absolute file paths not available'),
         },
         {
-          label: displayOptions.minified,
+          label: stackTraceDisplayOptionLabels.minified,
           value: 'minified',
           disabled: !hasMinified,
-          tooltip: !hasMinified ? t('Unsymbolicated version not available') : undefined,
+          tooltip: hasMinified ? undefined : t('Unsymbolicated version not available'),
         },
         {
-          label: displayOptions['raw-stack-trace'],
+          label: stackTraceDisplayOptionLabels['raw-stack-trace'],
           value: 'raw-stack-trace',
         },
         {
-          label: displayOptions['verbose-function-names'],
+          label: stackTraceDisplayOptionLabels['verbose-function-names'],
           value: 'verbose-function-names',
-          disabled: state.display.includes('raw-stack-trace') || !hasVerboseFunctionNames,
-          tooltip: state.display.includes('raw-stack-trace')
+          disabled:
+            displayOptions.includes('raw-stack-trace') || !hasVerboseFunctionNames,
+          tooltip: displayOptions.includes('raw-stack-trace')
             ? t('Not available on raw stack trace')
-            : !hasVerboseFunctionNames
-              ? t('Verbose function names not available')
-              : undefined,
+            : hasVerboseFunctionNames
+              ? undefined
+              : t('Verbose function names not available'),
         },
       ];
     }
@@ -296,7 +290,7 @@ export function TraceEventDataSection({
     if (platform.startsWith('python')) {
       return [
         {
-          label: displayOptions['raw-stack-trace'],
+          label: stackTraceDisplayOptionLabels['raw-stack-trace'],
           value: 'raw-stack-trace',
         },
       ];
@@ -309,10 +303,10 @@ export function TraceEventDataSection({
           label: t('Minified'),
           value: 'minified',
           disabled: !hasMinified,
-          tooltip: !hasMinified ? t('Minified version not available') : undefined,
+          tooltip: hasMinified ? undefined : t('Minified version not available'),
         },
         {
-          label: displayOptions['raw-stack-trace'],
+          label: stackTraceDisplayOptionLabels['raw-stack-trace'],
           value: 'raw-stack-trace',
         },
       ];
@@ -320,57 +314,59 @@ export function TraceEventDataSection({
 
     return [
       {
-        label: displayOptions.minified,
+        label: stackTraceDisplayOptionLabels.minified,
         value: 'minified',
         disabled: !hasMinified,
-        tooltip: !hasMinified ? t('Minified version not available') : undefined,
+        tooltip: hasMinified ? undefined : t('Minified version not available'),
       },
       {
-        label: displayOptions['raw-stack-trace'],
+        label: stackTraceDisplayOptionLabels['raw-stack-trace'],
         value: 'raw-stack-trace',
       },
     ];
   }
 
   const nativePlatform = isNativePlatform(platform);
-  const minified = state.display.includes('minified');
+  const minified = displayOptions.includes('minified');
 
   // Apple crash report endpoint
   const appleCrashEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}`;
   const rawStackTraceDownloadLink = `${api.baseUrl}${appleCrashEndpoint}&download=1`;
 
-  const sortByTooltip = !hasNewestFirst
-    ? t('Not available on stack trace with single frame')
-    : state.display.includes('raw-stack-trace')
+  const sortByTooltip = hasNewestFirst
+    ? displayOptions.includes('raw-stack-trace')
       ? t('Not available on raw stack trace')
-      : undefined;
+      : undefined
+    : t('Not available on stack trace with single frame');
 
-  const childProps = {
-    recentFirst: state.sortBy === 'recent-first',
-    display: state.display,
-    fullStackTrace: state.fullStackTrace,
-  };
+  const SectionComponent = isNestedSection ? InlineThreadSection : InterimSection;
+
+  const optionsToShow = getDisplayOptions();
+  const displayValues = displayOptions.filter(value =>
+    optionsToShow.some(opt => opt.value === value && !opt.disabled)
+  );
 
   return (
-    <InterimSection
+    <SectionComponent
       type={type}
+      showPermalink={!hasStreamlinedUI}
       title={title}
-      guideTarget={type}
+      disableCollapsePersistence
       actions={
         !stackTraceNotFound && (
-          <ButtonBar gap={1}>
-            {!state.display.includes('raw-stack-trace') && (
+          <ButtonBar>
+            {!displayOptions.includes('raw-stack-trace') && (
               <Tooltip
                 title={t('Only full version available')}
-                disabled={hasAppOnlyFrames}
+                disabled={!forceFullStackTrace}
               >
                 <SegmentedControl
                   size="xs"
                   aria-label={t('Filter frames')}
-                  value={state.fullStackTrace ? 'full' : 'relevant'}
+                  value={isFullStackTrace ? 'full' : 'relevant'}
                   onChange={handleFilterFramesChange}
                 >
-                  <SegmentedControl.Item key="relevant" disabled={!hasAppOnlyFrames}>
+                  <SegmentedControl.Item key="relevant" disabled={forceFullStackTrace}>
                     {t('Most Relevant')}
                   </SegmentedControl.Item>
                   <SegmentedControl.Item key="full">
@@ -379,8 +375,8 @@ export function TraceEventDataSection({
                 </SegmentedControl>
               </Tooltip>
             )}
-            {state.display.includes('raw-stack-trace') && nativePlatform && (
-              <Button
+            {displayOptions.includes('raw-stack-trace') && nativePlatform && (
+              <LinkButton
                 size="xs"
                 href={rawStackTraceDownloadLink}
                 title={t('Download raw stack trace file')}
@@ -394,7 +390,7 @@ export function TraceEventDataSection({
                 }}
               >
                 {t('Download')}
-              </Button>
+              </LinkButton>
             )}
             <CompactSelect
               triggerProps={{
@@ -407,7 +403,7 @@ export function TraceEventDataSection({
               onChange={selectedOption => {
                 handleSortByChange(selectedOption.value);
               }}
-              value={state.sortBy}
+              value={isNewestFramesFirst ? 'recent-first' : 'recent-last'}
               options={Object.entries(sortByOptions).map(([value, label]) => ({
                 label,
                 value: value as keyof typeof sortByOptions,
@@ -423,18 +419,51 @@ export function TraceEventDataSection({
               multiple
               triggerLabel=""
               position="bottom-end"
-              value={state.display}
+              value={displayValues}
               onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}
-              options={[{label: t('Display'), options: getDisplayOptions()}]}
+              options={[{label: t('Display'), options: optionsToShow}]}
             />
           </ButtonBar>
         )
       }
-      wrapTitle={wrapTitle}
     >
-      <TraceEventDataSectionContext.Provider value={childProps}>
-        {children(childProps)}
-      </TraceEventDataSectionContext.Provider>
-    </InterimSection>
+      {children}
+    </SectionComponent>
   );
 }
+
+function InlineThreadSection({
+  children,
+  title,
+  actions,
+}: {
+  actions: React.ReactNode;
+  children: React.ReactNode;
+  title: React.ReactNode;
+}) {
+  return (
+    <Wrapper>
+      <InlineSectionHeaderWrapper>
+        <ThreadHeading>{title}</ThreadHeading>
+        {actions}
+      </InlineSectionHeaderWrapper>
+      {children}
+    </Wrapper>
+  );
+}
+
+const Wrapper = styled('div')``;
+
+const ThreadHeading = styled('h3')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  margin-bottom: ${space(1)};
+`;
+
+const InlineSectionHeaderWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: ${space(1)};
+`;

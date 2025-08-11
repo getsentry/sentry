@@ -2,21 +2,20 @@ from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.base import SessionBase
 from django.test import RequestFactory
 from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken
 from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica
 from sentry.models.apitoken import ApiToken
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
-from sentry.models.user import User
 from sentry.ratelimits import get_rate_limit_config, get_rate_limit_key
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.models.user import User
 
 CONCURRENT_RATE_LIMIT = 20
 
@@ -35,7 +34,7 @@ class APITestEndpoint(Endpoint):
     )
 
     def get(self, request):
-        return Response({"ok": True})
+        raise NotImplementedError
 
 
 @all_silo_test
@@ -54,7 +53,7 @@ class GetRateLimitKeyTest(TestCase):
 
         with assume_test_silo_mode_of(User):
             request.user = User.objects.get(id=install.sentry_app.proxy_user_id)
-        request.auth = token
+            request.auth = AuthenticatedToken.from_token(token)
 
     def _populate_internal_integration_request(self, request) -> None:
         internal_integration = self.create_internal_integration(
@@ -70,9 +69,9 @@ class GetRateLimitKeyTest(TestCase):
 
         with assume_test_silo_mode_of(User):
             request.user = User.objects.get(id=internal_integration.proxy_user_id)
-        request.auth = token
+            request.auth = AuthenticatedToken.from_token(token)
 
-    def test_ips(self):
+    def test_ips(self) -> None:
         # Test for default IP
         assert (
             get_rate_limit_key(
@@ -97,7 +96,7 @@ class GetRateLimitKeyTest(TestCase):
             == "ip:default:APITestEndpoint:GET:684D:1111:222:3333:4444:5555:6:77"
         )
 
-    def test_user(self):
+    def test_user(self) -> None:
         self.request.session = SessionBase()
         self.request.user = self.user
 
@@ -108,8 +107,8 @@ class GetRateLimitKeyTest(TestCase):
             == f"user:default:APITestEndpoint:GET:{self.user.id}"
         )
 
-    def test_system_token(self):
-        self.request.auth = SystemToken()
+    def test_system_token(self) -> None:
+        self.request.auth = AuthenticatedToken.from_token(SystemToken())
         assert (
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
@@ -117,39 +116,7 @@ class GetRateLimitKeyTest(TestCase):
             is None
         )
 
-    def test_api_token(self):
-        with assume_test_silo_mode_of(ApiToken):
-            token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
-        self.request.auth = token
-        self.request.user = self.user
-        assert (
-            get_rate_limit_key(
-                self.view, self.request, self.rate_limit_group, self.rate_limit_config
-            )
-            == f"user:default:APITestEndpoint:GET:{self.user.id}"
-        )
-
-    def test_api_token_replica(self):
-        with assume_test_silo_mode_of(ApiToken):
-            apitoken = ApiToken.objects.create(
-                user=self.user, scope_list=["event:read", "org:read"]
-            )
-        with assume_test_silo_mode_of(ApiTokenReplica):
-            token = ApiTokenReplica.objects.get(apitoken_id=apitoken.id)
-        self.request.auth = token
-        self.request.user = self.user
-
-        assert (
-            get_rate_limit_key(
-                self.view, self.request, self.rate_limit_group, self.rate_limit_config
-            )
-            == f"user:default:APITestEndpoint:GET:{self.user.id}"
-        )
-
-    def test_authenticated_token(self):
-        # Ensure AuthenticatedToken kinds are registered
-        import sentry.auth.services.auth.service  # noqa: F401
-
+    def test_api_token(self) -> None:
         with assume_test_silo_mode_of(ApiToken):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
             self.request.auth = AuthenticatedToken.from_token(token)
@@ -161,35 +128,14 @@ class GetRateLimitKeyTest(TestCase):
             == f"user:default:APITestEndpoint:GET:{self.user.id}"
         )
 
-    def test_api_key(self):
-        self.request.user = AnonymousUser()
-        self.request.auth = self.create_api_key(
-            organization=self.organization, scope_list=["project:write"]
-        )
-
-        assert (
-            get_rate_limit_key(
-                self.view, self.request, self.rate_limit_group, self.rate_limit_config
+    def test_api_token_replica(self) -> None:
+        with assume_test_silo_mode_of(ApiToken):
+            apitoken = ApiToken.objects.create(
+                user=self.user, scope_list=["event:read", "org:read"]
             )
-            == "ip:default:APITestEndpoint:GET:127.0.0.1"
-        )
-
-    def test_org_auth_token(self):
-        self.request.user = AnonymousUser()
-        self.request.auth = self.create_org_auth_token(
-            organization_id=self.organization.id, scope_list=["org:ci"]
-        )
-
-        assert (
-            get_rate_limit_key(
-                self.view, self.request, self.rate_limit_group, self.rate_limit_config
-            )
-            == "ip:default:APITestEndpoint:GET:127.0.0.1"
-        )
-
-    def test_user_auth_token(self):
-        token = self.create_user_auth_token(user=self.user, scope_list=["event:read", "org:read"])
-        self.request.auth = token
+        with assume_test_silo_mode_of(ApiTokenReplica):
+            token = ApiTokenReplica.objects.get(apitoken_id=apitoken.id)
+        self.request.auth = AuthenticatedToken.from_token(token)
         self.request.user = self.user
 
         assert (
@@ -199,7 +145,60 @@ class GetRateLimitKeyTest(TestCase):
             == f"user:default:APITestEndpoint:GET:{self.user.id}"
         )
 
-    def test_integration_tokens(self):
+    def test_authenticated_token(self) -> None:
+        with assume_test_silo_mode_of(ApiToken):
+            token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
+            self.request.auth = AuthenticatedToken.from_token(token)
+        self.request.user = self.user
+        assert (
+            get_rate_limit_key(
+                self.view, self.request, self.rate_limit_group, self.rate_limit_config
+            )
+            == f"user:default:APITestEndpoint:GET:{self.user.id}"
+        )
+
+    def test_api_key(self) -> None:
+        self.request.user = AnonymousUser()
+        self.request.auth = AuthenticatedToken.from_token(
+            self.create_api_key(organization=self.organization, scope_list=["project:write"])
+        )
+
+        assert (
+            get_rate_limit_key(
+                self.view, self.request, self.rate_limit_group, self.rate_limit_config
+            )
+            == "ip:default:APITestEndpoint:GET:127.0.0.1"
+        )
+
+    def test_org_auth_token(self) -> None:
+        self.request.user = AnonymousUser()
+        self.request.auth = AuthenticatedToken.from_token(
+            self.create_org_auth_token(organization_id=self.organization.id, scope_list=["org:ci"])
+        )
+
+        assert (
+            get_rate_limit_key(
+                self.view, self.request, self.rate_limit_group, self.rate_limit_config
+            )
+            == "ip:default:APITestEndpoint:GET:127.0.0.1"
+        )
+
+    def test_user_auth_token(self) -> None:
+        with assume_test_silo_mode_of(User):
+            token = self.create_user_auth_token(
+                user=self.user, scope_list=["event:read", "org:read"]
+            )
+            self.request.auth = AuthenticatedToken.from_token(token)
+        self.request.user = self.user
+
+        assert (
+            get_rate_limit_key(
+                self.view, self.request, self.rate_limit_group, self.rate_limit_config
+            )
+            == f"user:default:APITestEndpoint:GET:{self.user.id}"
+        )
+
+    def test_integration_tokens(self) -> None:
         # Test for PUBLIC Integration api tokens
         self._populate_public_integration_request(self.request)
         assert (
@@ -211,11 +210,16 @@ class GetRateLimitKeyTest(TestCase):
 
         # Test for INTERNAL Integration api tokens
         self._populate_internal_integration_request(self.request)
+        assert self.request.auth is not None
         with assume_test_silo_mode_of(SentryAppInstallation, SentryAppInstallationToken):
             # Ensure that the internal integration token lives in
             # SentryAppInstallationToken instead of SentryAppInstallation
-            assert not SentryAppInstallation.objects.filter(api_token_id=self.request.auth.id)
-            assert SentryAppInstallationToken.objects.filter(api_token_id=self.request.auth.id)
+            assert not SentryAppInstallation.objects.filter(
+                api_token_id=self.request.auth.entity_id
+            )
+            assert SentryAppInstallationToken.objects.filter(
+                api_token_id=self.request.auth.entity_id
+            )
         assert (
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config
@@ -237,7 +241,7 @@ class TestDefaultToGroup(TestCase):
             self.rate_limit_config.group if self.rate_limit_config else RateLimitConfig().group
         )
 
-    def test_group_key(self):
+    def test_group_key(self) -> None:
         user = User(id=1)
         self.request.session = SessionBase()
         self.request.user = user

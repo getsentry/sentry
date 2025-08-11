@@ -1,37 +1,37 @@
-import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
+import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import {useLocation} from 'sentry/utils/useLocation';
-import {RouteContext} from 'sentry/views/routeContext';
+import {TestRouteContext} from 'sentry/views/routeContext';
 
 describe('useLocation', () => {
   it('returns the current location object', function () {
-    let location;
+    let location: any;
     function HomePage() {
       location = useLocation();
       return null;
     }
 
-    const memoryHistory = createMemoryHistory();
-    memoryHistory.push('/?hello');
+    const routeContext: RouteContextInterface = {
+      location: LocationFixture({
+        query: {hello: null},
+        search: '?hello',
+      }),
+      params: {},
+      router: RouterFixture(),
+      routes: [],
+    };
 
     render(
-      <Router
-        history={memoryHistory}
-        render={props => {
-          return (
-            <RouteContext.Provider value={props}>
-              <RouterContext {...props} />
-            </RouteContext.Provider>
-          );
-        }}
-      >
-        <Route path="/" component={HomePage} />
-      </Router>
+      <TestRouteContext value={routeContext}>
+        <HomePage />
+      </TestRouteContext>
     );
 
-    expect(location.pathname).toBe('/');
+    expect(location.pathname).toBe('/mock-pathname/');
     expect(location.query).toEqual({hello: null});
     expect(location.search).toBe('?hello');
   });

@@ -1,16 +1,18 @@
 import {useMemo, useState} from 'react';
 
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
-import type {Event, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 
 import {EventRegressionTable} from './eventRegressionTable';
@@ -96,7 +98,7 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
 
   const {
     data: rcaData,
-    isLoading: isRcaLoading,
+    isPending: isRcaLoading,
     isError: isRcaError,
   } = useFetchAdvancedAnalysis({
     transaction,
@@ -115,9 +117,9 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
 
   const {
     data: spansData,
-    isLoading: isSpansDataLoading,
+    isPending: isSpansDataLoading,
     isError: isSpansDataError,
-  } = useSpanMetrics(
+  } = useSpans(
     {
       search,
       fields: [
@@ -147,8 +149,8 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
         };
 
         if (causeType === 'throughput') {
-          const throughputBefore = row[`epm_by_timestamp(less,${breakpoint})`];
-          const throughputAfter = row[`epm_by_timestamp(greater,${breakpoint})`];
+          const throughputBefore = row[`epm_by_timestamp(less,${breakpoint})`]!;
+          const throughputAfter = row[`epm_by_timestamp(greater,${breakpoint})`]!;
           return {
             ...commonProps,
             throughputBefore,
@@ -158,9 +160,9 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
         }
 
         const durationBefore =
-          row[`avg_by_timestamp(span.self_time,less,${breakpoint})`] / 1e3;
+          row[`avg_by_timestamp(span.self_time,less,${breakpoint})`]! / 1e3;
         const durationAfter =
-          row[`avg_by_timestamp(span.self_time,greater,${breakpoint})`] / 1e3;
+          row[`avg_by_timestamp(span.self_time,greater,${breakpoint})`]! / 1e3;
         return {
           ...commonProps,
           durationBefore,
@@ -199,9 +201,9 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
     return {
       description: {
         defaultValue: t('(unnamed span)'),
-        link: dataRow => ({
+        link: (dataRow: any) => ({
           target: spanDetailsRouteWithQuery({
-            orgSlug: organization.slug,
+            organization,
             spanSlug: {op: dataRow.operation, group: dataRow.group},
             transaction,
             projectID: project.id,
@@ -219,8 +221,8 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
   }, [location, organization, project, transaction, start, end]);
 
   return (
-    <EventDataSection
-      type="potential-causes"
+    <InterimSection
+      type={SectionKey.REGRESSION_POTENTIAL_CAUSES}
       title={t('Potential Causes')}
       actions={
         <SegmentedControl
@@ -246,7 +248,7 @@ function AggregateSpanDiff({event, project}: AggregateSpanDiffProps) {
         isError={isSpansOnly ? isSpansDataError : isRcaError}
         options={tableOptions}
       />
-    </EventDataSection>
+    </InterimSection>
   );
 }
 

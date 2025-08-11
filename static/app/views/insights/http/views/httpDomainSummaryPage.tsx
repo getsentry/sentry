@@ -1,44 +1,36 @@
-import React from 'react';
+import React, {Fragment} from 'react';
 
-import Alert from 'sentry/components/alert';
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import {Alert} from 'sentry/components/core/alert';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {ExternalLink} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t, tct} from 'sentry/locale';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
-import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
-import {
-  EMPTY_OPTION_VALUE,
-  escapeFilterValue,
-  MutableSearch,
-} from 'sentry/utils/tokenizeSearch';
+import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
 import {ReadoutRibbon, ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
+import {useHttpDomainSummaryChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpDomainSummaryChartFilter';
+import HttpDomainSummaryDurationChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryDurationChartWidget';
+import HttpDomainSummaryResponseCodesChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryResponseCodesChartWidget';
+import HttpDomainSummaryThroughputChartWidget from 'sentry/views/insights/common/components/widgets/httpDomainSummaryThroughputChartWidget';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
-import {ResponseRateChart} from 'sentry/views/insights/http/components/charts/responseRateChart';
-import {ThroughputChart} from 'sentry/views/insights/http/components/charts/throughputChart';
 import {DomainStatusLink} from 'sentry/views/insights/http/components/domainStatusLink';
 import {HTTPSamplesPanel} from 'sentry/views/insights/http/components/httpSamplesPanel';
 import {
@@ -47,114 +39,84 @@ import {
 } from 'sentry/views/insights/http/components/tables/domainTransactionsTable';
 import {Referrer} from 'sentry/views/insights/http/referrers';
 import {
-  BASE_FILTERS,
   MODULE_DOC_LINK,
   NULL_DOMAIN_DESCRIPTION,
 } from 'sentry/views/insights/http/settings';
-import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
-
-type Query = {
-  aggregate?: string;
-  domain?: string;
-};
+import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
+import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 export function HTTPDomainSummaryPage() {
-  const location = useLocation<Query>();
+  const moduleTitle = useModuleTitle(ModuleName.HTTP);
+  const moduleURL = useModuleURL(ModuleName.HTTP);
   const {projects} = useProjects();
+  const {view} = useDomainViewFilters();
+  const filters = useHttpDomainSummaryChartFilter();
 
-  // TODO: Fetch sort information using `useLocationQuery`
-  const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
-
-  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
-
-  const {domain, project: projectId} = useLocationQuery({
+  const {
+    domain,
+    project: projectId,
+    [QueryParameterNames.TRANSACTIONS_CURSOR]: cursor,
+    [QueryParameterNames.TRANSACTIONS_SORT]: sortField,
+  } = useLocationQuery({
     fields: {
       project: decodeScalar,
       domain: decodeScalar,
+      [QueryParameterNames.TRANSACTIONS_CURSOR]: decodeScalar,
+      [QueryParameterNames.TRANSACTIONS_SORT]: decodeScalar,
+      [SpanFields.USER_GEO_SUBREGION]: decodeList,
+      transaction: decodeScalar,
     },
+  });
+  const sort = decodeSorts(sortField).find(isAValidSort) ?? DEFAULT_SORT;
+
+  useSamplesDrawer({
+    Component: <HTTPSamplesPanel />,
+    moduleName: ModuleName.HTTP,
+    requiredParams: ['transaction'],
   });
 
   const project = projects.find(p => projectId === p.id);
-  const filters: SpanMetricsQueryFilters = {
-    ...BASE_FILTERS,
-    'span.domain': domain === '' ? EMPTY_OPTION_VALUE : escapeFilterValue(domain),
-  };
 
-  const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
-
-  const {data: domainMetrics, isLoading: areDomainMetricsLoading} = useSpanMetrics(
+  const {data: domainMetrics, isPending: areDomainMetricsLoading} = useSpans(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
-        `${SpanFunction.SPM}()`,
-        `avg(${SpanMetricsField.SPAN_SELF_TIME})`,
-        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `${SpanFunction.EPM}()`,
+        `avg(${SpanFields.SPAN_SELF_TIME})`,
+        `sum(${SpanFields.SPAN_SELF_TIME})`,
         'http_response_rate(3)',
         'http_response_rate(4)',
         'http_response_rate(5)',
-        `${SpanFunction.TIME_SPENT_PERCENTAGE}()`,
       ],
     },
     Referrer.DOMAIN_SUMMARY_METRICS_RIBBON
   );
 
   const {
-    isLoading: isThroughputDataLoading,
-    data: throughputData,
-    error: throughputError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(filters),
-      yAxis: ['spm()'],
-    },
-    Referrer.DOMAIN_SUMMARY_THROUGHPUT_CHART
-  );
-
-  const {
-    isLoading: isDurationDataLoading,
-    data: durationData,
-    error: durationError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(filters),
-      yAxis: [`avg(${SpanMetricsField.SPAN_SELF_TIME})`],
-    },
-    Referrer.DOMAIN_SUMMARY_DURATION_CHART
-  );
-
-  const {
-    isLoading: isResponseCodeDataLoading,
-    data: responseCodeData,
-    error: responseCodeError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(filters),
-      yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
-    },
-    Referrer.DOMAIN_SUMMARY_RESPONSE_CODE_CHART
-  );
-
-  const {
-    isLoading: isTransactionsListLoading,
+    isPending: isTransactionsListLoading,
     data: transactionsList,
     meta: transactionsListMeta,
     error: transactionsListError,
     pageLinks: transactionsListPageLinks,
-  } = useSpanMetrics(
+  } = useSpans(
     {
       search: MutableSearch.fromQueryObject(filters),
       fields: [
         'project.id',
         'transaction',
         'transaction.method',
-        'spm()',
+        'epm()',
         'http_response_rate(3)',
         'http_response_rate(4)',
         'http_response_rate(5)',
         'avg(span.self_time)',
         'sum(span.self_time)',
-        'time_spent_percentage()',
       ],
       sorts: [sort],
       limit: TRANSACTIONS_TABLE_ROW_COUNT,
@@ -163,169 +125,138 @@ export function HTTPDomainSummaryPage() {
     Referrer.DOMAIN_SUMMARY_TRANSACTIONS_LIST
   );
 
-  useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
-
-  const crumbs = useModuleBreadcrumbs('http');
+  const headerProps = {
+    headerTitle: (
+      <Fragment>
+        {project && <ProjectAvatar project={project} size={36} />}
+        {domain || NULL_DOMAIN_DESCRIPTION}
+        <DomainStatusLink domain={domain} />
+      </Fragment>
+    ),
+    breadcrumbs: [
+      {label: moduleTitle, to: moduleURL},
+      {
+        label: t('Domain Summary'),
+      },
+    ],
+    module: ModuleName.HTTP,
+    hideDefaultTabs: true,
+  };
 
   return (
     <React.Fragment>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              ...crumbs,
-              {
-                label: 'Domain Summary',
-              },
-            ]}
-          />
-          <Layout.Title>
-            {project && <ProjectAvatar project={project} size={36} />}
-            {domain || NULL_DOMAIN_DESCRIPTION}
-            <DomainStatusLink domain={domain} />
-          </Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
+      {view === FRONTEND_LANDING_SUB_PATH && <FrontendHeader {...headerProps} />}
+      {view === BACKEND_LANDING_SUB_PATH && <BackendHeader {...headerProps} />}
+      {view === MOBILE_LANDING_SUB_PATH && <MobileHeader {...headerProps} />}
 
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          {domain === '' && (
-            <Alert type="info">
-              {tct(
-                '"Unknown Domain" entries can be caused by instrumentation errors. Please refer to our [link] for more information.',
-                {
-                  link: <ExternalLink href={MODULE_DOC_LINK}>documentation</ExternalLink>,
-                }
-              )}
-            </Alert>
-          )}
-
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <HeaderContainer>
-                <ToolRibbon>
-                  <PageFilterBar condensed>
-                    <EnvironmentPageFilter />
-                    <DatePageFilter />
-                  </PageFilterBar>
-                </ToolRibbon>
-
-                <ReadoutRibbon>
-                  <MetricReadout
-                    title={getThroughputTitle('http')}
-                    value={domainMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
-                    unit={RateUnit.PER_MINUTE}
-                    isLoading={areDomainMetricsLoading}
-                  />
-
-                  <MetricReadout
-                    title={DataTitles.avg}
-                    value={
-                      domainMetrics?.[0]?.[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]
+      <ModuleBodyUpsellHook moduleName={ModuleName.HTTP}>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            {domain === '' && (
+              <Alert.Container>
+                <Alert type="info" showIcon={false}>
+                  {tct(
+                    '"Unknown Domain" entries can be caused by instrumentation errors. Please refer to our [link] for more information.',
+                    {
+                      link: (
+                        <ExternalLink href={MODULE_DOC_LINK}>documentation</ExternalLink>
+                      ),
                     }
-                    unit={DurationUnit.MILLISECOND}
-                    isLoading={areDomainMetricsLoading}
-                  />
+                  )}
+                </Alert>
+              </Alert.Container>
+            )}
 
-                  <MetricReadout
-                    title={t('3XXs')}
-                    value={domainMetrics?.[0]?.[`http_response_rate(3)`]}
-                    unit="percentage"
-                    isLoading={areDomainMetricsLoading}
-                  />
+            <ModuleLayout.Layout>
+              <ModuleLayout.Full>
+                <HeaderContainer>
+                  <ToolRibbon>
+                    <ModulePageFilterBar
+                      moduleName={ModuleName.HTTP}
+                      disableProjectFilter
+                    />
+                    <SubregionSelector />
+                  </ToolRibbon>
 
-                  <MetricReadout
-                    title={t('4XXs')}
-                    value={domainMetrics?.[0]?.[`http_response_rate(4)`]}
-                    unit="percentage"
-                    isLoading={areDomainMetricsLoading}
-                  />
+                  <ReadoutRibbon>
+                    <MetricReadout
+                      title={getThroughputTitle('http')}
+                      value={domainMetrics?.[0]?.[`${SpanFunction.EPM}()`]}
+                      unit={RateUnit.PER_MINUTE}
+                      isLoading={areDomainMetricsLoading}
+                    />
 
-                  <MetricReadout
-                    title={t('5XXs')}
-                    value={domainMetrics?.[0]?.[`http_response_rate(5)`]}
-                    unit="percentage"
-                    isLoading={areDomainMetricsLoading}
-                  />
+                    <MetricReadout
+                      title={DataTitles.avg}
+                      value={domainMetrics?.[0]?.[`avg(${SpanFields.SPAN_SELF_TIME})`]}
+                      unit={DurationUnit.MILLISECOND}
+                      isLoading={areDomainMetricsLoading}
+                    />
 
-                  <MetricReadout
-                    title={DataTitles.timeSpent}
-                    value={domainMetrics?.[0]?.['sum(span.self_time)']}
-                    unit={DurationUnit.MILLISECOND}
-                    tooltip={getTimeSpentExplanation(
-                      domainMetrics?.[0]?.['time_spent_percentage()'],
-                      'http'
-                    )}
-                    isLoading={areDomainMetricsLoading}
-                  />
-                </ReadoutRibbon>
-              </HeaderContainer>
-            </ModuleLayout.Full>
+                    <MetricReadout
+                      title={t('3XXs')}
+                      value={domainMetrics?.[0]?.[`http_response_rate(3)`]}
+                      unit="percentage"
+                      isLoading={areDomainMetricsLoading}
+                    />
 
-            <ModuleLayout.Third>
-              <ThroughputChart
-                series={throughputData['spm()']}
-                isLoading={isThroughputDataLoading}
-                error={throughputError}
-              />
-            </ModuleLayout.Third>
+                    <MetricReadout
+                      title={t('4XXs')}
+                      value={domainMetrics?.[0]?.[`http_response_rate(4)`]}
+                      unit="percentage"
+                      isLoading={areDomainMetricsLoading}
+                    />
 
-            <ModuleLayout.Third>
-              <DurationChart
-                series={[durationData[`avg(${SpanMetricsField.SPAN_SELF_TIME})`]]}
-                isLoading={isDurationDataLoading}
-                error={durationError}
-              />
-            </ModuleLayout.Third>
+                    <MetricReadout
+                      title={t('5XXs')}
+                      value={domainMetrics?.[0]?.[`http_response_rate(5)`]}
+                      unit="percentage"
+                      isLoading={areDomainMetricsLoading}
+                    />
 
-            <ModuleLayout.Third>
-              <ResponseRateChart
-                series={[
-                  {
-                    ...responseCodeData[`http_response_rate(3)`],
-                    seriesName: t('3XX'),
-                  },
-                  {
-                    ...responseCodeData[`http_response_rate(4)`],
-                    seriesName: t('4XX'),
-                  },
-                  {
-                    ...responseCodeData[`http_response_rate(5)`],
-                    seriesName: t('5XX'),
-                  },
-                ]}
-                isLoading={isResponseCodeDataLoading}
-                error={responseCodeError}
-              />
-            </ModuleLayout.Third>
+                    <MetricReadout
+                      title={DataTitles.timeSpent}
+                      value={domainMetrics?.[0]?.['sum(span.self_time)']}
+                      unit={DurationUnit.MILLISECOND}
+                      isLoading={areDomainMetricsLoading}
+                    />
+                  </ReadoutRibbon>
+                </HeaderContainer>
+              </ModuleLayout.Full>
 
-            <ModuleLayout.Full>
-              <DomainTransactionsTable
-                domain={domain}
-                data={transactionsList}
-                error={transactionsListError}
-                isLoading={isTransactionsListLoading}
-                meta={transactionsListMeta}
-                pageLinks={transactionsListPageLinks}
-                sort={sort}
-              />
-            </ModuleLayout.Full>
-          </ModuleLayout.Layout>
-        </Layout.Main>
-      </Layout.Body>
+              <ModuleLayout.Third>
+                <HttpDomainSummaryThroughputChartWidget />
+              </ModuleLayout.Third>
 
-      <HTTPSamplesPanel />
+              <ModuleLayout.Third>
+                <HttpDomainSummaryDurationChartWidget />
+              </ModuleLayout.Third>
+
+              <ModuleLayout.Third>
+                <HttpDomainSummaryResponseCodesChartWidget />
+              </ModuleLayout.Third>
+
+              <ModuleLayout.Full>
+                <DomainTransactionsTable
+                  domain={domain}
+                  data={transactionsList}
+                  error={transactionsListError}
+                  isLoading={isTransactionsListLoading}
+                  meta={transactionsListMeta}
+                  pageLinks={transactionsListPageLinks}
+                  sort={sort}
+                />
+              </ModuleLayout.Full>
+            </ModuleLayout.Layout>
+          </Layout.Main>
+        </Layout.Body>
+      </ModuleBodyUpsellHook>
     </React.Fragment>
   );
 }
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage()' as const,
+  field: 'sum(span.self_time)' as const,
   kind: 'desc' as const,
 };
 
@@ -333,11 +264,7 @@ const TRANSACTIONS_TABLE_ROW_COUNT = 20;
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="http"
-      pageTitle={t('Domain Summary')}
-      features="insights-initial-modules"
-    >
+    <ModulePageProviders moduleName="http" pageTitle={t('Domain Summary')}>
       <HTTPDomainSummaryPage />
     </ModulePageProviders>
   );

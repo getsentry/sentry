@@ -2,13 +2,15 @@ import type {JsonFormObject} from 'sentry/components/forms/types';
 import languages from 'sentry/data/languages';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
+import {StacktraceOrder} from 'sentry/types/user';
+import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 
 // Export route to make these forms searchable by label/help
 export const route = '/settings/account/details/';
 
 // Called before sending API request, these fields need to be sent as an
 // `options` object
-const transformOptions = (data: object) => ({options: data});
+const transformOptions = (data: Record<PropertyKey, unknown>) => ({options: data});
 
 const formGroups: JsonFormObject[] = [
   {
@@ -28,6 +30,9 @@ const formGroups: JsonFormObject[] = [
           {value: 'system', label: t('Default to system')},
         ],
         getData: transformOptions,
+        onChange: () => {
+          removeBodyTheme();
+        },
       },
       {
         name: 'language',
@@ -54,9 +59,12 @@ const formGroups: JsonFormObject[] = [
         type: 'select',
         required: false,
         options: [
-          {value: -1, label: t('Default')},
-          {value: 1, label: t('Oldest')},
-          {value: 2, label: t('Newest')},
+          // TODO: If we eliminate the special-casing as discussed in
+          // https://github.com/getsentry/sentry/pull/96719, consider changing the label here to
+          // `Default (newest first)` and removing the separate `Newest first` option.
+          {value: StacktraceOrder.DEFAULT, label: t('Default')},
+          {value: StacktraceOrder.MOST_RECENT_LAST, label: t('Oldest first')},
+          {value: StacktraceOrder.MOST_RECENT_FIRST, label: t('Newest first')},
         ],
         label: t('Stack Trace Order'),
         help: t('Choose the default ordering of frames in stack traces'),

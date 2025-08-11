@@ -1,12 +1,11 @@
 import type {RenderProps} from 'sentry/components/charts/eventsRequest';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {defined} from 'sentry/utils';
-
 import type {
   QueryDefinitionWithKey,
   WidgetDataConstraint,
   WidgetPropUnion,
-} from '../types';
+} from 'sentry/views/performance/landing/widgets/types';
 
 export function transformEventsRequestToVitals<T extends WidgetDataConstraint>(
   widgetProps: WidgetPropUnion<T>,
@@ -23,7 +22,7 @@ export function transformEventsRequestToVitals<T extends WidgetDataConstraint>(
     ...results,
     isLoading: results.loading || results.reloading,
     isErrored: results.errored,
-    hasData: defined(data) && !!data.length && !!data[0].data.length,
+    hasData: defined(data) && !!data.length && !!data[0]!.data.length,
     data,
 
     utc: utc === 'true',

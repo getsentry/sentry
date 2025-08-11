@@ -5,26 +5,25 @@ import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import GroupList from 'sentry/components/issues/groupList';
 import Pagination from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-
-import type {ReleaseBounds} from '../../utils';
-import {getReleaseParams} from '../../utils';
-import EmptyState from '../commitsAndFiles/emptyState';
+import {EmptyState} from 'sentry/views/releases/detail/commitsAndFiles/emptyState';
+import type {ReleaseBounds} from 'sentry/views/releases/utils';
+import {getReleaseParams} from 'sentry/views/releases/utils';
 
 enum IssuesType {
   NEW = 'new',
@@ -285,7 +284,7 @@ class ReleaseIssues extends Component<Props, State> {
     });
   };
 
-  handleFetchSuccess = (groupListState, onCursor) => {
+  handleFetchSuccess = (groupListState: any, onCursor: any) => {
     this.setState({pageLinks: groupListState.pageLinks, onCursor});
   };
 
@@ -300,6 +299,7 @@ class ReleaseIssues extends Component<Props, State> {
       releaseBounds,
     });
 
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     const selectedTimePeriod = statsPeriod ? DEFAULT_RELATIVE_PERIODS[statsPeriod] : null;
     const displayedPeriod = selectedTimePeriod
       ? selectedTimePeriod.toLowerCase()
@@ -343,7 +343,7 @@ class ReleaseIssues extends Component<Props, State> {
   render() {
     const {count, pageLinks, onCursor} = this.state;
     const issuesType = this.getActiveIssuesType();
-    const {organization, queryFilterDescription, withChart, version} = this.props;
+    const {queryFilterDescription, withChart, version} = this.props;
     const {path, queryParams} = this.getIssuesEndpoint();
     const issuesTypes = [
       {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
@@ -368,7 +368,13 @@ class ReleaseIssues extends Component<Props, State> {
     return (
       <Fragment>
         <ControlsWrapper>
-          <GuideAnchor target="release_states">
+          <DemoTourElement
+            id={DemoTourStep.RELEASES_STATES}
+            title={t('New and regressed issues')}
+            description={t(
+              `Along with reviewing how your release is trending over time compared to previous releases, you can view new and regressed issues here.`
+            )}
+          >
             <SegmentedControl
               aria-label={t('Issue type')}
               size="xs"
@@ -387,26 +393,24 @@ class ReleaseIssues extends Component<Props, State> {
                 </SegmentedControl.Item>
               ))}
             </SegmentedControl>
-          </GuideAnchor>
+          </DemoTourElement>
 
-          <OpenInButtonBar gap={1}>
-            <Button to={this.getIssuesUrl()} size="xs">
+          <OpenInButtonBar>
+            <LinkButton to={this.getIssuesUrl()} size="xs">
               {t('Open in Issues')}
-            </Button>
+            </LinkButton>
 
             <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
           </OpenInButtonBar>
         </ControlsWrapper>
         <div data-test-id="release-wrapper">
           <GroupList
-            orgSlug={organization.slug}
             endpointPath={path}
             queryParams={queryParams}
             query={`release:${version}`}
             canSelectGroups={false}
             queryFilterDescription={queryFilterDescription}
             withChart={withChart}
-            narrowGroups
             renderEmptyMessage={this.renderEmptyMessage}
             withPagination={false}
             onFetchSuccess={this.handleFetchSuccess}
@@ -423,7 +427,7 @@ const ControlsWrapper = styled('div')`
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: block;
   }
 `;

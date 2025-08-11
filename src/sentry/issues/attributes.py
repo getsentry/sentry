@@ -1,8 +1,8 @@
 import dataclasses
 import logging
+from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
-from typing import cast
 
 import urllib3
 from arroyo import Topic as ArroyoTopic
@@ -14,7 +14,6 @@ from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
 
-from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
@@ -91,13 +90,10 @@ def send_snapshot_values(
 def bulk_send_snapshot_values(
     group_ids: list[int] | None, groups: list[Group] | None, group_deleted: bool = False
 ) -> None:
-    if not (options.get("issues.group_attributes.send_kafka") or False):
-        return
-
     if group_ids is None and groups is None:
         raise ValueError("cannot send snapshot values when group_ids and groups are None")
 
-    group_list: list[Group | GroupValues] = cast(list[Group | GroupValues], groups) or []
+    group_list: list[Group | GroupValues] = [*(groups or [])]
     if group_ids:
         group_list.extend(_bulk_retrieve_group_values(group_ids))
 
@@ -130,10 +126,6 @@ def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
         _attribute_snapshot_producer.produce(
             ArroyoTopic(get_topic_definition(Topic.GROUP_ATTRIBUTES)["real_topic_name"]), payload
         )
-
-
-def _retrieve_group_values(group_id: int) -> GroupValues:
-    return _bulk_retrieve_group_values([group_id])[0]
 
 
 def _bulk_retrieve_group_values(group_ids: list[int]) -> list[GroupValues]:
@@ -171,7 +163,7 @@ def _bulk_retrieve_group_values(group_ids: list[int]) -> list[GroupValues]:
 
 
 def _bulk_retrieve_snapshot_values(
-    group_values_list: list[Group | GroupValues], group_deleted: bool = False
+    group_values_list: Iterable[Group | GroupValues], group_deleted: bool = False
 ) -> list[GroupAttributesSnapshot]:
     group_assignee_map = {
         ga["group_id"]: ga
@@ -252,7 +244,7 @@ def process_update_fields(updated_fields) -> set[str]:
         # we'll need to assume any of the attributes are updated in that case
         updated_fields = {"all"}
     else:
-        VALID_FIELDS = {"status", "substatus", "num_comments"}
+        VALID_FIELDS = {"status", "substatus", "num_comments", "priority", "first_release"}
         updated_fields = VALID_FIELDS.intersection(updated_fields or ())
     if updated_fields:
         _log_group_attributes_changed(Operation.UPDATED, "group", "-".join(sorted(updated_fields)))

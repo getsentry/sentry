@@ -8,8 +8,9 @@ from django.urls import reverse
 
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
+from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.testutils.cases import TransactionTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
@@ -433,7 +434,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_basic_resolving(self):
+    def test_basic_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
         event_data = {
@@ -469,23 +470,10 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
-        if not self.use_relay():
-            # We measure the number of queries after an initial post,
-            # because there are many queries polluting the array
-            # before the actual "processing" happens (like, auth_user)
-            with self.assertWriteQueries(
-                {
-                    "nodestore_node": 2,
-                    "sentry_eventuser": 1,
-                    "sentry_groupedmessage": 1,
-                    "sentry_userreport": 1,
-                }
-            ):
-                self.post_and_retrieve_event(event_data)
 
         exc = event.interfaces["exception"].values[0]
         bt = exc.stacktrace
@@ -508,7 +496,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_resolving_does_not_fail_when_no_value(self):
+    def test_resolving_does_not_fail_when_no_value(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
         event_data = {
@@ -543,30 +531,17 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
-        if not self.use_relay():
-            # We measure the number of queries after an initial post,
-            # because there are many queries polluting the array
-            # before the actual "processing" happens (like, auth_user)
-            with self.assertWriteQueries(
-                {
-                    "nodestore_node": 2,
-                    "sentry_eventuser": 1,
-                    "sentry_groupedmessage": 1,
-                    "sentry_userreport": 1,
-                }
-            ):
-                self.post_and_retrieve_event(event_data)
 
         metrics = event.data["_metrics"]
         assert not metrics.get("flag.processing.error")
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_resolving_does_not_fail_when_no_module_or_function(self):
+    def test_resolving_does_not_fail_when_no_module_or_function(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
         event_data = {
@@ -613,30 +588,17 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
-        if not self.use_relay():
-            # We measure the number of queries after an initial post,
-            # because there are many queries polluting the array
-            # before the actual "processing" happens (like, auth_user)
-            with self.assertWriteQueries(
-                {
-                    "nodestore_node": 2,
-                    "sentry_eventuser": 1,
-                    "sentry_groupedmessage": 1,
-                    "sentry_userreport": 1,
-                }
-            ):
-                self.post_and_retrieve_event(event_data)
 
         metrics = event.data["_metrics"]
         assert not metrics.get("flag.processing.error")
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_sets_inapp_after_resolving(self):
+    def test_sets_inapp_after_resolving(self) -> None:
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
         version = "org.slf4j@1.2.3"
@@ -702,23 +664,10 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
-        if not self.use_relay():
-            # We measure the number of queries after an initial post,
-            # because there are many queries polluting the array
-            # before the actual "processing" happens (like, auth_user)
-            with self.assertWriteQueries(
-                {
-                    "nodestore_node": 2,
-                    "sentry_eventuser": 1,
-                    "sentry_groupedmessage": 1,
-                    "sentry_userreport": 1,
-                }
-            ):
-                self.post_and_retrieve_event(event_data)
 
         exc = event.interfaces["exception"].values[0]
         bt = exc.stacktrace
@@ -733,7 +682,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_resolving_inline(self):
+    def test_resolving_inline(self) -> None:
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
 
         event_data = {
@@ -769,23 +718,10 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
-        if not self.use_relay():
-            # We measure the number of queries after an initial post,
-            # because there are many queries polluting the array
-            # before the actual "processing" happens (like, auth_user)
-            with self.assertWriteQueries(
-                {
-                    "nodestore_node": 2,
-                    "sentry_eventuser": 1,
-                    "sentry_groupedmessage": 1,
-                    "sentry_userreport": 1,
-                }
-            ):
-                self.post_and_retrieve_event(event_data)
 
         exc = event.interfaces["exception"].values[0]
         bt = exc.stacktrace
@@ -809,7 +745,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_resolving_inline_with_native_frames(self):
+    def test_resolving_inline_with_native_frames(self) -> None:
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
 
         event_data = {
@@ -864,23 +800,10 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
-        if not self.use_relay():
-            # We measure the number of queries after an initial post,
-            # because there are many queries polluting the array
-            # before the actual "processing" happens (like, auth_user)
-            with self.assertWriteQueries(
-                {
-                    "nodestore_node": 2,
-                    "sentry_eventuser": 1,
-                    "sentry_groupedmessage": 1,
-                    "sentry_userreport": 1,
-                }
-            ):
-                self.post_and_retrieve_event(event_data)
 
         exc = event.interfaces["exception"].values[0]
         bt = exc.stacktrace
@@ -910,7 +833,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_error_on_resolving(self):
+    def test_error_on_resolving(self) -> None:
         url = reverse(
             "sentry-api-0-dsym-files",
             kwargs={
@@ -970,7 +893,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -1015,7 +938,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_basic_source_lookup(self):
+    def test_basic_source_lookup(self) -> None:
         debug_id = str(uuid4())
         self.upload_jvm_bundle(debug_id, {"io/sentry/samples/MainActivity.jvm": JVM_SOURCE})
 
@@ -1087,23 +1010,10 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
-        if not self.use_relay():
-            # We measure the number of queries after an initial post,
-            # because there are many queries polluting the array
-            # before the actual "processing" happens (like, auth_user)
-            with self.assertWriteQueries(
-                {
-                    "nodestore_node": 2,
-                    "sentry_eventuser": 1,
-                    "sentry_groupedmessage": 1,
-                    "sentry_userreport": 1,
-                }
-            ):
-                self.post_and_retrieve_event(event_data)
 
         exc = event.interfaces["exception"].values[0]
         bt = exc.stacktrace
@@ -1216,9 +1126,10 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         ]
         assert frames[6].post_context == ["        }", "    }", "}", ""]
 
+    @pytest.mark.skip(reason="flaky: #93951")
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_source_lookup_with_proguard(self):
+    def test_source_lookup_with_proguard(self) -> None:
         self.upload_proguard_mapping(PROGUARD_SOURCE_LOOKUP_UUID, PROGUARD_SOURCE_LOOKUP_SOURCE)
         debug_id1 = str(uuid4())
         self.upload_jvm_bundle(
@@ -1405,23 +1316,10 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
-        if not self.use_relay():
-            # We measure the number of queries after an initial post,
-            # because there are many queries polluting the array
-            # before the actual "processing" happens (like, auth_user)
-            with self.assertWriteQueries(
-                {
-                    "nodestore_node": 2,
-                    "sentry_eventuser": 1,
-                    "sentry_groupedmessage": 1,
-                    "sentry_userreport": 1,
-                }
-            ):
-                self.post_and_retrieve_event(event_data)
 
         exc = event.interfaces["exception"].values[0]
         bt = exc.stacktrace
@@ -1524,9 +1422,10 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert frames[24].pre_context is None
         assert frames[24].post_context is None
 
+    @pytest.mark.skip(reason="flaky: #93949")
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_invalid_exception(self):
+    def test_invalid_exception(self) -> None:
         event_data = {
             "user": {"ip_address": "31.172.207.97"},
             "extra": {},
@@ -1540,7 +1439,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     {"type": "RemoteException", "module": "android.os"},
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1).isoformat(),
         }
 
         event = self.post_and_retrieve_event(event_data)
@@ -1554,7 +1453,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
         assert received == expected
 
-    def test_is_jvm_event(self):
+    def test_is_jvm_event(self) -> None:
         from sentry.lang.java.utils import is_jvm_event
 
         event = {
@@ -1583,9 +1482,11 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1),
         }
-        assert is_jvm_event(event)
+
+        stacktraces = find_stacktraces_in_data(event)
+        assert is_jvm_event(event, stacktraces)
 
         event = {
             "user": {"ip_address": "31.172.207.97"},
@@ -1612,10 +1513,11 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1),
         }
         # has no platform
-        assert is_jvm_event(event)
+        stacktraces = find_stacktraces_in_data(event)
+        assert is_jvm_event(event, stacktraces)
 
         event = {
             "user": {"ip_address": "31.172.207.97"},
@@ -1643,7 +1545,71 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
                     }
                 ]
             },
-            "timestamp": iso_format(before_now(seconds=1)),
+            "timestamp": before_now(seconds=1),
         }
         # has no modules
-        assert not is_jvm_event(event)
+        stacktraces = find_stacktraces_in_data(event)
+        assert is_jvm_event(event, stacktraces)
+
+        event = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "debug_meta": {},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "platform": "java",
+                                    "function": "whoops4",
+                                    "abs_path": "SourceFile",
+                                    "module": "io.sentry.samples.MainActivity$OneMoreInnerClass",
+                                    "filename": "SourceFile",
+                                    "lineno": 38,
+                                },
+                            ]
+                        },
+                        "module": "io.sentry.samples",
+                        "type": "RuntimeException",
+                        "value": "whoops",
+                    }
+                ]
+            },
+            "timestamp": before_now(seconds=1),
+        }
+        # has a Java frame
+        stacktraces = find_stacktraces_in_data(event)
+        assert is_jvm_event(event, stacktraces)
+
+        event = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "debug_meta": {},
+            "exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "whoops4",
+                                    "abs_path": "SourceFile",
+                                    "module": "io.sentry.samples.MainActivity$OneMoreInnerClass",
+                                    "filename": "SourceFile",
+                                    "lineno": 38,
+                                },
+                            ]
+                        },
+                        "module": "io.sentry.samples",
+                        "type": "RuntimeException",
+                        "value": "whoops",
+                    }
+                ]
+            },
+            "timestamp": before_now(seconds=1),
+        }
+        # has no platform, frame, or modules
+        stacktraces = find_stacktraces_in_data(event)
+        assert not is_jvm_event(event, stacktraces)

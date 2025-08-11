@@ -6,13 +6,13 @@ import FormModel from 'sentry/components/forms/model';
 import MetricField from 'sentry/views/alerts/rules/metric/metricField';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
-async function openSelectMenu(text) {
+async function openSelectMenu(text: string) {
   const placeholder = screen.getByText(text);
   await userEvent.type(placeholder, '{keyDown}');
 }
 
 describe('MetricField', function () {
-  let model;
+  let model: any;
   const {organization} = initializeOrg({
     organization: {features: ['performance-view']},
   });

@@ -21,9 +21,8 @@ function NarrowLayout({maxWidth, showLogout, children}: Props) {
     return () => document.body.classList.remove('narrow');
   }, []);
 
-  async function handleLogout() {
-    await logout(api);
-    window.location.assign('/auth/login');
+  function handleLogout() {
+    logout(api);
   }
 
   return (
@@ -49,7 +48,7 @@ function NarrowLayout({maxWidth, showLogout, children}: Props) {
 }
 
 const Logout = styled('span')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 export default NarrowLayout;

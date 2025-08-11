@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
-import Alert from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
-import type {EventErrorData} from 'sentry/components/events/errorItem';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import type {EventErrorData} from 'sentry/components/events/interfaces/types';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {
@@ -19,7 +19,8 @@ import {
 } from 'sentry/constants/eventErrors';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
@@ -35,7 +36,7 @@ import {
 import type {ActionableItemsResponse} from './useActionableItems';
 import {useActionableItems} from './useActionableItems';
 
-interface ErrorMessage {
+export interface ErrorMessage {
   desc: React.ReactNode;
   title: string;
   data?: {
@@ -59,10 +60,10 @@ const keyMapping = {
   image_path: 'File Path',
 };
 
-function getErrorMessage(
+export function getErrorMessage(
   error: ActionableItemErrors | EventErrorData,
   meta?: Record<string, any>
-): Array<ErrorMessage> {
+): ErrorMessage[] {
   const errorData = error.data ?? {};
   const metaData = meta ?? {};
   switch (error.type) {
@@ -108,6 +109,24 @@ function getErrorMessage(
       return [
         {
           title: t('The debug information file used was broken'),
+          desc: null,
+          data: errorData,
+          meta: metaData,
+        },
+      ];
+    case NativeProcessingErrors.NATIVE_SYMBOLICATOR_FAILED:
+      return [
+        {
+          title: t('Failed to process native stacktraces'),
+          desc: null,
+          data: errorData,
+          meta: metaData,
+        },
+      ];
+    case NativeProcessingErrors.NATIVE_INTERNAL_FAILURE:
+      return [
+        {
+          title: t('Internal failure when attempting to symbolicate'),
           desc: null,
           data: errorData,
           meta: metaData,
@@ -227,7 +246,7 @@ interface ExpandableErrorListProps {
 
 function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorListProps) {
   const [expanded, setExpanded] = useState(false);
-  const firstError = errorList[0];
+  const firstError = errorList[0]!;
   const {title, desc, type} = firstError;
   const numErrors = errorList.length;
   const errorDataList = errorList.map(error => error.data ?? {});
@@ -262,6 +281,7 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
         .map(([key, value]) => ({
           key,
           value,
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           subject: keyMapping[key] || startCase(key),
         }))
         .filter(d => {
@@ -272,7 +292,6 @@ function ExpandableErrorList({handleExpandClick, errorList}: ExpandableErrorList
         });
     });
     return cleaned;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [errorDataList]);
 
   return (
@@ -319,7 +338,7 @@ function groupedErrors(
   event: Event,
   data?: ActionableItemsResponse,
   progaurdErrors?: EventErrorData[]
-): Record<ActionableItemTypes, ErrorMessageType[]> | {} {
+): Partial<Record<ActionableItemTypes, ErrorMessageType[]>> {
   if (!data || !progaurdErrors || !event) {
     return {};
   }
@@ -343,13 +362,12 @@ function groupedErrors(
 
 interface ActionableItemsProps {
   event: Event;
-  isShare: boolean;
   project: Project;
 }
 
-export function ActionableItems({event, project, isShare}: ActionableItemsProps) {
+export function ActionableItems({event, project}: ActionableItemsProps) {
   const organization = useOrganization();
-  const {data, isLoading} = useActionableItems({
+  const {data, isPending} = useActionableItems({
     eventId: event.id,
     orgSlug: organization.slug,
     projectSlug: project.slug,
@@ -358,7 +376,7 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
   const {proguardErrorsLoading, proguardErrors} = useFetchProguardMappingFiles({
     event,
     project,
-    isShare,
+    isShare: false,
   });
 
   useEffect(() => {
@@ -389,7 +407,7 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
   });
 
   if (
-    isLoading ||
+    isPending ||
     !defined(data) ||
     data.errors?.length === 0 ||
     Object.keys(errorMessages).length === 0
@@ -424,21 +442,20 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
       )
   );
 
-  for (const errorKey in Object.keys(errorMessages)) {
+  for (const errorKey of Object.keys(errorMessages)) {
     const isWarning = ActionableItemWarning.includes(
       errorKey as ProguardProcessingErrors | NativeProcessingErrors | GenericSchemaErrors
     );
     const shouldDelete = hasErrorAlert ? isWarning : !isWarning;
 
     if (shouldDelete) {
-      delete errorMessages[errorKey];
+      delete errorMessages[errorKey as keyof typeof errorMessages];
     }
   }
 
   return (
     <StyledAlert
       defaultExpanded
-      showIcon
       type={hasErrorAlert ? 'error' : 'warning'}
       expand={
         <Fragment>
@@ -446,6 +463,7 @@ export function ActionableItems({event, project, isShare}: ActionableItemsProps)
             return (
               <ExpandableErrorList
                 key={idx}
+                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 errorList={errorMessages[error]}
                 handleExpandClick={handleExpandClick}
               />

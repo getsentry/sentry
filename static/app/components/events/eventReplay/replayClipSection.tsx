@@ -2,8 +2,8 @@ import {Fragment, lazy} from 'react';
 import ReactLazyLoad from 'react-lazyload';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import LazyLoad from 'sentry/components/lazyLoad';
@@ -15,11 +15,11 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface Props {
@@ -38,46 +38,42 @@ const ReplayClipPreview = lazy(() => import('./replayClipPreview'));
 export function ReplayClipSection({event, group, replayId}: Props) {
   const organization = useOrganization();
   const hasStreamlinedUI = useHasStreamlinedUI();
-  const router = useRouter();
   const {getReplayCountForIssue} = useReplayCountForIssues();
+  const {baseUrl} = useGroupDetailsRoute();
 
   const startTimestampMS =
     'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
   const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
   const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
 
-  // don't try to construct the url if we don't have a group
-  const eventIdFromRouter = router.params.eventId;
-  const baseUrl = group
-    ? eventIdFromRouter
-      ? normalizeUrl(
-          `/organizations/${organization.slug}/issues/${group.id}/events/${eventIdFromRouter}/`
-        )
-      : normalizeUrl(`/organizations/${organization.slug}/issues/${group.id}/`)
-    : '';
-  const replayUrl = baseUrl ? `${baseUrl}replays/${location.search}/` : '';
-  const seeAllReplaysButton = replayUrl ? (
+  const allReplaysButton = (
     <LinkButton
       size="xs"
-      to={replayUrl}
+      to={{
+        pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
+      }}
+      replace
       analyticsEventKey="issue_details.replay_player.clicked_see_all_replays"
       analyticsEventName="Issue Details: Replay Player Clicked See All Replays"
     >
       {t('See All Replays')}
     </LinkButton>
-  ) : undefined;
+  );
 
   const replayCount = group ? getReplayCountForIssue(group.id, group.issueCategory) : -1;
   const overlayContent =
-    seeAllReplaysButton && replayCount && replayCount > 1 ? (
+    replayCount && replayCount > 1 ? (
       <Fragment>
         <div>
-          {t(
-            'There are %s for this issue.',
-            tn('%s replay', '%s replays', replayCount ?? 0)
-          )}
+          {replayCount > 50
+            ? t('There are 50+ replays for this issue.')
+            : tn(
+                'There is %s replay for this issue.',
+                'there are %s replays for this issue.',
+                replayCount ?? 0
+              )}
         </div>
-        {seeAllReplaysButton}
+        {allReplaysButton}
       </Fragment>
     ) : undefined;
 
@@ -110,8 +106,8 @@ export function ReplayClipSection({event, group, replayId}: Props) {
   return (
     <ReplaySectionMinHeight
       title={t('Session Replay')}
-      actions={seeAllReplaysButton}
-      type={FoldSectionKey.REPLAY}
+      actions={allReplaysButton}
+      type={SectionKey.REPLAY}
     >
       <ErrorBoundary mini>
         <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>
@@ -133,7 +129,7 @@ const ReplaySectionMinHeight = styled(InterimSection)`
   min-height: 557px;
 `;
 
-export const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
+const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
   height: ${REPLAY_LOADING_HEIGHT}px;
   margin-bottom: ${space(2)};
 `;

@@ -1,20 +1,22 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.alert_rule import (
     CombinedRuleSerializer,
     DetailedAlertRuleSerializer,
 )
-from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
+from sentry.incidents.logic import (
+    AlertTarget,
+    create_alert_rule_trigger,
+    create_alert_rule_trigger_action,
+)
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleDetectionType,
-    AlertRuleMonitorTypeInt,
     AlertRuleProjects,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.rule import Rule
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, TestCase
@@ -50,7 +52,6 @@ class BaseAlertRuleSerializerTest:
         assert result["resolution"] == alert_rule.snuba_query.resolution / 60
         assert result["thresholdPeriod"] == alert_rule.threshold_period
         assert result["projects"] == alert_rule_projects
-        assert result["includeAllProjects"] == alert_rule.include_all_projects
         if alert_rule.created_by_id:
             created_by = user_service.get_user(user_id=alert_rule.created_by_id)
             assert created_by is not None
@@ -122,19 +123,19 @@ class BaseAlertRuleSerializerTest:
 
 
 class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         alert_rule = self.create_alert_rule()
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)
 
-    def test_threshold_type_resolve_threshold(self):
+    def test_threshold_type_resolve_threshold(self) -> None:
         alert_rule = self.create_alert_rule(
             threshold_type=AlertRuleThresholdType.BELOW, resolve_threshold=500
         )
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)
 
-    def test_triggers(self):
+    def test_triggers(self) -> None:
         alert_rule = self.create_alert_rule()
         other_alert_rule = self.create_alert_rule()
         trigger = create_alert_rule_trigger(alert_rule, "test", 1000)
@@ -142,86 +143,37 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         assert result[0]["triggers"] == [serialize(trigger)]
         assert result[1]["triggers"] == []
 
-    def test_activations(self):
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
-        activated_alert_rule = self.create_alert_rule(
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED
-        )
-        other_alert_rule = self.create_alert_rule()
-
-        activations = self.create_alert_rule_activation(
-            alert_rule=alert_rule, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
-        )
-        activated_alert_rule.subscribe_projects(
-            projects=[self.project],
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-            activator="testing",
-        )
-        activated_alert_rule.refresh_from_db()
-
-        result = serialize([alert_rule, other_alert_rule, activated_alert_rule])
-        assert result[0]["activations"] == serialize(activations)
-        assert result[1]["activations"] == []
-        assert result[2]["activations"] == serialize(list(activated_alert_rule.activations.all()))
-        assert (
-            result[2]["activationCondition"]
-            == AlertRuleActivationConditionType.RELEASE_CREATION.value
-        )
-
-    def test_truncated_activations(self):
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
-        alert_rule2 = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
-        for i in range(11):
-            self.create_alert_rule_activation(
-                alert_rule=alert_rule, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
-            )
-            if i % 2 == 0:
-                self.create_alert_rule_activation(
-                    alert_rule=alert_rule2, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
-                )
-        result = serialize([alert_rule, alert_rule2])
-        assert len(result[0]["activations"]) == 10
-        assert len(result[1]["activations"]) == 6
-
-    def test_projects(self):
+    def test_projects(self) -> None:
         regular_alert_rule = self.create_alert_rule()
-        activated_alert_rule = self.create_alert_rule(
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED
-        )
         alert_rule_no_projects = self.create_alert_rule()
 
         AlertRuleProjects.objects.filter(alert_rule_id=alert_rule_no_projects.id).delete()
 
-        assert activated_alert_rule.projects
         assert regular_alert_rule.projects
         assert not alert_rule_no_projects.projects.exists()
-        result = serialize([regular_alert_rule, activated_alert_rule, alert_rule_no_projects])
+        result = serialize([regular_alert_rule, alert_rule_no_projects])
 
         assert result[0]["projects"] == [
             project.slug for project in regular_alert_rule.projects.all()
         ]
-        assert result[1]["projects"] == [
-            project.slug for project in activated_alert_rule.projects.all()
-        ]
         # NOTE: we are now _only_ referencing alert_rule.projects fk (AlertRuleProjects)
-        assert result[2]["projects"] == [
+        assert result[1]["projects"] == [
             project.slug for project in alert_rule_no_projects.projects.all()
         ]
 
-    def test_environment(self):
+    def test_environment(self) -> None:
         alert_rule = self.create_alert_rule(environment=self.environment)
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)
 
-    def test_created_by(self):
+    def test_created_by(self) -> None:
         user = self.create_user("foo@example.com")
         alert_rule = self.create_alert_rule(environment=self.environment, user=user)
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result)
         assert alert_rule.created_by_id == user.id
 
-    def test_owner(self):
+    def test_owner(self) -> None:
         user = self.create_user("foo@example.com")
         alert_rule = self.create_alert_rule(
             environment=self.environment,
@@ -233,7 +185,7 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         assert alert_rule.team_id == self.team.id
         assert alert_rule.user_id is None
 
-    def test_comparison_delta_above(self):
+    def test_comparison_delta_above(self) -> None:
         alert_rule = self.create_alert_rule(
             comparison_delta=60,
             resolve_threshold=110,
@@ -242,7 +194,7 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result, resolve_threshold=10)
 
-    def test_comparison_delta_below(self):
+    def test_comparison_delta_below(self) -> None:
         alert_rule = self.create_alert_rule(
             comparison_delta=60,
             resolve_threshold=90,
@@ -254,35 +206,15 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
 
 
 class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         projects = [self.project, self.create_project()]
         alert_rule = self.create_alert_rule(projects=projects)
         result = serialize(alert_rule, serializer=DetailedAlertRuleSerializer())
         self.assert_alert_rule_serialized(alert_rule, result)
         assert sorted(result["projects"]) == sorted(p.slug for p in projects)
-        assert result["excludedProjects"] == []
         assert result["eventTypes"] == [SnubaQueryEventType.EventType.ERROR.name.lower()]
 
-    def test_excluded_projects(self):
-        projects = [self.project]
-        excluded = [self.create_project()]
-        alert_rule = self.create_alert_rule(
-            projects=[], include_all_projects=True, excluded_projects=excluded
-        )
-        result = serialize(alert_rule, serializer=DetailedAlertRuleSerializer())
-        self.assert_alert_rule_serialized(alert_rule, result)
-        assert result["projects"] == [p.slug for p in projects]
-        assert result["excludedProjects"] == [p.slug for p in excluded]
-        assert result["eventTypes"] == [SnubaQueryEventType.EventType.ERROR.name.lower()]
-
-        alert_rule = self.create_alert_rule(projects=projects, include_all_projects=False)
-        result = serialize(alert_rule, serializer=DetailedAlertRuleSerializer())
-        self.assert_alert_rule_serialized(alert_rule, result)
-        assert result["projects"] == [p.slug for p in projects]
-        assert result["excludedProjects"] == []
-        assert result["eventTypes"] == [SnubaQueryEventType.EventType.ERROR.name.lower()]
-
-    def test_triggers(self):
+    def test_triggers(self) -> None:
         alert_rule = self.create_alert_rule()
         other_alert_rule = self.create_alert_rule()
         trigger = create_alert_rule_trigger(alert_rule, "test", 1000)
@@ -292,9 +224,9 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
 
     @patch(
         "sentry.incidents.logic.get_target_identifier_display_for_integration",
-        return_value=(123, "test"),
+        return_value=AlertTarget(123, "test"),
     )
-    def test_trigger_actions(self, mock_get):
+    def test_trigger_actions(self, mock_get: MagicMock) -> None:
         alert_rule = self.create_alert_rule()
         other_alert_rule = self.create_alert_rule()
         trigger = create_alert_rule_trigger(alert_rule, "test", 1000)
@@ -313,7 +245,7 @@ class DetailedAlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
 
 
 class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestCase):
-    def test_combined_serializer(self):
+    def test_combined_serializer(self) -> None:
         projects = [self.project, self.create_project()]
         alert_rule = self.create_alert_rule(projects=projects)
         issue_rule = self.create_issue_alert_rule(
@@ -342,7 +274,7 @@ class CombinedRuleSerializerTest(BaseAlertRuleSerializerTest, APITestCase, TestC
         serialized_uptime_monitor["type"] = "uptime"
         assert result[3] == serialized_uptime_monitor
 
-    def test_alert_snoozed(self):
+    def test_alert_snoozed(self) -> None:
         projects = [self.project, self.create_project()]
         alert_rule = self.create_alert_rule(projects=projects)
         issue_rule = self.create_issue_alert_rule(

@@ -4,25 +4,25 @@ import type {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
-import GenericDiscoverQuery from 'sentry/utils/discover/genericDiscoverQuery';
+import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 
 /**
  * An individual row in a Segment explorer result
  */
 export type TableDataRow = {
-  [key: string]: React.ReactText;
+  [key: string]: string | number;
   count: number;
   tags_key: string;
   tags_value: string;
 };
 
-export type HistogramTag = {
+type HistogramTag = {
   tags_value: string;
 };
 
 export type TableData = {
   histogram: {data: TableDataRow[]};
-  meta: {};
+  meta: Record<string, unknown>;
   tags: {data: HistogramTag[]};
 };
 
@@ -50,7 +50,7 @@ type FacetQuery = LocationQuery &
     tagKey?: string;
   };
 
-export function getRequestFunction(_props: QueryProps) {
+function getRequestFunction(_props: QueryProps) {
   const {aggregateColumn} = _props;
   function getTagExplorerRequestPayload(props: DiscoverQueryProps) {
     const {eventView} = props;

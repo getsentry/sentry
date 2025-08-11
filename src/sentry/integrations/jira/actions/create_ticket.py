@@ -4,6 +4,7 @@ from typing import Any
 
 from sentry.integrations.jira.actions.form import JiraNotifyServiceForm
 from sentry.integrations.services.integration import RpcIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.rules.actions import TicketEventAction
 from sentry.utils.http import absolute_uri
 
@@ -13,8 +14,7 @@ class JiraCreateTicketAction(TicketEventAction):
     label = "Create a Jira issue in {integration} with these "
     ticket_type = "a Jira issue"
     link = "https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-sync"
-    provider = "jira"
-    form_cls = JiraNotifyServiceForm
+    provider = IntegrationProviderSlug.JIRA.value
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -32,3 +32,6 @@ class JiraCreateTicketAction(TicketEventAction):
     def translate_integration(self, integration: RpcIntegration) -> str:
         name = integration.metadata.get("domain_name", integration.name)
         return name.replace(".atlassian.net", "")
+
+    def get_form_instance(self) -> JiraNotifyServiceForm:
+        return JiraNotifyServiceForm(self.data, integrations=self.get_integrations())

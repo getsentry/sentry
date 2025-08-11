@@ -1,13 +1,16 @@
 ---
+created: '2025-04-25T21:22:13.281494+00:00'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "d59239f5aad3304d60beb1fde3369b78"
+  contributing component: exception
   component:
     app*
       exception*
         stacktrace*
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.utils.safe"
             filename (module takes precedence)
@@ -16,7 +19,7 @@ app:
               "safe_execute"
             context-line*
               "result = func(*args, **kwargs)"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.integrations.slack.notify_action"
             filename (module takes precedence)
@@ -25,7 +28,7 @@ app:
               "send_notification"
             context-line*
               "resp.raise_for_status()"
-          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
+          frame (marked out of app by the client)
             module*
               "requests.models"
             filename (module takes precedence)
@@ -41,6 +44,7 @@ app:
 --------------------------------------------------------------------------
 default:
   hash: null
+  contributing component: null
   component:
     default (exception of app/system takes precedence)
       message (exception of app/system takes precedence)
@@ -48,6 +52,7 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "133db3f366b1327dab4e661f66dfb961"
+  contributing component: exception
   component:
     system*
       exception*

@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import isFinite from 'lodash/isFinite';
 
@@ -33,7 +34,7 @@ type OperationName = string | typeof OtherOperation;
 // mapping an operation name to a disjoint set of time intervals (start/end timestamp).
 // this is an intermediary data structure to help calculate the coverage of an operation name
 // with respect to the root transaction span's operation lifetime
-type OperationNameIntervals = Record<OperationName, Array<TimeWindowSpan>>;
+type OperationNameIntervals = Record<OperationName, TimeWindowSpan[]>;
 type OperationNameCoverage = Record<OperationName, Duration>;
 
 type OpStats = {
@@ -44,7 +45,7 @@ type OpStats = {
 
 const TOP_N_SPANS = 4;
 
-export type OpBreakdownType = OpStats[];
+type OpBreakdownType = OpStats[];
 
 type Props = {
   event: Event | AggregateEventTransaction;
@@ -235,6 +236,7 @@ function OpsBreakdown({
   hideHeader = false,
   topN = TOP_N_SPANS,
 }: Props) {
+  const theme = useTheme();
   const transactionEvent =
     event.type === 'transaction' || event.type === 'aggregateTransaction'
       ? event
@@ -254,7 +256,7 @@ function OpsBreakdown({
 
     const durLabel = Math.round(totalInterval * 1000 * 100) / 100;
     const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
-    const opsColor: string = pickBarColor(operationName);
+    const opsColor: string = pickBarColor(operationName, theme);
 
     return (
       <OpsLine key={operationName}>
@@ -293,12 +295,12 @@ function OpsBreakdown({
 }
 
 const StyledBreakdown = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(4)};
 `;
 
 const StyledBreakdownNoHeader = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: ${space(2)} ${space(3)};
 `;
 
@@ -338,7 +340,7 @@ const OpsName = styled('div')`
 `;
 
 const Dur = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-variant-numeric: tabular-nums;
 `;
 
@@ -373,7 +375,7 @@ function mergeInterval(intervals: TimeWindowSpan[]): TimeWindowSpan[] {
       continue;
     }
 
-    const lastInterval = merged[merged.length - 1];
+    const lastInterval = merged[merged.length - 1]!;
     const lastIntervalEnd = lastInterval[1];
 
     const [currentIntervalStart, currentIntervalEnd] = currentInterval;

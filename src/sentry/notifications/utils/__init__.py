@@ -1,26 +1,24 @@
 from __future__ import annotations
 
 import logging
-import time
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Optional, TypedDict, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
 from urllib.parse import parse_qs, urlparse
 
 from django.db.models import Count
-from django.utils.http import urlencode
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.base import IntegrationFeatures, IntegrationProvider
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
+    PerformanceNPlusOneAPICallsExperimentalGroupType,
     PerformanceNPlusOneAPICallsGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
 )
@@ -28,7 +26,6 @@ from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
-from sentry.models.eventerror import EventError
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
@@ -37,11 +34,13 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
+from sentry.performance_issues.base import get_url_from_span
+from sentry.performance_issues.performance_problem import PerformanceProblem
+from sentry.performance_issues.types import Span
 from sentry.silo.base import region_silo_function
+from sentry.types.rules import NotificationRuleDetails
 from sentry.users.services.user import RpcUser
 from sentry.utils.committers import get_serialized_event_file_committers
-from sentry.utils.performance_issues.base import get_url_from_span
-from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.web.helpers import render_to_string
 
 if TYPE_CHECKING:
@@ -68,9 +67,7 @@ def get_release(activity: Activity, organization: Organization) -> Release | Non
         return None
 
 
-def get_group_counts_by_project(
-    release: Release, projects: Iterable[Project]
-) -> Mapping[Project, int]:
+def get_group_counts_by_project(release: Release, projects: Iterable[Project]) -> dict[int, int]:
     return dict(
         Group.objects.filter(
             project__in=projects,
@@ -119,108 +116,6 @@ def get_environment_for_deploy(deploy: Deploy | None) -> str:
         if environment and environment.name:
             return str(environment.name)
     return "Default Environment"
-
-
-def summarize_issues(
-    issues: Iterable[Mapping[str, Mapping[str, Any]]]
-) -> Iterable[Mapping[str, str]]:
-    rv = []
-    for issue in issues:
-        extra_info = None
-        msg_d = dict(issue["data"])
-        msg_d["type"] = issue["type"]
-
-        if "image_path" in issue["data"]:
-            extra_info = issue["data"]["image_path"].rsplit("/", 1)[-1]
-            if "image_arch" in issue["data"]:
-                extra_info = "{} ({})".format(extra_info, issue["data"]["image_arch"])
-
-        rv.append({"message": EventError(msg_d).message, "extra_info": extra_info})
-    return rv
-
-
-def get_email_link_extra_params(
-    referrer: str = "alert_email",
-    environment: str | None = None,
-    rule_details: Sequence[NotificationRuleDetails] | None = None,
-    alert_timestamp: int | None = None,
-    notification_uuid: str | None = None,
-    **kwargs: Any,
-) -> dict[int, str]:
-    alert_timestamp_str = (
-        str(round(time.time() * 1000)) if not alert_timestamp else str(alert_timestamp)
-    )
-    return {
-        rule_detail.id: "?"
-        + str(
-            urlencode(
-                {
-                    "referrer": referrer,
-                    "alert_type": str(AlertRuleTriggerAction.Type.EMAIL.name).lower(),
-                    "alert_timestamp": alert_timestamp_str,
-                    "alert_rule_id": rule_detail.id,
-                    **dict(
-                        []
-                        if notification_uuid is None
-                        else [("notification_uuid", str(notification_uuid))]
-                    ),
-                    **dict([] if environment is None else [("environment", environment)]),
-                    **kwargs,
-                }
-            )
-        )
-        for rule_detail in (rule_details or [])
-    }
-
-
-def get_group_settings_link(
-    group: Group,
-    environment: str | None,
-    rule_details: Sequence[NotificationRuleDetails] | None = None,
-    alert_timestamp: int | None = None,
-    referrer: str = "alert_email",
-    notification_uuid: str | None = None,
-    **kwargs: Any,
-) -> str:
-    alert_rule_id = rule_details[0].id if rule_details and rule_details[0].id else None
-    extra_params = ""
-    if alert_rule_id:
-        extra_params = get_email_link_extra_params(
-            referrer,
-            environment,
-            rule_details,
-            alert_timestamp,
-            notification_uuid=notification_uuid,
-            **kwargs,
-        )[alert_rule_id]
-    elif not alert_rule_id and notification_uuid:
-        extra_params = "?" + str(urlencode({"notification_uuid": notification_uuid}))
-    return str(group.get_absolute_url() + extra_params)
-
-
-def get_integration_link(
-    organization: Organization, integration_slug: str, notification_uuid: str | None = None
-) -> str:
-    query_params = {"referrer": "alert_email"}
-    if notification_uuid:
-        query_params.update({"notification_uuid": notification_uuid})
-
-    return organization.absolute_url(
-        f"/settings/{organization.slug}/integrations/{integration_slug}/",
-        query=urlencode(query_params),
-    )
-
-
-def get_issue_replay_link(group: Group, sentry_query_params: str = ""):
-    return str(group.get_absolute_url() + "replays/" + sentry_query_params)
-
-
-@dataclass
-class NotificationRuleDetails:
-    id: int
-    label: str
-    url: str
-    status_url: str
 
 
 def get_rules(
@@ -277,10 +172,7 @@ def has_integrations(organization: Organization, project: Project) -> bool:
 
 
 def is_alert_rule_integration(provider: IntegrationProvider) -> bool:
-    return any(
-        feature == (IntegrationFeatures.ALERT_RULE or IntegrationFeatures.ENTERPRISE_ALERT_RULE)
-        for feature in provider.features
-    )
+    return IntegrationFeatures.ALERT_RULE in provider.features
 
 
 def has_alert_integration(project: Project) -> bool:
@@ -311,20 +203,18 @@ def get_interface_list(event: Event) -> Sequence[tuple[str, str, str]]:
     return interface_list
 
 
-def get_span_evidence_value(
-    span: dict[str, str | float] | None = None, include_op: bool = True
-) -> str:
+def get_span_evidence_value(span: Span | None = None, include_op: bool = True) -> str:
     """Get the 'span evidence' data for a given span. This is displayed in issue alert emails."""
     value = "no value"
     if not span:
         return value
     if not span.get("op") and span.get("description"):
-        value = cast(str, span["description"])
+        value = span["description"]
     if span.get("op") and not span.get("description"):
-        value = cast(str, span["op"])
+        value = span["op"]
     if span.get("op") and span.get("description"):
-        op = cast(str, span["op"])
-        desc = cast(str, span["description"])
+        op = span["op"]
+        desc = span["description"]
         value = f"{op} - {desc}"
         if not include_op:
             value = desc
@@ -332,8 +222,8 @@ def get_span_evidence_value(
 
 
 def get_parent_and_repeating_spans(
-    spans: list[dict[str, str | float]] | None, problem: PerformanceProblem
-) -> tuple[dict[str, str | float] | None, dict[str, str | float] | None]:
+    spans: list[Span] | None, problem: PerformanceProblem
+) -> tuple[Span | None, Span | None]:
     """Parse out the parent and repeating spans given an event's spans"""
     if not spans:
         return (None, None)
@@ -360,16 +250,16 @@ def occurrence_perf_to_email_html(context: Any) -> str:
 
 
 def get_spans(
-    entries: list[dict[str, list[dict[str, str | float]] | str]]
-) -> list[dict[str, str | float]] | None:
+    entries: list[dict[str, list[dict[str, str | float]] | str]],
+) -> list[Span] | None:
     """Get the given event's spans"""
     if not len(entries):
         return None
 
-    spans: list[dict[str, str | float]] | None = None
+    spans: list[Span] | None = None
     for entry in entries:
         if entry.get("type") == "spans":
-            spans = cast(Optional[list[dict[str, Union[str, float]]]], entry.get("data"))
+            spans = cast(Optional[list[Span]], entry.get("data"))
             break
 
     return spans
@@ -449,7 +339,7 @@ def get_replay_id(event: Event | GroupEvent) -> str | None:
 @dataclass
 class PerformanceProblemContext:
     problem: PerformanceProblem
-    spans: list[dict[str, str | float]] | None
+    spans: list[Span] | None
     event: Event | None
 
     def __post_init__(self) -> None:
@@ -490,7 +380,7 @@ class PerformanceProblemContext:
 
         return (end - start) * 1000
 
-    def _find_span_by_id(self, id: str) -> dict[str, Any] | None:
+    def _find_span_by_id(self, id: str) -> Span | None:
         if not self.spans:
             return None
 
@@ -500,12 +390,12 @@ class PerformanceProblemContext:
                 return span
         return None
 
-    def get_span_duration(self, span: dict[str, Any] | None) -> timedelta:
+    def get_span_duration(self, span: Span | None) -> timedelta:
         if span:
             return timedelta(seconds=span.get("timestamp", 0) - span.get("start_timestamp", 0))
         return timedelta(0)
 
-    def _sum_span_duration(self, spans: list[dict[str, Any] | None]) -> float:
+    def _sum_span_duration(self, spans: list[Span | None]) -> float:
         "Given non-overlapping spans, find the sum of the span durations in milliseconds"
         sum = 0.0
         for span in spans:
@@ -517,10 +407,13 @@ class PerformanceProblemContext:
     def from_problem_and_spans(
         cls,
         problem: PerformanceProblem,
-        spans: list[dict[str, str | float]] | None,
+        spans: list[Span] | None,
         event: Event | None = None,
     ) -> PerformanceProblemContext:
-        if problem.type == PerformanceNPlusOneAPICallsGroupType:
+        if problem.type in (
+            PerformanceNPlusOneAPICallsGroupType,
+            PerformanceNPlusOneAPICallsExperimentalGroupType,
+        ):
             return NPlusOneAPICallProblemContext(problem, spans, event)
         if problem.type == PerformanceConsecutiveDBQueriesGroupType:
             return ConsecutiveDBQueriesProblemContext(problem, spans, event)
@@ -649,7 +542,7 @@ class RenderBlockingAssetProblemContext(PerformanceProblemContext):
         }
 
     @property
-    def slow_span(self) -> dict[str, str | float] | None:
+    def slow_span(self) -> Span | None:
         if not self.spans:
             return None
 

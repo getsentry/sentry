@@ -88,12 +88,7 @@ const makeEventWithFrames = (frames: Frame[]): Event => {
     packages: {},
     type: EventOrGroupType.ERROR,
     metadata: {
-      display_title_with_tree_label: false,
       filename: 'sentry/controllers/welcome_controller.rb',
-      finest_tree_label: [
-        {filebase: 'welcome_controller.rb', function: '/'},
-        {filebase: 'welcome_controller.rb', function: 'index'},
-      ],
       function: '/',
       type: 'ZeroDivisionError',
       value: 'divided by 0',
@@ -108,7 +103,7 @@ const makeEventWithFrames = (frames: Frame[]): Event => {
     fingerprints: ['58f1f47bea5239ea25397888dc9253d1'],
     groupingConfig: {
       enhancements: 'eJybzDRxY25-UmZOqpWRgZGhroGJroHRBABbUQb_',
-      id: 'mobile:2021-02-12',
+      id: 'newstyle:2023-01-11',
     },
     release: null,
     userReport: null,
@@ -144,10 +139,10 @@ describe('analyzeAnrFrames', function () {
       },
     ]);
     const rootCause = analyzeFramesForRootCause(event);
-    expect(rootCause?.resources).toEqual(
+    expect(rootCause?.resources).toBe(
       'SharedPreferences.apply will save data on background thread only if it happens before the activity/service finishes. Switch to SharedPreferences.commit and move commit to a background thread.'
     );
-    expect(rootCause?.culprit).toEqual(
+    expect(rootCause?.culprit).toBe(
       '/^android\\.app\\.SharedPreferencesImpl\\$EditorImpl\\$[0-9]/'
     );
   });
@@ -174,10 +169,10 @@ describe('analyzeAnrFrames', function () {
       },
     ]);
     const rootCause = analyzeFramesForRootCause(event);
-    expect(rootCause?.resources).toEqual(
+    expect(rootCause?.resources).toBe(
       'Database operations, such as querying, inserting, updating, or deleting data, can involve disk I/O, processing, and potentially long-running operations. Move database operations off the main thread to avoid this ANR.'
     );
-    expect(rootCause?.culprit).toEqual('android.database.sqlite.SQLiteConnection');
+    expect(rootCause?.culprit).toBe('android.database.sqlite.SQLiteConnection');
   });
 
   it('picks anr root cause of the topmost frame', function () {
@@ -220,10 +215,10 @@ describe('analyzeAnrFrames', function () {
       },
     ]);
     const rootCause = analyzeFramesForRootCause(event);
-    expect(rootCause?.resources).toEqual(
+    expect(rootCause?.resources).toBe(
       'SharedPreferences.apply will save data on background thread only if it happens before the activity/service finishes. Switch to SharedPreferences.commit and move commit to a background thread.'
     );
-    expect(rootCause?.culprit).toEqual(
+    expect(rootCause?.culprit).toBe(
       '/^android\\.app\\.SharedPreferencesImpl\\$EditorImpl\\$[0-9]/'
     );
   });

@@ -1,162 +1,152 @@
 import {AutofixCodebaseChangeData} from 'sentry-fixture/autofixCodebaseChangeData';
-import {AutofixStepFixture} from 'sentry-fixture/autofixStep';
 
-import {
-  render,
-  renderGlobalModal,
-  screen,
-  userEvent,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
-import {
-  type AutofixChangesStep,
-  AutofixStepType,
-} from 'sentry/components/events/autofix/types';
+import {AutofixChanges} from './autofixChanges';
+import {AutofixStatus, AutofixStepType} from './types';
 
-describe('AutofixChanges', function () {
+const mockUseAutofix = jest.fn();
+jest.mock('sentry/components/events/autofix/useAutofix', () => ({
+  ...jest.requireActual('sentry/components/events/autofix/useAutofix'),
+  useAutofixData: () => mockUseAutofix(),
+}));
+
+const mockUseAutofixSetup = jest.fn();
+jest.mock('sentry/components/events/autofix/useAutofixSetup', () => ({
+  useAutofixSetup: () => mockUseAutofixSetup(),
+}));
+
+const mockUpdateInsightCard = jest.fn();
+jest.mock('sentry/components/events/autofix/autofixInsightCards', () => ({
+  useUpdateInsightCard: () => ({
+    mutate: mockUpdateInsightCard,
+  }),
+}));
+
+describe('AutofixChanges', () => {
   const defaultProps = {
-    groupId: '1',
-    onRetry: jest.fn(),
-    step: AutofixStepFixture({
-      type: AutofixStepType.CHANGES,
-      changes: [AutofixCodebaseChangeData()],
-    }) as AutofixChangesStep,
-  };
+    groupId: '123',
+    runId: 'run-123',
+    step: {
+      id: 'step-123',
+      progress: [],
+      title: 'Changes',
+      type: AutofixStepType.CHANGES as const,
+      index: 0,
+      status: AutofixStatus.COMPLETED,
+      changes: [AutofixCodebaseChangeData({pull_request: undefined})],
+    },
+  } satisfies React.ComponentProps<typeof AutofixChanges>;
 
-  it('displays link to PR when one exists', function () {
-    MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/setup/',
-      body: {
-        genAIConsent: {ok: true},
-        codebaseIndexing: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
+  beforeEach(() => {
+    mockUseAutofix.mockReturnValue({
+      status: 'COMPLETED',
+      steps: [
+        {
+          type: AutofixStepType.DEFAULT,
+          index: 0,
+          insights: [],
         },
-      },
+      ],
     });
 
-    render(<AutofixChanges {...defaultProps} />);
-
-    expect(
-      screen.queryByRole('button', {name: 'Create a Pull Request'})
-    ).not.toBeInTheDocument();
-
-    expect(screen.getByRole('button', {name: 'View Pull Request'})).toHaveAttribute(
-      'href',
-      'https://github.com/owner/hello-world/pull/200'
-    );
-  });
-
-  it('displays create PR button when it is last step', function () {
-    MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/setup/',
-      body: {
-        genAIConsent: {ok: true},
-        codebaseIndexing: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
-        },
-      },
-    });
-
-    render(
-      <AutofixChanges
-        {...defaultProps}
-        step={
-          AutofixStepFixture({
-            type: AutofixStepType.CHANGES,
-            changes: [
-              AutofixCodebaseChangeData({
-                pull_request: undefined,
-              }),
-            ],
-          }) as AutofixChangesStep
-        }
-        isLastStep
-      />
-    );
-
-    expect(
-      screen.queryByRole('button', {name: 'Create a Pull Request'})
-    ).toBeInTheDocument();
-  });
-
-  it('does not display create PR button when it is not the last step', function () {
-    MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/setup/',
-      body: {
-        genAIConsent: {ok: true},
-        codebaseIndexing: {ok: true},
-        integration: {ok: true},
-        githubWriteIntegration: {
-          repos: [{ok: true, owner: 'owner', name: 'hello-world', id: 100}],
-        },
-      },
-    });
-
-    render(
-      <AutofixChanges
-        {...defaultProps}
-        step={
-          AutofixStepFixture({
-            type: AutofixStepType.CHANGES,
-            changes: [
-              AutofixCodebaseChangeData({
-                pull_request: undefined,
-              }),
-            ],
-          }) as AutofixChangesStep
-        }
-      />
-    );
-
-    expect(
-      screen.queryByRole('button', {name: 'Create a Pull Request'})
-    ).not.toBeInTheDocument();
-  });
-
-  it('displays setup button when permissions do not exist for repo', async function () {
-    MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/setup/',
-      body: {
-        genAIConsent: {ok: true},
-        codebaseIndexing: {ok: true},
-        integration: {ok: true},
+    mockUseAutofixSetup.mockReturnValue({
+      data: {
         githubWriteIntegration: {
           repos: [
-            {ok: false, provider: 'github', owner: 'owner', name: 'hello-world', id: 100},
+            {
+              owner: 'getsentry',
+              name: 'sentry',
+              ok: true,
+            },
           ],
         },
       },
     });
+  });
+
+  it('renders error state when step has error', () => {
+    render(
+      <AutofixChanges
+        {...defaultProps}
+        step={{
+          ...defaultProps.step,
+          status: AutofixStatus.ERROR,
+        }}
+      />
+    );
+
+    expect(screen.getByText('Something went wrong.')).toBeInTheDocument();
+  });
+
+  it('renders empty state when no changes', () => {
+    render(
+      <AutofixChanges
+        {...defaultProps}
+        step={{
+          ...defaultProps.step,
+          changes: [],
+        }}
+      />
+    );
+
+    expect(
+      screen.getByText('Seer had trouble applying its code changes.')
+    ).toBeInTheDocument();
+  });
+
+  it('renders changes with action buttons', () => {
+    render(<AutofixChanges {...defaultProps} />);
+
+    expect(screen.getByText('Code Changes')).toBeInTheDocument();
+    expect(screen.getByText('Add error handling')).toBeInTheDocument();
+    expect(screen.getByText('owner/hello-world')).toBeInTheDocument();
+
+    expect(screen.getByRole('button', {name: 'Check Out Locally'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Draft PR'})).toBeInTheDocument();
+  });
+
+  it('shows PR links when PRs are created', () => {
+    const changeWithPR = AutofixCodebaseChangeData({
+      pull_request: {
+        pr_number: 123,
+        pr_url: 'https://github.com/owner/hello-world/pull/123',
+      },
+    });
 
     render(
       <AutofixChanges
         {...defaultProps}
-        step={
-          AutofixStepFixture({
-            type: AutofixStepType.CHANGES,
-            changes: [
-              AutofixCodebaseChangeData({
-                pull_request: undefined,
-              }),
-            ],
-          }) as AutofixChangesStep
-        }
-        isLastStep
+        step={{
+          ...defaultProps.step,
+          changes: [changeWithPR],
+        }}
       />
     );
-    renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Create a Pull Request'}));
-
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(
-      within(screen.getByRole('dialog')).getByText('Allow Autofix to Make Pull Requests')
+      screen.getByRole('button', {name: 'View PR in owner/hello-world'})
+    ).toBeInTheDocument();
+  });
+
+  it('shows branch checkout buttons when branches are created', () => {
+    const changeWithBranch = AutofixCodebaseChangeData({
+      branch_name: 'fix/issue-123',
+      pull_request: undefined,
+    });
+
+    render(
+      <AutofixChanges
+        {...defaultProps}
+        step={{
+          ...defaultProps.step,
+          changes: [changeWithBranch],
+        }}
+      />
+    );
+
+    expect(
+      screen.getByRole('button', {name: 'Copy branch in owner/hello-world'})
     ).toBeInTheDocument();
   });
 });

@@ -2,34 +2,42 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import ExternalLink from 'sentry/components/links/externalLink';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {VITAL_DESCRIPTIONS} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
+import {makePerformanceScoreColors} from 'sentry/views/insights/browser/webVitals/utils/performanceScoreColors';
 import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 
+export type ProjectData = {
+  'p75(measurements.cls)': number;
+  'p75(measurements.fcp)': number;
+  'p75(measurements.inp)': number;
+  'p75(measurements.lcp)': number;
+  'p75(measurements.ttfb)': number;
+};
+
 type Props = {
   onClick?: (webVital: WebVitals) => void;
-  projectData?: TableData;
+  projectData?: ProjectData[];
   projectScore?: ProjectScore;
   showTooltip?: boolean;
   transaction?: string;
 };
 
-const WEB_VITALS_METERS_CONFIG = {
+export const WEB_VITALS_METERS_CONFIG = {
   lcp: {
     name: t('Largest Contentful Paint'),
     formatter: (value: number) => getFormattedDuration(value / 1000),
@@ -59,7 +67,6 @@ export default function WebVitalMeters({
   showTooltip = true,
 }: Props) {
   const theme = useTheme();
-
   if (!projectScore) {
     return null;
   }
@@ -67,76 +74,146 @@ export default function WebVitalMeters({
   const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
 
   const webVitals = Object.keys(webVitalsConfig) as WebVitals[];
-  const colors = theme.charts.getColorPalette(3);
+  const colors = theme.chart.getColorPalette(4);
+
+  const renderVitals = () => {
+    return webVitals.map((webVital, index) => {
+      const webVitalKey: keyof ProjectData = `p75(measurements.${webVital})`;
+      const score = projectScore[`${webVital}Score`];
+      const meterValue = projectData?.[0]?.[webVitalKey];
+
+      if (!score) {
+        return null;
+      }
+
+      return (
+        <VitalMeter
+          key={webVital}
+          webVital={webVital}
+          showTooltip={showTooltip}
+          score={score}
+          meterValue={meterValue}
+          color={colors[index]!}
+          onClick={onClick}
+        />
+      );
+    });
+  };
 
   return (
     <Container>
-      <Flex>
-        {webVitals.map((webVital, index) => {
-          const webVitalExists = projectScore[`${webVital}Score`] !== undefined;
-          const formattedMeterValueText = webVitalExists ? (
-            webVitalsConfig[webVital].formatter(
-              projectData?.data?.[0]?.[`p75(measurements.${webVital})`] as number
-            )
-          ) : (
-            <NoValue />
-          );
-          const headerText = webVitalsConfig[webVital].name;
-          const meterBody = (
-            <Fragment>
-              <MeterBarBody>
-                {showTooltip && (
-                  <StyledQuestionTooltip
-                    isHoverable
-                    size="xs"
-                    title={
-                      <span>
-                        {tct(
-                          `The p75 [webVital] value and aggregate [webVital] score of your selected project(s).
-                          Scores and values may share some (but not perfect) correlation.`,
-                          {
-                            webVital: webVital.toUpperCase(),
-                          }
-                        )}
-                        <br />
-                        <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
-                          {t('Find out how performance scores are calculated here.')}
-                        </ExternalLink>
-                      </span>
-                    }
-                  />
-                )}
-                <MeterHeader>{headerText}</MeterHeader>
-                <MeterValueText>
-                  <Dot color={colors[index]} />
-                  {formattedMeterValueText}
-                </MeterValueText>
-              </MeterBarBody>
-              <MeterBarFooter score={projectScore[`${webVital}Score`]} />
-            </Fragment>
-          );
-          return (
-            <MeterBarContainer
-              key={webVital}
-              onClick={() => webVitalExists && onClick?.(webVital)}
-              clickable={webVitalExists}
-            >
-              {webVitalExists && <InteractionStateLayer />}
-              {webVitalExists && meterBody}
-              {!webVitalExists && (
-                <StyledTooltip
-                  title={tct('No [webVital] data found in this project.', {
-                    webVital: webVital.toUpperCase(),
-                  })}
-                >
-                  {meterBody}
-                </StyledTooltip>
-              )}
-            </MeterBarContainer>
-          );
-        })}
-      </Flex>
+      <Flex>{renderVitals()}</Flex>
     </Container>
+  );
+}
+
+type VitalMeterProps = {
+  color: string;
+  meterValue: number | undefined;
+  score: number | undefined;
+  showTooltip: boolean;
+  webVital: WebVitals;
+  isAggregateMode?: boolean;
+  onClick?: (webVital: WebVitals) => void;
+};
+
+function VitalMeter({
+  webVital,
+  showTooltip,
+  score,
+  meterValue,
+  color,
+  onClick,
+  isAggregateMode = true,
+}: VitalMeterProps) {
+  const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
+  const webVitalExists = score !== undefined;
+
+  const formattedMeterValueText =
+    webVitalExists && meterValue ? (
+      webVitalsConfig[webVital].formatter(meterValue)
+    ) : (
+      <NoValue />
+    );
+
+  const webVitalKey = `measurements.${webVital}`;
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  const {shortDescription} = VITAL_DESCRIPTIONS[webVitalKey];
+
+  const headerText = webVitalsConfig[webVital].name;
+  const meterBody = (
+    <Fragment>
+      <MeterBarBody>
+        {showTooltip && (
+          <StyledQuestionTooltip
+            isHoverable
+            size="xs"
+            title={
+              <span>
+                {shortDescription}
+                <br />
+                <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
+                  {t('Find out how performance scores are calculated here.')}
+                </ExternalLink>
+              </span>
+            }
+          />
+        )}
+        <MeterHeader>{headerText}</MeterHeader>
+        <MeterValueText>
+          <Dot color={color} />
+          {formattedMeterValueText}
+        </MeterValueText>
+      </MeterBarBody>
+      <MeterBarFooter score={score} />
+    </Fragment>
+  );
+  return (
+    <VitalContainer
+      key={webVital}
+      webVital={webVital}
+      webVitalExists={webVitalExists}
+      meterBody={meterBody}
+      onClick={onClick}
+      isAggregateMode={isAggregateMode}
+    />
+  );
+}
+
+type VitalContainerProps = {
+  meterBody: React.ReactNode;
+  webVital: WebVitals;
+  webVitalExists: boolean;
+  isAggregateMode?: boolean;
+  onClick?: (webVital: WebVitals) => void;
+};
+
+function VitalContainer({
+  webVital,
+  webVitalExists,
+  meterBody,
+  onClick,
+  isAggregateMode = true,
+}: VitalContainerProps) {
+  return (
+    <MeterBarContainer
+      key={webVital}
+      onClick={() => webVitalExists && onClick?.(webVital)}
+      clickable={webVitalExists}
+    >
+      {webVitalExists && <InteractionStateLayer />}
+      {webVitalExists && meterBody}
+      {!webVitalExists && (
+        <StyledTooltip
+          title={tct('No [webVital] data found in this [selection].', {
+            webVital: webVital.toUpperCase(),
+            selection: isAggregateMode ? 'project' : 'trace',
+          })}
+        >
+          {meterBody}
+        </StyledTooltip>
+      )}
+    </MeterBarContainer>
   );
 }
 
@@ -159,6 +236,7 @@ const Flex = styled('div')<{gap?: number}>`
 `;
 
 const MeterBarContainer = styled('div')<{clickable?: boolean}>`
+  background-color: ${p => p.theme.background};
   flex: 1;
   position: relative;
   padding: 0;
@@ -167,14 +245,15 @@ const MeterBarContainer = styled('div')<{clickable?: boolean}>`
 `;
 
 const MeterBarBody = styled('div')`
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   border-bottom: none;
   padding: ${space(1)} 0 ${space(0.5)} 0;
 `;
 
 const MeterHeader = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.textColor};
   display: inline-block;
   text-align: center;
@@ -205,18 +284,20 @@ function MeterBarFooter({score}: {score: number | undefined}) {
   );
 }
 
-const MeterBarFooterContainer = styled('div')<{status: string}>`
-  color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+const MeterBarFooterContainer = styled('div')<{
+  status: keyof ReturnType<typeof makePerformanceScoreColors>;
+}>`
+  color: ${p => makePerformanceScoreColors(p.theme)[p.status].normal};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-  background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  background-color: ${p => makePerformanceScoreColors(p.theme)[p.status].light};
+  border: solid 1px ${p => makePerformanceScoreColors(p.theme)[p.status].border};
+  font-size: ${p => p.theme.fontSize.xs};
   padding: ${space(0.5)};
   text-align: center;
 `;
 
 const NoValueContainer = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.headerFontSize};
 `;
 

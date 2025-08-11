@@ -58,12 +58,9 @@ export default function useFeedbackListQueryKey({
       {
         query: {
           ...fixedQueryView,
-          collapse: ['inbox'],
           expand: prefetch
             ? []
             : [
-                'owners', // Gives us assignment
-                'stats', // Gives us `firstSeen`
                 'pluginActions', // Gives us plugin actions available
                 'pluginIssues', // Gives us plugin issues available
                 'integrationIssues', // Gives us integration issues available

@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
-import ButtonBar from 'sentry/components/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Radio} from 'sentry/components/core/radio';
+import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -10,12 +12,16 @@ import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {Widget} from 'sentry/views/dashboards/types';
-import {DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {addIncompatibleFunctions} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 import {AddButton} from './addButton';
 import {DeleteButton} from './deleteButton';
+
+export const MAX_NUM_Y_AXES = 3;
 
 interface Props {
   aggregates: QueryFieldValue[];
@@ -23,11 +29,12 @@ interface Props {
   /**
    * Fired when aggregates are added/removed/modified/reordered.
    */
-  onChange: (aggregates: QueryFieldValue[]) => void;
+  onChange: (aggregates: QueryFieldValue[], selectedAggregate?: number) => void;
   tags: TagCollection;
   widgetType: Widget['widgetType'];
   errors?: Record<string, any>;
   noFieldsMessage?: string;
+  selectedAggregate?: number;
 }
 
 export function YAxisSelector({
@@ -38,20 +45,25 @@ export function YAxisSelector({
   onChange,
   errors,
   noFieldsMessage,
+  selectedAggregate,
 }: Props) {
   const organization = useOrganization();
   const datasetConfig = getDatasetConfig(widgetType);
 
   const {customMeasurements} = useCustomMeasurements();
 
-  function handleAddOverlay(event: React.MouseEvent) {
+  function handleAddFields(event: React.MouseEvent) {
     event.preventDefault();
 
     const newAggregates = [
       ...aggregates,
       {kind: FieldValueKind.FIELD, field: ''} as QueryFieldValue,
     ];
-    onChange(newAggregates);
+    if (displayType === DisplayType.BIG_NUMBER) {
+      onChange(newAggregates, newAggregates.length - 1);
+    } else {
+      onChange(newAggregates);
+    }
   }
 
   function handleAddEquation(event: React.MouseEvent) {
@@ -61,7 +73,12 @@ export function YAxisSelector({
       ...aggregates,
       {kind: FieldValueKind.EQUATION, field: ''} as QueryFieldValue,
     ];
-    onChange(newAggregates);
+    if (displayType === DisplayType.BIG_NUMBER) {
+      const newSelectedAggregate = newAggregates.length - 1;
+      onChange(newAggregates, newSelectedAggregate);
+    } else {
+      onChange(newAggregates);
+    }
   }
 
   function handleRemoveQueryField(event: React.MouseEvent, fieldIndex: number) {
@@ -69,7 +86,12 @@ export function YAxisSelector({
 
     const newAggregates = [...aggregates];
     newAggregates.splice(fieldIndex, 1);
-    onChange(newAggregates);
+    if (displayType === DisplayType.BIG_NUMBER) {
+      const newSelectedAggregate = newAggregates.length - 1;
+      onChange(newAggregates, newSelectedAggregate);
+    } else {
+      onChange(newAggregates);
+    }
   }
 
   function handleChangeQueryField(value: QueryFieldValue, fieldIndex: number) {
@@ -78,27 +100,59 @@ export function YAxisSelector({
     onChange(newAggregates);
   }
 
-  const fieldError = errors?.find(error => error?.aggregates)?.aggregates;
+  function handleSelectField(newSelectedAggregate: number) {
+    onChange(aggregates, newSelectedAggregate);
+  }
+
+  const fieldError = errors?.find((error: any) => error?.aggregates)?.aggregates;
   const canDelete = aggregates.length > 1;
 
   const hideAddYAxisButtons =
-    (DisplayType.BIG_NUMBER === displayType && aggregates.length === 1) ||
     ([DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType) &&
-      aggregates.length === 3);
+      aggregates.length === MAX_NUM_Y_AXES) ||
+    (displayType === DisplayType.BIG_NUMBER && widgetType === WidgetType.RELEASE);
+
+  let injectedFunctions: Set<string> = new Set();
+
+  const fieldOptions = datasetConfig.getTableFieldOptions(
+    organization,
+    tags,
+    customMeasurements
+  );
+
+  // We need to persist the form values across Errors and Transactions datasets
+  // for the discover dataset split, so functions that are not compatible with
+  // errors should still appear in the field options to gracefully handle incorrect
+  // dataset splitting.
+  if (
+    hasDatasetSelector(organization) &&
+    widgetType &&
+    [WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(widgetType)
+  ) {
+    injectedFunctions = addIncompatibleFunctions(aggregates, fieldOptions);
+  }
 
   return (
     <FieldGroup inline={false} flexibleControlStateSize error={fieldError} stacked>
       {aggregates.map((fieldValue, i) => (
-        <QueryFieldWrapper key={`${fieldValue}:${i}`}>
+        <QueryFieldWrapper key={`${i}`}>
+          {aggregates.length > 1 && displayType === DisplayType.BIG_NUMBER && (
+            <RadioLineItem index={i} role="radio" aria-label="aggregate-selector">
+              <Radio
+                checked={i === selectedAggregate}
+                onChange={() => handleSelectField(i)}
+                aria-label={'field' + i}
+              />
+            </RadioLineItem>
+          )}
           <QueryField
             fieldValue={fieldValue}
-            fieldOptions={datasetConfig.getTableFieldOptions(
-              organization,
-              tags,
-              customMeasurements
-            )}
+            fieldOptions={fieldOptions}
             onChange={value => handleChangeQueryField(value, i)}
-            filterPrimaryOptions={datasetConfig.filterYAxisOptions?.(displayType)}
+            filterPrimaryOptions={option =>
+              datasetConfig.filterYAxisOptions?.(displayType)(option) ||
+              injectedFunctions.has(`${option.value.kind}:${option.value.meta.name}`)
+            }
             filterAggregateParameters={datasetConfig.filterYAxisAggregateParams?.(
               fieldValue,
               displayType
@@ -114,8 +168,13 @@ export function YAxisSelector({
       ))}
 
       {!hideAddYAxisButtons && (
-        <Actions gap={1}>
-          <AddButton title={t('Add Overlay')} onAdd={handleAddOverlay} />
+        <Actions>
+          <AddButton
+            title={
+              displayType === DisplayType.BIG_NUMBER ? t('Add Field') : t('Add Series')
+            }
+            onAdd={handleAddFields}
+          />
           {datasetConfig.enableEquations && (
             <AddButton title={t('Add an Equation')} onAdd={handleAddEquation} />
           )}

@@ -13,4 +13,5 @@ export const ToolRibbon = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(2)};
+  position: relative;
 `;

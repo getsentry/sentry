@@ -5,13 +5,16 @@ from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload
 from django.test.utils import override_settings
 from django.utils import timezone
+from sentry_kafka_schemas.schema_types.monitors_clock_tick_v1 import ClockTick
 
 from sentry.monitors.clock_dispatch import _dispatch_tick, try_monitor_clock_tick
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-def test_monitor_task_trigger(dispatch_tick):
+@override_options({"crons.system_incidents.collect_metrics": False})
+def test_monitor_task_trigger(dispatch_tick: mock.MagicMock) -> None:
     now = timezone.now().replace(second=0, microsecond=0)
 
     # Assumes a single partition for simplicitly. Multi-partition cases are
@@ -39,7 +42,8 @@ def test_monitor_task_trigger(dispatch_tick):
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-def test_monitor_task_trigger_partition_desync(dispatch_tick):
+@override_options({"crons.system_incidents.collect_metrics": False})
+def test_monitor_task_trigger_partition_desync(dispatch_tick: mock.MagicMock) -> None:
     """
     When consumer partitions are not completely synchronized we may read
     timestamps in a non-monotonic order. In this scenario we want to make
@@ -70,7 +74,8 @@ def test_monitor_task_trigger_partition_desync(dispatch_tick):
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-def test_monitor_task_trigger_partition_sync(dispatch_tick):
+@override_options({"crons.system_incidents.collect_metrics": False})
+def test_monitor_task_trigger_partition_sync(dispatch_tick: mock.MagicMock) -> None:
     """
     When the kafka topic has multiple partitions we want to only tick our clock
     forward once all partitions have caught up. This test simulates that
@@ -98,7 +103,8 @@ def test_monitor_task_trigger_partition_sync(dispatch_tick):
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-def test_monitor_task_trigger_partition_tick_skip(dispatch_tick):
+@override_options({"crons.system_incidents.collect_metrics": False})
+def test_monitor_task_trigger_partition_tick_skip(dispatch_tick: mock.MagicMock) -> None:
     """
     In a scenario where all partitions move multiple ticks past the slowest
     partition we may end up skipping a tick. In this scenario we will backfill
@@ -135,11 +141,15 @@ def test_monitor_task_trigger_partition_tick_skip(dispatch_tick):
 @override_settings(KAFKA_TOPIC_OVERRIDES={"monitors-clock-tick": "clock-tick-test-topic"})
 @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
 @mock.patch("sentry.monitors.clock_dispatch._clock_tick_producer")
-def test_dispatch_to_kafka(clock_tick_producer_mock):
+@override_options({"crons.system_incidents.collect_metrics": False})
+def test_dispatch_to_kafka(clock_tick_producer_mock: mock.MagicMock) -> None:
     now = timezone.now().replace(second=0, microsecond=0)
     _dispatch_tick(now)
 
+    message: ClockTick = {
+        "ts": now.timestamp(),
+    }
     clock_tick_producer_mock.produce.assert_called_with(
         Topic("clock-tick-test-topic"),
-        KafkaPayload(None, json.dumps({"ts": now.timestamp()}).encode("utf-8"), []),
+        KafkaPayload(None, json.dumps(message).encode("utf-8"), []),
     )

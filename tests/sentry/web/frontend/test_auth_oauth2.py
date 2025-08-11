@@ -29,18 +29,19 @@ class DummyOAuth2Callback(OAuth2Callback):
 
 class DummyOAuth2Provider(OAuth2Provider):
     name = "dummy"
+    key = "oauth2_dummy"
 
-    def get_client_id(self):
+    def get_client_id(self) -> str:
         raise NotImplementedError
 
-    def get_client_secret(self):
+    def get_client_secret(self) -> str:
         raise NotImplementedError
 
     def get_refresh_token_url(self) -> str:
         raise NotImplementedError
 
     def build_config(self, state):
-        pass
+        raise NotImplementedError
 
     def get_auth_pipeline(self):
         return [DummyOAuth2Login(), DummyOAuth2Callback()]
@@ -57,7 +58,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
     provider = DummyOAuth2Provider
     provider_name = "oauth2_dummy"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         auth_provider = AuthProvider.objects.create(
             provider=self.provider_name, organization_id=self.organization.id
@@ -147,13 +148,13 @@ class AuthOAuth2Test(AuthProviderTestCase):
             }
         return resp
 
-    def test_oauth2_flow(self):
+    def test_oauth2_flow(self) -> None:
         auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
 
         state = self.initiate_oauth_flow()
         self.initiate_callback(state, auth_data)
 
-    def test_oauth2_flow_customer_domain(self):
+    def test_oauth2_flow_customer_domain(self) -> None:
         HTTP_HOST = "albertos-apples.testserver"
         auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
 
@@ -165,7 +166,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
         )
 
     @mock.patch("sentry.utils.auth.login")
-    def test_oauth2_flow_incomplete_security_checks(self, mock_login):
+    def test_oauth2_flow_incomplete_security_checks(self, mock_login: mock.MagicMock) -> None:
         mock_login.return_value = False
         auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
 
@@ -176,7 +177,9 @@ class AuthOAuth2Test(AuthProviderTestCase):
         assert response.context["user"] != self.user
 
     @mock.patch("sentry.utils.auth.login")
-    def test_oauth2_flow_customer_domain_incomplete_security_checks(self, mock_login):
+    def test_oauth2_flow_customer_domain_incomplete_security_checks(
+        self, mock_login: mock.MagicMock
+    ) -> None:
         HTTP_HOST = "albertos-apples.testserver"
         mock_login.return_value = False
         auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
@@ -187,7 +190,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
         assert response.redirect_chain == [("http://albertos-apples.testserver/auth/login/", 302)]
         assert response.context["user"] != self.user
 
-    def test_oauth2_flow_with_2fa(self):
+    def test_oauth2_flow_with_2fa(self) -> None:
         RecoveryCodeInterface().enroll(self.user)
         TotpInterface().enroll(self.user)
 
@@ -196,7 +199,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
         state = self.initiate_oauth_flow()
         self.initiate_callback(state, auth_data, has_2fa=True)
 
-    def test_state_mismatch(self):
+    def test_state_mismatch(self) -> None:
         auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
 
         self.initiate_oauth_flow()
@@ -207,7 +210,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
         assert str(messages[0]).startswith("Authentication error")
         assert auth_resp.context["user"] != self.user
 
-    def test_response_errors(self):
+    def test_response_errors(self) -> None:
         auth_data = {"error_description": "Mock failure"}
 
         state = self.initiate_oauth_flow()

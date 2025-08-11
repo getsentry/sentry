@@ -1,32 +1,31 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import SearchBar from 'sentry/components/events/searchBar';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Radio} from 'sentry/components/core/radio';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {TableData} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import {getTransactionField} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
-
-import {SpanOperationBreakdownFilter} from '../filter';
-import {getTransactionField} from '../transactionOverview/tagExplorer';
 
 import {X_AXIS_SELECT_OPTIONS} from './constants';
 import TagsDisplay, {TAG_PAGE_TABLE_CURSOR} from './tagsDisplay';
@@ -124,6 +123,7 @@ function InnerContent(
 
   const initialTag = decodedTagFromOptions ?? defaultTag;
 
+  const navigate = useNavigate();
   const [tagSelected, _changeTagSelected] = useState(initialTag);
   const lastTag = useRef('');
 
@@ -131,20 +131,23 @@ function InnerContent(
     (tagKey: string) => {
       if (lastTag.current !== tagKey) {
         const queryParams = normalizeDateTimeParams({
-          ...(location.query || {}),
+          ...location.query,
           tagKey,
           [TAG_PAGE_TABLE_CURSOR]: undefined,
         });
 
-        browserHistory.replace({
-          pathname: location.pathname,
-          query: queryParams,
-        });
+        navigate(
+          {
+            pathname: location.pathname,
+            query: queryParams,
+          },
+          {replace: true}
+        );
         _changeTagSelected(tagKey);
         lastTag.current = decodeScalar(location.query.tagKey, '');
       }
     },
-    [location.query, location.pathname]
+    [location.query, location.pathname, navigate]
   );
 
   useEffect(() => {
@@ -155,11 +158,11 @@ function InnerContent(
 
   const handleSearch = (query: string) => {
     const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
+      ...location.query,
       query,
     });
 
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: queryParams,
     });
@@ -181,6 +184,8 @@ function InnerContent(
 
   const query = decodeScalar(location.query.query, '');
 
+  const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
+
   return (
     <ReversedLayoutBody>
       <TagsSideBar
@@ -196,13 +201,14 @@ function InnerContent(
             <EnvironmentPageFilter />
             <DatePageFilter />
           </PageFilterBar>
-          <StyledSearchBar
-            organization={organization}
-            projectIds={eventView.project}
-            query={query}
-            fields={eventView.fields}
-            onSearch={handleSearch}
-          />
+          <StyledSearchBarWrapper>
+            <TransactionSearchQueryBuilder
+              projects={projectIds}
+              initialQuery={query}
+              onSearch={handleSearch}
+              searchSource="transaction_tags"
+            />
+          </StyledSearchBarWrapper>
           <CompactSelect
             value={aggregateColumn}
             options={X_AXIS_SELECT_OPTIONS}
@@ -290,7 +296,7 @@ function TagsSideBar(props: {
 const RadioLabel = styled('label')`
   cursor: pointer;
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content 1fr;
@@ -312,14 +318,14 @@ const ReversedLayoutBody = styled('div')`
   background-color: ${p => p.theme.background};
   flex-grow: 1;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     display: grid;
     grid-template-columns: auto 66%;
     align-content: start;
     gap: ${space(3)};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: 225px minmax(100px, auto);
   }
 `;
@@ -333,13 +339,13 @@ const StyledMain = styled('div')`
   max-width: 100%;
 `;
 
-const StyledSearchBar = styled(SearchBar)`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+const StyledSearchBarWrapper = styled('div')`
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     order: 1;
     grid-column: 1/6;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     order: initial;
     grid-column: auto;
   }
@@ -350,7 +356,7 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: auto 1fr auto;
   }
 `;

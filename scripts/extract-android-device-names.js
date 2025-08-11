@@ -1,3 +1,5 @@
+'use strict';
+
 const csv = require('csv-parser');
 const fs = require('node:fs');
 

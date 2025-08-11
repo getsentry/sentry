@@ -1,37 +1,27 @@
 import type {ReactNode} from 'react';
-import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import {css} from '@emotion/react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Button} from 'sentry/components/core/button';
+import {Checkbox} from 'sentry/components/core/checkbox';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
-import {decodeList} from 'sentry/utils/queryString';
-import useRouter from 'sentry/utils/useRouter';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
-
-// TODO(aknaus): move to types
-export enum ProductSolution {
-  ERROR_MONITORING = 'error-monitoring',
-  PERFORMANCE_MONITORING = 'performance-monitoring',
-  SESSION_REPLAY = 'session-replay',
-  PROFILING = 'profiling',
-}
+import {withChonk} from 'sentry/utils/theme/withChonk';
+import {useOnboardingQueryParams} from 'sentry/views/onboarding/components/useOnboardingQueryParams';
 
 interface DisabledProduct {
   reason: ReactNode;
   onClick?: () => void;
+  requiresUpgrade?: boolean;
 }
 
 export type DisabledProducts = Partial<Record<ProductSolution, DisabledProduct>>;
@@ -41,6 +31,7 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
   const hasSessionReplay = organization.features.includes('session-replay');
   const hasPerformance = organization.features.includes('performance-view');
   const hasProfiling = organization.features.includes('profiling-view');
+  const hasLogs = organization.features.includes('ourlogs-enabled');
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
   let reason = t('This feature is not enabled on your Sentry installation.');
@@ -54,7 +45,7 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
     reason = t('This feature is disabled for errors only self-hosted');
     return Object.values(ProductSolution)
       .filter(product => product !== ProductSolution.ERROR_MONITORING)
-      .reduce((acc, prod) => {
+      .reduce<DisabledProducts>((acc, prod) => {
         acc[prod] = {reason};
         return acc;
       }, {});
@@ -78,6 +69,12 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
       onClick: createClickHandler('organizations:profiling-view', 'Profiling'),
     };
   }
+  if (!hasLogs) {
+    disabledProducts[ProductSolution.LOGS] = {
+      reason,
+      onClick: createClickHandler('organizations:ourlogs-enabled', 'Logs'),
+    };
+  }
   return disabledProducts;
 }
 
@@ -85,10 +82,19 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
 // Since the ProductSelection component is rendered in the onboarding/project creation flow only, it is ok to have this list here
 // NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
-  android: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'apple-ios': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  android: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
+  ],
+  'apple-ios': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.SESSION_REPLAY,
+  ],
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  bun: [ProductSolution.PERFORMANCE_MONITORING],
+  bun: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   dotnet: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'dotnet-aspnet': [ProductSolution.PERFORMANCE_MONITORING],
@@ -100,71 +106,149 @@ export const platformProductAvailability = {
   'dotnet-winforms': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-wpf': [ProductSolution.PERFORMANCE_MONITORING],
   'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING],
-  flutter: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  flutter: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
+  ],
+  dart: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
-  go: [ProductSolution.PERFORMANCE_MONITORING],
-  'go-echo': [ProductSolution.PERFORMANCE_MONITORING],
-  'go-fasthttp': [ProductSolution.PERFORMANCE_MONITORING],
-  'go-gin': [ProductSolution.PERFORMANCE_MONITORING],
-  'go-http': [ProductSolution.PERFORMANCE_MONITORING],
-  'go-iris': [ProductSolution.PERFORMANCE_MONITORING],
-  'go-martini': [ProductSolution.PERFORMANCE_MONITORING],
-  'go-negroni': [ProductSolution.PERFORMANCE_MONITORING],
+  go: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'go-echo': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'go-fasthttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'go-fiber': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'go-gin': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'go-http': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'go-iris': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'go-martini': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'go-negroni': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   ionic: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
-  java: [ProductSolution.PERFORMANCE_MONITORING],
-  'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING],
+  java: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'java-log4j2': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'java-logback': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'java-spring': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
   'javascript-react': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
+  ],
+  'javascript-react-router': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-vue': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-angular': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-ember': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-gatsby': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-solid': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
+  ],
+  'javascript-solidstart': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
   ],
   'javascript-svelte': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
+  ],
+  'javascript-tanstackstart-react': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.SESSION_REPLAY,
   ],
   'javascript-astro': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
-  node: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  node: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
   'node-azurefunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
+    ProductSolution.LOGS,
   ],
-  'node-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'node-connect': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'node-express': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'node-fastify': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-awslambda': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'node-connect': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'node-express': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'node-fastify': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
   'node-gcpfunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
+    ProductSolution.LOGS,
   ],
-  'node-hapi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'node-koa': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'node-nestjs': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  php: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'php-laravel': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  ['php-symfony']: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-hapi': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'node-koa': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'node-nestjs': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'node-cloudflare-workers': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+  ],
+  'node-cloudflare-pages': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  php: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'php-laravel': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'php-symfony': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   python: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-aiohttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-asgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
@@ -189,10 +273,26 @@ export const platformProductAvailability = {
   'python-tornado': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-starlette': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-wsgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'react-native': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  ruby: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'ruby-rack': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'ruby-rails': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'react-native': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.SESSION_REPLAY,
+  ],
+  ruby: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'ruby-rack': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
+  'ruby-rails': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+  ],
 } as Record<PlatformKey, ProductSolution[]>;
 
 type ProductProps = {
@@ -220,27 +320,17 @@ type ProductProps = {
    * Click handler. If the product is enabled, by clicking on the button, the product is added or removed from the URL.
    */
   onClick?: () => void;
-  /**
-   * A permanent disabled product is always disabled and cannot be enabled.
-   */
-  permanentDisabled?: boolean;
 };
 
 function Product({
   disabled,
-  permanentDisabled,
   checked,
   label,
   onClick,
   docLink,
   description,
 }: ProductProps) {
-  const ProductWrapper = permanentDisabled
-    ? PermanentDisabledProductWrapper
-    : disabled
-      ? DisabledProductWrapper
-      : ProductButtonWrapper;
-
+  const isDisabled = !!disabled && !disabled.requiresUpgrade;
   return (
     <Tooltip
       title={
@@ -255,24 +345,28 @@ function Product({
       delay={500}
       isHoverable
     >
-      <ProductWrapper
+      <ProductButton
         onClick={disabled?.onClick ?? onClick}
-        disabled={disabled?.onClick ?? permanentDisabled ? false : !!disabled}
-        priority={permanentDisabled || checked ? 'primary' : 'default'}
+        priority={!!disabled || checked ? 'primary' : 'default'}
+        disabled={isDisabled}
         aria-label={label}
       >
         <ProductButtonInner>
           <Checkbox
-            checked={checked}
-            disabled={permanentDisabled ? false : !!disabled}
-            aria-label={label}
-            size="xs"
             readOnly
+            size="xs"
+            // Dont allow focus on the checkbox, as it is part of a button and
+            // used mostly for a presentation purpose
+            tabIndex={-1}
+            role="presentation"
+            checked={checked}
+            aria-label={label}
+            disabled={isDisabled}
           />
-          <span>{label}</span>
-          <IconQuestion size="xs" color="subText" />
+          {label}
+          <IconQuestion size="xs" />
         </ProductButtonInner>
-      </ProductWrapper>
+      </ProductButton>
     </Tooltip>
   );
 }
@@ -287,57 +381,52 @@ export type ProductSelectionProps = {
    */
   disabledProducts?: DisabledProducts;
   /**
-   * If true, the loader script is used instead of the npm/yarn guide.
+   * Fired when the product selection changes
    */
-  lazyLoader?: boolean;
+  onChange?: (params: {
+    previousProducts: ProductSolution[];
+    products: ProductSolution[];
+  }) => void;
+  /**
+   * Triggered when the component is loaded
+   */
+  onLoad?: (products: ProductSolution[]) => void;
   /**
    * The platform key of the project (e.g. javascript-react, python-django, etc.)
    */
   platform?: PlatformKey;
-  /**
-   * A custom list of products per platform. If not provided, the default list is used.
-   */
-  productsPerPlatform?: Record<PlatformKey, ProductSolution[]>;
-  skipLazyLoader?: () => void;
-  /**
-   * If true, the component has a bottom margin of 20px
-   */
-  withBottomMargin?: boolean;
 };
 
 export function ProductSelection({
   disabledProducts: disabledProductsProp,
-  lazyLoader,
   organization,
   platform,
-  productsPerPlatform = platformProductAvailability,
-  skipLazyLoader,
+  onChange,
+  onLoad,
 }: ProductSelectionProps) {
-  const router = useRouter();
-  const urlProducts = decodeList(router.location.query.product);
+  const [params, setParams] = useOnboardingQueryParams();
+  const urlProducts = useMemo(() => params.product ?? [], [params.product]);
+
   const products: ProductSolution[] | undefined = platform
-    ? productsPerPlatform[platform]
+    ? platformProductAvailability[platform]
     : undefined;
 
   const disabledProducts = useMemo(
     () => disabledProductsProp ?? getDisabledProducts(organization),
     [organization, disabledProductsProp]
   );
-  const defaultProducts = useMemo(() => {
-    return products?.filter(product => !(product in disabledProducts)) ?? [];
-  }, [products, disabledProducts]);
+
+  const safeDependencies = useRef({onLoad, urlProducts});
 
   useEffect(() => {
-    router.replace({
-      pathname: router.location.pathname,
-      query: {
-        ...router.location.query,
-        product: defaultProducts,
-      },
-    });
-    // Adding defaultProducts to the dependency array causes an max-depth error
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]);
+    safeDependencies.current = {onLoad, urlProducts};
+  });
+
+  useEffect(() => {
+    safeDependencies.current.onLoad?.(
+      safeDependencies.current.urlProducts as ProductSolution[]
+    );
+  }, []);
 
   const handleClickProduct = useCallback(
     (product: ProductSolution) => {
@@ -345,9 +434,9 @@ export function ProductSelection({
         urlProducts.includes(product)
           ? urlProducts.filter(p => p !== product)
           : [...urlProducts, product]
-      );
+      ) as Set<ProductSolution>;
 
-      if (defaultProducts?.includes(ProductSolution.PROFILING)) {
+      if (products?.includes(ProductSolution.PROFILING)) {
         // Ensure that if profiling is enabled, tracing is also enabled
         if (
           product === ProductSolution.PROFILING &&
@@ -362,22 +451,15 @@ export function ProductSelection({
         }
       }
 
-      const selectedProducts = [...newProduct] as ProductSolution[];
-      router.replace({
-        pathname: router.location.pathname,
-        query: {
-          ...router.location.query,
-          product: selectedProducts,
-        },
-      });
+      const selectedProducts = Array.from(newProduct);
 
-      if (organization.features.includes('project-create-replay-feedback')) {
-        HookStore.get('callback:on-create-project-product-selection').map(cb =>
-          cb({defaultProducts, organization, selectedProducts})
-        );
-      }
+      onChange?.({
+        previousProducts: urlProducts as ProductSolution[],
+        products: selectedProducts,
+      });
+      setParams({product: selectedProducts});
     },
-    [defaultProducts, organization, router, urlProducts]
+    [products, setParams, urlProducts, onChange]
   );
 
   if (!products) {
@@ -385,145 +467,91 @@ export function ProductSelection({
     return null;
   }
 
-  // TODO(aknaus): clean up
-  // The package manager info is only shown for javascript platforms
-  // until we improve multi snippet suppport
-  const showPackageManagerInfo =
-    (platform?.indexOf('javascript') === 0 || platform?.indexOf('node') === 0) &&
-    platform !== 'javascript-astro';
-
-  const showAstroInfo = platform === 'javascript-astro';
-
   return (
-    <Fragment>
-      {showPackageManagerInfo && (
-        <TextBlock noMargin>
-          {lazyLoader
-            ? tct('In this quick guide you’ll use our [loaderScript] to set up:', {
-                loaderScript: <strong>Loader Script</strong>,
-              })
-            : tct('In this quick guide you’ll use [npm] or [yarn] to set up:', {
-                npm: <strong>npm</strong>,
-                yarn: <strong>yarn</strong>,
-              })}
-        </TextBlock>
-      )}
-      {showAstroInfo && (
-        <TextBlock noMargin>
-          {tct("In this quick guide you'll use the [astrocli:astro] CLI to set up:", {
-            astrocli: <strong />,
-          })}
-        </TextBlock>
-      )}
-      <Products>
+    <Products>
+      <Product
+        label={t('Error Monitoring')}
+        disabled={{reason: t("Let's admit it, we all have errors.")}}
+        checked
+      />
+      {products.includes(ProductSolution.LOGS) && (
         <Product
-          label={t('Error Monitoring')}
-          disabled={{reason: t("Let's admit it, we all have errors.")}}
-          checked
-          permanentDisabled
+          label={t('Logs')}
+          description={t(
+            'Structured application logs for debugging and troubleshooting. Automatically gets associated with errors and traces.'
+          )}
+          docLink="https://docs.sentry.io/product/explore/logs/"
+          onClick={() => handleClickProduct(ProductSolution.LOGS)}
+          disabled={disabledProducts[ProductSolution.LOGS]}
+          checked={urlProducts.includes(ProductSolution.LOGS)}
         />
-        {products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
-          <Product
-            label={t('Tracing')}
-            description={t(
-              'Automatic performance issue detection across services and context on who is impacted, outliers, regressions, and the root cause of your slowdown.'
-            )}
-            docLink="https://docs.sentry.io/platforms/javascript/guides/react/tracing/"
-            onClick={() => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)}
-            disabled={disabledProducts[ProductSolution.PERFORMANCE_MONITORING]}
-            checked={urlProducts.includes(ProductSolution.PERFORMANCE_MONITORING)}
-          />
-        )}
-        {products.includes(ProductSolution.SESSION_REPLAY) && (
-          <Product
-            label={t('Session Replay')}
-            description={t(
-              'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
-            )}
-            docLink="https://docs.sentry.io/platforms/javascript/guides/react/session-replay/"
-            onClick={() => handleClickProduct(ProductSolution.SESSION_REPLAY)}
-            disabled={disabledProducts[ProductSolution.SESSION_REPLAY]}
-            checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
-          />
-        )}
-        {products.includes(ProductSolution.PROFILING) && (
-          <Product
-            label={t('Profiling')}
-            description={tct(
-              '[strong:Requires Tracing]\nSee the exact lines of code causing your performance bottlenecks, for faster troubleshooting and resource optimization.',
-              {
-                strong: <strong />,
-              }
-            )}
-            docLink="https://docs.sentry.io/platforms/python/profiling/"
-            onClick={() => handleClickProduct(ProductSolution.PROFILING)}
-            disabled={disabledProducts[ProductSolution.PROFILING]}
-            checked={urlProducts.includes(ProductSolution.PROFILING)}
-          />
-        )}
-      </Products>
-      {showPackageManagerInfo && lazyLoader && (
-        <AlternativeInstallationAlert type="info" showIcon>
-          {tct('Prefer to set up Sentry using [npm:npm] or [yarn:yarn]? [goHere]', {
-            npm: <strong />,
-            yarn: <strong />,
-            goHere: (
-              <SkipLazyLoaderButton onClick={skipLazyLoader} size="xs" priority="default">
-                {t('View npm instructions')}
-              </SkipLazyLoaderButton>
-            ),
-          })}
-        </AlternativeInstallationAlert>
       )}
-    </Fragment>
+      {products.includes(ProductSolution.SESSION_REPLAY) && (
+        <Product
+          label={t('Session Replay')}
+          description={t(
+            'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
+          )}
+          docLink="https://docs.sentry.io/product/explore/session-replay/"
+          onClick={() => handleClickProduct(ProductSolution.SESSION_REPLAY)}
+          disabled={disabledProducts[ProductSolution.SESSION_REPLAY]}
+          checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
+        />
+      )}
+      {products.includes(ProductSolution.PERFORMANCE_MONITORING) && (
+        <Product
+          label={t('Tracing')}
+          description={t(
+            'Automatic performance issue detection across services and context on who is impacted, outliers, regressions, and the root cause of your slowdown.'
+          )}
+          docLink="https://docs.sentry.io/concepts/key-terms/tracing/"
+          onClick={() => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)}
+          disabled={disabledProducts[ProductSolution.PERFORMANCE_MONITORING]}
+          checked={urlProducts.includes(ProductSolution.PERFORMANCE_MONITORING)}
+        />
+      )}
+      {products.includes(ProductSolution.PROFILING) && (
+        <Product
+          label={t('Profiling')}
+          description={tct(
+            '[strong:Requires Tracing]\nSee the exact lines of code causing your performance bottlenecks, for faster troubleshooting and resource optimization.',
+            {
+              strong: <strong />,
+            }
+          )}
+          docLink="https://docs.sentry.io/product/explore/profiling/getting-started/#continuous-profiling"
+          onClick={() => handleClickProduct(ProductSolution.PROFILING)}
+          disabled={disabledProducts[ProductSolution.PROFILING]}
+          checked={urlProducts.includes(ProductSolution.PROFILING)}
+        />
+      )}
+    </Products>
   );
 }
 
-const SkipLazyLoaderButton = styled(Button)`
-  margin-left: ${space(1)};
-`;
+const ProductButton = withChonk(
+  styled(Button)`
+    :hover,
+    :focus-visible {
+      border: 1px solid ${p => p.theme.purple300};
+      background: ${p => p.theme.purple100};
+      color: ${p => p.theme.purple300};
+    }
+
+    [aria-disabled='true'] {
+      input {
+        background: ${p => p.theme.purple100};
+        color: ${p => p.theme.purple300};
+      }
+    }
+  `,
+  Button
+);
 
 const Products = styled('div')`
   display: flex;
   flex-wrap: wrap;
   gap: ${space(1)};
-`;
-
-const ProductButtonWrapper = styled(Button)`
-  ${p =>
-    p.priority === 'primary' &&
-    css`
-      &,
-      :hover {
-        background: ${p.theme.purple100};
-        color: ${p.theme.purple300};
-      }
-    `}
-`;
-
-const DisabledProductWrapper = styled(Button)`
-  && {
-    cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
-    input {
-      cursor: ${p =>
-        p.disabled || p.priority === 'default' ? 'not-allowed' : 'pointer'};
-    }
-  }
-`;
-
-const PermanentDisabledProductWrapper = styled(Button)`
-  && {
-    &,
-    :hover {
-      background: ${p => p.theme.purple100};
-      color: ${p => p.theme.purple300};
-      opacity: 0.5;
-      cursor: not-allowed;
-      input {
-        cursor: not-allowed;
-      }
-    }
-  }
 `;
 
 const ProductButtonInner = styled('div')`
@@ -538,8 +566,4 @@ const TooltipDescription = styled('div')`
   flex-direction: column;
   gap: ${space(0.5)};
   justify-content: flex-start;
-`;
-
-const AlternativeInstallationAlert = styled(Alert)`
-  margin-bottom: 0px;
 `;

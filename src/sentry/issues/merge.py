@@ -1,19 +1,20 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import TypedDict
 from uuid import uuid4
 
 import rest_framework
 
-from sentry import eventstream
+from sentry import eventstream, options
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
-from sentry.models.user import User
 from sentry.tasks.merge import merge_groups
 from sentry.types.activity import ActivityType
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 
 class MergedGroup(TypedDict):
@@ -23,8 +24,8 @@ class MergedGroup(TypedDict):
 
 def handle_merge(
     group_list: Sequence[Group],
-    project_lookup: dict[int, Project],
-    acting_user: User | None,
+    project_lookup: Mapping[int, Project],
+    acting_user: RpcUser | User | None,
 ) -> MergedGroup:
     """
     Merge a list of groups into a single group.
@@ -34,15 +35,33 @@ def handle_merge(
     if any([group.issue_category != GroupCategory.ERROR for group in group_list]):
         raise rest_framework.exceptions.ValidationError(detail="Only error issues can be merged.")
 
-    group_list_by_times_seen = sorted(group_list, key=lambda g: (g.times_seen, g.id), reverse=True)
-    primary_group, groups_to_merge = group_list_by_times_seen[0], group_list_by_times_seen[1:]
+    if options.get("issues.merging.first-seen"):
+        # Sort by:
+        # 1) Earliest first-seen time.
+        # 2) On tie: Higher times-seen (# of associated events)
+        # 3) On double-tie: Lower id.
+        group_list_sorted = sorted(
+            group_list,
+            key=lambda g: (g.first_seen, -g.times_seen, g.id),
+        )
+        primary_group, groups_to_merge = group_list_sorted[0], group_list_sorted[1:]
+    else:
+        # Sort by:
+        # 1) Higher times-seen (# of associated events)
+        # 2) On tie: higher id.
+        group_list_by_times_seen = sorted(
+            group_list, key=lambda g: (g.times_seen, g.id), reverse=True
+        )
+        primary_group, groups_to_merge = group_list_by_times_seen[0], group_list_by_times_seen[1:]
 
     group_ids_to_merge = [g.id for g in groups_to_merge]
     eventstream_state = eventstream.backend.start_merge(
         primary_group.project_id, group_ids_to_merge, primary_group.id
     )
 
-    Group.objects.filter(id__in=group_ids_to_merge).update(status=GroupStatus.PENDING_MERGE)
+    Group.objects.filter(id__in=group_ids_to_merge).update(
+        status=GroupStatus.PENDING_MERGE, substatus=None
+    )
 
     transaction_id = uuid4().hex
     merge_groups.delay(

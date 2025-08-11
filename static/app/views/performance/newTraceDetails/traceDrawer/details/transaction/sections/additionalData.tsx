@@ -1,23 +1,23 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {getKnownData} from 'sentry/components/events/contexts/utils';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
-
-import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
+import {
+  type SectionCardKeyValueList,
+  TraceDrawerComponents,
+} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 
 enum EventExtraDataType {
   CRASHED_PROCESS = 'crashed_process',
 }
 
-type TEventExtraData = {
-  [key: string]: any;
-};
+type TEventExtraData = Record<string, any>;
 
 type Output = {
   subject: string;
@@ -45,6 +45,10 @@ function getEventExtraDataKnownDataDetails({
   }
 }
 
+export function hasAdditionalData(event: EventTransaction) {
+  return !!event.context && !isEmptyObject(event.context);
+}
+
 export function AdditionalData({event}: {event: EventTransaction}) {
   const [raw, setRaw] = useState(false);
 
@@ -58,6 +62,7 @@ export function AdditionalData({event}: {event: EventTransaction}) {
     meta: event._meta?.context,
     onGetKnownDataDetails: v => getEventExtraDataKnownDataDetails(v),
   });
+
   const formattedDataItems: SectionCardKeyValueList = raw
     ? knownData
     : knownData.map(data => {

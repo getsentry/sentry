@@ -1,152 +1,27 @@
+import type React from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import beautify from 'js-beautify';
 
-import {Button} from 'sentry/components/button';
-import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import {Button} from 'sentry/components/core/button';
+import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {
+  OnboardingCodeSnippet,
+  TabbedCodeSnippet,
+} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import {
+  type Configuration,
+  type OnboardingStep,
+  StepType,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export enum StepType {
-  INSTALL = 'install',
-  CONFIGURE = 'configure',
-  VERIFY = 'verify',
-}
-
-export const StepTitle = {
+export const StepTitles: Record<StepType, string> = {
   [StepType.INSTALL]: t('Install'),
   [StepType.CONFIGURE]: t('Configure SDK'),
   [StepType.VERIFY]: t('Verify'),
 };
-
-interface CodeSnippetTab {
-  code: string;
-  label: string;
-  language: string;
-  value: string;
-  filename?: string;
-}
-
-interface TabbedCodeSnippetProps {
-  /**
-   * An array of tabs to be displayed
-   */
-  tabs: CodeSnippetTab[];
-  /**
-   * A callback to be invoked when the configuration is copied to the clipboard
-   */
-  onCopy?: () => void;
-  /**
-   * A callback to be invoked when the configuration is selected and copied to the clipboard
-   */
-  onSelectAndCopy?: () => void;
-  /**
-   * Whether or not the configuration or parts of it are currently being loaded
-   */
-  partialLoading?: boolean;
-}
-
-export function TabbedCodeSnippet({
-  tabs,
-  onCopy,
-  onSelectAndCopy,
-  partialLoading,
-}: TabbedCodeSnippetProps) {
-  const [selectedTabValue, setSelectedTabValue] = useState(tabs[0].value);
-  const selectedTab = tabs.find(tab => tab.value === selectedTabValue) ?? tabs[0];
-  const {code, language, filename} = selectedTab;
-
-  return (
-    <OnboardingCodeSnippet
-      dark
-      language={language}
-      onCopy={onCopy}
-      onSelectAndCopy={onSelectAndCopy}
-      hideCopyButton={partialLoading}
-      disableUserSelection={partialLoading}
-      tabs={tabs}
-      selectedTab={selectedTabValue}
-      onTabClick={value => setSelectedTabValue(value)}
-      filename={filename}
-    >
-      {language === 'javascript'
-        ? beautify.js(code, {
-            indent_size: 2,
-            e4x: true,
-            brace_style: 'preserve-inline',
-          })
-        : code.trim()}
-    </OnboardingCodeSnippet>
-  );
-}
-
-type ConfigurationType = {
-  /**
-   * Additional information to be displayed below the code snippet
-   */
-  additionalInfo?: React.ReactNode;
-  /**
-   * The code snippet to display
-   */
-  code?: string | CodeSnippetTab[];
-  /**
-   * Nested configurations provide a convenient way to accommodate diverse layout styles, like the Spring Boot configuration.
-   */
-  configurations?: ConfigurationType[];
-  /**
-   * A brief description of the configuration
-   */
-  description?: React.ReactNode;
-  /**
-   * The language of the code to be rendered (python, javascript, etc)
-   */
-  language?: string;
-  /**
-   * A callback to be invoked when the configuration is copied to the clipboard
-   */
-  onCopy?: () => void;
-  /**
-   * A callback to be invoked when the configuration is selected and copied to the clipboard
-   */
-  onSelectAndCopy?: () => void;
-  /**
-   * Whether or not the configuration or parts of it are currently being loaded
-   */
-  partialLoading?: boolean;
-};
-
-// TODO(aknaus): move to types
-interface BaseStepProps {
-  /**
-   * Additional information to be displayed below the configurations
-   */
-  additionalInfo?: React.ReactNode;
-  /**
-   * Content that goes directly above the code snippet
-   */
-  codeHeader?: React.ReactNode;
-  configurations?: ConfigurationType[];
-  /**
-   * A brief description of the step
-   */
-  description?: React.ReactNode | React.ReactNode[];
-  /**
-   * Whether the step is optional
-   */
-  isOptional?: boolean;
-}
-interface StepPropsWithTitle extends BaseStepProps {
-  title: string;
-  type?: undefined;
-}
-
-interface StepPropsWithoutTitle extends BaseStepProps {
-  type: StepType;
-  title?: undefined;
-}
-
-export type StepProps = StepPropsWithTitle | StepPropsWithoutTitle;
 
 function getConfiguration({
   description,
@@ -156,7 +31,7 @@ function getConfiguration({
   onCopy,
   onSelectAndCopy,
   partialLoading,
-}: ConfigurationType) {
+}: Configuration) {
   return (
     <Configuration>
       {description && <Description>{description}</Description>}
@@ -171,20 +46,13 @@ function getConfiguration({
         language &&
         code && (
           <OnboardingCodeSnippet
-            dark
             language={language}
             onCopy={onCopy}
             onSelectAndCopy={onSelectAndCopy}
             hideCopyButton={partialLoading}
             disableUserSelection={partialLoading}
           >
-            {language === 'javascript'
-              ? beautify.js(code, {
-                  indent_size: 2,
-                  e4x: true,
-                  brace_style: 'preserve-inline',
-                })
-              : code.trim()}
+            {code}
           </OnboardingCodeSnippet>
         )
       )}
@@ -197,114 +65,146 @@ export function Step({
   title,
   type,
   configurations,
+  content,
   additionalInfo,
   description,
-  isOptional = false,
+  onOptionalToggleClick,
+  collapsible = false,
+  trailingItems,
   codeHeader,
-}: StepProps) {
+  ...props
+}: Omit<React.HTMLAttributes<HTMLDivElement>, 'content'> & OnboardingStep) {
   const [showOptionalConfig, setShowOptionalConfig] = useState(false);
 
-  const config = (
-    <Fragment>
+  const config = content ? (
+    <ContentWrapper>
+      <ContentBlocksRenderer contentBlocks={content} />
+    </ContentWrapper>
+  ) : (
+    <ContentWrapper>
       {description && <Description>{description}</Description>}
 
-      {!!configurations?.length && (
-        <Configurations>
-          {configurations.map((configuration, index) => {
-            if (configuration.configurations) {
-              return (
-                <Fragment key={index}>
-                  {getConfiguration(configuration)}
-                  {configuration.configurations.map(
-                    (nestedConfiguration, nestedConfigurationIndex) => (
-                      <Fragment key={nestedConfigurationIndex}>
-                        {nestedConfigurationIndex ===
-                        (configuration.configurations?.length ?? 1) - 1
-                          ? codeHeader
-                          : null}
-                        {getConfiguration(nestedConfiguration)}
-                      </Fragment>
-                    )
-                  )}
-                </Fragment>
-              );
-            }
+      {!!configurations?.length &&
+        configurations.map((configuration, index) => {
+          if (configuration.configurations) {
             return (
               <Fragment key={index}>
-                {index === configurations.length - 1 ? codeHeader : null}
                 {getConfiguration(configuration)}
+                {configuration.configurations.map(
+                  (nestedConfiguration, nestedConfigurationIndex) => (
+                    <Fragment key={nestedConfigurationIndex}>
+                      {nestedConfigurationIndex ===
+                      (configuration.configurations?.length ?? 1) - 1
+                        ? codeHeader
+                        : null}
+                      {getConfiguration(nestedConfiguration)}
+                    </Fragment>
+                  )
+                )}
               </Fragment>
             );
-          })}
-        </Configurations>
-      )}
+          }
+          return (
+            <Fragment key={index}>
+              {index === configurations.length - 1 ? codeHeader : null}
+              {getConfiguration(configuration)}
+            </Fragment>
+          );
+        })}
       {additionalInfo && <GeneralAdditionalInfo>{additionalInfo}</GeneralAdditionalInfo>}
-    </Fragment>
+    </ContentWrapper>
   );
 
-  return isOptional ? (
-    <div>
-      <OptionalConfigWrapper>
+  return collapsible ? (
+    <div {...props}>
+      <OptionalConfigWrapper
+        expanded={showOptionalConfig}
+        onClick={() => {
+          onOptionalToggleClick?.(!showOptionalConfig);
+          setShowOptionalConfig(!showOptionalConfig);
+        }}
+      >
+        <StepTitle>{title ?? StepTitles[type]}</StepTitle>
         <ToggleButton
           priority="link"
           borderless
           size="zero"
           icon={<IconChevron direction={showOptionalConfig ? 'down' : 'right'} />}
           aria-label={t('Toggle optional configuration')}
-          onClick={() => setShowOptionalConfig(!showOptionalConfig)}
-        >
-          <h4 style={{marginBottom: 0}}>
-            {title ?? StepTitle[type]}
-            {t(' (Optional)')}
-          </h4>
-        </ToggleButton>
+        />
+        {trailingItems && <div onClick={e => e.stopPropagation()}>{trailingItems}</div>}
       </OptionalConfigWrapper>
       {showOptionalConfig ? config : null}
     </div>
   ) : (
-    <div>
-      <h4>{title ?? StepTitle[type]}</h4>
+    <div {...props}>
+      <StepTitle>{title ?? StepTitles[type]}</StepTitle>
       {config}
     </div>
   );
 }
 
-const Configuration = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+// NOTE: We intentionally avoid using flex or grid here
+// as it leads to weird text selection behavior in Safari
+// see https://github.com/getsentry/sentry/issues/79958
+
+const CONTENT_SPACING = space(2);
+
+const ContentWrapper = styled('div')`
+  margin-top: ${CONTENT_SPACING};
 `;
 
-const Configurations = styled(Configuration)`
-  margin-top: ${space(2)};
+const StepTitle = styled('h4')`
+  margin-bottom: 0 !important;
+`;
+
+const Configuration = styled('div')`
+  :not(:last-child) {
+    margin-bottom: ${CONTENT_SPACING};
+  }
 `;
 
 const Description = styled('div')`
-  code {
+  code:not([class*='language-']) {
     color: ${p => p.theme.pink400};
+  }
+
+  :not(:last-child) {
+    margin-bottom: ${CONTENT_SPACING};
   }
 
   && > p,
   && > h4,
   && > h5,
   && > h6 {
-    margin-bottom: ${space(1)};
+    &:not(:last-child) {
+      margin-bottom: ${CONTENT_SPACING};
+    }
   }
 `;
 
-const AdditionalInfo = styled(Description)``;
-
-const GeneralAdditionalInfo = styled(Description)`
-  margin-top: ${space(2)};
+const AdditionalInfo = styled(Description)`
+  margin-top: ${CONTENT_SPACING};
 `;
 
-const OptionalConfigWrapper = styled('div')`
+const GeneralAdditionalInfo = styled(Description)`
+  margin-top: ${CONTENT_SPACING};
+`;
+
+const OptionalConfigWrapper = styled('div')<{expanded: boolean}>`
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: ${space(1)};
+  margin-bottom: ${p => (p.expanded ? space(2) : 0)};
   cursor: pointer;
-  margin-bottom: 0.5em;
 `;
 
 const ToggleButton = styled(Button)`
+  flex: 1;
+  display: flex;
+  justify-content: flex-start;
+  padding: 0;
   &,
   :hover {
     color: ${p => p.theme.gray500};

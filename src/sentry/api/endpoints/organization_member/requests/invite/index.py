@@ -11,8 +11,9 @@ from sentry.api.endpoints.organization_member.index import OrganizationMemberReq
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
+from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
-from sentry.models.outbox import outbox_context
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
 
@@ -34,7 +35,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
     }
     permission_classes = (InviteRequestPermissions,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         queryset = OrganizationMember.objects.filter(
             Q(user_id__isnull=True),
             Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
@@ -77,6 +78,14 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
+
+        if request.access.requires_sso:
+            return Response(
+                {
+                    "detail": "Your organization must use its single sign-on provider to register new members."
+                },
+                status=400,
+            )
 
         result = serializer.validated_data
 

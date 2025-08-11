@@ -6,7 +6,7 @@ import pytest
 import responses
 from slack_sdk.web import SlackResponse
 
-from sentry.integrations.slack.unfurl import Handler, make_type_coercer
+from sentry.integrations.slack.unfurl.types import Handler, make_type_coercer
 
 from . import LINK_SHARED_EVENT, BaseEventTest, build_test_block
 
@@ -49,7 +49,7 @@ class LinkSharedEventTest(BaseEventTest):
             )
         },
     )
-    def test_share_links_sdk(self, mock_match_link):
+    def test_share_links_sdk(self, mock_match_link) -> None:
         resp = self.post_webhook(event_data=orjson.loads(LINK_SHARED_EVENT))
         assert resp.status_code == 200, resp.content
         assert len(mock_match_link.mock_calls) == 3
@@ -87,7 +87,7 @@ class LinkSharedEventTest(BaseEventTest):
             )
         },
     )
-    def test_share_links_block_kit_sdk(self, mock_match_link):
+    def test_share_links_block_kit_sdk(self, mock_match_link) -> None:
         resp = self.post_webhook(event_data=orjson.loads(LINK_SHARED_EVENT))
         assert resp.status_code == 200, resp.content
         assert len(mock_match_link.mock_calls) == 3

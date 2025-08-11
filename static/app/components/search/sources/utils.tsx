@@ -15,3 +15,21 @@ export const strGetFn: Fuse.FuseGetFunction<any> = (value, path) => {
   const valueAtPath = get(value, path);
   return typeof valueAtPath === 'string' ? valueAtPath : '';
 };
+
+/**
+ * We compute a `resolvedTs` for each result in the search sources. This value
+ * is used to sort results such that results that resolve later do not get
+ * sorted above results that resolved quicker.
+ *
+ * This threshold is used to ensure that results that resolve in a similar time
+ * to other sources do not end up having their sorting penalized just because
+ * they resolved ever so slightly slower.
+ *
+ * We set this to a number around the "typical human reaction time" which we've
+ * decided here to be 250ms. This seems to "feel" right in terms of the results
+ * not jumping around too much, while still maintaining a good score-sorted
+ * ordering.
+ */
+const RESOLVED_TS_THRESHOLD = 250;
+
+export const makeResolvedTs = () => Math.round(Date.now() / RESOLVED_TS_THRESHOLD);

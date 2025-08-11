@@ -1,4 +1,4 @@
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -47,14 +47,14 @@ function ProjectHpkpReports() {
 
   const {
     data: keyList,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
     staleTime: 0,
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -65,13 +65,13 @@ function ProjectHpkpReports() {
   return (
     <div>
       <SentryDocumentTitle
-        title={routeTitleGen(t('HTTP Public Key Pinning (HPKP)'), projectId, false)}
+        title={routeTitleGen(t('HTTP Public Key Pinning (HPKP)'), projectId!, false)}
       />
       <SettingsPageHeader title={t('HTTP Public Key Pinning')} />
 
       <PreviewFeature />
 
-      <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId} />
+      <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId!} />
 
       <Panel>
         <PanelHeader>{t('About')}</PanelHeader>

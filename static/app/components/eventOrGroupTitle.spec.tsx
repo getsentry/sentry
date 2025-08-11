@@ -114,10 +114,10 @@ describe('EventOrGroupTitle', function () {
             type: 'ReferenceError',
             filename: 'webpack-internal:///./app/components/tabs/tabList.tsx',
             function: 'useOverflowTabs',
-            display_title_with_tree_label: false,
           },
           actor: UserFixture(),
           isTombstone: true,
+          dateAdded: '2025-06-25T00:00:00Z',
         }}
         withStackTracePreview
       />
@@ -142,7 +142,6 @@ describe('EventOrGroupTitle', function () {
       render(<EventOrGroupTitle data={perfData} />);
 
       expect(screen.getByText('N+1 Query')).toBeInTheDocument();
-      expect(screen.getByText('transaction name')).toBeInTheDocument();
     });
   });
 });

@@ -38,8 +38,7 @@ class FieldProtocol(Protocol):
     construct the "Condition".
     """
 
-    def apply(self, search_filter: SearchFilter) -> Condition:
-        ...
+    def apply(self, search_filter: SearchFilter) -> Condition: ...
 
 
 class BaseField(Generic[T]):
@@ -152,6 +151,10 @@ class ColumnField(BaseField[T]):
 
 class StringColumnField(ColumnField[str]):
     """String-type condition column field."""
+
+
+class NullableStringColumnField(ColumnField[str | None]):
+    """Null or string-type condition column field."""
 
 
 class IntegerColumnField(ColumnField[int]):

@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework.exceptions import ParseError
@@ -5,7 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
-from sentry import release_health
+from sentry import options, release_health
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
@@ -33,12 +34,13 @@ from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams, ReleaseParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.activity import Activity
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releases.exceptions import ReleaseCommitError, UnsafeReleaseDeletion
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
-from sentry.utils.sdk import Scope, bind_organization_context
+from sentry.utils.sdk import bind_organization_context
 
 
 class InvalidSortException(Exception):
@@ -176,7 +178,7 @@ class OrganizationReleaseDetailsPaginationMixin:
         sort options
         Inputs:-
             * release: current release object
-            * org: organisation object
+            * org: organization object
             * filter_params
             * stats_period
             * sort: sort option i.e. date, sessions, users, crash_free_users and crash_free_sessions
@@ -260,7 +262,7 @@ class OrganizationReleaseDetailsPaginationMixin:
         """
         Method that returns the first and last release based on `date_added`
         Inputs:-
-            * org: organisation object
+            * org: organization object
             * environment
             * project_id
             * sort: sort option i.e. date, sessions, users, crash_free_users and crash_free_sessions
@@ -427,7 +429,7 @@ class OrganizationReleaseDetailsEndpoint(
         },
         examples=OrganizationExamples.RELEASE_DETAILS,
     )
-    def put(self, request: Request, organization, version) -> Response:
+    def put(self, request: Request, organization: Organization, version) -> Response:
         """
 
         Update a release. This can change some metadata associated with
@@ -435,7 +437,7 @@ class OrganizationReleaseDetailsEndpoint(
         """
         bind_organization_context(organization)
 
-        scope = Scope.get_isolation_scope()
+        scope = sentry_sdk.get_isolation_scope()
         scope.set_tag("version", version)
         try:
             release = Release.objects.get(organization_id=organization, version=version)
@@ -526,7 +528,12 @@ class OrganizationReleaseDetailsEndpoint(
                     datetime=release.date_released,
                 )
 
-        return Response(serialize(release, request.user))
+        no_snuba_for_release_creation = options.get("releases.no_snuba_for_release_creation")
+        return Response(
+            serialize(
+                release, request.user, no_snuba_for_release_creation=no_snuba_for_release_creation
+            )
+        )
 
     @extend_schema(
         operation_id="Delete an Organization's Release",

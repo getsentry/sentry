@@ -27,6 +27,9 @@ describe('QuickTraceMeta', function () {
     transactions: 0,
     errors: 0,
     performance_issues: 0,
+    transaction_child_count_map: {},
+    span_count: 0,
+    span_count_map: {},
   };
 
   it('renders basic UI', function () {
@@ -39,7 +42,6 @@ describe('QuickTraceMeta', function () {
         traceMeta={emptyTraceMeta}
         anchor="left"
         errorDest="issue"
-        transactionDest="performance"
       />
     );
 
@@ -60,7 +62,6 @@ describe('QuickTraceMeta', function () {
         traceMeta={emptyTraceMeta}
         anchor="left"
         errorDest="issue"
-        transactionDest="performance"
       />
     );
 
@@ -82,7 +83,6 @@ describe('QuickTraceMeta', function () {
         traceMeta={emptyTraceMeta}
         anchor="left"
         errorDest="issue"
-        transactionDest="performance"
       />
     );
 
@@ -121,10 +121,12 @@ describe('QuickTraceMeta', function () {
           transactions: 1,
           errors: 0,
           performance_issues: 0,
+          transaction_child_count_map: {},
+          span_count: 0,
+          span_count_map: {},
         }}
         anchor="left"
         errorDest="issue"
-        transactionDest="performance"
       />
     );
 
@@ -146,7 +148,6 @@ describe('QuickTraceMeta', function () {
         traceMeta={emptyTraceMeta}
         anchor="left"
         errorDest="issue"
-        transactionDest="performance"
       />
     );
 
@@ -166,7 +167,6 @@ describe('QuickTraceMeta', function () {
         traceMeta={emptyTraceMeta}
         anchor="left"
         errorDest="issue"
-        transactionDest="performance"
       />
     );
 
@@ -180,9 +180,7 @@ describe('QuickTraceMeta', function () {
       throw new Error('child is null');
     }
     await userEvent.hover(child as HTMLElement);
-    expect(
-      await screen.findByText('Requires performance monitoring.')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Requires tracing.')).toBeInTheDocument();
   });
 
   it('does not render when platform does not support tracing', function () {
@@ -197,7 +195,6 @@ describe('QuickTraceMeta', function () {
         traceMeta={emptyTraceMeta}
         anchor="left"
         errorDest="issue"
-        transactionDest="performance"
       />
     );
 

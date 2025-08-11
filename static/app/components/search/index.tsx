@@ -5,11 +5,6 @@ import debounce from 'lodash/debounce';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import AutoComplete from 'sentry/components/autoComplete';
-import SearchSources from 'sentry/components/search/sources';
-import ApiSource from 'sentry/components/search/sources/apiSource';
-import CommandSource from 'sentry/components/search/sources/commandSource';
-import FormSource from 'sentry/components/search/sources/formSource';
-import RouteSource from 'sentry/components/search/sources/routeSource';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
@@ -17,8 +12,14 @@ import replaceRouterParams from 'sentry/utils/replaceRouterParams';
 import {useParams} from 'sentry/utils/useParams';
 import useRouter from 'sentry/utils/useRouter';
 
+import ApiSource from './sources/apiSource';
+import CommandSource from './sources/commandSource';
+import FormSource from './sources/formSource';
+import OrganizationsSource from './sources/organizationsSource';
+import RouteSource from './sources/routeSource';
 import type {Result} from './sources/types';
 import List from './list';
+import SearchSources from './sources';
 
 type AutoCompleteOpts = Parameters<AutoComplete<Result['item']>['props']['children']>[0];
 
@@ -67,7 +68,7 @@ interface SearchProps {
    * The sources to query
    */
   // TODO(ts): Improve any type here
-  sources?: React.ComponentType<any>[];
+  sources?: Array<React.ComponentType<any>>;
 }
 
 function Search({
@@ -92,7 +93,7 @@ function Search({
   }, [entryPoint]);
 
   const handleSelectItem = useCallback(
-    (item: Result['item'], state?: AutoComplete<Result['item']>['state']) => {
+    (item: Readonly<Result['item']>, state?: AutoComplete<Result['item']>['state']) => {
       if (!item) {
         return;
       }
@@ -115,12 +116,14 @@ function Search({
         return;
       }
 
-      if (item.to.startsWith('http')) {
+      const pathname = typeof item.to === 'string' ? item.to : item.to.pathname;
+      if (pathname.startsWith('http')) {
         const open = window.open();
 
         if (open) {
           open.opener = null;
-          open.location.href = item.to;
+          // `to` is a full URL when starting with http
+          open.location.href = item.to as string;
           return;
         }
 
@@ -130,9 +133,14 @@ function Search({
         return;
       }
 
-      const nextPath = replaceRouterParams(item.to, params);
-
-      navigateTo(nextPath, router, item.configUrl);
+      const nextTo =
+        typeof item.to === 'string'
+          ? replaceRouterParams(item.to, params)
+          : {
+              ...item.to,
+              pathname: replaceRouterParams(item.to.pathname, params),
+            };
+      navigateTo(nextTo, router, item.configUrl);
     },
     [entryPoint, router, params]
   );
@@ -178,14 +186,21 @@ function Search({
                 searchOptions={searchOptions}
                 query={searchQuery}
                 params={params}
-                sources={sources ?? [ApiSource, FormSource, RouteSource, CommandSource]}
+                sources={
+                  sources ?? [
+                    ApiSource,
+                    FormSource,
+                    RouteSource,
+                    OrganizationsSource,
+                    CommandSource,
+                  ]
+                }
               >
-                {({isLoading, results, hasAnyResults}) => (
+                {({allLoaded, results}) => (
                   <List
                     {...{
-                      isLoading,
+                      allLoaded,
                       results,
-                      hasAnyResults,
                       maxResults,
                       resultFooter,
                       dropdownClassName,

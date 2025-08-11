@@ -8,18 +8,16 @@ from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.user import User
+from sentry.users.models.user import User
 from tests.sentry.backup.test_exhaustive import EXHAUSTIVELY_TESTED, UNIQUENESS_TESTED
 from tests.sentry.backup.test_imports import COLLISION_TESTED
 from tests.sentry.backup.test_models import DYNAMIC_RELOCATION_SCOPE_TESTED
-from tests.sentry.backup.test_releases import RELEASE_TESTED
-from tests.sentry.backup.test_sanitize import SANITIZATION_TESTED
-from tests.sentry.models.test_user import ORG_MEMBER_MERGE_TESTED
+from tests.sentry.users.models.test_user import ORG_MEMBER_MERGE_TESTED
 
 ALL_EXPORTABLE_MODELS = {get_model_name(c) for c in get_exportable_sentry_models()}
 
 
-def test_exportable_final_derivations_of_sentry_model_are_dynamic_relocation_tested():
+def test_exportable_final_derivations_of_sentry_model_are_dynamic_relocation_tested() -> None:
     models_with_multiple_relocation_scopes = {
         get_model_name(c)
         for c in get_exportable_sentry_models()
@@ -29,7 +27,7 @@ def test_exportable_final_derivations_of_sentry_model_are_dynamic_relocation_tes
     assert not {str(u) for u in untested}
 
 
-def test_exportable_final_derivations_of_sentry_model_are_collision_tested():
+def test_exportable_final_derivations_of_sentry_model_are_collision_tested() -> None:
     deps = dependencies()
 
     # A model must be tested for collisions if it has at least one `uniques` entry that is composed
@@ -83,28 +81,14 @@ def test_exportable_final_derivations_of_sentry_model_are_collision_tested():
     }, "The aforementioned models are not covered in the `COLLISION` backup tests; please go to `tests/sentry/backup/test_exhaustive.py` and make sure at least one test in the suite contains covers each of the missing models."
 
 
-def test_exportable_final_derivations_of_sentry_model_are_exhaustively_tested():
+def test_exportable_final_derivations_of_sentry_model_are_exhaustively_tested() -> None:
     untested = ALL_EXPORTABLE_MODELS - EXHAUSTIVELY_TESTED
     assert not {
         str(u) for u in untested
     }, "The aforementioned models are not covered in the backup tests; please go to `tests/sentry/backup/test_exhaustive.py` and make sure at least one test in the suite contains covers each of the missing models."
 
 
-def test_exportable_final_derivations_of_sentry_model_are_release_tested_at_head():
-    untested = ALL_EXPORTABLE_MODELS - RELEASE_TESTED
-    assert not {
-        str(u) for u in untested
-    }, "The aforementioned models are not covered in the `RELEASE` backup tests; please go to `tests/sentry/backup/test_release.py` and make sure at least one test in the suite contains covers each of the missing models."
-
-
-def test_exportable_final_derivations_of_sentry_model_are_sanitization_tested_at_head():
-    untested = ALL_EXPORTABLE_MODELS - SANITIZATION_TESTED
-    assert not {
-        str(u) for u in untested
-    }, "The aforementioned models are not covered in the `SANITIZATION` backup tests; please go to `tests/sentry/backup/test_sanitize.py` and make sure at least one test in the suite contains covers each of the missing models."
-
-
-def test_exportable_final_derivations_of_sentry_model_are_uniqueness_tested():
+def test_exportable_final_derivations_of_sentry_model_are_uniqueness_tested() -> None:
     # No need to uniqueness test global models, since they assume a clean database anyway.
     all_non_global_sentry_models = {
         get_model_name(m)
@@ -120,7 +104,7 @@ def test_exportable_final_derivations_of_sentry_model_are_uniqueness_tested():
     }, "The aforementioned models are not covered in the `UNIQUENESS` backup tests; please go to `tests/sentry/backup/test_exhaustive.py` and make sure at least one test in the suite contains covers each of the missing models."
 
 
-def test_all_eligible_organization_scoped_models_tested_for_user_merge():
+def test_all_eligible_organization_scoped_models_tested_for_user_merge() -> None:
     all_org_scope_models_that_reference_user = set()
     for model in get_exportable_sentry_models():
         model_name = get_model_name(model)

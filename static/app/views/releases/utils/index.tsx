@@ -1,26 +1,23 @@
-import type {Theme} from '@emotion/react';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 import round from 'lodash/round';
 import moment from 'moment-timezone';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import ExternalLink from 'sentry/components/links/externalLink';
+import type {TagProps} from 'sentry/components/core/badge/tag';
+import {ExternalLink} from 'sentry/components/core/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {desktop, mobile} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import type {PlatformKey, Release, SemverVerison, VersionInfo} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types/project';
+import type {Release, SemverVersion, VersionInfo} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 export const CRASH_FREE_DECIMAL_THRESHOLD = 90;
-
-export const roundDuration = (seconds: number) => {
-  return round(seconds, seconds > 60 ? 0 : 3);
-};
 
 export const getCrashFreePercent = (
   percent: number,
@@ -149,7 +146,7 @@ export function getReleaseBounds(release?: Release): ReleaseBounds {
   ).endOf('minute');
 
   if (moment(releaseStart).isSame(releaseEnd, 'minute')) {
-    releaseEnd = moment(releaseEnd).add(1, 'minutes');
+    releaseEnd = moment(releaseEnd).add(1, 'seconds');
   }
 
   if (releaseStart.isBefore(retentionBound)) {
@@ -207,7 +204,7 @@ const adoptionStagesLink = (
 
 export const ADOPTION_STAGE_LABELS: Record<
   string,
-  {name: string; tooltipTitle: React.ReactNode; type: keyof Theme['tag']}
+  {name: string; tooltipTitle: React.ReactNode; type: TagProps['type']}
 > = {
   low_adoption: {
     name: t('Low Adoption'),
@@ -249,6 +246,6 @@ export function searchReleaseVersion(version: string): string {
 
 export function isVersionInfoSemver(
   versionInfo: VersionInfo['version']
-): versionInfo is SemverVerison {
+): versionInfo is SemverVersion {
   return versionInfo.hasOwnProperty('components');
 }

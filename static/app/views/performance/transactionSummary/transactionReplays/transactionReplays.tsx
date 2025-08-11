@@ -4,6 +4,16 @@ import type {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import ReplayTable from 'sentry/components/replays/table/replayTable';
+import {
+  ReplayActivityColumn,
+  ReplayBrowserColumn,
+  ReplayCountErrorsColumn,
+  ReplayDurationColumn,
+  ReplayOSColumn,
+  ReplaySessionColumn,
+  ReplaySlowestTransactionColumn,
+} from 'sentry/components/replays/table/replayTableColumns';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
@@ -20,8 +30,6 @@ import type {ChildProps} from 'sentry/views/performance/transactionSummary/pageL
 import PageLayout from 'sentry/views/performance/transactionSummary/pageLayout';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
-import ReplayTable from 'sentry/views/replays/replayTable';
-import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
 
 import type {EventSpanData} from './useReplaysFromTransaction';
@@ -35,13 +43,7 @@ function TransactionReplays() {
 
   return (
     <PageLayout
-      location={{
-        ...location,
-        query: {
-          ...location.query,
-          statsPeriod: '90d',
-        },
-      }}
+      location={location}
       organization={organization}
       projects={projects}
       tab={Tab.REPLAYS}
@@ -96,9 +98,16 @@ function ReplaysContentWrapper({
   organization,
   setError,
 }: ChildProps) {
+  // Hard-code 90d to match the count query. There's no date selector for the replay tab.
   const {data, fetchError, isFetching, pageLinks} = useReplaysFromTransaction({
     replayIdsEventView,
-    location,
+    location: {
+      ...location,
+      query: {
+        ...location.query,
+        statsPeriod: '90d',
+      },
+    },
     organization,
   });
 
@@ -137,13 +146,22 @@ function ReplaysContent({
   organization: Organization;
   pageLinks: string | null;
 }) {
-  const location = useMemo(() => ({query: {}}) as Location<ReplayListLocationQuery>, []);
+  const location = useLocation();
+
+  if (!eventView.query) {
+    eventView.query = String(location.query.query ?? '');
+  }
+
+  const newLocation = useMemo(
+    () => ({query: {}}) as Location<ReplayListLocationQuery>,
+    []
+  );
   const theme = useTheme();
-  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.small})`);
+  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.sm})`);
 
   const {replays, isFetching, fetchError} = useReplayList({
     eventView,
-    location,
+    location: newLocation,
     organization,
     queryReferrer: 'transactionReplays',
   });
@@ -153,24 +171,23 @@ function ReplaysContent({
     events,
   });
 
-  const {allMobileProj} = useAllMobileProj();
+  const {allMobileProj} = useAllMobileProj({});
 
   return (
     <Layout.Main fullWidth>
       <ReplayTable
-        fetchError={fetchError}
-        isFetching={isFetching}
-        replays={replaysWithTx}
-        sort={undefined}
-        visibleColumns={[
-          ReplayColumn.REPLAY,
-          ...(hasRoomForColumns ? [ReplayColumn.SLOWEST_TRANSACTION] : []),
-          ReplayColumn.OS,
-          ...(allMobileProj ? [] : [ReplayColumn.BROWSER]),
-          ReplayColumn.DURATION,
-          ReplayColumn.COUNT_ERRORS,
-          ReplayColumn.ACTIVITY,
+        columns={[
+          ReplaySessionColumn,
+          ...(hasRoomForColumns ? [ReplaySlowestTransactionColumn] : []),
+          ReplayOSColumn,
+          ...(allMobileProj ? [] : [ReplayBrowserColumn]),
+          ReplayDurationColumn,
+          ReplayCountErrorsColumn,
+          ReplayActivityColumn,
         ]}
+        error={fetchError}
+        isPending={isFetching}
+        replays={replaysWithTx ?? []}
         showDropdownFilters={false}
       />
     </Layout.Main>

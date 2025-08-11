@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import {HeaderTitleLegend, SectionHeading} from 'sentry/components/charts/styles';
+import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -15,7 +15,6 @@ import type {Project} from 'sentry/types/project';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
 import RouteError from 'sentry/views/routeError';
 
 interface IssueAlertDetailsProps extends DateTimeObject {
@@ -32,10 +31,9 @@ export function IssueAlertDetailsChart({
   rule,
 }: IssueAlertDetailsProps) {
   const organization = useOrganization();
-  const router = useRouter();
   const {
     data: ruleFireHistory,
-    isLoading,
+    isPending,
     isError,
     error,
   } = useApiQuery<ProjectAlertRuleStats[]>(
@@ -67,17 +65,10 @@ export function IssueAlertDetailsChart({
           <HeaderTitleLegend>{t('Alerts Triggered')}</HeaderTitleLegend>
         </ChartHeader>
         {getDynamicText({
-          value: isLoading ? (
+          value: isPending ? (
             <Placeholder height="200px" />
           ) : (
-            <ChartZoom
-              router={router}
-              period={period}
-              start={start}
-              end={end}
-              utc={utc}
-              usePageDate
-            >
+            <ChartZoom period={period} start={start} end={end} utc={utc} usePageDate>
               {zoomRenderProps => (
                 <AreaChart
                   {...zoomRenderProps}
@@ -115,7 +106,7 @@ export function IssueAlertDetailsChart({
       <ChartFooter>
         <FooterHeader>{t('Total Alerts')}</FooterHeader>
         <FooterValue>
-          {isLoading ? (
+          {isPending ? (
             <Placeholder height="16px" width="50px" />
           ) : (
             totalAlertsTriggered.toLocaleString()
@@ -136,12 +127,10 @@ const ChartFooter = styled(PanelFooter)`
   padding: ${space(1)} 20px;
 `;
 
-const FooterHeader = styled(SectionHeading)`
-  display: flex;
-  align-items: center;
+const FooterHeader = styled('h4')`
   margin: 0;
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1;
 `;
 

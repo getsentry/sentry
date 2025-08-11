@@ -6,8 +6,8 @@ from django.db import router, transaction
 from django.db.models.expressions import CombinedExpression
 from django.utils.text import slugify
 
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization, OrganizationStatus
-from sentry.models.outbox import outbox_context
 
 
 class OrganizationCreateAndUpdateOptions(TypedDict, total=False):

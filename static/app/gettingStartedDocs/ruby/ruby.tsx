@@ -1,27 +1,108 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {CrashReportWebApiOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getRubyMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
+
+export const getRubyProfilingOnboarding = ({
+  frameworkPackage,
+}: {frameworkPackage?: string} = {}) => ({
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      description: tct(
+        'We use the [code:stackprof] [stackprofLink:gem] to collect profiles for Ruby.',
+        {
+          code: <code />,
+          stackprofLink: <ExternalLink href="https://github.com/tmm1/stackprof" />,
+        }
+      ),
+      configurations: [
+        {
+          description: tct(
+            'First add [code:stackprof] to your [code:Gemfile] and make sure it is loaded before the Sentry SDK.',
+            {
+              code: <code />,
+            }
+          ),
+          language: 'ruby',
+          code: `
+gem 'stackprof'
+gem 'sentry-ruby'${
+            frameworkPackage
+              ? `
+gem '${frameworkPackage}'`
+              : ''
+          }`,
+        },
+      ],
+    },
+  ],
+  configure: (params: Params) => [
+    {
+      type: StepType.CONFIGURE,
+      description: tct(
+        'Then, make sure both [code:traces_sample_rate] and [code:profiles_sample_rate] are set and non-zero in your Sentry initializer.',
+        {
+          code: <code />,
+        }
+      ),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Ruby',
+              value: 'ruby',
+              filename: 'config/initializers/sentry.rb',
+              language: 'ruby',
+              code: `
+Sentry.init do |config|
+  config.dsn = "${params.dsn.public}"
+  config.traces_sample_rate = 1.0
+  config.profiles_sample_rate = 1.0
+end
+                   `,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [],
+});
 
 const getInstallSnippet = (params: Params) =>
   `${params.isProfilingSelected ? 'gem "stackprof"\n' : ''}gem "sentry-ruby"`;
 
 const getConfigureSnippet = (params: Params) => `
+require 'sentry-ruby'
+
 Sentry.init do |config|
-  config.dsn = '${params.dsn}'${
+  config.dsn = '${params.dsn.public}'
+
+  # Add data like request headers and IP for users,
+  # see https://docs.sentry.io/platforms/ruby/data-management/data-collected/ for more info
+  config.send_default_pii = true${
+    params.isLogsSelected
+      ? `
+
+  # Enable sending logs to Sentry
+  config.enable_logs = true
+  # Patch Ruby logger to forward logs
+  config.enabled_patches = [:logger]`
+      : ''
+  }${
     params.isPerformanceSelected
       ? `
 
   # Set traces_sample_rate to 1.0 to capture 100%
-  # of transactions for performance monitoring.
+  # of transactions for tracing.
   # We recommend adjusting this value in production.
   config.traces_sample_rate = 1.0
   # or
@@ -63,13 +144,12 @@ const onboarding: OnboardingConfig = {
         {
           description: params.isProfilingSelected
             ? tct(
-                'Ruby Profiling beta is available since SDK version 5.9.0. We use the [stackprofLink:stackprof gem] to collect profiles for Ruby. Make sure [stackprofCode:stackprof] is loaded before [sentryRubyCode:sentry-ruby].',
+                'Ruby Profiling beta is available since SDK version 5.9.0. We use the [stackprofLink:stackprof gem] to collect profiles for Ruby. Make sure [code:stackprof] is loaded before [code:sentry-ruby].',
                 {
                   stackprofLink: (
                     <ExternalLink href="https://github.com/tmm1/stackprof" />
                   ),
-                  stackprofCode: <code />,
-                  sentryRubyCode: <code />,
+                  code: <code />,
                 }
               )
             : undefined,
@@ -88,8 +168,8 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'To use Sentry Ruby all you need is your DSN. Like most Sentry libraries it will honor the [sentryDSN:SENTRY_DSN] environment variable. You can find it on the project settings page under API Keys. You can either export it as environment variable or manually configure it with [sentryInit:Sentry.init]:',
-        {sentryDSN: <code />, sentryInit: <code />}
+        'To use Sentry Ruby all you need is your DSN. Like most Sentry libraries it will honor the [code:SENTRY_DSN] environment variable. You can find it on the project settings page under API Keys. You can either export it as environment variable or manually configure it with [code:Sentry.init]:',
+        {code: <code />}
       ),
       configurations: [
         {
@@ -117,8 +197,8 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  customMetricsOnboarding: getRubyMetricsOnboarding(),
   crashReportOnboarding: CrashReportWebApiOnboarding,
+  profilingOnboarding: getRubyProfilingOnboarding(),
 };
 
 export default docs;

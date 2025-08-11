@@ -3,9 +3,17 @@ import type {Location, Query} from 'history';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeScalar} from 'sentry/utils/queryString';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
-export function generateTagsRoute({orgSlug}: {orgSlug: string}): string {
-  return `/organizations/${orgSlug}/performance/summary/tags/`;
+function generateTagsRoute({
+  organization,
+  view,
+}: {
+  organization: Organization;
+  view?: DomainView;
+}): string {
+  return `${getTransactionSummaryBaseUrl(organization, view)}/tags/`;
 }
 
 export function decodeSelectedTagKey(location: Location): string | undefined {
@@ -17,18 +25,21 @@ export function trackTagPageInteraction(organization: Organization) {
 }
 
 export function tagsRouteWithQuery({
-  orgSlug,
+  organization,
   transaction,
   projectID,
   query,
+  view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   query: Query;
   transaction: string;
   projectID?: string | string[];
+  view?: DomainView;
 }) {
   const pathname = generateTagsRoute({
-    orgSlug,
+    organization,
+    view,
   });
 
   return {
@@ -48,17 +59,17 @@ export function tagsRouteWithQuery({
 
 export function getTagSortForTagsPage(location: Location) {
   // Retrieves the tag from the same query param segment explorer uses, but removes columns that aren't supported.
-  let tagSort = decodeScalar(location.query?.tagSort) ?? '-frequency';
+  const tagSort = decodeScalar(location.query?.tagSort) ?? '-frequency';
 
-  if (['sumdelta'].find(denied => tagSort?.includes(denied))) {
-    tagSort = '-frequency';
+  if (tagSort.includes('sumdelta')) {
+    return '-frequency';
   }
 
   return tagSort;
 }
 
 // TODO(k-fish): Improve meta of backend response to return these directly
-export function parseHistogramBucketInfo(row: {[key: string]: React.ReactText}) {
+export function parseHistogramBucketInfo(row: Record<string, string | number>) {
   const field = Object.keys(row).find(f => f.includes('histogram'));
   if (!field) {
     return undefined;
@@ -66,8 +77,8 @@ export function parseHistogramBucketInfo(row: {[key: string]: React.ReactText}) 
   const parts = field.split('_');
   return {
     histogramField: field,
-    bucketSize: parseInt(parts[parts.length - 3], 10),
-    offset: parseInt(parts[parts.length - 2], 10),
-    multiplier: parseInt(parts[parts.length - 1], 10),
+    bucketSize: parseInt(parts[parts.length - 3]!, 10),
+    offset: parseInt(parts[parts.length - 2]!, 10),
+    multiplier: parseInt(parts[parts.length - 1]!, 10),
   };
 }

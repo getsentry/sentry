@@ -1,19 +1,19 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
-import {Tooltip} from 'sentry/components/tooltip';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import GridEditable from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -24,16 +24,19 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TableColumn} from 'sentry/views/discover/table/types';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {DeviceClassSelector} from 'sentry/views/insights/mobile/common/components/deviceClassSelector';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type Props = {
   columnNameMap: Record<string, string>;
   cursorName: string;
-  eventIdKey: 'id' | 'transaction.id';
+  eventIdKey: 'id' | 'transaction.id' | 'transaction.span_id';
   eventView: EventView;
   isLoading: boolean;
   profileIdKey: 'profile.id' | 'profile_id';
@@ -61,12 +64,14 @@ export function EventSamplesTable({
   sort,
   footerAlignedPagination = false,
 }: Props) {
+  const navigate = useNavigate();
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
-
+  const {view} = useDomainViewFilters();
   const eventViewColumns = eventView.getColumns();
 
-  function renderBodyCell(column, row): React.ReactNode {
+  function renderBodyCell(column: any, row: any): React.ReactNode {
     if (!data?.meta || !data?.meta.fields) {
       return row[column.key];
     }
@@ -76,11 +81,11 @@ export function EventSamplesTable({
         <Link
           to={generateLinkToEventInTraceView({
             eventId: row[eventIdKey],
-            projectSlug: row['project.name'],
             traceSlug: row.trace,
             timestamp: row.timestamp,
             organization,
             location,
+            view,
             source: TraceViewSources.SCREEN_LOADS_MODULE,
           })}
         >
@@ -91,10 +96,10 @@ export function EventSamplesTable({
 
     if (column.key === profileIdKey) {
       const profileTarget =
-        defined(row['project.name']) && defined(row[profileIdKey])
+        defined(row.project) && defined(row[profileIdKey])
           ? generateProfileFlamechartRoute({
-              orgSlug: organization.slug,
-              projectSlug: row['project.name'],
+              organization,
+              projectSlug: row.project,
               profileId: String(row[profileIdKey]),
             })
           : null;
@@ -116,6 +121,7 @@ export function EventSamplesTable({
       location,
       organization,
       unit: data?.meta.units?.[column.key],
+      theme,
     });
     return rendered;
   }
@@ -171,7 +177,7 @@ export function EventSamplesTable({
   const columnSortBy = eventView.getSorts();
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [cursorName]: newCursor},
     });
@@ -182,7 +188,10 @@ export function EventSamplesTable({
       {!footerAlignedPagination && (
         <Header>
           {showDeviceClassSelector && (
-            <DeviceClassSelector moduleName={ModuleName.SCREEN_LOAD} />
+            <StyledControls>
+              <DeviceClassSelector moduleName={ModuleName.SCREEN_LOAD} />
+              <SubregionSelector size="xs" />
+            </StyledControls>
           )}
 
           <StyledPagination size="xs" pageLinks={pageLinks} onCursor={handleCursor} />
@@ -193,11 +202,11 @@ export function EventSamplesTable({
           isLoading={isLoading}
           data={data?.data as TableDataRow[]}
           columnOrder={eventViewColumns
-            .filter((col: TableColumn<React.ReactText>) =>
+            .filter((col: TableColumn<string | number>) =>
               Object.keys(columnNameMap).includes(col.name)
             )
-            .map((col: TableColumn<React.ReactText>) => {
-              return {...col, name: columnNameMap[col.key]};
+            .map((col: TableColumn<string | number>) => {
+              return {...col, name: columnNameMap[col.key]!};
             })}
           columnSortBy={columnSortBy}
           grid={{
@@ -225,6 +234,11 @@ const Header = styled('div')`
   margin-bottom: ${space(1)};
   align-items: center;
   height: 26px;
+`;
+
+const StyledControls = styled('div')`
+  display: flex;
+  gap: ${space(1)};
 `;
 
 const IconWrapper = styled('div')`

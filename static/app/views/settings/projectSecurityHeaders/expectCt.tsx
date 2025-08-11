@@ -1,4 +1,4 @@
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -27,14 +27,14 @@ function ProjectExpectCtReports() {
 
   const {
     data: keyList,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
     staleTime: 0,
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -45,13 +45,17 @@ function ProjectExpectCtReports() {
   return (
     <div>
       <SentryDocumentTitle
-        title={routeTitleGen(t('Certificate Transparency (Expect-CT)'), projectId, false)}
+        title={routeTitleGen(
+          t('Certificate Transparency (Expect-CT)'),
+          projectId!,
+          false
+        )}
       />
       <SettingsPageHeader title={t('Certificate Transparency')} />
 
       <PreviewFeature />
 
-      <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId} />
+      <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId!} />
 
       <Panel>
         <PanelHeader>{t('About')}</PanelHeader>

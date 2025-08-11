@@ -5,15 +5,15 @@ import * as qs from 'query-string';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import Card from 'sentry/components/card';
 import Carousel from 'sentry/components/carousel';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
-import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -83,7 +83,8 @@ export function InviteBanner({
         }
       );
       const githubMissingMembers = data?.filter(
-        integrationMissingMembers => integrationMissingMembers.integration === 'github'
+        (integrationMissingMembers: any) =>
+          integrationMissingMembers.integration === 'github'
       )[0];
       setMissingMembers(githubMissingMembers?.users || []);
     } catch (err) {
@@ -184,7 +185,7 @@ export function InviteBanner({
               />
             </Subtitle>
           </CardTitleContent>
-          <ButtonBar gap={1}>
+          <ButtonBar>
             <Button
               priority="primary"
               size="xs"
@@ -318,26 +319,26 @@ const CardTitleContent = styled('div')`
 
 const CardTitle = styled('h6')`
   margin: 0;
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.gray400};
 `;
 
 const Subtitle = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.subText};
   gap: ${space(0.5)};
 `;
 
 const MemberEmail = styled('div')`
   display: block;
   max-width: 70%;
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.subText};
   text-overflow: ellipsis;
   overflow: hidden;
 `;
@@ -365,14 +366,14 @@ const MemberCardContentRow = styled('div')`
   display: flex;
   align-items: center;
   margin-bottom: ${space(0.25)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   gap: ${space(0.75)};
 `;
 
 export const StyledExternalLink = styled(ExternalLink)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const SeeMore = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;

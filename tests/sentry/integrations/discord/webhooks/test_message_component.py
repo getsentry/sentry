@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock, patch
 
 from sentry.integrations.discord.message_builder.base.component import (
     DiscordComponentCustomIds as CustomIds,
@@ -23,8 +24,10 @@ from sentry.integrations.discord.webhooks.message_component import (
     RESOLVED_IN_NEXT_RELEASE,
     UNRESOLVED,
 )
+from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
+from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -32,7 +35,7 @@ WEBHOOK_URL = "/extensions/discord/interactions/"
 
 
 class DiscordMessageComponentInteractionTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         patcher = mock.patch(
             "sentry.integrations.discord.requests.base.verify_signature", return_value=True
         )
@@ -82,22 +85,22 @@ class DiscordMessageComponentInteractionTest(APITestCase):
     def get_select_options(self, response: Any) -> Any:
         return self.get_message_components(response)[0]["components"][0]["options"]
 
-    def test_unknown_custom_id_interaction(self):
+    def test_unknown_custom_id_interaction(self) -> None:
         response = self.send_interaction({"custom_id": f"unknown:{self.group.id}"})
         assert response.status_code == 200
         assert self.get_message_content(response) == INVALID_GROUP_ID
 
-    def test_empty_custom_id_interaction(self):
+    def test_empty_custom_id_interaction(self) -> None:
         response = self.send_interaction({"custom_id": ""})
         assert response.status_code == 200
         assert self.get_message_content(response) == INVALID_GROUP_ID
 
-    def test_no_user(self):
+    def test_no_user(self) -> None:
         response = self.send_interaction(member={"user": {"id": "not-our-user"}})
         assert response.status_code == 200
         assert self.get_message_content(response) == NO_IDENTITY
 
-    def test_no_guild_id(self):
+    def test_no_guild_id(self) -> None:
         response = self.client.post(
             path=WEBHOOK_URL,
             data={
@@ -110,7 +113,7 @@ class DiscordMessageComponentInteractionTest(APITestCase):
         assert response.status_code == 200
         assert self.get_message_content(response) == NO_IDENTITY
 
-    def test_invalid_guild_id(self):
+    def test_invalid_guild_id(self) -> None:
         response = self.client.post(
             path=WEBHOOK_URL,
             data={
@@ -124,7 +127,7 @@ class DiscordMessageComponentInteractionTest(APITestCase):
         assert response.status_code == 200
         assert self.get_message_content(response) == NO_IDENTITY
 
-    def test_not_in_org(self):
+    def test_not_in_org(self) -> None:
         other_user = self.create_user()
         other_user_discord_id = "other-user1234"
         other_org = self.create_organization()
@@ -139,7 +142,7 @@ class DiscordMessageComponentInteractionTest(APITestCase):
         assert response.status_code == 200
         assert self.get_message_content(response) == NOT_IN_ORG
 
-    def test_assign_dialog(self):
+    def test_assign_dialog(self) -> None:
         response = self.send_interaction(
             {
                 "component_type": DiscordMessageComponentTypes.BUTTON,
@@ -152,7 +155,7 @@ class DiscordMessageComponentInteractionTest(APITestCase):
             {"label": self.user.email, "value": f"user:{self.user.id}", "default": False},
         ]
 
-    def test_assign_dialog_invalid_group_id(self):
+    def test_assign_dialog_invalid_group_id(self) -> None:
         response = self.send_interaction(
             {
                 "component_type": DiscordMessageComponentTypes.BUTTON,
@@ -162,7 +165,8 @@ class DiscordMessageComponentInteractionTest(APITestCase):
         assert response.status_code == 200
         assert self.get_message_content(response) == INVALID_GROUP_ID
 
-    def test_assign(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_assign(self, mock_record: MagicMock) -> None:
         response = self.send_interaction(
             {
                 "component_type": DiscordMessageComponentTypes.SELECT,
@@ -173,7 +177,9 @@ class DiscordMessageComponentInteractionTest(APITestCase):
         assert response.status_code == 200
         assert self.get_message_content(response) == ASSIGNEE_UPDATED
 
-    def test_resolve_dialog(self):
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+    def test_resolve_dialog(self) -> None:
         response = self.send_interaction(
             {
                 "component_type": DiscordMessageComponentTypes.BUTTON,
@@ -185,7 +191,7 @@ class DiscordMessageComponentInteractionTest(APITestCase):
             option.build() for option in RESOLVE_DIALOG_OPTIONS
         ]
 
-    def test_resolve_non_dialog(self):
+    def test_resolve_non_dialog(self) -> None:
         response = self.send_interaction(
             {
                 "component_type": DiscordMessageComponentTypes.BUTTON,
@@ -195,7 +201,7 @@ class DiscordMessageComponentInteractionTest(APITestCase):
         assert response.status_code == 200
         assert self.get_message_content(response) == RESOLVED
 
-    def test_resolve_now_from_dialog(self):
+    def test_resolve_now_from_dialog(self) -> None:
         response = self.send_interaction(
             {
                 "component_type": DiscordMessageComponentTypes.SELECT,
@@ -206,7 +212,7 @@ class DiscordMessageComponentInteractionTest(APITestCase):
         assert response.status_code == 200
         assert self.get_message_content(response) == RESOLVED
 
-    def test_resolve_in_next_release(self):
+    def test_resolve_in_next_release(self) -> None:
         release = Release.objects.create(
             organization_id=self.organization.id,
             version="1.0",
@@ -222,7 +228,7 @@ class DiscordMessageComponentInteractionTest(APITestCase):
         assert response.status_code == 200
         assert self.get_message_content(response) == RESOLVED_IN_NEXT_RELEASE
 
-    def test_resolve_in_current_release(self):
+    def test_resolve_in_current_release(self) -> None:
         release = Release.objects.create(
             organization_id=self.organization.id,
             version="1.0",
@@ -238,7 +244,7 @@ class DiscordMessageComponentInteractionTest(APITestCase):
         assert response.status_code == 200
         assert self.get_message_content(response) == RESOLVED_IN_CURRENT_RELEASE
 
-    def test_unresolve(self):
+    def test_unresolve(self) -> None:
         response = self.send_interaction(
             {
                 "component_type": DiscordMessageComponentTypes.BUTTON,
@@ -248,7 +254,7 @@ class DiscordMessageComponentInteractionTest(APITestCase):
         assert response.status_code == 200
         assert self.get_message_content(response) == UNRESOLVED
 
-    def test_mark_ongoing(self):
+    def test_mark_ongoing(self) -> None:
         response = self.send_interaction(
             {
                 "component_type": DiscordMessageComponentTypes.BUTTON,
@@ -258,7 +264,7 @@ class DiscordMessageComponentInteractionTest(APITestCase):
         assert response.status_code == 200
         assert self.get_message_content(response) == MARKED_ONGOING
 
-    def test_archive(self):
+    def test_archive(self) -> None:
         response = self.send_interaction(
             {
                 "component_type": DiscordMessageComponentTypes.BUTTON,

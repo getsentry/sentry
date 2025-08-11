@@ -4,17 +4,17 @@ import oxfordizeArray, {Oxfordize} from 'sentry/utils/oxfordizeArray';
 
 describe('oxfordizeArray', function () {
   it('correctly formats lists of strings', function () {
-    const zero = [];
+    const zero: string[] = [];
     const one = ['A'];
     const two = ['A', 'B'];
     const three = ['A', 'B', 'C'];
     const four = ['A', 'B', 'C', 'D'];
 
-    expect(oxfordizeArray(zero)).toEqual('');
-    expect(oxfordizeArray(one)).toEqual('A');
-    expect(oxfordizeArray(two)).toEqual('A and B');
-    expect(oxfordizeArray(three)).toEqual('A, B, and C');
-    expect(oxfordizeArray(four)).toEqual('A, B, C, and D');
+    expect(oxfordizeArray(zero)).toBe('');
+    expect(oxfordizeArray(one)).toBe('A');
+    expect(oxfordizeArray(two)).toBe('A and B');
+    expect(oxfordizeArray(three)).toBe('A, B, and C');
+    expect(oxfordizeArray(four)).toBe('A, B, C, and D');
   });
 });
 

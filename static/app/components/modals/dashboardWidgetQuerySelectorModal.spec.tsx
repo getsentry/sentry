@@ -2,14 +2,20 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import DashboardWidgetQuerySelectorModal from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
-import {t} from 'sentry/locale';
+import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 const stubEl: any = (props: any) => <div>{props.children}</div>;
 
 const api = new MockApiClient();
 
-function renderModal({initialData, widget}) {
+function renderModal({
+  initialData,
+  widget,
+}: {
+  initialData: ReturnType<typeof initializeOrg>;
+  widget: Widget;
+}) {
   return render(
     <DashboardWidgetQuerySelectorModal
       Header={stubEl}
@@ -20,8 +26,8 @@ function renderModal({initialData, widget}) {
       organization={initialData.organization}
       widget={widget}
       api={api}
-    />,
-    {router: initialData.router}
+      dashboardFilters={undefined}
+    />
   );
 }
 
@@ -33,16 +39,15 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     router: {},
     projects: [],
   });
-  let mockQuery;
-  let mockWidget;
+  let mockQuery!: Widget['queries'][number];
+  let mockWidget!: Widget;
 
   beforeEach(function () {
     mockQuery = {
-      conditions: 'title:/organizations/:orgId/performance/summary/',
+      conditions: 'title:/organizations/:orgId/insights/summary/',
       fields: ['count()', 'failure_count()'],
       aggregates: ['count()', 'failure_count()'],
       columns: [],
-      id: '1',
       name: 'Query Name',
       orderby: '',
     };
@@ -73,7 +78,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
-      body: [{id: '1', title: t('Test Dashboard')}],
+      body: [{id: '1', title: 'Test Dashboard'}],
     });
   });
 
@@ -85,7 +90,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     renderModal({initialData, widget: mockWidget});
 
     expect(
-      screen.getByDisplayValue('title:/organizations/:orgId/performance/summary/')
+      screen.getByDisplayValue('title:/organizations/:orgId/insights/summary/')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open in Discover'})).toBeInTheDocument();
   });
@@ -94,19 +99,17 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     mockWidget.queries.push({
       ...mockQuery,
       conditions: 'title:/organizations/:orgId/performance/',
-      id: '2',
     });
     mockWidget.queries.push({
       ...mockQuery,
       conditions: 'title:/organizations/:orgId/',
-      id: '3',
     });
     renderModal({initialData, widget: mockWidget});
     const queryFields = screen.getAllByRole('textbox');
     expect(queryFields).toHaveLength(3);
 
     expect(
-      screen.getByDisplayValue('title:/organizations/:orgId/performance/summary/')
+      screen.getByDisplayValue('title:/organizations/:orgId/insights/summary/')
     ).toBeInTheDocument();
     expect(
       screen.getByDisplayValue('title:/organizations/:orgId/performance/')
@@ -118,7 +121,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     renderModal({initialData, widget: mockWidget});
     expect(screen.getByRole('link')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?field=count%28%29&field=failure_count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
+      '/organizations/org-slug/discover/results/?field=count%28%29&field=failure_count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Finsights%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
   });
 });

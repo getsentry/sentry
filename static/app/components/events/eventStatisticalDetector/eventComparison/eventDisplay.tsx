@@ -1,8 +1,12 @@
 import {useEffect, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button, LinkButton} from 'sentry/components/button';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {EventTags} from 'sentry/components/events/eventTags';
@@ -14,14 +18,13 @@ import {
 } from 'sentry/components/events/interfaces/spans/header';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
 import OpsBreakdown from 'sentry/components/events/opsBreakdown';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction, Project} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -141,11 +144,12 @@ function EventDisplay({
   transaction,
   durationBaseline,
 }: EventDisplayProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const [selectedEventId, setSelectedEventId] = useState<string>('');
 
-  const {data, isLoading, isError} = useFetchSampleEvents({
+  const {data, isPending, isError} = useFetchSampleEvents({
     start,
     end,
     transaction,
@@ -162,7 +166,7 @@ function EventDisplay({
 
   useEffect(() => {
     if (defined(eventIds) && eventIds.length > 0 && !selectedEventId) {
-      setSelectedEventId(eventIds[0]);
+      setSelectedEventId(eventIds[0]!);
     }
   }, [eventIds, selectedEventId]);
 
@@ -175,7 +179,7 @@ function EventDisplay({
     return null;
   }
 
-  if (isLoading || isFetching) {
+  if (isPending || isFetching) {
     return <LoadingIndicator />;
   }
 
@@ -193,7 +197,6 @@ function EventDisplay({
   const traceSlug = eventData.contexts?.trace?.trace_id ?? '';
   const fullEventTarget = generateLinkToEventInTraceView({
     eventId: eventData.id,
-    projectSlug: project.slug,
     traceSlug,
     timestamp: eventData.endTimestamp,
     location,
@@ -241,7 +244,7 @@ function EventDisplay({
                 icon={<IconChevron direction="left" size={BUTTON_ICON_SIZE} />}
                 onPaginate={() => {
                   if (hasPrev) {
-                    setSelectedEventId(eventIds[eventIdIndex - 1]);
+                    setSelectedEventId(eventIds[eventIdIndex - 1]!);
                   }
                 }}
               />
@@ -251,7 +254,7 @@ function EventDisplay({
                 icon={<IconChevron direction="right" size={BUTTON_ICON_SIZE} />}
                 onPaginate={() => {
                   if (hasNext) {
-                    setSelectedEventId(eventIds[eventIdIndex + 1]);
+                    setSelectedEventId(eventIds[eventIdIndex + 1]!);
                   }
                 }}
               />
@@ -263,6 +266,7 @@ function EventDisplay({
             <MinimapContainer>
               <MinimapPositioningContainer>
                 <ActualMinimap
+                  theme={theme}
                   spans={waterfallModel.getWaterfall({
                     viewStart: 0,
                     viewEnd: 1,
@@ -333,21 +337,21 @@ const MinimapContainer = styled('div')`
 `;
 
 const ComparisonContentWrapper = styled('div')`
-  border: ${({theme}) => `1px solid ${theme.border}`};
-  border-radius: ${({theme}) => theme.borderRadius};
+  border: ${p => `1px solid ${p.theme.border}`};
+  border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
 `;
 
 const EmptyStateWrapper = styled('div')`
-  border: ${({theme}) => `1px solid ${theme.border}`};
-  border-radius: ${({theme}) => theme.borderRadius};
+  border: ${p => `1px solid ${p.theme.border}`};
+  border-radius: ${p => p.theme.borderRadius};
   display: flex;
   justify-content: center;
   align-items: center;
 `;
 
 const SelectionTextWrapper = styled('span')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const StyledNavButton = styled(Button)`

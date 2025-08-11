@@ -1,4 +1,5 @@
 import {useCallback, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
@@ -55,7 +56,7 @@ function Truncate({
     } else if (trimRegex && !leftTrim) {
       const matches = slicedValue.match(trimRegex);
       let lastIndex = matches
-        ? slicedValue.lastIndexOf(matches[matches.length - 1]) + 1
+        ? slicedValue.lastIndexOf(matches[matches.length - 1]!) + 1
         : slicedValue.length;
       if (lastIndex <= minLength) {
         lastIndex = slicedValue.length;
@@ -92,7 +93,7 @@ const Wrapper = styled('span')`
   position: relative;
 `;
 
-export const FullValue = styled('span')<{
+const FullValue = styled('span')<{
   expandDirection: 'left' | 'right';
   expanded: boolean;
 }>`
@@ -109,9 +110,9 @@ export const FullValue = styled('span')<{
 
   ${p =>
     p.expanded &&
-    `
-    z-index: ${p.theme.zIndex.truncationFullValue};
-    display: block;
+    css`
+      z-index: ${p.theme.zIndex.truncationFullValue};
+      display: block;
     `}
 `;
 

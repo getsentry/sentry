@@ -15,10 +15,13 @@ from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task_with_context,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
-from sentry.search.events.types import ParamsType
+from sentry.search.events.types import SnubaParams
 from sentry.silo.base import SiloMode
 from sentry.snuba import discover
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import telemetry_experience_tasks
+from sentry.taskworker.retry import Retry
 from sentry.users.services.user.service import user_service
 from sentry.utils.email import MessageBuilder
 
@@ -30,9 +33,17 @@ MIN_SAMPLES_FOR_NOTIFICATION = 10
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=2 * 60 * 60,  # 2hours
-    time_limit=2 * 60 * 60 + 5,
+    soft_time_limit=1 * 60,  # 1 minute
+    time_limit=1 * 60 + 5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=telemetry_experience_tasks,
+        processing_deadline_duration=1 * 60 + 5,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def custom_rule_notifications(context: TaskContext) -> None:
@@ -88,17 +99,16 @@ def get_num_samples(rule: CustomDynamicSamplingRule) -> int:
         project_id.append(project.id)
         project_objects.append(project)
 
-    params: ParamsType = {
-        "start": rule.start_date,
-        "end": rule.end_date,
-        "project_id": project_id,
-        "project_objects": project_objects,
-        "organization_id": rule.organization.id,
-    }
+    params = SnubaParams(
+        start=rule.start_date,
+        end=rule.end_date,
+        projects=project_objects,
+        organization=rule.organization,
+    )
 
     result = discover.query(
         selected_columns=["count()"],
-        params=params,
+        snuba_params=params,
         query=rule.query if rule.query is not None else "",
         referrer="dynamic_sampling.tasks.custom_rule_notifications",
     )
@@ -168,6 +178,8 @@ def create_discover_link(rule: CustomDynamicSamplingRule, projects: list[int]) -
     q["utc"] = "true"
     q["yAxis"] = "count()"
     q["sort"] = "-timestamp"
+    q["queryDataset"] = "transaction-like"
+    q["dataset"] = "transactions"
 
     query_string = q.urlencode()
     discover_url = rule.organization.absolute_url(
@@ -181,9 +193,17 @@ def create_discover_link(rule: CustomDynamicSamplingRule, projects: list[int]) -
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=2 * 60 * 60,  # 2hours
-    time_limit=2 * 60 * 60 + 5,
+    soft_time_limit=3 * 60,  # 3 minutes
+    time_limit=3 * 60 + 5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=telemetry_experience_tasks,
+        processing_deadline_duration=3 * 60 + 5,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 @dynamic_sampling_task
 def clean_custom_rule_notifications() -> None:

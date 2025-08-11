@@ -8,6 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.utils import handle_query_errors
+from sentry.models.organization import Organization
 from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover
 
@@ -24,16 +25,14 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
         "measurements.fcp": {"thresholds": [0, 1000, 3000]},
         "measurements.fp": {"thresholds": [0, 1000, 3000]},
     }
-    # Threshold labels
-    LABELS = ["good", "meh", "poor"]
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        with sentry_sdk.start_span(op="discover.endpoint", description="parse params"):
+        with sentry_sdk.start_span(op="discover.endpoint", name="parse params"):
             try:
-                params = self.get_snuba_params(request, organization)
+                snuba_params = self.get_snuba_params(request, organization)
             except NoProjects:
                 return Response([])
 
@@ -69,7 +68,7 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
             events_results = dataset.query(
                 selected_columns=selected_columns,
                 query=request.GET.get("query"),
-                params=params,
+                snuba_params=snuba_params,
                 # Results should only ever have 1 result
                 limit=1,
                 referrer="api.events.vitals",

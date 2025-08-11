@@ -1,7 +1,7 @@
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import type {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {t} from 'sentry/locale';
-import type {Frame} from 'sentry/types';
+import type {Frame} from 'sentry/types/event';
 
 type Props = {
   frame: Frame;
@@ -50,10 +50,10 @@ export function FunctionName({
 
   return (
     <code className={className} {...props}>
-      {!valueOutput ? (
-        t('<unknown>')
-      ) : (
+      {valueOutput ? (
         <AnnotatedText value={valueOutput.value} meta={valueOutput.meta} />
+      ) : (
+        t('<unknown>')
       )}
     </code>
   );

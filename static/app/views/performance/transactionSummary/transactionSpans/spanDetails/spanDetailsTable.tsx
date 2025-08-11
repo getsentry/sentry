@@ -1,16 +1,17 @@
 import {Fragment} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import type {GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Pagination from 'sentry/components/pagination';
 import {DurationPill, RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import {Tooltip} from 'sentry/components/tooltip';
+import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -28,7 +29,11 @@ import type {
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {
+  type DomainView,
+  useDomainViewFilters,
+} from 'sentry/views/insights/pages/useFilters';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type TableColumnKeys =
   | 'id'
@@ -49,23 +54,17 @@ type Props = {
   isLoading: boolean;
   location: Location;
   organization: Organization;
-  transactionName: string;
   pageLinks?: string | null;
   project?: Project;
   suspectSpan?: SuspectSpan;
 };
 
 export default function SpanTable(props: Props) {
-  const {
-    location,
-    organization,
-    project,
-    examples,
-    suspectSpan,
-    isLoading,
-    pageLinks,
-    transactionName,
-  } = props;
+  const {location, organization, project, examples, suspectSpan, isLoading, pageLinks} =
+    props;
+
+  const theme = useTheme();
+  const {view} = useDomainViewFilters();
 
   if (!defined(examples)) {
     return null;
@@ -108,8 +107,9 @@ export default function SpanTable(props: Props) {
             renderBodyCell: renderBodyCellWithMeta(
               location,
               organization,
-              transactionName,
-              suspectSpan
+              theme,
+              suspectSpan,
+              view
             ),
           }}
         />
@@ -120,6 +120,7 @@ export default function SpanTable(props: Props) {
 }
 
 function renderHeadCell(column: TableColumn, _index: number): React.ReactNode {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const align = fieldAlignment(column.key, COLUMN_TYPE[column.key]);
   return (
     <SortLink
@@ -135,8 +136,9 @@ function renderHeadCell(column: TableColumn, _index: number): React.ReactNode {
 function renderBodyCellWithMeta(
   location: Location,
   organization: Organization,
-  transactionName: string,
-  suspectSpan?: SuspectSpan
+  theme: Theme,
+  suspectSpan?: SuspectSpan,
+  view?: DomainView
 ) {
   return function (column: TableColumn, dataRow: TableDataRow): React.ReactNode {
     // if the transaction duration is falsey, then just render the span duration on its own
@@ -151,12 +153,12 @@ function renderBodyCellWithMeta(
     }
 
     const fieldRenderer = getFieldRenderer(column.key, COLUMN_TYPE);
-    let rendered = fieldRenderer(dataRow, {location, organization});
+    let rendered = fieldRenderer(dataRow, {location, organization, theme});
 
     if (column.key === 'id') {
       const traceSlug = dataRow.spans[0] ? dataRow.spans[0].trace : '';
       const worstSpan = dataRow.spans.length
-        ? dataRow.spans.reduce((worst, span) =>
+        ? dataRow.spans.reduce((worst: any, span: any) =>
             worst.exclusiveTime >= span.exclusiveTime ? worst : span
           )
         : null;
@@ -165,12 +167,11 @@ function renderBodyCellWithMeta(
         eventId: dataRow.id,
         traceSlug,
         timestamp: dataRow.timestamp / 1000,
-        projectSlug: dataRow.project,
         location,
         organization,
         spanId: worstSpan.id,
-        transactionName: transactionName,
         source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+        view,
       });
 
       rendered = <Link to={target}>{rendered}</Link>;
@@ -240,6 +241,7 @@ type SpanDurationBarProps = {
 };
 
 export function SpanDurationBar(props: SpanDurationBarProps) {
+  const theme = useTheme();
   const {spanOp, spanDuration, transactionDuration} = props;
   const widthPercentage = spanDuration / transactionDuration;
   const position = widthPercentage < 0.7 ? 'right' : 'inset';
@@ -254,7 +256,7 @@ export function SpanDurationBar(props: SpanDurationBarProps) {
           })}
           containerDisplayMode="block"
         >
-          <DurationBarSection style={{backgroundColor: pickBarColor(spanOp)}}>
+          <DurationBarSection style={{backgroundColor: pickBarColor(spanOp, theme)}}>
             <DurationPill durationDisplay={position} showDetail={false}>
               <PerformanceDuration abbreviation milliseconds={spanDuration} />
             </DurationPill>

@@ -6,7 +6,6 @@ from sentry.runner import configure
 from sentry.utils.json import dumps_htmlsafe
 
 configure()
-import pathlib
 import uuid
 from datetime import datetime, timedelta
 
@@ -55,7 +54,7 @@ def create_recording(replay_id, project_id, timestamp):
             24,
         ),
         mock_segment_click(
-            timestamp + timedelta(seconds=2),
+            timestamp + timedelta(seconds=3),
             "nav.app-65yvxw.e1upz5ks6[aria-label='Primary Navigation'] > div.app-1v175cc.e1upz5ks4",
             "sidebar-item-performance",
             "a",
@@ -66,14 +65,14 @@ def create_recording(replay_id, project_id, timestamp):
             hrefTo="/performance/",
         ),
         mock_segment_rageclick(
-            timestamp + timedelta(seconds=6),
+            timestamp + timedelta(seconds=7),
             "nav.app-65yvxw.e1upz5ks6[aria-label='Primary Navigation'] > div.app-1v175cc.e1upz5ks4",
             "sidebar-item-performance",
             "a",
             24,
         ),
     ]
-    for (segment_id, segment) in enumerate(segments):
+    for segment_id, segment in enumerate(segments):
         store_replay_segments(replay_id, project_id, segment_id, segment)
 
 
@@ -86,11 +85,6 @@ def store_replay_segments(replay_id: str, project_id: int, segment_id: int, segm
         segment_id=segment_id,
         file_id=f.id,
     )
-
-
-def make_filename(filename: str) -> str:
-    parent_dir = pathlib.Path(__file__).parent.resolve()
-    return f"{parent_dir}/rrweb-output/{filename}"
 
 
 def main():

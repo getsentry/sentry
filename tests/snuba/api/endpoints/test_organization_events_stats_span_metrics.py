@@ -1,12 +1,12 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.urls import reverse
 
 from sentry.search.events import constants
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -34,7 +34,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
     # These throughput tests should roughly match the ones in OrganizationEventsStatsEndpointTest
     @pytest.mark.querybuilder
-    def test_throughput_epm_hour_rollup(self):
+    def test_throughput_epm_hour_rollup(self) -> None:
         # Each of these denotes how many events to create in each hour
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
@@ -48,8 +48,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         for axis in ["epm()", "spm()"]:
             response = self.do_request(
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=6)),
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=6),
                     "interval": "1h",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -65,7 +65,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
             for test in zip(event_counts, rows):
                 assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
 
-    def test_throughput_epm_day_rollup(self):
+    def test_throughput_epm_day_rollup(self) -> None:
         # Each of these denotes how many events to create in each minute
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
@@ -79,8 +79,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         for axis in ["epm()", "spm()"]:
             response = self.do_request(
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=24)),
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=24),
                     "interval": "24h",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -94,7 +94,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
             assert data[0][1][0]["count"] == sum(event_counts) / (86400.0 / 60.0)
 
-    def test_throughput_epm_hour_rollup_offset_of_hour(self):
+    def test_throughput_epm_hour_rollup_offset_of_hour(self) -> None:
         # Each of these denotes how many events to create in each hour
         event_counts = [6, 0, 6, 3, 0, 3]
         for hour, count in enumerate(event_counts):
@@ -108,8 +108,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         for axis in ["epm()", "spm()"]:
             response = self.do_request(
                 data={
-                    "start": iso_format(self.day_ago + timedelta(minutes=30)),
-                    "end": iso_format(self.day_ago + timedelta(hours=6, minutes=30)),
+                    "start": self.day_ago + timedelta(minutes=30),
+                    "end": self.day_ago + timedelta(hours=6, minutes=30),
                     "interval": "1h",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -125,7 +125,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
             for test in zip(event_counts, rows):
                 assert test[1][1][0]["count"] == test[0] / (3600.0 / 60.0)
 
-    def test_throughput_eps_minute_rollup(self):
+    def test_throughput_eps_minute_rollup(self) -> None:
         # Each of these denotes how many events to create in each minute
         event_counts = [6, 0, 6, 3, 0, 3]
         for minute, count in enumerate(event_counts):
@@ -139,8 +139,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         for axis in ["eps()", "sps()"]:
             response = self.do_request(
                 data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(minutes=6)),
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(minutes=6),
                     "interval": "1m",
                     "yAxis": axis,
                     "project": self.project.id,
@@ -156,7 +156,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
             for test in zip(event_counts, rows):
                 assert test[1][1][0]["count"] == test[0] / 60.0
 
-    def test_top_events(self):
+    def test_top_events(self) -> None:
         # Each of these denotes how many events to create in each minute
         for transaction in ["foo", "bar"]:
             self.store_span_metric(
@@ -168,8 +168,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=6)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
                 "interval": "1m",
                 "yAxis": "count()",
                 "field": ["transaction", "sum(span.self_time)"],
@@ -186,7 +186,42 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert "bar" in response.data
         assert response.data["Other"]["meta"]["dataset"] == "spansMetrics"
 
-    def test_resource_encoded_length(self):
+    def test_llm_tokens(self) -> None:
+        self.store_span_metric(
+            4,
+            metric="ai.total_tokens.used",
+            timestamp=self.day_ago + timedelta(minutes=1),
+            tags={"transaction": "foo"},
+        )
+        self.store_span_metric(
+            4,
+            metric="ai.total_tokens.used",
+            timestamp=self.day_ago + timedelta(minutes=1),
+            tags={"transaction": "foo"},
+        )
+
+        response = self.do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
+                "interval": "1m",
+                "yAxis": "sum(ai.total_tokens.used)",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "excludeOther": 0,
+            },
+        )
+
+        assert response.status_code == 200
+
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 2
+        assert not data[0][1][0]["count"]
+        assert data[1][1][0]["count"] == 8.0
+        assert meta["units"]["sum_ai_total_tokens_used"] is None
+
+    def test_resource_encoded_length(self) -> None:
         self.store_span_metric(
             4,
             metric="http.response_content_length",
@@ -196,8 +231,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
                 "interval": "1m",
                 "yAxis": "avg(http.response_content_length)",
                 "project": self.project.id,
@@ -213,7 +248,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert not data[0][1][0]["count"]
         assert data[1][1][0]["count"] == 4.0
 
-    def test_resource_decoded_length(self):
+    def test_resource_decoded_length(self) -> None:
         self.store_span_metric(
             4,
             metric="http.decoded_response_content_length",
@@ -223,8 +258,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
                 "interval": "1m",
                 "yAxis": "avg(http.decoded_response_content_length)",
                 "project": self.project.id,
@@ -239,7 +274,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert not data[0][1][0]["count"]
         assert data[1][1][0]["count"] == 4.0
 
-    def test_resource_transfer_size(self):
+    def test_resource_transfer_size(self) -> None:
         self.store_span_metric(
             4,
             metric="http.response_transfer_size",
@@ -249,8 +284,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
                 "interval": "1m",
                 "yAxis": "avg(http.response_transfer_size)",
                 "project": self.project.id,
@@ -265,7 +300,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert not data[0][1][0]["count"]
         assert data[1][1][0]["count"] == 4.0
 
-    def test_cache_item_size(self):
+    def test_cache_item_size(self) -> None:
         self.store_span_metric(
             4,
             metric="cache.item_size",
@@ -275,8 +310,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
                 "interval": "1m",
                 "yAxis": "avg(cache.item_size)",
                 "field": ["cache.hit"],
@@ -293,7 +328,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
         assert not data[0][1][0]["count"]
         assert data[1][1][0]["count"] == 4.0
 
-    def test_messaging_receive_latency(self):
+    def test_messaging_receive_latency(self) -> None:
         self.store_span_metric(
             {
                 "min": 10,
@@ -310,8 +345,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(MetricsEnhancedPerformance
 
         response = self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
                 "interval": "1m",
                 "query": "messaging.destination.name:foo",
                 "yAxis": "avg(messaging.message.receive.latency)",
@@ -336,7 +371,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTestWithMetricLayer(
         self.features["organizations:use-metrics-layer"] = True
 
     @patch("sentry.snuba.metrics.datasource")
-    def test_metrics_layer_is_not_used(self, get_series):
+    def test_metrics_layer_is_not_used(self, get_series: MagicMock) -> None:
         self.store_span_metric(
             4,
             metric="http.response_content_length",
@@ -346,8 +381,8 @@ class OrganizationEventsStatsSpansMetricsEndpointTestWithMetricLayer(
 
         self.do_request(
             data={
-                "start": iso_format(self.day_ago),
-                "end": iso_format(self.day_ago + timedelta(minutes=2)),
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=2),
                 "interval": "1m",
                 "yAxis": "avg(http.response_content_length)",
                 "project": self.project.id,

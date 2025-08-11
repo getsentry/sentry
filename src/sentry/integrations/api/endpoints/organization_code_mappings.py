@@ -18,6 +18,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 
@@ -136,12 +137,12 @@ class OrganizationIntegrationMixin:
 class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Get the list of repository project path configs
 
@@ -192,10 +193,18 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
         integration_id = request.data.get("integrationId")
 
         if not integration_id:
-            return self.respond("Missing param: integration_id", status=status.HTTP_400_BAD_REQUEST)
+            return self.respond("Missing param: integrationId", status=status.HTTP_400_BAD_REQUEST)
 
         try:
             project = Project.objects.get(id=request.data.get("projectId"))
+        except ValueError as exc:
+            if "invalid literal for int() with base 10" in str(exc):
+                return self.respond(
+                    "Invalid projectId param. Expected an integer.",
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            else:
+                raise
         except Project.DoesNotExist:
             return self.respond("Could not find project", status=status.HTTP_404_NOT_FOUND)
 

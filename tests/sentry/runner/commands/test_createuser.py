@@ -1,13 +1,13 @@
 from sentry import roles
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.user import User
-from sentry.models.userrole import manage_default_super_admin_role
 from sentry.receivers import create_default_projects
 from sentry.runner.commands.createuser import createuser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import CliTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.user import User
+from sentry.users.models.userrole import manage_default_super_admin_role
 from sentry.users.services.user.service import user_service
 
 
@@ -22,7 +22,7 @@ class CreateUserTest(CliTestCase):
             create_default_projects()
         manage_default_super_admin_role()
 
-    def test_superuser(self):
+    def test_superuser(self) -> None:
         rv = self.invoke("--email=you@somewhereawesome.com", "--password=awesome", "--superuser")
         assert rv.exit_code == 0, rv.output
         assert "you@somewhereawesome.com" in rv.output
@@ -34,7 +34,7 @@ class CreateUserTest(CliTestCase):
         assert user.is_staff
         assert user.is_active
 
-    def test_no_superuser(self):
+    def test_no_superuser(self) -> None:
         rv = self.invoke("--email=you@somewhereawesome.com", "--password=awesome")
         assert rv.exit_code == 0, rv.output
         assert "you@somewhereawesome.com" in rv.output
@@ -46,7 +46,7 @@ class CreateUserTest(CliTestCase):
         assert not user.is_staff
         assert user.is_active
 
-    def test_no_password(self):
+    def test_no_password(self) -> None:
         rv = self.invoke("--email=you@somewhereawesome.com", "--no-password")
         assert rv.exit_code == 0, rv.output
         assert "you@somewhereawesome.com" in rv.output
@@ -58,7 +58,7 @@ class CreateUserTest(CliTestCase):
         assert not user.is_staff
         assert user.is_active
 
-    def test_single_org(self):
+    def test_single_org(self) -> None:
         with self.settings(SENTRY_SINGLE_ORGANIZATION=True):
             rv = self.invoke("--email=you@somewhereawesome.com", "--no-password")
             assert rv.exit_code == 0, rv.output
@@ -73,7 +73,7 @@ class CreateUserTest(CliTestCase):
             assert member.organization.slug in rv.output
             assert member.role == member.organization.default_role
 
-    def test_single_org_superuser(self):
+    def test_single_org_superuser(self) -> None:
         with self.settings(SENTRY_SINGLE_ORGANIZATION=True):
             rv = self.invoke("--email=you@somewhereawesome.com", "--no-password", "--superuser")
             assert rv.exit_code == 0, rv.output
@@ -88,7 +88,7 @@ class CreateUserTest(CliTestCase):
             assert member.organization.slug in rv.output
             assert member.role == roles.get_top_dog().id
 
-    def test_single_org_with_specified_id(self):
+    def test_single_org_with_specified_id(self) -> None:
         with assume_test_silo_mode(SiloMode.REGION):
             sentry_org = Organization.objects.get(slug="sentry")
         with self.settings(SENTRY_SINGLE_ORGANIZATION=True):
@@ -97,7 +97,7 @@ class CreateUserTest(CliTestCase):
             )
             assert rv.exit_code == 0, rv.output
 
-    def test_not_single_org(self):
+    def test_not_single_org(self) -> None:
         with self.settings(SENTRY_SINGLE_ORGANIZATION=False):
             rv = self.invoke("--email=you@somewhereawesome.com", "--no-password")
             assert rv.exit_code == 0, rv.output
@@ -106,10 +106,10 @@ class CreateUserTest(CliTestCase):
                 member_count = OrganizationMember.objects.count()
             assert member_count == 0
 
-    def test_no_input(self):
+    def test_no_input(self) -> None:
         rv = self.invoke()
         assert rv.exit_code != 0, rv.output
 
-    def test_missing_password(self):
+    def test_missing_password(self) -> None:
         rv = self.invoke("--email=you@somewhereawesome.com")
         assert rv.exit_code != 0, rv.output

@@ -38,24 +38,12 @@ class ProjectTransactionNamesCluster(ProjectEndpoint):
         limit = int(params.get("limit", 1000))
         merge_threshold = int(params.get("threshold", 100))
         return_all_names = params.get("returnAllNames")
-        namespace = params.get("namespace")
-
-        if namespace == "spans":
-            namespace = ClustererNamespace.SPANS
-            data = redis.get_span_descriptions(project)
-        else:
-            namespace = ClustererNamespace.TRANSACTIONS
-            if datasource == "redis":
-                # NOTE: redis ignores the time range parameters
-                data = islice(redis.get_transaction_names(project), limit)
-            else:
-                data = snuba.fetch_unique_transaction_names(
-                    project,
-                    (start, end),
-                    limit,
-                )
-
-        data = list(data)
+        namespace = ClustererNamespace.TRANSACTIONS
+        data = list(
+            islice(redis.get_transaction_names(project), limit)
+            if datasource == "redis"
+            else snuba.fetch_unique_transaction_names(project, (start, end), limit)
+        )
 
         clusterer = TreeClusterer(merge_threshold=merge_threshold)
         clusterer.add_input(data)

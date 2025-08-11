@@ -16,20 +16,22 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    GzippedDictField,
     Model,
     region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.tasks import activity
-from sentry.types.activity import CHOICES, ActivityType
+from sentry.types.activity import CHOICES, STATUS_CHANGE_ACTIVITY_TYPES, ActivityType
 from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
-    from sentry.models.user import User
+    from sentry.users.models.user import User
     from sentry.users.services.user import RpcUser
 
 
@@ -97,6 +99,7 @@ class ActivityManager(BaseManager["Activity"]):
         if user_id is not None:
             activity_args["user_id"] = user_id
         activity = self.create(**activity_args)
+
         if send_notification:
             activity.send_notification()
 
@@ -115,7 +118,7 @@ class Activity(Model):
     # if the user is not set, it's assumed to be the system
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     datetime = models.DateTimeField(default=timezone.now)
-    data: models.Field[dict[str, Any] | None, dict[str, Any]] = GzippedDictField(null=True)
+    data = LegacyTextJSONField(default=dict, null=True)
 
     objects: ClassVar[ActivityManager] = ActivityManager()
 
@@ -127,10 +130,10 @@ class Activity(Model):
     __repr__ = sane_repr("project_id", "group_id", "event_id", "user_id", "type", "ident")
 
     @staticmethod
-    def get_version_ident(version):
+    def get_version_ident(version: str | None) -> str:
         return (version or "")[:64]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         from sentry.models.release import Release
 
@@ -142,7 +145,7 @@ class Activity(Model):
         if self.type == ActivityType.ASSIGNED.value:
             self.data["assignee"] = str(self.data["assignee"])
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         created = bool(not self.id)
 
         super().save(*args, **kwargs)
@@ -177,8 +180,8 @@ class Activity(Model):
                     sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
                 )
 
-    def delete(self, *args, **kwargs):
-        super().delete(*args, **kwargs)
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
+        result = super().delete(*args, **kwargs)
 
         # HACK: support Group.num_comments
         if self.type == ActivityType.NOTE.value and self.group is not None:
@@ -190,7 +193,26 @@ class Activity(Model):
                     sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
                 )
 
-    def send_notification(self):
+        return result
+
+    def send_notification(self) -> None:
+        if self.group:
+            group_type = get_group_type_by_type_id(self.group.type)
+            has_status_change_notifications = group_type.enable_status_change_workflow_notifications
+            has_workflow_notifications = group_type.enable_workflow_notifications
+            is_status_change = self.type in {
+                activity.value for activity in STATUS_CHANGE_ACTIVITY_TYPES
+            }
+
+            # Skip sending the activity notification if the group type does not
+            # support status change workflow notifications
+            if (
+                is_status_change
+                and not has_status_change_notifications
+                or not has_workflow_notifications
+            ):
+                return
+
         activity.send_activity_notifications.delay(self.id)
 
 
@@ -199,7 +221,7 @@ class ActivityIntegration(Enum):
 
     CODEOWNERS = "codeowners"
     PROJECT_OWNERSHIP = "projectOwnership"
-    SLACK = "slack"
-    MSTEAMS = "msteams"
-    DISCORD = "discord"
+    SLACK = IntegrationProviderSlug.SLACK.value
+    MSTEAMS = IntegrationProviderSlug.MSTEAMS.value
+    DISCORD = IntegrationProviderSlug.DISCORD.value
     SUSPECT_COMMITTER = "suspectCommitter"

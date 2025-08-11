@@ -4,42 +4,48 @@ import styled from '@emotion/styled';
 import FeedbackConfigToggle from 'sentry/components/feedback/feedbackOnboarding/feedbackConfigToggle';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import type {OnboardingLayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
-import {Step, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
+import ConfigStore from 'sentry/stores/configStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
 export function FeedbackOnboardingLayout({
-  cdn,
   docsConfig,
   dsn,
   platformKey,
-  projectId,
-  projectSlug,
+  project,
   newOrg,
+  projectKeyId,
   configType = 'onboarding',
 }: OnboardingLayoutProps) {
+  const api = useApi();
   const organization = useOrganization();
 
   const [email, setEmail] = useState(false);
   const [name, setName] = useState(false);
   const [screenshot, setScreenshot] = useState(true);
 
-  const {isLoading: isLoadingRegistry, data: registryData} =
+  const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
+  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
   const {introduction, steps} = useMemo(() => {
     const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
-      cdn,
+      api,
+      projectKeyId,
       dsn,
       organization,
       platformKey,
-      projectId,
-      projectSlug,
+      project,
+      isLogsSelected: false,
       isFeedbackSelected: true,
       isPerformanceSelected: false,
       isProfilingSelected: false,
@@ -55,6 +61,8 @@ export function FeedbackOnboardingLayout({
         name,
         screenshot,
       },
+      isSelfHosted,
+      urlPrefix,
     };
 
     return {
@@ -62,25 +70,31 @@ export function FeedbackOnboardingLayout({
       steps: [...doc.install(docParams), ...doc.configure(docParams)],
     };
   }, [
-    cdn,
     docsConfig,
     dsn,
     isLoadingRegistry,
     newOrg,
     organization,
     platformKey,
-    projectId,
-    projectSlug,
+    project,
     registryData,
     selectedOptions,
     configType,
     email,
     name,
     screenshot,
+    isSelfHosted,
+    urlPrefix,
+    api,
+    projectKeyId,
   ]);
 
+  const hideFeedbackConfigTogglePlatforms = ['flutter'];
+  const hideFeedbackConfigToggle =
+    hideFeedbackConfigTogglePlatforms.includes(platformKey);
+
   return (
-    <AuthTokenGeneratorProvider projectSlug={projectSlug}>
+    <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <Wrapper>
         {introduction && <Introduction>{introduction}</Introduction>}
         <Steps>
@@ -90,7 +104,7 @@ export function FeedbackOnboardingLayout({
                 key={step.title ?? step.type}
                 {...{
                   ...step,
-                  codeHeader: (
+                  codeHeader: !hideFeedbackConfigToggle && (
                     <FeedbackConfigToggle
                       emailToggle={email}
                       nameToggle={name}

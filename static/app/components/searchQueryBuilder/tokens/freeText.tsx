@@ -1,33 +1,30 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
-import type Fuse from 'fuse.js';
 
-import {getEscapedKey} from 'sentry/components/compactSelect/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
-import {replaceTokensWithPadding} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
-import type {
-  KeyItem,
-  KeySectionItem,
-} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {useFilterKeyListBox} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/useFilterKeyListBox';
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
+import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/tokens/useSortedFilterKeyItems';
 import {
-  getDefaultFilterValue,
+  getInitialFilterText,
   itemIsSection,
   useShiftFocusToChild,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {
   FieldDefinitionGetter,
-  FilterKeySection,
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
-import {recentSearchTypeToLabel} from 'sentry/components/searchQueryBuilder/utils';
+import {
+  collapseTextTokens,
+  parseTokenKey,
+  recentSearchTypeToLabel,
+} from 'sentry/components/searchQueryBuilder/utils';
 import {
   InvalidReason,
   type ParseResultToken,
@@ -37,13 +34,10 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Tag, TagCollection} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
-import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
+import type {FieldDefinition} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type SearchQueryBuilderInputProps = {
@@ -54,16 +48,9 @@ type SearchQueryBuilderInputProps = {
 
 type SearchQueryBuilderInputInternalProps = {
   item: Node<ParseResultToken>;
-  rowRef: React.RefObject<HTMLDivElement>;
+  rowRef: React.RefObject<HTMLDivElement | null>;
   state: ListState<ParseResultToken>;
   token: TokenResult<Token.FREE_TEXT>;
-};
-
-const FUZZY_SEARCH_OPTIONS: Fuse.IFuseOptions<KeyItem> = {
-  keys: ['label', 'description'],
-  threshold: 0.2,
-  includeMatches: false,
-  minMatchCharLength: 1,
 };
 
 function getWordAtCursorPosition(value: string, cursorPosition: number) {
@@ -80,38 +67,25 @@ function getWordAtCursorPosition(value: string, cursorPosition: number) {
   return value;
 }
 
-function getInitialFilterKeyText(key: string, fieldDefinition: FieldDefinition | null) {
-  if (fieldDefinition?.kind === FieldKind.FUNCTION) {
-    if (fieldDefinition.parameters) {
-      const parametersText = fieldDefinition.parameters
-        .filter(param => defined(param.defaultValue))
-        .map(param => param.defaultValue)
-        .join(',');
+/**
+ * Replaces the focused word (at cursorPosition) with the given text.
+ */
+function replaceFocusedWord(value: string, cursorPosition: number, replacement: string) {
+  const words = value.split(' ');
 
-      return `${key}(${parametersText})`;
+  let characterCount = 0;
+  for (const word of words) {
+    characterCount += word.length + 1;
+    if (characterCount >= cursorPosition) {
+      return (
+        value.slice(0, characterCount - word.length - 1).trim() +
+        ` ${replacement} ` +
+        value.slice(characterCount).trim()
+      ).trim();
     }
-
-    return `${key}()`;
   }
 
-  return key;
-}
-
-function getInitialFilterText(key: string, fieldDefinition: FieldDefinition | null) {
-  const defaultValue = getDefaultFilterValue({key, fieldDefinition});
-
-  const keyText = getInitialFilterKeyText(key, fieldDefinition);
-
-  switch (fieldDefinition?.valueType) {
-    case FieldValueType.INTEGER:
-    case FieldValueType.NUMBER:
-    case FieldValueType.DURATION:
-    case FieldValueType.PERCENTAGE:
-      return `${keyText}:>${defaultValue}`;
-    case FieldValueType.STRING:
-    default:
-      return `${keyText}:${defaultValue}`;
-  }
+  return value;
 }
 
 /**
@@ -126,67 +100,11 @@ function replaceFocusedWordWithFilter(
   key: string,
   getFieldDefinition: FieldDefinitionGetter
 ) {
-  const words = value.split(' ');
-
-  let characterCount = 0;
-  for (const word of words) {
-    characterCount += word.length + 1;
-    if (characterCount >= cursorPosition) {
-      return (
-        value.slice(0, characterCount - word.length - 1).trim() +
-        ` ${getInitialFilterText(key, getFieldDefinition(key))} ` +
-        value.slice(characterCount).trim()
-      ).trim();
-    }
-  }
-
-  return value;
-}
-
-function getKeyLabel(
-  tag: Tag,
-  fieldDefinition: FieldDefinition | null,
-  {includeAggregateArgs = false} = {}
-) {
-  if (fieldDefinition?.kind === FieldKind.FUNCTION) {
-    if (fieldDefinition.parameters?.length) {
-      if (includeAggregateArgs) {
-        return `${tag.key}(${fieldDefinition.parameters.map(p => p.name).join(', ')})`;
-      }
-      return `${tag.key}(...)`;
-    }
-    return `${tag.key}()`;
-  }
-
-  return tag.key;
-}
-
-function createItem(tag: Tag, fieldDefinition: FieldDefinition | null): KeyItem {
-  const description = fieldDefinition?.desc;
-
-  return {
-    key: getEscapedKey(tag.key),
-    label: getKeyLabel(tag, fieldDefinition),
-    description: description ?? '',
-    value: tag.key,
-    textValue: tag.key,
-    hideCheck: true,
-    showDetailsInOverlay: true,
-    details: <KeyDescription tag={tag} />,
-  };
-}
-
-function createSection(
-  section: FilterKeySection,
-  keys: TagCollection,
-  getFieldDefinition: FieldDefinitionGetter
-): KeySectionItem {
-  return {
-    key: section.value,
-    value: section.value,
-    label: section.label,
-    options: section.children.map(key => createItem(keys[key], getFieldDefinition(key))),
-  };
+  return replaceFocusedWord(
+    value,
+    cursorPosition,
+    getInitialFilterText(key, getFieldDefinition(key))
+  );
 }
 
 function countPreviousItemsOfType({
@@ -197,7 +115,11 @@ function countPreviousItemsOfType({
   type: Token;
 }) {
   const itemKeys = [...state.collection.getKeys()];
-  const currentIndex = itemKeys.indexOf(state.selectionManager.focusedKey);
+  const focusedKey = state.selectionManager.focusedKey;
+  if (!focusedKey) {
+    return 0;
+  }
+  const currentIndex = itemKeys.indexOf(focusedKey);
 
   return itemKeys.slice(0, currentIndex).reduce<number>((count, next) => {
     if (next.toString().includes(type)) {
@@ -207,78 +129,55 @@ function countPreviousItemsOfType({
   }, 0);
 }
 
-function calculateNextFocusForFilter(state: ListState<ParseResultToken>): FocusOverride {
+function calculateNextFocusForFilter(
+  state: ListState<ParseResultToken>,
+  definition: FieldDefinition | null
+): FocusOverride {
   const numPreviousFilterItems = countPreviousItemsOfType({state, type: Token.FILTER});
+  const part =
+    definition && definition.kind === FieldKind.FUNCTION && definition.parameters?.length
+      ? 'key'
+      : 'value';
 
   return {
     itemKey: `${Token.FILTER}:${numPreviousFilterItems}`,
-    part: 'value',
+    part,
   };
 }
 
-function calculateNextFocusForParen(item: Node<ParseResultToken>): FocusOverride {
-  const [, tokenTypeIndexStr] = item.key.toString().split(':');
-
-  const tokenTypeIndex = parseInt(tokenTypeIndexStr, 10);
+function calculateNextFocusForInsertedToken(item: Node<ParseResultToken>): FocusOverride {
+  const {index} = parseTokenKey(item.key.toString());
 
   return {
-    itemKey: `${Token.FREE_TEXT}:${tokenTypeIndex + 1}`,
+    itemKey: `${Token.FREE_TEXT}:${index + 1}`,
   };
 }
 
-function useSortItems({
-  filterValue,
+function calculateNextFocusForCommittedCustomValue({
+  value,
+  currentFocusedKey,
 }: {
-  filterValue: string;
-}): Array<KeySectionItem | KeyItem> {
-  const {filterKeys, filterKeySections, getFieldDefinition} = useSearchQueryBuilder();
-  const flatItems = useMemo<KeyItem[]>(
-    () =>
-      Object.values(filterKeys).map(filterKey =>
-        createItem(filterKey, getFieldDefinition(filterKey.key))
-      ),
-    [filterKeys, getFieldDefinition]
+  currentFocusedKey: string;
+  value: string;
+}): FocusOverride | undefined {
+  const {tokenType, index} = parseTokenKey(currentFocusedKey.toString());
+
+  const parsedText = collapseTextTokens(parseSearch(value));
+  const numFreeTextTokens = Math.max(
+    parsedText?.filter((token: any) => token.type === Token.FREE_TEXT).length ?? 0
   );
-  const search = useFuzzySearch(flatItems, FUZZY_SEARCH_OPTIONS);
 
-  return useMemo(() => {
-    if (!filterValue || !search) {
-      if (!filterKeySections.length) {
-        return flatItems;
-      }
-      return filterKeySections.map(section =>
-        createSection(section, filterKeys, getFieldDefinition)
-      );
-    }
+  // We always expect there to be at least one free text token, so we subtract one
+  // to get the index of the next token to focus.
+  const diff = Math.max(0, numFreeTextTokens - 1);
 
-    return search.search(filterValue).map(({item}) => item);
-  }, [filterKeySections, filterKeys, filterValue, flatItems, getFieldDefinition, search]);
-}
+  if (diff <= 0) {
+    return undefined;
+  }
 
-function KeyDescription({tag}: {tag: Tag}) {
-  const {getFieldDefinition} = useSearchQueryBuilder();
-
-  const fieldDefinition = getFieldDefinition(tag.key);
-
-  const description =
-    fieldDefinition?.desc ??
-    (tag.kind === FieldKind.TAG ? t('A tag sent with one or more events') : null);
-
-  return (
-    <DescriptionWrapper>
-      <DescriptionKeyLabel>
-        {getKeyLabel(tag, fieldDefinition, {includeAggregateArgs: true})}
-      </DescriptionKeyLabel>
-      {description ? <p>{description}</p> : null}
-      <Separator />
-      <DescriptionList>
-        <Term>{t('Type')}</Term>
-        <Details>
-          {toTitleCase(fieldDefinition?.valueType ?? FieldValueType.STRING)}
-        </Details>
-      </DescriptionList>
-    </DescriptionWrapper>
-  );
+  return {
+    itemKey: `${tokenType}:${index + diff}`,
+  };
 }
 
 function shouldHideInvalidTooltip({
@@ -354,11 +253,6 @@ function SearchQueryBuilderInputInternal({
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
   }, []);
 
-  const resetInputValue = useCallback(() => {
-    setInputValue(trimmedTokenValue);
-    updateSelectionIndex();
-  }, [trimmedTokenValue, updateSelectionIndex]);
-
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
   const {
@@ -366,13 +260,31 @@ function SearchQueryBuilderInputInternal({
     filterKeys,
     dispatch,
     getFieldDefinition,
+    getSuggestedFilterKey,
     handleSearch,
     placeholder,
     searchSource,
     recentSearches,
+    setCurrentInputValue,
   } = useSearchQueryBuilder();
 
-  const items = useSortItems({filterValue});
+  const resetInputValue = useCallback(() => {
+    setInputValue(trimmedTokenValue);
+    setCurrentInputValue(trimmedTokenValue);
+    updateSelectionIndex();
+  }, [trimmedTokenValue, updateSelectionIndex, setCurrentInputValue]);
+
+  const {customMenu, sectionItems, maxOptions, onKeyDownCapture, handleOptionSelected} =
+    useFilterKeyListBox({
+      filterValue,
+    });
+  const sortedFilteredItems = useSortedFilterKeyItems({
+    filterValue,
+    inputValue,
+    includeSuggestions: true,
+  });
+
+  const items = customMenu ? sectionItems : sortedFilteredItems;
 
   // When token value changes, reset the input value
   const [prevValue, setPrevValue] = useState(inputValue);
@@ -434,15 +346,29 @@ function SearchQueryBuilderInputInternal({
 
   const onPaste = useCallback(
     (e: React.ClipboardEvent<HTMLInputElement>) => {
+      const {selectionStart, selectionEnd} = inputRef.current ?? {};
+      const currentText = inputRef.current?.value ?? '';
+
+      const allTextSelected = selectionStart === 0 && selectionEnd === currentText.length;
+
+      // If there is text and there is a custom selection, use default paste behavior
+      if (currentText.trim() && !allTextSelected) {
+        return;
+      }
+
+      // Otherwise, we want to parse the clipboard text and replace the current token with it
       e.preventDefault();
       e.stopPropagation();
 
-      const text = e.clipboardData.getData('text/plain').replace('\n', '').trim();
+      const clipboardText = e.clipboardData
+        .getData('text/plain')
+        .replace('\n', '')
+        .trim();
 
       dispatch({
         type: 'REPLACE_TOKENS_WITH_TEXT',
         tokens: [token],
-        text,
+        text: clipboardText,
       });
       resetInputValue();
     },
@@ -452,11 +378,6 @@ function SearchQueryBuilderInputInternal({
   const onClick = useCallback(() => {
     updateSelectionIndex();
   }, [updateSelectionIndex]);
-
-  const {customMenu, sectionItems, maxOptions, onKeyDownCapture} = useFilterKeyListBox({
-    items,
-    filterValue,
-  });
 
   return (
     <Fragment>
@@ -470,9 +391,66 @@ function SearchQueryBuilderInputInternal({
       <SearchQueryBuilderCombobox
         customMenu={customMenu}
         ref={inputRef}
-        items={sectionItems}
+        items={items}
         placeholder={query === '' ? placeholder : undefined}
-        onOptionSelected={value => {
+        onOptionSelected={option => {
+          if (handleOptionSelected) {
+            handleOptionSelected(option);
+            if (option.type === 'ask-seer' || option.type === 'ask-seer-consent') {
+              return;
+            }
+          }
+
+          if (option.type === 'recent-query') {
+            dispatch({
+              type: 'UPDATE_QUERY',
+              query: option.value,
+              focusOverride: {itemKey: 'end'},
+            });
+            return;
+          }
+
+          if (option.type === 'raw-search') {
+            dispatch({
+              type: 'UPDATE_FREE_TEXT',
+              tokens: [token],
+              text: option.value,
+              shouldCommitQuery: true,
+            });
+            resetInputValue();
+            return;
+          }
+
+          if (option.type === 'filter-value' && option.textValue) {
+            dispatch({
+              type: 'UPDATE_FREE_TEXT',
+              tokens: [token],
+              text: replaceFocusedWord(inputValue, selectionIndex, option.textValue),
+              focusOverride: calculateNextFocusForInsertedToken(item),
+              shouldCommitQuery: true,
+            });
+            resetInputValue();
+            return;
+          }
+
+          if (
+            (option.type === 'raw-search-filter-is-value' ||
+              option.type === 'raw-search-filter-has-value') &&
+            option.textValue
+          ) {
+            dispatch({
+              type: 'UPDATE_FREE_TEXT',
+              tokens: [token],
+              text: option.textValue,
+              focusOverride: calculateNextFocusForInsertedToken(item),
+              shouldCommitQuery: true,
+            });
+            resetInputValue();
+            return;
+          }
+
+          const value = option.value;
+
           dispatch({
             type: 'UPDATE_FREE_TEXT',
             tokens: [token],
@@ -482,7 +460,8 @@ function SearchQueryBuilderInputInternal({
               value,
               getFieldDefinition
             ),
-            focusOverride: calculateNextFocusForFilter(state),
+            focusOverride: calculateNextFocusForFilter(state, getFieldDefinition(value)),
+            shouldCommitQuery: false,
           });
           resetInputValue();
           const selectedKey = filterKeys[value];
@@ -499,20 +478,46 @@ function SearchQueryBuilderInputInternal({
           });
         }}
         onCustomValueBlurred={value => {
-          dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: value});
+          dispatch({
+            type: 'UPDATE_FREE_TEXT',
+            tokens: [token],
+            text: value,
+            focusOverride: calculateNextFocusForCommittedCustomValue({
+              currentFocusedKey: item.key.toString(),
+              value,
+            }),
+            shouldCommitQuery: false,
+          });
           resetInputValue();
         }}
         onCustomValueCommitted={value => {
-          dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: value});
-          resetInputValue();
+          // if we haven't changed anything, just search
+          if (value.trim() === trimmedTokenValue) {
+            handleSearch(query);
+            return;
+          }
 
-          // Because the query does not change until a subsequent render,
-          // we need to do the replacement that is does in the reducer here
-          handleSearch(replaceTokensWithPadding(query, [token], value));
+          // Otherwise, commit the query (which will trigger a search)
+          dispatch({
+            type: 'UPDATE_FREE_TEXT',
+            tokens: [token],
+            text: value,
+            focusOverride: calculateNextFocusForCommittedCustomValue({
+              currentFocusedKey: item.key.toString(),
+              value,
+            }),
+            shouldCommitQuery: true,
+          });
+          resetInputValue();
         }}
         onExit={() => {
           if (inputValue !== token.value.trim()) {
-            dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: inputValue});
+            dispatch({
+              type: 'UPDATE_FREE_TEXT',
+              tokens: [token],
+              text: inputValue,
+              shouldCommitQuery: false,
+            });
             resetInputValue();
           }
         }}
@@ -522,19 +527,55 @@ function SearchQueryBuilderInputInternal({
         onInputChange={e => {
           // Parse text to see if this keystroke would have created any tokens.
           // Add a trailing quote in case the user wants to wrap with quotes.
-          const parsedText = parseSearch(e.target.value + '"');
+          const rawValue = e.target.value;
+          const parsedText = parseSearch(rawValue + '"');
 
-          if (
-            parsedText?.some(
+          const parenIndex =
+            parsedText?.findIndex(
               textToken =>
                 textToken.type === Token.L_PAREN || textToken.type === Token.R_PAREN
-            )
-          ) {
+            ) ?? -1;
+
+          if (parenIndex > -1) {
+            // There's a chance they're trying to type a function.
+            // If so we should autocomplete it as a function.
+            const paren = parsedText![parenIndex]!;
+            if (paren.type === Token.L_PAREN) {
+              const maybeSpaces = parsedText![parenIndex - 1];
+              const maybeFunction = parsedText![parenIndex - 2];
+              if (
+                maybeSpaces?.type === Token.SPACES &&
+                maybeSpaces.value === '' &&
+                maybeFunction?.type === Token.FREE_TEXT &&
+                getFieldDefinition(maybeFunction.value)?.kind === FieldKind.FUNCTION
+              ) {
+                dispatch({
+                  type: 'UPDATE_FREE_TEXT',
+                  tokens: [token],
+                  text: replaceFocusedWordWithFilter(
+                    inputValue,
+                    selectionIndex,
+                    filterValue,
+                    getFieldDefinition
+                  ),
+                  focusOverride: calculateNextFocusForFilter(
+                    state,
+                    getFieldDefinition(filterValue)
+                  ),
+                  shouldCommitQuery: false,
+                });
+                resetInputValue();
+                return;
+              }
+            }
+
+            // It's not a function so treat it as just a parenthesis
             dispatch({
               type: 'UPDATE_FREE_TEXT',
               tokens: [token],
               text: e.target.value,
-              focusOverride: calculateNextFocusForParen(item),
+              focusOverride: calculateNextFocusForInsertedToken(item),
+              shouldCommitQuery: false,
             });
             resetInputValue();
             return;
@@ -546,7 +587,7 @@ function SearchQueryBuilderInputInternal({
                 textToken.type === Token.FILTER && textToken.key.text === filterValue
             )
           ) {
-            const filterKey = filterValue;
+            const filterKey = getSuggestedFilterKey(filterValue) ?? filterValue;
             const key = filterKeys[filterKey];
             dispatch({
               type: 'UPDATE_FREE_TEXT',
@@ -557,7 +598,11 @@ function SearchQueryBuilderInputInternal({
                 filterKey,
                 getFieldDefinition
               ),
-              focusOverride: calculateNextFocusForFilter(state),
+              focusOverride: calculateNextFocusForFilter(
+                state,
+                getFieldDefinition(filterKey)
+              ),
+              shouldCommitQuery: false,
             });
             resetInputValue();
             trackAnalytics('search.key_manually_typed', {
@@ -574,6 +619,7 @@ function SearchQueryBuilderInputInternal({
           }
 
           setInputValue(e.target.value);
+          setCurrentInputValue(e.target.value);
           setSelectionIndex(e.target.selectionStart ?? 0);
         }}
         onKeyDown={onKeyDown}
@@ -590,6 +636,9 @@ function SearchQueryBuilderInputInternal({
           return true;
         }}
         onClick={onClick}
+        data-test-id={
+          state.collection.getLastKey() === item.key ? 'query-builder-input' : undefined
+        }
       >
         {keyItem =>
           itemIsSection(keyItem) ? (
@@ -602,7 +651,7 @@ function SearchQueryBuilderInputInternal({
             </Section>
           ) : (
             <Item {...keyItem} key={keyItem.key}>
-              {keyItem.value}
+              {keyItem.label}
             </Item>
           )
         }
@@ -674,12 +723,6 @@ const Row = styled('div')`
       background-color: ${p => p.theme.gray100};
     }
   }
-
-  input {
-    &::selection {
-      background-color: ${p => p.theme.gray100};
-    }
-  }
 `;
 
 const GridCell = styled('div')`
@@ -695,44 +738,6 @@ const GridCell = styled('div')`
     width: 100%;
   }
 `;
-
-const DescriptionWrapper = styled('div')`
-  padding: ${space(0.75)} ${space(1)};
-  max-width: 220px;
-  font-size: ${p => p.theme.fontSizeSmall};
-
-  p {
-    margin: 0;
-  }
-
-  p + p {
-    margin-top: ${space(0.5)};
-  }
-`;
-
-const DescriptionKeyLabel = styled('p')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  word-break: break-all;
-`;
-
-const Separator = styled('hr')`
-  border-top: 1px solid ${p => p.theme.border};
-  margin: ${space(1)} 0;
-`;
-
-const DescriptionList = styled('dl')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${space(0.5)};
-  margin: 0;
-`;
-
-const Term = styled('dt')`
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
-`;
-
-const Details = styled('dd')``;
 
 const PositionedTooltip = styled(InvalidTokenTooltip)`
   position: absolute;

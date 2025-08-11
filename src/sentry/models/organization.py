@@ -6,13 +6,13 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.db import models, router, transaction
-from django.db.models import QuerySet
+from django.db.models.functions.text import Upper
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
 
 from bitfield import TypedClassBitField
-from sentry import features, roles
+from sentry import roles
 from sentry.app import env
 from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
@@ -24,7 +24,9 @@ from sentry.constants import (
 )
 from sentry.db.models import BoundedPositiveIntegerField, region_silo_model, sane_repr
 from sentry.db.models.fields.slug import SentryOrgSlugField
+from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
@@ -32,7 +34,11 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.locks import locks
 from sentry.notifications.services import notifications_service
-from sentry.organizations.absolute_url import has_customer_domain, organization_absolute_url
+from sentry.organizations.absolute_url import (
+    api_absolute_url,
+    has_customer_domain,
+    organization_absolute_url,
+)
 from sentry.roles.manager import Role
 from sentry.users.services.user import RpcUser, RpcUserProfile
 from sentry.users.services.user.service import user_service
@@ -43,8 +49,8 @@ from sentry.utils.snowflake import generate_snowflake_id, save_with_snowflake_id
 if TYPE_CHECKING:
     from sentry.models.options.organization_option import OrganizationOptionManager
 
-SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 NON_MEMBER_SCOPES = frozenset(["org:write", "project:write", "team:write"])
+ORGANIZATION_NAME_MAX_LENGTH = 64
 
 
 class OrganizationStatus(IntEnum):
@@ -56,7 +62,7 @@ class OrganizationStatus(IntEnum):
     # alias for OrganizationStatus.ACTIVE
     VISIBLE = 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
     @property
@@ -86,14 +92,14 @@ OrganizationStatus_labels = {
 
 
 class OrganizationManager(BaseManager["Organization"]):
-    def get_for_user_ids(self, user_ids: Collection[int]) -> QuerySet:
+    def get_for_user_ids(self, user_ids: Collection[int]) -> BaseQuerySet[Organization]:
         """Returns the QuerySet of all organizations that a set of Users have access to."""
         return self.filter(
             status=OrganizationStatus.ACTIVE,
             member_set__user_id__in=user_ids,
         )
 
-    def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
+    def get_for_team_ids(self, team_ids: Sequence[int]) -> BaseQuerySet[Organization]:
         """Returns the QuerySet of all organizations that a set of Teams have access to."""
         from sentry.models.team import Team
 
@@ -102,7 +108,7 @@ class OrganizationManager(BaseManager["Organization"]):
             id__in=Team.objects.filter(id__in=team_ids).values("organization"),
         )
 
-    def get_for_user(self, user, scope=None, only_visible=True):
+    def get_for_user(self, user, scope=None, only_visible=True) -> list[Organization]:
         """
         Returns a set of all organizations a user has access to.
         """
@@ -110,12 +116,6 @@ class OrganizationManager(BaseManager["Organization"]):
 
         if not user.is_authenticated:
             return []
-
-        if settings.SENTRY_PUBLIC and scope is None:
-            if only_visible:
-                return list(self.filter(status=OrganizationStatus.ACTIVE))
-            else:
-                return list(self.filter())
 
         qs = OrganizationMember.objects.filter(user_id=user.id).select_related("organization")
         if only_visible:
@@ -127,7 +127,7 @@ class OrganizationManager(BaseManager["Organization"]):
             return [r.organization for r in results if scope in r.get_scopes()]
         return [r.organization for r in results]
 
-    def get_organizations_where_user_is_owner(self, user_id: int) -> QuerySet:
+    def get_organizations_where_user_is_owner(self, user_id: int) -> BaseQuerySet[Organization]:
         """
         Returns a QuerySet of all organizations where a user has the top priority role.
         The default top priority role in Sentry is owner.
@@ -154,14 +154,14 @@ class Organization(ReplicatedRegionModel):
     replication_version = 4
 
     __relocation_scope__ = RelocationScope.Organization
-    name = models.CharField(max_length=64)
+    name = models.CharField(max_length=ORGANIZATION_NAME_MAX_LENGTH)
     slug: models.Field[str, str] = SentryOrgSlugField(unique=True)
     status = BoundedPositiveIntegerField(
         choices=OrganizationStatus.as_choices(), default=OrganizationStatus.ACTIVE.value
     )
     date_added = models.DateTimeField(default=timezone.now)
     default_role = models.CharField(max_length=32, default=str(roles.get_default().id))
-    is_test = models.BooleanField(default=False)
+    is_test = models.BooleanField(default=False, db_default=False)
 
     class flags(TypedClassBitField):
         # WARNING: Only add flags to the bottom of this list
@@ -189,7 +189,7 @@ class Organization(ReplicatedRegionModel):
         # Temporarily opt out of new visibility features and ui
         disable_new_visibility_features: bool
 
-        # Require and enforce email verification for all members.
+        # Require and enforce email verification for all members. (deprecated, not in use)
         require_email_verification: bool
 
         # Enable codecov integration.
@@ -201,6 +201,9 @@ class Organization(ReplicatedRegionModel):
         # Prevent superuser access to an organization
         prevent_superuser_access: bool
 
+        # Disable org-members from inviting members
+        disable_member_invite: bool
+
         bitfield_default = 1
 
     objects: ClassVar[OrganizationManager] = OrganizationManager(cache_fields=("pk", "slug"))
@@ -211,8 +214,9 @@ class Organization(ReplicatedRegionModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organization"
-        # TODO: Once we're on a version of Django that supports functional indexes,
-        # include index on `upper((slug::text))` here.
+        indexes = (
+            IndexWithPostgresNameLimits(Upper("slug"), name="sentry_organization_slug_upper_idx"),
+        )
 
     __repr__ = sane_repr("owner_id", "name", "slug")
 
@@ -227,7 +231,7 @@ class Organization(ReplicatedRegionModel):
 
         return cls.objects.filter(status=OrganizationStatus.ACTIVE)[0]
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.slug})"
 
     snowflake_redis_key = "organization_snowflake_key"
@@ -244,7 +248,7 @@ class Organization(ReplicatedRegionModel):
                 slugify_target = slugify_target.lower().replace("_", "-").strip("-")
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
-        if SENTRY_USE_SNOWFLAKE:
+        if settings.SENTRY_USE_SNOWFLAKE:
             save_with_snowflake_id(
                 instance=self,
                 snowflake_redis_key=self.snowflake_redis_key,
@@ -317,6 +321,7 @@ class Organization(ReplicatedRegionModel):
 
     def get_default_owner(self) -> RpcUser:
         if not hasattr(self, "_default_owner"):
+            # TODO: Investigate how an org can have no owners
             self._default_owner = self.get_owners()[0]
         return self._default_owner
 
@@ -417,11 +422,11 @@ class Organization(ReplicatedRegionModel):
         return OrganizationOption.objects
 
     def _handle_requirement_change(self, request, task):
-        from sentry.models.apikey import is_api_key_auth
-
-        actor_id = request.user.id if request.user and request.user.is_authenticated else None
+        actor_id = request.user.id if request.user.is_authenticated else None
         api_key_id = (
-            request.auth.id if hasattr(request, "auth") and is_api_key_auth(request.auth) else None
+            request.auth.entity_id
+            if request.auth is not None and request.auth.kind == "api_key"
+            else None
         )
         ip_address = request.META["REMOTE_ADDR"]
 
@@ -435,17 +440,9 @@ class Organization(ReplicatedRegionModel):
         )
 
     def handle_2fa_required(self, request):
-        from sentry.tasks.auth import remove_2fa_non_compliant_members
+        from sentry.tasks.auth.auth import remove_2fa_non_compliant_members
 
         self._handle_requirement_change(request, remove_2fa_non_compliant_members)
-
-    def handle_email_verification_required(self, request):
-        from sentry.tasks.auth import remove_email_verification_non_compliant_members
-
-        if features.has("organizations:required-email-verification", self):
-            self._handle_requirement_change(
-                request, remove_email_verification_non_compliant_members
-            )
 
     @staticmethod
     def get_url_viewname() -> str:
@@ -483,6 +480,21 @@ class Organization(ReplicatedRegionModel):
         """
         return organization_absolute_url(
             has_customer_domain=self.__has_customer_domain,
+            slug=self.slug,
+            path=path,
+            query=query,
+            fragment=fragment,
+        )
+
+    def absolute_api_url(
+        self, path: str, query: str | None = None, fragment: str | None = None
+    ) -> str:
+        """
+        Get an absolute URL to `path` for this organization for APIs
+
+        e.g https://sentry.io/api/0/organizations/<org_slug><path>
+        """
+        return api_absolute_url(
             slug=self.slug,
             path=path,
             query=query,

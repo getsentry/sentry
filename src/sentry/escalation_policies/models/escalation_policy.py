@@ -28,8 +28,8 @@ class EscalationPolicy(Model):
     repeat_n_times = models.PositiveIntegerField(default=1)
 
     class Meta:
-        app_label = "sentry"
-        db_table = "sentry_escalation_policy"
+        app_label = "escalation_policies"
+        db_table = "escalation_policies_escalation_policy"
         unique_together = (("organization", "name"),)
 
 
@@ -46,8 +46,8 @@ class EscalationPolicyStep(Model):
     escalate_after_sec = models.PositiveIntegerField()
 
     class Meta:
-        app_label = "sentry"
-        db_table = "sentry_escalation_policy_step"
+        app_label = "escalation_policies"
+        db_table = "escalation_policies_escalation_policy_step"
         unique_together = (("policy", "step_number"),)
         ordering = ["step_number"]
 
@@ -68,5 +68,5 @@ class EscalationPolicyStepRecipient(Model):
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="CASCADE")
 
     class Meta:
-        app_label = "sentry"
-        db_table = "sentry_escalation_policy_step_recipient"
+        app_label = "escalation_policies"
+        db_table = "escalation_policies_escalation_policy_step_recipient"

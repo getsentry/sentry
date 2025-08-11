@@ -1,10 +1,11 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 from django.test import RequestFactory
 from django.urls import reverse
 from responses import matchers
 
+from sentry.integrations.discord.client import DISCORD_BASE_URL
 from sentry.integrations.discord.requests.base import DiscordRequestTypes
 from sentry.integrations.middleware.hybrid_cloud.parser import create_async_request_payload
 from sentry.middleware.integrations.tasks import (
@@ -25,7 +26,7 @@ class AsyncSlackResponseTest(TestCase):
     eu = Region("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT)
     region_config = (us, eu)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.response_url = "https://hooks.slack.com/commands/TXXXXXXX1/1234567890123/something"
         slack_payload = {"team_id": "TXXXXXXX1", "response_url": self.response_url}
@@ -35,7 +36,7 @@ class AsyncSlackResponseTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    def test_convert_to_async_slack_response_all_success(self):
+    def test_convert_to_async_slack_response_all_success(self) -> None:
         responses.add(
             responses.POST,
             "https://us.testserver/extensions/slack/action/",
@@ -62,7 +63,7 @@ class AsyncSlackResponseTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    def test_convert_to_async_slack_response_mixed_success(self):
+    def test_convert_to_async_slack_response_mixed_success(self) -> None:
         responses.add(
             responses.POST,
             "https://us.testserver/extensions/slack/action/",
@@ -91,7 +92,7 @@ class AsyncSlackResponseTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    def test_convert_to_async_slack_response_no_success(self):
+    def test_convert_to_async_slack_response_no_success(self) -> None:
         responses.add(
             responses.POST,
             "https://us.testserver/extensions/slack/action/",
@@ -119,7 +120,7 @@ class AsyncSlackResponseTest(TestCase):
     @responses.activate
     @override_regions(region_config)
     @patch("sentry.middleware.integrations.tasks.logger.info")
-    def test_empty_request_bdoy(self, mock_logger_info):
+    def test_empty_request_bdoy(self, mock_logger_info: MagicMock) -> None:
         responses.add(
             responses.POST,
             "https://us.testserver/extensions/slack/action/",
@@ -152,11 +153,11 @@ class AsyncDiscordResponseTest(TestCase):
     eu = Region("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT)
     region_config = (us, eu)
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         application_id = "some-app-id"
         token = "some-token"
-        self.response_url = f"https://discord.com/api/v10/webhooks/{application_id}/{token}"
+        self.response_url = f"{DISCORD_BASE_URL}/webhooks/{application_id}/{token}"
         data = {
             "application_id": application_id,
             "token": token,
@@ -175,7 +176,7 @@ class AsyncDiscordResponseTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    def test_convert_to_async_discord_response_all_success(self):
+    def test_convert_to_async_discord_response_all_success(self) -> None:
         responses.add(
             responses.POST,
             "https://us.testserver/extensions/discord/interactions/",
@@ -202,7 +203,7 @@ class AsyncDiscordResponseTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    def test_convert_to_async_discord_response_mixed_success(self):
+    def test_convert_to_async_discord_response_mixed_success(self) -> None:
         responses.add(
             responses.POST,
             "https://us.testserver/extensions/discord/interactions/",
@@ -231,7 +232,7 @@ class AsyncDiscordResponseTest(TestCase):
 
     @responses.activate
     @override_regions(region_config)
-    def test_convert_to_async_discord_response_no_success(self):
+    def test_convert_to_async_discord_response_no_success(self) -> None:
         responses.add(
             responses.POST,
             "https://us.testserver/extensions/discord/interactions/",

@@ -1,23 +1,25 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
-import Input from 'sentry/components/input';
-import Link from 'sentry/components/links/link';
+import {Button} from 'sentry/components/core/button';
+import {Input} from 'sentry/components/core/input';
+import {Link} from 'sentry/components/core/link';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import type {Widget} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {getWidgetDiscoverUrl} from 'sentry/views/dashboards/utils';
 
 export type DashboardWidgetQuerySelectorModalOptions = {
+  dashboardFilters: DashboardFilters | undefined;
   organization: Organization;
   widget: Widget;
   isMetricsData?: boolean;
@@ -30,15 +32,18 @@ type Props = ModalRenderProps &
     selection: PageFilters;
   };
 
-class DashboardWidgetQuerySelectorModal extends Component<Props> {
-  renderQueries() {
-    const {organization, widget, selection, isMetricsData} = this.props;
+function DashboardWidgetQuerySelectorModal(props: Props) {
+  const {organization, widget, selection, isMetricsData, Body, Header, dashboardFilters} =
+    props;
+
+  const renderQueries = () => {
     const querySearchBars = widget.queries.map((query, index) => {
       const discoverLocation = getWidgetDiscoverUrl(
         {
           ...widget,
           queries: [query],
         },
+        dashboardFilters,
         selection,
         organization,
         0,
@@ -71,26 +76,23 @@ class DashboardWidgetQuerySelectorModal extends Component<Props> {
       );
     });
     return querySearchBars;
-  }
+  };
 
-  render() {
-    const {Body, Header, widget} = this.props;
-    return (
-      <Fragment>
-        <Header closeButton>
-          <h4>{widget.title}</h4>
-        </Header>
-        <Body>
-          <p>
-            {t(
-              'Multiple queries were used to create this widget visualization. Which query would you like to view in Discover?'
-            )}
-          </p>
-          {this.renderQueries()}
-        </Body>
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      <Header closeButton>
+        <h4>{widget.title}</h4>
+      </Header>
+      <Body>
+        <p>
+          {t(
+            'Multiple queries were used to create this widget visualization. Which query would you like to view in Discover?'
+          )}
+        </p>
+        {renderQueries()}
+      </Body>
+    </Fragment>
+  );
 }
 
 const StyledInput = styled(Input)`
@@ -129,7 +131,7 @@ const SearchLabel = styled('label')`
   display: flex;
   padding: ${space(0.5)} 0;
   margin: 0;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 export const modalCss = css`

@@ -1,49 +1,54 @@
+from __future__ import annotations
+
 import functools
+from collections import defaultdict
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from time import sleep
+from typing import Any
 from unittest.mock import MagicMock, Mock, call, patch
 from uuid import uuid4
 
-from dateutil.parser import parse as parse_datetime
+from django.db.utils import OperationalError
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.response import Response
 
 from sentry import options
+from sentry.feedback.lib.utils import FeedbackCreationSource
+from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.issues.grouptype import (
+    FeedbackGroup,
     PerformanceNPlusOneGroupType,
-    PerformanceRenderBlockingAssetSpanGroupType,
     PerformanceSlowDBQueryGroupType,
 )
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
-from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.files.file import File
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
-from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import (
     GroupInbox,
     GroupInboxReason,
+    InboxReasonDetails,
     add_group_to_inbox,
     remove_group_from_inbox,
 )
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupopenperiod import GroupOpenPeriod, get_latest_open_period
 from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
 from sentry.models.groupresolution import GroupResolution
-from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import GroupTombstone
-from sentry.models.options.user_option import UserOption
-from sentry.models.platformexternalissue import PlatformExternalIssue
+from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.savedsearch import SavedSearch, Visibility
@@ -53,35 +58,31 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
-from sentry.search.snuba.executors import GroupAttributesPostgresSnubaQueryExecutor
+from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
+from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
-from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import Feature, with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.users.models.user_option import UserOption
 from sentry.utils import json
+from sentry.utils.snuba import SnubaQueryParams
+from tests.sentry.feedback import mock_feedback_event
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
-@apply_feature_flag_on_cls("organizations:issue-search-snuba")
-@patch(
-    "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
-    side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
-    autospec=True,
-)
 class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-group-index"
 
     def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1)
-        options.set("issues.group_attributes.send_kafka", True)
 
-    def _parse_links(self, header):
+    def _parse_links(self, header: str) -> dict[str | None, dict[str, str | None]]:
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
         links = {}
         for url, attrs in parse_link_header(header).items():
@@ -89,17 +90,17 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             attrs["href"] = url
         return links
 
-    def get_response(self, *args, **kwargs):
+    def get_response(self, *args: Organization, **kwargs: Any) -> Response:
         if not args:
             org = self.project.organization.slug
         else:
             org = args[0]
         return super().get_response(org, **kwargs)
 
-    def test_sort_by_date_with_tag(self, _: MagicMock) -> None:
+    def test_sort_by_date_with_tag(self) -> None:
         # XXX(dcramer): this tests a case where an ambiguous column name existed
         event = self.store_event(
-            data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
+            data={"event_id": "a" * 32, "timestamp": before_now(seconds=1).isoformat()},
             project_id=self.project.id,
         )
         group = event.group
@@ -109,9 +110,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
 
-    def test_query_for_archived(self, _: MagicMock) -> None:
+    def test_query_for_archived(self) -> None:
         event = self.store_event(
-            data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
+            data={"event_id": "a" * 32, "timestamp": before_now(seconds=1).isoformat()},
             project_id=self.project.id,
         )
         group = event.group
@@ -124,24 +125,24 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
 
-    def test_sort_by_trends(self, mock_query: MagicMock) -> None:
+    def test_sort_by_trends(self) -> None:
         group = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
         ).group
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(hours=13)),
+                "timestamp": before_now(hours=13).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -149,21 +150,21 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         group_2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=5)),
+                "timestamp": before_now(seconds=5).isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
         ).group
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(hours=13)),
+                "timestamp": before_now(hours=13).isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
 
-        aggregate_kwargs: dict = {
+        aggregate_kwargs: dict[str, str] = {
             "log_level": "3",
             "has_stacktrace": "5",
             "relative_volume": "1",
@@ -177,19 +178,18 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort="trends",
             query="is:unresolved",
             limit=25,
-            start=iso_format(before_now(days=1)),
-            end=iso_format(before_now(seconds=1)),
+            start=before_now(days=1).isoformat(),
+            end=before_now(seconds=1).isoformat(),
             **aggregate_kwargs,
         )
         assert len(response.data) == 2
         assert [item["id"] for item in response.data] == [str(group.id), str(group_2.id)]
-        assert not mock_query.called
 
-    def test_sort_by_inbox(self, _: MagicMock) -> None:
+    def test_sort_by_inbox(self) -> None:
         group_1 = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -198,7 +198,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         group_2 = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
@@ -220,11 +220,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert [item["id"] for item in response.data] == [str(group_2.id)]
 
-    def test_sort_by_inbox_me_or_none(self, _: MagicMock) -> None:
+    def test_sort_by_inbox_me_or_none(self) -> None:
         group_1 = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -233,7 +233,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         group_2 = self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
@@ -250,7 +250,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         owner_by_other = self.store_event(
             data={
                 "event_id": "c" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "fingerprint": ["group-3"],
             },
             project_id=self.project.id,
@@ -269,7 +269,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         owned_me_assigned_to_other = self.store_event(
             data={
                 "event_id": "d" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "fingerprint": ["group-4"],
             },
             project_id=self.project.id,
@@ -288,7 +288,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         unowned_assigned_to_other = self.store_event(
             data={
                 "event_id": "e" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "fingerprint": ["group-5"],
             },
             project_id=self.project.id,
@@ -305,11 +305,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert [item["id"] for item in response.data] == [str(group_1.id), str(group_2.id)]
 
-    def test_trace_search(self, _: MagicMock) -> None:
+    def test_trace_search(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "contexts": {
                     "trace": {
                         "parent_span_id": "8988cec7cc0779c1",
@@ -338,7 +338,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(event.group.id)
 
-    def test_feature_gate(self, _: MagicMock) -> None:
+    def test_feature_gate(self) -> None:
         # ensure there are two or more projects
         self.create_project(organization=self.project.organization)
         self.login_as(user=self.user)
@@ -351,13 +351,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             response = self.get_response()
             assert response.status_code == 200
 
-    def test_replay_feature_gate(self, _: MagicMock) -> None:
+    def test_replay_feature_gate(self) -> None:
         # allow replays to query for backend
         self.create_project(organization=self.project.organization)
         self.login_as(user=self.user)
         self.get_success_response(extra_headers={"HTTP_X-Sentry-Replay-Request": "1"})
 
-    def test_with_all_projects(self, _: MagicMock) -> None:
+    def test_with_all_projects(self) -> None:
         # ensure there are two or more projects
         self.create_project(organization=self.project.organization)
         self.login_as(user=self.user)
@@ -366,7 +366,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             response = self.get_success_response(project_id=[-1])
             assert response.status_code == 200
 
-    def test_boolean_search_feature_flag(self, _: MagicMock) -> None:
+    def test_boolean_search_feature_flag(self) -> None:
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", query="title:hello OR title:goodbye")
         assert response.status_code == 400
@@ -382,7 +382,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             == 'Error parsing search query: Boolean statements containing "OR" or "AND" are not supported in this search'
         )
 
-    def test_invalid_query(self, _: MagicMock) -> None:
+    def test_invalid_query(self) -> None:
         now = timezone.now()
         self.create_group(last_seen=now - timedelta(seconds=1))
         self.login_as(user=self.user)
@@ -391,7 +391,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 400
         assert "Invalid number" in response.data["detail"]
 
-    def test_valid_numeric_query(self, _: MagicMock) -> None:
+    def test_valid_numeric_query(self) -> None:
         now = timezone.now()
         self.create_group(last_seen=now - timedelta(seconds=1))
         self.login_as(user=self.user)
@@ -399,7 +399,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(sort_by="date", query="timesSeen:>1k")
         assert response.status_code == 200
 
-    def test_invalid_sort_key(self, _: MagicMock) -> None:
+    def test_invalid_sort_key(self) -> None:
         now = timezone.now()
         self.create_group(last_seen=now - timedelta(seconds=1))
         self.login_as(user=self.user)
@@ -407,14 +407,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(sort="meow", query="is:unresolved")
         assert response.status_code == 400
 
-    def test_simple_pagination(self, _: MagicMock) -> None:
+    def test_simple_pagination(self) -> None:
         event1 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=2)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=2).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         group1 = event1.group
         event2 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=1)), "fingerprint": ["group-2"]},
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
         group2 = event2.group
@@ -427,6 +427,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert links["previous"]["results"] == "false"
         assert links["next"]["results"] == "true"
+        assert links["next"]["href"] is not None
 
         response = self.client.get(links["next"]["href"], format="json")
         assert response.status_code == 200
@@ -438,7 +439,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert links["previous"]["results"] == "true"
         assert links["next"]["results"] == "false"
 
-    def test_stats_period(self, _: MagicMock) -> None:
+    def test_stats_period(self) -> None:
         # TODO(dcramer): this test really only checks if validation happens
         # on groupStatsPeriod
         now = timezone.now()
@@ -453,11 +454,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(groupStatsPeriod="48h")
         assert response.status_code == 400
 
-    def test_environment(self, _: MagicMock) -> None:
+    def test_environment(self) -> None:
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "environment": "production",
             },
             project_id=self.project.id,
@@ -465,7 +466,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group2"],
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "environment": "staging",
             },
             project_id=self.project.id,
@@ -480,11 +481,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(environment="garbage")
         assert response.status_code == 404
 
-    def test_project(self, _: MagicMock) -> None:
+    def test_project(self) -> None:
         self.store_event(
             data={
                 "fingerprint": ["put-me-in-group1"],
-                "timestamp": iso_format(self.min_ago),
+                "timestamp": self.min_ago.isoformat(),
                 "environment": "production",
             },
             project_id=self.project.id,
@@ -498,15 +499,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(query=f"project:{project.slug}")
         assert len(response.data) == 1
 
-    def test_auto_resolved(self, _: MagicMock) -> None:
+    def test_auto_resolved(self) -> None:
         project = self.project
         project.update_option("sentry:resolve_age", 1)
         self.store_event(
-            data={"event_id": "a" * 32, "timestamp": iso_format(before_now(seconds=1))},
+            data={"event_id": "a" * 32, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project.id,
         )
         event2 = self.store_event(
-            data={"event_id": "b" * 32, "timestamp": iso_format(before_now(seconds=1))},
+            data={"event_id": "b" * 32, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project.id,
         )
         group2 = event2.group
@@ -516,25 +517,24 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group2.id)
 
-    def test_perf_issue(self, _: MagicMock) -> None:
+    def test_perf_issue(self) -> None:
         perf_group = self.create_group(type=PerformanceNPlusOneGroupType.type_id)
         self.login_as(user=self.user)
         with self.feature(
             {
                 "organizations:issue-search-allow-postgres-only-search": True,
-                "organizations:issue-search-snuba": False,
             }
         ):
             response = self.get_success_response(query="issue.category:performance")
             assert len(response.data) == 1
             assert response.data[0]["id"] == str(perf_group.id)
 
-    def test_lookup_by_event_id(self, _: MagicMock) -> None:
+    def test_lookup_by_event_id(self) -> None:
         project = self.project
         project.update_option("sentry:resolve_age", 1)
         event_id = "c" * 32
         event = self.store_event(
-            data={"event_id": event_id, "timestamp": iso_format(self.min_ago)},
+            data={"event_id": event_id, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
 
@@ -546,14 +546,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(event.group.id)
         assert response.data[0]["matchingEventId"] == event_id
 
-    def test_lookup_by_event_id_incorrect_project_id(self, _: MagicMock) -> None:
+    def test_lookup_by_event_id_incorrect_project_id(self) -> None:
         self.store_event(
-            data={"event_id": "a" * 32, "timestamp": iso_format(self.min_ago)},
+            data={"event_id": "a" * 32, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
         event_id = "b" * 32
         event = self.store_event(
-            data={"event_id": event_id, "timestamp": iso_format(self.min_ago)},
+            data={"event_id": event_id, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
 
@@ -569,12 +569,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(event.group.id)
         assert response.data[0]["matchingEventId"] == event_id
 
-    def test_lookup_by_event_id_with_whitespace(self, _: MagicMock) -> None:
+    def test_lookup_by_event_id_with_whitespace(self) -> None:
         project = self.project
         project.update_option("sentry:resolve_age", 1)
         event_id = "c" * 32
         event = self.store_event(
-            data={"event_id": event_id, "timestamp": iso_format(self.min_ago)},
+            data={"event_id": event_id, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
 
@@ -585,7 +585,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(event.group.id)
         assert response.data[0]["matchingEventId"] == event_id
 
-    def test_lookup_by_unknown_event_id(self, _: MagicMock) -> None:
+    def test_lookup_by_unknown_event_id(self) -> None:
         project = self.project
         project.update_option("sentry:resolve_age", 1)
         self.create_group()
@@ -595,7 +595,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(query="c" * 32)
         assert len(response.data) == 0
 
-    def test_lookup_by_short_id(self, _: MagicMock) -> None:
+    def test_lookup_by_short_id(self) -> None:
         group = self.group
         short_id = group.qualified_short_id
 
@@ -604,10 +604,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response["X-Sentry-Direct-Hit"] == "1"
 
-    def test_lookup_by_short_id_alias(self, _: MagicMock) -> None:
+    def test_lookup_by_short_id_alias(self) -> None:
         event_id = "f" * 32
         group = self.store_event(
-            data={"event_id": event_id, "timestamp": iso_format(before_now(seconds=1))},
+            data={"event_id": event_id, "timestamp": before_now(seconds=1).isoformat()},
             project_id=self.project.id,
         ).group
         short_id = group.qualified_short_id
@@ -617,16 +617,16 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response["X-Sentry-Direct-Hit"] == "1"
 
-    def test_lookup_by_multiple_short_id_alias(self, _: MagicMock) -> None:
+    def test_lookup_by_multiple_short_id_alias(self) -> None:
         self.login_as(self.user)
         project = self.project
         project2 = self.create_project(name="baz", organization=project.organization)
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=2))},
+            data={"timestamp": before_now(seconds=2).isoformat()},
             project_id=project.id,
         )
         event2 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=1))},
+            data={"timestamp": before_now(seconds=1).isoformat()},
             project_id=project2.id,
         )
         with self.feature("organizations:global-views"):
@@ -645,7 +645,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 2
         assert response.get("X-Sentry-Direct-Hit") != "1"
 
-    def test_lookup_by_short_id_ignores_project_list(self, _: MagicMock) -> None:
+    def test_lookup_by_short_id_ignores_project_list(self) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         project2 = self.create_project(organization=organization)
@@ -663,7 +663,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response.get("X-Sentry-Direct-Hit") == "1"
 
-    def test_lookup_by_short_id_no_perms(self, _: MagicMock) -> None:
+    def test_lookup_by_short_id_no_perms(self) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         group = self.create_group(project=project)
@@ -678,7 +678,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 0
         assert response.get("X-Sentry-Direct-Hit") != "1"
 
-    def test_lookup_by_group_id(self, _: MagicMock) -> None:
+    def test_lookup_by_group_id(self) -> None:
         self.login_as(user=self.user)
         response = self.get_success_response(group=self.group.id)
         assert len(response.data) == 1
@@ -687,7 +687,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(group=[self.group.id, group_2.id])
         assert {g["id"] for g in response.data} == {str(self.group.id), str(group_2.id)}
 
-    def test_lookup_by_group_id_no_perms(self, _: MagicMock) -> None:
+    def test_lookup_by_group_id_no_perms(self) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         group = self.create_group(project=project)
@@ -697,7 +697,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(group=[group.id])
         assert response.status_code == 403
 
-    def test_lookup_by_first_release(self, _: MagicMock) -> None:
+    def test_lookup_by_first_release(self) -> None:
         self.login_as(self.user)
         project = self.project
         project2 = self.create_project(name="baz", organization=project.organization)
@@ -705,11 +705,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         release.add_project(project)
         release.add_project(project2)
         event = self.store_event(
-            data={"release": release.version, "timestamp": iso_format(before_now(seconds=2))},
+            data={"release": release.version, "timestamp": before_now(seconds=2).isoformat()},
             project_id=project.id,
         )
         event2 = self.store_event(
-            data={"release": release.version, "timestamp": iso_format(before_now(seconds=1))},
+            data={"release": release.version, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project2.id,
         )
 
@@ -731,14 +731,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(issues[0]["id"]) == event2.group.id
         assert int(issues[1]["id"]) == event.group.id
 
-    def test_lookup_by_release(self, _: MagicMock) -> None:
+    def test_lookup_by_release(self) -> None:
         self.login_as(self.user)
         project = self.project
         release = Release.objects.create(organization=project.organization, version="12345")
         release.add_project(project)
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "tags": {"sentry:release": release.version},
             },
             project_id=project.id,
@@ -749,14 +749,56 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(issues) == 1
         assert int(issues[0]["id"]) == event.group.id
 
-    def test_lookup_by_release_wildcard(self, _: MagicMock) -> None:
+    def test_release_package_in(self) -> None:
+        self.login_as(self.user)
+        project = self.project
+        release1 = Release.objects.create(organization=project.organization, version="foo@1.0.0.0")
+        release2 = Release.objects.create(organization=project.organization, version="bar@1.2.0.0")
+        release3 = Release.objects.create(organization=project.organization, version="cat@1.2.0.0")
+
+        release1.add_project(project)
+        release2.add_project(project)
+
+        event1 = self.store_event(
+            data={
+                "release": release1.version,
+                "timestamp": before_now(seconds=3).isoformat(),
+                "fingerprint": ["1"],
+            },
+            project_id=project.id,
+        )
+        event2 = self.store_event(
+            data={
+                "release": release2.version,
+                "timestamp": before_now(seconds=2).isoformat(),
+                "fingerprint": ["2"],
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "release": release3.version,
+                "timestamp": before_now(seconds=2).isoformat(),
+                "fingerprint": ["3"],
+            },
+            project_id=project.id,
+        )
+
+        with self.feature("organizations:global-views"):
+            response = self.get_success_response(**{"query": 'release.package:["foo", "bar"]'})
+        issues = json.loads(response.content)
+        assert len(issues) == 2
+        assert int(issues[0]["id"]) == event2.group.id
+        assert int(issues[1]["id"]) == event1.group.id
+
+    def test_lookup_by_release_wildcard(self) -> None:
         self.login_as(self.user)
         project = self.project
         release = Release.objects.create(organization=project.organization, version="12345")
         release.add_project(project)
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "tags": {"sentry:release": release.version},
             },
             project_id=project.id,
@@ -767,13 +809,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(issues) == 1
         assert int(issues[0]["id"]) == event.group.id
 
-    def test_lookup_by_regressed_in_release(self, _: MagicMock) -> None:
+    def test_lookup_by_regressed_in_release(self) -> None:
         self.login_as(self.user)
         project = self.project
         release = self.create_release()
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "tags": {"sentry:release": release.version},
             },
             project_id=project.id,
@@ -783,7 +825,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         issues = json.loads(response.content)
         assert [int(issue["id"]) for issue in issues] == [event.group.id]
 
-    def test_pending_delete_pending_merge_excluded(self, _: MagicMock) -> None:
+    def test_pending_delete_pending_merge_excluded(self) -> None:
         events = []
         for i in "abcd":
             events.append(
@@ -791,7 +833,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                     data={
                         "event_id": i * 32,
                         "fingerprint": [i],
-                        "timestamp": iso_format(self.min_ago),
+                        "timestamp": self.min_ago.isoformat(),
                     },
                     project_id=self.project.id,
                 )
@@ -806,7 +848,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(events[1].group.id)
 
-    def test_filters_based_on_retention(self, _: MagicMock) -> None:
+    def test_filters_based_on_retention(self) -> None:
         self.login_as(user=self.user)
 
         self.create_group(last_seen=timezone.now() - timedelta(days=2))
@@ -816,7 +858,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert len(response.data) == 0
 
-    def test_token_auth(self, _: MagicMock) -> None:
+    def test_token_auth(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read"])
         response = self.client.get(
@@ -826,10 +868,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert response.status_code == 200, response.content
 
-    def test_date_range(self, _: MagicMock) -> None:
+    def test_date_range(self) -> None:
         with self.options({"system.event-retention-days": 2}):
             event = self.store_event(
-                data={"timestamp": iso_format(before_now(hours=5))}, project_id=self.project.id
+                data={"timestamp": before_now(hours=5).isoformat()}, project_id=self.project.id
             )
             group = event.group
 
@@ -843,7 +885,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             assert len(response.data) == 0
 
     @patch("sentry.analytics.record")
-    def test_advanced_search_errors(self, mock_record: MagicMock, _: MagicMock) -> None:
+    def test_advanced_search_errors(self, mock_record: MagicMock) -> None:
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", query="!has:user")
         assert response.status_code == 200, response.data
@@ -870,8 +912,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     # the orderby being sent to snuba for a certain call. This function has a simple
     # return value and can be used to set variables in the snuba payload.
     @patch("sentry.utils.snuba.get_query_params_to_update_for_projects")
-    @with_feature({"organizations:issue-search-snuba": False})
-    def test_assigned_to_pagination(self, patched_params_update: MagicMock, _: MagicMock) -> None:
+    def test_assigned_to_pagination(self, patched_params_update: MagicMock) -> None:
         old_sample_size = options.get("snuba.search.hits-sample-size")
         assert options.set("snuba.search.hits-sample-size", 1)
 
@@ -886,7 +927,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             ]
             group = self.store_event(
                 data={
-                    "timestamp": iso_format(before_now(days=day)),
+                    "timestamp": before_now(days=day).isoformat(),
                     "fingerprint": [f"group-{day}"],
                 },
                 project_id=self.project.id,
@@ -903,7 +944,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # This side_effect is meant to override the `calculate_hits` snuba query specifically.
         # If this test is failing it's because the -last_seen override is being applied to
         # different snuba query.
-        def _my_patched_params(query_params, **kwargs):
+        def _my_patched_params(
+            query_params: SnubaQueryParams, **kwargs: Any
+        ) -> tuple[int, dict[str, Any]]:
             if query_params.aggregations == [
                 ["uniq", "group_id", "total"],
                 ["multiply(toUInt64(max(timestamp)), 1000)", "", "last_seen"],
@@ -929,13 +972,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert options.set("snuba.search.hits-sample-size", old_sample_size)
 
-    def test_assigned_me_none(self, _: MagicMock) -> None:
+    def test_assigned_me_none(self) -> None:
         self.login_as(user=self.user)
         groups = []
         for i in range(5):
             group = self.store_event(
                 data={
-                    "timestamp": iso_format(before_now(minutes=10, days=i)),
+                    "timestamp": before_now(minutes=10, days=i).isoformat(),
                     "fingerprint": [f"group-{i}"],
                 },
                 project_id=self.project.id,
@@ -958,9 +1001,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_response(limit=10, query="assigned:[me, none]")
         assert len(response.data) == 4
 
-    def test_seen_stats(self, _: MagicMock) -> None:
+    def test_seen_stats(self) -> None:
         self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         before_now_300_seconds = before_now(seconds=300).isoformat()
@@ -973,7 +1016,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         group2.first_seen = datetime.fromisoformat(before_now_350_seconds)
         group2.times_seen = 55
         group2.save()
-        before_now_250_seconds = iso_format(before_now(seconds=250))
+        before_now_250_seconds = before_now(seconds=250).replace(microsecond=0).isoformat()
         self.store_event(
             data={
                 "timestamp": before_now_250_seconds,
@@ -984,13 +1027,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=200)),
+                "timestamp": before_now(seconds=200).isoformat(),
                 "fingerprint": ["group-1"],
                 "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
             },
             project_id=self.project.id,
         )
-        before_now_150_seconds = iso_format(before_now(seconds=150))
+        before_now_150_seconds = before_now(seconds=150).replace(microsecond=0).isoformat()
         self.store_event(
             data={
                 "timestamp": before_now_150_seconds,
@@ -999,7 +1042,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             },
             project_id=self.project.id,
         )
-        before_now_100_seconds = iso_format(before_now(seconds=100))
+        before_now_100_seconds = before_now(seconds=100).replace(microsecond=0).isoformat()
         self.store_event(
             data={
                 "timestamp": before_now_100_seconds,
@@ -1021,21 +1064,21 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["lifetime"]["stats"] is None
         assert response.data[0]["filtered"]["stats"] != response.data[0]["stats"]
 
-        assert response.data[0]["lifetime"]["firstSeen"] == parse_datetime(
+        assert response.data[0]["lifetime"]["firstSeen"] == datetime.fromisoformat(
             before_now_350_seconds  # Should match overridden value, not event value
-        ).replace(tzinfo=UTC)
-        assert response.data[0]["lifetime"]["lastSeen"] == parse_datetime(
+        )
+        assert response.data[0]["lifetime"]["lastSeen"] == datetime.fromisoformat(
             before_now_100_seconds
-        ).replace(tzinfo=UTC)
+        )
         assert response.data[0]["lifetime"]["count"] == "55"
 
         assert response.data[0]["filtered"]["count"] == "2"
-        assert response.data[0]["filtered"]["firstSeen"] == parse_datetime(
+        assert response.data[0]["filtered"]["firstSeen"] == datetime.fromisoformat(
             before_now_250_seconds
-        ).replace(tzinfo=UTC)
-        assert response.data[0]["filtered"]["lastSeen"] == parse_datetime(
+        )
+        assert response.data[0]["filtered"]["lastSeen"] == datetime.fromisoformat(
             before_now_150_seconds
-        ).replace(tzinfo=UTC)
+        )
 
         # Empty filter test:
         response = self.get_response(sort_by="date", limit=10, query="")
@@ -1047,28 +1090,27 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["lifetime"]["stats"] is None
 
         assert response.data[0]["lifetime"]["count"] == "55"
-        assert response.data[0]["lifetime"]["firstSeen"] == parse_datetime(
+        assert response.data[0]["lifetime"]["firstSeen"] == datetime.fromisoformat(
             before_now_350_seconds  # Should match overridden value, not event value
-        ).replace(tzinfo=UTC)
-        assert response.data[0]["lifetime"]["lastSeen"] == parse_datetime(
+        )
+        assert response.data[0]["lifetime"]["lastSeen"] == datetime.fromisoformat(
             before_now_100_seconds
-        ).replace(tzinfo=UTC)
+        )
 
-        # now with useGroupSnubaDataset = 1
         response = self.get_response(sort_by="date", limit=10, query="server:example.com")
 
         assert response.status_code == 200
         assert len(response.data) == 2
         assert int(response.data[0]["id"]) == group2.id
 
-    def test_semver_seen_stats(self, _: MagicMock) -> None:
+    def test_semver_seen_stats(self) -> None:
         release_1 = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test@1.2.4")
         release_3 = self.create_release(version="test@1.2.5")
 
         release_1_e_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=5)),
+                "timestamp": before_now(minutes=5).replace(microsecond=0).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
@@ -1078,7 +1120,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         release_2_e_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).replace(microsecond=0).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_2.version,
             },
@@ -1087,7 +1129,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         release_3_e_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).replace(microsecond=0).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_3.version,
             },
@@ -1133,10 +1175,10 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(group_data["lifetime"]["count"]) == 3
         assert int(group_data["filtered"]["count"]) == 1
 
-    def test_inbox_search(self, _: MagicMock) -> None:
+    def test_inbox_search(self) -> None:
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=200)),
+                "timestamp": before_now(seconds=200).isoformat(),
                 "fingerprint": ["group-1"],
                 "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
             },
@@ -1145,7 +1187,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=200)),
+                "timestamp": before_now(seconds=200).isoformat(),
                 "fingerprint": ["group-2"],
                 "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
             },
@@ -1154,7 +1196,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=200)),
+                "timestamp": before_now(seconds=200).isoformat(),
                 "fingerprint": ["group-3"],
                 "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
             },
@@ -1173,7 +1215,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["inbox"] is not None
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
 
-    def test_inbox_search_outside_retention(self, _: MagicMock) -> None:
+    def test_inbox_search_outside_retention(self) -> None:
         self.login_as(user=self.user)
         response = self.get_response(
             sort="inbox",
@@ -1181,18 +1223,16 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             query="is:unresolved is:for_review",
             collapse="stats",
             expand=["inbox", "owners"],
-            start=iso_format(before_now(days=20)),
-            end=iso_format(before_now(days=15)),
+            start=before_now(days=20).isoformat(),
+            end=before_now(days=15).isoformat(),
         )
         assert response.status_code == 200
         assert len(response.data) == 0
 
-    @override_options({"issues.group_attributes.send_kafka": False})
-    @with_feature({"organizations:issue-search-snuba": False})
-    def test_assigned_or_suggested_search(self, _: MagicMock) -> None:
+    def test_assigned_or_suggested_search(self) -> None:
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=180)),
+                "timestamp": before_now(seconds=180).isoformat(),
                 "fingerprint": ["group-1"],
                 "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
             },
@@ -1200,7 +1240,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         event1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=185)),
+                "timestamp": before_now(seconds=185).isoformat(),
                 "fingerprint": ["group-2"],
                 "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
             },
@@ -1208,7 +1248,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         event2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=190)),
+                "timestamp": before_now(seconds=190).isoformat(),
                 "fingerprint": ["group-3"],
                 "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
             },
@@ -1217,7 +1257,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assigned_event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=195)),
+                "timestamp": before_now(seconds=195).isoformat(),
                 "fingerprint": ["group-4"],
             },
             project_id=self.project.id,
@@ -1225,7 +1265,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assigned_to_other_event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=195)),
+                "timestamp": before_now(seconds=195).isoformat(),
                 "fingerprint": ["group-5"],
             },
             project_id=self.project.id,
@@ -1368,14 +1408,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert len(response.data) == 0
 
-    def test_semver(self, _: MagicMock) -> None:
+    def test_semver(self) -> None:
         release_1 = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test@1.2.4")
         release_3 = self.create_release(version="test@1.2.5")
 
         release_1_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
@@ -1383,7 +1423,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_1_g_2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-2"],
                 "release": release_1.version,
             },
@@ -1391,7 +1431,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_2_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-3"],
                 "release": release_2.version,
             },
@@ -1399,7 +1439,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_2_g_2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=4)),
+                "timestamp": before_now(minutes=4).isoformat(),
                 "fingerprint": ["group-4"],
                 "release": release_2.version,
             },
@@ -1407,7 +1447,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_3_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=5)),
+                "timestamp": before_now(minutes=5).isoformat(),
                 "fingerprint": ["group-5"],
                 "release": release_3.version,
             },
@@ -1415,7 +1455,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_3_g_2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=6)),
+                "timestamp": before_now(minutes=6).isoformat(),
                 "fingerprint": ["group-6"],
                 "release": release_3.version,
             },
@@ -1424,7 +1464,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:>1.2.3")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_2_g_1,
             release_2_g_2,
             release_3_g_1,
@@ -1433,7 +1473,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:>=1.2.3")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_1_g_1,
             release_1_g_2,
             release_2_g_1,
@@ -1444,22 +1484,22 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:<1.2.4")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [release_1_g_1, release_1_g_2]
+        assert [int(r["id"]) for r in response.data] == [release_1_g_1, release_1_g_2]
 
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:<1.0")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == []
+        assert [int(r["id"]) for r in response.data] == []
 
         response = self.get_response(sort_by="date", limit=10, query=f"!{SEMVER_ALIAS}:1.2.4")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_1_g_1,
             release_1_g_2,
             release_3_g_1,
             release_3_g_2,
         ]
 
-    def test_release_stage(self, _: MagicMock) -> None:
+    def test_release_stage(self) -> None:
         replaced_release = self.create_release(
             version="replaced_release",
             environments=[self.environment],
@@ -1475,7 +1515,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         adopted_release_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": adopted_release.version,
                 "environment": self.environment.name,
@@ -1484,7 +1524,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         adopted_release_g_2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-2"],
                 "release": adopted_release.version,
                 "environment": self.environment.name,
@@ -1493,7 +1533,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         replaced_release_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-3"],
                 "release": replaced_release.version,
                 "environment": self.environment.name,
@@ -1502,7 +1542,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         replaced_release_g_2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=4)),
+                "timestamp": before_now(minutes=4).isoformat(),
                 "fingerprint": ["group-4"],
                 "release": replaced_release.version,
                 "environment": self.environment.name,
@@ -1518,7 +1558,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             adopted_release_g_1,
             adopted_release_g_2,
         ]
@@ -1530,7 +1570,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             adopted_release_g_1,
             adopted_release_g_2,
             replaced_release_g_1,
@@ -1544,7 +1584,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             adopted_release_g_1,
             adopted_release_g_2,
             replaced_release_g_1,
@@ -1558,18 +1598,18 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             environment=self.environment.name,
         )
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             adopted_release_g_1,
             adopted_release_g_2,
         ]
 
-    def test_semver_package(self, _: MagicMock) -> None:
+    def test_semver_package(self) -> None:
         release_1 = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test2@1.2.4")
 
         release_1_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
@@ -1577,7 +1617,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_1_g_2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-2"],
                 "release": release_1.version,
             },
@@ -1585,7 +1625,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_2_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-3"],
                 "release": release_2.version,
             },
@@ -1594,7 +1634,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_PACKAGE_ALIAS}:test")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_1_g_1,
             release_1_g_2,
         ]
@@ -1603,17 +1643,17 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort_by="date", limit=10, query=f"{SEMVER_PACKAGE_ALIAS}:test2"
         )
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_2_g_1,
         ]
 
-    def test_semver_build(self, _: MagicMock) -> None:
+    def test_semver_build(self) -> None:
         release_1 = self.create_release(version="test@1.2.3+123")
         release_2 = self.create_release(version="test2@1.2.4+124")
 
         release_1_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
@@ -1621,7 +1661,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_1_g_2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=2)),
+                "timestamp": before_now(minutes=2).isoformat(),
                 "fingerprint": ["group-2"],
                 "release": release_1.version,
             },
@@ -1629,7 +1669,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         ).group.id
         release_2_g_1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=3)),
+                "timestamp": before_now(minutes=3).isoformat(),
                 "fingerprint": ["group-3"],
                 "release": release_2.version,
             },
@@ -1638,23 +1678,23 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_BUILD_ALIAS}:123")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_1_g_1,
             release_1_g_2,
         ]
 
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_BUILD_ALIAS}:124")
         assert response.status_code == 200, response.content
-        assert [int(r["id"]) for r in response.json()] == [
+        assert [int(r["id"]) for r in response.data] == [
             release_2_g_1,
         ]
 
         response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_BUILD_ALIAS}:[124]")
         assert response.status_code == 400, response.content
 
-    def test_aggregate_stats_regression_test(self, _: MagicMock) -> None:
+    def test_aggregate_stats_regression_test(self) -> None:
         self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
 
@@ -1666,14 +1706,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert len(response.data) == 1
 
-    def test_skipped_fields(self, _: MagicMock) -> None:
+    def test_skipped_fields(self) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=200)),
+                "timestamp": before_now(seconds=200).isoformat(),
                 "fingerprint": ["group-1"],
                 "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
             },
@@ -1682,7 +1722,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         query = "server:example.com"
         query += " status:unresolved"
-        query += " first_seen:" + iso_format(before_now(seconds=500))
+        query += " first_seen:" + before_now(seconds=500).isoformat()
 
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, query=query)
@@ -1693,9 +1733,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["lifetime"] is not None
         assert response.data[0]["filtered"] is not None
 
-    def test_inbox_fields(self, _: MagicMock) -> None:
+    def test_inbox_fields(self) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         add_group_to_inbox(event.group, GroupInboxReason.NEW)
@@ -1710,7 +1750,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
         assert response.data[0]["inbox"]["reason_details"] is None
         remove_group_from_inbox(event.group)
-        snooze_details = {
+        snooze_details: InboxReasonDetails = {
             "until": None,
             "count": 3,
             "window": None,
@@ -1727,9 +1767,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.UNIGNORED.value
         assert response.data[0]["inbox"]["reason_details"] == snooze_details
 
-    def test_inbox_fields_issue_states(self, _: MagicMock) -> None:
+    def test_inbox_fields_issue_states(self) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         add_group_to_inbox(event.group, GroupInboxReason.NEW)
@@ -1742,7 +1782,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(response.data[0]["id"]) == event.group.id
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
         remove_group_from_inbox(event.group)
-        snooze_details = {
+        snooze_details: InboxReasonDetails = {
             "until": None,
             "count": 3,
             "window": None,
@@ -1759,9 +1799,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.ONGOING.value
         assert response.data[0]["inbox"]["reason_details"] == snooze_details
 
-    def test_expand_string(self, _: MagicMock) -> None:
+    def test_expand_string(self) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         add_group_to_inbox(event.group, GroupInboxReason.NEW)
@@ -1775,9 +1815,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
         assert response.data[0]["inbox"]["reason_details"] is None
 
-    def test_expand_plugin_actions_and_issues(self, _: MagicMock) -> None:
+    def test_expand_plugin_actions_and_issues(self) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         query = "status:unresolved"
@@ -1799,9 +1839,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert "pluginActions" not in response.data[0]
         assert "pluginIssues" not in response.data[0]
 
-    def test_expand_integration_issues(self, _: MagicMock) -> None:
+    def test_expand_integration_issues(self) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         query = "status:unresolved"
@@ -1850,9 +1890,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["integrationIssues"][0]["title"] == external_issue_1.title
         assert response.data[0]["integrationIssues"][1]["title"] == external_issue_2.title
 
-    def test_expand_sentry_app_issues(self, _: MagicMock) -> None:
+    def test_expand_sentry_app_issues(self) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         query = "status:unresolved"
@@ -1905,9 +1945,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["sentryAppIssues"][1]["displayName"] == issue_2.display_name
 
     @with_feature("organizations:event-attachments")
-    def test_expand_latest_event_has_attachments(self, _: MagicMock) -> None:
+    def test_expand_latest_event_has_attachments(self) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         query = "status:unresolved"
@@ -1929,14 +1969,12 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert "latestEventHasAttachments" not in response.data[0]
 
         # Add 1 attachment
-        file_attachment = File.objects.create(name="hello.png", type="image/png")
         EventAttachment.objects.create(
             group_id=event.group.id,
             event_id=event.event_id,
             project_id=event.project_id,
-            file_id=file_attachment.id,
-            type=file_attachment.type,
             name="hello.png",
+            content_type="image/png",
         )
 
         response = self.get_response(
@@ -1947,11 +1985,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
     @with_feature("organizations:event-attachments")
     @patch("sentry.models.Group.get_latest_event", return_value=None)
-    def test_expand_no_latest_event_has_no_attachments(
-        self, _: MagicMock, mock_latest_event: MagicMock
-    ) -> None:
+    def test_expand_no_latest_event_has_no_attachments(self, mock_latest_event: MagicMock) -> None:
         self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         query = "status:unresolved"
@@ -1964,9 +2000,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Expand should not execute since there is no latest event
         assert "latestEventHasAttachments" not in response.data[0]
 
-    def test_expand_owners(self, _: MagicMock) -> None:
+    def test_expand_owners(self) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         query = "status:unresolved"
@@ -2025,13 +2061,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert response.data[0]["owners"][2]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.CODEOWNERS]
 
-    def test_default_search(self, _: MagicMock) -> None:
+    def test_default_search(self) -> None:
         event1 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         event2 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-2"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
         event2.group.update(status=GroupStatus.RESOLVED, substatus=None)
@@ -2041,15 +2077,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event1.group.id]
 
-    def test_default_search_with_priority(self, _: MagicMock) -> None:
+    def test_default_search_with_priority(self) -> None:
         event1 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         event1.group.priority = PriorityLevel.HIGH
         event1.group.save()
         event2 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-3"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-3"]},
             project_id=self.project.id,
         )
         event2.group.status = GroupStatus.RESOLVED
@@ -2058,7 +2094,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         event2.group.save()
 
         event3 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=400)), "fingerprint": ["group-2"]},
+            data={"timestamp": before_now(seconds=400).isoformat(), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
         event3.group.priority = PriorityLevel.LOW
@@ -2071,9 +2107,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event1.group.id]
 
-    def test_collapse_stats(self, _: MagicMock) -> None:
+    def test_collapse_stats(self) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
@@ -2091,9 +2127,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert "lifetime" not in response.data[0]
         assert "filtered" not in response.data[0]
 
-    def test_collapse_lifetime(self, _: MagicMock) -> None:
+    def test_collapse_lifetime(self) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
@@ -2110,9 +2146,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert "lifetime" not in response.data[0]
         assert "filtered" in response.data[0]
 
-    def test_collapse_filtered(self, _: MagicMock) -> None:
+    def test_collapse_filtered(self) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
@@ -2129,9 +2165,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert "lifetime" in response.data[0]
         assert "filtered" not in response.data[0]
 
-    def test_collapse_lifetime_and_filtered(self, _: MagicMock) -> None:
+    def test_collapse_lifetime_and_filtered(self) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
@@ -2148,9 +2184,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert "lifetime" not in response.data[0]
         assert "filtered" not in response.data[0]
 
-    def test_collapse_base(self, _: MagicMock) -> None:
+    def test_collapse_base(self) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
@@ -2170,11 +2206,11 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert "lifetime" in response.data[0]
         assert "filtered" in response.data[0]
 
-    def test_collapse_stats_group_snooze_bug(self, _: MagicMock) -> None:
+    def test_collapse_stats_group_snooze_bug(self) -> None:
         # There was a bug where we tried to access attributes on seen_stats if this feature is active
         # but seen_stats could be null when we collapse stats.
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         GroupSnooze.objects.create(
@@ -2193,10 +2229,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
 
-    @with_feature("organizations:issue-stream-performance")
-    def test_collapse_unhandled(self, _: MagicMock) -> None:
+    def test_collapse_unhandled(self) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
@@ -2208,7 +2243,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(response.data[0]["id"]) == event.group.id
         assert "isUnhandled" not in response.data[0]
 
-    def test_selected_saved_search(self, _: MagicMock) -> None:
+    def test_selected_saved_search(self) -> None:
         saved_search = SavedSearch.objects.create(
             name="Saved Search",
             query="ZeroDivisionError",
@@ -2217,7 +2252,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=500)),
+                "timestamp": before_now(seconds=500).isoformat(),
                 "fingerprint": ["group-1"],
                 "message": "ZeroDivisionError",
             },
@@ -2226,7 +2261,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=500)),
+                "timestamp": before_now(seconds=500).isoformat(),
                 "fingerprint": ["group-2"],
                 "message": "TypeError",
             },
@@ -2245,7 +2280,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
 
-    def test_pinned_saved_search(self, _: MagicMock) -> None:
+    def test_pinned_saved_search(self) -> None:
         SavedSearch.objects.create(
             name="Saved Search",
             query="ZeroDivisionError",
@@ -2255,7 +2290,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=500)),
+                "timestamp": before_now(seconds=500).isoformat(),
                 "fingerprint": ["group-1"],
                 "message": "ZeroDivisionError",
             },
@@ -2264,7 +2299,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=500)),
+                "timestamp": before_now(seconds=500).isoformat(),
                 "fingerprint": ["group-2"],
                 "message": "TypeError",
             },
@@ -2282,7 +2317,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
 
-    def test_pinned_saved_search_with_query(self, _: MagicMock) -> None:
+    def test_pinned_saved_search_with_query(self) -> None:
         SavedSearch.objects.create(
             name="Saved Search",
             query="TypeError",
@@ -2292,7 +2327,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=500)),
+                "timestamp": before_now(seconds=500).isoformat(),
                 "fingerprint": ["group-1"],
                 "message": "ZeroDivisionError",
             },
@@ -2301,7 +2336,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=500)),
+                "timestamp": before_now(seconds=500).isoformat(),
                 "fingerprint": ["group-2"],
                 "message": "TypeError",
             },
@@ -2320,118 +2355,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
 
-    @with_feature("organizations:issue-stream-custom-views")
-    def test_user_default_custom_view_query(self, _: MagicMock) -> None:
-        SavedSearch.objects.create(
-            name="Saved Search",
-            query="TypeError",
-            organization=self.organization,
-            owner_id=self.user.id,
-            visibility=Visibility.OWNER_PINNED,
-        )
-        GroupSearchView.objects.create(
-            organization=self.organization,
-            user_id=self.user.id,
-            position=0,
-            name="Default View",
-            query="ZeroDivisionError",
-            query_sort="date",
-        )
+    def test_query_status_and_substatus_overlapping(self) -> None:
         event = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=500)),
-                "fingerprint": ["group-1"],
-                "message": "ZeroDivisionError",
-            },
-            project_id=self.project.id,
-        )
-
-        self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=500)),
-                "fingerprint": ["group-2"],
-                "message": "TypeError",
-            },
-            project_id=self.project.id,
-        )
-
-        self.login_as(user=self.user)
-        response = self.get_response(
-            sort_by="date",
-            limit=10,
-            collapse=["unhandled"],
-            savedSearch=0,
-        )
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event.group.id
-
-    @with_feature("organizations:issue-stream-custom-views")
-    def test_non_default_custom_view_query(self, _: MagicMock) -> None:
-        GroupSearchView.objects.create(
-            organization=self.organization,
-            user_id=self.user.id,
-            position=0,
-            name="Default View",
-            query="TypeError",
-            query_sort="date",
-        )
-
-        view = GroupSearchView.objects.create(
-            organization=self.organization,
-            user_id=self.user.id,
-            position=1,
-            name="Custom View",
-            query="ZeroDivisionError",
-            query_sort="date",
-        )
-
-        event = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=500)),
-                "fingerprint": ["group-1"],
-                "message": "ZeroDivisionError",
-            },
-            project_id=self.project.id,
-        )
-
-        self.login_as(user=self.user)
-        response = self.get_response(
-            sort_by="date",
-            limit=10,
-            collapse=["unhandled"],
-            searchId=view.id,
-            savedSearch=0,
-        )
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event.group.id
-
-    @with_feature("organizations:issue-stream-custom-views")
-    def test_global_default_custom_view_query(self, _: MagicMock) -> None:
-        event = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=500)),
-                "fingerprint": ["group-1"],
-                "message": "ZeroDivisionError",
-            },
-            project_id=self.project.id,
-        )
-        event.group.priority = PriorityLevel.LOW
-        event.group.save()
-
-        self.login_as(user=self.user)
-        response = self.get_response(sort_by="date", limit=10, collapse=["unhandled"])
-
-        # The request is not populated with a query, or a searchId to extract a query from, so the
-        # query used should be the global default, the Prioritized query. Since the only event is a low priority event,
-        # we should expect no results here.
-        assert response.status_code == 200
-        assert len(response.data) == 0
-
-    def test_query_status_and_substatus_overlapping(self, _: MagicMock) -> None:
-        event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         event.group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
@@ -2483,9 +2409,9 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             == [event.group.id]
         )
 
-    def test_query_status_and_substatus_nonoverlapping(self, _: MagicMock) -> None:
+    def test_query_status_and_substatus_nonoverlapping(self) -> None:
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         event.group.update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
@@ -2533,814 +2459,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             == []
         )
 
-    def test_use_group_snuba_dataset(self, mock_query: MagicMock) -> None:
-        self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
-            project_id=self.project.id,
-        )
-        self.login_as(user=self.user)
-        response = self.get_success_response(query="")
-        assert len(response.data) == 1
-        assert mock_query.call_count == 1
-
-    def test_snuba_order_by_first_seen_of_issue(self, _: MagicMock) -> None:
-        # issue 1: issue 10 minutes ago
-        time = datetime.now() - timedelta(minutes=10)
-        event1 = self.store_event(
-            data={"timestamp": time.timestamp(), "fingerprint": ["group-1"]},
-            project_id=self.project.id,
-        )
-        # issue 2: events 90 minutes ago 1 minute ago
-        time = datetime.now() - timedelta(minutes=90)
-        event2 = self.store_event(
-            data={"timestamp": time.timestamp(), "fingerprint": ["group-2"]},
-            project_id=self.project.id,
-        )
-        time = datetime.now() - timedelta(minutes=1)
-        self.store_event(
-            data={"timestamp": time.timestamp(), "fingerprint": ["group-2"]},
-            project_id=self.project.id,
-        )
-
-        self.login_as(user=self.user)
-        response = self.get_success_response(
-            sort="new",
-            statsPeriod="1h",
-            query="",
-        )
-
-        assert len(response.data) == 2
-        assert int(response.data[0]["id"]) == event1.group.id
-        assert int(response.data[1]["id"]) == event2.group.id
-
-    def test_snuba_order_by_freq(self, mock_query: MagicMock) -> None:
-        event1 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=3)), "fingerprint": ["group-1"]},
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=2)), "fingerprint": ["group-1"]},
-            project_id=self.project.id,
-        )
-        event2 = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=1)), "fingerprint": ["group-2"]},
-            project_id=self.project.id,
-        )
-
-        self.login_as(user=self.user)
-        response = self.get_success_response(
-            sort="freq",
-            statsPeriod="1h",
-            query="",
-        )
-
-        assert len(response.data) == 2
-        assert int(response.data[0]["id"]) == event1.group.id
-        assert int(response.data[1]["id"]) == event2.group.id
-        assert mock_query.call_count == 1
-
-    def test_snuba_order_by_user_count(self, mock_query: MagicMock) -> None:
-        user1 = {
-            "email": "foo@example.com",
-        }
-        user2 = {
-            "email": "test@example.com",
-        }
-        user3 = {
-            "email": "test2@example.com",
-        }
-
-        # 2 events, 2 users
-        event1 = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=6)),
-                "fingerprint": ["group-1"],
-                "user": user2,
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=5)),
-                "fingerprint": ["group-1"],
-                "user": user3,
-            },
-            project_id=self.project.id,
-        )
-
-        # 3 events, 1 user for group 1
-        event2 = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=4)),
-                "fingerprint": ["group-2"],
-                "user": user1,
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=3)),
-                "fingerprint": ["group-2"],
-                "user": user1,
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=2)),
-                "fingerprint": ["group-2"],
-                "user": user1,
-            },
-            project_id=self.project.id,
-        )
-
-        self.login_as(user=self.user)
-        response = self.get_success_response(
-            sort="user",
-            query="",
-        )
-
-        assert len(response.data) == 2
-        assert int(response.data[0]["id"]) == event1.group.id
-        assert int(response.data[1]["id"]) == event2.group.id
-        assert mock_query.call_count == 1
-
-    def test_snuba_assignee_filter(self, _: MagicMock) -> None:
-
-        # issue 1: assigned to user
-        time = datetime.now() - timedelta(minutes=10)
-        event1 = self.store_event(
-            data={"timestamp": time.timestamp(), "fingerprint": ["group-1"]},
-            project_id=self.project.id,
-        )
-        GroupAssignee.objects.assign(event1.group, self.user)
-
-        # issue 2: assigned to team
-        time = datetime.now() - timedelta(minutes=9)
-        event2 = self.store_event(
-            data={"timestamp": time.timestamp(), "fingerprint": ["group-2"]},
-            project_id=self.project.id,
-        )
-        GroupAssignee.objects.assign(event2.group, self.team)
-
-        # issue 3: suspect commit for user
-        time = datetime.now() - timedelta(minutes=8)
-        event3 = self.store_event(
-            data={"timestamp": time.timestamp(), "fingerprint": ["group-3"]},
-            project_id=self.project.id,
-        )
-        GroupOwner.objects.create(
-            group=event3.group,
-            project=event3.group.project,
-            organization=event3.group.project.organization,
-            type=GroupOwnerType.SUSPECT_COMMIT.value,
-            team_id=None,
-            user_id=self.user.id,
-        )
-
-        # issue 4: ownership rule for team
-        time = datetime.now() - timedelta(minutes=7)
-        event4 = self.store_event(
-            data={"timestamp": time.timestamp(), "fingerprint": ["group-4"]},
-            project_id=self.project.id,
-        )
-        GroupOwner.objects.create(
-            group=event4.group,
-            project=event4.group.project,
-            organization=event4.group.project.organization,
-            type=GroupOwnerType.OWNERSHIP_RULE.value,
-            team_id=self.team.id,
-            user_id=None,
-        )
-
-        # issue 5: assigned to another user
-        time = datetime.now() - timedelta(minutes=6)
-        event5 = self.store_event(
-            data={"timestamp": time.timestamp(), "fingerprint": ["group-5"]},
-            project_id=self.project.id,
-        )
-        GroupAssignee.objects.assign(event5.group, self.create_user())
-
-        # issue 6: assigned to another team
-        time = datetime.now() - timedelta(minutes=5)
-        event6 = self.store_event(
-            data={"timestamp": time.timestamp(), "fingerprint": ["group-6"]},
-            project_id=self.project.id,
-        )
-        GroupAssignee.objects.assign(event6.group, self.create_team())
-
-        # issue 7: suggested to another user
-        time = datetime.now() - timedelta(minutes=4)
-        event7 = self.store_event(
-            data={"timestamp": time.timestamp(), "fingerprint": ["group-7"]},
-            project_id=self.project.id,
-        )
-        GroupOwner.objects.create(
-            group=event7.group,
-            project=event7.group.project,
-            organization=event7.group.project.organization,
-            type=GroupOwnerType.SUSPECT_COMMIT.value,
-            team_id=None,
-            user_id=self.create_user().id,
-        )
-        # issue 8: suggested to another team
-        time = datetime.now() - timedelta(minutes=3)
-        event8 = self.store_event(
-            data={"timestamp": time.timestamp(), "fingerprint": ["group-8"]},
-            project_id=self.project.id,
-        )
-        GroupOwner.objects.create(
-            group=event8.group,
-            project=event8.group.project,
-            organization=event8.group.project.organization,
-            type=GroupOwnerType.CODEOWNERS.value,
-            team_id=self.create_team().id,
-            user_id=None,
-        )
-
-        # issue 9: unassigned
-        time = datetime.now() - timedelta(minutes=2)
-        event9 = self.store_event(
-            data={"timestamp": time.timestamp(), "fingerprint": ["group-9"]},
-            project_id=self.project.id,
-        )
-
-        self.login_as(user=self.user)
-
-        queries_with_expected_ids = [
-            ("assigned_or_suggested:[me]", [event3.group.id, event1.group.id]),
-            ("assigned_or_suggested:[my_teams]", [event4.group.id, event2.group.id]),
-            (
-                "assigned_or_suggested:[me, my_teams]",
-                [event4.group.id, event3.group.id, event2.group.id, event1.group.id],
-            ),
-            (
-                "assigned_or_suggested:[me, my_teams, none]",
-                [
-                    event9.group.id,
-                    event4.group.id,
-                    event3.group.id,
-                    event2.group.id,
-                    event1.group.id,
-                ],
-            ),
-            ("assigned_or_suggested:none", [event9.group.id]),
-            ("assigned:[me]", [event1.group.id]),
-            ("assigned:[my_teams]", [event2.group.id]),
-            ("assigned:[me, my_teams]", [event2.group.id, event1.group.id]),
-            (
-                "assigned:[me, my_teams, none]",
-                [
-                    event9.group.id,
-                    event8.group.id,
-                    event7.group.id,
-                    event4.group.id,
-                    event3.group.id,
-                    event2.group.id,
-                    event1.group.id,
-                ],
-            ),
-            (
-                "assigned:none",
-                [
-                    event9.group.id,
-                    event8.group.id,
-                    event7.group.id,
-                    event4.group.id,
-                    event3.group.id,
-                ],
-            ),
-            (
-                "!assigned_or_suggested:[me]",
-                [
-                    event9.group.id,
-                    event8.group.id,
-                    event7.group.id,
-                    event6.group.id,
-                    event5.group.id,
-                    event4.group.id,
-                    event2.group.id,
-                ],
-            ),
-            (
-                "!assigned_or_suggested:[my_teams]",
-                [
-                    event9.group.id,
-                    event8.group.id,
-                    event7.group.id,
-                    event6.group.id,
-                    event5.group.id,
-                    event3.group.id,
-                    event1.group.id,
-                ],
-            ),
-            (
-                "!assigned_or_suggested:[me, my_teams]",
-                [
-                    event9.group.id,
-                    event8.group.id,
-                    event7.group.id,
-                    event6.group.id,
-                    event5.group.id,
-                ],
-            ),
-            (
-                "!assigned_or_suggested:[me, my_teams, none]",
-                [event8.group.id, event7.group.id, event6.group.id, event5.group.id],
-            ),
-            (
-                "!assigned_or_suggested:none",
-                [
-                    event8.group.id,
-                    event7.group.id,
-                    event6.group.id,
-                    event5.group.id,
-                    event4.group.id,
-                    event3.group.id,
-                    event2.group.id,
-                    event1.group.id,
-                ],
-            ),
-            (
-                "!assigned:[me]",
-                [
-                    event9.group.id,
-                    event8.group.id,
-                    event7.group.id,
-                    event6.group.id,
-                    event5.group.id,
-                    event4.group.id,
-                    event3.group.id,
-                    event2.group.id,
-                ],
-            ),
-            (
-                "!assigned:[my_teams]",
-                [
-                    event9.group.id,
-                    event8.group.id,
-                    event7.group.id,
-                    event6.group.id,
-                    event5.group.id,
-                    event4.group.id,
-                    event3.group.id,
-                    event1.group.id,
-                ],
-            ),
-            (
-                "!assigned:[me, my_teams]",
-                [
-                    event9.group.id,
-                    event8.group.id,
-                    event7.group.id,
-                    event6.group.id,
-                    event5.group.id,
-                    event4.group.id,
-                    event3.group.id,
-                ],
-            ),
-            ("!assigned:[me, my_teams, none]", [event6.group.id, event5.group.id]),
-            (
-                "!assigned:none",
-                [event6.group.id, event5.group.id, event2.group.id, event1.group.id],
-            ),
-        ]
-
-        for query, expected_group_ids in queries_with_expected_ids:
-            response = self.get_success_response(
-                sort="new",
-                query=query,
-            )
-            assert [int(row["id"]) for row in response.data] == expected_group_ids
-
-    def test_snuba_query_title(self, mock_query: MagicMock) -> None:
-        self.project = self.create_project(organization=self.organization)
-        event1 = self.store_event(
-            data={"fingerprint": ["group-1"], "message": "MyMessage"},
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={"fingerprint": ["group-2"], "message": "AnotherMessage"},
-            project_id=self.project.id,
-        )
-        self.login_as(user=self.user)
-        # give time for consumers to run and propogate changes to clickhouse
-        sleep(1)
-        response = self.get_success_response(
-            sort="new",
-            query="title:MyMessage",
-        )
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event1.group.id
-        assert mock_query.call_count == 1
-
-    def test_snuba_query_priority(self, mock_query: MagicMock) -> None:
-        self.project = self.create_project(organization=self.organization)
-        event1 = self.store_event(
-            data={"fingerprint": ["group-1"], "message": "MyMessage"},
-            project_id=self.project.id,
-        )
-        self.login_as(user=self.user)
-
-        # give time for consumers to run and propogate changes to clickhouse
-        sleep(1)
-        response = self.get_success_response(
-            sort="new",
-            query="issue.priority:high",
-        )
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event1.group.id
-
-        response = self.get_success_response(
-            sort="new",
-            query="priority:medium",
-        )
-        assert len(response.data) == 0
-
-    def test_snuba_query_first_release_no_environments(self, mock_query: MagicMock) -> None:
-        self.project = self.create_project(organization=self.organization)
-        old_release = Release.objects.create(organization_id=self.organization.id, version="abc")
-        old_release.add_project(self.project)
-
-        new_release = Release.objects.create(organization_id=self.organization.id, version="def")
-        new_release.add_project(self.project)
-
-        event1 = self.store_event(
-            data={"fingerprint": ["group-1"], "message": "MyMessage"},
-            project_id=self.project.id,
-        )
-        event1.group.first_release = new_release
-        event1.group.save()
-
-        self.login_as(user=self.user)
-
-        # give time for consumers to run and propogate changes to clickhouse
-        sleep(1)
-        for release, expected_groups in (
-            ("fake", []),
-            (old_release.version, []),
-            ("latest", [event1.group.id]),
-            (new_release.version, [event1.group.id]),
-        ):
-            response = self.get_success_response(
-                sort="new",
-                query=f"first_release:{release}",
-            )
-            assert len(response.data) == len(expected_groups)
-            assert {int(r["id"]) for r in response.data} == set(expected_groups)
-
-    def test_snuba_query_first_release_with_environments(self, mock_query: MagicMock) -> None:
-        self.project = self.create_project(organization=self.organization)
-        release = Release.objects.create(organization_id=self.organization.id, version="release1")
-        release.add_project(self.project)
-        Environment.objects.create(organization_id=self.organization.id, name="production")
-
-        event = self.store_event(
-            data={"fingerprint": ["group-1"], "message": "MyMessage", "environment": "development"},
-            project_id=self.project.id,
-        )
-        GroupEnvironment.objects.filter(group_id=event.group.id).update(first_release=release)
-        event.group.first_release = release
-        event.group.save()
-
-        self.login_as(user=self.user)
-
-        # give time for consumers to run and propogate changes to clickhouse
-        sleep(1)
-
-        for release_s, environment, expected_groups in (
-            (release.version, "development", [event.group.id]),
-            (release.version, "production", []),
-        ):
-            response = self.get_success_response(
-                sort="new",
-                query=f"first_release:{release_s}",
-                environment=environment,
-            )
-            assert len(response.data) == len(expected_groups)
-            assert {int(r["id"]) for r in response.data} == set(expected_groups)
-
-    def test_snuba_query_unlinked(self, mock_query: MagicMock) -> None:
-        self.project = self.create_project(organization=self.organization)
-        event1 = self.store_event(
-            data={"fingerprint": ["group-1"], "message": "MyMessage"},
-            project_id=self.project.id,
-        )
-        event2 = self.store_event(
-            data={"fingerprint": ["group-2"], "message": "AnotherMessage"},
-            project_id=self.project.id,
-        )
-        PlatformExternalIssue.objects.create(project_id=self.project.id, group_id=event1.group.id)
-        self.external_issue = ExternalIssue.objects.create(
-            organization_id=self.organization.id, integration_id=self.integration.id, key="123"
-        )
-        GroupLink.objects.create(
-            project_id=self.project.id,
-            group_id=event1.group.id,
-            linked_type=GroupLink.LinkedType.issue,
-            linked_id=self.external_issue.id,
-        )
-
-        self.login_as(user=self.user)
-        # give time for consumers to run and propogate changes to clickhouse
-        sleep(1)
-
-        for value in [0, 5]:
-            with override_options({"snuba.search.max-pre-snuba-candidates": value}):
-                response = self.get_success_response(
-                    sort="new",
-                    useGroupSnubaDataset=1,
-                    query="is:linked",
-                )
-                assert len(response.data) == 1
-                assert int(response.data[0]["id"]) == event1.group.id
-
-                response = self.get_success_response(
-                    sort="new",
-                    useGroupSnubaDataset=1,
-                    query="is:unlinked",
-                )
-                assert len(response.data) == 1
-                assert int(response.data[0]["id"]) == event2.group.id
-
-    def test_snuba_perf_issue(self, mock_query: MagicMock) -> None:
-        self.project = self.create_project(organization=self.organization)
-        # create a performance issue
-        _, _, group_info = self.store_search_issue(
-            self.project.id,
-            233,
-            [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
-            user={"email": "myemail@example.com"},
-            event_data={
-                "type": "transaction",
-                "start_timestamp": iso_format(datetime.now() - timedelta(minutes=1)),
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            },
-        )
-
-        # make mypy happy
-        perf_group_id = group_info.group.id if group_info else None
-
-        # create an error issue with the same tag
-        error_event = self.store_event(
-            data={
-                "fingerprint": ["error-issue"],
-                "event_id": "e" * 32,
-                "user": {"email": "myemail@example.com"},
-            },
-            project_id=self.project.id,
-        )
-        # another error issue with a different tag
-        self.store_event(
-            data={
-                "fingerprint": ["error-issue-2"],
-                "event_id": "e" * 32,
-                "user": {"email": "different@example.com"},
-            },
-            project_id=self.project.id,
-        )
-
-        assert Group.objects.filter(id=perf_group_id).exists()
-        self.login_as(user=self.user)
-        # give time for consumers to run and propogate changes to clickhouse
-        sleep(1)
-        response = self.get_success_response(
-            sort="new",
-            query="user.email:myemail@example.com",
-        )
-        assert len(response.data) == 2
-        assert {r["id"] for r in response.data} == {
-            str(perf_group_id),
-            str(error_event.group.id),
-        }
-        assert mock_query.call_count == 1
-
-    @patch("sentry.issues.ingest.should_create_group", return_value=True)
-    @with_feature(PerformanceRenderBlockingAssetSpanGroupType.build_visible_feature_name())
-    @with_feature(PerformanceNPlusOneGroupType.build_visible_feature_name())
-    def test_snuba_type_and_category(
-        self,
-        mock_should_create_group: MagicMock,
-        mock_query: MagicMock,
-    ) -> None:
-        self.project = self.create_project(organization=self.organization)
-        # create a render blocking issue
-        _, _, group_info = self.store_search_issue(
-            self.project.id,
-            2,
-            [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
-            event_data={
-                "type": "transaction",
-                "start_timestamp": iso_format(datetime.now() - timedelta(minutes=1)),
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            },
-            override_occurrence_data={
-                "type": PerformanceRenderBlockingAssetSpanGroupType.type_id,
-            },
-        )
-        # make mypy happy
-        blocking_asset_group_id = group_info.group.id if group_info else None
-
-        _, _, group_info = self.store_search_issue(
-            self.project.id,
-            2,
-            [f"{PerformanceNPlusOneGroupType.type_id}-group2"],
-            event_data={
-                "type": "transaction",
-                "start_timestamp": iso_format(datetime.now() - timedelta(minutes=1)),
-                "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
-            },
-            override_occurrence_data={
-                "type": PerformanceNPlusOneGroupType.type_id,
-            },
-        )
-        # make mypy happy
-        np1_group_id = group_info.group.id if group_info else None
-
-        # create an error issue
-        error_event = self.store_event(
-            data={
-                "fingerprint": ["error-issue"],
-                "event_id": "e" * 32,
-            },
-            project_id=self.project.id,
-        )
-        error_group_id = error_event.group.id
-
-        self.login_as(user=self.user)
-        # give time for consumers to run and propogate changes to clickhouse
-        sleep(1)
-        assert Group.objects.filter(id=np1_group_id).exists()
-
-        # first test just the category
-        response = self.get_success_response(
-            sort="new",
-            query="issue.category:performance",
-        )
-        assert len(response.data) == 2
-        assert {r["id"] for r in response.data} == {
-            str(blocking_asset_group_id),
-            str(np1_group_id),
-        }
-        assert mock_query.call_count == 1
-
-        # now ask for the type
-        response = self.get_success_response(
-            sort="new",
-            query="issue.type:performance_n_plus_one_db_queries",
-        )
-        assert len(response.data) == 1
-        assert {r["id"] for r in response.data} == {
-            str(np1_group_id),
-        }
-
-        # now ask for the type and category in a way that should return no results
-        response = self.get_success_response(
-            sort="new",
-            query="issue.category:replay issue.type:performance_n_plus_one_db_queries",
-        )
-        assert len(response.data) == 0
-
-        response = self.get_success_response(
-            sort="new",
-            query="issue.category:error",
-        )
-        assert len(response.data) == 1
-        assert {r["id"] for r in response.data} == {str(error_group_id)}
-
-        response = self.get_success_response(
-            sort="new",
-            query="!issue.category:performance",
-        )
-        assert len(response.data) == 1
-        assert {r["id"] for r in response.data} == {str(error_group_id)}
-
-        response = self.get_success_response(
-            sort="new",
-            query="!issue.category:error",
-        )
-        assert len(response.data) == 2
-        assert {r["id"] for r in response.data} == {
-            str(blocking_asset_group_id),
-            str(np1_group_id),
-        }
-
-        response = self.get_success_response(
-            sort="new",
-            query="!issue.category:performance",
-        )
-        assert len(response.data) == 1
-        assert {r["id"] for r in response.data} == {str(error_group_id)}
-
-        response = self.get_success_response(
-            sort="new",
-            query="!issue.category:[performance,cron]",
-        )
-        assert len(response.data) == 1
-        assert {r["id"] for r in response.data} == {str(error_group_id)}
-
-    def test_pagination_and_x_hits_header(self, _: MagicMock) -> None:
-        # Create 30 issues
-        for i in range(30):
-            self.store_event(
-                data={
-                    "timestamp": iso_format(before_now(seconds=i)),
-                    "fingerprint": [f"group-{i}"],
-                },
-                project_id=self.project.id,
-            )
-
-        self.login_as(user=self.user)
-        sleep(1)
-
-        # Request the first page with a limit of 10
-        response = self.get_success_response(limit=10)
-        assert response.status_code == 200
-        assert len(response.data) == 10
-        assert response.headers.get("X-Hits") == "30"
-        assert "Link" in response.headers
-
-        # Parse the Link header to get the cursor for the next page
-        header_links = parse_link_header(response.headers["Link"])
-        next_obj = [link for link in header_links.values() if link["rel"] == "next"][0]
-        assert next_obj["results"] == "true"
-        cursor = next_obj["cursor"]
-        prev_obj = [link for link in header_links.values() if link["rel"] == "previous"][0]
-        assert prev_obj["results"] == "false"
-
-        # Request the second page using the cursor
-        response = self.get_success_response(limit=10, cursor=cursor)
-        assert response.status_code == 200
-        assert len(response.data) == 10
-
-        # Check for the presence of the next cursor
-        header_links = parse_link_header(response.headers["Link"])
-        next_obj = [link for link in header_links.values() if link["rel"] == "next"][0]
-        assert next_obj["results"] == "true"
-        cursor = next_obj["cursor"]
-        prev_obj = [link for link in header_links.values() if link["rel"] == "previous"][0]
-        assert prev_obj["results"] == "true"
-
-        # Request the third page using the cursor
-        response = self.get_success_response(limit=10, cursor=cursor)
-        assert response.status_code == 200
-        assert len(response.data) == 10
-
-        # Check that there is no next page
-        header_links = parse_link_header(response.headers["Link"])
-        next_obj = [link for link in header_links.values() if link["rel"] == "next"][0]
-        assert next_obj["results"] == "false"
-        prev_obj = [link for link in header_links.values() if link["rel"] == "previous"][0]
-        assert prev_obj["results"] == "true"
-
-    def test_find_error_by_message_with_snuba_only_search(self, _: MagicMock) -> None:
-        self.login_as(user=self.user)
-        project = self.project
-        # Simulate sending an event with Kafka enabled
-        event = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=1)),
-                "message": "OutOfMemoryError",
-                "tags": {"level": "error"},
-            },
-            project_id=project.id,
-        )
-        # Simulate sending another event that matches the wildcard filter
-        event2 = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=1)),
-                "message": "MemoryError",
-                "tags": {"level": "error"},
-            },
-            project_id=project.id,
-        )
-
-        # Simulate sending another event that doesn't match the filter
-        self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=1)),
-                "message": "NullPointerException",
-                "tags": {"level": "error"},
-            },
-            project_id=project.id,
-        )
-
-        # Retrieve the event based on its message
-        response = self.get_success_response(query="OutOfMemoryError")
-        assert response.status_code == 200
-        issues = json.loads(response.content)
-        assert len(issues) == 1
-        assert int(issues[0]["id"]) == event.group.id
-
-        # Retrieve events based on a wildcard match for any *Error in the message
-        response = self.get_success_response(query="*Error")
-        assert response.status_code == 200
-        issues = json.loads(response.content)
-        assert len(issues) >= 2  # Expecting at least two issues: OutOfMemoryError and MemoryError
-        assert any(int(issue["id"]) == event.group.id for issue in issues)
-        assert any(int(issue["id"]) == event2.group.id for issue in issues)
-
-    def test_first_seen_and_last_seen_filters(self, _: MagicMock) -> None:
+    def test_first_seen_and_last_seen_filters(self) -> None:
         self.login_as(user=self.user)
         project = self.project
         # Create 4 issues at different times
@@ -3353,7 +2472,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         for i, (time1, time2) in enumerate(times):
             self.store_event(
                 data={
-                    "timestamp": iso_format(time1),
+                    "timestamp": time1.isoformat(),
                     "message": f"Error {i}",
                     "fingerprint": [f"group-{i}"],
                 },
@@ -3361,7 +2480,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
             self.store_event(
                 data={
-                    "timestamp": iso_format(time2),
+                    "timestamp": time2.isoformat(),
                     "message": f"Error {i} - additional event",
                     "fingerprint": [f"group-{i}"],
                 },
@@ -3369,7 +2488,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
 
         # Test firstSeen filter
-        twenty_four_hours_ago = iso_format(before_now(hours=24))
+        twenty_four_hours_ago = before_now(hours=24).isoformat()
         response = self.get_success_response(query=f"firstSeen:<{twenty_four_hours_ago}")
         assert len(response.data) == 0
         response = self.get_success_response(query="firstSeen:-24h")
@@ -3383,13 +2502,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 4
 
         # Test lastSeen filter with an absolute date using before_now
-        absolute_date = iso_format(before_now(days=1))  # Assuming 365 days before now as an example
+        absolute_date = before_now(days=1).isoformat()  # Assuming 365 days before now as an example
         response = self.get_success_response(query=f"lastSeen:>{absolute_date}")
         assert len(response.data) == 4
         response = self.get_success_response(query=f"lastSeen:<{absolute_date}")
         assert len(response.data) == 0
 
-    def test_filter_by_bookmarked_by(self, _: MagicMock) -> None:
+    def test_filter_by_bookmarked_by(self) -> None:
         self.login_as(user=self.user)
         project = self.project
         user2 = self.create_user(email="user2@example.com")
@@ -3397,7 +2516,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Create two issues, one bookmarked by each user
         event1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "message": "Error 1",
                 "fingerprint": ["group-1"],
             },
@@ -3408,7 +2527,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         event2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "message": "Error 2",
                 "fingerprint": ["group-2"],
             },
@@ -3427,14 +2546,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == group2.id
 
-    def test_filter_by_linked(self, _: MagicMock) -> None:
+    def test_filter_by_linked(self) -> None:
         self.login_as(user=self.user)
         project = self.project
 
         # Create two issues, one linked and one not linked
         event1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "message": "Error 1",
                 "fingerprint": ["group-1"],
             },
@@ -3449,7 +2568,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         event2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "message": "Error 2",
                 "fingerprint": ["group-2"],
             },
@@ -3467,14 +2586,14 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == group2.id
 
-    def test_filter_by_subscribed_by(self, _: MagicMock) -> None:
+    def test_filter_by_subscribed_by(self) -> None:
         self.login_as(user=self.user)
         project = self.project
 
         # Create two issues, one subscribed by user1 and one not subscribed
         event1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "message": "Error 1",
                 "fingerprint": ["group-1"],
             },
@@ -3489,7 +2608,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "message": "Error 2",
                 "fingerprint": ["group-2"],
             },
@@ -3505,23 +2624,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(query="subscribed:fake@fake.com")
         assert len(response.data) == 0
 
-    def test_snuba_search_lookup_by_regressed_in_release(self, _: MagicMock) -> None:
-        self.login_as(self.user)
-        project = self.project
-        release = self.create_release()
-        event = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=1)),
-                "tags": {"sentry:release": release.version},
-            },
-            project_id=project.id,
-        )
-        record_group_history(event.group, GroupHistoryStatus.REGRESSED, release=release)
-        response = self.get_success_response(query=f"regressed_in_release:{release.version}")
-        issues = json.loads(response.content)
-        assert [int(issue["id"]) for issue in issues] == [event.group.id]
-
-    def test_lookup_by_release_build(self, _: MagicMock) -> None:
+    def test_lookup_by_release_build(self) -> None:
 
         for i in range(3):
             j = 119 + i
@@ -3532,7 +2635,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         release = self.create_release(version="steve@1.2.7+123")
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "tags": {"sentry:release": release.version},
             },
             project_id=project.id,
@@ -3547,73 +2650,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         issues = json.loads(response.content)
         assert len(issues) == 0
 
-    def test_snuba_search_lookup_by_stack_filename(self, _: MagicMock) -> None:
-        self.login_as(self.user)
-        project = self.project
-        event = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=1)),
-                "fingerprint": ["unique-fingerprint-1"],
-                "exception": {
-                    "values": [
-                        {
-                            "type": "Error",
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "filename": "example.py",
-                                        "lineno": 29,
-                                        "colno": 10,
-                                        "function": "test_function",
-                                    }
-                                ]
-                            },
-                        }
-                    ]
-                },
-            },
-            project_id=project.id,
-        )
-        self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=2)),
-                "fingerprint": ["unique-fingerprint-2"],
-                "exception": {
-                    "values": [
-                        {
-                            "type": "Error",
-                            "stacktrace": {
-                                "frames": [
-                                    {
-                                        "filename": "different_example.py",
-                                        "lineno": 45,
-                                        "colno": 10,
-                                        "function": "another_test_function",
-                                    }
-                                ]
-                            },
-                        }
-                    ]
-                },
-            },
-            project_id=project.id,
-        )
-
-        response = self.get_success_response(query="stack.filename:example.py")
-        issues = json.loads(response.content)
-        assert len(issues) == 1
-        assert int(issues[0]["id"]) == event.group.id
-        response = self.get_success_response(query="stack.filename:nonexistent.py")
-        issues = json.loads(response.content)
-        assert len(issues) == 0
-
-    def test_error_main_thread_condition(self, _: MagicMock) -> None:
+    def test_error_main_thread_condition(self) -> None:
         self.login_as(user=self.user)
         project = self.project
         # Simulate sending an event with main_thread set to true
         event1 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "message": "MainThreadError",
                 "exception": {
                     "values": [
@@ -3631,7 +2674,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # Simulate sending an event with main_thread set to false
         event2 = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=2)),
+                "timestamp": before_now(seconds=2).isoformat(),
                 "message": "WorkerThreadError",
                 "exception": {
                     "values": [
@@ -3659,222 +2702,106 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(issues) == 1
         assert int(issues[0]["id"]) == event2.group.id
 
-    def test_snuba_heavy_search_aggregate_stats_regression_test(self, _: MagicMock) -> None:
-        self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
-            project_id=self.project.id,
-        )
-
-        self.login_as(user=self.user)
-        response = self.get_response(
-            sort_by="date",
-            limit=10,
-            query="times_seen:>0 last_seen:-1h date:-1h",
-        )
-
-        assert response.status_code == 200
-        assert len(response.data) == 1
-
-    def test_snuba_heavy_search_inbox_search(self, _: MagicMock) -> None:
-        self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=200)),
-                "fingerprint": ["group-1"],
-                "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
-            },
-            project_id=self.project.id,
-        )
-
-        event = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=200)),
-                "fingerprint": ["group-2"],
-                "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
-            },
-            project_id=self.project.id,
-        )
-
-        self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=200)),
-                "fingerprint": ["group-3"],
-                "tags": {"server": "example.com", "trace": "woof", "message": "foo"},
-            },
-            project_id=self.project.id,
-        )
-
-        add_group_to_inbox(event.group, GroupInboxReason.NEW)
-
-        self.login_as(user=self.user)
-        response = self.get_response(
-            sort_by="date",
-            limit=10,
-            query="is:unresolved is:for_review",
-            expand=["inbox"],
-        )
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event.group.id
-        assert response.data[0]["inbox"] is not None
-        assert response.data[0]["inbox"]["reason"] == GroupInboxReason.NEW.value
-
-    @patch("sentry.analytics.record")
-    def test_snuba_heavy_advanced_search_errors(self, mock_record: MagicMock, _: MagicMock):
-        self.login_as(user=self.user)
-        response = self.get_response(sort_by="date", query="!has:user")
-        assert response.status_code == 200, response.data
-        assert not any(
-            c[0][0] == "advanced_search.feature_gated" for c in mock_record.call_args_list
-        )
-
-        with self.feature({"organizations:advanced-search": False}):
-            response = self.get_response(sort_by="date", query="!has:user")
-            assert response.status_code == 400, response.data
-            assert (
-                "You need access to the advanced search feature to use negative "
-                "search" == response.data["detail"]
+    def test_feedback_filtered_by_default(self) -> None:
+        with Feature(
+            {
+                FeedbackGroup.build_visible_feature_name(): True,
+                FeedbackGroup.build_ingest_feature_name(): True,
+            }
+        ):
+            event = self.store_event(
+                data={"event_id": uuid4().hex, "timestamp": before_now(seconds=1).isoformat()},
+                project_id=self.project.id,
             )
+            assert event.group is not None
 
-            mock_record.assert_called_with(
-                "advanced_search.feature_gated",
-                user_id=self.user.id,
-                default_user_id=self.user.id,
-                organization_id=self.organization.id,
+            feedback_event = mock_feedback_event(self.project.id, before_now(seconds=1))
+            create_feedback_issue(
+                feedback_event, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
             )
+            self.login_as(user=self.user)
+            res = self.get_success_response()
 
-    def test_snuba_heavy_filter_not_unresolved(self, _: MagicMock) -> None:
-        event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
-            project_id=self.project.id,
-        )
-        event.group.update(status=GroupStatus.RESOLVED, substatus=None)
-        self.login_as(user=self.user)
-        response = self.get_response(
-            sort_by="date",
-            limit=10,
-            query="!is:unresolved",
-            expand="inbox",
-            collapse="stats",
-        )
-        assert response.status_code == 200
-        assert [int(r["id"]) for r in response.data] == [event.group.id]
+        # test that the issue returned is NOT the feedback issue.
+        assert len(res.data) == 1
+        issue = res.data[0]
+        feedback_group = Group.objects.get(type=FeedbackGroup.type_id)
+        assert int(issue["id"]) != feedback_group.id
+        assert issue["issueCategory"] != "feedback"
 
-    def test_snuba_heavy_sdk_name_with_negations_and_positive_checks(self, _: MagicMock) -> None:
-        # Store an event with sdk.name as sentry.python
-        event_python = self.store_event(
+    def test_feedback_category_filter(self) -> None:
+        with Feature(
+            {
+                FeedbackGroup.build_visible_feature_name(): True,
+                FeedbackGroup.build_ingest_feature_name(): True,
+            }
+        ):
+            event = self.store_event(
+                data={"event_id": uuid4().hex, "timestamp": before_now(seconds=1).isoformat()},
+                project_id=self.project.id,
+            )
+            assert event.group is not None
+
+            feedback_event = mock_feedback_event(self.project.id, before_now(seconds=1))
+            create_feedback_issue(
+                feedback_event, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+            )
+            self.login_as(user=self.user)
+            res = self.get_success_response(query="issue.category:feedback")
+
+        # test that the issue returned IS the feedback issue.
+        assert len(res.data) == 1
+        issue = res.data[0]
+        feedback_group = Group.objects.get(type=FeedbackGroup.type_id)
+        assert int(issue["id"]) == feedback_group.id
+        assert issue["issueCategory"] == "feedback"
+
+    def test_flags_and_tags_query(self) -> None:
+        self.login_as(self.user)
+        project = self.project
+        self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=500)),
-                "fingerprint": ["group-1"],
-                "sdk": {"name": "sentry.python", "version": "0.13.19"},
+                "timestamp": before_now(seconds=1).isoformat(),
+                "contexts": {"flags": {"values": [{"flag": "test:flag", "result": True}]}},
             },
-            project_id=self.project.id,
+            project_id=project.id,
         )
 
-        # Store another event with sdk.name as sentry.javascript
-        event_javascript = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=400)),
-                "fingerprint": ["group-2"],
-                "sdk": {"name": "sentry.javascript", "version": "2.1.1"},
-            },
-            project_id=self.project.id,
-        )
+        response = self.get_success_response(query="flags[test:flag]:true")
+        assert len(json.loads(response.content)) == 1
+        response = self.get_success_response(query="flags[test:flag]:false")
+        assert len(json.loads(response.content)) == 0
 
-        self.login_as(user=self.user)
+    @patch(
+        "sentry.search.snuba.executors.PostgresSnubaQueryExecutor.query",
+        side_effect=PostgresSnubaQueryExecutor.query,
+        autospec=True,
+    )
+    def test_postgres_query_timeout(self, mock_query: MagicMock) -> None:
+        """Test that a Postgres OperationalError with QueryCanceled pgcode becomes a 429 error
+        only when it's a statement timeout, and remains a 500 for user cancellation"""
 
-        # Query for events not using sentry.javascript SDK
-        response_negation = self.get_response(
-            sort_by="date",
-            limit=10,
-            query="!sdk.name:sentry.javascript",
-        )
-        assert response_negation.status_code == 200
-        assert len(response_negation.data) == 1
-        assert [int(r["id"]) for r in response_negation.data] == [event_python.group.id]
+        class TimeoutError(OperationalError):
+            def __str__(self) -> str:
+                return "canceling statement due to statement timeout"
 
-        # Query for events specifically using sentry.python SDK
-        response_positive = self.get_response(
-            sort_by="date",
-            query="sdk.name:sentry.javascript",
-        )
-        assert response_positive.status_code == 200
-        assert len(response_negation.data) == 1
-        assert [int(r["id"]) for r in response_positive.data] == [event_javascript.group.id]
+        class UserCancelError(OperationalError):
+            def __str__(self) -> str:
+                return "canceling statement due to user request"
 
-        # Query for events specifically using sentry.python SDK
-        response_positive = self.get_response(
-            sort_by="date",
-            query="sdk.name:sentry.*",
-        )
-        assert response_positive.status_code == 200
-        assert len(response_positive.data) == 2
-        assert {int(r["id"]) for r in response_positive.data} == {
-            event_python.group.id,
-            event_javascript.group.id,
-        }
-
-    def test_snuba_heavy_error_handled_boolean(self, _: MagicMock) -> None:
-        # Create an event with an unhandled exception
-        unhandled_event = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=300)),
-                "level": "error",
-                "fingerprint": ["unhandled-group"],
-                "exception": {
-                    "values": [
-                        {
-                            "type": "UncaughtExceptionHandler",
-                            "value": "Unhandled exception",
-                            "mechanism": {"handled": False, "type": "generic"},
-                        }
-                    ]
-                },
-            },
-            project_id=self.project.id,
-        )
-
-        # Create an event with a handled exception
-        handled_event = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=300)),
-                "fingerprint": ["handled-group"],
-                "exception": {
-                    "values": [
-                        {
-                            "type": "Error",
-                            "value": "Handled exception",
-                            "mechanism": {"handled": True, "type": "generic"},
-                        }
-                    ]
-                },
-            },
-            project_id=self.project.id,
-        )
         self.login_as(user=self.user)
 
-        # Fetch unhandled exceptions
-        response_unhandled = self.get_response(query="error.handled:false")
-        assert response_unhandled.status_code == 200
-        assert len(response_unhandled.data) == 1
-        assert int(response_unhandled.data[0]["id"]) == unhandled_event.group.id
+        mock_query.side_effect = TimeoutError()
+        response = self.get_response()
+        assert response.status_code == 429
+        assert (
+            response.data["detail"]
+            == "Query timeout. Please try with a smaller date range or fewer conditions."
+        )
 
-        # Fetch handled exceptions
-        response_handled = self.get_response(query="error.handled:true")
-        assert response_handled.status_code == 200
-        assert len(response_handled.data) == 1
-        assert int(response_handled.data[0]["id"]) == handled_event.group.id
-
-        # Test for error.unhandled:1 (equivalent to error.handled:false)
-        response_unhandled_1 = self.get_response(query="error.unhandled:1")
-        assert response_unhandled_1.status_code == 200
-        assert len(response_unhandled_1.data) == 1
-        assert int(response_unhandled_1.data[0]["id"]) == unhandled_event.group.id
-
-        # Test for error.unhandled:0 (equivalent to error.handled:true)
-        response_handled_0 = self.get_response(query="error.unhandled:0")
-        assert response_handled_0.status_code == 200
-        assert len(response_handled_0.data) == 1
-        assert int(response_handled_0.data[0]["id"]) == handled_event.group.id
+        mock_query.side_effect = UserCancelError()
+        response = self.get_response()
+        assert response.status_code == 500
 
 
 class GroupUpdateTest(APITestCase, SnubaTestCase):
@@ -3885,7 +2812,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         super().setUp()
         self.min_ago = timezone.now() - timedelta(minutes=1)
 
-    def get_response(self, *args, **kwargs):
+    def get_response(self, *args: Any, **kwargs: Any) -> Response:
         if not args:
             org = self.project.organization.slug
         else:
@@ -3996,11 +2923,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     def test_bulk_resolve(self) -> None:
         self.login_as(user=self.user)
 
-        for i in range(200):
+        for i in range(101):
             self.store_event(
                 data={
                     "fingerprint": [i],
-                    "timestamp": iso_format(self.min_ago - timedelta(seconds=i)),
+                    "timestamp": (self.min_ago - timedelta(seconds=i)).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -4024,7 +2951,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             integration = self.create_provider_integration(provider="example", name="Example")
             integration.add_organization(org, self.user)
         event = self.store_event(
-            data={"timestamp": iso_format(self.min_ago)}, project_id=self.project.id
+            data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id
         )
         group = event.group
 
@@ -4192,23 +3119,23 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         GroupResolution.current_release_version is set to the latest release associated with a
         Group, when the project follows semantic versioning scheme
         """
-        release_1 = self.create_release(version="fake_package@21.1.0")
-        release_2 = self.create_release(version="fake_package@21.1.1")
-        release_3 = self.create_release(version="fake_package@21.1.2")
+        release_21_1_0 = self.create_release(version="fake_package@21.1.0")
+        release_21_1_1 = self.create_release(version="fake_package@21.1.1")
+        release_21_1_2 = self.create_release(version="fake_package@21.1.2")
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "fingerprint": ["group-1"],
-                "release": release_2.version,
+                "release": release_21_1_1.version,
             },
             project_id=self.project.id,
         )
         group = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=12)),
+                "timestamp": before_now(seconds=12).isoformat(),
                 "fingerprint": ["group-1"],
-                "release": release_1.version,
+                "release": release_21_1_0.version,
             },
             project_id=self.project.id,
         ).group
@@ -4225,7 +3152,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         # a group
         grp_resolution = GroupResolution.objects.get(group=group)
 
-        assert grp_resolution.current_release_version == release_2.version
+        assert grp_resolution.current_release_version == release_21_1_2.version
 
         # "resolvedInNextRelease" with semver releases is considered as "resolvedInRelease"
         assert grp_resolution.type == GroupResolution.Type.in_release
@@ -4233,12 +3160,13 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         # Add release that is between 2 and 3 to ensure that any release after release 2 should
         # not have a resolution
-        release_4 = self.create_release(version="fake_package@21.1.1+1")
+        release_21_1_1_plus_1 = self.create_release(version="fake_package@21.1.1+1")
+        release_21_1_3 = self.create_release(version="fake_package@21.1.3")
 
-        for release in [release_1, release_2]:
+        for release in [release_21_1_0, release_21_1_1, release_21_1_1_plus_1, release_21_1_2]:
             assert GroupResolution.has_resolution(group=group, release=release)
 
-        for release in [release_3, release_4]:
+        for release in [release_21_1_3]:
             assert not GroupResolution.has_resolution(group=group, release=release)
 
         # Ensure that Activity has `current_release_version` set on `Resolved in next release`
@@ -4248,7 +3176,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             ident=grp_resolution.id,
         )
 
-        assert activity.data["current_release_version"] == release_2.version
+        assert activity.data["current_release_version"] == release_21_1_2.version
 
     def test_in_non_semver_projects_group_resolution_stores_current_release_version(self) -> None:
         """
@@ -4263,7 +3191,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=12)),
+                "timestamp": before_now(seconds=12).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
@@ -4312,7 +3240,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=12)),
+                "timestamp": before_now(seconds=12).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
@@ -4327,7 +3255,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=0)),
+                "timestamp": before_now(seconds=0).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_2.version,
             },
@@ -4370,7 +3298,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=12)),
+                "timestamp": before_now(seconds=12).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
@@ -4401,6 +3329,8 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
     def test_selective_status_update(self) -> None:
         group1 = self.create_group(status=GroupStatus.RESOLVED)
+        group1.resolved_at = timezone.now()
+        group1.save()
         group2 = self.create_group(status=GroupStatus.UNRESOLVED)
         group3 = self.create_group(status=GroupStatus.IGNORED)
         group4 = self.create_group(
@@ -4435,6 +3365,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert new_group4.resolved_at is None
         assert new_group4.status == GroupStatus.UNRESOLVED
 
+    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_current_release(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
@@ -4471,6 +3402,52 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
         ).exists()
 
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        assert open_period.date_ended == group.resolved_at
+        assert open_period.resolution_activity == activity
+
+    @with_feature("organizations:issue-open-periods")
+    def test_set_resolved_in_current_release_without_open_period(self) -> None:
+        release = Release.objects.create(organization_id=self.project.organization_id, version="a")
+        release.add_project(self.project)
+
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        GroupOpenPeriod.objects.all().delete()
+
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(
+            qs_params={"id": group.id}, status="resolved", statusDetails={"inRelease": "latest"}
+        )
+        assert response.data["status"] == "resolved"
+        assert response.data["statusDetails"]["inRelease"] == release.version
+        assert response.data["statusDetails"]["actor"]["id"] == str(self.user.id)
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
+        assert resolution.actor_id == self.user.id
+
+        assert GroupSubscription.objects.filter(
+            user_id=self.user.id, group=group, is_active=True
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
+        assert activity.data["version"] == release.version
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
+        ).exists()
+
+        assert GroupOpenPeriod.objects.filter(group=group).count() == 0
+
+    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_release(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
         release.add_project(self.project)
@@ -4509,6 +3486,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert activity.data["version"] == release.version
 
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        assert open_period.date_ended == group.resolved_at
+        assert open_period.resolution_activity == activity
+
+    @with_feature("organizations:issue-open-periods")
     def test_in_semver_projects_set_resolved_in_explicit_release(self) -> None:
         release_1 = self.create_release(version="fake_package@3.0.0")
         release_2 = self.create_release(version="fake_package@2.0.0")
@@ -4516,7 +3499,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=10)),
+                "timestamp": before_now(seconds=10).isoformat(),
                 "fingerprint": ["group-1"],
                 "release": release_1.version,
             },
@@ -4555,6 +3538,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         assert GroupResolution.has_resolution(group=group, release=release_2)
         assert not GroupResolution.has_resolution(group=group, release=release_3)
+
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        assert open_period.date_ended == group.resolved_at
+        assert open_period.resolution_activity == activity
 
     def test_set_resolved_in_next_release(self) -> None:
         release = Release.objects.create(organization_id=self.project.organization_id, version="a")
@@ -4662,6 +3650,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
         ).exists()
 
+    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_commit_released(self) -> None:
         release = self.create_release(project=self.project)
         repo = self.create_repo(project=self.project, name=self.project.name)
@@ -4704,6 +3693,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
         ).exists()
 
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        assert open_period.date_ended == group.resolved_at
+        assert open_period.resolution_activity == activity
+
+    @with_feature("organizations:issue-open-periods")
     def test_set_resolved_in_explicit_commit_missing(self) -> None:
         repo = self.create_repo(project=self.project, name=self.project.name)
         group = self.create_group(status=GroupStatus.UNRESOLVED)
@@ -4724,9 +3719,13 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
         ).exists()
 
+        open_period = get_latest_open_period(group)
+        assert open_period is not None
+        assert open_period.date_ended is None
+
     def test_set_unresolved(self) -> None:
         release = self.create_release(project=self.project, version="abc")
-        group = self.create_group(status=GroupStatus.RESOLVED)
+        group = self.create_group(status=GroupStatus.IGNORED)
         GroupResolution.objects.create(group=group, release=release)
 
         self.login_as(user=self.user)
@@ -4777,7 +3776,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.IGNORED
-        assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.IGNORED).exists()
+        assert GroupHistory.objects.filter(
+            group=group, status=GroupHistoryStatus.ARCHIVED_FOREVER
+        ).exists()
 
         assert response.data == {"status": "ignored", "statusDetails": {}, "inbox": None}
 
@@ -4845,7 +3846,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 data={
                     "fingerprint": ["put-me-in-group-1"],
                     "user": {"id": str(i)},
-                    "timestamp": iso_format(self.min_ago + timedelta(seconds=i)),
+                    "timestamp": (self.min_ago + timedelta(seconds=i)).isoformat(),
                 },
                 project_id=self.project.id,
             )
@@ -5015,9 +4016,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
 
         mock_uuid4.return_value = self.get_mock_uuid()
-        group1 = self.create_group(times_seen=1)
-        group2 = self.create_group(times_seen=50)
-        group3 = self.create_group(times_seen=2)
+
+        today = datetime.now(tz=UTC)
+        yesterday = today - timedelta(days=1)
+        group1 = self.create_group(first_seen=today, times_seen=1)
+        group2 = self.create_group(first_seen=yesterday, times_seen=50)
+        group3 = self.create_group(first_seen=today, times_seen=2)
         self.create_group()
 
         self.login_as(user=self.user)
@@ -5213,7 +4217,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group1, status=GroupHistoryStatus.UNRESOLVED
         ).exists()
         assert GroupHistory.objects.filter(
-            group=group2, status=GroupHistoryStatus.UNRESOLVED
+            group=group2, status=GroupHistoryStatus.REGRESSED
         ).exists()
 
     def test_update_priority(self) -> None:
@@ -5293,89 +4297,76 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
     method = "delete"
 
-    def get_response(self, *args, **kwargs):
+    def get_response(self, *args: Any, **kwargs: Any) -> Response:
         if not args:
             org = self.project.organization.slug
         else:
             org = args[0]
         return super().get_response(org, **kwargs)
 
-    @patch("sentry.eventstream.backend")
-    def test_delete_by_id(self, mock_eventstream: MagicMock) -> None:
-        eventstream_state = {"event_stream_state": uuid4()}
-        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
+    def assert_pending_deletion_groups(self, groups: Sequence[Group]) -> None:
+        for group in groups:
+            assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
+            assert not GroupHash.objects.filter(group_id=group.id).exists()
 
-        group1 = self.create_group(status=GroupStatus.RESOLVED)
-        group2 = self.create_group(status=GroupStatus.UNRESOLVED)
-        group3 = self.create_group(status=GroupStatus.IGNORED)
-        group4 = self.create_group(
-            project=self.create_project(slug="foo"),
-            status=GroupStatus.UNRESOLVED,
-        )
+    def assert_deleted_groups(self, groups: Sequence[Group]) -> None:
+        for group in groups:
+            assert not Group.objects.filter(id=group.id).exists()
+            assert not GroupHash.objects.filter(group_id=group.id).exists()
 
-        hashes = []
-        for g in group1, group2, group3, group4:
-            hash = uuid4().hex
-            hashes.append(hash)
-            GroupHash.objects.create(project=g.project, hash=hash, group=g)
+    @patch("sentry.eventstream.snuba.SnubaEventStream._send")
+    @patch("sentry.eventstream.snuba.datetime")
+    def test_delete_by_id(self, mock_datetime: MagicMock, mock_send: MagicMock) -> None:
+        fixed_datetime = datetime.now()
+        mock_datetime.now.return_value = fixed_datetime
+
+        groups = self.create_n_groups_with_hashes(2, project=self.project)
+        group_ids = [group.id for group in groups]
 
         self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
-            response = self.get_response(
-                qs_params={"id": [group1.id, group2.id], "group4": group4.id}
-            )
+        with self.tasks(), self.feature("organizations:global-views"):
+            response = self.get_response(qs_params={"id": group_ids})
+            assert response.status_code == 204
 
-        mock_eventstream.start_delete_groups.assert_called_once_with(
-            group1.project_id, [group1.id, group2.id]
-        )
+        # Extract transaction_id from the first call
+        transaction_id = mock_send.call_args_list[0][1]["extra_data"][0]["transaction_id"]
 
-        assert response.status_code == 204
-
-        assert Group.objects.get(id=group1.id).status == GroupStatus.PENDING_DELETION
-        assert not GroupHash.objects.filter(group_id=group1.id).exists()
-
-        assert Group.objects.get(id=group2.id).status == GroupStatus.PENDING_DELETION
-        assert not GroupHash.objects.filter(group_id=group2.id).exists()
-
-        assert Group.objects.get(id=group3.id).status != GroupStatus.PENDING_DELETION
-        assert GroupHash.objects.filter(group_id=group3.id).exists()
-
-        assert Group.objects.get(id=group4.id).status != GroupStatus.PENDING_DELETION
-        assert GroupHash.objects.filter(group_id=group4.id).exists()
-
-        Group.objects.filter(id__in=(group1.id, group2.id)).update(status=GroupStatus.UNRESOLVED)
-
-        with self.tasks():
-            with self.feature("organizations:global-views"):
-                response = self.get_response(
-                    qs_params={"id": [group1.id, group2.id], "group4": group4.id}
-                )
-
-        # XXX(markus): Something is sending duplicated replacements to snuba --
-        # once from within tasks.deletions.groups and another time from
-        # sentry.deletions.defaults.groups
-        assert mock_eventstream.end_delete_groups.call_args_list == [
-            call(eventstream_state),
-            call(eventstream_state),
+        assert mock_send.call_args_list == [
+            call(
+                self.project.id,
+                "start_delete_groups",
+                extra_data=(
+                    {
+                        "transaction_id": transaction_id,
+                        "project_id": self.project.id,
+                        "group_ids": group_ids,
+                        "datetime": json.datetime_to_str(fixed_datetime),
+                    },
+                ),
+                asynchronous=False,
+            ),
+            call(
+                self.project.id,
+                "end_delete_groups",
+                extra_data=(
+                    {
+                        "transaction_id": transaction_id,
+                        "project_id": self.project.id,
+                        "group_ids": group_ids,
+                        "datetime": json.datetime_to_str(fixed_datetime),
+                    },
+                ),
+                asynchronous=False,
+            ),
         ]
 
-        assert response.status_code == 204
-
-        assert not Group.objects.filter(id=group1.id).exists()
-        assert not GroupHash.objects.filter(group_id=group1.id).exists()
-
-        assert not Group.objects.filter(id=group2.id).exists()
-        assert not GroupHash.objects.filter(group_id=group2.id).exists()
-
-        assert Group.objects.filter(id=group3.id).exists()
-        assert GroupHash.objects.filter(group_id=group3.id).exists()
-
-        assert Group.objects.filter(id=group4.id).exists()
-        assert GroupHash.objects.filter(group_id=group4.id).exists()
+        for group in groups:
+            assert not Group.objects.filter(id=group.id).exists()
+            assert not GroupHash.objects.filter(group_id=group.id).exists()
 
     @patch("sentry.eventstream.backend")
     def test_delete_performance_issue_by_id(self, mock_eventstream: MagicMock) -> None:
-        eventstream_state = {"event_stream_state": uuid4()}
+        eventstream_state = {"event_stream_state": str(uuid4())}
         mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1 = self.create_group(
@@ -5392,78 +4383,121 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             GroupHash.objects.create(project=g.project, hash=hash, group=g)
 
         self.login_as(user=self.user)
-        with self.feature("organizations:global-views"):
+        with self.feature("organizations:global-views"), self.tasks():
             response = self.get_response(qs_params={"id": [group1.id, group2.id]})
 
-        assert response.status_code == 400
-
-        assert Group.objects.filter(id=group1.id).exists()
-        assert GroupHash.objects.filter(group_id=group1.id).exists()
-
-        assert Group.objects.filter(id=group2.id).exists()
-        assert GroupHash.objects.filter(group_id=group2.id).exists()
-
-    def test_bulk_delete(self) -> None:
-        groups = []
-        for i in range(10, 41):
-            groups.append(
-                self.create_group(
-                    project=self.project,
-                    status=GroupStatus.RESOLVED,
-                )
-            )
-
-        hashes = []
-        for group in groups:
-            hash = uuid4().hex
-            hashes.append(hash)
-            GroupHash.objects.create(project=group.project, hash=hash, group=group)
-
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(qs_params={"query": ""})
         assert response.status_code == 204
 
-        for group in groups:
-            assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
-            assert not GroupHash.objects.filter(group_id=group.id).exists()
+        self.assert_deleted_groups([group1, group2])
 
+    def test_bulk_delete_for_many_projects_without_option(self) -> None:
+        NEW_CHUNK_SIZE = 2
+        with self.feature("organizations:global-views"):
+            project_2 = self.create_project(slug="baz", organization=self.organization)
+            groups_1 = self.create_n_groups_with_hashes(2, project=self.project)
+            groups_2 = self.create_n_groups_with_hashes(5, project=project_2)
+
+            with (
+                self.tasks(),
+                patch("sentry.api.helpers.group_index.delete.GROUP_CHUNK_SIZE", NEW_CHUNK_SIZE),
+                patch("sentry.deletions.tasks.groups.logger") as mock_logger,
+                patch(
+                    "sentry.api.helpers.group_index.delete.uuid4",
+                    side_effect=[self.get_mock_uuid("foo"), self.get_mock_uuid("bar")],
+                ),
+            ):
+                self.login_as(user=self.user)
+                response = self.get_success_response(qs_params={"query": ""})
+                assert response.status_code == 204
+                batch_1 = [g.id for g in groups_2[0:2]]
+                batch_2 = [g.id for g in groups_2[2:4]]
+                batch_3 = [g.id for g in groups_2[4:]]
+                assert batch_1 + batch_2 + batch_3 == [g.id for g in groups_2]
+
+                calls_by_project: dict[int, list[tuple[str, dict[str, Any]]]] = defaultdict(list)
+                for log_call in mock_logger.info.call_args_list:
+                    calls_by_project[log_call[1]["extra"]["project_id"]].append(log_call)
+
+                assert len(calls_by_project) == 2
+                assert calls_by_project[self.project.id] == [
+                    call(
+                        "delete_groups.started",
+                        extra={
+                            "object_ids": [g.id for g in groups_1],
+                            "project_id": self.project.id,
+                            "transaction_id": "bar",
+                        },
+                    ),
+                ]
+                assert calls_by_project[project_2.id] == [
+                    call(
+                        "delete_groups.started",
+                        extra={
+                            "object_ids": batch_1,
+                            "project_id": project_2.id,
+                            "transaction_id": "foo",
+                        },
+                    ),
+                    call(
+                        "delete_groups.started",
+                        extra={
+                            "object_ids": batch_2,
+                            "project_id": project_2.id,
+                            "transaction_id": "foo",
+                        },
+                    ),
+                    call(
+                        "delete_groups.started",
+                        extra={
+                            "object_ids": batch_3,
+                            "project_id": project_2.id,
+                            "transaction_id": "foo",
+                        },
+                    ),
+                ]
+
+            self.assert_deleted_groups(groups_1 + groups_2)
+
+    def test_bulk_delete_performance_issues(self) -> None:
+        groups = self.create_n_groups_with_hashes(
+            20, self.project, PerformanceSlowDBQueryGroupType.type_id
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(qs_params={"query": ""})
+        assert response.status_code == 204
+        self.assert_pending_deletion_groups(groups)
+
+        # This is needed to put the groups in the unresolved state before also triggering the task
         Group.objects.filter(id__in=[group.id for group in groups]).update(
             status=GroupStatus.UNRESOLVED
         )
-
         with self.tasks():
-            response = self.get_success_response(qs_params={"query": ""})
+            # if query is '' it defaults to is:unresolved
+            response = self.get_response(qs_params={"query": ""})
+            assert response.status_code == 204
 
-        assert response.status_code == 204
+        self.assert_deleted_groups(groups)
 
-        for group in groups:
-            assert not Group.objects.filter(id=group.id).exists()
-            assert not GroupHash.objects.filter(group_id=group.id).exists()
-
-    def test_bulk_delete_performance_issues(self) -> None:
-        groups = []
-        for i in range(10, 41):
-            groups.append(
-                self.create_group(
-                    project=self.project,
-                    status=GroupStatus.RESOLVED,
-                    type=PerformanceSlowDBQueryGroupType.type_id,
-                )
-            )
-
-        hashes = []
-        for group in groups:
-            hash = uuid4().hex
-            hashes.append(hash)
-            GroupHash.objects.create(project=group.project, hash=hash, group=group)
+    @patch("sentry.api.helpers.group_index.delete.may_schedule_task_to_delete_hashes_from_seer")
+    def test_do_not_mark_as_pending_deletion_if_seer_fails(self, mock_seer_delete: Mock) -> None:
+        """
+        Test that the issue is not marked as pending deletion if the seer call fails.
+        """
+        # When trying to gather the hashes, the query could be cancelled by the user
+        mock_seer_delete.side_effect = OperationalError(
+            "QueryCanceled('canceling statement due to user request\n')"
+        )
+        event = self.store_event(data={}, project_id=self.project.id)
+        group1 = Group.objects.get(id=event.group_id)
+        assert GroupHash.objects.filter(group=group1).exists()
 
         self.login_as(user=self.user)
+        with self.tasks():
+            response = self.get_response(qs_params={"id": [group1.id]})
+            assert response.status_code == 500
+            assert response.data["detail"] == "Error deleting groups"
 
-        # if query is '' it defaults to is:unresolved
-        response = self.get_response(qs_params={"query": ""})
-        assert response.status_code == 400
-
-        for group in groups:
-            assert Group.objects.filter(id=group.id).exists()
-            assert GroupHash.objects.filter(group_id=group.id).exists()
+        # The group has not been marked as pending deletion
+        assert Group.objects.get(id=group1.id).status == group1.status
+        assert GroupHash.objects.filter(group=group1).exists()

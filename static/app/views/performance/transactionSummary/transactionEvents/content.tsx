@@ -1,37 +1,43 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {Button} from 'sentry/components/button';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import SearchBar from 'sentry/components/events/searchBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {WebVital} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {OverviewSpansTable} from 'sentry/views/performance/otlp/overviewSpansTable';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
+import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import Filter, {
+  filterToSearchConditions,
+} from 'sentry/views/performance/transactionSummary/filter';
+import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
+import type {SetStateAction} from 'sentry/views/performance/transactionSummary/types';
 import {
   platformToPerformanceType,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
-
-import type {SpanOperationBreakdownFilter} from '../filter';
-import Filter, {filterToSearchConditions} from '../filter';
-import type {SetStateAction} from '../types';
 
 import EventsTable from './eventsTable';
 import type {EventsDisplayFilterName} from './utils';
@@ -53,7 +59,7 @@ type Props = {
   webVital?: WebVital;
 };
 
-export const TRANSACTIONS_LIST_TITLES: Readonly<string[]> = [
+const TRANSACTIONS_LIST_TITLES: readonly string[] = [
   t('event id'),
   t('user'),
   t('operation duration'),
@@ -75,6 +81,8 @@ function EventsContent(props: Props) {
     projects,
   } = props;
   const routes = useRoutes();
+  const theme = useTheme();
+  const domainViewFilters = useDomainViewFilters();
 
   const {eventView, titles} = useMemo(() => {
     const eventViewClone = originalEventView.clone();
@@ -154,18 +162,32 @@ function EventsContent(props: Props) {
     webVital,
   ]);
 
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+
+  const table = shouldUseOTelFriendlyUI ? (
+    <OverviewSpansTable
+      eventView={eventView}
+      totalValues={null}
+      transactionName={transactionName}
+    />
+  ) : (
+    <EventsTable
+      theme={theme}
+      eventView={eventView}
+      organization={organization}
+      routes={routes}
+      location={location}
+      setError={setError}
+      columnTitles={titles}
+      transactionName={transactionName}
+      domainViewFilters={domainViewFilters}
+    />
+  );
+
   return (
     <Layout.Main fullWidth>
       <Search {...props} eventView={eventView} />
-      <EventsTable
-        eventView={eventView}
-        organization={organization}
-        routes={routes}
-        location={location}
-        setError={setError}
-        columnTitles={titles}
-        transactionName={transactionName}
-      />
+      {table}
     </Layout.Main>
   );
 }
@@ -180,18 +202,21 @@ function Search(props: Props) {
     eventsDisplayFilterName,
     onChangeEventsDisplayFilter,
     percentileValues,
+    transactionName,
   } = props;
+
+  const navigate = useNavigate();
 
   const handleSearch = (query: string) => {
     const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
+      ...location.query,
       query,
     });
 
     // do not propagate pagination when making a new search
     const searchQueryParams = omit(queryParams, 'cursor');
 
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: searchQueryParams,
     });
@@ -210,24 +235,32 @@ function Search(props: Props) {
     });
   };
 
+  const projectIds = useMemo(() => eventView.project?.slice(), [eventView.project]);
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+
   return (
     <FilterActions>
-      <Filter
-        organization={organization}
-        currentFilter={spanOperationBreakdownFilter}
-        onChangeFilter={onChangeSpanOperationBreakdownFilter}
-      />
+      {shouldUseOTelFriendlyUI ? (
+        <SpanCategoryFilter serviceEntrySpanName={transactionName} />
+      ) : (
+        <Filter
+          organization={organization}
+          currentFilter={spanOperationBreakdownFilter}
+          onChangeFilter={onChangeSpanOperationBreakdownFilter}
+        />
+      )}
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
         <DatePageFilter />
       </PageFilterBar>
-      <StyledSearchBar
-        organization={organization}
-        projectIds={eventView.project}
-        query={query}
-        fields={eventView.fields}
-        onSearch={handleSearch}
-      />
+      <StyledSearchBarWrapper>
+        <TransactionSearchQueryBuilder
+          projects={projectIds}
+          initialQuery={query}
+          onSearch={handleSearch}
+          searchSource="transaction_events"
+        />
+      </StyledSearchBarWrapper>
       <CompactSelect
         triggerProps={{prefix: t('Percentile')}}
         value={eventsDisplayFilterName}
@@ -237,16 +270,16 @@ function Search(props: Props) {
           label: filter.label,
         }))}
       />
-      <Button
+      <LinkButton
         to={eventView.getResultsViewUrlTarget(
-          organization.slug,
+          organization,
           false,
           hasDatasetSelector(organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
         )}
         onClick={handleDiscoverButtonClick}
       >
         {t('Open in Discover')}
-      </Button>
+      </LinkButton>
     </FilterActions>
   );
 }
@@ -256,22 +289,22 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(4, min-content);
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     grid-template-columns: auto auto 1fr auto auto;
   }
 `;
 
-const StyledSearchBar = styled(SearchBar)`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+const StyledSearchBarWrapper = styled('div')`
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     order: 1;
     grid-column: 1/6;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     order: initial;
     grid-column: auto;
   }

@@ -2,29 +2,19 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-export const SubHeading = styled('h3')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.textColor};
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-`;
-
 export const SectionHeading = styled('h4')`
   display: inline-grid;
   grid-auto-flow: column;
   gap: ${space(1)};
   align-items: center;
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: ${space(1)} 0;
 `;
 
 export const SectionValue = styled('span')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-right: ${space(1)};
 `;
 
@@ -32,7 +22,7 @@ export const InlineContainer = styled('div')`
   display: grid;
   align-items: center;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-auto-flow: column;
     grid-column-gap: ${space(1)};
   }
@@ -42,7 +32,7 @@ export const ChartControls = styled('div')`
   padding: ${space(1)} ${space(1)} ${space(1)} ${space(3)};
   border-top: 1px solid ${p => p.theme.border};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
@@ -50,13 +40,19 @@ export const ChartControls = styled('div')`
 `;
 
 // Header element for charts within panels.
+// @TODO(jonasbadalic) This should be a title component and not a div
 export const HeaderTitle = styled('div')`
   display: inline-grid;
   grid-auto-flow: column;
   gap: ${space(1)};
-  ${p => p.theme.text.cardTitle};
+
   color: ${p => p.theme.headingColor};
   align-items: center;
+
+  /* @TODO(jonasbadalic) This should be a title component and not a div */
+  font-size: 1rem;
+  font-weight: ${p => p.theme.fontWeight.bold};
+  line-height: 1.2;
 `;
 
 // Header element for charts within panels

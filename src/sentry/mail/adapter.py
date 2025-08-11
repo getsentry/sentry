@@ -5,7 +5,7 @@ from typing import Any
 
 from sentry import digests
 from sentry.digests import get_option_key as get_digest_option_key
-from sentry.digests.notifications import Digest, event_to_record, unsplit_key
+from sentry.digests.notifications import DigestInfo, event_to_record, unsplit_key
 from sentry.integrations.types import ExternalProviders
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
@@ -121,11 +121,6 @@ class MailAdapter:
         users = self.get_sendable_user_objects(project)
         return [user.id for user in users]
 
-    def get_sendable_users(self, project):
-        """@deprecated Do not change this function, it is being used in getsentry."""
-        users = self.get_sendable_user_objects(project)
-        return [user.id for user in users]
-
     @staticmethod
     def notify(
         notification,
@@ -146,7 +141,7 @@ class MailAdapter:
     @staticmethod
     def notify_digest(
         project: Project,
-        digest: Digest,
+        digest: DigestInfo,
         target_type: ActionTargetType,
         target_identifier: int | None = None,
         fallthrough_choice: FallthroughChoiceType | None = None,

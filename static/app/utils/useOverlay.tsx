@@ -38,7 +38,7 @@ const maxSize: Modifier<'maxSize', NonNullable<PreventOverflowModifier['options'
     const flippedWidthSide = basePlacement === 'left' ? 'right' : 'left';
     const flippedHeightSide = basePlacement === 'top' ? 'bottom' : 'top';
 
-    const maxHeight = ['left', 'right'].includes(basePlacement)
+    const maxHeight = ['left', 'right'].includes(basePlacement!)
       ? // If the main axis is horizontal, then maxHeight = the boundary's height
         height - overflow.top - overflow.bottom
       : // Otherwise, set max height unless there is enough space on the other side to
@@ -47,7 +47,7 @@ const maxSize: Modifier<'maxSize', NonNullable<PreventOverflowModifier['options'
 
     // If there is enough space on the other side, then allow the popper to flip
     // without constraining its size
-    const maxWidth = ['top', 'bottom'].includes(basePlacement)
+    const maxWidth = ['top', 'bottom'].includes(basePlacement!)
       ? // If the main axis is vertical, then maxWidth = the boundary's width
         width - overflow.left - overflow.right
       : // Otherwise, set max width unless there is enough space on the other side to
@@ -61,25 +61,25 @@ const maxSize: Modifier<'maxSize', NonNullable<PreventOverflowModifier['options'
   },
 };
 
-const applyMaxSize: Modifier<'applyMaxSize', {}> = {
+const applyMaxSize: Modifier<'applyMaxSize', Record<string, unknown>> = {
   name: 'applyMaxSize',
   phase: 'beforeWrite',
   requires: ['maxSize'],
   enabled: false, // will be enabled when overlay is open
   fn({state}) {
     const {width, height} = state.modifiersData.maxSize;
-    state.styles.popper.maxHeight = height;
-    state.styles.popper.maxWidth = width;
+    state.styles.popper!.maxHeight = height;
+    state.styles.popper!.maxWidth = width;
   },
 };
 
-const applyMinWidth: Modifier<'applyMinWidth', {}> = {
+const applyMinWidth: Modifier<'applyMinWidth', Record<string, unknown>> = {
   name: 'applyMinWidth',
   phase: 'beforeWrite',
   enabled: false, // will be enabled when overlay is open
   fn({state}) {
     const {reference} = state.rects;
-    state.styles.popper.minWidth = `${reference.width}px`;
+    state.styles.popper!.minWidth = `${reference.width}px`;
   },
 };
 
@@ -115,6 +115,16 @@ export interface UseOverlayProps
    * Options to pass to the `preventOverflow` modifier.
    */
   preventOverflowOptions?: PreventOverflowModifier['options'];
+  /**
+   * By default, the overlay's min-width will match the trigger's width.
+   * If this is not desired, set to `false`.
+   */
+  shouldApplyMinWidth?: boolean;
+  /**
+   * Strategy for the overlay. See https://popper.js.org/docs/v2/constructors/#strategy
+   * for details.
+   */
+  strategy?: PopperProps<any>['strategy'];
 }
 
 function useOverlay({
@@ -128,12 +138,14 @@ function useOverlay({
   arrowOptions = {},
   flipOptions = {},
   preventOverflowOptions = {},
+  shouldApplyMinWidth = true,
   isDismissable = true,
   shouldCloseOnBlur = false,
   isKeyboardDismissDisabled,
   shouldCloseOnInteractOutside,
   onInteractOutside,
   disableTrigger,
+  strategy = 'absolute',
 }: UseOverlayProps = {}) {
   // Callback refs for react-popper
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
@@ -145,7 +157,9 @@ function useOverlay({
     isOpen,
     defaultOpen,
     onOpenChange: open => {
-      open && popperUpdate?.();
+      if (open) {
+        popperUpdate?.();
+      }
       onOpenChange?.(open);
     },
   });
@@ -213,20 +227,32 @@ function useOverlay({
       },
       {
         ...applyMinWidth,
-        enabled: openState.isOpen,
+        enabled: openState.isOpen && shouldApplyMinWidth,
       },
       {
         ...applyMaxSize,
         enabled: openState.isOpen,
       },
     ],
-    [arrowElement, offset, arrowOptions, flipOptions, preventOverflowOptions, openState]
+    [
+      arrowElement,
+      arrowOptions,
+      flipOptions,
+      offset,
+      preventOverflowOptions,
+      openState.isOpen,
+      shouldApplyMinWidth,
+    ]
   );
   const {
     styles: popperStyles,
     state: popperState,
     update: popperUpdate,
-  } = usePopper(triggerElement, overlayElement, {modifiers, placement: position});
+  } = usePopper(triggerElement, overlayElement, {
+    modifiers,
+    placement: position,
+    strategy,
+  });
 
   // Get props for trigger button
   const {triggerProps, overlayProps: overlayTriggerAriaProps} = useOverlayTriggerAria(
@@ -242,9 +268,12 @@ function useOverlay({
   // Get props for overlay element
   const interactedOutside = useRef(false);
   const interactOutsideTrigger = useRef<HTMLElement | null>(null);
+  const isClosing = useRef(false);
   const {overlayProps: overlayAriaProps} = useOverlayAria(
     {
       onClose: () => {
+        // Prevent onClose from triggering multiple times when clicking outside
+        isClosing.current = true;
         onClose?.();
 
         if (interactedOutside.current) {
@@ -253,13 +282,13 @@ function useOverlay({
           const trigger = interactOutsideTrigger.current;
           interactOutsideTrigger.current = null;
 
-          requestAnimationFrame(() => {
-            trigger?.focus();
-            trigger?.click();
-          });
+          // When changing this, check that you can switch between dropdowns with a single click
+          trigger?.focus();
+          trigger?.click();
         }
 
         openState.close();
+        isClosing.current = false;
       },
       isOpen: openState.isOpen,
       isDismissable,
@@ -270,7 +299,8 @@ function useOverlay({
           target &&
           triggerRef.current !== target &&
           !triggerRef.current?.contains(target) &&
-          (shouldCloseOnInteractOutside?.(target) ?? true)
+          (shouldCloseOnInteractOutside?.(target) ?? true) &&
+          !isClosing.current
         ) {
           // Check if the target is inside a different overlay trigger. If yes, then we
           // should activate that trigger after this overlay has closed (see the onClose

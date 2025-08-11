@@ -15,12 +15,12 @@ from sentry.snuba.metrics.datasource import get_custom_measurements
 @region_silo_endpoint
 class OrganizationMeasurementsMeta(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
         try:
-            snuba_params, _ = self.get_snuba_dataclass(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response({})
 
@@ -33,7 +33,7 @@ class OrganizationMeasurementsMeta(OrganizationEventsEndpointBase):
                 use_case_id=UseCaseID.TRANSACTIONS,
             )
 
-        with start_span(op="transform", description="metric meta"):
+        with start_span(op="transform", name="metric meta"):
             result = {
                 item["name"]: {
                     "functions": METRIC_FUNCTION_LIST_BY_TYPE[item["type"]],

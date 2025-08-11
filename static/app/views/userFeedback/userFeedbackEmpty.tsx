@@ -4,17 +4,17 @@ import * as Sentry from '@sentry/react';
 
 import emptyStateImg from 'sentry-images/spot/feedback-empty-state.svg';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import useRouter from 'sentry/utils/useRouter';
 
 type Props = {
   issueTab?: boolean;
@@ -34,14 +34,14 @@ export function UserFeedbackEmpty({projectIds, issueTab = false}: Props) {
   const hasAnyFeedback = selectedProjects.some(({hasUserReports}) => hasUserReports);
   const {activateSidebarIssueDetails} = useFeedbackOnboardingSidebarPanel();
 
-  const router = useRouter();
+  const navigate = useNavigate();
   const setProjId = useCallback(() => {
-    router.push({
+    navigate({
       pathname: location.pathname,
       query: {...location.query, project: projectIds?.[0]},
       hash: location.hash,
     });
-  }, [location.hash, location.query, location.pathname, projectIds, router]);
+  }, [location.hash, location.query, location.pathname, projectIds, navigate]);
 
   useEffect(() => {
     if (issueTab) {
@@ -54,7 +54,7 @@ export function UserFeedbackEmpty({projectIds, issueTab = false}: Props) {
     window.sentryEmbedCallback = function (embed) {
       // Mock the embed's submit xhr to always be successful
       // NOTE: this will not have errors if the form is empty
-      embed.submit = function (_body) {
+      embed.submit = function (_body: Record<string, unknown>) {
         this._submitInProgress = true;
         setTimeout(() => {
           this._submitInProgress = false;
@@ -75,12 +75,10 @@ export function UserFeedbackEmpty({projectIds, issueTab = false}: Props) {
     };
   }, [hasAnyFeedback, organization, projectIds]);
 
-  function trackAnalyticsInternal(
-    eventKey: 'user_feedback.docs_clicked' | 'user_feedback.dialog_opened'
-  ) {
+  function trackAnalyticsInternal(eventKey: 'user_feedback.dialog_opened') {
     trackAnalytics(eventKey, {
       organization,
-      projects: selectedProjects?.join(','),
+      projects: selectedProjects?.map(p => p.id).join(','),
     });
   }
 
@@ -105,7 +103,7 @@ export function UserFeedbackEmpty({projectIds, issueTab = false}: Props) {
           `You can't read minds. At least we hope not. Ask users for feedback on the impact of their crashes or bugs and you shall receive.`
         )}
       </p>
-      <ButtonList gap={1}>
+      <ButtonList>
         <Button
           priority="primary"
           onClick={activateSidebarIssueDetails}

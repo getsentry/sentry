@@ -1,7 +1,6 @@
 import type {TrendDiscoveryChildrenProps} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
+import {QUERY_LIMIT_PARAM} from 'sentry/views/performance/landing/widgets/utils';
 import {normalizeTrends} from 'sentry/views/performance/trends/utils';
-
-import {QUERY_LIMIT_PARAM} from '../utils';
 
 export function transformTrendsDiscover(_: any, props: TrendDiscoveryChildrenProps) {
   const {trendsData} = props;

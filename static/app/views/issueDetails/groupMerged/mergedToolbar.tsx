@@ -1,14 +1,16 @@
 import type {Location} from 'history';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Group, Organization, Project} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 type Props = {
   groupId: Group['id'];
@@ -74,7 +76,7 @@ export function MergedToolbar({
 
   return (
     <PanelHeader hasButtons>
-      <ButtonBar gap={1}>
+      <ButtonBar>
         <Confirm
           disabled={unmergeDisabled}
           onConfirm={onUnmerge}
@@ -96,9 +98,9 @@ export function MergedToolbar({
           disabled={!enableFingerprintCompare}
           onClick={handleShowDiff}
           title={
-            !enableFingerprintCompare
-              ? t('To compare, exactly 2 items must be selected')
-              : undefined
+            enableFingerprintCompare
+              ? undefined
+              : t('To compare, exactly 2 items must be selected')
           }
         >
           {t('Compare')}

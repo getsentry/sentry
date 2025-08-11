@@ -38,7 +38,7 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
         self.browser.get(url)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def test_external_user_mappings(self):
+    def test_external_user_mappings(self) -> None:
         # create `auth_user` records to differentiate `user_id` and `organization_member_id`
         self.create_sentry_app()
         self.user2 = self.create_user("user2@example.com")
@@ -63,7 +63,7 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
                 f"/settings/{self.organization.slug}/integrations/{self.provider}/{self.integration.id}/"
             )
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.click(".nav-tabs li:nth-child(3) a")
+            self.browser.click('[role="tablist"] li:nth-child(3) span')
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
             # Empty state
@@ -83,13 +83,13 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
             self.browser.wait_until_not('[aria-label="Save Changes"]')
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def test_external_team_mappings(self):
+    def test_external_team_mappings(self) -> None:
         with self.feature("organizations:integrations-codeowners"):
             self.browser.get(
                 f"/settings/{self.organization.slug}/integrations/{self.provider}/{self.integration.id}/"
             )
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.click(".nav-tabs li:nth-child(4) a")
+            self.browser.click('[role="tablist"] li:nth-child(4) span')
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
             # Empty state

@@ -11,7 +11,7 @@ jest.mock('sentry/utils/useLocation');
 describe('transactionsTable', () => {
   const organization = OrganizationFixture();
 
-  let eventsMock;
+  let eventsMock: jest.Mock;
 
   const pageLinks =
     '<https://sentry.io/fake/previous>; rel="previous"; results="false"; cursor="0:0:1", ' +
@@ -42,11 +42,10 @@ describe('transactionsTable', () => {
             'count_op(queue.process)': 2,
             'sum(span.duration)': 6,
             'avg(span.duration)': 3,
-            'avg_if(span.duration,span.op,queue.publish)': 0,
-            'avg_if(span.duration,span.op,queue.process)': 3,
+            'avg_if(span.duration,span.op,equals,queue.publish)': 0,
+            'avg_if(span.duration,span.op,equals,queue.process)': 3,
             'avg(messaging.message.receive.latency)': 20,
             'trace_status_rate(ok)': 0.8,
-            'time_spent_percentage(app,span.duration)': 0.5,
           },
         ],
         meta: {
@@ -56,11 +55,10 @@ describe('transactionsTable', () => {
             'count_op(queue.process)': 'integer',
             'sum(span.duration)': 'duration',
             'avg(span.duration)': 'duration',
-            'avg_if(span.duration,span.op,queue.publish)': 'duration',
-            'avg_if(span.duration,span.op,queue.process)': 'duration',
+            'avg_if(span.duration,span.op,equals,queue.publish)': 'duration',
+            'avg_if(span.duration,span.op,equals,queue.process)': 'duration',
             'avg(messaging.message.receive.latency)': 'duration',
             'trace_status_rate(ok)': 'percentage',
-            'time_spent_percentage(app,span.duration)': 'percentage',
           },
         },
       },
@@ -95,13 +93,12 @@ describe('transactionsTable', () => {
             'count_op(queue.process)',
             'sum(span.duration)',
             'avg(span.duration)',
-            'avg_if(span.duration,span.op,queue.publish)',
-            'avg_if(span.duration,span.op,queue.process)',
+            'avg_if(span.duration,span.op,equals,queue.publish)',
+            'avg_if(span.duration,span.op,equals,queue.process)',
             'avg(messaging.message.receive.latency)',
             'trace_status_rate(ok)',
-            'time_spent_percentage(app,span.duration)',
           ],
-          dataset: 'spansMetrics',
+          dataset: 'spans',
         }),
       })
     );
@@ -122,7 +119,7 @@ describe('transactionsTable', () => {
         statsPeriod: '10d',
         project: '1',
         [QueryParameterNames.DESTINATIONS_SORT]:
-          '-avg_if(span.duration,span.op,queue.process)',
+          '-avg_if(span.duration,span.op,equals,queue.process)',
       },
       hash: '',
       state: undefined,
@@ -144,14 +141,13 @@ describe('transactionsTable', () => {
             'count_op(queue.process)',
             'sum(span.duration)',
             'avg(span.duration)',
-            'avg_if(span.duration,span.op,queue.publish)',
-            'avg_if(span.duration,span.op,queue.process)',
+            'avg_if(span.duration,span.op,equals,queue.publish)',
+            'avg_if(span.duration,span.op,equals,queue.process)',
             'avg(messaging.message.receive.latency)',
             'trace_status_rate(ok)',
-            'time_spent_percentage(app,span.duration)',
           ],
-          dataset: 'spansMetrics',
-          sort: '-avg_if(span.duration,span.op,queue.process)',
+          dataset: 'spans',
+          sort: '-avg_if(span.duration,span.op,equals,queue.process)',
         }),
       })
     );

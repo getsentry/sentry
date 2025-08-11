@@ -7,6 +7,6 @@
   "exclude": [
     "../tests/js",
     "../static/app/**/*.spec.*",
-    "../static/app/**/*.benchmark.ts"
+    "../static/gsApp/**/*.spec.*"
   ]
 }

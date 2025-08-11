@@ -3,7 +3,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import ConfigStore from 'sentry/stores/configStore';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
 import type {Config} from 'sentry/types/system';
@@ -24,16 +24,19 @@ import {AggregationKey, WebVital} from 'sentry/utils/fields';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
-const generateFields = fields =>
+const generateFields = (fields: string[]) =>
   fields.map(field => ({
     field,
   }));
 
-const generateSorts = sorts =>
-  sorts.map(sortName => ({
-    field: sortName,
-    kind: 'desc',
-  }));
+const generateSorts = (sorts: string[]) =>
+  sorts.map(
+    sortName =>
+      ({
+        field: sortName,
+        kind: 'desc',
+      }) as const
+  );
 
 const REQUIRED_CONSTRUCTOR_PROPS = {
   createdBy: undefined,
@@ -329,9 +332,9 @@ describe('EventView.fromSavedQuery()', function () {
       {field: 'title', width: COL_WIDTH_UNDEFINED},
     ]);
     expect(eventView.name).toEqual(saved.name);
-    expect(eventView.statsPeriod).toEqual('14d');
-    expect(eventView.start).toEqual(undefined);
-    expect(eventView.end).toEqual(undefined);
+    expect(eventView.statsPeriod).toBe('14d');
+    expect(eventView.start).toBeUndefined();
+    expect(eventView.end).toBeUndefined();
   });
 
   it('saved queries are equal when start and end datetime differ in format', function () {
@@ -1162,11 +1165,11 @@ describe('EventView.generateQueryStringObject()', function () {
       id: undefined,
       name: undefined,
       field: ['id', 'title'],
-      widths: [],
-      sort: [],
+      widths: undefined,
+      sort: undefined,
       query: '',
-      project: [],
-      environment: [],
+      project: undefined,
+      environment: undefined,
       display: 'previous',
       yAxis: 'count()',
     };
@@ -1181,7 +1184,7 @@ describe('EventView.generateQueryStringObject()', function () {
       name: 'best query',
       fields: [
         {field: 'count()', width: 123},
-        {field: 'project.id', width: 456},
+        {field: 'issue', width: 456},
       ],
       sorts: generateSorts([AggregationKey.COUNT]),
       query: 'event.type:error',
@@ -1200,15 +1203,15 @@ describe('EventView.generateQueryStringObject()', function () {
     const expected = {
       id: '1234',
       name: 'best query',
-      field: ['count()', 'project.id'],
-      widths: [123, 456],
-      sort: ['-count'],
+      field: ['count()', 'issue'],
+      widths: ['123', '456'],
+      sort: '-count',
       query: 'event.type:error',
-      project: [42],
+      project: '42',
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
       statsPeriod: '14d',
-      environment: ['staging'],
+      environment: 'staging',
       yAxis: 'count()',
       display: 'releases',
       interval: '1m',
@@ -1285,7 +1288,7 @@ describe('EventView.getEventsAPIPayload()', function () {
         query: 'TypeError',
       },
     });
-    expect(eventView.getEventsAPIPayload(location).query).toEqual('event.type:csp');
+    expect(eventView.getEventsAPIPayload(location).query).toBe('event.type:csp');
   });
 
   it('only includes at most one sort key', function () {
@@ -1300,7 +1303,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       query: {},
     });
 
-    expect(eventView.getEventsAPIPayload(location).sort).toEqual('-title');
+    expect(eventView.getEventsAPIPayload(location).sort).toBe('-title');
   });
 
   it('only includes sort keys that are defined in fields', function () {
@@ -1315,7 +1318,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       query: {},
     });
 
-    expect(eventView.getEventsAPIPayload(location).sort).toEqual('-count');
+    expect(eventView.getEventsAPIPayload(location).sort).toBe('-count');
   });
 
   it('only includes relevant query strings', function () {
@@ -1345,7 +1348,6 @@ describe('EventView.getEventsAPIPayload()', function () {
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       project: [],
       environment: [],
-      utc: 'true',
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
@@ -1380,7 +1382,6 @@ describe('EventView.getEventsAPIPayload()', function () {
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       project: ['1234'],
       environment: ['staging'],
-      utc: 'true',
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
@@ -1403,7 +1404,6 @@ describe('EventView.getEventsAPIPayload()', function () {
     expect(eventView.getEventsAPIPayload(location2)).toEqual({
       project: ['1234'],
       environment: ['staging'],
-      utc: 'true',
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
@@ -1436,7 +1436,6 @@ describe('EventView.getEventsAPIPayload()', function () {
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       project: ['1234'],
       environment: ['staging'],
-      utc: 'true',
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
@@ -1458,7 +1457,6 @@ describe('EventView.getEventsAPIPayload()', function () {
     expect(eventView.getEventsAPIPayload(location2)).toEqual({
       project: ['1234'],
       environment: ['staging'],
-      utc: 'true',
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
@@ -1647,7 +1645,6 @@ describe('EventView.getFacetsAPIPayload()', function () {
     expect(eventView.getFacetsAPIPayload(location)).toEqual({
       project: [],
       environment: [],
-      utc: 'true',
       statsPeriod: '14d',
 
       query: 'event.type:csp',
@@ -1662,7 +1659,7 @@ describe('EventView.toNewQuery()', function () {
     name: 'best query',
     fields: [
       {field: 'count()', width: 123},
-      {field: 'project.id', width: 456},
+      {field: 'issue', width: 456},
     ],
     sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
@@ -1684,7 +1681,7 @@ describe('EventView.toNewQuery()', function () {
       version: 2,
       id: '1234',
       name: 'best query',
-      fields: ['count()', 'project.id'],
+      fields: ['count()', 'issue'],
       widths: ['123', '456'],
       orderby: '-count',
       query: 'event.type:error',
@@ -1716,7 +1713,7 @@ describe('EventView.toNewQuery()', function () {
       version: 2,
       id: '1234',
       name: 'best query',
-      fields: ['count()', 'project.id'],
+      fields: ['count()', 'issue'],
       widths: ['123', '456'],
       orderby: '-count',
       projects: [42],
@@ -1747,7 +1744,7 @@ describe('EventView.toNewQuery()', function () {
       version: 2,
       id: '1234',
       name: 'best query',
-      fields: ['count()', 'project.id'],
+      fields: ['count()', 'issue'],
       widths: ['123', '456'],
       orderby: '-count',
       projects: [42],
@@ -1768,7 +1765,7 @@ describe('EventView.isValid()', function () {
   it('event view is valid when there is at least one field', function () {
     const eventView = new EventView({
       ...REQUIRED_CONSTRUCTOR_PROPS,
-      fields: [{field: 'count()'}, {field: 'project.id'}],
+      fields: [{field: 'count()'}, {field: 'issue'}],
       sorts: [],
       project: [],
     });
@@ -1794,7 +1791,7 @@ describe('EventView.getWidths()', function () {
       ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [
         {field: 'count()', width: COL_WIDTH_UNDEFINED},
-        {field: 'project.id', width: 2020},
+        {field: 'issue', width: 2020},
         {field: 'title', width: COL_WIDTH_UNDEFINED},
         {field: 'time', width: 420},
         {field: 'lcp', width: 69},
@@ -1820,12 +1817,12 @@ describe('EventView.getFields()', function () {
   it('returns fields', function () {
     const eventView = new EventView({
       ...REQUIRED_CONSTRUCTOR_PROPS,
-      fields: [{field: 'count()'}, {field: 'project.id'}],
+      fields: [{field: 'count()'}, {field: 'issue'}],
       sorts: [],
       project: [],
     });
 
-    expect(eventView.getFields()).toEqual(['count()', 'project.id']);
+    expect(eventView.getFields()).toEqual(['count()', 'issue']);
   });
 });
 
@@ -1835,7 +1832,7 @@ describe('EventView.numOfColumns()', function () {
 
     const eventView = new EventView({
       ...REQUIRED_CONSTRUCTOR_PROPS,
-      fields: [{field: 'count()'}, {field: 'project.id'}],
+      fields: [{field: 'count()'}, {field: 'issue'}],
       sorts: [],
       project: [],
     });
@@ -1896,7 +1893,7 @@ describe('EventView.clone()', function () {
       ...REQUIRED_CONSTRUCTOR_PROPS,
       id: '1234',
       name: 'best query',
-      fields: [{field: 'count()'}, {field: 'project.id'}],
+      fields: [{field: 'count()'}, {field: 'issue'}],
       sorts: generateSorts([AggregationKey.COUNT]),
       query: 'event.type:error',
       project: [42],
@@ -1931,7 +1928,7 @@ describe('EventView.withColumns()', function () {
     name: 'best query',
     fields: [
       {field: 'count()', width: 30},
-      {field: 'project.id', width: 99},
+      {field: 'issue', width: 99},
       {field: 'failure_count()', width: 30},
     ],
     yAxis: 'failure_count()',
@@ -1949,7 +1946,7 @@ describe('EventView.withColumns()', function () {
     const newView = eventView.withColumns([
       {kind: 'field', field: 'title'},
       {kind: 'function', function: [AggregationKey.COUNT, '', undefined, undefined]},
-      {kind: 'field', field: 'project.id'},
+      {kind: 'field', field: 'issue'},
       {kind: 'field', field: 'culprit'},
     ]);
     // Views should be different.
@@ -1957,7 +1954,7 @@ describe('EventView.withColumns()', function () {
     expect(newView.fields).toEqual([
       {field: 'title', width: COL_WIDTH_UNDEFINED},
       {field: 'count()', width: COL_WIDTH_UNDEFINED},
-      {field: 'project.id', width: COL_WIDTH_UNDEFINED},
+      {field: 'issue', width: COL_WIDTH_UNDEFINED},
       {field: 'culprit', width: COL_WIDTH_UNDEFINED},
     ]);
   });
@@ -1979,14 +1976,14 @@ describe('EventView.withColumns()', function () {
   it('inherits widths from existing columns when names match', function () {
     const newView = eventView.withColumns([
       {kind: 'function', function: [AggregationKey.COUNT, '', undefined, undefined]},
-      {kind: 'field', field: 'project.id'},
+      {kind: 'field', field: 'issue'},
       {kind: 'field', field: 'title'},
       {kind: 'field', field: 'time'},
     ]);
 
     expect(newView.fields).toEqual([
       {field: 'count()', width: 30},
-      {field: 'project.id', width: 99},
+      {field: 'issue', width: 99},
       {field: 'title', width: COL_WIDTH_UNDEFINED},
       {field: 'time', width: COL_WIDTH_UNDEFINED},
     ]);
@@ -2019,16 +2016,16 @@ describe('EventView.withColumns()', function () {
   it('updates yAxis if column is dropped', function () {
     const newView = eventView.withColumns([
       {kind: 'field', field: 'count()'},
-      {kind: 'field', field: 'project.id'},
+      {kind: 'field', field: 'issue'},
     ]);
 
     expect(newView.fields).toEqual([
       {field: 'count()', width: 30},
-      {field: 'project.id', width: 99},
+      {field: 'issue', width: 99},
     ]);
 
-    expect(eventView.yAxis).toEqual('failure_count()');
-    expect(newView.yAxis).toEqual('count()');
+    expect(eventView.yAxis).toBe('failure_count()');
+    expect(newView.yAxis).toBe('count()');
   });
 });
 
@@ -2039,7 +2036,7 @@ describe('EventView.withNewColumn()', function () {
     name: 'best query',
     fields: [
       {field: 'count()', width: 30},
-      {field: 'project.id', width: 99},
+      {field: 'issue', width: 99},
     ],
     sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
@@ -2121,7 +2118,7 @@ describe('EventView.withResizedColumn()', function () {
     ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
-    fields: [{field: 'count()'}, {field: 'project.id'}],
+    fields: [{field: 'count()'}, {field: 'issue'}],
     sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
@@ -2134,8 +2131,8 @@ describe('EventView.withResizedColumn()', function () {
 
   it('updates a column that exists', function () {
     const newView = view.withResizedColumn(0, 99);
-    expect(view.fields[0].width).toBeUndefined();
-    expect(newView.fields[0].width).toEqual(99);
+    expect(view.fields[0]!.width).toBeUndefined();
+    expect(newView.fields[0]!.width).toBe(99);
   });
 
   it('ignores columns that do not exist', function () {
@@ -2149,7 +2146,7 @@ describe('EventView.withUpdatedColumn()', function () {
     ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
-    fields: [{field: 'count()'}, {field: 'project.id'}],
+    fields: [{field: 'count()'}, {field: 'issue'}],
     sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
@@ -2338,7 +2335,7 @@ describe('EventView.withUpdatedColumn()', function () {
       // this column is expected to be non-sortable
       const newColumn: Column = {
         kind: 'field',
-        field: 'project.id',
+        field: 'issue',
       };
 
       const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
@@ -2350,7 +2347,7 @@ describe('EventView.withUpdatedColumn()', function () {
       const nextState = {
         ...state,
         sorts: [{field: 'title', kind: 'desc'}],
-        fields: [{field: 'project.id'}, {field: 'title'}],
+        fields: [{field: 'issue'}, {field: 'title'}],
       };
 
       expect(eventView2).toMatchObject(nextState);
@@ -2367,7 +2364,7 @@ describe('EventView.withUpdatedColumn()', function () {
       // this column is expected to be non-sortable
       const newColumn: Column = {
         kind: 'field',
-        field: 'project.id',
+        field: 'issue',
       };
 
       const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
@@ -2379,7 +2376,7 @@ describe('EventView.withUpdatedColumn()', function () {
       const nextState = {
         ...state,
         sorts: [],
-        fields: [{field: 'project.id'}],
+        fields: [{field: 'issue'}],
       };
 
       expect(eventView2).toMatchObject(nextState);
@@ -2392,7 +2389,7 @@ describe('EventView.withDeletedColumn()', function () {
     ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
-    fields: [{field: 'count()'}, {field: 'project.id'}],
+    fields: [{field: 'count()'}, {field: 'issue'}],
     sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
@@ -2457,7 +2454,7 @@ describe('EventView.withDeletedColumn()', function () {
 
       const nextState = {
         ...state,
-        // we expect sorts to be empty since project.id is non-sortable
+        // we expect sorts to be empty since issue is non-sortable
         sorts: [],
         fields: [state.fields[1]],
       };
@@ -2468,7 +2465,7 @@ describe('EventView.withDeletedColumn()', function () {
     it('has a remaining sortable column', function () {
       const modifiedState: ConstructorParameters<typeof EventView>[0] = {
         ...state,
-        fields: [{field: 'count()'}, {field: 'project.id'}, {field: 'title'}],
+        fields: [{field: 'count()'}, {field: 'issue'}, {field: 'title'}],
       };
 
       const eventView = new EventView(modifiedState);
@@ -2481,7 +2478,7 @@ describe('EventView.withDeletedColumn()', function () {
       const nextState = {
         ...state,
         sorts: [{field: 'title', kind: 'desc'}],
-        fields: [{field: 'project.id'}, {field: 'title'}],
+        fields: [{field: 'issue'}, {field: 'title'}],
       };
 
       expect(eventView2).toMatchObject(nextState);
@@ -2490,7 +2487,7 @@ describe('EventView.withDeletedColumn()', function () {
     it('sorted column occurs at least twice', function () {
       const modifiedState: ConstructorParameters<typeof EventView>[0] = {
         ...state,
-        fields: [...state.fields, state.fields[0]],
+        fields: [...state.fields, state.fields[0]!],
       };
 
       const eventView = new EventView(modifiedState);
@@ -2542,7 +2539,7 @@ describe('EventView.getSorts()', function () {
   it('returns fields', function () {
     const eventView = new EventView({
       ...REQUIRED_CONSTRUCTOR_PROPS,
-      fields: [{field: 'count()'}, {field: 'project.id'}],
+      fields: [{field: 'count()'}, {field: 'issue'}],
       sorts: generateSorts([AggregationKey.COUNT]),
       project: [],
     });
@@ -2566,10 +2563,10 @@ describe('EventView.getQuery()', function () {
       query: 'event.type:error',
     });
 
-    expect(eventView.getQuery()).toEqual('event.type:error');
-    expect(eventView.getQuery(null)).toEqual('event.type:error');
-    expect(eventView.getQuery('hello')).toEqual('event.type:error hello');
-    expect(eventView.getQuery(['event.type:error', 'hello'])).toEqual(
+    expect(eventView.getQuery()).toBe('event.type:error');
+    expect(eventView.getQuery(null)).toBe('event.type:error');
+    expect(eventView.getQuery('hello')).toBe('event.type:error hello');
+    expect(eventView.getQuery(['event.type:error', 'hello'])).toBe(
       'event.type:error hello'
     );
   });
@@ -2582,10 +2579,10 @@ describe('EventView.getQuery()', function () {
       project: [],
     });
 
-    expect(eventView.getQuery()).toEqual('');
-    expect(eventView.getQuery(null)).toEqual('');
-    expect(eventView.getQuery('hello')).toEqual('hello');
-    expect(eventView.getQuery(['event.type:error', 'hello'])).toEqual(
+    expect(eventView.getQuery()).toBe('');
+    expect(eventView.getQuery(null)).toBe('');
+    expect(eventView.getQuery('hello')).toBe('hello');
+    expect(eventView.getQuery(['event.type:error', 'hello'])).toBe(
       'event.type:error hello'
     );
   });
@@ -2603,7 +2600,7 @@ describe('EventView.getQueryWithAdditionalConditions', function () {
 
     eventView.additionalConditions.setFilterValues('event.type', ['transaction']);
 
-    expect(eventView.getQueryWithAdditionalConditions()).toEqual(
+    expect(eventView.getQueryWithAdditionalConditions()).toBe(
       'event.type:transaction foo:bar'
     );
   });
@@ -2614,7 +2611,7 @@ describe('EventView.sortForField()', function () {
     ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
-    fields: [{field: 'count()'}, {field: 'project.id'}],
+    fields: [{field: 'count()'}, {field: 'issue'}],
     sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
@@ -2641,7 +2638,7 @@ describe('EventView.sortForField()', function () {
 
   it('returns undefined when selected field is not sorted', function () {
     const field = {
-      field: 'project.id',
+      field: 'issue',
     };
 
     expect(eventView.sortForField(field, meta)).toBeUndefined();
@@ -2649,7 +2646,7 @@ describe('EventView.sortForField()', function () {
 
   it('returns undefined when no meta is provided', function () {
     const field = {
-      field: 'project.id',
+      field: 'issue',
     };
 
     expect(eventView.sortForField(field, undefined)).toBeUndefined();
@@ -2661,7 +2658,7 @@ describe('EventView.sortOnField()', function () {
     ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
-    fields: [{field: 'count()'}, {field: 'project.id'}],
+    fields: [{field: 'count()'}, {field: 'issue'}],
     sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
@@ -2677,7 +2674,7 @@ describe('EventView.sortOnField()', function () {
     const eventView = new EventView(state);
     expect(eventView).toMatchObject(state);
 
-    const field = state.fields[1];
+    const field = state.fields[1]!;
 
     const eventView2 = eventView.sortOnField(field, meta);
     expect(eventView2 === eventView).toBe(true);
@@ -2687,7 +2684,7 @@ describe('EventView.sortOnField()', function () {
     const eventView = new EventView(state);
     expect(eventView).toMatchObject(state);
 
-    const field = state.fields[0];
+    const field = state.fields[0]!;
 
     const eventView2 = eventView.sortOnField(field, meta);
 
@@ -2705,7 +2702,7 @@ describe('EventView.sortOnField()', function () {
     const eventView = new EventView(state);
     expect(eventView).toMatchObject(state);
 
-    const field = state.fields[0];
+    const field = state.fields[0]!;
 
     const eventView2 = eventView.sortOnField(field, meta, 'asc');
     expect(eventView2).toMatchObject({
@@ -2751,7 +2748,7 @@ describe('EventView.sortOnField()', function () {
     const eventView = new EventView(modifiedState);
     expect(eventView).toMatchObject(modifiedState);
 
-    const field = modifiedState.fields[2];
+    const field = modifiedState.fields[2]!;
 
     const eventView2 = eventView.sortOnField(field, meta);
 
@@ -2792,7 +2789,7 @@ describe('EventView.sortOnField()', function () {
     const eventView = new EventView(modifiedState);
     expect(eventView).toMatchObject(modifiedState);
 
-    const field = modifiedState.fields[2];
+    const field = modifiedState.fields[2]!;
 
     let sortedEventView = eventView.sortOnField(field, meta, undefined, true);
     expect(sortedEventView.sorts).toEqual([{field: 'count()', kind: 'asc'}]);
@@ -2842,7 +2839,7 @@ describe('EventView.isEqualTo()', function () {
       ...REQUIRED_CONSTRUCTOR_PROPS,
       id: '1234',
       name: 'best query',
-      fields: [{field: 'count()'}, {field: 'project.id'}],
+      fields: [{field: 'count()'}, {field: 'issue'}],
       sorts: generateSorts([AggregationKey.COUNT]),
       query: 'event.type:error',
       project: [42],
@@ -2873,7 +2870,7 @@ describe('EventView.isEqualTo()', function () {
       ...REQUIRED_CONSTRUCTOR_PROPS,
       id: '1234',
       name: 'best query',
-      fields: [{field: 'count()'}, {field: 'project.id'}],
+      fields: [{field: 'count()'}, {field: 'issue'}],
       sorts: generateSorts([AggregationKey.COUNT]),
       query: 'event.type:error',
       project: [42],
@@ -2897,7 +2894,7 @@ describe('EventView.isEqualTo()', function () {
       ...REQUIRED_CONSTRUCTOR_PROPS,
       id: '1234',
       name: 'best query',
-      fields: [{field: 'count()'}, {field: 'project.id'}],
+      fields: [{field: 'count()'}, {field: 'issue'}],
       sorts: generateSorts([AggregationKey.COUNT]),
       query: 'event.type:error',
       project: [42],
@@ -2913,7 +2910,7 @@ describe('EventView.isEqualTo()', function () {
     const differences = {
       id: '12',
       name: 'new query',
-      fields: [{field: 'project.id'}, {field: 'count()'}],
+      fields: [{field: 'issue'}, {field: 'count()'}],
       sorts: [{field: AggregationKey.COUNT, kind: 'asc'}],
       query: 'event.type:transaction',
       project: [24],
@@ -2928,7 +2925,10 @@ describe('EventView.isEqualTo()', function () {
     const eventView = new EventView(state);
 
     for (const key in differences) {
-      const eventView2 = new EventView({...state, [key]: differences[key]});
+      const eventView2 = new EventView({
+        ...state,
+        [key]: differences[key as keyof typeof differences],
+      });
       expect(eventView.isEqualTo(eventView2)).toBe(false);
     }
   });
@@ -2938,7 +2938,7 @@ describe('EventView.isEqualTo()', function () {
       ...REQUIRED_CONSTRUCTOR_PROPS,
       id: '1234',
       name: 'best query',
-      fields: [{field: 'count()'}, {field: 'project.id'}],
+      fields: [{field: 'count()'}, {field: 'issue'}],
       sorts: generateSorts([AggregationKey.COUNT]),
       query: 'event.type:error',
       project: [42],
@@ -2977,7 +2977,7 @@ describe('EventView.getResultsViewUrlTarget()', function () {
     ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
-    fields: [{field: 'count()'}, {field: 'project.id'}],
+    fields: [{field: 'count()'}, {field: 'issue'}],
     sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
@@ -2993,19 +2993,19 @@ describe('EventView.getResultsViewUrlTarget()', function () {
   it('generates a URL with non-customer domain context', function () {
     ConfigStore.set('customerDomain', null);
     const view = new EventView(state);
-    const result = view.getResultsViewUrlTarget(organization.slug);
-    expect(result.pathname).toEqual('/organizations/org-slug/discover/results/');
+    const result = view.getResultsViewUrlTarget(organization);
+    expect(result.pathname).toBe('/organizations/org-slug/discover/results/');
     expect(result.query.query).toEqual(state.query);
-    expect(result.query.project).toEqual(state.project);
+    expect(result.query.project).toBe('42');
     expect(result.query.display).toEqual(state.display);
   });
 
   it('generates a URL with customer domain context', function () {
     const view = new EventView(state);
-    const result = view.getResultsViewUrlTarget(organization.slug);
-    expect(result.pathname).toEqual('/discover/results/');
+    const result = view.getResultsViewUrlTarget(organization);
+    expect(result.pathname).toBe('/discover/results/');
     expect(result.query.query).toEqual(state.query);
-    expect(result.query.project).toEqual(state.project);
+    expect(result.query.project).toBe('42');
     expect(result.query.display).toEqual(state.display);
   });
 });
@@ -3033,7 +3033,7 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
     ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
-    fields: [{field: 'count()'}, {field: 'project.id'}],
+    fields: [{field: 'count()'}, {field: 'issue'}],
     sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
@@ -3050,28 +3050,28 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
     ConfigStore.set('customerDomain', null);
 
     const view = new EventView(state);
-    const result = view.getResultsViewShortUrlTarget(organization.slug);
-    expect(result.pathname).toEqual('/organizations/org-slug/discover/results/');
+    const result = view.getResultsViewShortUrlTarget(organization);
+    expect(result.pathname).toBe('/organizations/org-slug/discover/results/');
     expect(result.query).not.toHaveProperty('name');
     expect(result.query).not.toHaveProperty('fields');
     expect(result.query).not.toHaveProperty('query');
     expect(result.query.id).toEqual(state.id);
     expect(result.query.statsPeriod).toEqual(state.statsPeriod);
-    expect(result.query.project).toEqual(state.project);
-    expect(result.query.environment).toEqual(state.environment);
+    expect(result.query.project).toBe('42');
+    expect(result.query.environment).toBe('staging');
   });
 
   it('generates a URL with customer domain context', function () {
     const view = new EventView(state);
-    const result = view.getResultsViewShortUrlTarget(organization.slug);
-    expect(result.pathname).toEqual('/discover/results/');
+    const result = view.getResultsViewShortUrlTarget(organization);
+    expect(result.pathname).toBe('/discover/results/');
     expect(result.query).not.toHaveProperty('name');
     expect(result.query).not.toHaveProperty('fields');
     expect(result.query).not.toHaveProperty('query');
     expect(result.query.id).toEqual(state.id);
     expect(result.query.statsPeriod).toEqual(state.statsPeriod);
-    expect(result.query.project).toEqual(state.project);
-    expect(result.query.environment).toEqual(state.environment);
+    expect(result.query.project).toBe('42');
+    expect(result.query.environment).toBe('staging');
   });
 });
 
@@ -3098,7 +3098,7 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
     ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
-    fields: [{field: 'count()'}, {field: 'project.id'}],
+    fields: [{field: 'count()'}, {field: 'issue'}],
     sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
@@ -3117,17 +3117,15 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
   it('generates a URL with non-customer domain context', function () {
     ConfigStore.set('customerDomain', null);
     const view = new EventView(state);
-    const result = view.getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
+    const result = view.getPerformanceTransactionEventsViewUrlTarget(organization, {
       showTransactions,
       breakdown,
       webVital,
     });
-    expect(result.pathname).toEqual(
-      '/organizations/org-slug/performance/summary/events/'
-    );
+    expect(result.pathname).toBe('/organizations/org-slug/insights/summary/events/');
     expect(result.query.query).toEqual(state.query);
-    expect(result.query.project).toEqual(state.project);
-    expect(result.query.sort).toEqual(['-count']);
+    expect(result.query.project).toBe('42');
+    expect(result.query.sort).toBe('-count');
     expect(result.query.transaction).toEqual(state.name);
     expect(result.query.showTransactions).toEqual(showTransactions);
     expect(result.query.breakdown).toEqual(breakdown);
@@ -3136,15 +3134,15 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
 
   it('generates a URL with customer domain context', function () {
     const view = new EventView(state);
-    const result = view.getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
+    const result = view.getPerformanceTransactionEventsViewUrlTarget(organization, {
       showTransactions,
       breakdown,
       webVital,
     });
-    expect(result.pathname).toEqual('/performance/summary/events/');
+    expect(result.pathname).toBe('/insights/summary/events/');
     expect(result.query.query).toEqual(state.query);
-    expect(result.query.project).toEqual(state.project);
-    expect(result.query.sort).toEqual(['-count']);
+    expect(result.query.project).toBe('42');
+    expect(result.query.sort).toBe('-count');
     expect(result.query.transaction).toEqual(state.name);
     expect(result.query.showTransactions).toEqual(showTransactions);
     expect(result.query.breakdown).toEqual(breakdown);
@@ -3277,7 +3275,7 @@ describe('EventView.getYAxisOptions()', function () {
     environment: [],
   };
 
-  function generateYaxis(value) {
+  function generateYaxis(value: any) {
     return {
       value,
       label: value,
@@ -3342,7 +3340,7 @@ describe('EventView.getYAxis()', function () {
   it('should return first default yAxis', function () {
     const thisEventView = new EventView(state);
 
-    expect(thisEventView.getYAxis()).toEqual('count()');
+    expect(thisEventView.getYAxis()).toBe('count()');
   });
 
   it('should return valid yAxis', function () {
@@ -3352,7 +3350,7 @@ describe('EventView.getYAxis()', function () {
       yAxis: 'count_unique(user)',
     });
 
-    expect(thisEventView.getYAxis()).toEqual('count_unique(user)');
+    expect(thisEventView.getYAxis()).toBe('count_unique(user)');
   });
 
   it('should ignore invalid yAxis', function () {
@@ -3370,7 +3368,7 @@ describe('EventView.getYAxis()', function () {
       });
 
       // yAxis defaults to the first entry of the default yAxis options
-      expect(thisEventView.getYAxis()).toEqual('count()');
+      expect(thisEventView.getYAxis()).toBe('count()');
     }
   });
 });
@@ -3404,8 +3402,8 @@ describe('EventView.getDisplayOptions()', function () {
     });
 
     const options = eventView.getDisplayOptions();
-    expect(options[1].value).toEqual('previous');
-    expect(options[1].disabled).toBeTruthy();
+    expect(options[1]!.value).toBe('previous');
+    expect(options[1]!.disabled).toBeTruthy();
   });
 
   it('should disable top 5 period/daily if no aggregates present', function () {
@@ -3414,10 +3412,10 @@ describe('EventView.getDisplayOptions()', function () {
     });
 
     const options = eventView.getDisplayOptions();
-    expect(options[2].value).toEqual('top5');
-    expect(options[2].disabled).toBeTruthy();
-    expect(options[4].value).toEqual('dailytop5');
-    expect(options[4].disabled).toBeTruthy();
+    expect(options[2]!.value).toBe('top5');
+    expect(options[2]!.disabled).toBeTruthy();
+    expect(options[4]!.value).toBe('dailytop5');
+    expect(options[4]!.disabled).toBeTruthy();
   });
 });
 
@@ -3566,7 +3564,7 @@ describe('isAPIPayloadSimilar', function () {
     ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
-    fields: [{field: 'count()'}, {field: 'project.id'}],
+    fields: [{field: 'count()'}, {field: 'issue'}],
     sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
@@ -3761,7 +3759,7 @@ describe('isAPIPayloadSimilar', function () {
       const equationField = {field: 'equation|failure_count() / count()'};
       const otherEquationField = {field: 'equation|failure_count() / 2'};
       state.fields = [
-        {field: 'project.id'},
+        {field: 'issue'},
         {field: 'count()'},
         equationField,
         otherEquationField,
@@ -3772,7 +3770,7 @@ describe('isAPIPayloadSimilar', function () {
 
       state.fields = [
         equationField,
-        {field: 'project.id'},
+        {field: 'issue'},
         {field: 'count()'},
         otherEquationField,
       ];
@@ -3789,7 +3787,7 @@ describe('isAPIPayloadSimilar', function () {
       const equationField = {field: 'equation|failure_count() / count()'};
       const otherEquationField = {field: 'equation|failure_count() / 2'};
       state.fields = [
-        {field: 'project.id'},
+        {field: 'issue'},
         {field: 'count()'},
         equationField,
         otherEquationField,
@@ -3799,7 +3797,7 @@ describe('isAPIPayloadSimilar', function () {
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       state.fields = [
-        {field: 'project.id'},
+        {field: 'issue'},
         {field: 'count()'},
         otherEquationField,
         equationField,

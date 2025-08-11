@@ -107,7 +107,7 @@ describe('MetricRuleDuplicate', function () {
 
   it('duplicates slack actions', async function () {
     const rule = MetricRuleFixture();
-    rule.triggers[0].actions.push({
+    rule.triggers[0]!.actions.push({
       id: '13',
       alertRuleTriggerId: '12',
       type: 'slack',

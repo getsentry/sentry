@@ -34,7 +34,7 @@ export class SQLishFormatter {
   toFormat(sql: string, format: Format.STRING, options?: StringFormatterOptions): string;
   toFormat(sql: string, format: Format.SIMPLE_MARKUP): React.ReactElement[];
   toFormat(sql: string, format: Format, options?: StringFormatterOptions) {
-    let tokens;
+    let tokens: any;
 
     const sentrySpan = Sentry.startInactiveSpan({
       op: 'function',

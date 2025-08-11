@@ -30,7 +30,7 @@ class _ProjectDict(TypedDict):
 @region_silo_endpoint
 class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization, version) -> Response:
@@ -104,16 +104,18 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
                 "version": release.version,
                 "versionInfo": expose_version_info(release.version_info),
                 "projects": projects,
-                "newGroups": release.new_groups,
+                "newGroups": sum(project["newGroups"] for project in projects),
                 "deployCount": release.total_deploys,
                 "commitCount": release.commit_count,
                 "released": release.date_released or release.date_added,
                 "commitFilesChanged": commit_files_changed,
                 # In case there is no artifact bundle that is weakly associated with this release, we check if there is
                 # the old "ReleaseFile". In case the old "ReleaseFile" is not present, we will return 0.
-                "releaseFileCount": weakly_associated_count[1]
-                if weakly_associated_count is not None
-                else release.count_artifacts(),
+                "releaseFileCount": (
+                    weakly_associated_count[1]
+                    if weakly_associated_count is not None
+                    else release.count_artifacts()
+                ),
                 "isArtifactBundle": weakly_associated_count is not None,
             }
         )

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.commit import Commit
@@ -18,7 +18,7 @@ LATEST_GITHUB_CODEOWNERS = {
 
 
 class CodeOwnersTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
 
         self.team = self.create_team(
@@ -49,11 +49,13 @@ class CodeOwnersTest(TestCase):
             self.project, self.code_mapping, raw=self.data["raw"]
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
             # new external team mapping
             self.external_team = self.create_external_team(integration=self.integration)
-            update_code_owners_schema(organization=self.organization, integration=self.integration)
+            update_code_owners_schema(
+                organization=self.organization.id, integration=self.integration.id
+            )
 
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
 
@@ -72,7 +74,9 @@ class CodeOwnersTest(TestCase):
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
             # delete external team mapping
             ExternalActor.objects.get(id=self.external_team.id).delete()
-            update_code_owners_schema(organization=self.organization, integration=self.integration)
+            update_code_owners_schema(
+                organization=self.organization.id, integration=self.integration.id
+            )
 
         code_owners = ProjectCodeOwners.objects.get(id=self.code_owners.id)
 
@@ -80,10 +84,12 @@ class CodeOwnersTest(TestCase):
 
     @patch("django.utils.timezone.now")
     @patch(
-        "sentry.integrations.github.GitHubIntegration.get_codeowner_file",
+        "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
         return_value=LATEST_GITHUB_CODEOWNERS,
     )
-    def test_codeowners_auto_sync_successful(self, mock_get_codeowner_file, mock_timezone_now):
+    def test_codeowners_auto_sync_successful(
+        self, mock_get_codeowner_file: MagicMock, mock_timezone_now: MagicMock
+    ) -> None:
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
             self.create_external_team()
             self.create_external_user(external_name="@NisanthanNanthakumar")
@@ -124,16 +130,15 @@ class CodeOwnersTest(TestCase):
         assert code_owners.date_updated == mock_now
 
     @patch(
-        "sentry.integrations.github.GitHubIntegration.get_codeowner_file",
+        "sentry.integrations.github.integration.GitHubIntegration.get_codeowner_file",
         return_value=None,
     )
     @patch("sentry.notifications.notifications.codeowners_auto_sync.AutoSyncNotification.send")
     def test_codeowners_auto_sync_failed_to_fetch_file(
         self,
-        mock_send_email,
-        mock_get_codeowner_file,
-    ):
-
+        mock_send_email: MagicMock,
+        mock_get_codeowner_file: MagicMock,
+    ) -> None:
         with self.tasks() and self.feature({"organizations:integrations-codeowners": True}):
             commit = Commit.objects.create(
                 repository_id=self.repo.id,

@@ -1,15 +1,20 @@
 import styled from '@emotion/styled';
 
-import {Chevron} from 'sentry/components/chevron';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
-import {Tooltip} from 'sentry/components/tooltip';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group, Organization, Project} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface ShortIdBreadcrumbProps {
   group: Group;
@@ -22,11 +27,18 @@ export function ShortIdBreadcrumb({
   project,
   group,
 }: ShortIdBreadcrumbProps) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const {onClick: handleCopyShortId} = useCopyToClipboard({
     text: group.shortId,
     successMessage: t('Copied Short-ID to clipboard'),
+    onCopy: () => {
+      trackAnalytics('issue_details.copy_issue_short_id_clicked', {
+        organization,
+        ...getAnalyticsDataForGroup(group),
+        streamline: hasStreamlinedUI,
+      });
+    },
   });
-
   const issueUrl =
     window.location.origin +
     normalizeUrl(`/organizations/${organization.slug}/issues/${group.id}/`);
@@ -34,11 +46,25 @@ export function ShortIdBreadcrumb({
   const {onClick: handleCopyUrl} = useCopyToClipboard({
     text: issueUrl,
     successMessage: t('Copied Issue URL to clipboard'),
+    onCopy: () => {
+      trackAnalytics('issue_details.copy_issue_url_clicked', {
+        organization,
+        ...getAnalyticsDataForGroup(group),
+        streamline: hasStreamlinedUI,
+      });
+    },
   });
 
   const {onClick: handleCopyMarkdown} = useCopyToClipboard({
     text: `[${group.shortId}](${issueUrl})`,
     successMessage: t('Copied Markdown Issue Link to clipboard'),
+    onCopy: () => {
+      trackAnalytics('issue_details.copy_issue_markdown_link_clicked', {
+        organization,
+        ...getAnalyticsDataForGroup(group),
+        streamline: hasStreamlinedUI,
+      });
+    },
   });
 
   if (!group.shortId) {
@@ -55,7 +81,6 @@ export function ShortIdBreadcrumb({
       />
       <ShortIdCopyable>
         <Tooltip
-          className="help-link"
           title={t(
             'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
           )}
@@ -66,8 +91,8 @@ export function ShortIdBreadcrumb({
         </Tooltip>
         <DropdownMenu
           triggerProps={{
-            'aria-label': t('Short-ID copy actions'),
-            icon: <Chevron direction="down" />,
+            'aria-label': t('Issue copy actions'),
+            icon: <IconChevron direction="down" size="sm" />,
             size: 'zero',
             borderless: true,
             showChevron: false,
@@ -105,7 +130,7 @@ const Wrapper = styled('div')`
 
 const StyledShortId = styled(ShortId)`
   font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1;
 `;
 

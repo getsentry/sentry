@@ -3,20 +3,20 @@ import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import EventMessage from 'sentry/components/events/eventMessage';
 import EventTitleError from 'sentry/components/eventTitleError';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group, Organization} from 'sentry/types';
-import {getLocation, getMessage, isTombstone} from 'sentry/utils/events';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import {getLocation, isTombstone} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface EventOrGroupHeaderProps {
   data: Group;
-  event_id: string;
   organization: Organization;
+  event_id?: string;
 }
 
 /**
@@ -36,10 +36,9 @@ function IssueTitleChildren(props: IssueTitleChildrenProps) {
           <IconStar isSolid color="yellow400" />
         </IconWrapper>
       )}
-      <ErrorBoundary customComponent={<EventTitleError />} mini>
+      <ErrorBoundary customComponent={() => <EventTitleError />} mini>
         <StyledEventOrGroupTitle
           data={props.data}
-          organization={props.organization}
           // hasSeen is undefined for GroupTombstone
           hasSeen={hasSeen === undefined ? true : hasSeen}
           withStackTracePreview
@@ -51,7 +50,7 @@ function IssueTitleChildren(props: IssueTitleChildrenProps) {
 
 interface IssueTitleProps {
   data: Group;
-  event_id: string;
+  event_id?: string;
 }
 function IssueTitle(props: IssueTitleProps) {
   const organization = useOrganization();
@@ -71,7 +70,9 @@ function IssueTitle(props: IssueTitleProps) {
     <TitleWithLink
       {...commonEleProps}
       to={{
-        pathname: `/organizations/${organization.slug}/issues/${props.data.id}/events/${props.event_id}/`,
+        pathname: props.event_id
+          ? `/organizations/${organization.slug}/issues/${props.data.id}/events/${props.event_id}/`
+          : `/organizations/${organization.slug}/issues/${props.data.id}/`,
       }}
     >
       <IssueTitleChildren data={props.data} organization={organization} />
@@ -88,12 +89,6 @@ export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
         <IssueTitle data={data} event_id={event_id} />
       </Title>
       {eventLocation ? <Location>{eventLocation}</Location> : null}
-      <StyledEventMessage
-        level={'level' in data ? data.level : undefined}
-        message={getMessage(data)}
-        type={data.type}
-        levelIndicatorSize="9px"
-      />
     </div>
   );
 }
@@ -101,9 +96,9 @@ export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
 const Title = styled('div')`
   margin-bottom: ${space(0.25)};
   & em {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     font-style: normal;
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
     color: ${p => p.theme.subText};
   }
 `;
@@ -116,14 +111,14 @@ const LocationWrapper = styled('div')`
   margin: 0 0 5px;
   direction: rtl;
   text-align: left;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   span {
     direction: ltr;
   }
 `;
 
-function Location(props) {
+function Location(props: React.ComponentProps<'div'>) {
   const {children, ...rest} = props;
   return (
     <LocationWrapper {...rest}>
@@ -134,22 +129,17 @@ function Location(props) {
   );
 }
 
-const StyledEventMessage = styled(EventMessage)`
-  margin: 0 0 5px;
-  gap: ${space(0.5)};
-`;
-
 const IconWrapper = styled('span')`
   position: relative;
   margin-right: 5px;
 `;
 
 const TitleWithLink = styled(GlobalSelectionLink)`
-  display: inline-flex;
   align-items: center;
+  ${p => p.theme.overflowEllipsis}
 `;
 const TitleWithoutLink = styled('span')`
-  display: inline-flex;
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{

@@ -5,7 +5,7 @@ import {IconGrabbable} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
-export type DividerProps = {
+type DividerProps = {
   'data-is-held': boolean;
   'data-slide-direction': 'leftright' | 'updown';
   onDoubleClick: React.MouseEventHandler<HTMLElement>;
@@ -13,7 +13,7 @@ export type DividerProps = {
   icon?: React.ReactNode;
 } & React.DOMAttributes<HTMLDivElement>;
 
-export const BaseSplitDivider = styled(({icon, ...props}: DividerProps) => (
+const BaseSplitDivider = styled(({icon, ...props}: DividerProps) => (
   <div {...props}>{icon || <IconGrabbable size="sm" />}</div>
 ))<DividerProps>`
   display: grid;
@@ -48,7 +48,7 @@ export const BaseSplitDivider = styled(({icon, ...props}: DividerProps) => (
   }
 `;
 
-export const SplitPanelContext = createContext({
+const SplitPanelContext = createContext({
   isMaximized: false,
   isMinimized: false,
   maximiseSize: () => {},
@@ -124,12 +124,10 @@ function SplitPanel(props: SplitPanelProps) {
     sizeStorageKey,
   });
 
-  const sizePct = `${
-    (Math.min(containerSize, max) / availableSize) * 100
-  }%` as `${number}%`;
+  const sizePct = `${(Math.min(containerSize, max) / availableSize) * 100}%` as const;
 
   const handleMouseDown = useCallback(
-    event => {
+    (event: any) => {
       onMouseDown?.(sizePct);
       onDragStart(event);
     },
@@ -154,7 +152,7 @@ function SplitPanel(props: SplitPanelProps) {
     const {left: a, right: b} = props;
 
     return (
-      <SplitPanelContext.Provider value={contextValue}>
+      <SplitPanelContext value={contextValue}>
         <SplitPanelContainer
           className={isHeld ? 'disable-iframe-pointer' : undefined}
           orientation="columns"
@@ -169,13 +167,13 @@ function SplitPanel(props: SplitPanelProps) {
           />
           <Panel>{b}</Panel>
         </SplitPanelContainer>
-      </SplitPanelContext.Provider>
+      </SplitPanelContext>
     );
   }
 
   const {top: a, bottom: b} = props;
   return (
-    <SplitPanelContext.Provider value={contextValue}>
+    <SplitPanelContext value={contextValue}>
       <SplitPanelContainer
         orientation="rows"
         size={sizePct}
@@ -190,7 +188,7 @@ function SplitPanel(props: SplitPanelProps) {
         />
         <Panel>{b}</Panel>
       </SplitPanelContainer>
-    </SplitPanelContext.Provider>
+    </SplitPanelContext>
   );
 }
 
@@ -198,21 +196,30 @@ const SplitPanelContainer = styled('div')<{
   orientation: 'rows' | 'columns';
   size: `${number}px` | `${number}%`;
 }>`
-  width: 100%;
-  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  flex-grow: 1;
 
   position: relative;
   display: grid;
-  overflow: auto;
   grid-template-${p => p.orientation}: ${p => p.size} auto 1fr;
 
-  &.disable-iframe-pointer iframe {
+  /*
+   * This is more specific, with <code>&&</code> than the foundational rule:
+   * <code>&[data-inspectable='true'] .replayer-wrapper > iframe</code>
+   */
+  &&.disable-iframe-pointer iframe {
     pointer-events: none !important;
   }
 `;
 
 const Panel = styled('div')`
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  flex-grow: 1;
+  min-height: 0;
+  min-width: 0;
 `;
 
 export default SplitPanel;

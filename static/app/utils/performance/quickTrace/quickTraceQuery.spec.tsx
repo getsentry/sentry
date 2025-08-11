@@ -8,7 +8,7 @@ import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery
 const traceId = 'abcdef1234567890';
 const eventId = '0987654321fedcba';
 
-function renderQuickTrace({isLoading, error, trace, type}) {
+function renderQuickTrace({isLoading, error, trace, type}: any) {
   if (isLoading) {
     return 'loading';
   }
@@ -28,7 +28,11 @@ function renderQuickTrace({isLoading, error, trace, type}) {
 }
 
 describe('TraceLiteQuery', function () {
-  let location, event, traceLiteMock, traceFullMock, traceMetaMock;
+  let location: any,
+    event: any,
+    traceLiteMock: any,
+    traceFullMock: any,
+    traceMetaMock: any;
   beforeEach(function () {
     location = {
       pathname: '/',

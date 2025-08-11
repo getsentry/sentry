@@ -1,14 +1,12 @@
 import {useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import Tag from 'sentry/components/badge/tag';
+import {ExternalLink} from 'sentry/components/core/link';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Panel from 'sentry/components/panels/panel';
@@ -17,16 +15,18 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
 import type {AlertType, WizardRuleTemplate} from './options';
 import {
   AlertWizardAlertNames,
+  AlertWizardExtraContent,
   AlertWizardRuleTemplates,
   getAlertWizardCategories,
 } from './options';
@@ -37,7 +37,7 @@ type RouteParams = {
   projectId?: string;
 };
 
-type AlertWizardProps = RouteComponentProps<RouteParams, {}> & {
+type AlertWizardProps = RouteComponentProps<RouteParams> & {
   organization: Organization;
   projectId: string;
 };
@@ -58,6 +58,7 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
 
   function renderCreateAlertButton() {
     let metricRuleTemplate: Readonly<WizardRuleTemplate> | undefined =
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       AlertWizardRuleTemplates[alertOption];
     const isMetricAlert = !!metricRuleTemplate;
     const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
@@ -73,7 +74,7 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
       metricRuleTemplate = {...metricRuleTemplate, query: 'is:unresolved'};
     }
 
-    const renderNoAccess = p => (
+    const renderNoAccess = (p: any) => (
       <Hovercard
         body={
           <FeatureDisabled
@@ -116,9 +117,18 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
               disabled={!hasFeature}
               priority="primary"
               to={{
-                pathname: `/organizations/${organization.slug}/alerts/new/${
-                  isMetricAlert ? AlertRuleType.METRIC : AlertRuleType.ISSUE
-                }/`,
+                pathname: makeAlertsPathname({
+                  organization,
+                  path: `/new/${
+                    isMetricAlert
+                      ? AlertRuleType.METRIC
+                      : alertOption === 'uptime_monitor'
+                        ? AlertRuleType.UPTIME
+                        : alertOption === 'crons_monitor'
+                          ? AlertRuleType.CRONS
+                          : AlertRuleType.ISSUE
+                  }/`,
+                }),
                 query: {
                   ...(metricRuleTemplate ? metricRuleTemplate : {}),
                   project: projectSlug,
@@ -155,18 +165,17 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
           <WizardBody>
             <WizardOptions>
               {getAlertWizardCategories(organization).map(
-                ({categoryHeading, options}) => (
+                ({categoryHeading, options}: any) => (
                   <div key={categoryHeading}>
                     <CategoryTitle>{categoryHeading} </CategoryTitle>
                     <WizardGroupedOptions
-                      choices={options.map(alertType => {
+                      choices={options.map((alertType: any) => {
                         return [
                           alertType,
+                          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                           AlertWizardAlertNames[alertType],
-                          alertType === 'custom_metrics' &&
-                          hasCustomMetricsExtractionRules(organization) ? (
-                            <Tag type="warning">{t('deprecated')}</Tag>
-                          ) : null,
+                          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                          AlertWizardExtraContent[alertType],
                         ];
                       })}
                       onChange={option => handleChangeAlertOption(option as AlertType)}
@@ -214,8 +223,8 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
 `;
 
 const CategoryTitle = styled('h2')`
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(1)} !important;
 `;
 
@@ -236,6 +245,7 @@ const WizardOptions = styled('div')`
 
 const WizardImage = styled('img')`
   max-height: 300px;
+  margin-bottom: ${space(2)};
 `;
 
 const WizardPanel = styled(Panel)<{visible?: boolean}>`
@@ -277,11 +287,11 @@ const PanelDescription = styled('p')`
 
 const ExampleHeader = styled('div')`
   margin: 0 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const ExampleItem = styled(ListItem)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const WizardFooter = styled('div')`

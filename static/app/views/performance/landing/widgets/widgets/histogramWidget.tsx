@@ -6,11 +6,17 @@ import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnh
 import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {Chart as HistogramChart} from 'sentry/views/performance/landing/chart/histogramChart';
-
-import {GenericPerformanceWidget} from '../components/performanceWidget';
-import {transformHistogramQuery} from '../transforms/transformHistogramQuery';
-import type {PerformanceWidgetProps, WidgetDataResult} from '../types';
-import {getMEPQueryParams, QUERY_LIMIT_PARAM} from '../utils';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
+import {transformHistogramQuery} from 'sentry/views/performance/landing/widgets/transforms/transformHistogramQuery';
+import type {
+  GenericPerformanceWidgetProps,
+  PerformanceWidgetProps,
+  WidgetDataResult,
+} from 'sentry/views/performance/landing/widgets/types';
+import {
+  getMEPQueryParams,
+  QUERY_LIMIT_PARAM,
+} from 'sentry/views/performance/landing/widgets/utils';
 
 type AreaDataType = {
   chart: WidgetDataResult & ReturnType<typeof transformHistogramQuery>;
@@ -22,14 +28,14 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
   const {ContainerActions, InteractiveTitle} = props;
   const globalSelection = props.eventView.getPageFilters();
 
-  const Queries = useMemo(() => {
+  const Queries = useMemo((): GenericPerformanceWidgetProps<AreaDataType>['Queries'] => {
     return {
       chart: {
         fields: props.fields,
         component: provided => (
           <HistogramQuery
             limit={QUERY_LIMIT_PARAM}
-            {...provided}
+            {...(provided as any)}
             eventView={provided.eventView}
             location={location}
             numBuckets={20}
@@ -75,8 +81,8 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
               isLoading={false}
               isErrored={false}
               onFilterChange={onFilterChange}
-              field={props.fields[0]}
-              chartData={provided.widgetData.chart?.data?.[props.fields[0]]}
+              field={props.fields[0]!}
+              chartData={provided.widgetData.chart?.data?.[props.fields[0]!]}
               disableXAxis
               disableZoom
               disableChartPadding
@@ -90,6 +96,6 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
 }
 
 const Subtitle = styled('span')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.md};
 `;

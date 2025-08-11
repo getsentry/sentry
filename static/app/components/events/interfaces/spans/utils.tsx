@@ -40,7 +40,7 @@ import type {
   TreeDepthType,
 } from './types';
 
-export const isValidSpanID = (maybeSpanID: any) =>
+const isValidSpanID = (maybeSpanID: any) =>
   typeof maybeSpanID === 'string' && maybeSpanID.length > 0;
 
 export type SpanBoundsType = {endTimestamp: number; startTimestamp: number};
@@ -117,13 +117,6 @@ const HTTP_DATA_KEYS = [
 const INTERNAL_DATA_KEYS = ['sentry_tags'];
 const HIDDEN_DATA_KEYS = [...HTTP_DATA_KEYS, ...INTERNAL_DATA_KEYS];
 
-const TIMING_DATA_KEYS = [
-  SpanSubTimingMark.HTTP_REQUEST_START,
-  SpanSubTimingMark.HTTP_RESPONSE_START,
-];
-export const isSpanDataKeyTiming = (key: string) => {
-  return TIMING_DATA_KEYS.includes(key as SpanSubTimingMark);
-};
 export const isHiddenDataKey = (key: string) => {
   return HIDDEN_DATA_KEYS.includes(key);
 };
@@ -136,7 +129,7 @@ export const shouldLimitAffectedToTiming = (timing: SubTimingInfo) => {
   return timing.endMark === SpanSubTimingMark.HTTP_REQUEST_START; // Sub timing spanning between start and request start.
 };
 
-export const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus => {
+const parseSpanTimestamps = (spanBounds: SpanBoundsType): TimestampStatus => {
   const startTimestamp: number = spanBounds.startTimestamp;
   const endTimestamp: number = spanBounds.endTimestamp;
 
@@ -315,7 +308,7 @@ export function isOrphanSpan(span: ProcessedSpanType): span is OrphanSpanType {
   return false;
 }
 
-export function getSpanID(span: ProcessedSpanType, defaultSpanID: string = ''): string {
+export function getSpanID(span: ProcessedSpanType, defaultSpanID = ''): string {
   if (isGapSpan(span)) {
     return defaultSpanID;
   }
@@ -331,15 +324,7 @@ export function getSpanOperation(span: ProcessedSpanType): string | undefined {
   return span.op;
 }
 
-export function getSpanTraceID(span: ProcessedSpanType): string {
-  if (isGapSpan(span)) {
-    return 'gap-span';
-  }
-
-  return span.trace_id;
-}
-
-export function getSpanParentSpanID(span: ProcessedSpanType): string | undefined {
+function getSpanParentSpanID(span: ProcessedSpanType): string | undefined {
   if (isGapSpan(span)) {
     return 'gap-span';
   }
@@ -395,7 +380,10 @@ export function subTimingMarkToTime(span: RawSpanType, mark: SpanSubTimingMark) 
   return (span as any).data?.[mark] as number | undefined;
 }
 
-export function getSpanSubTimings(span: ProcessedSpanType): SubTimingInfo[] | null {
+export function getSpanSubTimings(
+  span: ProcessedSpanType,
+  theme: Theme
+): SubTimingInfo[] | null {
   if (span.type) {
     return null; // narrow to RawSpanType
   }
@@ -432,7 +420,7 @@ export function getSpanSubTimings(span: ProcessedSpanType): SubTimingInfo[] | nu
       duration: end - start,
       startTimestamp: start,
       endTimestamp: end,
-      color: lightenBarColor(getSpanOperation(span), def.colorLighten),
+      color: lightenBarColor(getSpanOperation(span), def.colorLighten, theme),
     });
   }
 
@@ -558,7 +546,7 @@ export function parseTrace(
 
     // get any span children whose parent_span_id is equal to span.parent_span_id,
     // otherwise start with an empty array
-    const spanChildren: Array<SpanType> = acc.childSpans[span.parent_span_id] ?? [];
+    const spanChildren: SpanType[] = acc.childSpans[span.parent_span_id] ?? [];
 
     spanChildren.push(span);
 
@@ -584,7 +572,7 @@ export function parseTrace(
       return acc;
     }
 
-    if (hasEndTimestamp && span.timestamp! > acc.traceEndTimestamp) {
+    if (hasEndTimestamp && span.timestamp > acc.traceEndTimestamp) {
       acc.traceEndTimestamp = span.timestamp;
       return acc;
     }
@@ -680,13 +668,14 @@ export function isEventFromBrowserJavaScriptSDK(
 // PerformancePaintTiming: Duration is 0 as per https://developer.mozilla.org/en-US/docs/Web/API/PerformancePaintTiming
 export const durationlessBrowserOps = ['mark', 'paint'];
 
-type Measurements = {
-  [name: string]: {
+type Measurements = Record<
+  string,
+  {
     failedThreshold: boolean;
     timestamp: number;
     value: number | undefined;
-  };
-};
+  }
+>;
 
 export type VerticalMark = {
   failedThreshold: boolean;
@@ -700,7 +689,7 @@ function hasFailedThreshold(marks: Measurements): boolean {
   );
 
   return records.some(record => {
-    const {value} = marks[record.slug];
+    const {value} = marks[record.slug]!;
     if (typeof value === 'number' && typeof record.poorThreshold === 'number') {
       return value >= record.poorThreshold;
     }
@@ -733,7 +722,7 @@ export function getMeasurements(
   const measurements = Object.keys(event.measurements)
     .filter(name => allowedVitals.has(`measurements.${name}`))
     .map(name => {
-      const associatedMeasurement = event.measurements![name];
+      const associatedMeasurement = event.measurements![name]!;
       return {
         name,
         // Time timestamp is in seconds, but the measurement value is given in ms so convert it here
@@ -769,14 +758,15 @@ export function getMeasurements(
       if (positionDelta <= MERGE_LABELS_THRESHOLD_PERCENT) {
         const verticalMark = mergedMeasurements.get(otherPos)!;
 
-        const {poorThreshold} = VITAL_DETAILS[`measurements.${name}`];
+        const {poorThreshold} =
+          VITAL_DETAILS[`measurements.${name}` as keyof typeof VITAL_DETAILS];
 
         verticalMark.marks = {
           ...verticalMark.marks,
           [name]: {
             value,
             timestamp: measurement.timestamp,
-            failedThreshold: value ? value >= poorThreshold : false,
+            failedThreshold: value ? value >= poorThreshold! : false,
           },
         };
 
@@ -789,13 +779,14 @@ export function getMeasurements(
       }
     }
 
-    const {poorThreshold} = VITAL_DETAILS[`measurements.${name}`];
+    const {poorThreshold} =
+      VITAL_DETAILS[`measurements.${name}` as keyof typeof VITAL_DETAILS];
 
     const marks = {
       [name]: {
         value,
         timestamp: measurement.timestamp,
-        failedThreshold: value ? value >= poorThreshold : false,
+        failedThreshold: value ? value >= poorThreshold! : false,
       },
     };
 
@@ -947,8 +938,8 @@ export function getSpanGroupTimestamps(spanGroup: EnhancedSpan[]) {
       };
     },
     {
-      startTimestamp: spanGroup[0].span.start_timestamp,
-      endTimestamp: spanGroup[0].span.timestamp,
+      startTimestamp: spanGroup[0]!.span.start_timestamp,
+      endTimestamp: spanGroup[0]!.span.timestamp,
     }
   );
 }
@@ -999,7 +990,7 @@ export function getSpanGroupBounds(
 }
 
 export function getCumulativeAlertLevelFromErrors(
-  errors?: Pick<TraceError, 'level' | 'type'>[]
+  errors?: Array<Pick<TraceError, 'level' | 'type'>>
 ): keyof Theme['alert'] | undefined {
   const highestErrorLevel = maxBy(
     errors || [],
@@ -1065,22 +1056,22 @@ export function getFormattedTimeRangeWithLeadingAndTrailingZero(
     start: string[];
   }>(
     (acc, startString, index) => {
-      if (startString.length > endStrings[index].length) {
+      if (startString.length > endStrings[index]!.length) {
         acc.start.push(startString);
         acc.end.push(
           index === 0
-            ? endStrings[index].padStart(startString.length, '0')
-            : endStrings[index].padEnd(startString.length, '0')
+            ? endStrings[index]!.padStart(startString.length, '0')
+            : endStrings[index]!.padEnd(startString.length, '0')
         );
         return acc;
       }
 
       acc.start.push(
         index === 0
-          ? startString.padStart(endStrings[index].length, '0')
-          : startString.padEnd(endStrings[index].length, '0')
+          ? startString.padStart(endStrings[index]!.length, '0')
+          : startString.padEnd(endStrings[index]!.length, '0')
       );
-      acc.end.push(endStrings[index]);
+      acc.end.push(endStrings[index]!);
       return acc;
     },
     {start: [], end: []}

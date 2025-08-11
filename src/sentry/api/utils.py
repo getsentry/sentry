@@ -4,22 +4,22 @@ import datetime
 import logging
 import sys
 import traceback
-from collections.abc import Generator, Mapping, MutableMapping
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Literal, overload
 
 import sentry_sdk
 from django.conf import settings
-from django.http import HttpRequest, HttpResponseNotAllowed
+from django.db.utils import OperationalError
+from django.http import HttpRequest
 from django.utils import timezone
-from django.views.decorators.csrf import csrf_exempt
-from rest_framework.exceptions import APIException, ParseError
-from rest_framework.request import Request
+from rest_framework.exceptions import APIException, ParseError, Throttled
+from rest_framework.status import HTTP_504_GATEWAY_TIMEOUT
 from sentry_sdk import Scope
-from urllib3.exceptions import MaxRetryError, ReadTimeoutError
+from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
 
-from sentry import options
+from sentry import options, quotas
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.discover.arithmetic import ArithmeticError
@@ -35,13 +35,17 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
-from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
-from sentry.search.events.types import ParamsType, SnubaParams
+from sentry.search.events.constants import (
+    RATE_LIMIT_ERROR_MESSAGE,
+    TIMEOUT_ERROR_MESSAGE,
+    TIMEOUT_RPC_ERROR_MESSAGE,
+)
+from sentry.search.events.types import SnubaParams
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.silo.base import SiloMode
 from sentry.types.region import get_local_region
 from sentry.utils.dates import parse_stats_period
-from sentry.utils.sdk import capture_exception, merge_context_into_scope
+from sentry.utils.sdk import capture_exception, merge_context_into_scope, set_span_attribute
 from sentry.utils.snuba import (
     DatasetSelectionError,
     QueryConnectionFailed,
@@ -58,10 +62,15 @@ from sentry.utils.snuba import (
     SnubaError,
     UnqualifiedQueryError,
 )
+from sentry.utils.snuba_rpc import SnubaRPCError
 
 logger = logging.getLogger(__name__)
 
 MAX_STATS_PERIOD = timedelta(days=90)
+
+
+class TimeoutException(APIException):
+    status_code = HTTP_504_GATEWAY_TIMEOUT
 
 
 def get_datetime_from_stats_period(
@@ -92,8 +101,7 @@ def get_date_range_from_params(
     params: Mapping[str, Any],
     optional: Literal[False] = ...,
     default_stats_period: datetime.timedelta = ...,
-) -> tuple[datetime.datetime, datetime.datetime]:
-    ...
+) -> tuple[datetime.datetime, datetime.datetime]: ...
 
 
 @overload
@@ -101,8 +109,7 @@ def get_date_range_from_params(
     params: Mapping[str, Any],
     optional: bool = ...,
     default_stats_period: datetime.timedelta = ...,
-) -> tuple[None, None] | tuple[datetime.datetime, datetime.datetime]:
-    ...
+) -> tuple[None, None] | tuple[datetime.datetime, datetime.datetime]: ...
 
 
 def get_date_range_from_params(
@@ -165,8 +172,7 @@ def get_date_range_from_stats_period(
     params: dict[str, Any],
     optional: Literal[False] = ...,
     default_stats_period: datetime.timedelta = ...,
-) -> tuple[datetime.datetime, datetime.datetime]:
-    ...
+) -> tuple[datetime.datetime, datetime.datetime]: ...
 
 
 @overload
@@ -174,8 +180,7 @@ def get_date_range_from_stats_period(
     params: dict[str, Any],
     optional: bool = ...,
     default_stats_period: datetime.timedelta = ...,
-) -> tuple[None, None] | tuple[datetime.datetime, datetime.datetime]:
-    ...
+) -> tuple[None, None] | tuple[datetime.datetime, datetime.datetime]: ...
 
 
 def get_date_range_from_stats_period(
@@ -238,10 +243,39 @@ def get_date_range_from_stats_period(
     return start, end
 
 
+def clamp_date_range(
+    range: tuple[datetime.datetime, datetime.datetime], max_timedelta: datetime.timedelta
+) -> tuple[datetime.datetime, datetime.datetime]:
+    """
+    Accepts a date range and a maximum time delta. If the date range is shorter
+    than the max delta, returns the range as-is. If the date range is longer than the max delta, clamps the range range, anchoring to the end.
+
+    If any of the inputs are invalid (e.g., a negative range) returns the range
+    without modifying it.
+
+    :param range: A tuple of two `datetime.datetime` objects
+    :param max_timedelta: Maximum allowed range delta
+    :return: A tuple of two `datetime.datetime` objects
+    """
+
+    [start, end] = range
+    delta = end - start
+
+    # Ignore negative max time deltas
+    if max_timedelta < datetime.timedelta(0):
+        return (start, end)
+
+    # Ignore if delta is within acceptable range
+    if delta < max_timedelta:
+        return (start, end)
+
+    return (end - max_timedelta, end)
+
+
 # The wide typing allows us to move towards RpcUserOrganizationContext in the future to save RPC calls.
 # If you can use the wider more correct type, please do.
 def is_member_disabled_from_limit(
-    request: Request,
+    request: HttpRequest,
     organization: RpcUserOrganizationContext | RpcOrganization | Organization | int,
 ) -> bool:
     user = request.user
@@ -282,30 +316,6 @@ def generate_region_url(region_name: str | None = None) -> str:
     if not region_url_template or not region_name:
         return options.get("system.url-prefix")
     return region_url_template.replace("{region}", region_name)
-
-
-def method_dispatch(**dispatch_mapping):
-    """
-    Dispatches an incoming request to a different handler based on the HTTP method
-
-    >>> re_path('^foo$', method_dispatch(POST = post_handler, GET = get_handler)))
-    """
-
-    def invalid_method(request, *args, **kwargs):
-        return HttpResponseNotAllowed(dispatch_mapping.keys())
-
-    def dispatcher(request, *args, **kwargs):
-        handler = dispatch_mapping.get(request.method, invalid_method)
-        return handler(request, *args, **kwargs)
-
-    # This allows us to surface the mapping when iterating through the URL patterns
-    # Check `test_id_or_slug_path_params.py` for usage
-    dispatcher.dispatch_mapping = dispatch_mapping  # type: ignore[attr-defined]
-
-    if dispatch_mapping.get("csrf_exempt"):
-        return csrf_exempt(dispatcher)
-
-    return dispatcher
 
 
 def print_and_capture_handler_exception(
@@ -367,13 +377,24 @@ def handle_query_errors() -> Generator[None]:
         message = str(error)
         sentry_sdk.set_tag("query.error_reason", f"Metric Error: {message}")
         raise ParseError(detail=message)
+    except SnubaRPCError as error:
+        message = "Internal error. Please try again."
+        arg = error.args[0] if len(error.args) > 0 else None
+        if isinstance(arg, TimeoutError):
+            sentry_sdk.set_tag("query.error_reason", "Timeout")
+            raise TimeoutException(detail=TIMEOUT_RPC_ERROR_MESSAGE)
+        sentry_sdk.capture_exception(error)
+        raise APIException(detail=message)
     except SnubaError as error:
         message = "Internal error. Please try again."
         arg = error.args[0] if len(error.args) > 0 else None
+        if isinstance(error, RateLimitExceeded):
+            sentry_sdk.set_tag("query.error_reason", "RateLimitExceeded")
+            sentry_sdk.capture_exception(error)
+            raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
         if isinstance(
             error,
             (
-                RateLimitExceeded,
                 QueryMemoryLimitExceeded,
                 QueryExecutionTimeMaximum,
                 QueryTooManySimultaneous,
@@ -383,7 +404,7 @@ def handle_query_errors() -> Generator[None]:
             ReadTimeoutError,
         ):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
-            raise ParseError(detail=TIMEOUT_ERROR_MESSAGE)
+            raise TimeoutException(detail=TIMEOUT_ERROR_MESSAGE)
         elif isinstance(error, (UnqualifiedQueryError)):
             sentry_sdk.set_tag("query.error_reason", str(error))
             raise ParseError(detail=str(error))
@@ -409,11 +430,22 @@ def handle_query_errors() -> Generator[None]:
         else:
             sentry_sdk.capture_exception(error)
         raise APIException(detail=message)
+    except OperationalError as error:
+        error_message = str(error)
+        is_timeout = "canceling statement due to statement timeout" in error_message
+        if is_timeout:
+            sentry_sdk.set_tag("query.error_reason", "Postgres statement timeout")
+            sentry_sdk.capture_exception(error, level="warning")
+            raise Throttled(
+                detail="Query timeout. Please try with a smaller date range or fewer conditions."
+            )
+        # Let other OperationalErrors propagate as normal
+        raise
 
 
 def update_snuba_params_with_timestamp(
     request: HttpRequest,
-    params: MutableMapping[str, Any] | SnubaParams | ParamsType,
+    params: SnubaParams,
     timestamp_key: str = "timestamp",
 ) -> None:
     """In some views we only want to query snuba data around a single event or trace. In these cases the frontend can
@@ -421,27 +453,30 @@ def update_snuba_params_with_timestamp(
     faster than the default 7d or 14d queries"""
     # during the transition this is optional but it will become required for the trace view
     sentry_sdk.set_tag("trace_view.used_timestamp", timestamp_key in request.GET)
-    if isinstance(params, SnubaParams):
-        has_dates = params.start is not None and params.end is not None
-    else:
-        has_dates = "start" in params and "end" in params
+    has_dates = params.start is not None and params.end is not None
     if timestamp_key in request.GET and has_dates:
         example_timestamp = parse_datetime_string(request.GET[timestamp_key])
         # While possible, the majority of traces shouldn't take more than a week
         # Starting with 3d for now, but potentially something we can increase if this becomes a problem
         time_buffer = options.get("performance.traces.transaction_query_timebuffer_days")
-        sentry_sdk.set_measurement("trace_view.transactions.time_buffer", time_buffer)
+        set_span_attribute("trace_view.transactions.time_buffer", time_buffer)
         example_start = example_timestamp - timedelta(days=time_buffer)
         example_end = example_timestamp + timedelta(days=time_buffer)
         # If timestamp is being passed it should always overwrite the statsperiod or start & end
         # the client should just not pass a timestamp if we need to overwrite this logic for any reason
-        if isinstance(params, SnubaParams):
-            # Typing gets mad that start is optional still but has_dates has checked it
-            assert params.start is not None
-            assert params.end is not None
 
-            params.start = max(params.start, example_start)
-            params.end = min(params.end, example_end)
-        else:
-            params["start"] = max(params["start"], example_start)
-            params["end"] = min(params["end"], example_end)
+        params.start = max(params.start_date, example_start)
+        params.end = min(params.end_date, example_end)
+        retention = quotas.backend.get_event_retention(organization=params.organization)
+        if retention and params.start < timezone.now() - timedelta(days=retention):
+            raise InvalidSearchQuery(
+                "Query dates our outside of retention, try again with a date within retention"
+            )
+
+
+def reformat_timestamp_ms_to_isoformat(timestamp_ms: str) -> Any:
+    """
+    `timestamp_ms` arrives from Snuba in a slightly different format (no `T` and no timezone), so we convert to datetime and
+    back to isoformat to keep it standardized with other timestamp fields
+    """
+    return datetime.datetime.fromisoformat(timestamp_ms).astimezone().isoformat()

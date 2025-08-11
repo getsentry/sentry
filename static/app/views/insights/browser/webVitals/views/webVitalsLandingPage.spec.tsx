@@ -1,38 +1,28 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
 import WebVitalsLandingPage from 'sentry/views/insights/browser/webVitals/views/webVitalsLandingPage';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useProjects');
-jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 describe('WebVitalsLandingPage', function () {
   const organization = OrganizationFixture({
     features: ['insights-initial-modules'],
   });
 
-  let eventsMock;
+  let eventsMock: jest.Mock;
 
   beforeEach(function () {
-    jest.mocked(useOnboardingProject).mockReturnValue(undefined);
-    jest.mocked(useProjects).mockReturnValue({
-      projects: [ProjectFixture({hasInsightsVitals: true})],
-      onSearch: jest.fn(),
-      reloadProjects: jest.fn(),
-      placeholders: [],
-      fetching: false,
-      hasMore: null,
-      fetchError: null,
-      initiallyLoaded: false,
-    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({hasInsightsVitals: true, firstTransactionEvent: true}),
+    ]);
 
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
@@ -43,22 +33,8 @@ describe('WebVitalsLandingPage', function () {
       action: 'PUSH',
       key: '',
     });
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    });
+
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -66,9 +42,22 @@ describe('WebVitalsLandingPage', function () {
         data: [],
       },
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/stats/`,
+      body: [],
+    });
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
-      body: {},
+      body: {
+        'performance_score(measurements.score.lcp)': {
+          data: [[1743348600, [{count: 0.6106921965623204}]]],
+        },
+        'performance_score(measurements.score.fcp)': {
+          data: [[1743435000, [{count: 0.7397871866098699}]]],
+        },
+      },
     });
   });
 
@@ -77,7 +66,7 @@ describe('WebVitalsLandingPage', function () {
   });
 
   it('renders', async () => {
-    render(<WebVitalsLandingPage />, {organization});
+    render(<WebVitalsLandingPage />, {organization, deprecatedRouterMocks: true});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     // Table query
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -85,7 +74,7 @@ describe('WebVitalsLandingPage', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'project.id',
             'project',
@@ -103,10 +92,10 @@ describe('WebVitalsLandingPage', function () {
             'count_scores(measurements.score.cls)',
             'count_scores(measurements.score.inp)',
             'count_scores(measurements.score.ttfb)',
-            'total_opportunity_score()',
+            'count_scores(measurements.score.total)',
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
         }),
       })
     );
@@ -116,23 +105,17 @@ describe('WebVitalsLandingPage', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'p75(measurements.lcp)',
             'p75(measurements.fcp)',
             'p75(measurements.cls)',
             'p75(measurements.ttfb)',
             'p75(measurements.inp)',
-            'p75(transaction.duration)',
-            'count_web_vitals(measurements.lcp, any)',
-            'count_web_vitals(measurements.fcp, any)',
-            'count_web_vitals(measurements.cls, any)',
-            'count_web_vitals(measurements.ttfb, any)',
-            'count_web_vitals(measurements.inp, any)',
             'count()',
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>"',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>"',
         }),
       })
     );
@@ -142,7 +125,7 @@ describe('WebVitalsLandingPage', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          dataset: 'metrics',
+          dataset: 'spans',
           field: [
             'performance_score(measurements.score.lcp)',
             'performance_score(measurements.score.fcp)',
@@ -164,7 +147,7 @@ describe('WebVitalsLandingPage', function () {
             `count_scores(measurements.score.inp)`,
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>"',
+            'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] !transaction:"<< unparameterized >>"',
         }),
       })
     );

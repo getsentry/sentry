@@ -15,18 +15,12 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
-from sentry.tagstore.exceptions import (
-    GroupTagKeyNotFound,
-    GroupTagValueNotFound,
-    TagKeyNotFound,
-    TagValueNotFound,
-)
+from sentry.tagstore.exceptions import GroupTagKeyNotFound, TagKeyNotFound
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.tagstore.types import GroupTagValue, TagValue
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.eventuser import EventUser
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -72,7 +66,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "platform": "python",
                 "environment": env1,
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.now - timedelta(seconds=1)),
+                "timestamp": (self.now - timedelta(seconds=1)).isoformat(),
                 "tags": {
                     "foo": "bar",
                     "baz": "quux",
@@ -92,7 +86,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "platform": "python",
                 "environment": env1,
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.now - timedelta(seconds=2)),
+                "timestamp": (self.now - timedelta(seconds=2)).isoformat(),
                 "tags": {
                     "foo": "bar",
                     "baz": "quux",
@@ -112,7 +106,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "platform": "python",
                 "environment": env1,
                 "fingerprint": ["group-2"],
-                "timestamp": iso_format(self.now - timedelta(seconds=2)),
+                "timestamp": (self.now - timedelta(seconds=2)).isoformat(),
                 "tags": {"browser": "chrome", "sentry:user": "id:user1"},
                 "user": {"id": "user1"},
             },
@@ -126,7 +120,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "platform": "python",
                 "environment": env2,
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.now - timedelta(seconds=2)),
+                "timestamp": (self.now - timedelta(seconds=2)).isoformat(),
                 "tags": {"foo": "bar"},
             },
             project_id=self.proj1.id,
@@ -147,8 +141,8 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             event_data={
                 **event_data,
                 "event_id": "a" * 32,
-                "timestamp": iso_format(self.now - timedelta(seconds=1)),
-                "start_timestamp": iso_format(self.now - timedelta(seconds=1)),
+                "timestamp": (self.now - timedelta(seconds=1)).isoformat(),
+                "start_timestamp": (self.now - timedelta(seconds=1)).isoformat(),
                 "tags": {"foo": "bar", "biz": "baz"},
                 "release": "releaseme",
             }
@@ -157,8 +151,8 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             event_data={
                 **event_data,
                 "event_id": "b" * 32,
-                "timestamp": iso_format(self.now - timedelta(seconds=2)),
-                "start_timestamp": iso_format(self.now - timedelta(seconds=2)),
+                "timestamp": (self.now - timedelta(seconds=2)).isoformat(),
+                "start_timestamp": (self.now - timedelta(seconds=2)).isoformat(),
                 "tags": {"foo": "quux"},
                 "release": "releaseme",
             }
@@ -181,7 +175,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         assert group_info is not None
         return group_info.group, env
 
-    def test_get_group_tag_keys_and_top_values(self):
+    def test_get_group_tag_keys_and_top_values(self) -> None:
         result = list(
             self.ts.get_group_tag_keys_and_top_values(
                 self.proj1group1,
@@ -226,7 +220,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         assert {v.value for v in top_release_values} == {"100", "200"}
         assert all(v.times_seen == 1 for v in top_release_values)
 
-    def test_get_group_tag_keys_and_top_values_perf_issue(self):
+    def test_get_group_tag_keys_and_top_values_perf_issue(self) -> None:
         perf_group, env = self.perf_group_and_env
 
         result = list(
@@ -290,7 +284,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         assert {v.value for v in top_release_values} == {"releaseme"}
         assert all(v.times_seen == 2 for v in top_release_values)
 
-    def test_get_group_tag_keys_and_top_values_generic_issue(self):
+    def test_get_group_tag_keys_and_top_values_generic_issue(self) -> None:
         group, env = self.generic_group_and_env
         result = list(
             self.ts.get_group_tag_keys_and_top_values(
@@ -335,7 +329,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         assert all(v.times_seen == 1 for v in top_release_values)
         # assert False
 
-    def test_get_top_group_tag_values(self):
+    def test_get_top_group_tag_values(self) -> None:
         resp = self.ts.get_top_group_tag_values(
             self.proj1group1,
             self.proj1env1.id,
@@ -349,7 +343,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         assert resp[0].value == "bar"
         assert resp[0].group_id == self.proj1group1.id
 
-    def test_get_top_group_tag_values_perf(self):
+    def test_get_top_group_tag_values_perf(self) -> None:
         perf_group, env = self.perf_group_and_env
         resp = self.ts.get_top_group_tag_values(
             perf_group,
@@ -368,7 +362,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         assert resp[1].value == "quux"
         assert resp[1].group_id == perf_group.id
 
-    def test_get_top_group_tag_values_generic(self):
+    def test_get_top_group_tag_values_generic(self) -> None:
         group, env = self.generic_group_and_env
         resp = self.ts.get_top_group_tag_values(
             group, env.id, "foo", 1, tenant_ids={"referrer": "r", "organization_id": 1234}
@@ -379,7 +373,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         assert resp[0].value == "bar"
         assert resp[0].group_id == group.id
 
-    def test_get_group_tag_value_count(self):
+    def test_get_group_tag_value_count(self) -> None:
         assert (
             self.ts.get_group_tag_value_count(
                 self.proj1group1,
@@ -390,7 +384,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             == 2
         )
 
-    def test_get_group_tag_value_count_perf(self):
+    def test_get_group_tag_value_count_perf(self) -> None:
         perf_group, env = self.perf_group_and_env
 
         assert (
@@ -400,7 +394,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             == 2
         )
 
-    def test_get_group_tag_value_count_generic(self):
+    def test_get_group_tag_value_count_generic(self) -> None:
         group, env = self.generic_group_and_env
 
         assert (
@@ -410,7 +404,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             == 1
         )
 
-    def test_get_tag_keys(self):
+    def test_get_tag_keys(self) -> None:
         expected_keys = {
             "baz",
             "browser",
@@ -440,7 +434,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         }
         assert set(keys) == expected_keys
 
-    def test_get_tag_keys_removed_from_denylist(self):
+    def test_get_tag_keys_removed_from_denylist(self) -> None:
         denylist_keys = frozenset(["browser", "sentry:release"])
         expected_keys = {
             "baz",
@@ -470,7 +464,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         expected_keys |= {"browser", "sentry:release"}
         assert set(keys) == expected_keys
 
-    def test_get_group_tag_key(self):
+    def test_get_group_tag_key(self) -> None:
         with pytest.raises(GroupTagKeyNotFound):
             self.ts.get_group_tag_key(
                 group=self.proj1group1,
@@ -499,7 +493,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         }
         assert set(keys) == {"baz", "environment", "foo", "sentry:release", "sentry:user", "level"}
 
-    def test_get_group_tag_key_perf(self):
+    def test_get_group_tag_key_perf(self) -> None:
         perf_group, env = self.perf_group_and_env
 
         with pytest.raises(GroupTagKeyNotFound):
@@ -546,7 +540,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             "url",
         }
 
-    def test_get_group_tag_key_generic(self):
+    def test_get_group_tag_key_generic(self) -> None:
         group, env = self.generic_group_and_env
 
         with pytest.raises(GroupTagKeyNotFound):
@@ -575,52 +569,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         }
         assert set(keys) == {"biz", "environment", "foo", "sentry:user", "level", "sentry:release"}
 
-    def test_get_group_tag_value(self):
-        with pytest.raises(GroupTagValueNotFound):
-            self.ts.get_group_tag_value(
-                project_id=self.proj1.id,
-                group_id=self.proj1group1.id,
-                environment_id=self.proj1env1.id,
-                key="foo",
-                value="notreal",
-                tenant_ids={"referrer": "r", "organization_id": 1234},
-            )
-
-        assert (
-            self.ts.get_group_tag_values(
-                group=self.proj1group1,
-                environment_id=self.proj1env1.id,
-                key="notreal",
-                tenant_ids={"referrer": "r", "organization_id": 1234},
-            )
-            == set()
-        )
-
-        assert (
-            list(
-                self.ts.get_group_tag_values(
-                    group=self.proj1group1,
-                    environment_id=self.proj1env1.id,
-                    tenant_ids={"referrer": "r", "organization_id": 1234},
-                    key="foo",
-                )
-            )[0].value
-            == "bar"
-        )
-
-        assert (
-            self.ts.get_group_tag_value(
-                project_id=self.proj1.id,
-                group_id=self.proj1group1.id,
-                environment_id=self.proj1env1.id,
-                key="foo",
-                value="bar",
-                tenant_ids={"referrer": "r", "organization_id": 1234},
-            ).value
-            == "bar"
-        )
-
-    def test_get_tag_key(self):
+    def test_get_tag_key(self) -> None:
         with pytest.raises(TagKeyNotFound):
             self.ts.get_tag_key(
                 project_id=self.proj1.id,
@@ -629,17 +578,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 tenant_ids={"referrer": "r", "organization_id": 1234},
             )
 
-    def test_get_tag_value(self):
-        with pytest.raises(TagValueNotFound):
-            self.ts.get_tag_value(
-                project_id=self.proj1.id,
-                environment_id=self.proj1env1.id,
-                key="foo",
-                value="notreal",
-                tenant_ids={"referrer": "r", "organization_id": 1234},
-            )
-
-    def test_get_tag_value_label(self):
+    def test_get_tag_value_label(self) -> None:
         assert self.ts.get_tag_value_label("foo", "notreal") == "notreal"
         assert self.ts.get_tag_value_label("sentry:user", None) is None
         assert self.ts.get_tag_value_label("sentry:user", "id:stuff") == "stuff"
@@ -647,7 +586,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         assert self.ts.get_tag_value_label("sentry:user", "username:stuff") == "stuff"
         assert self.ts.get_tag_value_label("sentry:user", "ip:stuff") == "stuff"
 
-    def test_get_groups_user_counts(self):
+    def test_get_groups_user_counts(self) -> None:
         assert self.ts.get_groups_user_counts(
             project_ids=[self.proj1.id],
             group_ids=[self.proj1group1.id, self.proj1group2.id],
@@ -668,14 +607,14 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             == {}
         )
 
-    def test_get_groups_user_counts_no_environments(self):
+    def test_get_groups_user_counts_no_environments(self) -> None:
         self.store_event(
             data={
                 "event_id": "3" * 32,
                 "message": "message 1",
                 "platform": "python",
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.now - timedelta(seconds=1)),
+                "timestamp": (self.now - timedelta(seconds=1)).isoformat(),
                 "tags": {
                     "foo": "bar",
                     "baz": "quux",
@@ -694,57 +633,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {self.proj1group1.id: 3, self.proj1group2.id: 1}
 
-    @mock.patch("sentry.analytics.record")
-    def test_get_group_tag_values_for_users(self, mock_record):
-        result = self.ts.get_group_tag_values_for_users(
-            [
-                EventUser(
-                    project_id=self.proj1.id,
-                    email=None,
-                    username=None,
-                    name=None,
-                    ip_address=None,
-                    user_ident="user1",
-                )
-            ],
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        )
-        assert len(result) == 2
-        assert {v.group_id for v in result} == {self.proj1group1.id, self.proj1group2.id}
-        assert {v.last_seen for v in result} == {
-            self.now - timedelta(seconds=1),
-            self.now - timedelta(seconds=2),
-        }
-        result.sort(key=lambda x: x.last_seen)
-        assert result[0].last_seen == self.now - timedelta(seconds=2)
-        assert result[1].last_seen == self.now - timedelta(seconds=1)
-        for v in result:
-            assert v.value == "user1"
-
-        result = self.ts.get_group_tag_values_for_users(
-            [
-                EventUser(
-                    project_id=self.proj1.id,
-                    email=None,
-                    username=None,
-                    name=None,
-                    ip_address=None,
-                    user_ident="user2",
-                )
-            ],
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        )
-        assert len(result) == 1
-        assert result[0].value == "user2"
-        assert result[0].last_seen == self.now - timedelta(seconds=2)
-
-        mock_record.assert_called_with(
-            "eventuser_endpoint.request",
-            project_id=self.proj1.id,
-            endpoint="sentry.tagstore.snuba.backend.SnubaTagStorage.get_group_tag_values_for_users",
-        )
-
-    def test_get_release_tags(self):
+    def test_get_release_tags(self) -> None:
         tags = list(
             self.ts.get_release_tags(self.proj1.organization_id, [self.proj1.id], None, ["100"])
         )
@@ -756,7 +645,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         assert tags[0].times_seen == 1
         assert tags[0].key == "sentry:release"
 
-    def test_get_release_tags_uses_release_project_environment(self):
+    def test_get_release_tags_uses_release_project_environment(self) -> None:
         tags = list(
             self.ts.get_release_tags(self.proj1.organization_id, [self.proj1.id], None, ["100"])
         )
@@ -776,7 +665,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "platform": "python",
                 "environment": None,
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(one_day_ago),
+                "timestamp": one_day_ago.isoformat(),
                 "tags": {
                     "sentry:release": 100,
                 },
@@ -799,7 +688,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "platform": "python",
                 "environment": None,
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(two_days_ago),
+                "timestamp": two_days_ago.isoformat(),
                 "tags": {
                     "sentry:release": 100,
                 },
@@ -815,81 +704,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             tags[0].times_seen == 2
         )  # Isn't 3 because start was limited by the ReleaseProjectEnvironment entry
 
-    def test_get_group_event_filter(self):
-        assert self.ts.get_group_event_filter(
-            self.proj1.id,
-            self.proj1group1.id,
-            [self.proj1env1.id],
-            {"foo": "bar"},
-            None,
-            None,
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        ) == {"event_id__in": {"1" * 32, "2" * 32}}
-
-        assert self.ts.get_group_event_filter(
-            self.proj1.id,
-            self.proj1group1.id,
-            [self.proj1env1.id],
-            {"foo": "bar"},
-            (self.now - timedelta(seconds=1)),
-            None,
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        ) == {"event_id__in": {"1" * 32}}
-
-        assert self.ts.get_group_event_filter(
-            self.proj1.id,
-            self.proj1group1.id,
-            [self.proj1env1.id],
-            {"foo": "bar"},
-            None,
-            (self.now - timedelta(seconds=1)),
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        ) == {"event_id__in": {"2" * 32}}
-
-        assert self.ts.get_group_event_filter(
-            self.proj1.id,
-            self.proj1group1.id,
-            [self.proj1env1.id, self.proj1env2.id],
-            {"foo": "bar"},
-            None,
-            None,
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        ) == {"event_id__in": {"1" * 32, "2" * 32, "4" * 32}}
-
-        assert self.ts.get_group_event_filter(
-            self.proj1.id,
-            self.proj1group1.id,
-            [self.proj1env1.id],
-            {"foo": "bar", "sentry:release": "200"},  # AND
-            None,
-            None,
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        ) == {"event_id__in": {"2" * 32}}
-
-        assert self.ts.get_group_event_filter(
-            self.proj1.id,
-            self.proj1group2.id,
-            [self.proj1env1.id],
-            {"browser": "chrome"},
-            None,
-            None,
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        ) == {"event_id__in": {"3" * 32}}
-
-        assert (
-            self.ts.get_group_event_filter(
-                self.proj1.id,
-                self.proj1group2.id,
-                [self.proj1env1.id],
-                {"browser": "ie"},
-                None,
-                None,
-                tenant_ids={"referrer": "r", "organization_id": 1234},
-            )
-            is None
-        )
-
-    def test_get_tag_value_paginator(self):
+    def test_get_tag_value_paginator(self) -> None:
         from sentry.tagstore.types import TagValue
 
         assert list(
@@ -934,7 +749,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             )
         ]
 
-    def test_get_tag_value_paginator_with_dates(self):
+    def test_get_tag_value_paginator_with_dates(self) -> None:
         from sentry.tagstore.types import TagValue
 
         day_ago = self.now - timedelta(days=1)
@@ -980,7 +795,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             == []
         )
 
-    def test_numeric_tag_value_paginator(self):
+    def test_numeric_tag_value_paginator(self) -> None:
         from sentry.tagstore.types import TagValue
 
         assert list(
@@ -1018,7 +833,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             )
         ]
 
-    def test_get_group_tag_value_iter(self):
+    def test_get_group_tag_value_iter(self) -> None:
         from sentry.tagstore.types import GroupTagValue
 
         assert list(
@@ -1047,7 +862,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             ),
         ]
 
-    def test_get_group_tag_value_iter_perf(self):
+    def test_get_group_tag_value_iter_perf(self) -> None:
         from sentry.tagstore.types import GroupTagValue
 
         group, env = self.perf_group_and_env
@@ -1078,7 +893,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             ),
         ]
 
-    def test_get_group_tag_value_paginator(self):
+    def test_get_group_tag_value_paginator(self) -> None:
         from sentry.tagstore.types import GroupTagValue
 
         assert list(
@@ -1107,7 +922,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             ),
         ]
 
-    def test_get_group_tag_value_paginator_perf(self):
+    def test_get_group_tag_value_paginator_perf(self) -> None:
         from sentry.tagstore.types import GroupTagValue
 
         group, env = self.perf_group_and_env
@@ -1138,7 +953,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             ),
         ]
 
-    def test_get_group_tag_value_paginator_times_seen(self):
+    def test_get_group_tag_value_paginator_times_seen(self) -> None:
         from sentry.tagstore.types import GroupTagValue
 
         self.store_event(
@@ -1148,7 +963,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "platform": "python",
                 "environment": self.proj1env1.name,
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.now - timedelta(seconds=2)),
+                "timestamp": (self.now - timedelta(seconds=2)).isoformat(),
                 "tags": {
                     "foo": "bar",
                     "baz": "quux",
@@ -1188,7 +1003,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             ),
         ]
 
-    def test_get_group_tag_value_paginator_times_seen_perf(self):
+    def test_get_group_tag_value_paginator_times_seen_perf(self) -> None:
         from sentry.tagstore.types import GroupTagValue
 
         group, env = self.perf_group_and_env
@@ -1199,8 +1014,8 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             event_data={
                 **event_data,
                 "event_id": "a" * 32,
-                "timestamp": iso_format(self.now - timedelta(seconds=1)),
-                "start_timestamp": iso_format(self.now - timedelta(seconds=1)),
+                "timestamp": (self.now - timedelta(seconds=1)).isoformat(),
+                "start_timestamp": (self.now - timedelta(seconds=1)).isoformat(),
                 "tags": {"foo": "bar", "biz": "baz"},
                 "release": "releaseme",
                 "environment": env.name,
@@ -1247,7 +1062,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             None,
         ),
     )
-    def test_get_group_tag_value_paginator_sort_by_last_seen(self):
+    def test_get_group_tag_value_paginator_sort_by_last_seen(self) -> None:
         # the tag with "quux" value has the lowest "first_seen"
         self.store_event(
             data={
@@ -1256,7 +1071,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "platform": "python",
                 "environment": "test",
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.now - timedelta(seconds=5)),
+                "timestamp": (self.now - timedelta(seconds=5)).isoformat(),
                 "tags": {
                     "foo": "quux",
                 },
@@ -1274,7 +1089,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "platform": "python",
                 "environment": "test",
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(self.now),
+                "timestamp": self.now.isoformat(),
                 "tags": {
                     "foo": "quux",
                 },
@@ -1294,32 +1109,89 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         # top key should be "quux" as it's the most recent than "bar"
         assert top_key.value == "quux"
 
-    def test_get_group_seen_values_for_environments(self):
-        assert self.ts.get_group_seen_values_for_environments(
-            [self.proj1.id],
-            [self.proj1group1.id],
-            [self.proj1env1.id],
-            tenant_ids={"referrer": "r", "organization_id": 1234},
-        ) == {
-            self.proj1group1.id: {
-                "first_seen": self.now - timedelta(seconds=2),
-                "last_seen": self.now - timedelta(seconds=1),
-                "times_seen": 2,
-            }
-        }
+    def test_error_upsampling_tag_value_counts(self) -> None:
+        """Test that tag value counts are properly weighted when projects use error upsampling."""
 
-        # test where there should be no results because of time filters
-        assert (
-            self.ts.get_group_seen_values_for_environments(
-                [self.proj1.id],
-                [self.proj1group1.id],
-                [self.proj1env1.id],
-                start=self.now - timedelta(hours=5),
-                end=self.now - timedelta(hours=4),
+        # Set up allowlisted project for error upsampling
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.proj1.id]}):
+            # Create first event with sample_weight=10 and tag value "alpha"
+            event1 = self.store_event(
+                data={
+                    "event_id": "a1" * 16,
+                    "message": "Error event with high sample weight",
+                    "type": "error",
+                    "exception": exception,
+                    "timestamp": (self.now - timedelta(seconds=1)).isoformat(),
+                    "fingerprint": ["error-upsampling-group"],
+                    "tags": {
+                        "custom_tag": "alpha",
+                        "environment": "test",
+                    },
+                    # This creates a sample_weight of 10 (1/0.1)
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.1}},
+                },
+                project_id=self.proj1.id,
+            )
+
+            # Create second event with sample_weight=5 and tag value "beta"
+            self.store_event(
+                data={
+                    "event_id": "b2" * 16,
+                    "message": "Error event with medium sample weight",
+                    "type": "error",
+                    "exception": exception,
+                    "timestamp": (self.now - timedelta(seconds=2)).isoformat(),
+                    "fingerprint": ["error-upsampling-group"],
+                    "tags": {
+                        "custom_tag": "beta",
+                        "environment": "test",
+                    },
+                    # This creates a sample_weight of 5 (1/0.2)
+                    "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+                },
+                project_id=self.proj1.id,
+            )
+
+            # Get the group from one of the events
+            error_upsampling_group = event1.group
+
+            # Test get_top_group_tag_values with error upsampling
+            resp = self.ts.get_top_group_tag_values(
+                error_upsampling_group,
+                self.proj1env1.id,
+                "custom_tag",
+                10,  # limit
                 tenant_ids={"referrer": "r", "organization_id": 1234},
             )
-            == {}
-        )
+
+            # Verify we get both tag values
+            assert len(resp) == 2
+
+            # Sort by times_seen descending to get consistent order
+            resp = sorted(resp, key=lambda x: x.times_seen, reverse=True)
+
+            # First tag value should be "alpha" with times_seen=10 (sample_weight)
+            assert resp[0].key == "custom_tag"
+            assert resp[0].value == "alpha"
+            assert resp[0].times_seen == 10
+            assert resp[0].group_id == error_upsampling_group.id
+
+            # Second tag value should be "beta" with times_seen=5 (sample_weight)
+            assert resp[1].key == "custom_tag"
+            assert resp[1].value == "beta"
+            assert resp[1].times_seen == 5
+            assert resp[1].group_id == error_upsampling_group.id
+
+            # Also test get_group_tag_value_count for total count
+            total_count = self.ts.get_group_tag_value_count(
+                error_upsampling_group,
+                self.proj1env1.id,
+                "custom_tag",
+                tenant_ids={"referrer": "r", "organization_id": 1234},
+            )
+
+            # Total should be 10 + 5 = 15 (weighted sum, not 2 raw events)
+            assert total_count == 15
 
 
 class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
@@ -1327,7 +1199,7 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
         super().setUp()
         self.ts = SnubaTagStorage()
 
-    def test_get_profiling_groups_user_counts_simple(self):
+    def test_get_profiling_groups_user_counts_simple(self) -> None:
         first_group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group1"
         first_group_timestamp_start = timezone.now() - timedelta(days=5)
 
@@ -1391,7 +1263,7 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
             tenant_ids={"referrer": "r", "organization_id": 1234},
         ) == {first_group.id: 3, second_group.id: 4}
 
-    def test_get_profiling_group_list_tag_value_by_environment(self):
+    def test_get_profiling_group_list_tag_value_by_environment(self) -> None:
         group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group1"
         start_timestamp = timezone.now() - timedelta(hours=1)
         first_event_ts = start_timestamp + timedelta(minutes=1)
@@ -1468,7 +1340,7 @@ class BaseSemverTest(TestCase, SnubaTestCase):
 class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest):
     KEY = SEMVER_ALIAS
 
-    def test_semver(self):
+    def test_semver(self) -> None:
         env_2 = self.create_environment()
         project_2 = self.create_project()
         self.create_release(version="test@1.0.0.0+123", additional_projects=[project_2])
@@ -1566,7 +1438,7 @@ class GetTagValuePaginatorForProjectsSemverTest(BaseSemverTest):
 class GetTagValuePaginatorForProjectsSemverPackageTest(BaseSemverTest):
     KEY = SEMVER_PACKAGE_ALIAS
 
-    def test_semver_package(self):
+    def test_semver_package(self) -> None:
         env_2 = self.create_environment()
         project_2 = self.create_project()
         self.create_release(version="test@1.0.0.0+123", additional_projects=[project_2])
@@ -1616,7 +1488,7 @@ class GetTagValuePaginatorForProjectsReleaseStageTest(TestCase, SnubaTestCase):
             for r in expected_releases
         ]
 
-    def test_release_stage(self):
+    def test_release_stage(self) -> None:
         replaced_release = self.create_release(
             version="replaced_release",
             environments=[self.environment],
@@ -1646,7 +1518,7 @@ class GetTagValuePaginatorForProjectsReleaseStageTest(TestCase, SnubaTestCase):
 class GetTagValuePaginatorForProjectsSemverBuildTest(BaseSemverTest):
     KEY = SEMVER_BUILD_ALIAS
 
-    def test_semver_package(self):
+    def test_semver_package(self) -> None:
         env_2 = self.create_environment()
         project_2 = self.create_project()
         self.create_release(version="test@1.0.0.0+123", additional_projects=[project_2])

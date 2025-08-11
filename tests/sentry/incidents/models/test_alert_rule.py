@@ -1,35 +1,26 @@
 import unittest
-from datetime import timedelta
 from unittest import mock
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 from django.core.cache import cache
-from django.utils import timezone
 
 from sentry.incidents.logic import delete_alert_rule, update_alert_rule
 from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleActivity,
     AlertRuleActivityType,
-    AlertRuleMonitorTypeInt,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
-    alert_subscription_callback_registry,
-    register_alert_subscription_callback,
-    update_alert_activations,
 )
 from sentry.incidents.models.incident import IncidentStatus
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
-from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.alert_rule import TemporaryAlertRuleTriggerActionRegistry
-from sentry.users.services.user.service import user_service
 
 
 class IncidentGetForSubscriptionTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         alert_rule = self.create_alert_rule()
         subscription = alert_rule.snuba_query.subscriptions.get()
         # First test fetching from database
@@ -42,11 +33,11 @@ class IncidentGetForSubscriptionTest(TestCase):
 
 
 class IncidentClearSubscriptionCacheTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.alert_rule = self.create_alert_rule()
         self.subscription = self.alert_rule.snuba_query.subscriptions.get()
 
-    def test_updated_subscription(self):
+    def test_updated_subscription(self) -> None:
         AlertRule.objects.get_for_subscription(self.subscription)
         assert (
             cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id)
@@ -55,7 +46,7 @@ class IncidentClearSubscriptionCacheTest(TestCase):
         self.subscription.save()
         assert cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id) is None
 
-    def test_deleted_subscription(self):
+    def test_deleted_subscription(self) -> None:
         AlertRule.objects.get_for_subscription(self.subscription)
         assert (
             cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id)
@@ -70,7 +61,7 @@ class IncidentClearSubscriptionCacheTest(TestCase):
         with pytest.raises(AlertRule.DoesNotExist):
             AlertRule.objects.get_for_subscription(self.subscription)
 
-    def test_deleted_alert_rule(self):
+    def test_deleted_alert_rule(self) -> None:
         AlertRule.objects.get_for_subscription(self.subscription)
         assert (
             cache.get(AlertRule.objects.CACHE_SUBSCRIPTION_KEY % self.subscription.id)
@@ -83,11 +74,11 @@ class IncidentClearSubscriptionCacheTest(TestCase):
 
 
 class AlertRuleTriggerClearCacheTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.alert_rule = self.create_alert_rule()
         self.trigger = self.create_alert_rule_trigger(self.alert_rule)
 
-    def test_updated_alert_rule(self):
+    def test_updated_alert_rule(self) -> None:
         AlertRuleTrigger.objects.get_for_alert_rule(self.alert_rule)
         assert cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id)) == [
             self.trigger
@@ -97,7 +88,7 @@ class AlertRuleTriggerClearCacheTest(TestCase):
             cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id))
         ) is None
 
-    def test_deleted_alert_rule(self):
+    def test_deleted_alert_rule(self) -> None:
         AlertRuleTrigger.objects.get_for_alert_rule(self.alert_rule)
         assert cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id)) == [
             self.trigger
@@ -106,7 +97,7 @@ class AlertRuleTriggerClearCacheTest(TestCase):
         self.alert_rule.delete()
         assert (cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(alert_rule_id))) is None
 
-    def test_updated_alert_rule_trigger(self):
+    def test_updated_alert_rule_trigger(self) -> None:
         AlertRuleTrigger.objects.get_for_alert_rule(self.alert_rule)
         assert cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id)) == [
             self.trigger
@@ -116,7 +107,7 @@ class AlertRuleTriggerClearCacheTest(TestCase):
             cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id))
         ) is None
 
-    def test_deleted_alert_rule_trigger(self):
+    def test_deleted_alert_rule_trigger(self) -> None:
         AlertRuleTrigger.objects.get_for_alert_rule(self.alert_rule)
         assert cache.get(AlertRuleTrigger.objects._build_trigger_cache_key(self.alert_rule.id)) == [
             self.trigger
@@ -128,7 +119,7 @@ class AlertRuleTriggerClearCacheTest(TestCase):
 
 
 class IncidentAlertRuleRelationTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         self.alert_rule = self.create_alert_rule()
         self.trigger = self.create_alert_rule_trigger(self.alert_rule)
         self.incident = self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
@@ -145,114 +136,17 @@ class IncidentAlertRuleRelationTest(TestCase):
         assert self.incident.alert_rule.id == self.alert_rule.id
 
 
-class AlertRuleTest(TestCase):
-    @patch("sentry.incidents.models.alert_rule.bulk_create_snuba_subscriptions")
-    def test_subscribes_projects_to_alert_rule(self, mock_bulk_create_snuba_subscriptions):
-        # eg. creates QuerySubscription's/SnubaQuery's for AlertRule + Project
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
-        assert mock_bulk_create_snuba_subscriptions.call_count == 0
-
-        alert_rule.subscribe_projects(
-            projects=[self.project],
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activator="testing",
-            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-        )
-        assert mock_bulk_create_snuba_subscriptions.call_count == 1
-
-    def test_conditionally_subscribe_project_to_alert_rules(self):
-        query_extra = "foo:bar"
-        project = self.create_project(name="foo")
-        self.create_alert_rule(
-            projects=[project],
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
-        )
-        with self.tasks():
-            created_subscriptions = (
-                AlertRule.objects.conditionally_subscribe_project_to_alert_rules(
-                    project=project,
-                    activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
-                    query_extra=query_extra,
-                    origin="test",
-                    activator="testing",
-                )
-            )
-            assert len(created_subscriptions) == 1
-
-            sub = created_subscriptions[0]
-            fetched_sub = QuerySubscription.objects.get(id=sub.id)
-            assert fetched_sub.subscription_id is not None
-
-    def test_conditionally_subscribing_project_initializes_activation(self):
-        query_extra = "foo:bar"
-        project = self.create_project(name="foo")
-        alert_rule = self.create_alert_rule(
-            projects=[project],
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
-        )
-
-        with self.tasks():
-            created_subscriptions = (
-                AlertRule.objects.conditionally_subscribe_project_to_alert_rules(
-                    project=project,
-                    activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
-                    query_extra=query_extra,
-                    origin="test",
-                    activator="testing",
-                )
-            )
-            assert len(created_subscriptions) == 1
-
-            sub = created_subscriptions[0]
-            activations = alert_rule.activations.all()
-            assert len(activations) == 1
-            current_activation = activations[0]
-            assert current_activation.query_subscription == sub
-            assert current_activation.is_complete() is False
-
-    def test_get_for_metrics(self):
-        self.create_alert_rule(organization=self.organization, aggregate="count(c:foo/1)")
-        self.create_alert_rule(organization=self.organization, aggregate="count(c:bar/2)")
-        self.create_alert_rule(organization=self.organization, aggregate="count(c:baz/2)")
-        new_org = self.create_organization()
-        self.create_alert_rule(organization=new_org, aggregate="count(c:foo/1)")
-
-        assert (
-            AlertRule.objects.get_for_metrics(self.organization, ["c:foo/1", "c:bar/2"]).count()
-            == 2
-        )
-        assert set(
-            AlertRule.objects.get_for_metrics(
-                self.organization, ["c:foo/1", "c:bar/2"]
-            ).values_list("snuba_query__aggregate", flat=True)
-        ) == {"count(c:foo/1)", "count(c:bar/2)"}
-
-        # Test that it works with a new organization
-        assert set(
-            AlertRule.objects.get_for_metrics(new_org, ["c:foo/1", "c:bar/2"]).values_list(
-                "snuba_query__aggregate", flat=True
-            )
-        ) == {"count(c:foo/1)"}
-        assert set(
-            AlertRule.objects.get_for_metrics(new_org, ["c:foo/1", "c:bar/2"]).values_list(
-                "organization_id", flat=True
-            )
-        ) == {new_org.id}
-
-
 class AlertRuleFetchForOrganizationTest(TestCase):
-    def test_empty(self):
+    def test_empty(self) -> None:
         alert_rule = AlertRule.objects.fetch_for_organization(self.organization)
         assert [] == list(alert_rule)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         alert_rule = self.create_alert_rule()
 
         assert [alert_rule] == list(AlertRule.objects.fetch_for_organization(self.organization))
 
-    def test_with_projects(self):
+    def test_with_projects(self) -> None:
         project = self.create_project()
         alert_rule = self.create_alert_rule(projects=[project])
 
@@ -263,7 +157,7 @@ class AlertRuleFetchForOrganizationTest(TestCase):
             AlertRule.objects.fetch_for_organization(self.organization, [project])
         )
 
-    def test_multi_project(self):
+    def test_multi_project(self) -> None:
         project = self.create_project()
         alert_rule1 = self.create_alert_rule(projects=[project, self.project])
         alert_rule2 = self.create_alert_rule(projects=[project])
@@ -275,14 +169,14 @@ class AlertRuleFetchForOrganizationTest(TestCase):
             AlertRule.objects.fetch_for_organization(self.organization, [project])
         )
 
-    def test_project_on_alert(self):
+    def test_project_on_alert(self) -> None:
         project = self.create_project()
         alert_rule = self.create_alert_rule()
         alert_rule.projects.add(project)
 
         assert [alert_rule] == list(AlertRule.objects.fetch_for_organization(self.organization))
 
-    def test_project_on_alert_and_snuba(self):
+    def test_project_on_alert_and_snuba(self) -> None:
         project1 = self.create_project()
         alert_rule1 = self.create_alert_rule(projects=[project1])
         alert_rule1.projects.add(project1)
@@ -301,33 +195,40 @@ class AlertRuleFetchForOrganizationTest(TestCase):
 
 
 class AlertRuleTriggerActionTargetTest(TestCase):
-    def test_user(self):
-        trigger = AlertRuleTriggerAction(
-            target_type=AlertRuleTriggerAction.TargetType.USER.value,
+    def setUp(self) -> None:
+        self.metric_alert = self.create_alert_rule()
+        self.alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=self.metric_alert)
+
+    def test_user(self) -> None:
+        trigger = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.alert_rule_trigger,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
             target_identifier=str(self.user.id),
         )
-        assert trigger.target == user_service.get_user(user_id=self.user.id)
+        assert trigger.target.user_id == self.user.id
 
-    def test_invalid_user(self):
-        trigger = AlertRuleTriggerAction(
-            target_type=AlertRuleTriggerAction.TargetType.USER.value, target_identifier="10000000"
+    def test_invalid_user(self) -> None:
+        trigger = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=self.alert_rule_trigger,
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier="10000000",
         )
         assert trigger.target is None
 
-    def test_team(self):
+    def test_team(self) -> None:
         trigger = AlertRuleTriggerAction(
             target_type=AlertRuleTriggerAction.TargetType.TEAM.value,
             target_identifier=str(self.team.id),
         )
         assert trigger.target == self.team
 
-    def test_invalid_team(self):
+    def test_invalid_team(self) -> None:
         trigger = AlertRuleTriggerAction(
             target_type=AlertRuleTriggerAction.TargetType.TEAM.value, target_identifier="10000000"
         )
         assert trigger.target is None
 
-    def test_specific(self):
+    def test_specific(self) -> None:
         email = "test@test.com"
         trigger = AlertRuleTriggerAction(
             target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value, target_identifier=email
@@ -338,27 +239,31 @@ class AlertRuleTriggerActionTargetTest(TestCase):
 class AlertRuleTriggerActionActivateBaseTest:
     method: str
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
 
     def tearDown(self):
         self.suspended_registry.restore()
 
-    def test_no_handler(self):
+    def test_no_handler(self) -> None:
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        result = trigger.fire(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL)  # type: ignore[func-returns-value]
+        result = trigger.fire(
+            Mock(), Mock(), Mock(), metric_value=123, new_status=IncidentStatus.CRITICAL
+        )  # type: ignore[func-returns-value]
 
         # TODO(RyanSkonnord): Remove assertion (see test_handler)
         assert result is None
 
-    def test_handler(self):
+    def test_handler(self) -> None:
         mock_handler = Mock()
         mock_method = getattr(mock_handler.return_value, self.method)
         mock_method.return_value = "test"
         type = AlertRuleTriggerAction.Type.EMAIL
         AlertRuleTriggerAction.register_type("something", type, [])(mock_handler)
         trigger = AlertRuleTriggerAction(type=type.value)
-        result = getattr(trigger, self.method)(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL)
+        result = getattr(trigger, self.method)(
+            Mock(), Mock(), Mock(), metric_value=123, new_status=IncidentStatus.CRITICAL
+        )
 
         # TODO(RyanSkonnord): Don't assert on return value.
         # All concrete ActionHandlers return None from their fire and resolve
@@ -381,39 +286,37 @@ class AlertRuleTriggerActionActivateTest(TestCase):
         with mock.patch("sentry.incidents.models.alert_rule.metrics") as self.metrics:
             yield
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.suspended_registry = TemporaryAlertRuleTriggerActionRegistry.suspend()
 
     def tearDown(self):
         self.suspended_registry.restore()
 
-    def test_unhandled(self):
+    def test_unhandled(self) -> None:
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        trigger.build_handler(Mock(), Mock(), Mock())
+        trigger.build_handler(type=AlertRuleTriggerAction.Type(trigger.type))
         self.metrics.incr.assert_called_once_with("alert_rule_trigger.unhandled_type.0")
 
-    def test_handled(self):
+    def test_handled(self) -> None:
         mock_handler = Mock()
         type = AlertRuleTriggerAction.Type.EMAIL
         AlertRuleTriggerAction.register_type("something", type, [])(mock_handler)
 
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        incident = Mock()
-        project = Mock()
-        trigger.build_handler(trigger, incident, project)
-        mock_handler.assert_called_once_with(trigger, incident, project)
+        trigger.build_handler(type=AlertRuleTriggerAction.Type(trigger.type))
+        mock_handler.assert_called_once_with()
         assert not self.metrics.incr.called
 
 
 class AlertRuleActivityTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         assert AlertRuleActivity.objects.all().count() == 0
         self.alert_rule = self.create_alert_rule()
         assert AlertRuleActivity.objects.filter(
             alert_rule=self.alert_rule, type=AlertRuleActivityType.CREATED.value
         ).exists()
 
-    def test_delete(self):
+    def test_delete(self) -> None:
         assert AlertRuleActivity.objects.all().count() == 0
         self.alert_rule = self.create_alert_rule()
         self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
@@ -422,7 +325,7 @@ class AlertRuleActivityTest(TestCase):
             alert_rule=self.alert_rule, type=AlertRuleActivityType.DELETED.value
         ).exists()
 
-    def test_update(self):
+    def test_update(self) -> None:
         assert AlertRuleActivity.objects.all().count() == 0
         self.alert_rule = self.create_alert_rule()
         self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
@@ -435,87 +338,14 @@ class AlertRuleActivityTest(TestCase):
         ).exists()
 
 
-class UpdateAlertActivationsTest(TestCase):
-    def test_updates_non_expired_alerts(self):
-        with self.tasks():
-            alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
-            alert_rule.subscribe_projects(
-                projects=[self.project],
-                monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-                activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-                activator="testing",
-            )
-            subscription = alert_rule.snuba_query.subscriptions.get()
-            activation = alert_rule.activations.get()
-            assert activation.finished_at is None
-            assert activation.metric_value is None
-
-            expected_value = 10
-            result = update_alert_activations(
-                subscription=subscription, alert_rule=alert_rule, value=expected_value
-            )
-            assert result is True
-            assert QuerySubscription.objects.filter(id=subscription.id).exists()
-            activation = alert_rule.activations.get()
-            # assert activation.is_complete() is True # TODO: enable once we've implemented is_complete()
-            assert activation.finished_at is None
-            assert activation.metric_value == expected_value
-
-    def test_cleans_expired_alerts(self):
-        with self.tasks():
-            alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
-            alert_rule.subscribe_projects(
-                projects=[self.project],
-                monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-                activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-                activator="testing",
-            )
-
-            subscription = alert_rule.snuba_query.subscriptions.get()
-            subscription.date_added = timezone.now() - timedelta(days=21)
-
-            expected_value = 10
-            result = update_alert_activations(
-                subscription=subscription, alert_rule=alert_rule, value=expected_value
-            )
-
-            assert result is True
-            assert subscription.status == QuerySubscription.Status.DELETING.value
-            assert not QuerySubscription.objects.filter(id=subscription.id).exists()
-            activation = alert_rule.activations.get()
-            # assert activation.is_complete() is True # TODO: enable once we've implemented is_complete()
-            assert activation.finished_at is not None
-            assert activation.metric_value == expected_value
-
-    def test_update_alerts_add_processor(self):
-        @register_alert_subscription_callback(AlertRuleMonitorTypeInt.CONTINUOUS)
-        def mock_processor(_subscription, alert_rule, value):
-            # everything other than subscription is passed as a kwarg
-            return True
-
-        assert AlertRuleMonitorTypeInt.CONTINUOUS in alert_subscription_callback_registry
-        assert (
-            alert_subscription_callback_registry[AlertRuleMonitorTypeInt.CONTINUOUS]
-            == mock_processor
-        )
-
-    def test_update_alerts_execute_processor(self):
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
-        subscription = alert_rule.snuba_query.subscriptions.get()
-
-        callback = alert_subscription_callback_registry[AlertRuleMonitorTypeInt.CONTINUOUS]
-        result = callback(subscription, alert_rule=alert_rule, value=10)
-        assert result is True
-
-
 class AlertRuleFetchForProjectTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project()
         alert_rule = self.create_alert_rule(projects=[project])
 
         assert [alert_rule] == list(AlertRule.objects.fetch_for_project(project))
 
-    def test_projects_on_snuba_and_alert(self):
+    def test_projects_on_snuba_and_alert(self) -> None:
         project1 = self.create_project()
         alert_rule1 = self.create_alert_rule(projects=[project1, self.project])
 

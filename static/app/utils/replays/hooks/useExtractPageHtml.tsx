@@ -24,7 +24,7 @@ async function extractPageHtml({
   offsetMsToStopAt,
   rrwebEvents,
   startTimestampMs,
-}: Args): Promise<[number, string][]> {
+}: Args): Promise<Array<[number, string]>> {
   const frames: ReplayFrame[] = offsetMsToStopAt.map(offsetMs => ({
     offsetMs,
     timestamp: new Date(startTimestampMs + offsetMs),
@@ -55,14 +55,15 @@ interface Props {
 }
 
 export default function useExtractPageHtml({replay, offsetMsToStopAt}: Props) {
-  return useQuery(
-    ['extractPageHtml', replay, offsetMsToStopAt],
-    () =>
+  return useQuery({
+    queryKey: ['extractPageHtml', replay, offsetMsToStopAt],
+    queryFn: () =>
       extractPageHtml({
         offsetMsToStopAt,
         rrwebEvents: replay?.getRRWebFrames(),
         startTimestampMs: replay?.getReplay().started_at.getTime() ?? 0,
       }),
-    {enabled: Boolean(replay), cacheTime: Infinity}
-  );
+    enabled: Boolean(replay),
+    gcTime: Infinity,
+  });
 }

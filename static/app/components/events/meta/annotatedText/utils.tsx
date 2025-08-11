@@ -1,8 +1,10 @@
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import {tct} from 'sentry/locale';
-import type {ChunkType, Organization, Project} from 'sentry/types';
+import type {ChunkType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 import {getRuleDescription} from 'sentry/views/settings/components/dataScrubbing/utils';
 
@@ -30,11 +32,14 @@ export function getTooltipText({
   organization?: Organization;
   project?: Project;
 }) {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const method = REMARKS[remark];
 
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (NON_DATA_SCRUBBING_RULES[rule_id]) {
     return tct('[method] because of [ruleDescription]', {
       method,
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       ruleDescription: NON_DATA_SCRUBBING_RULES[rule_id],
     });
   }

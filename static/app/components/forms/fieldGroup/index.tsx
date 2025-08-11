@@ -1,13 +1,13 @@
 import QuestionTooltip from 'sentry/components/questionTooltip';
 
-import ControlState from './controlState';
-import FieldControl from './fieldControl';
-import FieldDescription from './fieldDescription';
-import FieldHelp from './fieldHelp';
-import FieldLabel from './fieldLabel';
-import FieldQuestion from './fieldQuestion';
-import FieldRequiredBadge from './fieldRequiredBadge';
-import FieldWrapper from './fieldWrapper';
+import {ControlState} from './controlState';
+import {ControlWrapper} from './controlWrapper';
+import {FieldDescription} from './fieldDescription';
+import {FieldHelp} from './fieldHelp';
+import {FieldLabel} from './fieldLabel';
+import {FieldQuestion} from './fieldQuestion';
+import {FieldRequiredBadge} from './fieldRequiredBadge';
+import {FieldWrapper} from './fieldWrapper';
 import type {FieldGroupProps} from './types';
 
 /**
@@ -33,13 +33,13 @@ function FieldGroup({
   const {
     alignRight,
     children,
-    controlClassName,
-    disabledReason,
     error,
     flexibleControlStateSize,
     help,
     hideLabel,
+    hideControlState,
     highlighted,
+    controlState,
     id,
     isSaved,
     isSaving,
@@ -51,34 +51,15 @@ function FieldGroup({
     style,
   } = props;
 
-  const isVisible = typeof visible === 'function' ? visible(props) : visible;
-  const isDisabled = typeof disabled === 'function' ? disabled(props) : disabled;
-
-  if (!isVisible) {
+  if (!visible) {
     return null;
   }
 
-  const helpElement = typeof help === 'function' ? help(props) : help;
+  const controlStateElement = controlState ?? (
+    <ControlState error={error} isSaving={isSaving} isSaved={isSaved} />
+  );
+
   const shouldRenderLabel = !hideLabel && !!label;
-
-  const controlWrapperProps = {
-    inline,
-    alignRight,
-    disabledReason,
-    flexibleControlStateSize,
-    controlState: <ControlState error={error} isSaving={isSaving} isSaved={isSaved} />,
-    className: controlClassName,
-    disabled: isDisabled,
-    help: helpElement,
-  };
-
-  // See comments in prop types
-  const control =
-    typeof children === 'function' ? (
-      children({...props, ...controlWrapperProps})
-    ) : (
-      <FieldControl {...controlWrapperProps}>{children}</FieldControl>
-    );
 
   // Provide an `aria-label` to the FieldDescription label if our label is a
   // string value. This helps with testing and accessability. Without this the
@@ -97,29 +78,45 @@ function FieldGroup({
       hasControlState={!flexibleControlStateSize}
       style={style}
     >
-      {(shouldRenderLabel || helpElement) && (
-        <FieldDescription inline={inline} htmlFor={id} aria-label={ariaLabel}>
-          {shouldRenderLabel && (
-            <FieldLabel disabled={isDisabled}>
-              <span>
-                {label}
-                {required && <FieldRequiredBadge />}
-              </span>
-              {helpElement && showHelpInTooltip && (
-                <FieldQuestion>
-                  <QuestionTooltip position="top" size="sm" title={helpElement} />
-                </FieldQuestion>
-              )}
-            </FieldLabel>
-          )}
-          {helpElement && !showHelpInTooltip && (
-            <FieldHelp id={helpId} stacked={stacked} inline={inline}>
-              {helpElement}
-            </FieldHelp>
-          )}
-        </FieldDescription>
-      )}
-      {control}
+      <FieldDescription
+        displayNone={!shouldRenderLabel && !help}
+        inline={inline}
+        htmlFor={id}
+        aria-label={ariaLabel}
+      >
+        {shouldRenderLabel && (
+          <FieldLabel disabled={disabled}>
+            <span>
+              {label}
+              {required && <FieldRequiredBadge />}
+            </span>
+            {help && showHelpInTooltip && (
+              <FieldQuestion>
+                <QuestionTooltip
+                  position="top"
+                  size="sm"
+                  {...(showHelpInTooltip === true ? {} : showHelpInTooltip)}
+                  title={help}
+                />
+              </FieldQuestion>
+            )}
+          </FieldLabel>
+        )}
+        {help && !showHelpInTooltip && (
+          <FieldHelp id={helpId} stacked={stacked} inline={inline}>
+            {help}
+          </FieldHelp>
+        )}
+      </FieldDescription>
+      <ControlWrapper
+        inline={inline}
+        alignRight={alignRight}
+        flexibleControlStateSize={flexibleControlStateSize}
+        hideControlState={hideControlState}
+        controlState={controlStateElement}
+      >
+        {children}
+      </ControlWrapper>
     </FieldWrapper>
   );
 }

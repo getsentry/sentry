@@ -1,7 +1,8 @@
+import {RouterFixture} from 'sentry-fixture/routerFixture';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import LoginForm from 'sentry/views/auth/loginForm';
 
 async function doLogin() {
@@ -31,13 +32,16 @@ describe('LoginForm', function () {
       },
     });
 
-    render(<LoginForm authConfig={emptyAuthConfig} />);
+    render(<LoginForm authConfig={emptyAuthConfig} />, {
+      deprecatedRouterMocks: true,
+    });
     await doLogin();
 
     expect(await screen.findByText('Bad username password')).toBeInTheDocument();
   });
 
   it('handles success', async function () {
+    const router = RouterFixture();
     const userObject = {
       id: 1,
       name: 'Joe',
@@ -53,7 +57,10 @@ describe('LoginForm', function () {
       },
     });
 
-    render(<LoginForm authConfig={emptyAuthConfig} />);
+    render(<LoginForm authConfig={emptyAuthConfig} />, {
+      router,
+      deprecatedRouterMocks: true,
+    });
     await doLogin();
 
     expect(mockRequest).toHaveBeenCalledWith(
@@ -64,7 +71,7 @@ describe('LoginForm', function () {
     );
 
     await waitFor(() => expect(ConfigStore.get('user')).toEqual(userObject));
-    expect(browserHistory.push).toHaveBeenCalledWith({pathname: '/next/'});
+    expect(router.push).toHaveBeenCalledWith({pathname: '/next/'});
   });
 
   it('renders login provider buttons', function () {
@@ -74,7 +81,9 @@ describe('LoginForm', function () {
       githubLoginLink: '/githubLogin',
     };
 
-    render(<LoginForm authConfig={authConfig} />);
+    render(<LoginForm authConfig={authConfig} />, {
+      deprecatedRouterMocks: true,
+    });
 
     expect(screen.getByText('Sign in with GitHub')).toBeInTheDocument();
     expect(screen.getByText('Sign in with Azure DevOps')).toBeInTheDocument();

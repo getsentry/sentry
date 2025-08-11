@@ -4,7 +4,7 @@ from django.contrib.auth.models import update_last_login
 from django.contrib.auth.signals import user_logged_in
 from django.db.utils import DatabaseError
 
-from sentry.models.options.user_option import UserOption
+from sentry.users.models.user_option import UserOption
 
 
 # Set user language if set

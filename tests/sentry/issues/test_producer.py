@@ -15,8 +15,8 @@ from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import STRING_TO_STATUS_LOOKUP, GroupHistory, GroupHistoryStatus
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS, GroupSubStatus
@@ -27,7 +27,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = [requires_snuba]
 
 
-@apply_feature_flag_on_cls("organizations:profile-file-io-main-thread-ingest")
+@with_feature("organizations:profile-file-io-main-thread-ingest")
 class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
     def test_event_id_mismatch(self) -> None:
         with self.assertRaisesMessage(
@@ -105,7 +105,7 @@ class TestProduceOccurrenceToKafka(TestCase, OccurrenceTestMixin):
         mock_produce.assert_called_once_with(
             ArroyoTopic(name="ingest-occurrences"),
             KafkaPayload(
-                occurrence.fingerprint[0].encode(),
+                f"{occurrence.fingerprint[0]}-{occurrence.project_id}".encode(),
                 json.dumps({"mock_data": "great"}).encode("utf-8"),
                 [],
             ),
@@ -156,13 +156,16 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": iso_format(datetime.now()),
+                "timestamp": datetime.now().isoformat(),
                 "fingerprint": self.fingerprint,
             },
             project_id=self.project.id,
         )
         self.group = self.event.group
         assert self.group
+        self.group.substatus = GroupSubStatus.ONGOING
+        self.group.save()
+
         self.initial_status = self.group.status
         self.initial_substatus = self.group.substatus
 
@@ -334,7 +337,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": iso_format(datetime.now()),
+                "timestamp": datetime.now().isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
@@ -357,7 +360,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
             status_change=bad_status_change_resolve,
         )
         group.refresh_from_db()
-        mock_metrics_incr.assert_any_call("occurrence_ingest.grouphash.not_found")
+        mock_metrics_incr.assert_any_call("occurrence_ingest.grouphash.not_found", amount=1)
         assert group.status == initial_status
         assert group.substatus == initial_substatus
 
@@ -399,7 +402,7 @@ class TestProduceOccurrenceForStatusChange(TestCase, OccurrenceTestMixin):
         mock_produce.assert_called_once_with(
             ArroyoTopic(name="ingest-occurrences"),
             KafkaPayload(
-                status_change.fingerprint[0].encode(),
+                f"{status_change.fingerprint[0]}-{status_change.project_id}".encode(),
                 json.dumps({"mock_data": "great"}).encode("utf-8"),
                 [],
             ),

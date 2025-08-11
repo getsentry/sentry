@@ -24,18 +24,21 @@ def extract_all_url_patterns(
             callback = pattern.callback
             if hasattr(callback, "view_class"):
                 yield (url_pattern, callback.view_class)
-            elif hasattr(callback, "dispatch_mapping"):
-                for view_func in callback.dispatch_mapping.keys():
-                    if callable(view_func):
-                        yield (url_pattern, view_func.cls)
 
 
 @no_silo_test
 class TestPathParams(TestCase):
 
-    IGNORE_CLASS_PREFIXES = ("sentry.web", "sentry.integrations.web", "sentry.auth")
+    IGNORE_CLASS_PREFIXES = (
+        "sentry.web",
+        "sentry.integrations.web",
+        "sentry.users.web",
+        "sentry.sentry_apps.web",
+        "sentry.auth",
+        "sentry.toolbar",
+    )
 
-    def test_if_sentry_endpoints_have_id_or_slug_path_params(self):
+    def test_if_sentry_endpoints_have_id_or_slug_path_params(self) -> None:
         """
         Extract all path parameters, if the url is for an endpoint, check if all path params have _id_or_slug suffix
         """

@@ -8,10 +8,10 @@ describe('ApiNewToken', function () {
     render(<ApiNewToken />);
   });
 
-  it('renders with disabled "Create Token" button', async function () {
+  it('renders with disabled "Create Token" button', function () {
     render(<ApiNewToken />);
 
-    expect(await screen.getByRole('button', {name: 'Create Token'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Create Token'})).toBeDisabled();
   });
 
   it('submits with correct hierarchical scopes', async function () {
@@ -22,9 +22,9 @@ describe('ApiNewToken', function () {
     });
 
     render(<ApiNewToken />);
-    const createButton = await screen.getByRole('button', {name: 'Create Token'});
+    const createButton = screen.getByRole('button', {name: 'Create Token'});
 
-    const selectByValue = (name, value) =>
+    const selectByValue = (name: string, value: string) =>
       selectEvent.select(screen.getByRole('textbox', {name}), value);
 
     // Assigning Admin here will also grant read + write access to the resource
@@ -77,7 +77,7 @@ describe('ApiNewToken', function () {
     render(<ApiNewToken />);
     const createButton = screen.getByRole('button', {name: 'Create Token'});
 
-    const selectByValue = (name, value) =>
+    const selectByValue = (name: string, value: string) =>
       selectEvent.select(screen.getByRole('textbox', {name}), value);
 
     await selectByValue('Project', 'Admin');
@@ -115,7 +115,7 @@ describe('ApiNewToken', function () {
     render(<ApiNewToken />);
     const createButton = screen.getByRole('button', {name: 'Create Token'});
 
-    const selectByValue = (name, value) =>
+    const selectByValue = (name: string, value: string) =>
       selectEvent.select(screen.getByRole('textbox', {name}), value);
 
     await selectByValue('Project', 'Admin');

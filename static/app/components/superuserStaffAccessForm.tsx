@@ -1,24 +1,28 @@
-import React, {Component} from 'react';
+import React, {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import trimEnd from 'lodash/trimEnd';
 
 import {logout} from 'sentry/actionCreators/account';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
-import U2fContainer from 'sentry/components/u2f/u2fContainer';
+import {WebAuthn} from 'sentry/components/webAuthn';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {Authenticator} from 'sentry/types';
+import type {Authenticator} from 'sentry/types/auth';
 import withApi from 'sentry/utils/withApi';
 
-type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
+interface WebAuthnParams {
+  challenge: string;
+  response: string;
+  isSuperuserModal?: boolean;
+  superuserAccessCategory?: string;
+  superuserReason?: string;
+}
 
 type Props = {
   api: Client;
@@ -26,7 +30,7 @@ type Props = {
 };
 
 type State = {
-  authenticators: Array<Authenticator>;
+  authenticators: Authenticator[];
   error: boolean;
   errorType: string;
   isLoading: boolean;
@@ -35,8 +39,8 @@ type State = {
   superuserReason: string;
 };
 
-class SuperuserStaffAccessForm extends Component<Props, State> {
-  constructor(props) {
+class SuperuserStaffAccessFormContent extends Component<Props, State> {
+  constructor(props: any) {
     super(props);
     this.authUrl = this.props.hasStaff ? '/staff-auth/' : '/auth/';
     this.state = {
@@ -60,7 +64,7 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
     }
 
     const authenticators = await this.getAuthenticators();
-    this.setState({authenticators: authenticators});
+    this.setState({authenticators});
 
     // Set the error state if there are no authenticators and U2F is on
     if (!authenticators.length && !disableU2FForSUForm) {
@@ -78,7 +82,7 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
     });
   };
 
-  handleSubmit = async data => {
+  handleSubmit = async (data: any) => {
     const {api} = this.props;
     const {superuserAccessCategory, superuserReason, authenticators} = this.state;
     const disableU2FForSUForm = ConfigStore.get('disableU2FForSUForm');
@@ -112,7 +116,7 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
     }
   };
 
-  handleU2fTap = async (data: Parameters<OnTapProps>[0]) => {
+  handleWebAuthn = async (data: WebAuthnParams) => {
     const {api} = this.props;
 
     if (!this.props.hasStaff) {
@@ -134,7 +138,7 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
     window.location.reload();
   };
 
-  handleError = err => {
+  handleError = (err: any) => {
     let errorType = '';
     if (err.status === 403) {
       if (err.responseJSON.detail.code === 'no_u2f') {
@@ -163,21 +167,17 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
     });
   };
 
-  handleLogout = async () => {
-    const {api} = this.props;
-    try {
-      await logout(api);
-    } catch {
-      // ignore errors
-    }
-    const authLoginPath = `/auth/login/?next=${encodeURIComponent(window.location.href)}`;
+  handleLogout = () => {
     const {superuserUrl} = window.__initialData.links;
-    if (window.__initialData?.customerDomain && superuserUrl) {
-      const redirectURL = `${trimEnd(superuserUrl, '/')}${authLoginPath}`;
-      window.location.assign(redirectURL);
-      return;
-    }
-    window.location.assign(authLoginPath);
+    const urlOrigin =
+      window.__initialData.customerDomain && superuserUrl
+        ? superuserUrl
+        : window.location.origin;
+
+    const nextUrl = new URL('/auth/login/', urlOrigin);
+    nextUrl.searchParams.set('next', window.location.href);
+
+    logout(this.props.api, nextUrl.toString());
   };
 
   async getAuthenticators() {
@@ -200,21 +200,17 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
     }
 
     return (
-      <ThemeAndStyleProvider>
+      <Fragment>
         {this.props.hasStaff ? (
           isLoading ? (
             <LoadingIndicator />
           ) : (
             <React.Fragment>
-              {error && (
-                <StyledAlert type="error" showIcon>
-                  {errorType}
-                </StyledAlert>
-              )}
-              <U2fContainer
+              {error && <Alert type="error">{errorType}</Alert>}
+              <WebAuthn
+                mode="sudo"
                 authenticators={authenticators}
-                displayMode="sudo"
-                onTap={this.handleU2fTap}
+                onWebAuthn={this.handleWebAuthn}
               />
             </React.Fragment>
           )
@@ -232,33 +228,25 @@ class SuperuserStaffAccessForm extends Component<Props, State> {
             }
             resetOnError
           >
-            {error && (
-              <StyledAlert type="error" showIcon>
-                {errorType}
-              </StyledAlert>
-            )}
+            {error && <Alert type="error">{errorType}</Alert>}
             {showAccessForms && <Hook name="component:superuser-access-category" />}
             {!showAccessForms && (
-              <U2fContainer
+              <WebAuthn
+                mode="sudo"
                 authenticators={authenticators}
-                displayMode="sudo"
-                onTap={this.handleU2fTap}
+                onWebAuthn={this.handleWebAuthn}
               />
             )}
           </Form>
         )}
-      </ThemeAndStyleProvider>
+      </Fragment>
     );
   }
 }
 
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
-`;
+export default withApi(SuperuserStaffAccessFormContent);
 
 const BackWrapper = styled('div')`
   width: 100%;
   margin-left: ${space(4)};
 `;
-
-export default withApi(SuperuserStaffAccessForm);

@@ -1,3 +1,5 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+
 import {
   initializeData as _initializeData,
   makeSuspectSpan,
@@ -21,20 +23,19 @@ const initializeData = () => {
 describe('SuspectSpansTable', () => {
   it('should not calculate frequency percentages above 100%', async () => {
     const initialData = initializeData();
-    const suspectSpan = makeSuspectSpan(SAMPLE_SPANS[0]);
+    const suspectSpan = makeSuspectSpan(SAMPLE_SPANS[0]!);
     suspectSpan.frequency = 120;
 
     render(
       <SuspectSpansTable
-        location={initialData.router.location}
+        location={LocationFixture({...initialData.initialRouterConfig.location})}
         organization={initialData.organization}
         transactionName="Test Transaction"
         isLoading={false}
         suspectSpans={[suspectSpan]}
         totals={{'count()': 100}}
         sort={SpanSortOthers.SUM_EXCLUSIVE_TIME}
-      />,
-      {router: initialData.router}
+      />
     );
 
     const frequencyHeader = await screen.findByTestId('grid-editable');

@@ -1,15 +1,14 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
 import HighlightsSettingsForm from 'sentry/components/events/highlights/highlightsSettingsForm';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -21,6 +20,7 @@ import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagWithTopValues} from 'sentry/types/group';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {
   setApiQueryData,
   useApiQuery,
@@ -34,9 +34,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
-type Props = RouteComponentProps<{projectId: string}, {}>;
+type Props = RouteComponentProps<{projectId: string}>;
 
 type DeleteTagResponse = unknown;
 type DeleteTagVariables = {key: TagWithTopValues['key']};
@@ -46,14 +46,14 @@ function ProjectTags(props: Props) {
   const {projects} = useProjects();
   const {projectId} = props.params;
 
-  const project = projects.find(p => p.id === projectId);
+  const project = projects.find(p => p.slug === projectId);
 
   const api = useApi();
   const queryClient = useQueryClient();
 
   const {
     data: tags,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<TagWithTopValues[]>(
     [`/projects/${organization.slug}/${projectId}/tags/`],
@@ -69,7 +69,7 @@ function ProjectTags(props: Props) {
       setApiQueryData<TagWithTopValues[]>(
         queryClient,
         [`/projects/${organization.slug}/${projectId}/tags/`],
-        oldTags => oldTags.filter(tag => tag.key !== key)
+        oldTags => oldTags?.filter(tag => tag.key !== key)
       );
     },
     onError: () => {
@@ -77,7 +77,7 @@ function ProjectTags(props: Props) {
     },
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -85,12 +85,12 @@ function ProjectTags(props: Props) {
     return <LoadingError />;
   }
 
-  const isEmpty = !tags || !tags.length;
+  const isEmpty = !tags?.length;
   return (
     <Fragment>
       <SentryDocumentTitle title={routeTitleGen(t('Tags & Context'), projectId, false)} />
       <SettingsPageHeader title={t('Tags & Context')} />
-      <PermissionAlert project={project} />
+      <ProjectPermissionAlert project={project} />
       <HighlightsSettingsForm projectSlug={projectId} />
       <TextBlock>
         {tct(

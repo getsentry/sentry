@@ -19,28 +19,17 @@ import type {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegra
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {relativeChange} from 'sentry/utils/profiling/units/units';
 
-export function formatWeightToProfileDuration(
-  frame: CallTreeNode,
-  flamegraph: Flamegraph
-) {
-  return `${Math.round((frame.totalWeight / flamegraph.profile.duration) * 100)}%`;
+const PROFILING_SAMPLES_FORMATTER = Intl.NumberFormat(undefined, {
+  notation: 'compact',
+});
+
+function formatWeightToProfileDuration(frame: CallTreeNode, flamegraph: Flamegraph) {
+  const weight = (frame.totalWeight / flamegraph.profile.duration) * 100;
+
+  return `${Math.round(weight * 100) / 100}%`;
 }
 
-function formatFileNameAndLineColumn(frame: FlamegraphFrame): string | null {
-  if (!frame.frame.file) {
-    return '<unknown file>';
-  }
-  if (typeof frame.frame.line === 'number' && typeof frame.frame.column === 'number') {
-    return `${frame.frame.file}:${frame.frame.line}:${frame.frame.column}`;
-  }
-  if (typeof frame.frame.line === 'number') {
-    return `${frame.frame.file}:${frame.frame.line}`;
-  }
-  return `${frame.frame.file}:<unknown line>`;
-}
-
-export interface FlamegraphTooltipProps {
-  canvasBounds: Rect;
+interface FlamegraphTooltipProps {
   configSpaceCursor: vec2;
   flamegraph: Flamegraph | DifferentialFlamegraph;
   flamegraphCanvas: FlamegraphCanvas;
@@ -94,7 +83,7 @@ interface DifferentialFlamegraphTooltipProps extends FlamegraphTooltipProps {
   frameInConfigSpace: Rect;
 }
 function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps) {
-  const flamegraph = props.flamegraph as DifferentialFlamegraph;
+  const flamegraph = props.flamegraph;
   const count = useMemo(() => {
     return props.flamegraph.weights.get(props.frame.node);
   }, [props.frame, props.flamegraph]);
@@ -113,7 +102,6 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
 
   return (
     <BoundTooltip
-      bounds={props.canvasBounds}
       cursor={props.configSpaceCursor}
       canvas={props.flamegraphCanvas}
       canvasView={props.flamegraphView}
@@ -122,7 +110,7 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
         <FlamegraphTooltipColorIndicator
           backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
         />
-        {flamegraph.formatter(props.frame.node.totalWeight)}{' '}
+        {PROFILING_SAMPLES_FORMATTER.format(props.frame.node.totalWeight)}{' '}
         {t('samples, ') + formattedChange}{' '}
         {`(${formatWeightToProfileDuration(props.frame.node, flamegraph)})`}{' '}
         {props.frame.frame.name}
@@ -130,7 +118,7 @@ function DifferentialFlamegraphTooltip(props: DifferentialFlamegraphTooltipProps
       <FlamegraphTooltipTimelineInfo>
         {defined(props.frame.frame.file) && (
           <Fragment>
-            {t('source')}:{formatFileNameAndLineColumn(props.frame)}
+            {t('source')}:{props.frame.frame.getSourceLocation()}
           </Fragment>
         )}
         <FlamegraphTooltipTimelineInfo>
@@ -147,7 +135,6 @@ interface AggregateFlamegraphTooltipProps extends FlamegraphTooltipProps {
 function AggregateFlamegraphTooltip(props: AggregateFlamegraphTooltipProps) {
   return (
     <BoundTooltip
-      bounds={props.canvasBounds}
       cursor={props.configSpaceCursor}
       canvas={props.flamegraphCanvas}
       canvasView={props.flamegraphView}
@@ -156,7 +143,7 @@ function AggregateFlamegraphTooltip(props: AggregateFlamegraphTooltipProps) {
         <FlamegraphTooltipColorIndicator
           backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
         />
-        {props.flamegraphRenderer.flamegraph.formatter(props.frame.node.totalWeight)}{' '}
+        {PROFILING_SAMPLES_FORMATTER.format(props.frame.node.totalWeight)}{' '}
         {t('samples') + ' '}
         {`(${formatWeightToProfileDuration(
           props.frame.node,
@@ -165,11 +152,7 @@ function AggregateFlamegraphTooltip(props: AggregateFlamegraphTooltipProps) {
         {props.frame.frame.name}
       </FlamegraphTooltipFrameMainInfo>
       <FlamegraphTooltipTimelineInfo>
-        {defined(props.frame.frame.file) && (
-          <Fragment>
-            {t('source')}:{formatFileNameAndLineColumn(props.frame)}
-          </Fragment>
-        )}
+        {t('source')}:{props.frame.frame.getSourceLocation()}
         <FlamegraphTooltipTimelineInfo>
           {props.frame.frame.is_application ? t('application frame') : t('system frame')}
         </FlamegraphTooltipTimelineInfo>
@@ -184,7 +167,6 @@ interface FlamechartTooltipProps extends FlamegraphTooltipProps {
 function FlamechartTooltip(props: FlamechartTooltipProps) {
   return (
     <BoundTooltip
-      bounds={props.canvasBounds}
       cursor={props.configSpaceCursor}
       canvas={props.flamegraphCanvas}
       canvasView={props.flamegraphView}
@@ -201,11 +183,7 @@ function FlamechartTooltip(props: FlamechartTooltipProps) {
         {props.frame.frame.name}
       </FlamegraphTooltipFrameMainInfo>
       <FlamegraphTooltipTimelineInfo>
-        {defined(props.frame.frame.file) && (
-          <Fragment>
-            {t('source')}:{formatFileNameAndLineColumn(props.frame)}
-          </Fragment>
-        )}
+        {t('source')}:{props.frame.frame.getSourceLocation()}
         <FlamegraphTooltipTimelineInfo>
           {props.frame.frame.is_application ? t('application frame') : t('system frame')}
         </FlamegraphTooltipTimelineInfo>
@@ -234,7 +212,7 @@ function FlamechartTooltip(props: FlamechartTooltipProps) {
 const FlamegraphInlineIndicator = styled('span')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   padding: ${space(0.25)} ${space(0.25)};
   line-height: 12px;
   margin: 0 ${space(0.5)};
@@ -252,8 +230,9 @@ export const FlamegraphTooltipTimelineInfo = styled('div')`
 `;
 
 export const FlamegraphTooltipFrameMainInfo = styled('div')`
-  display: flex;
-  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 `;
 
 export const FlamegraphTooltipColorIndicator = styled('div')<{
@@ -270,4 +249,5 @@ export const FlamegraphTooltipColorIndicator = styled('div')<{
   background-size: 16px 16px;
   background-color: ${p => p.backgroundColor};
   margin-right: ${space(1)};
+  transform: translateY(2px);
 `;

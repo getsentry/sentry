@@ -18,7 +18,7 @@ from sentry.organizations.absolute_url import customer_domain_path
             "/settings/acme/developer-settings/release-bot/",
             "/settings/developer-settings/release-bot/",
         ),
-        # Settings views for orgs with acccount/billing in their slugs.
+        # Settings views for orgs with account/billing in their slugs.
         ("/settings/account-on/", "/settings/organization/"),
         ("/settings/billing-co/", "/settings/organization/"),
         ("/settings/account-on/integrations/", "/settings/integrations/"),

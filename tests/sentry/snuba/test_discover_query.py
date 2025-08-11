@@ -24,14 +24,14 @@ from sentry.search.events.constants import (
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 
 ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 
 
 class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.environment = self.create_environment(self.project, name="prod")
         self.release = self.create_release(self.project, version="first-release")
@@ -47,7 +47,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.isoformat(),
                 "tags": [["key1", "value1"]],
             },
             project_id=self.project.id,
@@ -59,18 +59,17 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             organization=self.organization,
         )
 
-    def test_project_mapping(self):
+    def test_project_mapping(self) -> None:
         other_project = self.create_project(organization=self.organization)
         self.params.projects = [other_project]
         self.store_event(
-            data={"message": "hello", "timestamp": iso_format(self.one_min_ago)},
+            data={"message": "hello", "timestamp": self.one_min_ago.isoformat()},
             project_id=other_project.id,
         )
 
         result = discover.query(
             selected_columns=["project", "message"],
             query="",
-            params={},
             snuba_params=self.params,
             orderby=["project"],
             referrer="discover",
@@ -80,13 +79,13 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert len(data) == 1
         assert data[0]["project"] == other_project.slug
 
-    def test_sorting_project_name(self):
+    def test_sorting_project_name(self) -> None:
         projects = []
         for project_name in ["a" * 32, "z" * 32, "m" * 32]:
             other_project = self.create_project(organization=self.organization, slug=project_name)
             projects.append(other_project)
             self.store_event(
-                data={"message": "ohh no", "timestamp": iso_format(self.one_min_ago)},
+                data={"message": "ohh no", "timestamp": self.one_min_ago.isoformat()},
                 project_id=other_project.id,
             )
 
@@ -95,7 +94,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project", "message"],
             query="",
-            params={},
             snuba_params=self.params,
             orderby=["project"],
             referrer="test_discover_query",
@@ -104,13 +102,13 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert len(data) == 3
         assert [item["project"] for item in data] == ["a" * 32, "m" * 32, "z" * 32]
 
-    def test_reverse_sorting_project_name(self):
+    def test_reverse_sorting_project_name(self) -> None:
         projects = []
         for project_name in ["a" * 32, "z" * 32, "m" * 32]:
             other_project = self.create_project(organization=self.organization, slug=project_name)
             projects.append(other_project)
             self.store_event(
-                data={"message": "ohh no", "timestamp": iso_format(self.one_min_ago)},
+                data={"message": "ohh no", "timestamp": self.one_min_ago.isoformat()},
                 project_id=other_project.id,
             )
 
@@ -119,7 +117,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project", "message"],
             query="",
-            params={},
             snuba_params=self.params,
             orderby=["-project"],
             referrer="test_discover_query",
@@ -128,13 +125,13 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert len(data) == 3
         assert [item["project"] for item in data] == ["z" * 32, "m" * 32, "a" * 32]
 
-    def test_using_project_and_project_name(self):
+    def test_using_project_and_project_name(self) -> None:
         projects = []
         for project_name in ["a" * 32, "z" * 32, "m" * 32]:
             other_project = self.create_project(organization=self.organization, slug=project_name)
             projects.append(other_project)
             self.store_event(
-                data={"message": "ohh no", "timestamp": iso_format(self.one_min_ago)},
+                data={"message": "ohh no", "timestamp": self.one_min_ago.isoformat()},
                 project_id=other_project.id,
             )
 
@@ -143,7 +140,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project.name", "message", "project"],
             query="",
-            params={},
             snuba_params=self.params,
             orderby=["project.name"],
             referrer="test_discover_query",
@@ -156,14 +152,14 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             "z" * 32,
         ]
 
-    def test_missing_project(self):
+    def test_missing_project(self) -> None:
         projects = []
         other_project = None
         for project_name in ["a" * 32, "z" * 32, "m" * 32]:
             other_project = self.create_project(organization=self.organization, slug=project_name)
             projects.append(other_project)
             self.store_event(
-                data={"message": "ohh no", "timestamp": iso_format(self.one_min_ago)},
+                data={"message": "ohh no", "timestamp": self.one_min_ago.isoformat()},
                 project_id=other_project.id,
             )
 
@@ -176,7 +172,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["message", "project"],
             query="",
-            params={},
             snuba_params=self.params,
             orderby=["project"],
             referrer="test_discover_query",
@@ -185,7 +180,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert len(data) == 2
         assert [item["project"] for item in data] == ["a" * 32, "z" * 32]
 
-    def test_issue_short_id_mapping(self):
+    def test_issue_short_id_mapping(self) -> None:
         tests = [
             ("issue", f"issue:{self.event.group.qualified_short_id}"),
             ("issue", f"issue.id:{self.event.group_id}"),
@@ -198,7 +193,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=[column],
                 query=query,
                 referrer="discover",
-                params={},
                 snuba_params=self.params,
             )
             data = result["data"]
@@ -207,7 +201,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             # is required to insert the `issue` column.
             assert [item["issue.id"] for item in data] == [self.event.group_id]
 
-    def test_issue_filters(self):
+    def test_issue_filters(self) -> None:
         tests = [
             "has:issue",
             "has:issue.id",
@@ -219,7 +213,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["issue", "issue.id"],
                 query=query,
-                params={},
                 snuba_params=self.params,
                 referrer="discover",
             )
@@ -229,7 +222,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             # is required to insert the `issue` column.
             assert [item["issue.id"] for item in data] == [self.event.group_id]
 
-    def test_tags_orderby(self):
+    def test_tags_orderby(self) -> None:
         self.event = self.store_event(
             data={
                 "message": "oh no",
@@ -237,7 +230,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.isoformat(),
                 "tags": [["key1", "value2"]],
             },
             project_id=self.project.id,
@@ -254,7 +247,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=[column],
                 query="",
-                params={},
                 snuba_params=self.params,
                 orderby=[orderby],
                 referrer="test_discover_query",
@@ -263,7 +255,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data) == len(expected)
             assert [item[column] for item in data] == expected
 
-    def test_tags_filter(self):
+    def test_tags_filter(self) -> None:
         self.event = self.store_event(
             data={
                 "message": "oh no",
@@ -271,7 +263,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.isoformat(),
                 "tags": [["key1", "value2"]],
             },
             project_id=self.project.id,
@@ -303,7 +295,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=[column],
                 query=query,
-                params={},
                 snuba_params=self.params,
                 orderby=[column],
                 referrer="test_discover_query",
@@ -312,7 +303,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data) == len(expected), (column, query, expected)
             assert [item[column] for item in data] == expected
 
-    def test_tags_colliding_with_fields(self):
+    def test_tags_colliding_with_fields(self) -> None:
         event = self.store_event(
             data={
                 "message": "oh no",
@@ -320,7 +311,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.isoformat(),
                 "tags": [["id", "new"]],
             },
             project_id=self.project.id,
@@ -337,7 +328,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=[column],
                 query=query,
-                params={},
                 snuba_params=self.params,
                 orderby=[column],
                 referrer="test_discover_query",
@@ -346,7 +336,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data) == len(expected), (query, expected)
             assert [item[column] for item in data] == expected
 
-    def test_reverse_sorting_issue(self):
+    def test_reverse_sorting_issue(self) -> None:
         other_event = self.store_event(
             data={
                 "message": "whoopsies",
@@ -354,7 +344,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -370,7 +360,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 result = discover.query(
                     selected_columns=[column],
                     query="",
-                    params={},
                     snuba_params=self.params,
                     orderby=[f"{direction}{column}"],
                     referrer="discover",
@@ -382,11 +371,10 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                     expected.reverse()
                 assert [item["issue.id"] for item in data] == expected
 
-    def test_timestamp_rounding_fields(self):
+    def test_timestamp_rounding_fields(self) -> None:
         result = discover.query(
             selected_columns=["timestamp.to_hour", "timestamp.to_day"],
             query="",
-            params={},
             snuba_params=self.params,
             referrer="test_discover_query",
         )
@@ -395,10 +383,10 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
 
         hour = self.event_time.replace(minute=0, second=0, microsecond=0)
         day = hour.replace(hour=0)
-        assert [item["timestamp.to_hour"] for item in data] == [f"{iso_format(hour)}+00:00"]
-        assert [item["timestamp.to_day"] for item in data] == [f"{iso_format(day)}+00:00"]
+        assert [item["timestamp.to_hour"] for item in data] == [hour.isoformat()]
+        assert [item["timestamp.to_day"] for item in data] == [day.isoformat()]
 
-    def test_timestamp_rounding_filters(self):
+    def test_timestamp_rounding_filters(self) -> None:
         one_day_ago = before_now(days=1)
         two_day_ago = before_now(days=2)
         three_day_ago = before_now(days=3)
@@ -411,15 +399,14 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
-                "timestamp": iso_format(two_day_ago),
+                "timestamp": two_day_ago.isoformat(),
             },
             project_id=self.project.id,
         )
 
         result = discover.query(
             selected_columns=["timestamp.to_hour", "timestamp.to_day"],
-            query=f"timestamp.to_hour:<{iso_format(one_day_ago)} timestamp.to_day:<{iso_format(one_day_ago)}",
-            params={},
+            query=f"timestamp.to_hour:<{one_day_ago.isoformat()} timestamp.to_day:<{one_day_ago.isoformat()}",
             snuba_params=self.params,
             referrer="test_discover_query",
         )
@@ -428,10 +415,10 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
 
         hour = two_day_ago.replace(minute=0, second=0, microsecond=0)
         day = hour.replace(hour=0)
-        assert [item["timestamp.to_hour"] for item in data] == [f"{iso_format(hour)}+00:00"]
-        assert [item["timestamp.to_day"] for item in data] == [f"{iso_format(day)}+00:00"]
+        assert [item["timestamp.to_hour"] for item in data] == [hour.isoformat()]
+        assert [item["timestamp.to_day"] for item in data] == [day.isoformat()]
 
-    def test_user_display(self):
+    def test_user_display(self) -> None:
         # `user.display` should give `username`
         self.store_event(
             data={
@@ -440,7 +427,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"username": "brucew", "id": "1234", "ip": "127.0.0.1"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -453,7 +440,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "1234", "ip": "127.0.0.1"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -466,7 +453,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"ip_address": "127.0.0.1"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -474,7 +461,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["user.display"],
             query="",
-            params={},
             snuba_params=self.params,
             referrer="test_discover_query",
         )
@@ -487,7 +473,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             "127.0.0.1",
         }
 
-    def test_user_display_filter(self):
+    def test_user_display_filter(self) -> None:
         # `user.display` should give `username`
         self.store_event(
             data={
@@ -496,7 +482,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"username": "brucew", "ip": "127.0.0.1"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -504,7 +490,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["user.display"],
             query="has:user.display user.display:bruce@example.com",
-            params={},
             snuba_params=self.params,
             referrer="test_discover_query",
         )
@@ -512,7 +497,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert len(data) == 1
         assert [item["user.display"] for item in data] == ["bruce@example.com"]
 
-    def test_message_orderby(self):
+    def test_message_orderby(self) -> None:
         self.event = self.store_event(
             data={
                 "message": "oh yeah",
@@ -520,7 +505,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -534,7 +519,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["message"],
                 query="",
-                params={},
                 snuba_params=self.params,
                 orderby=[orderby],
                 referrer="test_discover_query",
@@ -544,7 +528,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data) == 2
             assert [item["message"] for item in data] == expected
 
-    def test_message_filter(self):
+    def test_message_filter(self) -> None:
         self.event = self.store_event(
             data={
                 "message": "oh yeah",
@@ -552,7 +536,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "environment": "prod",
                 "platform": "python",
                 "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
-                "timestamp": iso_format(self.event_time),
+                "timestamp": self.event_time.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -574,7 +558,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["message"],
                 query=query,
-                params={},
                 snuba_params=self.params,
                 orderby=["message"],
                 referrer="test_discover_query",
@@ -584,7 +567,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data) == len(expected)
             assert [item["message"] for item in data] == expected
 
-    def test_team_key_transactions(self):
+    def test_team_key_transactions(self) -> None:
         team1 = self.create_team(organization=self.organization, name="Team A")
         self.project.add_team(team1)
 
@@ -630,7 +613,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["transaction", "team_key_transaction"],
                 query=query,
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -649,7 +631,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             ] == expected_results
 
     @pytest.mark.xfail(reason="Started failing on ClickHouse 21.8")
-    def test_snql_wip_project_threshold_config(self):
+    def test_snql_wip_project_threshold_config(self) -> None:
         ProjectTransactionThreshold.objects.create(
             project=self.project,
             organization=self.project.organization,
@@ -708,7 +690,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project", "transaction", "project_threshold_config"],
             query="",
-            params={},
             snuba_params=SnubaParams(
                 start=before_now(minutes=10),
                 end=before_now(minutes=2),
@@ -740,7 +721,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project", "transaction", "project_threshold_config"],
             query="",
-            params={},
             snuba_params=SnubaParams(
                 start=before_now(minutes=10),
                 end=before_now(minutes=2),
@@ -761,7 +741,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             r[1] for r in expected_project_threshold_config
         ]
 
-    def test_to_other_function(self):
+    def test_to_other_function(self) -> None:
         project = self.create_project()
 
         for i in range(3):
@@ -793,7 +773,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=cols,
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -806,7 +785,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data) == len(expected)
             assert [x[alias] for x in data] == expected
 
-    def test_count_if_function(self):
+    def test_count_if_function(self) -> None:
         for i in range(3):
             data = load_data("transaction", timestamp=before_now(minutes=5))
             data["release"] = "aaaa"
@@ -848,7 +827,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=cols,
                 query=query,
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -861,7 +839,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data) == 1
             assert data[0] == expected
 
-    def test_count_if_function_with_unicode(self):
+    def test_count_if_function_with_unicode(self) -> None:
         unicode_phrase1 = "\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86"
         unicode_phrase2 = "\u53cd\u6b63\u611b\u60c5\u4e0d\u5c31\u90a3\u6837"
         for i in range(3):
@@ -895,7 +873,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=cols,
                 query=query,
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -908,7 +885,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data) == 1
             assert data[0] == expected
 
-    def test_failure_count_function(self):
+    def test_failure_count_function(self) -> None:
         project = self.create_project()
 
         data = load_data("transaction", timestamp=before_now(minutes=5))
@@ -942,7 +919,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=["transaction", "failure_count()"],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -957,7 +933,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             assert data[0]["failure_count"] == 2
             assert data[1]["failure_count"] == 1
 
-    def test_apdex_function(self):
+    def test_apdex_function(self) -> None:
         project = self.create_project()
 
         ProjectTransactionThreshold.objects.create(
@@ -1018,7 +994,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 query=query,
                 orderby=["transaction"],
                 referrer="discover",
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=30),
                     end=before_now(minutes=2),
@@ -1033,7 +1008,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 x[alias] for x in sorted(data, key=lambda k: k["transaction"])
             ] == expected_apdex
 
-    def test_count_miserable_function(self):
+    def test_count_miserable_function(self) -> None:
         project = self.create_project()
 
         ProjectTransactionThreshold.objects.create(
@@ -1109,7 +1084,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 query=query,
                 orderby=["transaction"],
                 referrer="discover",
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=30),
                     end=before_now(minutes=2),
@@ -1125,7 +1099,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 x[alias] for x in sorted(data, key=lambda k: k["transaction"])
             ] == expected_count_miserable
 
-    def test_user_misery_function(self):
+    def test_user_misery_function(self) -> None:
         project = self.create_project()
 
         ProjectTransactionThreshold.objects.create(
@@ -1203,7 +1177,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 referrer="discover",
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=30),
                     end=before_now(minutes=2),
@@ -1218,7 +1191,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             for i, misery in enumerate(sorted(data, key=lambda k: k["transaction"])):
                 assert similar(misery[alias], expected_user_misery[i])
 
-    def test_count(self):
+    def test_count(self) -> None:
         project = self.create_project()
 
         for i in range(6):
@@ -1241,7 +1214,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=["transaction", "count()"],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -1256,7 +1228,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             for index, count in enumerate(data):
                 assert count["count"] == expected_counts[index]
 
-    def test_compare_numeric_aggregate_function(self):
+    def test_compare_numeric_aggregate_function(self) -> None:
         project = self.create_project()
 
         for i in range(6):
@@ -1299,7 +1271,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=selected,
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -1312,7 +1283,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
 
             assert data[0][alias] == expected_value
 
-    def test_last_seen(self):
+    def test_last_seen(self) -> None:
         project = self.create_project()
 
         expected_timestamp = before_now(minutes=3)
@@ -1339,7 +1310,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 query=query,
                 referrer="discover",
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -1352,7 +1322,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data) == expected_length
             assert data[0]["last_seen"] == expected_timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
-    def test_latest_event(self):
+    def test_latest_event(self) -> None:
         project = self.create_project()
 
         expected_timestamp = before_now(minutes=3)
@@ -1370,7 +1340,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             query="",
             orderby=["transaction"],
             referrer="discover",
-            params={},
             snuba_params=SnubaParams(
                 start=before_now(minutes=10),
                 end=before_now(minutes=2),
@@ -1383,7 +1352,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert len(data) == 1
         assert data[0]["latest_event"] == stored_event.event_id
 
-    def test_failure_rate(self):
+    def test_failure_rate(self) -> None:
         project = self.create_project()
 
         for i in range(6):
@@ -1416,7 +1385,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=["transaction", "failure_rate()"],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -1444,7 +1412,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             data["transaction"] = "/p50"
             self.store_event(data, project_id=project.id)
 
-    def test_percentile(self):
+    def test_percentile(self) -> None:
         project = self.create_project()
 
         self._create_percentile_events(project)
@@ -1466,7 +1434,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 ],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=20),
                     end=before_now(minutes=2),
@@ -1481,7 +1448,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 assert data[0]["percentile_transaction_duration_0_7"] == 270000
                 assert data[0]["percentile_transaction_duration_0_5"] == 210000
 
-    def test_p50(self):
+    def test_p50(self) -> None:
         project = self.create_project()
 
         self._create_percentile_events(project)
@@ -1502,7 +1469,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 ],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=20),
                     end=before_now(minutes=2),
@@ -1516,7 +1482,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             if expected_length > 0:
                 assert data[0]["p50_transaction_duration"] == 210000
 
-    def test_p75(self):
+    def test_p75(self) -> None:
         project = self.create_project()
 
         self._create_percentile_events(project)
@@ -1536,7 +1502,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 ],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=20),
                     end=before_now(minutes=2),
@@ -1551,7 +1516,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             if expected_length > 0:
                 assert data[0]["p75_transaction_duration"] == 285000
 
-    def test_p95(self):
+    def test_p95(self) -> None:
         project = self.create_project()
 
         self._create_percentile_events(project)
@@ -1571,7 +1536,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 ],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=20),
                     end=before_now(minutes=2),
@@ -1586,7 +1550,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             if expected_length > 0:
                 assert data[0]["p95_transaction_duration"] == 345000
 
-    def test_p99(self):
+    def test_p99(self) -> None:
         project = self.create_project()
 
         self._create_percentile_events(project)
@@ -1606,7 +1570,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 ],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=20),
                     end=before_now(minutes=2),
@@ -1621,7 +1584,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             if expected_length > 0:
                 assert data[0]["p99_transaction_duration"] == 357000
 
-    def test_p100(self):
+    def test_p100(self) -> None:
         project = self.create_project()
 
         self._create_percentile_events(project)
@@ -1641,7 +1604,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 ],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=20),
                     end=before_now(minutes=2),
@@ -1656,7 +1618,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             if expected_length > 0:
                 assert data[0]["p100_transaction_duration"] == 360000
 
-    def test_p100_with_measurement(self):
+    def test_p100_with_measurement(self) -> None:
         project = self.create_project()
 
         for i in range(6):
@@ -1685,7 +1647,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 ],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=20),
                     end=before_now(minutes=2),
@@ -1700,7 +1661,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             if expected_length > 0:
                 assert data[0]["p100_measurements_frames_slow_rate"] == 0.5
 
-    def test_count_unique(self):
+    def test_count_unique(self) -> None:
         for idx in range(3):
             data = load_data(
                 "transaction",
@@ -1713,7 +1674,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["count_unique(user.display)", "count_unique(foo)"],
             query="",
-            params={},
             snuba_params=SnubaParams(
                 start=before_now(minutes=4),
                 end=before_now(minutes=2),
@@ -1728,7 +1688,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["count_unique_user_display"] == 3
         assert data[0]["count_unique_foo"] == 2
 
-    def test_min_max(self):
+    def test_min_max(self) -> None:
         """Testing both min and max since they're so similar"""
         for idx in range(3):
             start = before_now(minutes=3)
@@ -1746,7 +1706,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "max(transaction.duration)",
             ],
             query="",
-            params={},
             snuba_params=SnubaParams(
                 start=before_now(minutes=4),
                 end=before_now(minutes=2),
@@ -1761,7 +1720,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["min_transaction_duration"] == 60000
         assert data[0]["max_transaction_duration"] == 180000
 
-    def test_stats_functions(self):
+    def test_stats_functions(self) -> None:
         for idx in range(3):
             start = before_now(minutes=3)
             end = start - timedelta(minutes=1 + idx)
@@ -1792,7 +1751,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=[column],
                 query="",
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=4),
                     end=before_now(minutes=2),
@@ -1806,7 +1764,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data) == 1, column
             assert data[0][alias] == expected, column
 
-    def test_count_at_least(self):
+    def test_count_at_least(self) -> None:
         end = before_now(minutes=3)
         start_one_minute = end - timedelta(minutes=1)
         start_two_minute = end - timedelta(minutes=2)
@@ -1824,7 +1782,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "count_at_least(transaction.duration,120000)",
             ],
             query="",
-            params={},
             snuba_params=SnubaParams(
                 start=before_now(minutes=4),
                 end=before_now(minutes=2),
@@ -1839,7 +1796,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["count_at_least_transaction_duration_60000"] == 3
         assert data[0]["count_at_least_transaction_duration_120000"] == 2
 
-    def test_eps(self):
+    def test_eps(self) -> None:
         project = self.create_project()
 
         for _ in range(6):
@@ -1873,7 +1830,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 ],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=4),
                     end=before_now(minutes=2),
@@ -1893,7 +1849,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 assert data[0]["tps_10"] == 0.6
                 assert data[0]["tps_60"] == 0.1
 
-    def test_epm(self):
+    def test_epm(self) -> None:
         project = self.create_project()
 
         for _ in range(6):
@@ -1927,7 +1883,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 ],
                 query=query,
                 orderby=["transaction"],
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=4),
                     end=before_now(minutes=2),
@@ -1947,7 +1902,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 assert data[0]["tpm_10"] == 36.0
                 assert data[0]["tpm_60"] == 6
 
-    def test_transaction_status(self):
+    def test_transaction_status(self) -> None:
         data = load_data("transaction", timestamp=before_now(minutes=1))
         data["transaction"] = "/test_transaction/success"
         data["contexts"]["trace"]["status"] = "ok"
@@ -1966,7 +1921,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["transaction.status"],
             query="",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -1978,7 +1932,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             data[2]["transaction.status"],
         } == {0, 10, 6}
 
-    def test_transaction_status_filter(self):
+    def test_transaction_status_filter(self) -> None:
         data = load_data("transaction", timestamp=before_now(minutes=1))
         data["transaction"] = "/test_transaction/success"
         data["contexts"]["trace"]["status"] = "ok"
@@ -1994,7 +1948,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["transaction.status"],
                 query=query,
-                params={},
                 snuba_params=self.params,
                 referrer="discover",
             )
@@ -2023,7 +1976,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         )
         run_query("!has:transaction.status", [], "status nonexistant")
 
-    def test_error_handled_alias(self):
+    def test_error_handled_alias(self) -> None:
         data = load_data("android-ndk", timestamp=before_now(minutes=10))
         events = (
             ("a" * 32, "not handled", False),
@@ -2051,7 +2004,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["error.handled"],
                 query=query,
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=12),
                     end=before_now(minutes=8),
@@ -2067,7 +2019,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data) == len(expected_data)
             assert [item["error.handled"] for item in data] == expected_data
 
-    def test_error_unhandled_alias(self):
+    def test_error_unhandled_alias(self) -> None:
         data = load_data("android-ndk", timestamp=before_now(minutes=10))
         events = (
             ("a" * 32, "not handled", False),
@@ -2095,7 +2047,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["error.unhandled"],
                 query=query,
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=12),
                     end=before_now(minutes=8),
@@ -2109,9 +2060,9 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data) == len(expected_events)
             assert [item["error.unhandled"] for item in data] == error_handled
 
-    def test_array_fields(self):
+    def test_array_fields(self) -> None:
         data = load_data("javascript")
-        data["timestamp"] = iso_format(before_now(minutes=10))
+        data["timestamp"] = before_now(minutes=10).isoformat()
         self.store_event(data=data, project_id=self.project.id)
 
         expected_filenames = [
@@ -2133,7 +2084,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["stack.filename"],
                 query=query,
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=12),
                     end=before_now(minutes=8),
@@ -2154,7 +2104,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["stack.filename"],
             query="stack.filename:[raven.js]",
             referrer="discover",
-            params={},
             snuba_params=SnubaParams(
                 start=before_now(minutes=12),
                 end=before_now(minutes=8),
@@ -2169,7 +2118,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert sorted(data[0]["stack.filename"]) == expected_filenames
 
     @pytest.mark.skip("setting snuba config is too slow")
-    def test_spans_op_array_field(self):
+    def test_spans_op_array_field(self) -> None:
         trace_context = {
             "parent_span_id": "8988cec7cc0779c1",
             "type": "trace",
@@ -2194,7 +2143,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["spans_op"],
                 query=query,
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=12),
                     end=before_now(minutes=8),
@@ -2206,7 +2154,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             data = result["data"]
             assert len(data) == expected_len
 
-    def test_orderby_field_alias(self):
+    def test_orderby_field_alias(self) -> None:
         data = load_data("android-ndk", timestamp=before_now(minutes=10))
         events = (
             ("a" * 32, "not handled", False),
@@ -2233,7 +2181,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=["transaction", "error.unhandled"],
                 query="",
                 orderby=orderby,
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=12),
                     end=before_now(minutes=8),
@@ -2246,7 +2193,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             data = result["data"]
             assert [x["error.unhandled"] for x in data] == expected
 
-    def test_orderby_aggregate_function(self):
+    def test_orderby_aggregate_function(self) -> None:
         project = self.create_project()
 
         data = load_data("transaction", timestamp=before_now(minutes=5))
@@ -2283,7 +2230,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=["transaction", "failure_count()"],
                 query="",
                 orderby=orderby,
-                params={},
                 snuba_params=SnubaParams(
                     start=before_now(minutes=10),
                     end=before_now(minutes=2),
@@ -2295,11 +2241,10 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
 
             assert [x["failure_count"] for x in data] == expected
 
-    def test_field_aliasing_in_selected_columns(self):
+    def test_field_aliasing_in_selected_columns(self) -> None:
         result = discover.query(
             selected_columns=["project.id", "user", "release", "timestamp.to_hour"],
             query="",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2309,8 +2254,8 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["user"] == "id:99"
         assert data[0]["release"] == "first-release"
 
-        event_hour = self.event_time.replace(minute=0, second=0)
-        assert data[0]["timestamp.to_hour"] == iso_format(event_hour) + "+00:00"
+        event_hour = self.event_time.replace(minute=0, second=0, microsecond=0)
+        assert data[0]["timestamp.to_hour"] == event_hour.isoformat()
 
         assert len(result["meta"]["fields"]) == 4
         assert result["meta"]["fields"] == {
@@ -2320,11 +2265,10 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             "timestamp.to_hour": "date",
         }
 
-    def test_field_alias_with_component(self):
+    def test_field_alias_with_component(self) -> None:
         result = discover.query(
             selected_columns=["project.id", "user", "user.email"],
             query="",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2341,11 +2285,10 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             "user.email": "string",
         }
 
-    def test_field_aliasing_in_aggregate_functions_and_groupby(self):
+    def test_field_aliasing_in_aggregate_functions_and_groupby(self) -> None:
         result = discover.query(
             selected_columns=["project.id", "count_unique(user.email)"],
             query="",
-            params={},
             snuba_params=self.params,
             auto_fields=True,
             referrer="discover",
@@ -2355,11 +2298,10 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["project.id"] == self.project.id
         assert data[0]["count_unique_user_email"] == 1
 
-    def test_field_aliasing_in_conditions(self):
+    def test_field_aliasing_in_conditions(self) -> None:
         result = discover.query(
             selected_columns=["project.id", "user.email"],
             query="user.email:bruce@example.com",
-            params={},
             snuba_params=self.params,
             referrer="discover",
             auto_fields=True,
@@ -2369,12 +2311,11 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["project.id"] == self.project.id
         assert data[0]["user.email"] == "bruce@example.com"
 
-    def test_auto_fields_simple_fields(self):
+    def test_auto_fields_simple_fields(self) -> None:
         result = discover.query(
             selected_columns=["user.email", "release"],
             referrer="discover",
             query="",
-            params={},
             snuba_params=self.params,
             auto_fields=True,
         )
@@ -2393,12 +2334,11 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             "project.name": "string",
         }
 
-    def test_auto_fields_aggregates(self):
+    def test_auto_fields_aggregates(self) -> None:
         result = discover.query(
             selected_columns=["count_unique(user.email)"],
             referrer="discover",
             query="",
-            params={},
             snuba_params=self.params,
             auto_fields=True,
         )
@@ -2406,11 +2346,10 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert len(data) == 1
         assert data[0]["count_unique_user_email"] == 1
 
-    def test_release_condition(self):
+    def test_release_condition(self) -> None:
         result = discover.query(
             selected_columns=["id", "message"],
             query=f"release:{self.create_release(self.project).version}",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2419,7 +2358,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id", "message"],
             query=f"release:{self.release.version}",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2429,40 +2367,39 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["message"] == self.event.message
         assert "event_id" not in data[0]
 
-    def test_semver_condition(self):
+    def test_semver_condition(self) -> None:
         release_1 = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test@1.2.4")
         release_3 = self.create_release(version="test@1.2.5")
 
         release_1_e_1 = self.store_event(
-            data={"release": release_1.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_1.version, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         ).event_id
         release_1_e_2 = self.store_event(
-            data={"release": release_1.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_1.version, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         ).event_id
         release_2_e_1 = self.store_event(
-            data={"release": release_2.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_2.version, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         ).event_id
         release_2_e_2 = self.store_event(
-            data={"release": release_2.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_2.version, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         ).event_id
         release_3_e_1 = self.store_event(
-            data={"release": release_3.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_3.version, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         ).event_id
         release_3_e_2 = self.store_event(
-            data={"release": release_3.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_3.version, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         ).event_id
 
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_ALIAS}:>1.2.3",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2475,7 +2412,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_ALIAS}:>=1.2.3",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2490,7 +2426,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_ALIAS}:<1.2.4",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2498,7 +2433,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"!{SEMVER_ALIAS}:1.2.3",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2510,7 +2444,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             release_3_e_2,
         }
 
-    def test_release_stage_condition(self):
+    def test_release_stage_condition(self) -> None:
         replaced_release = self.create_release(
             version="replaced_release",
             environments=[self.environment],
@@ -2528,7 +2462,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             data={
                 "release": adopted_release.version,
                 "environment": self.environment.name,
-                "timestamp": iso_format(self.one_min_ago),
+                "timestamp": self.one_min_ago.isoformat(),
             },
             project_id=self.project.id,
         ).event_id
@@ -2536,7 +2470,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             data={
                 "release": adopted_release.version,
                 "environment": self.environment.name,
-                "timestamp": iso_format(self.one_min_ago),
+                "timestamp": self.one_min_ago.isoformat(),
             },
             project_id=self.project.id,
         ).event_id
@@ -2544,7 +2478,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             data={
                 "release": replaced_release.version,
                 "environment": self.environment.name,
-                "timestamp": iso_format(self.one_min_ago),
+                "timestamp": self.one_min_ago.isoformat(),
             },
             project_id=self.project.id,
         ).event_id
@@ -2552,7 +2486,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             data={
                 "release": replaced_release.version,
                 "environment": self.environment.name,
-                "timestamp": iso_format(self.one_min_ago),
+                "timestamp": self.one_min_ago.isoformat(),
             },
             project_id=self.project.id,
         ).event_id
@@ -2562,7 +2496,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2574,7 +2507,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION.value}",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2587,7 +2519,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED.value}, {ReleaseStages.REPLACED.value}]",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2598,20 +2529,20 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             replaced_release_e_2,
         }
 
-    def test_semver_package_condition(self):
+    def test_semver_package_condition(self) -> None:
         release_1 = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test2@1.2.4")
 
         release_1_e_1 = self.store_event(
-            data={"release": release_1.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_1.version, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         ).event_id
         release_1_e_2 = self.store_event(
-            data={"release": release_1.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_1.version, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         ).event_id
         release_2_e_1 = self.store_event(
-            data={"release": release_2.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_2.version, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         ).event_id
 
@@ -2619,7 +2550,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["id"],
             referrer="discover",
             query=f"{SEMVER_PACKAGE_ALIAS}:test",
-            params={},
             snuba_params=self.params,
         )
         assert {r["id"] for r in result["data"]} == {
@@ -2630,34 +2560,32 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["id"],
             query=f"{SEMVER_PACKAGE_ALIAS}:test2",
             referrer="discover",
-            params={},
             snuba_params=self.params,
         )
         assert {r["id"] for r in result["data"]} == {
             release_2_e_1,
         }
 
-    def test_semver_build_condition(self):
+    def test_semver_build_condition(self) -> None:
         release_1 = self.create_release(version="test@1.2.3+123")
         release_2 = self.create_release(version="test2@1.2.4+124")
 
         release_1_e_1 = self.store_event(
-            data={"release": release_1.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_1.version, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         ).event_id
         release_1_e_2 = self.store_event(
-            data={"release": release_1.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_1.version, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         ).event_id
         release_2_e_1 = self.store_event(
-            data={"release": release_2.version, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": release_2.version, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         ).event_id
 
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_BUILD_ALIAS}:123",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2668,7 +2596,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_BUILD_ALIAS}:124",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2678,17 +2605,15 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id"],
             query=f"{SEMVER_BUILD_ALIAS}:>=123",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
         assert {r["id"] for r in result["data"]} == {release_1_e_1, release_1_e_2, release_2_e_1}
 
-    def test_latest_release_condition(self):
+    def test_latest_release_condition(self) -> None:
         result = discover.query(
             selected_columns=["id", "message"],
             query="release:latest",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2698,11 +2623,10 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["message"] == self.event.message
         assert "event_id" not in data[0]
 
-    def test_environment_condition(self):
+    def test_environment_condition(self) -> None:
         result = discover.query(
             selected_columns=["id", "message"],
             query=f"environment:{self.create_environment(self.project).name}",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2711,7 +2635,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["id", "message"],
             query=f"environment:{self.environment.name}",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2720,23 +2643,22 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["id"] == self.event.event_id
         assert data[0]["message"] == self.event.message
 
-    def test_conditional_filter(self):
+    def test_conditional_filter(self) -> None:
         project2 = self.create_project(organization=self.organization)
         project3 = self.create_project(organization=self.organization)
 
         self.store_event(
-            data={"message": "aaaaa", "timestamp": iso_format(self.one_min_ago)},
+            data={"message": "aaaaa", "timestamp": self.one_min_ago.isoformat()},
             project_id=project2.id,
         )
         self.store_event(
-            data={"message": "bbbbb", "timestamp": iso_format(self.one_min_ago)},
+            data={"message": "bbbbb", "timestamp": self.one_min_ago.isoformat()},
             project_id=project3.id,
         )
 
         result = discover.query(
             selected_columns=["project", "message"],
             query=f"project:{self.project.slug} OR project:{project2.slug}",
-            params={},
             snuba_params=SnubaParams(
                 projects=[self.project, project2],
                 start=self.two_min_ago,
@@ -2751,22 +2673,22 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["project"] == project2.slug
         assert data[1]["project"] == self.project.slug
 
-    def test_nested_conditional_filter(self):
+    def test_nested_conditional_filter(self) -> None:
         project2 = self.create_project(organization=self.organization)
         self.store_event(
-            data={"release": "a" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "a" * 32, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "b" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "b" * 32, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "c" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "c" * 32, "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "a" * 32, "timestamp": iso_format(self.one_min_ago)},
+            data={"release": "a" * 32, "timestamp": self.one_min_ago.isoformat()},
             project_id=project2.id,
         )
 
@@ -2775,7 +2697,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             query="(release:{} OR release:{}) AND project:{}".format(
                 "a" * 32, "b" * 32, self.project.slug
             ),
-            params={},
             snuba_params=SnubaParams(
                 projects=[self.project, project2],
                 start=self.two_min_ago,
@@ -2790,10 +2711,10 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["release"] == "a" * 32
         assert data[1]["release"] == "b" * 32
 
-    def test_conditions_with_special_columns(self):
+    def test_conditions_with_special_columns(self) -> None:
         for val in ["a", "b", "c"]:
             data = load_data("transaction")
-            data["timestamp"] = iso_format(self.one_min_ago)
+            data["timestamp"] = self.one_min_ago.isoformat()
             data["transaction"] = val * 32
             data["logentry"] = {"formatted": val * 32}
             data["tags"] = {"sub_customer.is-Enterprise-42": val * 32}
@@ -2802,7 +2723,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["title", "message"],
             query="event.type:transaction (title:{} OR message:{})".format("a" * 32, "b" * 32),
-            params={},
             snuba_params=SnubaParams(
                 projects=[self.project],
                 start=self.two_min_ago,
@@ -2822,7 +2742,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             query="event.type:transaction (title:{} AND sub_customer.is-Enterprise-42:{})".format(
                 "a" * 32, "a" * 32
             ),
-            params={},
             snuba_params=SnubaParams(
                 projects=[self.project],
                 start=self.two_min_ago,
@@ -2837,13 +2756,13 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["title"] == "a" * 32
         assert data[0]["sub_customer.is-Enterprise-42"] == "a" * 32
 
-    def test_conditions_with_aggregates(self):
+    def test_conditions_with_aggregates(self) -> None:
         events = [("a", 2), ("b", 3), ("c", 4)]
         for ev in events:
             val = ev[0] * 32
             for i in range(ev[1]):
                 data = load_data("transaction")
-                data["timestamp"] = iso_format(self.one_min_ago)
+                data["timestamp"] = self.one_min_ago.isoformat()
                 data["transaction"] = f"{val}-{i}"
                 data["logentry"] = {"formatted": val}
                 data["tags"] = {"trek": val}
@@ -2854,7 +2773,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             query="event.type:transaction (trek:{} OR trek:{}) AND count():>2".format(
                 "a" * 32, "b" * 32
             ),
-            params={},
             snuba_params=SnubaParams(
                 projects=[self.project],
                 start=self.two_min_ago,
@@ -2870,13 +2788,13 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["trek"] == "b" * 32
         assert data[0]["count"] == 3
 
-    def test_conditions_with_nested_aggregates(self):
+    def test_conditions_with_nested_aggregates(self) -> None:
         events = [("a", 2), ("b", 3), ("c", 4)]
         for ev in events:
             val = ev[0] * 32
             for i in range(ev[1]):
                 data = load_data("transaction")
-                data["timestamp"] = iso_format(self.one_min_ago)
+                data["timestamp"] = self.one_min_ago.isoformat()
                 data["transaction"] = f"{val}-{i}"
                 data["logentry"] = {"formatted": val}
                 data["tags"] = {"trek": val}
@@ -2887,7 +2805,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             query="(event.type:transaction AND (trek:{} AND (transaction:*{}* AND count():>2)))".format(
                 "b" * 32, "b" * 32
             ),
-            params={},
             snuba_params=SnubaParams(
                 projects=[self.project],
                 start=self.two_min_ago,
@@ -2910,7 +2827,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                     "b" * 32, "b" * 32
                 ),
                 referrer="discover",
-                params={},
                 snuba_params=SnubaParams(
                     projects=[self.project],
                     start=self.two_min_ago,
@@ -2921,7 +2837,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             )
         assert "used in a condition but is not a selected column" in str(err)
 
-    def test_conditions_with_timestamps(self):
+    def test_conditions_with_timestamps(self) -> None:
         events = [("a", 1), ("b", 2), ("c", 3)]
         for t, ev in enumerate(events):
             val = ev[0] * 32
@@ -2933,10 +2849,9 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         results = discover.query(
             selected_columns=["transaction", "count()"],
             query="event.type:transaction AND (timestamp:<{} OR timestamp:>{})".format(
-                iso_format(self.now - timedelta(seconds=5)),
-                iso_format(self.now - timedelta(seconds=3)),
+                (self.now - timedelta(seconds=5)).isoformat(),
+                (self.now - timedelta(seconds=3)).isoformat(),
             ),
-            params={},
             snuba_params=SnubaParams(
                 projects=[self.project],
                 start=self.two_min_ago,
@@ -2954,12 +2869,11 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[1]["transaction"] == "c" * 32
         assert data[1]["count"] == 3
 
-    def test_timestamp_rollup_filter(self):
+    def test_timestamp_rollup_filter(self) -> None:
         event_hour = self.event_time.replace(minute=0, second=0)
         result = discover.query(
             selected_columns=["project.id", "user", "release"],
-            query="timestamp.to_hour:" + iso_format(event_hour),
-            params={},
+            query="timestamp.to_hour:" + event_hour.isoformat(),
             snuba_params=self.params,
             referrer="discover",
         )
@@ -2976,7 +2890,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             "release": "string",
         }
 
-    def test_count_with_or(self):
+    def test_count_with_or(self) -> None:
         data = load_data("transaction", timestamp=before_now(seconds=3))
         data["transaction"] = "a" * 32
         self.store_event(data=data, project_id=self.project.id)
@@ -2984,7 +2898,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         results = discover.query(
             selected_columns=["transaction", "count()"],
             query="event.type:transaction AND (count():<1 OR count():>0)",
-            params={},
             snuba_params=self.params,
             orderby=["transaction"],
             use_aggregate_conditions=True,
@@ -2996,7 +2909,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["transaction"] == "a" * 32
         assert data[0]["count"] == 1
 
-    def test_array_join(self):
+    def test_array_join(self) -> None:
         data = load_data("transaction", timestamp=before_now(seconds=90))
         data["measurements"] = {
             "fp": {"value": 1000},
@@ -3008,7 +2921,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         results = discover.query(
             selected_columns=["array_join(measurements_key)"],
             query="",
-            params={},
             snuba_params=self.params,
             functions_acl=["array_join"],
             referrer="discover",
@@ -3017,13 +2929,12 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             row["array_join_measurements_key"] for row in results["data"]
         }
 
-    def test_access_to_private_functions(self):
+    def test_access_to_private_functions(self) -> None:
         # using private functions directly without access should error
         with pytest.raises(InvalidSearchQuery, match="array_join: no access to private function"):
             discover.query(
                 selected_columns=["array_join(tags.key)"],
                 query="",
-                params={},
                 snuba_params=SnubaParams(
                     projects=[self.project],
                     start=self.two_min_ago,
@@ -3038,7 +2949,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 discover.query(
                     selected_columns=[f"histogram({array_column}_value, 1,0,1)"],
                     query=f"histogram({array_column}_value, 1,0,1):>0",
-                    params={},
                     snuba_params=SnubaParams(
                         projects=[self.project],
                         start=self.two_min_ago,
@@ -3055,7 +2965,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 discover.query(
                     selected_columns=["count()"],
                     query=f"histogram({array_column}_value, 1,0,1):>0",
-                    params={},
                     snuba_params=SnubaParams(
                         projects=[self.project],
                         start=self.two_min_ago,
@@ -3066,7 +2975,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                     use_aggregate_conditions=True,
                 )
 
-    def test_sum_array_combinator(self):
+    def test_sum_array_combinator(self) -> None:
         data = load_data("transaction", timestamp=before_now(seconds=3))
         data["measurements"] = {
             "fp": {"value": 1000},
@@ -3078,7 +2987,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         results = discover.query(
             selected_columns=["sumArray(measurements_value)"],
             query="",
-            params={},
             snuba_params=self.params,
             # make sure to opt in to gain access to the function
             functions_acl=["sumArray"],
@@ -3087,7 +2995,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         )
         assert results["data"][0]["sumArray_measurements_value"] == 3000.0
 
-    def test_any_function(self):
+    def test_any_function(self) -> None:
         data = load_data("transaction", timestamp=before_now(seconds=3))
         data["transaction"] = "a" * 32
         self.store_event(data=data, project_id=self.project.id)
@@ -3095,7 +3003,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         results = discover.query(
             selected_columns=["count()", "any(transaction)", "any(user.id)"],
             query="event.type:transaction",
-            params={},
             snuba_params=SnubaParams(
                 projects=[self.project],
                 start=before_now(minutes=5),
@@ -3111,20 +3018,19 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["any_user_id"] is None
         assert data[0]["count"] == 1
 
-    def test_offsets(self):
+    def test_offsets(self) -> None:
         self.store_event(
-            data={"message": "hello1", "timestamp": iso_format(self.one_min_ago)},
+            data={"message": "hello1", "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         )
         self.store_event(
-            data={"message": "hello2", "timestamp": iso_format(self.one_min_ago)},
+            data={"message": "hello2", "timestamp": self.one_min_ago.isoformat()},
             project_id=self.project.id,
         )
 
         result = discover.query(
             selected_columns=["message"],
             query="",
-            params={},
             snuba_params=self.params,
             orderby=["message"],
             limit=1,
@@ -3137,7 +3043,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         # because we're ording by `message`, and offset by 1, the message should be `hello2`
         assert data[0]["message"] == "hello2"
 
-    def test_reflective_types(self):
+    def test_reflective_types(self) -> None:
         results = discover.query(
             selected_columns=[
                 "p50(measurements.lcp)",
@@ -3145,7 +3051,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "p50(spans.foo)",
             ],
             query="event.type:transaction",
-            params={},
             snuba_params=self.params,
             use_aggregate_conditions=True,
             referrer="discover",
@@ -3157,7 +3062,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             "p50_spans_foo": "duration",
         }
 
-    def test_measurements(self):
+    def test_measurements(self) -> None:
         event_data = load_data("transaction", timestamp=before_now(seconds=3))
         self.store_event(data=event_data, project_id=self.project.id)
 
@@ -3171,7 +3076,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "measurements.does_not_exist",
             ],
             query="event.type:transaction",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3185,7 +3089,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["measurements.cls"] == event_data["measurements"]["cls"]["value"]
         assert data[0]["measurements.does_not_exist"] is None
 
-    def test_span_op_breakdowns(self):
+    def test_span_op_breakdowns(self) -> None:
         event_data = load_data("transaction", timestamp=before_now(seconds=3))
         self.store_event(data=event_data, project_id=self.project.id)
 
@@ -3199,7 +3103,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 "spans.does_not_exist",
             ],
             query="event.type:transaction",
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3214,7 +3117,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["spans.total.time"] == span_ops["total.time"]["value"]
         assert data[0]["spans.does_not_exist"] is None
 
-    def test_project_in_condition_with_or(self):
+    def test_project_in_condition_with_or(self) -> None:
         project2 = self.create_project(organization=self.organization)
         event_data = load_data("transaction", timestamp=before_now(seconds=3))
         self.store_event(data=event_data, project_id=project2.id)
@@ -3223,7 +3126,6 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["project"],
             query=f"project:{self.project.slug} or event.type:transaction",
-            params={},
             snuba_params=SnubaParams(
                 projects=[self.project, project2],
                 start=self.two_min_ago,
@@ -3239,7 +3141,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
 
 
 class ArithmeticTest(SnubaTestCase, TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
@@ -3247,8 +3149,8 @@ class ArithmeticTest(SnubaTestCase, TestCase):
         event_data = load_data("transaction")
         # Half of duration so we don't get weird rounding differences when comparing the results
         event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 1500
-        event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
-        event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+        event_data["start_timestamp"] = (self.day_ago + timedelta(minutes=30)).isoformat()
+        event_data["timestamp"] = (self.day_ago + timedelta(minutes=30, seconds=3)).isoformat()
         self.store_event(data=event_data, project_id=self.project.id)
         self.params = SnubaParams(
             projects=[self.project],
@@ -3257,7 +3159,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
         )
         self.query = "event.type:transaction"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         results = discover.query(
             selected_columns=[
                 "spans.http",
@@ -3265,7 +3167,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             ],
             equations=["spans.http / transaction.duration"],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3273,7 +3174,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
         result = results["data"][0]
         assert result["equation[0]"] == result["spans.http"] / result["transaction.duration"]
 
-    def test_multiple_equations(self):
+    def test_multiple_equations(self) -> None:
         results = discover.query(
             selected_columns=[
                 "spans.http",
@@ -3285,7 +3186,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 "1500 + transaction.duration",
             ],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3295,7 +3195,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
         assert result["equation[1]"] == result["transaction.duration"] / result["spans.http"]
         assert result["equation[2]"] == 1500 + result["transaction.duration"]
 
-    def test_invalid_field(self):
+    def test_invalid_field(self) -> None:
         with pytest.raises(ArithmeticValidationError):
             discover.query(
                 selected_columns=[
@@ -3305,12 +3205,11 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 # while transaction_status is a uint8, there's no reason we should allow arith on it
                 equations=["spans.http / transaction.status"],
                 query=self.query,
-                params={},
                 snuba_params=self.params,
                 referrer="discover",
             )
 
-    def test_invalid_function(self):
+    def test_invalid_function(self) -> None:
         with pytest.raises(ArithmeticValidationError):
             discover.query(
                 selected_columns=[
@@ -3319,12 +3218,11 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 ],
                 equations=["p50(transaction.duration) / last_seen()"],
                 query=self.query,
-                params={},
                 snuba_params=self.params,
                 referrer="discover",
             )
 
-    def test_unselected_field(self):
+    def test_unselected_field(self) -> None:
         with pytest.raises(InvalidSearchQuery):
             discover.query(
                 selected_columns=[
@@ -3332,12 +3230,11 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 ],
                 equations=["spans.http / transaction.duration"],
                 query=self.query,
-                params={},
                 snuba_params=self.params,
                 referrer="discover",
             )
 
-    def test_unselected_function(self):
+    def test_unselected_function(self) -> None:
         with pytest.raises(InvalidSearchQuery):
             discover.query(
                 selected_columns=[
@@ -3345,18 +3242,17 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 ],
                 equations=["p50(transaction.duration) / p100(transaction.duration)"],
                 query=self.query,
-                params={},
                 snuba_params=self.params,
                 referrer="discover",
             )
 
-    def test_orderby_equation(self):
+    def test_orderby_equation(self) -> None:
         for i in range(1, 3):
             event_data = load_data("transaction")
             # Half of duration so we don't get weird rounding differences when comparing the results
             event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300 * i
-            event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
-            event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+            event_data["start_timestamp"] = (self.day_ago + timedelta(minutes=30)).isoformat()
+            event_data["timestamp"] = (self.day_ago + timedelta(minutes=30, seconds=3)).isoformat()
             self.store_event(data=event_data, project_id=self.project.id)
         results = discover.query(
             selected_columns=[
@@ -3370,7 +3266,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             ],
             orderby=["equation[0]"],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3389,7 +3284,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             ],
             orderby=["equation[1]"],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3408,14 +3302,13 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             ],
             orderby=["-equation[0]"],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
         assert len(results["data"]) == 3
         assert [result["equation[0]"] for result in results["data"]] == [0.5, 0.2, 0.1]
 
-    def test_orderby_nonexistent_equation(self):
+    def test_orderby_nonexistent_equation(self) -> None:
         with pytest.raises(InvalidSearchQuery):
             discover.query(
                 selected_columns=[
@@ -3424,12 +3317,11 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 ],
                 orderby=["equation[1]"],
                 query=self.query,
-                params={},
                 snuba_params=self.params,
                 referrer="discover",
             )
 
-    def test_equation_without_field_or_function(self):
+    def test_equation_without_field_or_function(self) -> None:
         with pytest.raises(InvalidSearchQuery):
             discover.query(
                 selected_columns=[
@@ -3440,19 +3332,17 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                     "5 + 5",
                 ],
                 query=self.query,
-                params={},
                 snuba_params=self.params,
                 referrer="discover",
             )
 
-    def test_aggregate_equation(self):
+    def test_aggregate_equation(self) -> None:
         results = discover.query(
             selected_columns=[
                 "p50(transaction.duration)",
             ],
             equations=["p50(transaction.duration) / 2"],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3460,7 +3350,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
         result = results["data"][0]
         assert result["equation[0]"] == result["p50_transaction_duration"] / 2
 
-    def test_multiple_aggregate_equation(self):
+    def test_multiple_aggregate_equation(self) -> None:
         results = discover.query(
             selected_columns=[
                 "p50(transaction.duration)",
@@ -3468,7 +3358,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             ],
             equations=["p50(transaction.duration) + 2", "p50(transaction.duration) / count()"],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3477,7 +3366,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
         assert result["equation[0]"] == result["p50_transaction_duration"] + 2
         assert result["equation[1]"] == result["p50_transaction_duration"] / result["count"]
 
-    def test_multiple_operators(self):
+    def test_multiple_operators(self) -> None:
         results = discover.query(
             selected_columns=[
                 "p50(transaction.duration)",
@@ -3490,7 +3379,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 "count() + count() / count() * count() - count()",
             ],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3508,13 +3396,13 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             - result["count"]
         )
 
-    def test_nan_equation_results(self):
+    def test_nan_equation_results(self) -> None:
         for i in range(1, 3):
             event_data = load_data("transaction")
             # Half of duration so we don't get weird rounding differences when comparing the results
             event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 0
-            event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
-            event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+            event_data["start_timestamp"] = (self.day_ago + timedelta(minutes=30)).isoformat()
+            event_data["timestamp"] = (self.day_ago + timedelta(minutes=30, seconds=3)).isoformat()
             self.store_event(data=event_data, project_id=self.project.id)
         results = discover.query(
             selected_columns=[
@@ -3527,7 +3415,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             ],
             orderby=["equation[0]"],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3545,7 +3432,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             ],
             orderby=["equation[1]"],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )
@@ -3563,7 +3449,6 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             ],
             orderby=["-equation[0]"],
             query=self.query,
-            params={},
             snuba_params=self.params,
             referrer="discover",
         )

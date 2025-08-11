@@ -6,7 +6,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SharedGroupDetails from 'sentry/views/sharedGroupDetails';
 
@@ -17,6 +17,11 @@ describe('SharedGroupDetails', function () {
   const router = RouterFixture({params});
 
   beforeEach(function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/test-org/projects/`,
+      method: 'GET',
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/shared/issues/a/',
       body: GroupFixture({
@@ -43,6 +48,10 @@ describe('SharedGroupDetails', function () {
         errors: [],
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/test-org/project-slug/events/1/committers/`,
+      body: [],
+    });
   });
 
   afterEach(function () {
@@ -53,16 +62,14 @@ describe('SharedGroupDetails', function () {
     render(
       <SharedGroupDetails
         params={params}
-        api={new MockApiClient()}
         route={{}}
         router={router}
         routes={router.routes}
         routeParams={router.params}
         location={router.location}
-      />,
-      {router}
+      />
     );
-    await waitFor(() => expect(screen.getByText('Details')).toBeInTheDocument());
+    await screen.findByText('Details');
   });
 
   it('renders with org slug in path', async function () {
@@ -71,16 +78,14 @@ describe('SharedGroupDetails', function () {
     render(
       <SharedGroupDetails
         params={params}
-        api={new MockApiClient()}
         route={{}}
         router={router_with_slug}
         routes={router_with_slug.routes}
         routeParams={router_with_slug.params}
         location={router_with_slug.location}
-      />,
-      {router}
+      />
     );
-    await waitFor(() => expect(screen.getByText('Details')).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByTestId('sgh-timestamp')).toBeInTheDocument());
+    await screen.findByText('Details');
+    await screen.findByTestId('sgh-timestamp');
   });
 });

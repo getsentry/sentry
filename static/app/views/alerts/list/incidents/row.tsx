@@ -2,12 +2,12 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import Tag from 'sentry/components/badge/tag';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Link} from 'sentry/components/core/link';
 import Duration from 'sentry/components/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import IdBadge from 'sentry/components/idBadge';
-import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
@@ -28,7 +28,7 @@ type Props = {
 };
 
 function AlertListRow({incident, projectsLoaded, projects, organization}: Props) {
-  const slug = incident.projects[0];
+  const slug = incident.projects[0]!;
   const started = moment(incident.dateStarted);
   const duration = moment
     .duration(moment(incident.dateClosed || new Date()).diff(started))
@@ -72,7 +72,7 @@ function AlertListRow({incident, projectsLoaded, projects, organization}: Props)
       </NoWrapNumeric>
 
       <FlexCenter>
-        <ProjectBadge avatarSize={18} project={!projectsLoaded ? {slug} : project} />
+        <ProjectBadge avatarSize={18} project={projectsLoaded ? project : {slug}} />
       </FlexCenter>
       <NoWrapNumeric>#{incident.id}</NoWrapNumeric>
 

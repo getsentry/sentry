@@ -2,10 +2,12 @@ import {Fragment, lazy, type ReactNode, Suspense} from 'react';
 import {css} from '@emotion/react';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import FeatureBadge from 'sentry/components/badge/featureBadge';
-import {Button, type ButtonProps} from 'sentry/components/button';
+import {Button, type ButtonProps} from 'sentry/components/core/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
+import type {HydrationErrorFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const LazyComparisonModal = lazy(
@@ -14,20 +16,22 @@ const LazyComparisonModal = lazy(
 
 interface Props {
   children: ReactNode;
-  leftOffsetMs: number;
-  replay: null | ReplayReader;
-  rightOffsetMs: number;
+  frameOrEvent: HydrationErrorFrame | Event;
+  initialLeftOffsetMs: number;
+  initialRightOffsetMs: number;
+  replay: ReplayReader;
   surface: string;
   size?: ButtonProps['size'];
 }
 
 export function OpenReplayComparisonButton({
   children,
-  leftOffsetMs,
+  frameOrEvent,
+  initialLeftOffsetMs,
+  initialRightOffsetMs,
   replay,
-  rightOffsetMs,
-  surface,
   size,
+  surface,
 }: Props) {
   const organization = useOrganization();
 
@@ -47,10 +51,7 @@ export function OpenReplayComparisonButton({
                 <Fragment>
                   <deps.Header closeButton>
                     <deps.Header>
-                      <h4>
-                        Hydration Error
-                        <FeatureBadge type="beta" />
-                      </h4>
+                      <h4>{t('Hydration Error')}</h4>
                     </deps.Header>
                   </deps.Header>
                   <deps.Body>
@@ -62,8 +63,9 @@ export function OpenReplayComparisonButton({
               <LazyComparisonModal
                 replay={replay}
                 organization={organization}
-                leftOffsetMs={leftOffsetMs}
-                rightOffsetMs={rightOffsetMs}
+                frameOrEvent={frameOrEvent}
+                initialLeftOffsetMs={initialLeftOffsetMs}
+                initialRightOffsetMs={initialRightOffsetMs}
                 {...deps}
               />
             </Suspense>
@@ -78,7 +80,18 @@ export function OpenReplayComparisonButton({
 }
 
 const modalCss = css`
-  width: 95vw;
-  min-height: 80vh;
-  max-height: 95vh;
+  /* Swap typical modal margin and padding
+   * We want a minimal space around the modal (hence, 30px 16px)
+   * But this space should also be clickable, so it's not the padding.
+   */
+  margin: 30px 16px !important;
+  padding: 0 !important;
+  height: calc(100% - 60px);
+  width: calc(100% - 32px);
+  display: flex;
+  & > * {
+    flex-grow: 1;
+    display: grid;
+    grid-template-rows: max-content 1fr;
+  }
 `;

@@ -11,9 +11,15 @@ from requests import PreparedRequest
 from requests_oauthlib import OAuth1
 
 from sentry.identity.services.identity.model import RpcIdentity
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.utils.metrics import (
+    IntegrationPipelineViewEvent,
+    IntegrationPipelineViewType,
+)
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import control_silo_function
 from sentry.utils import jwt
@@ -46,7 +52,7 @@ class JiraServerClient(ApiClient):
     AUTOCOMPLETE_URL = "/rest/api/2/jql/autocompletedata/suggestions"
     PROPERTIES_URL = "/rest/api/3/issue/%s/properties/%s"
 
-    integration_name = "jira_server"
+    integration_name = IntegrationProviderSlug.JIRA_SERVER.value
 
     # This timeout is completely arbitrary. Jira doesn't give us any
     # caching headers to work with. Ideally we want a duration that
@@ -159,11 +165,6 @@ class JiraServerClient(ApiClient):
         """
         return self.get_cached(self.PRIORITIES_URL)
 
-    def get_users_for_project(self, project):
-        # Jira Server wants a project key, while cloud is indifferent.
-        project_key = self.get_project_key_for_id(project)
-        return self.get_cached(self.USERS_URL, params={"project": project_key})
-
     def search_users_for_project(self, project, username):
         # Jira Server wants a project key, while cloud is indifferent.
         project_key = self.get_project_key_for_id(project)
@@ -231,6 +232,9 @@ class JiraServerSetupClient(ApiClient):
     access_token_url = "{}/plugins/servlet/oauth/access-token"
     authorize_url = "{}/plugins/servlet/oauth/authorize?oauth_token={}"
     integration_name = "jira_server_setup"
+    SERVER_INFO_URL = "/rest/api/2/serverInfo"
+    WEBHOOK_URL = "/rest/jira-webhook/1.0/webhooks"
+    LEGACY_WEBHOOK_URL = "/rest/webhooks/1.0/webhook"
 
     @control_silo_function
     def __init__(self, base_url, consumer_key, private_key, verify_ssl=True):
@@ -296,7 +300,27 @@ class JiraServerSetupClient(ApiClient):
             "url": absolute_uri(path),
             "events": ["jira:issue_created", "jira:issue_updated"],
         }
-        return self.post("/rest/webhooks/1.0/webhook", auth=auth, data=data)
+
+        with IntegrationPipelineViewEvent(
+            interaction_type=IntegrationPipelineViewType.WEBHOOK_CREATION,
+            domain=IntegrationDomain.PROJECT_MANAGEMENT,
+            provider_key=self.integration_name,
+        ).capture() as lifecycle:
+            webhook_url = self.WEBHOOK_URL
+
+            # Query the server version to determine which webhook endpoint to use
+            server_info = self.get(self.SERVER_INFO_URL, auth=auth)
+            server_version = server_info.get("version")
+            server_major_version = server_version.split(".")[0] if server_version else None
+            lifecycle.add_extra("server_major_version", server_major_version)
+
+            if server_major_version and int(server_major_version) >= 10:
+                webhook_url = self.WEBHOOK_URL
+            else:
+                # Fallback to legacy webhook endpoint if we encounter an error
+                webhook_url = self.LEGACY_WEBHOOK_URL
+
+            return self.post(webhook_url, auth=auth, data=data)
 
     def request(self, *args, **kwargs):
         """

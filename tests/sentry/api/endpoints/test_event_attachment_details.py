@@ -4,8 +4,8 @@ from django.test import override_settings
 from sentry.attachments.base import CachedAttachment
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
-from sentry.testutils.cases import APITestCase, PermissionTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.cases import APITestCase, PermissionTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
@@ -17,11 +17,11 @@ pytestmark = [requires_snuba]
 ATTACHMENT_CONTENT = b"File contents here" * 10_000
 
 
-class CreateAttachmentMixin:
+class CreateAttachmentMixin(TestCase):
     def create_attachment(self, content: bytes | None = None, group_id: int | None = None):
         self.project = self.create_project()
         self.release = self.create_release(self.project, self.user)
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         self.event = self.store_event(
             data={
                 "fingerprint": ["group1"],
@@ -35,10 +35,7 @@ class CreateAttachmentMixin:
         attachment = CachedAttachment(
             name="hello.png", content_type="image/png; foo=bar", data=data
         )
-        file = EventAttachment.putfile(
-            self.project.id,
-            attachment,
-        )
+        file = EventAttachment.putfile(self.project.id, attachment)
 
         self.attachment = EventAttachment.objects.create(
             event_id=self.event.event_id,
@@ -50,7 +47,6 @@ class CreateAttachmentMixin:
             size=file.size,
             sha1=file.sha1,
             # storage:
-            file_id=file.file_id,
             blob_path=file.blob_path,
         )
 
@@ -59,7 +55,7 @@ class CreateAttachmentMixin:
 
 class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
     @with_feature("organizations:event-attachments")
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         self.create_attachment()
@@ -73,7 +69,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.data["event_id"] == self.event.event_id
 
     @with_feature("organizations:event-attachments")
-    def test_download(self):
+    def test_download(self) -> None:
         self.login_as(user=self.user)
 
         self.create_attachment()
@@ -88,7 +84,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert close_streaming_response(response) == ATTACHMENT_CONTENT
 
     @with_feature("organizations:event-attachments")
-    def test_zero_sized_attachment(self):
+    def test_zero_sized_attachment(self) -> None:
         self.login_as(user=self.user)
 
         self.create_attachment(b"")
@@ -114,7 +110,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert close_streaming_response(response) == b""
 
     @with_feature("organizations:event-attachments")
-    def test_delete(self):
+    def test_delete(self) -> None:
         self.login_as(user=self.user)
 
         self.create_attachment()
@@ -126,7 +122,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert EventAttachment.objects.count() == 0
 
     @with_feature("organizations:event-attachments")
-    def test_delete_activity_no_group(self):
+    def test_delete_activity_no_group(self) -> None:
         self.login_as(user=self.user)
 
         self.create_attachment(group_id=None)
@@ -139,7 +135,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
             Activity.objects.get(type=ActivityType.DELETED_ATTACHMENT.value)
 
     @with_feature("organizations:event-attachments")
-    def test_delete_activity_with_group(self):
+    def test_delete_activity_with_group(self) -> None:
         self.login_as(user=self.user)
 
         group_id = self.create_group().id
@@ -151,35 +147,36 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         delete_activity = Activity.objects.get(type=ActivityType.DELETED_ATTACHMENT.value)
         assert delete_activity.project == self.project
         assert delete_activity.group_id == group_id
+        assert delete_activity.group is not None
         assert delete_activity.group.id == group_id
 
 
 class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.create_attachment()
         self.path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/{self.attachment.id}/?download"
 
     @with_feature("organizations:event-attachments")
-    def test_member_can_access_by_default(self):
+    def test_member_can_access_by_default(self) -> None:
         close_streaming_response(self.assert_member_can_access(self.path))
         close_streaming_response(self.assert_can_access(self.owner, self.path))
 
     @with_feature("organizations:event-attachments")
-    def test_member_cannot_access_for_owner_role(self):
+    def test_member_cannot_access_for_owner_role(self) -> None:
         self.organization.update_option("sentry:attachments_role", "owner")
         self.assert_member_cannot_access(self.path)
         close_streaming_response(self.assert_can_access(self.owner, self.path))
 
     @with_feature("organizations:event-attachments")
-    def test_random_user_cannot_access(self):
+    def test_random_user_cannot_access(self) -> None:
         self.organization.update_option("sentry:attachments_role", "owner")
         user = self.create_user()
 
         self.assert_cannot_access(user, self.path)
 
     @with_feature("organizations:event-attachments")
-    def test_superuser_can_access(self):
+    def test_superuser_can_access(self) -> None:
         self.organization.update_option("sentry:attachments_role", "owner")
         superuser = self.create_user(is_superuser=True)
 
@@ -192,7 +189,7 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
     @with_feature("organizations:event-attachments")
     @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_superuser_read_access(self):
+    def test_superuser_read_access(self) -> None:
         self.organization.update_option("sentry:attachments_role", "owner")
         superuser = self.create_user(is_superuser=True)
 
@@ -203,7 +200,7 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
     @with_feature("organizations:event-attachments")
     @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_superuser_write_can_access(self):
+    def test_superuser_write_can_access(self) -> None:
         self.organization.update_option("sentry:attachments_role", "owner")
         superuser = self.create_user(is_superuser=True)
 

@@ -2,7 +2,7 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -33,7 +33,7 @@ class SentryAppDetailsDocsTest(APIDocsTestCase):
 
         self.login_as(user=self.user)
 
-    def test_delete(self):
+    def test_delete(self) -> None:
         response = self.client.delete(self.url)
         request = RequestFactory().delete(self.url)
 

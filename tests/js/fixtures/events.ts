@@ -1,11 +1,11 @@
 import {type Event, EventOrGroupType} from 'sentry/types/event';
-import {EventsStats} from 'sentry/types/organization';
+import type {EventsStats} from 'sentry/types/organization';
 
 export function EventsStatsFixture(params = {}): EventsStats {
   return {
     data: [
-      [new Date().getTime(), [{count: 321}, {count: 79}]],
-      [new Date().getTime(), [{count: 123}]],
+      [Date.now(), [{count: 321}, {count: 79}]],
+      [Date.now(), [{count: 123}]],
     ],
     ...params,
   };

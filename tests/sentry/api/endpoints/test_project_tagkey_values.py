@@ -1,14 +1,16 @@
+import urllib.parse
+
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 
 
 class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project()
         self.store_event(
-            data={"tags": {"foo": "bar"}, "timestamp": iso_format(before_now(seconds=1))},
+            data={"tags": {"foo": "bar"}, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project.id,
         )
 
@@ -30,10 +32,10 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
 
         assert response.data[0]["value"] == "bar"
 
-    def test_query(self):
+    def test_query(self) -> None:
         project = self.create_project()
         self.store_event(
-            data={"tags": {"foo": "bar"}, "timestamp": iso_format(before_now(seconds=1))},
+            data={"tags": {"foo": "bar"}, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project.id,
         )
 
@@ -59,10 +61,10 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data) == 0
 
-    def test_statperiod_query(self):
+    def test_statperiod_query(self) -> None:
         project = self.create_project()
         self.store_event(
-            data={"tags": {"foo": "bar"}, "timestamp": iso_format(before_now(days=15))},
+            data={"tags": {"foo": "bar"}, "timestamp": before_now(days=15).isoformat()},
             project_id=project.id,
         )
 
@@ -87,10 +89,10 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["value"] == "bar"
 
-    def test_start_end_query(self):
+    def test_start_end_query(self) -> None:
         project = self.create_project()
         self.store_event(
-            data={"tags": {"foo": "bar"}, "timestamp": iso_format(before_now(days=15))},
+            data={"tags": {"foo": "bar"}, "timestamp": before_now(days=15).isoformat()},
             project_id=project.id,
         )
 
@@ -107,8 +109,13 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(
             url
-            + "?query=bar&start={}&end={}".format(
-                iso_format(before_now(days=14)), iso_format(before_now(seconds=1))
+            + "?"
+            + urllib.parse.urlencode(
+                {
+                    "query": "bar",
+                    "start": before_now(days=14).isoformat(),
+                    "end": before_now(seconds=1).isoformat(),
+                }
             )
         )
 
@@ -117,8 +124,13 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(
             url
-            + "?query=bar&start={}&end={}".format(
-                iso_format(before_now(days=16)), iso_format(before_now(days=14))
+            + "?"
+            + urllib.parse.urlencode(
+                {
+                    "query": "bar",
+                    "start": before_now(days=16).isoformat(),
+                    "end": before_now(days=14).isoformat(),
+                }
             )
         )
 

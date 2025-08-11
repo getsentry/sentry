@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/react';
-
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -7,8 +5,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import ReleaseStore, {getReleaseStoreKey} from 'sentry/stores/releaseStore';
-import type {Deploy, Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 
 type ParamsGet = {
@@ -17,80 +13,9 @@ type ParamsGet = {
   releaseVersion: string;
 };
 
-export function getProjectRelease(api: Client, params: ParamsGet) {
-  const {orgSlug, projectSlug, releaseVersion} = params;
-  const path = `/projects/${orgSlug}/${projectSlug}/releases/${encodeURIComponent(
-    releaseVersion
-  )}/`;
-  // HACK(leedongwei): Actions fired by the ActionCreators are queued to
-  // the back of the event loop, allowing another getRelease for the same
-  // release to be fired before the loading state is updated in store.
-  // This hack short-circuits that and update the state immediately.
-  ReleaseStore.state.releaseLoading[getReleaseStoreKey(projectSlug, releaseVersion)] =
-    true;
-  ReleaseStore.loadRelease(orgSlug, projectSlug, releaseVersion);
-
-  return api
-    .requestPromise(path, {
-      method: 'GET',
-    })
-    .then((res: Release) => {
-      ReleaseStore.loadReleaseSuccess(projectSlug, releaseVersion, res);
-    })
-    .catch(err => {
-      // This happens when a Project is not linked to a specific Release
-      if (err.status === 404) {
-        ReleaseStore.loadReleaseSuccess(projectSlug, releaseVersion, null);
-        return;
-      }
-
-      ReleaseStore.loadReleaseError(projectSlug, releaseVersion, err);
-      Sentry.withScope(scope => {
-        scope.setLevel('warning');
-        scope.setFingerprint(['getRelease-action-creator']);
-        Sentry.captureException(err);
-      });
-    });
-}
-
-export function getReleaseDeploys(api: Client, params: ParamsGet) {
-  const {orgSlug, projectSlug, releaseVersion} = params;
-  const path = `/organizations/${orgSlug}/releases/${encodeURIComponent(
-    releaseVersion
-  )}/deploys/`;
-
-  // HACK(leedongwei): Same as above
-  ReleaseStore.state.deploysLoading[getReleaseStoreKey(projectSlug, releaseVersion)] =
-    true;
-  ReleaseStore.loadDeploys(orgSlug, projectSlug, releaseVersion);
-
-  return api
-    .requestPromise(path, {
-      method: 'GET',
-    })
-    .then((res: Deploy[]) => {
-      ReleaseStore.loadDeploysSuccess(projectSlug, releaseVersion, res);
-    })
-    .catch(err => {
-      // This happens when a Project is not linked to a specific Release
-      if (err.status === 404) {
-        ReleaseStore.loadDeploysSuccess(projectSlug, releaseVersion, null);
-        return;
-      }
-
-      ReleaseStore.loadDeploysError(projectSlug, releaseVersion, err);
-      Sentry.withScope(scope => {
-        scope.setLevel('warning');
-        scope.setFingerprint(['getReleaseDeploys-action-creator']);
-        Sentry.captureException(err);
-      });
-    });
-}
-
 export function archiveRelease(api: Client, params: ParamsGet) {
-  const {orgSlug, projectSlug, releaseVersion} = params;
+  const {orgSlug, releaseVersion} = params;
 
-  ReleaseStore.loadRelease(orgSlug, projectSlug, releaseVersion);
   addLoadingMessage(t('Archiving Release\u2026'));
 
   return api
@@ -102,12 +27,10 @@ export function archiveRelease(api: Client, params: ParamsGet) {
         version: releaseVersion,
       },
     })
-    .then((release: Release) => {
-      ReleaseStore.loadReleaseSuccess(projectSlug, releaseVersion, release);
+    .then(() => {
       addSuccessMessage(t('Release was successfully archived.'));
     })
     .catch(error => {
-      ReleaseStore.loadReleaseError(projectSlug, releaseVersion, error);
       addErrorMessage(
         error.responseJSON?.detail ?? t('Release could not be be archived.')
       );
@@ -116,9 +39,8 @@ export function archiveRelease(api: Client, params: ParamsGet) {
 }
 
 export function restoreRelease(api: Client, params: ParamsGet) {
-  const {orgSlug, projectSlug, releaseVersion} = params;
+  const {orgSlug, releaseVersion} = params;
 
-  ReleaseStore.loadRelease(orgSlug, projectSlug, releaseVersion);
   addLoadingMessage(t('Restoring Release\u2026'));
 
   return api
@@ -130,12 +52,10 @@ export function restoreRelease(api: Client, params: ParamsGet) {
         version: releaseVersion,
       },
     })
-    .then((release: Release) => {
-      ReleaseStore.loadReleaseSuccess(projectSlug, releaseVersion, release);
+    .then(() => {
       addSuccessMessage(t('Release was successfully restored.'));
     })
     .catch(error => {
-      ReleaseStore.loadReleaseError(projectSlug, releaseVersion, error);
       addErrorMessage(
         error.responseJSON?.detail ?? t('Release could not be be restored.')
       );

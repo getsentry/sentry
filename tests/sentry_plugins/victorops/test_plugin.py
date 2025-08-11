@@ -23,24 +23,22 @@ class UnicodeTestInterface(Interface):
         return self.title
 
 
+def test_conf_key() -> None:
+    assert VictorOpsPlugin().conf_key == "victorops"
+
+
 class VictorOpsPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
         return VictorOpsPlugin()
 
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "victorops"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("victorops", self.plugin)
-
-    def test_is_configured(self):
+    def test_is_configured(self) -> None:
         assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("api_key", "abcdef", self.project)
         assert self.plugin.is_configured(self.project) is True
 
     @responses.activate
-    def test_simple_notification(self):
+    def test_simple_notification(self) -> None:
         responses.add(
             "POST",
             "https://alert.victorops.com/integrations/generic/20131114/alert/secret-api-key/everyone",
@@ -91,7 +89,7 @@ class VictorOpsPluginTest(PluginTestCase):
             "project_id": group.project.id,
         } == payload
 
-    def test_build_description_unicode(self):
+    def test_build_description_unicode(self) -> None:
         event = self.store_event(
             data={"message": "abcd\xde\xb4", "culprit": "foo.bar", "level": "error"},
             project_id=self.project.id,

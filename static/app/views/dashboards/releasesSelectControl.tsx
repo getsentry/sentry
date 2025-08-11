@@ -2,8 +2,8 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import Badge from 'sentry/components/badge/badge';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {Badge} from 'sentry/components/core/badge';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import TextOverflow from 'sentry/components/textOverflow';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconReleases} from 'sentry/icons';
@@ -18,6 +18,7 @@ type Props = {
   selectedReleases: string[];
   className?: string;
   handleChangeFilter?: (activeFilters: DashboardFilters) => void;
+  id?: string;
   isDisabled?: boolean;
 };
 
@@ -25,6 +26,9 @@ const ALIASED_RELEASES = [
   {
     label: t('Latest Release(s)'),
     value: 'latest',
+    tooltip: t(
+      'The highest version number for Semantic Versioning or the most recent release for commit SHA.'
+    ),
   },
 ];
 
@@ -33,6 +37,7 @@ function ReleasesSelectControl({
   selectedReleases,
   className,
   isDisabled,
+  id,
 }: Props) {
   const {releases, loading, onSearch} = useReleases();
   const [activeReleases, setActiveReleases] = useState<string[]>(selectedReleases);
@@ -58,6 +63,7 @@ function ReleasesSelectControl({
       multiple
       clearable
       searchable
+      id={id}
       disabled={isDisabled}
       loading={loading}
       menuTitle={<MenuTitleWrapper>{t('Filter Releases')}</MenuTitleWrapper>}
@@ -98,7 +104,7 @@ function ReleasesSelectControl({
         <ButtonLabelWrapper>
           {triggerLabel}{' '}
           {activeReleases.length > 1 && (
-            <StyledBadge text={`+${activeReleases.length - 1}`} />
+            <StyledBadge type="default">{`+${activeReleases.length - 1}`}</StyledBadge>
           )}
         </ButtonLabelWrapper>
       }
@@ -114,7 +120,7 @@ const StyledBadge = styled(Badge)`
 `;
 
 const StyledCompactSelect = styled(CompactSelect)`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     max-width: 300px;
   }
 `;

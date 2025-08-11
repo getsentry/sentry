@@ -1,21 +1,23 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
   getCrashReportSDKInstallFirstStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -54,13 +56,13 @@ public class MvcApplication : HttpApplication
         _sentry = SentrySdk.Init(o =>
         {
             o.AddAspNet();
-            o.Dsn = "${params.dsn}";
+            o.Dsn = "${params.dsn.public}";
             // When configuring for the first time, to see what the SDK is doing:
             o.Debug = true;${
               params.isPerformanceSelected
                 ? `
             // Set TracesSampleRate to 1.0 to capture 100%
-            // of transactions for performance monitoring.
+            // of transactions for tracing.
             // We recommend adjusting this value in production
             o.TracesSampleRate = 1.0;`
                 : ''
@@ -123,10 +125,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'You should [initCode:init] the Sentry SDK as soon as possible during your application load by adding Sentry to [globalCode:Global.asax.cs]:',
+        'You should [code:init] the Sentry SDK as soon as possible during your application load by adding Sentry to [code:Global.asax.cs]:',
         {
-          initCode: <code />,
-          globalCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -202,7 +203,7 @@ const crashReportOnboarding: OnboardingConfig = {
               language: 'html',
               code: `@if (SentrySdk.LastEventId != SentryId.Empty) {
   <script>
-    Sentry.init({ dsn: "${params.dsn}" });
+    Sentry.init({ dsn: "${params.dsn.public}" });
     Sentry.showReportDialog({ eventId: "@SentrySdk.LastEventId" });
   </script>
 }`,
@@ -227,8 +228,8 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  customMetricsOnboarding: getDotnetMetricsOnboarding({packageName: 'Sentry.AspNet'}),
   crashReportOnboarding,
+  feedbackOnboardingJsLoader,
 };
 
 export default docs;

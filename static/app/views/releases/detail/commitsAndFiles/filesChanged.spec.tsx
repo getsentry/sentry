@@ -7,8 +7,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
-import RepositoryStore from 'sentry/stores/repositoryStore';
-import type {CommitFile, ReleaseProject} from 'sentry/types';
+import type {CommitFile} from 'sentry/types/integrations';
+import type {ReleaseProject} from 'sentry/types/release';
 import {ReleaseContext} from 'sentry/views/releases/detail';
 
 import FilesChanged from './filesChanged';
@@ -29,14 +29,14 @@ function CommitFileFixture(params: Partial<CommitFile> = {}): CommitFile {
 describe('FilesChanged', () => {
   const release = ReleaseFixture();
   const project = ReleaseProjectFixture() as Required<ReleaseProject>;
-  const {routerProps, router, organization} = initializeOrg({
+  const {router, organization} = initializeOrg({
     router: {params: {release: release.version}},
   });
   const repos = [RepositoryFixture({integrationId: '1'})];
 
   function renderComponent() {
     return render(
-      <ReleaseContext.Provider
+      <ReleaseContext
         value={{
           release,
           project,
@@ -47,14 +47,12 @@ describe('FilesChanged', () => {
           releaseMeta: {} as any,
         }}
       >
-        <FilesChanged
-          releaseRepos={[]}
-          orgSlug={organization.slug}
-          projectSlug={project.slug}
-          {...routerProps}
-        />
-      </ReleaseContext.Provider>,
-      {router}
+        <FilesChanged />
+      </ReleaseContext>,
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
   }
 
@@ -64,7 +62,12 @@ describe('FilesChanged', () => {
       url: `/organizations/${organization.slug}/repos/`,
       body: repos,
     });
-    RepositoryStore.init();
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/releases/${encodeURIComponent(
+        release.version
+      )}/repositories/`,
+      body: repos,
+    });
   });
 
   it('should render no repositories message', async () => {

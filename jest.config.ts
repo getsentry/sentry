@@ -1,13 +1,43 @@
-/* eslint-env node */
 import type {Config} from '@jest/types';
 import path from 'node:path';
 import process from 'node:process';
+import {execFileSync} from 'node:child_process';
+import type {TransformOptions} from '@babel/core';
 
-import babelConfig from './babel.config';
+const babelConfig: TransformOptions = {
+  presets: [
+    [
+      '@babel/preset-react',
+      {
+        runtime: 'automatic',
+        importSource: '@emotion/react',
+      },
+    ],
+    [
+      '@babel/preset-env',
+      {
+        useBuiltIns: 'usage',
+        corejs: '3.41',
+        targets: {
+          node: 'current',
+        },
+      },
+    ],
+    // TODO: Remove allowDeclareFields when we upgrade to Babel 8
+    ['@babel/preset-typescript', {allowDeclareFields: true, onlyRemoveTypeImports: true}],
+  ],
+  plugins: [
+    [
+      '@emotion/babel-plugin',
+      {
+        sourceMap: false,
+      },
+    ],
+  ],
+};
 
 const {
   CI,
-  JEST_TESTS,
   JEST_TEST_BALANCER,
   CI_NODE_TOTAL,
   CI_NODE_INDEX,
@@ -18,14 +48,6 @@ const {
 } = process.env;
 
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
-
-const BALANCE_RESULTS_PATH = path.resolve(
-  __dirname,
-  'tests',
-  'js',
-  'test-balancer',
-  'jest-balance.json'
-);
 
 const optionalTags: {
   balancer?: boolean;
@@ -40,10 +62,40 @@ if (!!JEST_TEST_BALANCER && !CI) {
   );
 }
 
+let JEST_TESTS: string[] | undefined;
+
+// prevents forkbomb as we don't want jest --listTests --json
+// to reexec itself here
+if (CI && !process.env.JEST_LIST_TESTS_INNER) {
+  try {
+    const stdout = execFileSync('pnpm', ['exec', 'jest', '--listTests', '--json'], {
+      stdio: 'pipe',
+      encoding: 'utf-8',
+      env: {...process.env, JEST_LIST_TESTS_INNER: '1'},
+    });
+    JEST_TESTS = JSON.parse(stdout);
+  } catch (err) {
+    if (err.code) {
+      throw new Error(`err code ${err.code} when spawning process`);
+    } else {
+      const {stdout, stderr} = err;
+      throw new Error(`
+error listing jest tests
+
+stdout:
+${stdout}
+
+stderr:
+${stderr}
+`);
+    }
+  }
+}
+
 /**
  * In CI we may need to shard our jest tests so that we can parellize the test runs
  *
- * `JEST_TESTS` is a list of all tests that will run, captured by `jest --listTests`
+ * `JEST_TESTS` is a list of all tests that will run, captured by `jest --listTests --json`
  * Then we split up the tests based on the total number of CI instances that will
  * be running the tests.
  */
@@ -70,12 +122,12 @@ function getTestsForGroup(
   const SUITE_P50_DURATION_MS = 1500;
 
   // First, iterate over all of the tests we have stats for.
-  for (const test in testStats) {
-    if (testStats[test] <= 0) {
+  Object.entries(testStats).forEach(([test, duration]) => {
+    if (duration <= 0) {
       throw new Error(`Test duration is <= 0 for ${test}`);
     }
-    tests.set(test, testStats[test]);
-  }
+    tests.set(test, duration);
+  });
   // Then, iterate over all of the remaining tests and assign them a default duration.
   for (const test of allTests) {
     if (tests.has(test)) {
@@ -97,16 +149,6 @@ function getTestsForGroup(
   // We sort files by path so that we try and improve the transformer cache hit rate.
   // Colocated domain specific files are likely to require other domain specific files.
   const testsSortedByPath = Array.from(tests.entries()).sort((a, b) => {
-    // WidgetBuilder tests are a special case as they can sometimes take a long time to run (3-5 minutes)
-    // As such, we want to ensure that they are ran in the same group as other widget builder tests.
-    // We do this by sorting them by the path of the widget builder test which ensures they are started by the first job
-    // in the CI group and that all of the tests actually run in the same group.
-    if (a[0].includes('widgetBuilder')) {
-      return -1;
-    }
-    if (b[0].includes('widgetBuilder')) {
-      return 1;
-    }
     return a[0].localeCompare(b[0]);
   });
 
@@ -120,7 +162,7 @@ function getTestsForGroup(
       // test that may exceed our target duration. For example, if target runtime for each group is
       // 10 seconds, we have currently accounted for 9 seconds, and the next test is 5 seconds, we
       // want to move that test to the next group so as to avoid a 40% imbalance.
-      const peek = testsSortedByPath[testsSortedByPath.length - 1];
+      const peek = testsSortedByPath[testsSortedByPath.length - 1]!;
       if (duration + peek[1] > targetDuration && peek[1] > 30_000) {
         break;
       }
@@ -128,7 +170,7 @@ function getTestsForGroup(
       if (!nextTest) {
         throw new TypeError('Received falsy test' + JSON.stringify(nextTest));
       }
-      groups[group].push(nextTest[0]);
+      groups[group]!.push(nextTest[0]);
       duration += nextTest[1];
     }
   }
@@ -140,7 +182,7 @@ function getTestsForGroup(
     if (!nextTest) {
       throw new TypeError('Received falsy test' + JSON.stringify(nextTest));
     }
-    groups[i % 4].push(nextTest[0]);
+    groups[i % 4]!.push(nextTest[0]);
     i++;
   }
 
@@ -169,14 +211,21 @@ if (
 ) {
   let balance: null | Record<string, number> = null;
 
+  const BALANCE_RESULTS_PATH = path.resolve(
+    import.meta.dirname,
+    'tests',
+    'js',
+    'test-balancer',
+    'jest-balance.json'
+  );
   try {
-    balance = require(BALANCE_RESULTS_PATH);
+    balance = (await import(BALANCE_RESULTS_PATH, {with: {type: 'json'}})).default;
   } catch (err) {
     // Just ignore if balance results doesn't exist
   }
   // Taken from https://github.com/facebook/jest/issues/6270#issue-326653779
-  const envTestList: string[] = JSON.parse(JEST_TESTS).map(file =>
-    file.replace(__dirname, '')
+  const envTestList: string[] = JEST_TESTS.map(file =>
+    file.replace(import.meta.dirname, '')
   );
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
@@ -203,7 +252,7 @@ if (
  * node_modules, but some packages which use ES6 syntax only NEED to be
  * transformed.
  */
-const ESM_NODE_MODULES = [];
+const ESM_NODE_MODULES = ['screenfull', 'cbor2'];
 
 const config: Config.InitialOptions = {
   verbose: false,
@@ -214,17 +263,25 @@ const config: Config.InitialOptions = {
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
   moduleNameMapper: {
+    '\\.(css|less|png|gif|jpg|woff|mp4)$':
+      '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
     '^sentry/(.*)': '<rootDir>/static/app/$1',
+    '^getsentry/(.*)': '<rootDir>/static/gsApp/$1',
+    '^admin/(.*)': '<rootDir>/static/gsAdmin/$1',
     '^sentry-fixture/(.*)': '<rootDir>/tests/js/fixtures/$1',
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
+    '^getsentry-test/(.*)': '<rootDir>/tests/js/getsentry-test/$1',
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
-    '\\.(css|less|png|jpg|mp4)$': '<rootDir>/tests/js/sentry-test/importStyleMock.js',
-    '\\.(svg)$': '<rootDir>/tests/js/sentry-test/svgMock.js',
+    '\\.(svg)$': '<rootDir>/tests/js/sentry-test/mocks/svgMock.js',
 
     // Disable echarts in test, since they're very slow and take time to
     // transform
-    '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
-    '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
+    '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
+    '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
+
+    // Disabled @sentry/toolbar in tests. It depends on iframes and global
+    // window/cookies state.
+    '@sentry/toolbar': '<rootDir>/tests/js/sentry-test/mocks/sentryToolbarMock.js',
   },
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
@@ -234,7 +291,7 @@ const config: Config.InitialOptions = {
     '<rootDir>/tests/js/setup.ts',
     '<rootDir>/tests/js/setupFramework.ts',
   ],
-  testMatch: testMatch || ['<rootDir>/static/**/?(*.)+(spec|test).[jt]s?(x)'],
+  testMatch: testMatch || ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
 
   unmockedModulePathPatterns: [
@@ -248,7 +305,7 @@ const config: Config.InitialOptions = {
   },
   transformIgnorePatterns: [
     ESM_NODE_MODULES.length
-      ? `/node_modules/(?!${ESM_NODE_MODULES.join('|')})`
+      ? `/node_modules/.pnpm/(?!${ESM_NODE_MODULES.join('|')})`
       : '/node_modules/',
   ],
 
@@ -277,6 +334,7 @@ const config: Config.InitialOptions = {
   // To disable the sentry jest integration, set this to 'jsdom'
   testEnvironment: '@sentry/jest-environment/jsdom',
   testEnvironmentOptions: {
+    globalsCleanup: 'on',
     sentryConfig: {
       init: {
         // jest project under Sentry organization (dev productivity team)

@@ -54,7 +54,6 @@ class NotifyEmailTarget:
 
 class NotifyEmailAction(EventAction):
     id = "sentry.mail.actions.NotifyEmailAction"
-    form_cls = NotifyEmailForm
     label = "Send a notification to {targetType} and if none can be found then send a notification to {fallthroughType}"
     prompt = "Send a notification"
     metrics_slug = "EmailAction"
@@ -85,7 +84,14 @@ class NotifyEmailAction(EventAction):
             self.logger.info("rule.fail.should_notify", extra=extra)
             return
 
-        metrics.incr("notifications.sent", instance=self.metrics_slug, skip_internal=False)
+        metrics.incr(
+            "notifications.sent",
+            instance=self.metrics_slug,
+            tags={
+                "issue_type": group.issue_type.slug,
+            },
+            skip_internal=False,
+        )
         yield self.future(
             lambda event, futures: mail_adapter.rule_notify(
                 event,
@@ -98,5 +104,5 @@ class NotifyEmailAction(EventAction):
             )
         )
 
-    def get_form_instance(self):
-        return self.form_cls(self.project, self.data)
+    def get_form_instance(self) -> NotifyEmailForm:
+        return NotifyEmailForm(self.project, self.data)

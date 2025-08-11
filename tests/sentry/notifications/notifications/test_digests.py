@@ -1,20 +1,21 @@
 import uuid
 from unittest import mock
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 
 import sentry
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.digests.backends.base import Backend
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
 from sentry.models.projectownership import ProjectOwnership
-from sentry.models.rule import Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -43,7 +44,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             event = self.store_event(
                 data={
                     "message": "oh no",
-                    "timestamp": iso_format(before_now(days=1)),
+                    "timestamp": before_now(days=1).isoformat(),
                     "fingerprint": [fingerprint],
                 },
                 project_id=self.project.id,
@@ -77,9 +78,9 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
             assert len(mail.outbox) == USER_COUNT
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
-        self.rule = Rule.objects.create(project=self.project, label="Test Rule", data={})
+        self.rule = self.create_project_rule(project=self.project)
         self.key = f"mail:p:{self.project.id}:IssueOwners::AllMembers"
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         for i in range(USER_COUNT - 1):
@@ -92,7 +93,9 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
     @patch("sentry.analytics.record")
     @patch("sentry.notifications.notifications.digest.logger")
-    def test_sends_digest_to_every_member(self, mock_logger, mock_record):
+    def test_sends_digest_to_every_member(
+        self, mock_logger: MagicMock, mock_record: MagicMock
+    ) -> None:
         """Test that each member of the project the events are created in receive a digest email notification"""
         event_count = 4
         self.run_test(event_count=event_count, performance_issues=True, generic_issues=True)
@@ -118,15 +121,18 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             group_id=None,
             user_id=ANY,
         )
-        mock_record.assert_called_with(
-            "alert.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            provider="email",
-            alert_id=self.rule.id,
-            alert_type="issue_alert",
-            external_id=ANY,
-            notification_uuid=ANY,
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                provider="email",
+                alert_id=str(self.rule.id),
+                alert_type="issue_alert",
+                external_id="ANY",
+                notification_uuid="ANY",
+            ),
+            exclude_fields=["external_id", "notification_uuid"],
         )
         mock_logger.info.assert_called_with(
             "mail.adapter.notify_digest",
@@ -137,10 +143,12 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
                 "team_ids": ANY,
                 "user_ids": ANY,
                 "notification_uuid": ANY,
+                "number_of_rules": ANY,
+                "group_count": ANY,
             },
         )
 
-    def test_sends_alert_rule_notification_to_each_member(self):
+    def test_sends_alert_rule_notification_to_each_member(self) -> None:
         """Test that if there is only one event it is sent as a regular alert rule notification"""
         self.run_test(event_count=1)
 
@@ -154,7 +162,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
 class DigestSlackNotification(SlackActivityNotificationTest):
     @mock.patch.object(sentry, "digests")
-    def test_slack_digest_notification_block(self, digests):
+    def test_slack_digest_notification_block(self, digests: MagicMock) -> None:
         """
         Test that with digests and block kkit enabled, but Slack notification settings
         (and not email settings), we send a properly formatted Slack notification
@@ -163,11 +171,11 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         backend = RedisBackend()
         digests.backend.digest = backend.digest
         digests.enabled.return_value = True
-        timestamp_raw = before_now(days=1)
+        timestamp_raw = before_now(days=1).replace(microsecond=0)
         timestamp_secs = int(timestamp_raw.timestamp())
-        timestamp = iso_format(timestamp_raw)
+        timestamp = timestamp_raw.isoformat()
         key = f"slack:p:{self.project.id}:IssueOwners::AllMembers"
-        rule = Rule.objects.create(project=self.project, label="my rule")
+        rule = self.create_project_rule(project=self.project)
         event1 = self.store_event(
             data={
                 "timestamp": timestamp,
@@ -214,18 +222,33 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         assert blocks[0]["text"]["text"] == fallback_text
 
         assert event1.group
-        event1_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event1.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event1.group.title}*>"
+        emoji = "red_circle"
+        event1_alert_title = {
+            "url": f"http://testserver/organizations/{self.organization.slug}/issues/{event1.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue",
+            "text": f"{event1.group.title}",
+        }
 
         assert event2.group
-        event2_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event2.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event2.group.title}*>"
+        event2_alert_title = {
+            "url": f"http://testserver/organizations/{self.organization.slug}/issues/{event2.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue",
+            "text": f"{event2.group.title}",
+        }
 
         # digest order not definitive
         try:
-            assert blocks[1]["text"]["text"] == event1_alert_title
-            assert blocks[5]["text"]["text"] == event2_alert_title
+            assert blocks[1]["elements"][0]["elements"][-1]["text"] == event1_alert_title["text"]
+            assert blocks[1]["elements"][0]["elements"][-1]["url"] == event1_alert_title["url"]
+            assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
+            assert blocks[5]["elements"][0]["elements"][-1]["text"] == event2_alert_title["text"]
+            assert blocks[5]["elements"][0]["elements"][-1]["url"] == event2_alert_title["url"]
+            assert blocks[5]["elements"][0]["elements"][0]["name"] == emoji
         except AssertionError:
-            assert blocks[1]["text"]["text"] == event2_alert_title
-            assert blocks[5]["text"]["text"] == event1_alert_title
+            assert blocks[1]["elements"][0]["elements"][-1]["text"] == event2_alert_title["text"]
+            assert blocks[1]["elements"][0]["elements"][-1]["url"] == event2_alert_title["url"]
+            assert blocks[1]["elements"][0]["elements"][0]["name"] == emoji
+            assert blocks[5]["elements"][0]["elements"][-1]["text"] == event1_alert_title["text"]
+            assert blocks[5]["elements"][0]["elements"][-1]["url"] == event1_alert_title["url"]
+            assert blocks[5]["elements"][0]["elements"][0]["name"] == emoji
 
         assert (
             blocks[3]["elements"][0]["text"]

@@ -10,6 +10,6 @@ import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
  *   my-long-sentry-project-name -> my-long…project-name
  *   javascriptproject-backend   -> javascriptproj…ackend
  */
-export function trimSlug(slug: string, maxLength: number = 20) {
+export function trimSlug(slug: string, maxLength = 20) {
   return middleEllipsis(slug, maxLength, '-');
 }

@@ -16,12 +16,9 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models.group import Group
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.actor import Actor
-from sentry.users.services.user import RpcUser
 
 
 class DummyNotification(BaseNotification):
@@ -34,7 +31,7 @@ class DummyNotification(BaseNotification):
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return "My Subject"
 
-    def determine_recipients(self) -> list[Team | RpcUser]:
+    def determine_recipients(self) -> list[Actor]:
         return []
 
     def build_attachment_title(self, *args):
@@ -86,19 +83,20 @@ class DummyNotificationWithMoreFields(DummyNotification):
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:
+        assert context is not None
         some_value = context["some_field"]
         return f"Notification Title with {some_value}"
 
     def build_notification_footer(self, *args):
         return "Notification Footer"
 
-    def get_message_description(self, recipient: User | Team, provider: ExternalProviders):
+    def get_message_description(self, recipient: Actor, provider: ExternalProviders):
         return "Message Description"
 
     def get_title_link(self, *args):
-        from sentry.integrations.message_builder import get_title_link
+        from sentry.integrations.messaging.message_builder import get_title_link
 
-        return get_title_link(self.group, None, False, True, self)
+        return get_title_link(self.group, None, False, True, self, ExternalProviders.SLACK)
 
 
 TEST_ISSUE_OCCURRENCE = IssueOccurrence(
@@ -200,7 +198,7 @@ SAMPLE_TO_OCCURRENCE_MAP = {
         uuid.uuid4().hex,
         1,
         uuid.uuid4().hex,
-        ["e714d718cb4e7d3ce1ad800f7f33d223"],
+        ["fed5919bb4cbfc1883a7284fb5946e17"],
         "N+1 API Call",
         "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
         None,

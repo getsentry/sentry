@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import hashlib
-import random
+import hmac
+import logging
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar
 
+import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.urls import resolve
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
 from rest_framework.authentication import (
@@ -23,11 +26,10 @@ from sentry import options
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken, is_internal_ip
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
-from sentry.hybridcloud.rpc.service import compare_signature
+from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, compare_signature
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
-from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.orgauthtoken import (
     OrgAuthToken,
     is_org_auth_token_auth,
@@ -35,14 +37,17 @@ from sentry.models.orgauthtoken import (
 )
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay
-from sentry.models.user import User
+from sentry.organizations.services.organization import organization_service
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.silo.base import SiloLimit, SiloMode
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.linksign import process_signature
-from sentry.utils.sdk import Scope
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
+
+logger = logging.getLogger("sentry.api.authentication")
 
 
 class AuthenticationSiloLimit(SiloLimit):
@@ -132,7 +137,6 @@ def relay_from_id(request: Request, relay_id: str) -> tuple[Relay | None, bool]:
     else:
         try:
             relay = Relay.objects.get(relay_id=relay_id)
-            relay.is_internal = is_internal_relay(request, relay.public_key)
             return relay, False  # a Relay from the database
         except Relay.DoesNotExist:
             return None, False  # no Relay found
@@ -166,7 +170,7 @@ class QuietBasicAuthentication(BasicAuthentication):
 
         auth_token = AuthenticatedToken.from_token(request_auth)
         if auth_token and entity_id_tag:
-            scope = Scope.get_isolation_scope()
+            scope = sentry_sdk.get_isolation_scope()
             scope.set_tag(entity_id_tag, auth_token.entity_id)
             for k, v in tags.items():
                 scope.set_tag(k, v)
@@ -213,7 +217,7 @@ class RelayAuthentication(BasicAuthentication):
     def authenticate_credentials(
         self, relay_id: str, relay_sig: str, request=None
     ) -> tuple[AnonymousUser, None]:
-        Scope.get_isolation_scope().set_tag("relay_id", relay_id)
+        sentry_sdk.get_isolation_scope().set_tag("relay_id", relay_id)
 
         if request is None:
             raise AuthenticationFailed("missing request")
@@ -222,6 +226,9 @@ class RelayAuthentication(BasicAuthentication):
 
         if relay is None:
             raise AuthenticationFailed("Unknown relay")
+
+        if not static:
+            relay.is_internal = is_internal_relay(request, relay.public_key)
 
         try:
             data = relay.public_key_object.unpack(request.body, relay_sig, max_age=60 * 5)
@@ -287,11 +294,11 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
     """
 
     def authenticate(self, request: Request):
-        if not request.json_body:
+        if not request.data:
             raise AuthenticationFailed("Invalid request")
 
-        client_id = request.json_body.get("client_id")
-        client_secret = request.json_body.get("client_secret")
+        client_id = request.data.get("client_id")
+        client_secret = request.data.get("client_secret")
 
         invalid_pair_error = AuthenticationFailed("Invalid Client ID / Secret pair")
 
@@ -315,17 +322,6 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
         return self.transform_auth(user_id, None)
 
 
-class TokenStrLookupRequired(Exception):
-    """
-    Used in combination with `apitoken.use-and-update-hash-rate` option.
-
-    If raised, calling code should peform API token lookups based on its
-    plaintext value and not its hashed value.
-    """
-
-    pass
-
-
 @AuthenticationSiloLimit(SiloMode.REGION, SiloMode.CONTROL)
 class UserAuthTokenAuthentication(StandardAuthentication):
     token_name = b"bearer"
@@ -347,18 +343,11 @@ class UserAuthTokenAuthentication(StandardAuthentication):
 
         hashed_token = hashlib.sha256(token_str.encode()).hexdigest()
 
-        rate = options.get("apitoken.use-and-update-hash-rate")
-        random_rate = random.random()
-        use_hashed_token = rate > random_rate
-
         if SiloMode.get_current_mode() == SiloMode.REGION:
             try:
-                if use_hashed_token:
-                    # Try to find the token by its hashed value first
-                    return ApiTokenReplica.objects.get(hashed_token=hashed_token)
-                else:
-                    raise TokenStrLookupRequired
-            except (ApiTokenReplica.DoesNotExist, TokenStrLookupRequired):
+                # Try to find the token by its hashed value first
+                return ApiTokenReplica.objects.get(hashed_token=hashed_token)
+            except ApiTokenReplica.DoesNotExist:
                 try:
                     # If we can't find it by hash, use the plaintext string
                     return ApiTokenReplica.objects.get(token=token_str)
@@ -368,13 +357,10 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         else:
             try:
                 # Try to find the token by its hashed value first
-                if use_hashed_token:
-                    return ApiToken.objects.select_related("user", "application").get(
-                        hashed_token=hashed_token
-                    )
-                else:
-                    raise TokenStrLookupRequired
-            except (ApiToken.DoesNotExist, TokenStrLookupRequired):
+                return ApiToken.objects.select_related("user", "application").get(
+                    hashed_token=hashed_token
+                )
+            except ApiToken.DoesNotExist:
                 try:
                     # If we can't find it by hash, use the plaintext string
                     api_token = ApiToken.objects.select_related("user", "application").get(
@@ -384,10 +370,9 @@ class UserAuthTokenAuthentication(StandardAuthentication):
                     # If the token does not exist by plaintext either, it is not a valid token
                     raise AuthenticationFailed("Invalid token")
                 else:
-                    if use_hashed_token:
-                        # Update it with the hashed value if found by plaintext
-                        api_token.hashed_token = hashed_token
-                        api_token.save(update_fields=["hashed_token"])
+                    # Update it with the hashed value if found by plaintext
+                    api_token.hashed_token = hashed_token
+                    api_token.save(update_fields=["hashed_token"])
 
                     return api_token
 
@@ -432,11 +417,38 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         if token.is_expired():
             raise AuthenticationFailed("Token expired")
 
-        if user and hasattr(user, "is_active") and not user.is_active:
+        if not isinstance(token, SystemToken) and user and not user.is_active:
             raise AuthenticationFailed("User inactive or deleted")
 
         if application_is_inactive:
             raise AuthenticationFailed("UserApplication inactive or deleted")
+
+        if token.scoping_organization_id:
+            # We need to make sure the organization to which the token has access is the same as the one in the URL
+            organization = None
+            organization_context = organization_service.get_organization_by_id(
+                id=token.organization_id, include_projects=False, include_teams=False
+            )
+            if organization_context:
+                organization = organization_context.organization
+
+            if organization:
+                resolved_url = resolve(request.path_info)
+                target_org_id_or_slug = resolved_url.kwargs.get("organization_id_or_slug")
+                if target_org_id_or_slug:
+                    if (
+                        organization.slug != target_org_id_or_slug
+                        and organization.id != target_org_id_or_slug
+                    ):
+                        raise AuthenticationFailed("Unauthorized organization access.")
+                # We want to limit org scoped tokens access to org level endpoints only
+                # Except some none-org level endpoints that we added special treatments for
+                elif resolved_url.url_name not in ["sentry-api-0-organizations"]:
+                    raise AuthenticationFailed(
+                        "This token access is limited to organization endpoints."
+                    )
+            else:
+                raise AuthenticationFailed("Cannot resolve organization from token.")
 
         return self.transform_auth(
             user,
@@ -479,7 +491,11 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
                 raise AuthenticationFailed("Invalid org token")
 
         return self.transform_auth(
-            None, token, "api_token", api_token_type=self.token_name, api_token_is_org_token=True
+            None,
+            token,
+            "api_token",
+            api_token_type=self.token_name,
+            api_token_is_org_token=True,
         )
 
 
@@ -496,11 +512,11 @@ class DSNAuthentication(StandardAuthentication):
         if not key.is_active:
             raise AuthenticationFailed("Invalid dsn")
 
-        scope = Scope.get_isolation_scope()
+        scope = sentry_sdk.get_isolation_scope()
         scope.set_tag("api_token_type", self.token_name)
         scope.set_tag("api_project_key", key.id)
 
-        return (AnonymousUser(), key)
+        return (AnonymousUser(), AuthenticatedToken.from_token(key))
 
 
 @AuthenticationSiloLimit(SiloMode.REGION)
@@ -532,6 +548,101 @@ class RpcSignatureAuthentication(StandardAuthentication):
         if not compare_signature(request.path_info, request.body, token):
             raise AuthenticationFailed("Invalid signature")
 
-        Scope.get_isolation_scope().set_tag("rpc_auth", True)
+        sentry_sdk.get_isolation_scope().set_tag("rpc_auth", True)
+
+        return (AnonymousUser(), token)
+
+
+def compare_service_signature(
+    url: str,
+    body: bytes,
+    signature: str,
+    shared_secret_setting: list[str],
+    service_name: str,
+) -> bool:
+    """
+    Generic function to compare request data + signature signed by one of the shared secrets.
+
+    Once a key has been able to validate the signature other keys will
+    not be attempted. We should only have multiple keys during key rotations.
+
+    Args:
+        url: The request URL path
+        body: The request body
+        signature: The signature to validate
+        shared_secret_setting: List of shared secrets from settings
+        service_name: Name of the service for logging (e.g., "Seer", "Launchpad")
+    """
+
+    if not shared_secret_setting:
+        raise RpcAuthenticationSetupException(
+            f"Cannot validate {service_name} RPC request signatures without shared secret"
+        )
+
+    # Ensure no empty secrets
+    if any(not secret.strip() for secret in shared_secret_setting):
+        raise RpcAuthenticationSetupException(
+            f"Cannot validate {service_name} RPC request signatures with empty shared secret"
+        )
+
+    if not signature.startswith("rpc0:"):
+        logger.error("%s RPC signature validation failed: invalid signature prefix", service_name)
+        return False
+
+    try:
+        # We aren't using the version bits currently.
+        _, signature_data = signature.split(":", 2)
+
+        signature_input = body
+
+        for key in shared_secret_setting:
+            computed = hmac.new(key.encode(), signature_input, hashlib.sha256).hexdigest()
+            is_valid = constant_time_compare(computed.encode(), signature_data.encode())
+            if is_valid:
+                return True
+    except Exception:
+        logger.exception("%s RPC signature validation failed", service_name)
+        return False
+
+    logger.error("%s RPC signature validation failed", service_name)
+
+    return False
+
+
+class ServiceRpcSignatureAuthentication(StandardAuthentication):
+    """
+    Generic authentication for service RPC requests.
+    Requests are sent with an HMAC signed by a shared private key.
+
+    Subclasses should define:
+    - shared_secret_setting_name: str - name of the settings attribute (e.g., "SEER_RPC_SHARED_SECRET")
+    - service_name: str - name of the service for logging (e.g., "Seer", "Launchpad")
+    - sdk_tag_name: str - name for the SDK tag (e.g., "seer_rpc_auth", "launchpad_rpc_auth")
+    """
+
+    token_name = b"rpcsignature"
+    shared_secret_setting_name: str
+    service_name: str
+    sdk_tag_name: str
+
+    def accepts_auth(self, auth: list[bytes]) -> bool:
+        if not auth or len(auth) < 2:
+            return False
+        return auth[0].lower() == self.token_name
+
+    def authenticate_token(self, request: Request, token: str) -> tuple[Any, Any]:
+        shared_secret_setting = getattr(settings, self.shared_secret_setting_name, None)
+
+        if shared_secret_setting is None:
+            raise RpcAuthenticationSetupException(
+                f"Cannot validate {self.service_name} RPC request signatures without shared secret"
+            )
+
+        if not compare_service_signature(
+            request.path_info, request.body, token, shared_secret_setting, self.service_name
+        ):
+            raise AuthenticationFailed("Invalid signature")
+
+        sentry_sdk.get_isolation_scope().set_tag(self.sdk_tag_name, True)
 
         return (AnonymousUser(), token)

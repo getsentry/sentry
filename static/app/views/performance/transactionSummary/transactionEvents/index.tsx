@@ -6,7 +6,6 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -18,18 +17,21 @@ import {WebVital} from 'sentry/utils/fields';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
-
 import {
   decodeFilterFromLocation,
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
-} from '../filter';
-import type {ChildProps} from '../pageLayout';
-import PageLayout from '../pageLayout';
-import Tab from '../tabs';
-import {ZOOM_END, ZOOM_START} from '../transactionOverview/latencyChart/utils';
+} from 'sentry/views/performance/transactionSummary/filter';
+import type {ChildProps} from 'sentry/views/performance/transactionSummary/pageLayout';
+import PageLayout from 'sentry/views/performance/transactionSummary/pageLayout';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
+import {
+  ZOOM_END,
+  ZOOM_START,
+} from 'sentry/views/performance/transactionSummary/transactionOverview/latencyChart/utils';
 
 import EventsContent from './content';
 import {
@@ -75,6 +77,7 @@ function EventsContentWrapper(props: ChildProps) {
     projectId,
     projects,
   } = props;
+  const navigate = useNavigate();
   const eventsDisplayFilterName = decodeEventsDisplayFilterFromLocation(location);
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
   const webVital = getWebVital(location);
@@ -88,7 +91,7 @@ function EventsContentWrapper(props: ChildProps) {
     const filteredEventView = eventView?.clone();
     if (filteredEventView && filter?.query) {
       const query = new MutableSearch(filteredEventView.query);
-      filter.query.forEach(item => query.setFilterValues(item[0], [item[1]]));
+      filter.query.forEach(item => query.setFilterValues(item[0]!, [item[1]!]));
       filteredEventView.query = query.formatString();
     }
     return filteredEventView;
@@ -108,7 +111,7 @@ function EventsContentWrapper(props: ChildProps) {
       eventsDisplayFilterName
     ].sort;
     const currentSort = eventView?.sorts?.[0];
-    let sortQuery = {};
+    let sortQuery: Record<string, string> = {};
 
     if (
       eventsFilterOptionSort?.kind === currentSort?.kind &&
@@ -126,7 +129,7 @@ function EventsContentWrapper(props: ChildProps) {
     if (newFilter === SpanOperationBreakdownFilter.NONE) {
       delete nextQuery.breakdown;
     }
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: nextQuery,
     });
@@ -150,7 +153,7 @@ function EventsContentWrapper(props: ChildProps) {
       delete nextQuery.showTransaction;
     }
 
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: nextQuery,
     });
@@ -222,6 +225,7 @@ function generateEventView({
 }: {
   location: Location;
   organization: Organization;
+  shouldUseOTelFriendlyUI: boolean;
   transactionName: string;
 }): EventView {
   const query = decodeScalar(location.query.query, '');
@@ -246,10 +250,10 @@ function generateEventView({
     'timestamp',
   ];
   const breakdown = decodeFilterFromLocation(location);
-  if (breakdown !== SpanOperationBreakdownFilter.NONE) {
-    fields.splice(2, 1, `spans.${breakdown}`);
-  } else {
+  if (breakdown === SpanOperationBreakdownFilter.NONE) {
     fields.push(...SPAN_OP_BREAKDOWN_FIELDS);
+  } else {
+    fields.splice(2, 1, `spans.${breakdown}`);
   }
   const webVital = getWebVital(location);
   if (webVital) {

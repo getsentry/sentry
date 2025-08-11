@@ -6,29 +6,31 @@ from typing import cast
 
 import sentry_sdk
 
-from sentry import features
 from sentry.integrations.pagerduty.actions import PagerDutyNotifyServiceForm
-from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY, PagerdutySeverity
+from sentry.integrations.pagerduty.client import (
+    PAGERDUTY_DEFAULT_SEVERITY,
+    PAGERDUTY_SUMMARY_MAX_LENGTH,
+    PagerdutySeverity,
+    build_pagerduty_event_payload,
+)
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.rule import Rule
 from sentry.rules.actions import IntegrationEventAction
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
 
 
 class PagerDutyNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.pagerduty.notify_action.PagerDutyNotifyServiceAction"
-    form_cls = PagerDutyNotifyServiceForm
-    old_label = "Send a notification to PagerDuty account {account} and service {service}"
-    new_label = "Send a notification to PagerDuty account {account} and service {service} with {severity} severity"
+    label = "Send a notification to PagerDuty account {account} and service {service} with {severity} severity"
     prompt = "Send a PagerDuty notification"
-    provider = "pagerduty"
+    provider = IntegrationProviderSlug.PAGERDUTY.value
     integration_key = "account"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.has_feature_flag = features.has(
-            "organizations:integrations-custom-alert-priorities", self.project.organization
-        )
         self.form_fields = {
             "account": {
                 "type": "choice",
@@ -46,7 +48,6 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 ],
             },
         }
-        self.__class__.label = self.new_label if self.has_feature_flag else self.old_label
 
     def _get_service(self):
         oi = self.get_organization_integration()
@@ -86,10 +87,23 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 sentry_sdk.capture_exception(e)
                 return
 
-            try:
-                resp = client.send_trigger(
-                    event, notification_uuid=notification_uuid, severity=severity
+            data = build_pagerduty_event_payload(
+                routing_key=client.integration_key,
+                event=event,
+                notification_uuid=notification_uuid,
+                severity=severity,
+            )
+
+            rules: list[Rule] = [f.rule for f in futures]
+            rule = rules[0] if rules else None
+
+            if rule and rule.label:
+                data["payload"]["summary"] = truncatechars(
+                    f"[{rule.label}]: {data['payload']['summary']}", PAGERDUTY_SUMMARY_MAX_LENGTH
                 )
+
+            try:
+                resp = client.send_trigger(data=data)
             except ApiError as e:
                 self.logger.info(
                     "rule.fail.pagerduty_trigger",
@@ -102,8 +116,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                     },
                 )
                 raise
-            rules = [f.rule for f in futures]
-            rule = rules[0] if rules else None
+
             self.record_notification_sent(event, str(service["id"]), rule, notification_uuid)
 
             # TODO(meredith): Maybe have a generic success log statements for
@@ -144,11 +157,13 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
         severity = self.get_option("severity", default=PAGERDUTY_DEFAULT_SEVERITY)
 
         return self.label.format(
-            account=self.get_integration_name(), service=service_name, severity=severity
+            account=self.get_integration_name(),
+            service=service_name,
+            severity=severity,
         )
 
-    def get_form_instance(self):
-        return self.form_cls(
+    def get_form_instance(self) -> PagerDutyNotifyServiceForm:
+        return PagerDutyNotifyServiceForm(
             self.data,
             integrations=self.get_integrations(),
             services=self.get_services(),

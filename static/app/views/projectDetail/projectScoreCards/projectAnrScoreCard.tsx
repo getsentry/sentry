@@ -1,24 +1,24 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
-import round from 'lodash/round';
 
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
-import {Button} from 'sentry/components/button';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import ScoreCard from 'sentry/components/scoreCard';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconArrow} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import useApi from 'sentry/utils/useApi';
+import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {getANRIssueQueryText, getANRRateText} from 'sentry/views/projectDetail/utils';
 import {
   getSessionTermDescription,
   SessionTerm,
@@ -29,6 +29,7 @@ type Props = {
   location: Location;
   organization: Organization;
   selection: PageFilters;
+  platform?: PlatformKey;
   query?: string;
 };
 
@@ -38,6 +39,7 @@ export function ProjectAnrScoreCard({
   selection,
   location,
   query,
+  platform,
 }: Props) {
   const {environments, projects, datetime} = selection;
   const {start, end, period} = datetime;
@@ -60,15 +62,16 @@ export function ProjectAnrScoreCard({
       includeSeries: false,
     };
 
-    doSessionsRequest(api, {...requestData, ...normalizeDateTimeParams(datetime)}).then(
-      response => {
-        if (unmounted) {
-          return;
-        }
-
-        setSessionsData(response);
+    doSessionsRequest(api, {
+      ...requestData,
+      ...normalizeDateTimeParams(datetime),
+    }).then(([response]) => {
+      if (unmounted) {
+        return;
       }
-    );
+
+      setSessionsData(response);
+    });
     return () => {
       unmounted = true;
     };
@@ -77,14 +80,12 @@ export function ProjectAnrScoreCard({
   useEffect(() => {
     let unmounted = false;
     if (
-      !shouldFetchPreviousPeriod({
+      shouldFetchPreviousPeriod({
         start,
         end,
         period,
       })
     ) {
-      setPreviousSessionsData(null);
-    } else {
       const requestData = {
         orgSlug: organization.slug,
         field: ['anr_rate()'],
@@ -108,13 +109,15 @@ export function ProjectAnrScoreCard({
         ...requestData,
         start: previousStart,
         end: previousEnd,
-      }).then(response => {
+      }).then(([response]) => {
         if (unmounted) {
           return;
         }
 
         setPreviousSessionsData(response);
       });
+    } else {
+      setPreviousSessionsData(null);
     }
     return () => {
       unmounted = true;
@@ -122,33 +125,15 @@ export function ProjectAnrScoreCard({
   }, [start, end, period, api, organization.slug, environments, projects, query]);
 
   const value = sessionsData?.groups?.[0]?.totals['anr_rate()'] ?? null;
-
   const previousValue = previousSessionData?.groups?.[0]?.totals['anr_rate()'] ?? null;
-
-  const hasCurrentAndPrevious = previousValue && value;
-  const trend = hasCurrentAndPrevious ? round(value - previousValue, 4) : null;
-  const trendStatus = !trend ? undefined : trend < 0 ? 'good' : 'bad';
 
   if (!isProjectStabilized) {
     return null;
   }
 
-  function renderTrend() {
-    return trend ? (
-      <Fragment>
-        {trend >= 0 ? (
-          <IconArrow direction="up" size="xs" />
-        ) : (
-          <IconArrow direction="down" size="xs" />
-        )}
-        {`${formatAbbreviatedNumber(Math.abs(trend))}\u0025`}
-      </Fragment>
-    ) : null;
-  }
-
   const endpointPath = `/organizations/${organization.slug}/issues/`;
 
-  const issueQuery = ['mechanism:[ANR,AppExitInfo]', query].join(' ').trim();
+  const issueQuery = [getANRIssueQueryText(platform), query].join(' ').trim();
 
   const queryParams = {
     ...normalizeDateTimeParams(pick(location.query, [...Object.values(URL_PARAM)])),
@@ -161,31 +146,49 @@ export function ProjectAnrScoreCard({
     query: queryParams,
   };
 
-  function renderButton() {
+  const cardTitle = getANRRateText(platform);
+  const cardHelp = getSessionTermDescription(SessionTerm.ANR_RATE, platform || null);
+
+  const Title = <Widget.WidgetTitle title={cardTitle} />;
+
+  if (!defined(value)) {
     return (
-      <Button
-        data-test-id="issues-open"
-        size="xs"
-        to={issueSearch}
-        onClick={() => {
-          trackAnalytics('project_detail.open_anr_issues', {
-            organization,
-          });
-        }}
-      >
-        {t('View Issues')}
-      </Button>
+      <Widget
+        Title={Title}
+        Visualization={<BigNumberWidgetVisualization.LoadingPlaceholder />}
+      />
     );
   }
 
   return (
-    <ScoreCard
-      title={t('ANR Rate')}
-      help={getSessionTermDescription(SessionTerm.ANR_RATE, null)}
-      score={value ? formatPercentage(value, 3) : '\u2014'}
-      trend={renderTrend()}
-      trendStatus={trendStatus}
-      renderOpenButton={renderButton}
+    <Widget
+      Title={Title}
+      Actions={
+        <Widget.WidgetToolbar>
+          <LinkButton
+            size="xs"
+            to={issueSearch}
+            onClick={() => {
+              trackAnalytics('project_detail.open_anr_issues', {
+                organization,
+              });
+            }}
+          >
+            {t('View Issues')}
+          </LinkButton>
+          <Widget.WidgetDescription description={cardHelp} />
+        </Widget.WidgetToolbar>
+      }
+      Visualization={
+        <BigNumberWidgetVisualization
+          value={value ?? undefined}
+          previousPeriodValue={previousValue ?? undefined}
+          field="anr_rate()"
+          preferredPolarity="-"
+          type="percentage"
+          unit={null}
+        />
+      }
     />
   );
 }

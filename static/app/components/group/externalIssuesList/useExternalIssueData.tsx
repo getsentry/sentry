@@ -21,7 +21,7 @@ export default function useExternalIssueData({group, event, project}: Props) {
   const organization = useOrganization();
   const {
     data: integrations,
-    isLoading: isLoadingIntegrations,
+    isPending: isLoadingIntegrations,
     refetch: refetchIntegrations,
   } = useFetchIntegrations({group, organization});
   const {data: externalIssues, isLoading: isLoadingExternalIssues} = useExternalIssues({
@@ -71,7 +71,8 @@ export default function useExternalIssueData({group, event, project}: Props) {
   const renderSentryAppIssues = (): ExternalIssueComponent[] => {
     return components
       .map<ExternalIssueComponent | null>(component => {
-        const {sentryApp, error: disabled} = component;
+        const {sentryApp} = component;
+        const disabled = Boolean(component.error);
         const installation = sentryAppInstallations.find(
           i => i.app.uuid === sentryApp.uuid
         );

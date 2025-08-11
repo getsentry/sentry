@@ -1,28 +1,31 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
-import {Tooltip} from 'sentry/components/tooltip';
+import type {
+  GridColumnHeader,
+  GridColumnOrder,
+} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
@@ -31,11 +34,12 @@ import type {RowWithScoreAndOpportunity} from 'sentry/views/insights/browser/web
 import {SORTABLE_FIELDS} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
-import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
 
-const COLUMN_ORDER: GridColumnOrder<keyof RowWithScoreAndOpportunity>[] = [
+const COLUMN_ORDER: Array<GridColumnOrder<keyof RowWithScoreAndOpportunity>> = [
   {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Pages'},
   {key: 'project', width: COL_WIDTH_UNDEFINED, name: 'Project'},
   {key: 'count()', width: COL_WIDTH_UNDEFINED, name: 'Pageloads'},
@@ -60,13 +64,19 @@ const DEFAULT_SORT: Sort = {
 };
 
 export function PagePerformanceTable() {
+  const theme = useTheme();
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
+  const moduleUrl = useModuleURL(ModuleName.VITAL);
 
   const columnOrder = COLUMN_ORDER;
 
   const query = decodeScalar(location.query.query, '');
-  const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
+  const browserTypes = decodeBrowserTypes(location.query[SpanFields.BROWSER_NAME]);
+  const subregions = decodeList(
+    location.query[SpanFields.USER_GEO_SUBREGION]
+  ) as SubregionCode[];
 
   const sort = useWebVitalsSort({defaultSort: DEFAULT_SORT});
 
@@ -74,18 +84,19 @@ export function PagePerformanceTable() {
     data,
     meta,
     pageLinks,
-    isLoading: isTransactionWebVitalsQueryLoading,
+    isPending: isTransactionWebVitalsQueryLoading,
   } = useTransactionWebVitalsScoresQuery({
     limit: MAX_ROWS,
-    transaction: query !== '' ? `*${escapeFilterValue(query)}*` : undefined,
+    transaction: query === '' ? undefined : `*${escapeFilterValue(query)}*`,
     defaultSort: DEFAULT_SORT,
     shouldEscapeFilters: false,
     browserTypes,
+    subregions,
   });
 
-  const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
+  const tableData = data.map(row => ({
     ...row,
-    opportunity: ((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100,
+    opportunity: (row.opportunity ?? 0) * 100,
   }));
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
@@ -110,7 +121,7 @@ export function PagePerformanceTable() {
 
       return {
         ...location,
-        query: {...location.query, sort: newSort},
+        query: {...location.query, sort: newSort, cursor: undefined},
       };
     }
     const sortableFields = SORTABLE_FIELDS;
@@ -202,7 +213,7 @@ export function PagePerformanceTable() {
           <Link
             to={{
               ...location,
-              pathname: `${location.pathname}overview/`,
+              pathname: `${moduleUrl}/overview/`,
               query: {
                 ...location.query,
                 transaction: row.transaction,
@@ -229,6 +240,7 @@ export function PagePerformanceTable() {
       const func = 'count_scores';
       const args = [measurement?.replace('measurements.', 'measurements.score.')];
       const countWebVitalKey = `${func}(${args.join(', ')})`;
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const countWebVital = row[countWebVitalKey];
       if (measurement === undefined || countWebVital === 0) {
         return (
@@ -241,6 +253,7 @@ export function PagePerformanceTable() {
     }
     if (key === 'p75(measurements.cls)') {
       const countWebVitalKey = 'count_scores(measurements.score.cls)';
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const countWebVital = row[countWebVitalKey];
       if (countWebVital === 0) {
         return (
@@ -249,13 +262,11 @@ export function PagePerformanceTable() {
           </AlignRight>
         );
       }
-      return <AlignRight>{Math.round((row[key] as number) * 100) / 100}</AlignRight>;
+      return <AlignRight>{Math.round(row[key] * 100) / 100}</AlignRight>;
     }
     if (key === 'opportunity') {
       if (row.opportunity !== undefined) {
-        return (
-          <AlignRight>{Math.round((row.opportunity as number) * 100) / 100}</AlignRight>
-        );
+        return <AlignRight>{Math.round(row.opportunity * 100) / 100}</AlignRight>;
       }
       return null;
     }
@@ -270,6 +281,7 @@ export function PagePerformanceTable() {
       location,
       organization,
       unit: meta.units?.[col.key],
+      theme,
     });
   }
 
@@ -279,7 +291,7 @@ export function PagePerformanceTable() {
       query: newQuery,
       source: ModuleName.VITAL,
     });
-    browserHistory.push({
+    navigate({
       ...location,
       query: {
         ...location.query,
@@ -297,30 +309,6 @@ export function PagePerformanceTable() {
           onSearch={handleSearch}
           defaultQuery={query}
         />
-        <StyledPagination
-          pageLinks={pageLinks}
-          disabled={isTransactionWebVitalsQueryLoading}
-          size="md"
-        />
-        {/* The Pagination component disappears if pageLinks is not defined,
-        which happens any time the table data is loading. So we render a
-        disabled button bar if pageLinks is not defined to minimize ui shifting */}
-        {!pageLinks && (
-          <Wrapper>
-            <ButtonBar merged>
-              <Button
-                icon={<IconChevron direction="left" />}
-                disabled
-                aria-label={t('Previous')}
-              />
-              <Button
-                icon={<IconChevron direction="right" />}
-                disabled
-                aria-label={t('Next')}
-              />
-            </ButtonBar>
-          </Wrapper>
-        )}
       </SearchBarContainer>
       <GridContainer>
         <GridEditable
@@ -334,6 +322,26 @@ export function PagePerformanceTable() {
             renderBodyCell,
           }}
         />
+        <Pagination pageLinks={pageLinks} disabled={isTransactionWebVitalsQueryLoading} />
+        {/* The Pagination component disappears if pageLinks is not defined,
+        which happens any time the table data is loading. So we render a
+        disabled button bar if pageLinks is not defined to minimize ui shifting */}
+        {!pageLinks && (
+          <Wrapper>
+            <ButtonBar merged gap="0">
+              <Button
+                icon={<IconChevron direction="left" />}
+                disabled
+                aria-label={t('Previous')}
+              />
+              <Button
+                icon={<IconChevron direction="right" />}
+                disabled
+                aria-label={t('Next')}
+              />
+            </ButtonBar>
+          </Wrapper>
+        )}
       </GridContainer>
     </span>
   );
@@ -359,9 +367,7 @@ const AlignCenter = styled('span')`
 `;
 
 const SearchBarContainer = styled('div')`
-  display: flex;
-  margin-bottom: ${space(1)};
-  gap: ${space(1)};
+  margin-bottom: ${space(2)};
 `;
 
 const GridContainer = styled('div')`
@@ -374,10 +380,6 @@ const TooltipHeader = styled('span')`
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
-`;
-
-const StyledPagination = styled(Pagination)`
-  margin: 0;
 `;
 
 const Wrapper = styled('div')`
@@ -393,5 +395,5 @@ const StyledTooltip = styled(Tooltip)`
 `;
 
 const NoValue = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

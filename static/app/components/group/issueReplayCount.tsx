@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -35,7 +35,7 @@ function IssueReplayCount({group}: Props) {
   );
 
   return (
-    <Tooltip title={count > 50 ? titleOver50 : title50OrLess}>
+    <Tooltip title={count > 50 ? titleOver50 : title50OrLess} skipWrapper>
       <ReplayCountLink
         to={normalizeUrl(
           `/organizations/${organization.slug}/issues/${group.id}/replays/`
@@ -52,8 +52,13 @@ function IssueReplayCount({group}: Props) {
 const ReplayCountLink = styled(Link)`
   display: inline-flex;
   color: ${p => p.theme.gray400};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   gap: 0 ${space(0.5)};
+  position: relative;
+
+  &:hover {
+    color: ${p => p.theme.linkHoverColor};
+  }
 `;
 
 export default IssueReplayCount;

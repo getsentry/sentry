@@ -35,6 +35,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.outbox.base import ReplicatedRegionModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.rpc import extract_id_from
@@ -42,7 +43,7 @@ from sentry.hybridcloud.services.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
 )
-from sentry.models.outbox import outbox_context
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
@@ -128,7 +129,7 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
 
     def get_for_integration(
         self, integration: RpcIntegration | int, user: RpcUser, organization_id: int | None = None
-    ) -> QuerySet:
+    ) -> QuerySet[OrganizationMember]:
         # This can be moved into the integration service once OrgMemberMapping is completed.
         # We are forced to do an ORM -> service -> ORM call to reduce query size while avoiding
         # cross silo queries until we have a control silo side to map users through.
@@ -233,13 +234,10 @@ class OrganizationMember(ReplicatedRegionModel):
 
     # These attributes are replicated via USER_UPDATE category outboxes for the user object associated with the user_id
     # when it exists.
-    user_is_active = models.BooleanField(
-        null=False,
-        default=True,
-    )
+    user_is_active = models.BooleanField(null=False, default=True, db_default=True)
     # Note, this is the email of the user that may or may not be associated with the member, not the email used to
     # invite the user.
-    user_email = models.CharField(max_length=75, null=True, blank=True)
+    user_email = models.CharField(max_length=200, null=True, blank=True)
 
     class Meta:
         app_label = "sentry"
@@ -249,9 +247,9 @@ class OrganizationMember(ReplicatedRegionModel):
     __repr__ = sane_repr("organization_id", "user_id", "email", "role")
 
     def save(self, *args, **kwargs):
-        assert (self.user_id is None and self.email) or (
-            self.user_id and self.email is None
-        ), "Must set either user or email"
+        if self.id is not None:
+            invite = OrganizationMemberInvite.objects.filter(organization_member_id=self.id).first()
+            assert invite is None, "Cannot save placeholder organization member for an invited user"
 
         with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))):
             if self.token and not self.token_expires_at:
@@ -502,6 +500,13 @@ class OrganizationMember(ReplicatedRegionModel):
                 organizationmember=self, is_active=True
             ).values("team"),
         )
+
+    def get_team_roles(self):
+        from sentry.models.organizationmemberteam import OrganizationMemberTeam
+
+        return OrganizationMemberTeam.objects.filter(
+            organizationmember=self, is_active=True
+        ).values("team", "role")
 
     def get_scopes(self) -> frozenset[str]:
         # include org roles from team membership

@@ -8,3 +8,6 @@ class SearchType(IntEnum):
     REPLAY = 3
     METRIC = 4
     SPAN = 5
+    ERROR = 6
+    TRANSACTION = 7
+    LOG = 8

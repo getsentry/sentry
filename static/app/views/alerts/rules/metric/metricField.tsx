@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
 import type {Organization} from 'sentry/types/organization';
@@ -67,6 +66,7 @@ export const getFieldOptionConfig = ({
         return [key, agg];
       }
 
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       return [key, AGGREGATIONS[key]];
     })
   );
@@ -104,7 +104,7 @@ function MetricField({
 }: Props) {
   return (
     <FormField {...props}>
-      {({onChange, value, model, disabled}) => {
+      {({onChange, value, model, disabled}: any) => {
         const dataset = model.getValue('dataset');
 
         const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
@@ -160,22 +160,5 @@ const StyledQueryField = styled(QueryField)<{gridColumns: number; columnWidth?: 
       width: ${p.gridColumns * p.columnWidth}px;
     `}
 `;
-
-const PresetButton = styled(Button)<{disabled: boolean}>`
-  ${p =>
-    p.disabled &&
-    css`
-      color: ${p.theme.textColor};
-      &:hover,
-      &:focus {
-        color: ${p.theme.textColor};
-      }
-    `}
-`;
-
-PresetButton.defaultProps = {
-  priority: 'link',
-  borderless: true,
-};
 
 export default MetricField;

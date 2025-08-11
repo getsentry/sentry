@@ -13,9 +13,10 @@ from sentry_sdk import Scope
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.integrations.utils import get_integration_from_jwt
+from sentry.integrations.utils.atlassian_connect import get_integration_from_jwt
 from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 from ..utils import handle_assignee_change, handle_jira_api_error, handle_status_change
 from .base import JiraWebhookBase
@@ -29,11 +30,20 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
+
+    rate_limits = {
+        "POST": {
+            RateLimitCategory.IP: RateLimit(limit=100, window=1),
+            RateLimitCategory.USER: RateLimit(limit=100, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=100, window=1),
+        },
+    }
+
     """
     Webhook hit by Jira whenever an issue is updated in Jira's database.
     """
 
-    def handle_exception(
+    def handle_exception_with_details(
         self,
         request: Request,
         exc: Exception,
@@ -45,7 +55,7 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
             if response_option:
                 return self.respond(response_option)
 
-        return super().handle_exception(request, exc, handler_context, scope)
+        return super().handle_exception_with_details(request, exc, handler_context, scope)
 
     def post(self, request: Request, *args, **kwargs) -> Response:
         token = self.get_token(request)

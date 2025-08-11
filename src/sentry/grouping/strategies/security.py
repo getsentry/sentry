@@ -1,59 +1,89 @@
-from typing import Any
+from __future__ import annotations
 
-from sentry.eventstore.models import Event
-from sentry.grouping.component import GroupingComponent
+from typing import TYPE_CHECKING, Any
+
+from sentry.grouping.component import (
+    CSPGroupingComponent,
+    ExpectCTGroupingComponent,
+    ExpectStapleGroupingComponent,
+    HostnameGroupingComponent,
+    HPKPGroupingComponent,
+    SaltGroupingComponent,
+    URIGroupingComponent,
+    ViolationGroupingComponent,
+)
 from sentry.grouping.strategies.base import (
     GroupingContext,
     ReturnedVariants,
     produces_variants,
     strategy,
 )
-from sentry.interfaces.security import Csp, ExpectCT, ExpectStaple, Hpkp, SecurityReport
+from sentry.interfaces.security import Csp, ExpectCT, ExpectStaple, Hpkp
 
-
-def _security_v1(
-    reported_id: str, obj: SecurityReport, context: GroupingContext, **meta: Any
-) -> ReturnedVariants:
-    return {
-        context["variant"]: GroupingComponent(
-            id=reported_id,
-            values=[
-                GroupingComponent(id="salt", values=[reported_id]),
-                GroupingComponent(id="hostname", values=[obj.hostname]),
-            ],
-        )
-    }
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
 
 
 @strategy(ids=["expect-ct:v1"], interface=ExpectCT, score=1000)
 @produces_variants(["default"])
 def expect_ct_v1(
-    interface: ExpectCT, event: Event, context: GroupingContext, **meta: Any
+    interface: ExpectCT, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
-    return _security_v1("expect-ct", interface, context=context, **meta)
+    variant_name = context["variant_name"]
+
+    return {
+        variant_name: ExpectCTGroupingComponent(
+            values=[
+                SaltGroupingComponent(values=["expect-ct"]),
+                HostnameGroupingComponent(values=[interface.hostname]),
+            ],
+        )
+    }
 
 
 @strategy(ids=["expect-staple:v1"], interface=ExpectStaple, score=1001)
 @produces_variants(["default"])
 def expect_staple_v1(
-    interface: ExpectStaple, event: Event, context: GroupingContext, **meta: Any
+    interface: ExpectStaple, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
-    return _security_v1("expect-staple", interface, context=context, **meta)
+    variant_name = context["variant_name"]
+
+    return {
+        variant_name: ExpectStapleGroupingComponent(
+            values=[
+                SaltGroupingComponent(values=["expect-staple"]),
+                HostnameGroupingComponent(values=[interface.hostname]),
+            ],
+        )
+    }
 
 
 @strategy(ids=["hpkp:v1"], interface=Hpkp, score=1002)
 @produces_variants(["default"])
 def hpkp_v1(
-    interface: Hpkp, event: Event, context: GroupingContext, **meta: Any
+    interface: Hpkp, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
-    return _security_v1("hpkp", interface, context=context, **meta)
+    variant_name = context["variant_name"]
+
+    return {
+        variant_name: HPKPGroupingComponent(
+            values=[
+                SaltGroupingComponent(values=["hpkp"]),
+                HostnameGroupingComponent(values=[interface.hostname]),
+            ],
+        )
+    }
 
 
 @strategy(ids=["csp:v1"], interface=Csp, score=1003)
 @produces_variants(["default"])
-def csp_v1(interface: Csp, event: Event, context: GroupingContext, **meta: Any) -> ReturnedVariants:
-    violation_component = GroupingComponent(id="violation")
-    uri_component = GroupingComponent(id="uri")
+def csp_v1(
+    interface: Csp, event: Event, context: GroupingContext, **kwargs: Any
+) -> ReturnedVariants:
+    variant_name = context["variant_name"]
+
+    violation_component = ViolationGroupingComponent()
+    uri_component = URIGroupingComponent()
 
     if interface.local_script_violation_type:
         violation_component.update(values=["'%s'" % interface.local_script_violation_type])
@@ -67,10 +97,9 @@ def csp_v1(interface: Csp, event: Event, context: GroupingContext, **meta: Any) 
         uri_component.update(values=[interface.normalized_blocked_uri])
 
     return {
-        context["variant"]: GroupingComponent(
-            id="csp",
+        variant_name: CSPGroupingComponent(
             values=[
-                GroupingComponent(id="salt", values=[interface.effective_directive]),
+                SaltGroupingComponent(values=[interface.effective_directive]),
                 violation_component,
                 uri_component,
             ],

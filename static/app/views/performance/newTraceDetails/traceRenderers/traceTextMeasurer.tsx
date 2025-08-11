@@ -1,15 +1,15 @@
-import theme from 'sentry/utils/theme';
+import type {Theme} from '@emotion/react';
 
 export class TraceTextMeasurer {
   queue: string[] = [];
   drainRaf: number | null = null;
   cache: Map<string, number> = new Map();
 
-  number: number = 0;
-  dot: number = 0;
+  number = 0;
+  dot = 0;
   duration: Record<string, number> = {};
 
-  constructor() {
+  constructor(theme: Theme) {
     this.drain = this.drain.bind(this);
 
     const canvas = document.createElement('canvas');
@@ -28,8 +28,8 @@ export class TraceTextMeasurer {
       return;
     }
 
-    canvas.width = 50 * window.devicePixelRatio ?? 1;
-    canvas.height = 50 * window.devicePixelRatio ?? 1;
+    canvas.width = 50 * window.devicePixelRatio;
+    canvas.height = 50 * window.devicePixelRatio;
 
     ctx.font = '11px' + theme.text.family;
 
@@ -69,12 +69,13 @@ export class TraceTextMeasurer {
         case '9':
           width += this.number;
           break;
-        default:
+        default: {
           const remaining = string.slice(i);
           if (this.duration[remaining]) {
             width += this.duration[remaining];
             return width;
           }
+        }
       }
     }
     return width;

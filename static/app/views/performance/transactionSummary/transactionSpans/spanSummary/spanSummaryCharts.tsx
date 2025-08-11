@@ -1,3 +1,5 @@
+import {useTheme} from '@emotion/react';
+
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import EventView, {type MetaType} from 'sentry/utils/discover/eventView';
@@ -19,51 +21,49 @@ import {
 } from 'sentry/views/insights/colors';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {
   Block,
   BlockContainer,
 } from 'sentry/views/insights/common/views/spanSummaryPage/block';
-import {
-  SpanMetricsField,
-  type SpanMetricsQueryFilters,
-} from 'sentry/views/insights/types';
+import {SpanFields, type SpanQueryFilters} from 'sentry/views/insights/types';
 import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 
 function SpanSummaryCharts() {
+  const theme = useTheme();
   const organization = useOrganization();
   const {spanSlug} = useParams();
-  const [spanOp, groupId] = spanSlug.split(':');
+  const [spanOp, groupId] = spanSlug!.split(':');
 
   const location = useLocation();
   const {transaction} = location.query;
 
-  const filters: SpanMetricsQueryFilters = {
+  const filters: SpanQueryFilters = {
     'span.group': groupId,
     'span.op': spanOp,
     transaction: transaction as string,
   };
 
   const {
-    isLoading: isThroughputDataLoading,
+    isPending: isThroughputDataLoading,
     data: throughputData,
     error: throughputError,
-  } = useSpanMetricsSeries(
+  } = useSpanSeries(
     {
       search: MutableSearch.fromQueryObject(filters),
-      yAxis: ['spm()'],
+      yAxis: ['epm()'],
     },
     SpanSummaryReferrer.SPAN_SUMMARY_THROUGHPUT_CHART
   );
 
   const {
-    isLoading: isAvgDurationDataLoading,
+    isPending: isAvgDurationDataLoading,
     data: avgDurationData,
     error: avgDurationError,
-  } = useSpanMetricsSeries(
+  } = useSpanSeries(
     {
       search: MutableSearch.fromQueryObject(filters),
-      yAxis: [`avg(${SpanMetricsField.SPAN_DURATION})`],
+      yAxis: [`avg(${SpanFields.SPAN_DURATION})`],
     },
     SpanSummaryReferrer.SPAN_SUMMARY_DURATION_CHART
   );
@@ -83,7 +83,7 @@ function SpanSummaryCharts() {
   );
 
   const {
-    isLoading: isTxnThroughputDataLoading,
+    isPending: isTxnThroughputDataLoading,
     data: txnThroughputData,
     error: txnThroughputError,
   } = useGenericDiscoverQuery<
@@ -123,13 +123,13 @@ function SpanSummaryCharts() {
         <ChartPanel title={t('Average Duration')}>
           <Chart
             height={160}
-            data={[avgDurationData?.[`avg(${SpanMetricsField.SPAN_DURATION})`]]}
+            data={[avgDurationData?.[`avg(${SpanFields.SPAN_DURATION})`]]}
             loading={isAvgDurationDataLoading}
             type={ChartType.LINE}
             definedAxisTicks={4}
             aggregateOutputFormat="duration"
             error={avgDurationError}
-            chartColors={[AVG_COLOR]}
+            chartColors={[AVG_COLOR(theme)]}
           />
         </ChartPanel>
       </Block>
@@ -138,14 +138,14 @@ function SpanSummaryCharts() {
         <ChartPanel title={t('Span Throughput')}>
           <Chart
             height={160}
-            data={[throughputData?.[`spm()`]]}
+            data={[throughputData?.[`epm()`]]}
             loading={isThroughputDataLoading}
             type={ChartType.LINE}
             definedAxisTicks={4}
             aggregateOutputFormat="rate"
             rateUnit={RateUnit.PER_MINUTE}
             error={throughputError}
-            chartColors={[THROUGHPUT_COLOR]}
+            chartColors={[THROUGHPUT_COLOR(theme)]}
             tooltipFormatterOptions={{
               valueFormatter: value => formatRate(value, RateUnit.PER_MINUTE),
             }}
@@ -164,7 +164,7 @@ function SpanSummaryCharts() {
             aggregateOutputFormat="rate"
             rateUnit={RateUnit.PER_MINUTE}
             error={txnThroughputError}
-            chartColors={[TXN_THROUGHPUT_COLOR]}
+            chartColors={[TXN_THROUGHPUT_COLOR(theme)]}
             tooltipFormatterOptions={{
               valueFormatter: value => formatRate(value, RateUnit.PER_MINUTE),
             }}

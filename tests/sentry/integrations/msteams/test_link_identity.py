@@ -1,18 +1,18 @@
 import time
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
 
 from sentry.integrations.msteams.link_identity import build_linking_url
-from sentry.models.identity import Identity, IdentityStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.identity import Identity, IdentityStatus
 
 
 @control_silo_test
 class MsTeamsIntegrationLinkIdentityTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super(TestCase, self).setUp()
         self.user1 = self.create_user(is_superuser=False)
         self.user2 = self.create_user(is_superuser=False)
@@ -40,8 +40,8 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
         self.idp = self.create_identity_provider(type="msteams", external_id="1_50l3mnly_5w34r")
 
     @responses.activate
-    @patch("sentry.integrations.msteams.link_identity.unsign")
-    def test_basic_flow(self, unsign):
+    @patch("sentry.integrations.messaging.linkage.unsign")
+    def test_basic_flow(self, unsign: MagicMock) -> None:
         unsign.return_value = {
             "integration_id": self.integration.id,
             "organization_id": self.org.id,
@@ -93,8 +93,8 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
         assert len(responses.calls) == 2
 
     @responses.activate
-    @patch("sentry.integrations.msteams.link_identity.unsign")
-    def test_overwrites_existing_identities(self, unsign):
+    @patch("sentry.integrations.messaging.linkage.unsign")
+    def test_overwrites_existing_identities(self, unsign: MagicMock) -> None:
         Identity.objects.create(
             user=self.user1, idp=self.idp, external_id="h_p", status=IdentityStatus.VALID
         )

@@ -1,17 +1,17 @@
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
 class EventReprocessableEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
-    def test_simple(self):
-        min_ago = iso_format(before_now(minutes=1))
+    def test_simple(self) -> None:
+        min_ago = before_now(minutes=1).isoformat()
         event1 = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=self.project.id
         )

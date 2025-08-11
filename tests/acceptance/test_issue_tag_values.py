@@ -1,6 +1,6 @@
 from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
@@ -24,15 +24,15 @@ class IssueTagValuesTest(AcceptanceTestCase, SnubaTestCase):
 
     def create_issue(self):
         event_data = load_data("javascript")
-        event_data["timestamp"] = iso_format(before_now(minutes=1))
+        event_data["timestamp"] = before_now(minutes=1).isoformat()
         event_data["tags"] = {"url": "http://example.org/path?key=value"}
         return self.store_event(data=event_data, project_id=self.project.id)
 
-    def test_user_tag(self):
+    def test_user_tag(self) -> None:
         self.page.visit_tag_values(self.org.slug, self.event.group_id, "user")
         assert self.browser.element_exists_by_test_id("group-tag-mail")
 
-    def test_url_tag(self):
+    def test_url_tag(self) -> None:
         self.page.visit_tag_values(self.org.slug, self.event.group_id, "url")
 
         assert self.browser.element_exists_by_test_id("group-tag-url")

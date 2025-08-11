@@ -1,15 +1,13 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getJavaMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -17,6 +15,11 @@ import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersi
 export enum PackageManager {
   GRADLE = 'gradle',
   MAVEN = 'maven',
+}
+
+export enum YesNo {
+  YES = 'yes',
+  NO = 'no',
 }
 
 const platformOptions = {
@@ -30,6 +33,19 @@ const platformOptions = {
       {
         label: t('Maven'),
         value: PackageManager.MAVEN,
+      },
+    ],
+  },
+  opentelemetry: {
+    label: t('OpenTelemetry'),
+    items: [
+      {
+        label: t('With OpenTelemetry'),
+        value: YesNo.YES,
+      },
+      {
+        label: t('Without OpenTelemetry'),
+        value: YesNo.NO,
       },
     ],
   },
@@ -60,7 +76,7 @@ sentry {
   includeSourceContext = true
 
   org = "${params.organization.slug}"
-  projectName = "${params.projectSlug}"
+  projectName = "${params.project.slug}"
   authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }`;
 
@@ -78,7 +94,7 @@ const getMavenInstallSnippet = (params: Params) => `
 
         <org>${params.organization.slug}</org>
 
-        <project>${params.projectSlug}</project>
+        <project>${params.project.slug}</project>
 
         <!-- in case you're self hosting, provide the URL here -->
         <!--<url>http://localhost:8000/</url>-->
@@ -103,6 +119,27 @@ const getMavenInstallSnippet = (params: Params) => `
   ...
 </build>`;
 
+const getOpenTelemetryRunSnippet = (params: Params) => `
+SENTRY_PROPERTIES_FILE=sentry.properties java -javaagent:sentry-opentelemetry-agent-${getPackageVersion(params, 'sentry.java.opentelemetry-agent', '8.0.0')}.jar -jar your-application.jar
+`;
+
+const getSentryPropertiesSnippet = (params: Params) => `
+dsn=${params.dsn.public}
+# Add data like request headers and IP for users,
+# see https://docs.sentry.io/platforms/java/guides/logback/data-management/data-collected/ for more info
+send-default-pii=true${
+  params.isLogsSelected
+    ? `
+# Enable sending logs to Sentry
+logs.enabled=true`
+    : ''
+}${
+  params.isPerformanceSelected
+    ? `
+traces-sample-rate=1.0`
+    : ''
+}`;
+
 const getConsoleAppenderSnippet = (params: Params) => `
 <configuration>
   <!-- Configure the Console appender -->
@@ -113,10 +150,23 @@ const getConsoleAppenderSnippet = (params: Params) => `
   </appender>
 
   <!-- Configure the Sentry appender, overriding the logging threshold to the WARN level -->
-  <appender name="Sentry" class="io.sentry.logback.SentryAppender">
+  <appender name="Sentry" class="io.sentry.logback.SentryAppender">${
+    params.platformOptions.opentelemetry === YesNo.NO
+      ? `
     <options>
-      <dsn>${params.dsn}</dsn>
-    </options>
+      <dsn>${params.dsn.public}</dsn>
+      <!-- Add data like request headers and IP for users, see https://docs.sentry.io/platforms/java/guides/logback/data-management/data-collected/ for more info -->
+      <sendDefaultPii>true</sendDefaultPii>${
+        params.isLogsSelected
+          ? `
+      <logs>
+        <enabled>true</enabled>
+      </logs>`
+          : ''
+      }
+    </options>`
+      : ''
+  }
   </appender>
 
   <!-- Enable the Console and Sentry appenders, Console is provided as an example
@@ -128,14 +178,33 @@ const getConsoleAppenderSnippet = (params: Params) => `
 </configuration>`;
 
 const getLogLevelSnippet = (params: Params) => `
-<appender name="Sentry" class="io.sentry.logback.SentryAppender">
+<appender name="Sentry" class="io.sentry.logback.SentryAppender">${
+  params.platformOptions.opentelemetry === YesNo.NO
+    ? `
   <options>
-    <dsn>${params.dsn}</dsn>
-  </options>
+    <dsn>${params.dsn.public}</dsn>
+    <!-- Add data like request headers and IP for users, see https://docs.sentry.io/platforms/java/guides/logback/data-management/data-collected/ for more info -->
+    <sendDefaultPii>true</sendDefaultPii>${
+      params.isLogsSelected
+        ? `
+    <logs>
+      <enabled>true</enabled>
+    </logs>`
+        : ''
+    }
+  </options>`
+    : ''
+}
   <!-- Optionally change minimum Event level. Default for Events is ERROR -->
   <minimumEventLevel>WARN</minimumEventLevel>
   <!-- Optionally change minimum Breadcrumbs level. Default for Breadcrumbs is INFO -->
-  <minimumBreadcrumbLevel>DEBUG</minimumBreadcrumbLevel>
+  <minimumBreadcrumbLevel>DEBUG</minimumBreadcrumbLevel>${
+    params.isLogsSelected
+      ? `
+  <!-- Optionally change minimum Log level. Default for Log Events is INFO -->
+  <minimumLevel>DEBUG</minimumLevel>`
+      : ''
+  }
 </appender>`;
 
 const getVerifyJavaSnippet = () => `
@@ -180,9 +249,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       configurations: [
         {
           description: tct(
-            'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Auth Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
+            'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
             {
-              link: <Link to="/settings/auth-tokens/" />,
+              link: <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />,
             }
           ),
           language: 'bash',
@@ -223,6 +292,26 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               },
             ]
           : []),
+        ...(params.platformOptions.opentelemetry === YesNo.YES
+          ? [
+              {
+                description: tct(
+                  "When running your application, please add our [code:sentry-opentelemetry-agent] to the [code:java] command. You can download the latest version of the [code:sentry-opentelemetry-agent.jar] from [linkMC:MavenCentral]. It's also available as a [code:ZIP] containing the [code:JAR] used on this page on [linkGH:GitHub].",
+                  {
+                    code: <code />,
+                    linkMC: (
+                      <ExternalLink href="https://search.maven.org/artifact/io.sentry/sentry-opentelemetry-agent" />
+                    ),
+                    linkGH: (
+                      <ExternalLink href="https://github.com/getsentry/sentry-java/releases/" />
+                    ),
+                  }
+                ),
+                language: 'bash',
+                code: getOpenTelemetryRunSnippet(params),
+              },
+            ]
+          : []),
       ],
       additionalInfo: tct(
         'If you prefer to manually upload your source code to Sentry, please refer to [link:Manually Uploading Source Context].',
@@ -241,28 +330,53 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
         "Configure Sentry as soon as possible in your application's lifecycle:"
       ),
       configurations: [
+        ...(params.platformOptions.opentelemetry === YesNo.YES
+          ? [
+              {
+                type: StepType.CONFIGURE,
+                description: tct(
+                  "Here's the [code:sentry.properties] file that goes with the [code:java] command above:",
+                  {
+                    code: <code />,
+                  }
+                ),
+                configurations: [
+                  {
+                    label: 'Properties',
+                    value: 'properties',
+                    language: 'properties',
+                    code: getSentryPropertiesSnippet(params),
+                  },
+                ],
+              },
+            ]
+          : []),
         {
           language: 'xml',
           description: t(
             'The following example configures a ConsoleAppender that logs to standard out at the INFO level, and a SentryAppender that logs to the Sentry server at the ERROR level. This only an example of a non-Sentry appender set to a different logging threshold, similar to what you may already have in your project.'
           ),
           code: getConsoleAppenderSnippet(params),
-          additionalInfo: tct(
-            "You'll also need to configure your DSN (client key) if it's not already in the [code:logback.xml] configuration. Learn more in [link:our documentation for DSN configuration].",
-            {
-              code: <code />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/java/guides/logback/#dsn-configuration/" />
-              ),
-            }
-          ),
+          ...(params.platformOptions.opentelemetry === YesNo.YES
+            ? {}
+            : {
+                additionalInfo: tct(
+                  "You'll also need to configure your DSN (client key) if it's not already in the [code:logback.xml] configuration. Learn more in [link:our documentation for DSN configuration].",
+                  {
+                    code: <code />,
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/java/guides/logback/#configure" />
+                    ),
+                  }
+                ),
+              }),
         },
         {
           description: tct(
             "Next, you'll need to set your log levels, as illustrated here. You can learn more about [link:configuring log levels] in our documentation.",
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/java/guides/logback/#minimum-log-level/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/java/guides/logback/#minimum-log-level" />
               ),
             }
           ),
@@ -293,7 +407,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               code: getVerifyJavaSnippet(),
             },
             {
-              language: 'java',
+              language: 'kotlin',
               label: 'Kotlin',
               value: 'kotlin',
               code: getVerifyKotlinSnippet(),
@@ -342,7 +456,6 @@ const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiJava,
   crashReportOnboarding: feedbackOnboardingCrashApiJava,
-  customMetricsOnboarding: getJavaMetricsOnboarding(),
   platformOptions,
 };
 

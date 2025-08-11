@@ -47,7 +47,7 @@ describe('useUserTeams', () => {
 
     const {result} = renderHook(useUserTeams, {wrapper});
     const {teams} = result.current;
-    expect(teams.length).toBe(0);
+    expect(teams).toHaveLength(0);
 
     expect(TeamStore.getState().loading).toBe(true);
     expect(mockapi).toHaveBeenCalledTimes(0);
@@ -70,7 +70,7 @@ describe('useUserTeams', () => {
     const {result} = renderHook(useUserTeams, {wrapper});
     const {teams} = result.current;
 
-    expect(teams.length).toBe(1);
+    expect(teams).toHaveLength(1);
     expect(teams).toEqual(userTeams);
   });
 
@@ -86,7 +86,7 @@ describe('useUserTeams', () => {
     const {result} = renderHook(useUserTeams, {wrapper});
     const {teams} = result.current;
 
-    expect(teams.length).toBe(2);
+    expect(teams).toHaveLength(2);
     expect(teams).toEqual(userTeams.concat(nonUserTeams));
   });
 
@@ -105,7 +105,7 @@ describe('useUserTeams', () => {
     const {result} = renderHook(() => useUserTeams(), {wrapper});
     const {teams} = result.current;
 
-    expect(teams.length).toBe(2);
+    expect(teams).toHaveLength(2);
     expect(teams).toEqual(userTeams.concat(nonUserTeams));
   });
 });

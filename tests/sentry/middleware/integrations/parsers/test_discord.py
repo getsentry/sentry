@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 from django.http import HttpRequest, HttpResponse
@@ -10,6 +10,7 @@ from django.test import RequestFactory, override_settings
 from django.urls import reverse
 from rest_framework import status
 
+from sentry.integrations.discord.client import DISCORD_BASE_URL
 from sentry.integrations.discord.requests.base import DiscordRequestError, DiscordRequestTypes
 from sentry.integrations.middleware.hybrid_cloud.parser import create_async_request_payload
 from sentry.middleware.integrations.parsers.discord import DiscordRequestParser
@@ -29,7 +30,7 @@ class DiscordRequestParserTest(TestCase):
     def get_response(self, request: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization,
@@ -51,14 +52,14 @@ class DiscordRequestParserTest(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.discord.requests.base.verify_signature", return_value=None)
-    def test_interactions_endpoint_routing_ping(self, mock_verify_signature):
+    def test_interactions_endpoint_routing_ping(self, mock_verify_signature: MagicMock) -> None:
         data = {"guild_id": self.integration.external_id, "type": DiscordRequestTypes.PING}
         parser = self.get_parser(reverse("sentry-integration-discord-interactions"), data=data)
         integration = parser.get_integration_from_request()
         assert integration == self.integration
 
         response = parser.get_response()
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         data = json.loads(response.content)
         assert data == {"type": 1}
         assert len(responses.calls) == 0
@@ -69,26 +70,30 @@ class DiscordRequestParserTest(TestCase):
         "sentry.integrations.discord.requests.base.verify_signature",
         side_effect=DiscordRequestError(status=status.HTTP_401_UNAUTHORIZED),
     )
-    def test_interactions_endpoint_validation_failure(self, mock_verify_signature):
+    def test_interactions_endpoint_validation_failure(
+        self, mock_verify_signature: MagicMock
+    ) -> None:
         data = {"type": DiscordRequestTypes.PING}
         parser = self.get_parser(reverse("sentry-integration-discord-interactions"), data=data)
 
         response = parser.get_response()
-        assert response.status_code == 401
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert not response.content
         assert_no_webhook_payloads()
         assert len(responses.calls) == 0
 
     @responses.activate
     @patch("sentry.integrations.discord.requests.base.verify_signature", return_value=None)
-    def test_interactions_endpoint_routing_ping_no_integration(self, mock_verify_signature):
+    def test_interactions_endpoint_routing_ping_no_integration(
+        self, mock_verify_signature: MagicMock
+    ) -> None:
         # Discord PING without an identifier linking to an integration
         data = {"type": DiscordRequestTypes.PING}
         parser = self.get_parser(reverse("sentry-integration-discord-interactions"), data=data)
         assert parser.get_integration_from_request() is None
 
         response = parser.get_response()
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         data = json.loads(response.content)
         assert data == {"type": 1}
         assert_no_webhook_payloads()
@@ -96,7 +101,30 @@ class DiscordRequestParserTest(TestCase):
 
     @responses.activate
     @patch("sentry.integrations.discord.requests.base.verify_signature", return_value=None)
-    def test_interactions_endpoint_routing_command(self, mock_verify_signature):
+    def test_interactions_endpoint_routing_ping_no_org_integration(
+        self, mock_verify_signature: MagicMock
+    ) -> None:
+        # Discord PING without an identifier linking to an integration
+        integration = self.create_provider_integration(
+            provider="discord",
+            external_id="discord:234",
+        )
+
+        data = {
+            "data": {"name": "command_name"},
+            "type": int(DiscordRequestTypes.COMMAND),
+            "guild_id": integration.external_id,
+        }
+        parser = self.get_parser(reverse("sentry-integration-discord-interactions"), data=data)
+
+        response = parser.get_response()
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert_no_webhook_payloads()
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.integrations.discord.requests.base.verify_signature", return_value=None)
+    def test_interactions_endpoint_routing_command(self, mock_verify_signature: MagicMock) -> None:
         data = {
             "guild_id": self.integration.external_id,
             "data": {"name": "command_name"},
@@ -115,14 +143,16 @@ class DiscordRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 202
+        assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.content == b"region_response"
         assert len(responses.calls) == 1
         assert_no_webhook_payloads()
 
     @responses.activate
     @patch("sentry.integrations.discord.requests.base.verify_signature", return_value=None)
-    def test_interactions_endpoint_routing_command_no_integration(self, mock_verify_signature):
+    def test_interactions_endpoint_routing_command_no_integration(
+        self, mock_verify_signature: MagicMock
+    ) -> None:
         data = {
             "data": {"name": "command_name"},
             "type": int(DiscordRequestTypes.COMMAND),
@@ -132,13 +162,15 @@ class DiscordRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 400
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
 
     @responses.activate
     @patch("sentry.integrations.discord.requests.base.verify_signature", return_value=None)
-    def test_interactions_endpoint_routing_message_component(self, mock_verify_signature):
+    def test_interactions_endpoint_routing_message_component(
+        self, mock_verify_signature: MagicMock
+    ) -> None:
         data = {
             "guild_id": self.integration.external_id,
             "type": int(DiscordRequestTypes.MESSAGE_COMPONENT),
@@ -156,13 +188,13 @@ class DiscordRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 201
+        assert response.status_code == status.HTTP_201_CREATED
         assert response.content == b"region_response"
         assert len(responses.calls) == 1
         assert_no_webhook_payloads()
 
     @responses.activate
-    def test_control_classes(self):
+    def test_control_classes(self) -> None:
         params = sign(integration_id=self.integration.id, discord_id=self.discord_id)
         link_path = reverse(
             "sentry-integration-discord-link-identity",
@@ -180,7 +212,7 @@ class DiscordRequestParserTest(TestCase):
 
             response = parser.get_response()
             assert isinstance(response, HttpResponse)
-            assert response.status_code == 200
+            assert response.status_code == status.HTTP_200_OK
             assert response.content == b"passthrough"
             assert len(responses.calls) == 0
             assert_no_webhook_payloads()
@@ -188,8 +220,10 @@ class DiscordRequestParserTest(TestCase):
     @responses.activate
     @patch("sentry.middleware.integrations.parsers.discord.convert_to_async_discord_response")
     @patch("sentry.integrations.discord.requests.base.verify_signature", return_value=None)
-    def test_triggers_async_response(self, mock_verify_signature, mock_discord_task):
-        response_url = "https://discord.com/api/v10/webhooks/application_id/token"
+    def test_triggers_async_response(
+        self, mock_verify_signature: MagicMock, mock_discord_task: MagicMock
+    ) -> None:
+        response_url = f"{DISCORD_BASE_URL}/webhooks/application_id/token"
         data = {
             "application_id": "application_id",
             "token": "token",
@@ -207,31 +241,31 @@ class DiscordRequestParserTest(TestCase):
                 "response_url": response_url,
             }
         )
-        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert response.status_code == status.HTTP_200_OK
         assert json.loads(response.content) == parser.async_response_data
 
 
 @control_silo_test
 class End2EndTest(APITestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    def test_validation_failure(self):
+    def test_validation_failure(self) -> None:
         response = self.client.post(
             reverse("sentry-integration-discord-interactions"),
             data={"type": DiscordRequestTypes.PING},
         )
-        assert response.status_code == 401
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert not response.content
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch("sentry.integrations.discord.requests.base.verify_signature", return_value=None)
-    def test_discord_interaction_endpoint(self, mock_verify_signature):
+    def test_discord_interaction_endpoint(self, mock_verify_signature: MagicMock) -> None:
         response = self.client.post(
             reverse("sentry-integration-discord-interactions"),
             data={"type": DiscordRequestTypes.PING},
             HTTP_X_SIGNATURE_ED25519="signature",
             HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
         )
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         data = json.loads(response.content)
         assert data == {"type": 1}
         assert mock_verify_signature.call_count == 1

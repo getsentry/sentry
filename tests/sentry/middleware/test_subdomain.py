@@ -18,7 +18,7 @@ from sentry.testutils.silo import no_silo_test
 
 
 class SubdomainMiddlewareTest(TestCase):
-    def test_attaches_subdomain_attribute(self):
+    def test_attaches_subdomain_attribute(self) -> None:
 
         options = {
             "system.base-hostname": "us.dev.getsentry.net:8000",
@@ -89,16 +89,13 @@ urlpatterns = [
 
 
 @no_silo_test
-@override_settings(
-    ROOT_URLCONF=__name__,
-    SENTRY_SELF_HOSTED=False,
-)
+@override_settings(ROOT_URLCONF=__name__, SENTRY_SELF_HOSTED=False)
 class End2EndTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.middleware = settings.MIDDLEWARE
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.create_organization(name="albertos-apples")
 
         response = self.client.get(
@@ -112,7 +109,7 @@ class End2EndTest(APITestCase):
 
         response = self.client.get(
             reverse("test-endpoint"),
-            SERVER_NAME="albertos_apples.testserver",
+            HTTP_HOST="albertos_apples.testserver",
         )
         assert isinstance(response, HttpResponseRedirect)
         assert response.status_code == 302

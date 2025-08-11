@@ -3,28 +3,34 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Final, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Final, NotRequired, TypedDict
 
 import orjson
 import sentry_sdk
+from django.contrib.auth.models import AnonymousUser
 from django.db import connection
 from django.db.models import prefetch_related_objects
 from django.utils import timezone
 
-from sentry import features, options, projectoptions, release_health, roles
+from sentry import features, options, projectoptions, quotas, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles
-from sentry.api.serializers.types import OrganizationSerializerResponse, SerializedAvatarFields
+from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
-from sentry.constants import ObjectStatus, StatsPeriod
+from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus, StatsPeriod
 from sentry.digests import backend as digests
+from sentry.dynamic_sampling.utils import (
+    has_custom_dynamic_sampling,
+    has_dynamic_sampling,
+    is_project_mode_sampling,
+)
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.issues.highlights import get_highlight_preset_for_project
+from sentry.issues.highlights import HighlightPreset, get_highlight_preset_for_project
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.environment import EnvironmentProject
@@ -35,11 +41,17 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.release import Release
-from sentry.models.user import User
 from sentry.models.userreport import UserReport
 from sentry.release_health.base import CurrentAndPreviousCrashFreeRate
 from sentry.roles import organization_roles
+from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
+from sentry.tempest.utils import has_tempest_access
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
+
+if TYPE_CHECKING:
+    from sentry.api.serializers.models.organization import OrganizationSerializerResponse
 
 STATUS_LABELS = {
     ObjectStatus.ACTIVE: "active",
@@ -68,10 +80,10 @@ UNUSED_ON_FRONTEND_FEATURES: Final = "unusedFeatures"
 PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "profiling-ingest-unsampled-profiles",
     "discard-transaction",
-    "race-free-group-creation",
     "first-event-severity-calculation",
     "alert-filters",
     "servicehooks",
+    "similarity-embeddings",
 }
 
 
@@ -79,7 +91,9 @@ class CrashFreeRatesWithHealthData(CurrentAndPreviousCrashFreeRate):
     hasHealthData: bool
 
 
-def _get_team_memberships(team_list: Sequence[int], user: User) -> Iterable[OrganizationMemberTeam]:
+def _get_team_memberships(
+    team_list: Sequence[int], user: User | RpcUser | AnonymousUser
+) -> Iterable[OrganizationMemberTeam]:
     """Get memberships the user has in the provided team list"""
     if not user.is_authenticated:
         return []
@@ -92,8 +106,8 @@ def _get_team_memberships(team_list: Sequence[int], user: User) -> Iterable[Orga
 
 
 def get_access_by_project(
-    projects: Sequence[Project], user: User
-) -> MutableMapping[Project, MutableMapping[str, Any]]:
+    projects: Sequence[Project], user: User | RpcUser | AnonymousUser
+) -> dict[Project, dict[str, Any]]:
     request = env.request
 
     project_teams = ProjectTeam.objects.filter(project__in=projects).values_list(
@@ -113,8 +127,8 @@ def get_access_by_project(
     is_superuser = request and is_active_superuser(request) and request.user == user
     prefetch_related_objects(projects, "organization")
 
-    result = {}
-    has_team_roles_cache = {}
+    result: dict[Project, dict[str, Any]] = {}
+    has_team_roles_cache: dict[int, bool] = {}
     with sentry_sdk.start_span(op="project.check-access"):
         for project in projects:
             parent_teams = [t for t in project_to_teams.get(project.id, [])]
@@ -129,20 +143,20 @@ def get_access_by_project(
                 or (org_role and roles.get(org_role).is_global)
             )
 
-            team_scopes = set()
+            team_scopes: set[str] = set()
 
             if has_access:
                 # Project can be the child of several Teams, and the User can join
                 # several Teams and receive roles at each of them,
                 for member in member_teams:
-                    team_scopes = team_scopes.union(*[member.get_scopes(has_team_roles_cache)])
+                    team_scopes |= member.get_scopes(has_team_roles_cache)
 
                 if is_superuser:
                     org_role = organization_roles.get_top_dog().id
 
                 if org_role:
                     minimum_team_role = roles.get_minimum_team_role(org_role)
-                    team_scopes = team_scopes.union(minimum_team_role.scopes)
+                    team_scopes |= minimum_team_role.scopes
 
             result[project] = {
                 "is_member": is_member,
@@ -176,7 +190,9 @@ def get_environments_by_projects(projects: Sequence[Project]) -> MutableMapping[
 
 
 def get_features_for_projects(
-    all_projects: Sequence[Project], user: User, filter_unused_on_frontend_features: bool = False
+    all_projects: Sequence[Project],
+    user: User | RpcUser | AnonymousUser,
+    filter_unused_on_frontend_features: bool = False,
 ) -> MutableMapping[Project, list[str]]:
     # Arrange to call features.has_for_batch rather than features.has
     # for performance's sake
@@ -250,8 +266,8 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     firstTransactionEvent: bool
     access: list[str]
     hasAccess: bool
-    hasCustomMetrics: bool
     hasFeedbacks: bool
+    hasFlags: bool
     hasMinifiedStackTrace: bool
     hasMonitors: bool
     hasNewFeedbacks: bool
@@ -267,6 +283,9 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     hasInsightsCaches: bool
     hasInsightsQueues: bool
     hasInsightsLlmMonitoring: bool
+    hasInsightsAgentMonitoring: bool
+    hasInsightsMCP: bool
+    hasLogs: bool
 
 
 class ProjectSerializerResponse(ProjectSerializerBaseResponse):
@@ -274,7 +293,7 @@ class ProjectSerializerResponse(ProjectSerializerBaseResponse):
     isPublic: bool
     avatar: SerializedAvatarFields
     color: str
-    status: str  # TODO enum/literal
+    status: str  # TODO: enum/literal
 
 
 @register(Project)
@@ -304,7 +323,7 @@ class ProjectSerializer(Serializer):
         self.environment_id = environment_id
         self.stats_period = stats_period
         self.expand = expand
-        self.expand_context = expand_context
+        self.expand_context = expand_context or {}
         self.collapse = collapse
 
     def _expand(self, key: str) -> bool:
@@ -319,8 +338,8 @@ class ProjectSerializer(Serializer):
         return key in self.collapse
 
     def get_attrs(
-        self, item_list: Sequence[Project], user: User, **kwargs: Any
-    ) -> MutableMapping[Project, MutableMapping[str, Any]]:
+        self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: Any
+    ) -> dict[Project, dict[str, Any]]:
         def measure_span(op_tag):
             span = sentry_sdk.start_span(op=f"serialize.get_attrs.project.{op_tag}")
             span.set_data("Object Count", len(item_list))
@@ -344,9 +363,9 @@ class ProjectSerializer(Serializer):
             project_ids = [o.id for o in item_list]
 
             if self.stats_period:
-                stats = self.get_stats(project_ids, "!event.type:transaction")
+                stats = self.get_stats(item_list, "!event.type:transaction")
                 if self._expand("transaction_stats"):
-                    transaction_stats = self.get_stats(project_ids, "event.type:transaction")
+                    transaction_stats = self.get_stats(item_list, "event.type:transaction")
                 if self._expand("session_stats"):
                     session_stats = self.get_session_stats(project_ids)
 
@@ -391,26 +410,27 @@ class ProjectSerializer(Serializer):
                     serialized["options"] = options[project.id]
         return result
 
-    def get_stats(self, project_ids, query):
+    def get_stats(self, projects, query):
+        assert self.stats_period is not None
         # we need to compute stats at 1d (1h resolution), and 14d
         segments, interval = STATS_PERIOD_CHOICES[self.stats_period]
         now = timezone.now()
 
-        params = {
-            "project_id": project_ids,
-            "start": now - ((segments - 1) * interval),
-            "end": now,
-        }
+        snuba_params = SnubaParams(
+            projects=projects,
+            start=now - ((segments - 1) * interval),
+            end=now,
+        )
         if self.environment_id:
             query = f"{query} environment:{self.environment_id}"
 
         # Generate a query result to skip the top_events.find query
-        top_events = {"data": [{"project_id": p} for p in project_ids]}
+        top_events = {"data": [{"project_id": p.id} for p in projects]}
         stats = self.dataset.top_events_timeseries(
             timeseries_columns=["count()"],
             selected_columns=["project_id"],
             user_query=query,
-            params=params,
+            snuba_params=snuba_params,
             orderby="project_id",
             rollup=int(interval.total_seconds()),
             limit=10000,
@@ -419,18 +439,19 @@ class ProjectSerializer(Serializer):
             top_events=top_events,
         )
         results = {}
-        for project_id in project_ids:
+        for project in projects:
             serialized = []
-            str_id = str(project_id)
+            str_id = str(project.id)
             if str_id in stats:
                 for item in stats[str_id].data["data"]:
                     serialized.append((item["time"], item.get("count", 0)))
-            results[project_id] = serialized
+            results[project.id] = serialized
         return results
 
     def get_session_stats(
         self, project_ids: Sequence[int]
     ) -> dict[int, CrashFreeRatesWithHealthData]:
+        assert self.stats_period is not None
         segments, interval = STATS_PERIOD_CHOICES[self.stats_period]
 
         now = timezone.now()
@@ -476,23 +497,28 @@ class ProjectSerializer(Serializer):
 
     def get_options(self, projects):
         # no options specified
-        option_list = []
+        option_list: list[str] = []
 
         # must be a safe key
         if self.expand_context.get("options"):
-            option_list = self.expand_context.get("options")
-            option_list = [option for option in option_list if option in OPTION_KEYS]
+            option_list = [
+                option for option in self.expand_context["options"] if option in OPTION_KEYS
+            ]
 
         queryset = ProjectOption.objects.filter(project__in=projects, key__in=option_list)
 
-        options_by_project = defaultdict(dict)
+        options_by_project: dict[int, dict[str, Any]] = defaultdict(dict)
         for option in queryset:
             options_by_project[option.project_id][option.key] = option.value
 
         return options_by_project
 
     def serialize(
-        self, obj: Project, attrs: Mapping[str, Any], user: User
+        self,
+        obj: Project,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> ProjectSerializerResponse:
         status_label = STATUS_LABELS.get(obj.status, "unknown")
 
@@ -509,12 +535,12 @@ class ProjectSerializer(Serializer):
             "firstTransactionEvent": bool(obj.flags.has_transactions),
             "access": attrs["access"],
             "hasAccess": attrs["has_access"],
-            "hasCustomMetrics": bool(obj.flags.has_custom_metrics),
             "hasMinifiedStackTrace": bool(obj.flags.has_minified_stack_trace),
             "hasMonitors": bool(obj.flags.has_cron_monitors),
             "hasProfiles": bool(obj.flags.has_profiles),
             "hasReplays": bool(obj.flags.has_replays),
             "hasFeedbacks": bool(obj.flags.has_feedbacks),
+            "hasFlags": bool(obj.flags.has_flags),
             "hasNewFeedbacks": bool(obj.flags.has_new_feedbacks),
             "hasSessions": bool(obj.flags.has_sessions),
             # whether first span has been sent for each insight module
@@ -527,6 +553,9 @@ class ProjectSerializer(Serializer):
             "hasInsightsCaches": bool(obj.flags.has_insights_caches),
             "hasInsightsQueues": bool(obj.flags.has_insights_queues),
             "hasInsightsLlmMonitoring": bool(obj.flags.has_insights_llm_monitoring),
+            "hasInsightsAgentMonitoring": bool(obj.flags.has_insights_agent_monitoring),
+            "hasInsightsMCP": bool(obj.flags.has_insights_mcp),
+            "hasLogs": bool(obj.flags.has_logs),
             "isInternal": obj.is_internal_project(),
             "isPublic": obj.public,
             # Projects don't have avatar uploads, but we need to maintain the payload shape for
@@ -546,8 +575,8 @@ class ProjectSerializer(Serializer):
 
 class ProjectWithOrganizationSerializer(ProjectSerializer):
     def get_attrs(
-        self, item_list: Sequence[Project], user: User, **kwargs: Any
-    ) -> MutableMapping[Project, MutableMapping[str, Any]]:
+        self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: Any
+    ) -> dict[Project, dict[str, Any]]:
         attrs = super().get_attrs(item_list, user)
 
         orgs = {d["id"]: d for d in serialize(list({i.organization for i in item_list}), user)}
@@ -556,9 +585,8 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user, **kwargs):
-        data = super().serialize(obj, attrs, user)
-        data["organization"] = attrs["organization"]
-        return data
+        base = super().serialize(obj, attrs, user)
+        return {**base, "organization": attrs["organization"]}
 
 
 class TeamResponseDict(TypedDict):
@@ -567,15 +595,18 @@ class TeamResponseDict(TypedDict):
     slug: str
 
 
-class ProjectWithTeamResponseDict(ProjectSerializerResponse):
+class _MaybeTeam(TypedDict, total=False):
     team: TeamResponseDict
+
+
+class ProjectWithTeamResponseDict(ProjectSerializerResponse, _MaybeTeam):
     teams: list[TeamResponseDict]
 
 
 class ProjectWithTeamSerializer(ProjectSerializer):
     def get_attrs(
-        self, item_list: Sequence[Project], user: User, **kwargs: Any
-    ) -> MutableMapping[Project, MutableMapping[str, Any]]:
+        self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: Any
+    ) -> dict[Project, dict[str, Any]]:
         attrs = super().get_attrs(item_list, user)
 
         project_teams = list(
@@ -599,19 +630,20 @@ class ProjectWithTeamSerializer(ProjectSerializer):
             attrs[item]["teams"] = teams_by_project_id[item.id]
         return attrs
 
-    def serialize(self, obj, attrs, user) -> ProjectWithTeamResponseDict:
-        data = cast(ProjectWithTeamResponseDict, super().serialize(obj, attrs, user))
+    def serialize(
+        self,
+        obj: Project,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> ProjectWithTeamResponseDict:
+        base = super().serialize(obj, attrs, user)
         # TODO(jess): remove this when this is deprecated
         try:
-            data["team"] = attrs["teams"][0]
+            extra: _MaybeTeam = {"team": attrs["teams"][0]}
         except IndexError:
-            pass
-        data["teams"] = attrs["teams"]
-        return data
-
-
-class EventProcessingDict(TypedDict):
-    symbolicationDegraded: bool
+            extra = {}
+        return {**base, **extra, "teams": attrs["teams"]}
 
 
 class LatestReleaseDict(TypedDict):
@@ -620,6 +652,7 @@ class LatestReleaseDict(TypedDict):
 
 class _OrganizationProjectOptionalResponse(TypedDict, total=False):
     latestDeploys: dict[str, dict[str, str]] | None
+    options: dict[str, Any]
 
 
 class OrganizationProjectResponse(
@@ -627,11 +660,15 @@ class OrganizationProjectResponse(
 ):
     team: TeamResponseDict | None
     teams: list[TeamResponseDict]
-    eventProcessing: EventProcessingDict
     platforms: list[str]
     hasUserReports: bool
     environments: list[str]
     latestRelease: LatestReleaseDict | None
+
+
+class _DeployDict(TypedDict):
+    version: str
+    dateFinished: datetime
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
@@ -639,7 +676,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         self.access = access
         super().__init__(**kwargs)
 
-    def get_deploys_by_project(self, item_list):
+    def get_deploys_by_project(self, item_list) -> dict[int, dict[str, _DeployDict]]:
         cursor = connection.cursor()
         cursor.execute(
             """
@@ -674,7 +711,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             """,
             ([p.id for p in item_list], 10),
         )
-        deploys_by_project = defaultdict(dict)
+        deploys_by_project: dict[int, dict[str, _DeployDict]] = defaultdict(dict)
 
         for project_id, env_name, release_version, date_finished in cursor.fetchall():
             deploys_by_project[project_id][env_name] = {
@@ -685,8 +722,8 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         return deploys_by_project
 
     def get_attrs(
-        self, item_list: Sequence[Project], user: User, **kwargs: Any
-    ) -> MutableMapping[Project, MutableMapping[str, Any]]:
+        self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: Any
+    ) -> dict[Project, dict[str, Any]]:
         attrs = super().get_attrs(item_list, user)
 
         projects_with_user_reports = set(
@@ -700,9 +737,10 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         # Only fetch the latest release version key for each project to cut down on response size
         latest_release_versions = _get_project_to_release_version_mapping(item_list)
 
-        deploys_by_project = None
         if not self._collapse(LATEST_DEPLOYS_KEY):
             deploys_by_project = self.get_deploys_by_project(item_list)
+        else:
+            deploys_by_project = {}
 
         for item in item_list:
             attrs[item]["latest_release"] = latest_release_versions.get(item.id)
@@ -710,15 +748,15 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
-            # check if the project is in LPQ for any platform
-            # XXX(joshferge): determine if the frontend needs this flag at all
-            # removing redis call as was causing problematic latency issues
-            attrs[item]["symbolication_degraded"] = False
 
         return attrs
 
-    def serialize(
-        self, obj: Project, attrs: Mapping[str, Any], user: User
+    def serialize(  # type: ignore[override]  # intentionally different data shape
+        self,
+        obj: Project,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> OrganizationProjectResponse:
         context = OrganizationProjectResponse(
             team=attrs["teams"][0] if attrs["teams"] else None,
@@ -732,9 +770,6 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasAccess=attrs["has_access"],
             dateCreated=obj.date_added,
             environments=attrs["environments"],
-            eventProcessing={
-                "symbolicationDegraded": attrs["symbolication_degraded"],
-            },
             features=attrs["features"],
             firstEvent=obj.first_event,
             firstTransactionEvent=bool(obj.flags.has_transactions),
@@ -743,7 +778,6 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasReplays=bool(obj.flags.has_replays),
             hasFeedbacks=bool(obj.flags.has_feedbacks),
             hasNewFeedbacks=bool(obj.flags.has_new_feedbacks),
-            hasCustomMetrics=bool(obj.flags.has_custom_metrics),
             hasMonitors=bool(obj.flags.has_cron_monitors),
             hasMinifiedStackTrace=bool(obj.flags.has_minified_stack_trace),
             # whether first span has been sent for each insight module
@@ -756,21 +790,27 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasInsightsCaches=bool(obj.flags.has_insights_caches),
             hasInsightsQueues=bool(obj.flags.has_insights_queues),
             hasInsightsLlmMonitoring=bool(obj.flags.has_insights_llm_monitoring),
+            hasInsightsAgentMonitoring=bool(obj.flags.has_insights_agent_monitoring),
+            hasInsightsMCP=bool(obj.flags.has_insights_mcp),
+            hasLogs=bool(obj.flags.has_logs),
             platform=obj.platform,
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],
             hasUserReports=attrs["has_user_reports"],
+            hasFlags=bool(obj.flags.has_flags),
         )
         if not self._collapse(LATEST_DEPLOYS_KEY):
             context[LATEST_DEPLOYS_KEY] = attrs["deploys"]
-        if "stats" in attrs:
-            context.update(stats=attrs["stats"])
-        if "transactionStats" in attrs:
-            context.update(transactionStats=attrs["transactionStats"])
-        if "sessionStats" in attrs:
-            context.update(sessionStats=attrs["sessionStats"])
-        if "options" in attrs:
-            context.update(options=attrs["options"])
+
+        if attrs["has_access"] or user.is_staff:
+            if "stats" in attrs:
+                context["stats"] = attrs["stats"]
+            if "transactionStats" in attrs:
+                context["transactionStats"] = attrs["transactionStats"]
+            if "sessionStats" in attrs:
+                context["sessionStats"] = attrs["sessionStats"]
+            if "options" in attrs:
+                context["options"] = attrs["options"]
 
         return context
 
@@ -827,7 +867,7 @@ def bulk_fetch_project_latest_releases(projects: Sequence[Project]):
 
 def _get_project_to_release_version_mapping(
     item_list: Sequence[Project],
-) -> dict[str, dict[str, str]]:
+) -> dict[int, dict[str, str]]:
     """
     Return mapping of project_ID -> release version for the latest release in each project
     """
@@ -884,9 +924,12 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     verifySSL: bool
     scrubIPAddresses: bool
     scrapeJavaScript: bool
+    highlightTags: list[str]
+    highlightContext: dict[str, Any]
+    highlightPreset: HighlightPreset
     groupingConfig: str
+    derivedGroupingEnhancements: str
     groupingEnhancements: str
-    groupingEnhancementsBase: str | None
     secondaryGroupingExpiry: int
     secondaryGroupingConfig: str | None
     fingerprintingRules: str
@@ -898,20 +941,22 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     relayPiiConfig: str | None
     builtinSymbolSources: list[str]
     dynamicSamplingBiases: list[dict[str, str | bool]]
-    eventProcessing: dict[str, bool]
     symbolSources: str
-    extrapolateMetrics: bool
-    uptimeAutodetection: bool
+    isDynamicallySampled: bool
+    tempestFetchScreenshots: NotRequired[bool]
+    tempestFetchDumps: NotRequired[bool]
+    autofixAutomationTuning: NotRequired[str]
+    seerScannerAutomation: NotRequired[bool]
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
     def get_attrs(
-        self, item_list: Sequence[Project], user: User, **kwargs: Any
-    ) -> MutableMapping[Project, MutableMapping[str, Any]]:
+        self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: Any
+    ) -> dict[Project, dict[str, Any]]:
         attrs = super().get_attrs(item_list, user)
 
         queryset = ProjectOption.objects.filter(project__in=item_list, key__in=OPTION_KEYS)
-        options_by_project = defaultdict(dict)
+        options_by_project: dict[int, dict[str, Any]] = defaultdict(dict)
         for option in queryset.iterator():
             options_by_project[option.project_id][option.key] = option.value
 
@@ -933,111 +978,15 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         return attrs
 
     def serialize(
-        self, obj: Project, attrs: Mapping[str, Any], user: User
+        self,
+        obj: Project,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> DetailedProjectResponse:
         from sentry.plugins.base import plugins
 
-        data = super().serialize(obj, attrs, user)
-        data.update(
-            {
-                "latestRelease": attrs["latest_release"],
-                "options": self.format_options(attrs),
-                "digestsMinDelay": attrs["options"].get(
-                    "digests:mail:minimum_delay", digests.minimum_delay
-                ),
-                "digestsMaxDelay": attrs["options"].get(
-                    "digests:mail:maximum_delay", digests.maximum_delay
-                ),
-                "subjectPrefix": attrs["options"].get(
-                    "mail:subject_prefix", options.get("mail.subject-prefix")
-                ),
-                "allowedDomains": attrs["options"].get("sentry:origins", ["*"]),
-                "resolveAge": int(attrs["options"].get("sentry:resolve_age", 0)),
-                "dataScrubber": bool(attrs["options"].get("sentry:scrub_data", True)),
-                "dataScrubberDefaults": bool(attrs["options"].get("sentry:scrub_defaults", True)),
-                "safeFields": attrs["options"].get("sentry:safe_fields", []),
-                "storeCrashReports": convert_crashreport_count(
-                    attrs["options"].get("sentry:store_crash_reports"), allow_none=True
-                ),
-                "sensitiveFields": attrs["options"].get("sentry:sensitive_fields", []),
-                "subjectTemplate": attrs["options"].get("mail:subject_template")
-                or DEFAULT_SUBJECT_TEMPLATE.template,
-                "securityToken": attrs["options"].get("sentry:token") or obj.get_security_token(),
-                "securityTokenHeader": attrs["options"].get("sentry:token_header"),
-                "verifySSL": bool(attrs["options"].get("sentry:verify_ssl", False)),
-                "scrubIPAddresses": bool(attrs["options"].get("sentry:scrub_ip_address", False)),
-                "scrapeJavaScript": bool(attrs["options"].get("sentry:scrape_javascript", True)),
-                "highlightTags": attrs["options"].get(
-                    "sentry:highlight_tags",
-                    attrs["highlight_preset"].get("tags", []),
-                ),
-                "highlightContext": attrs["options"].get(
-                    "sentry:highlight_context",
-                    attrs["highlight_preset"].get("context", {}),
-                ),
-                "highlightPreset": attrs["highlight_preset"],
-                "groupingConfig": self.get_value_with_default(attrs, "sentry:grouping_config"),
-                "groupingEnhancements": self.get_value_with_default(
-                    attrs, "sentry:grouping_enhancements"
-                ),
-                "groupingEnhancementsBase": self.get_value_with_default(
-                    attrs, "sentry:grouping_enhancements_base"
-                ),
-                "secondaryGroupingExpiry": self.get_value_with_default(
-                    attrs, "sentry:secondary_grouping_expiry"
-                ),
-                "secondaryGroupingConfig": self.get_value_with_default(
-                    attrs, "sentry:secondary_grouping_config"
-                ),
-                "fingerprintingRules": self.get_value_with_default(
-                    attrs, "sentry:fingerprinting_rules"
-                ),
-                "organization": attrs["org"],
-                "plugins": serialize(
-                    [
-                        plugin
-                        for plugin in plugins.configurable_for_project(obj, version=None)
-                        if plugin.has_project_conf()
-                    ],
-                    user,
-                    PluginSerializer(obj),
-                ),
-                "platforms": attrs["platforms"],
-                "processingIssues": attrs["processing_issues"],
-                "defaultEnvironment": attrs["options"].get("sentry:default_environment"),
-                "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
-                "relayCustomMetricCardinalityLimit": self.get_custom_metric_cardinality_limit(
-                    attrs
-                ),
-                "builtinSymbolSources": self.get_value_with_default(
-                    attrs, "sentry:builtin_symbol_sources"
-                ),
-                "dynamicSamplingBiases": self.get_value_with_default(
-                    attrs, "sentry:dynamic_sampling_biases"
-                ),
-                "eventProcessing": {
-                    "symbolicationDegraded": False,
-                },
-            }
-        )
-
-        if features.has("organizations:metrics-extrapolation", obj.organization):
-            data.update(
-                {
-                    "extrapolateMetrics": bool(
-                        attrs["options"].get("sentry:extrapolate_metrics", False)
-                    )
-                }
-            )
-
-        if features.has("organizations:uptime-settings", obj.organization):
-            data.update(
-                {
-                    "uptimeAutodetection": bool(
-                        attrs["options"].get("sentry:uptime_autodetection", True)
-                    )
-                }
-            )
+        base = super().serialize(obj, attrs, user)
 
         custom_symbol_sources_json = attrs["options"].get("sentry:symbol_sources")
         try:
@@ -1051,35 +1000,115 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             redacted_sources = redact_source_secrets(sources)
             serialized_sources = orjson.dumps(redacted_sources, option=orjson.OPT_UTC_Z).decode()
 
-        data.update(
-            {
-                "symbolSources": serialized_sources,
-            }
-        )
+        sample_rate = None
+
+        if has_custom_dynamic_sampling(obj.organization):
+            if is_project_mode_sampling(obj.organization):
+                sample_rate = obj.get_option("sentry:target_sample_rate")
+            else:
+                sample_rate = obj.organization.get_option(
+                    "sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT
+                )
+        elif has_dynamic_sampling(obj.organization):
+            sample_rate = quotas.backend.get_blended_sample_rate(
+                organization_id=obj.organization.id
+            )
+        data: DetailedProjectResponse = {
+            **base,
+            "latestRelease": attrs["latest_release"],
+            "options": self.format_options(attrs),
+            "digestsMinDelay": attrs["options"].get(
+                "digests:mail:minimum_delay", digests.minimum_delay
+            ),
+            "digestsMaxDelay": attrs["options"].get(
+                "digests:mail:maximum_delay", digests.maximum_delay
+            ),
+            "subjectPrefix": attrs["options"].get(
+                "mail:subject_prefix", options.get("mail.subject-prefix")
+            ),
+            "allowedDomains": attrs["options"].get("sentry:origins", ["*"]),
+            "resolveAge": int(attrs["options"].get("sentry:resolve_age", 0)),
+            "dataScrubber": bool(attrs["options"].get("sentry:scrub_data", True)),
+            "dataScrubberDefaults": bool(attrs["options"].get("sentry:scrub_defaults", True)),
+            "safeFields": attrs["options"].get("sentry:safe_fields", []),
+            "storeCrashReports": convert_crashreport_count(
+                attrs["options"].get("sentry:store_crash_reports"), allow_none=True
+            ),
+            "sensitiveFields": attrs["options"].get("sentry:sensitive_fields", []),
+            "subjectTemplate": attrs["options"].get("mail:subject_template")
+            or DEFAULT_SUBJECT_TEMPLATE.template,
+            "securityToken": attrs["options"].get("sentry:token") or obj.get_security_token(),
+            "securityTokenHeader": attrs["options"].get("sentry:token_header"),
+            "verifySSL": bool(attrs["options"].get("sentry:verify_ssl", False)),
+            "scrubIPAddresses": bool(attrs["options"].get("sentry:scrub_ip_address", False)),
+            "scrapeJavaScript": bool(attrs["options"].get("sentry:scrape_javascript", True)),
+            "highlightTags": attrs["options"].get(
+                "sentry:highlight_tags",
+                attrs["highlight_preset"].get("tags", []),
+            ),
+            "highlightContext": attrs["options"].get(
+                "sentry:highlight_context",
+                attrs["highlight_preset"].get("context", {}),
+            ),
+            "highlightPreset": attrs["highlight_preset"],
+            "groupingConfig": self.get_value_with_default(attrs, "sentry:grouping_config"),
+            "groupingEnhancements": self.get_value_with_default(
+                attrs, "sentry:grouping_enhancements"
+            ),
+            "derivedGroupingEnhancements": self.get_value_with_default(
+                attrs, "sentry:derived_grouping_enhancements"
+            ),
+            "secondaryGroupingExpiry": self.get_value_with_default(
+                attrs, "sentry:secondary_grouping_expiry"
+            ),
+            "secondaryGroupingConfig": self.get_value_with_default(
+                attrs, "sentry:secondary_grouping_config"
+            ),
+            "fingerprintingRules": self.get_value_with_default(
+                attrs, "sentry:fingerprinting_rules"
+            ),
+            "organization": attrs["org"],
+            "plugins": serialize(
+                [
+                    plugin
+                    for plugin in plugins.configurable_for_project(obj, version=None)
+                    if plugin.has_project_conf()
+                ],
+                user,
+                PluginSerializer(obj),
+            ),
+            "platforms": attrs["platforms"],
+            "processingIssues": attrs["processing_issues"],
+            "defaultEnvironment": attrs["options"].get("sentry:default_environment"),
+            "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
+            "builtinSymbolSources": self.get_value_with_default(
+                attrs, "sentry:builtin_symbol_sources"
+            ),
+            "dynamicSamplingBiases": self.get_value_with_default(
+                attrs, "sentry:dynamic_sampling_biases"
+            ),
+            "symbolSources": serialized_sources,
+            "isDynamicallySampled": sample_rate is not None and sample_rate < 1.0,
+            "autofixAutomationTuning": self.get_value_with_default(
+                attrs, "sentry:autofix_automation_tuning"
+            ),
+            "seerScannerAutomation": self.get_value_with_default(
+                attrs, "sentry:seer_scanner_automation"
+            ),
+        }
+
+        if has_tempest_access(obj.organization, user):
+            data["tempestFetchScreenshots"] = attrs["options"].get(
+                "sentry:tempest_fetch_screenshots", False
+            )
+            data["tempestFetchDumps"] = attrs["options"].get("sentry:tempest_fetch_dumps", False)
 
         return data
 
-    def get_custom_metric_cardinality_limit(self, attrs):
-        cardinalityLimits = attrs["options"].get("relay.cardinality-limiter.limits", [])
-        for limit in cardinalityLimits or ():
-            if limit.get("limit", {}).get("id") == "project-override-custom":
-                return limit.get("limit", {}).get("limit", None)
-
-        return None
-
-    def get_audit_log_data(self):
-        return {
-            "id": self.id,
-            "slug": self.slug,
-            "name": self.name,
-            "status": self.status,
-            "public": self.public,
-        }
-
-    def format_options(self, attrs: dict[str, Any]) -> dict[str, Any]:
+    def format_options(self, attrs: Mapping[str, Any]) -> dict[str, Any]:
         options = attrs["options"]
 
-        formatted_options = {
+        return {
             "sentry:csp_ignored_sources_defaults": bool(
                 options.get("sentry:csp_ignored_sources_defaults", True)
             ),
@@ -1099,6 +1128,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             f"filters:{FilterTypes.ERROR_MESSAGES}": "\n".join(
                 options.get(f"sentry:{FilterTypes.ERROR_MESSAGES}", [])
             ),
+            f"filters:{FilterTypes.LOG_MESSAGES}": "\n".join(
+                options.get(f"sentry:{FilterTypes.LOG_MESSAGES}", [])
+            ),
             "feedback:branding": options.get("feedback:branding", "1") == "1",
             "sentry:feedback_user_report_notifications": bool(
                 self.get_value_with_default(attrs, "sentry:feedback_user_report_notifications")
@@ -1112,10 +1144,11 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:replay_hydration_error_issues": self.get_value_with_default(
                 attrs, "sentry:replay_hydration_error_issues"
             ),
+            "sentry:toolbar_allowed_origins": "\n".join(
+                self.get_value_with_default(attrs, "sentry:toolbar_allowed_origins") or []
+            ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
         }
-
-        return formatted_options
 
     def get_value_with_default(self, attrs, key):
         value = attrs["options"].get(key)
@@ -1128,39 +1161,10 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
 class SharedProjectSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
-        from sentry import features
-
-        feature_list = []
-        for feature in ():
-            if features.has("projects:" + feature, obj, actor=user):
-                feature_list.append(feature)
-
         return {
             "slug": obj.slug,
             "name": obj.name,
             "color": obj.color,
-            "features": feature_list,
+            "features": [],
             "organization": {"slug": obj.organization.slug, "name": obj.organization.name},
-        }
-
-
-class MinimalProjectSerializer(Serializer):
-    def get_attrs(self, item_list: Sequence[Project], user: User, **kwargs: Any):
-        environments_by_project = get_environments_by_projects(item_list)
-        memberships_by_project = get_access_by_project(item_list, user)
-        return {
-            project: {
-                "environments": environments_by_project[project.id],
-                "isMember": memberships_by_project[project]["is_member"],
-            }
-            for project in item_list
-        }
-
-    def serialize(self, obj: Project, attrs: Mapping[str, Any], user: User):
-        return {
-            "slug": obj.slug,
-            "id": obj.id,
-            "platform": obj.platform,
-            "environments": attrs["environments"],
-            "isMember": attrs["isMember"],
         }

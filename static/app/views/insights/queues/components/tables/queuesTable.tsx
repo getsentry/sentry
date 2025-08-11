@@ -1,43 +1,40 @@
 import {Fragment} from 'react';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import qs from 'qs';
+import * as qs from 'query-string';
 
+import {Link} from 'sentry/components/core/link';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
-} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
-import type {CursorHandler} from 'sentry/components/pagination';
-import Pagination from 'sentry/components/pagination';
+} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {useQueuesByDestinationQuery} from 'sentry/views/insights/queues/queries/useQueuesByDestinationQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
-import {
-  ModuleName,
-  SpanFunction,
-  SpanIndexedField,
-  type SpanMetricsResponse,
-} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
 
 type Row = Pick<
-  SpanMetricsResponse,
+  SpanResponse,
   | 'sum(span.duration)'
   | 'messaging.destination.name'
   | 'avg(messaging.message.receive.latency)'
-  | `avg_if(${string},${string},${string})`
+  | `avg_if(${string},${string},${string},${string})`
   | `count_op(${string})`
 >;
 
@@ -55,7 +52,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'avg_if(span.duration,span.op,queue.process)',
+    key: 'avg_if(span.duration,span.op,equals,queue.process)',
     name: t('Avg Processing Time'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -75,19 +72,20 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage(app,span.duration)',
+    key: 'sum(span.duration)',
     name: t('Time Spent'),
     width: COL_WIDTH_UNDEFINED,
   },
 ];
 
 const SORTABLE_FIELDS = [
-  SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME,
+  SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME,
   'count_op(queue.publish)',
   'count_op(queue.process)',
-  'avg_if(span.duration,span.op,queue.process)',
+  'avg_if(span.duration,span.op,equals,queue.process)',
   'avg(messaging.message.receive.latency)',
-  `${SpanFunction.TIME_SPENT_PERCENTAGE}(app,span.duration)`,
+  `sum(span.duration)`,
+  'trace_status_rate(ok)',
 ] as const;
 
 type ValidSort = Sort & {
@@ -95,7 +93,7 @@ type ValidSort = Sort & {
 };
 
 export function isAValidSort(sort: Sort): sort is ValidSort {
-  return (SORTABLE_FIELDS as ReadonlyArray<string>).includes(sort.field);
+  return (SORTABLE_FIELDS as readonly string[]).includes(sort.field);
 }
 
 interface Props {
@@ -106,17 +104,19 @@ interface Props {
 }
 
 export function QueuesTable({error, destination, sort}: Props) {
+  const theme = useTheme();
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
 
-  const {data, isLoading, meta, pageLinks} = useQueuesByDestinationQuery({
+  const {data, isPending, meta, pageLinks} = useQueuesByDestinationQuery({
     destination,
     sort,
     referrer: Referrer.QUEUES_LANDING_DESTINATIONS_TABLE,
   });
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [QueryParameterNames.DESTINATIONS_CURSOR]: newCursor},
     });
@@ -126,7 +126,7 @@ export function QueuesTable({error, destination, sort}: Props) {
     <Fragment>
       <GridEditable
         aria-label={t('Queues')}
-        isLoading={isLoading}
+        isLoading={isPending}
         error={error}
         data={data}
         columnOrder={COLUMN_ORDER}
@@ -145,7 +145,7 @@ export function QueuesTable({error, destination, sort}: Props) {
               sortParameterName: QueryParameterNames.DESTINATIONS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization),
+            renderBodyCell(column, row, meta, location, organization, theme),
         }}
       />
 
@@ -169,9 +169,11 @@ function renderBodyCell(
   row: Row,
   meta: EventsMetaType | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
   const key = column.key;
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   if (row[key] === undefined) {
     return (
       <AlignRight>
@@ -185,6 +187,7 @@ function renderBodyCell(
   }
 
   if (key.startsWith('count')) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <AlignRight>{formatAbbreviatedNumber(row[key])}</AlignRight>;
   }
 
@@ -198,12 +201,14 @@ function renderBodyCell(
     const formatter = FIELD_FORMATTERS.percentage.renderFunc;
     return (
       <AlignRight>
+        {/* @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message */}
         {formatter(key, {'trace_status_rate(ok)': 1 - (row[key] ?? 0)})}
       </AlignRight>
     );
   }
 
   if (!meta?.fields) {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return row[column.key];
   }
 
@@ -212,6 +217,7 @@ function renderBodyCell(
     location,
     organization,
     unit: meta.units?.[column.key],
+    theme,
   });
 }
 
@@ -240,5 +246,5 @@ const AlignRight = styled('span')`
 `;
 
 const NoValue = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;

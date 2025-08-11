@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import re
 from collections import namedtuple
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from copy import copy, deepcopy
 from datetime import datetime, timezone
 from re import Match
@@ -38,13 +40,14 @@ from sentry.search.events.constants import (
     SEARCH_MAP,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
+    TYPED_TAG_KEY_RE,
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
 )
 from sentry.search.events.types import NormalizedArg, ParamsType
 from sentry.search.utils import InvalidQuery, parse_duration
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.sdk import set_measurement
+from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import (
     SESSIONS_SNUBA_MAP,
     get_json_type,
@@ -74,12 +77,13 @@ class PseudoField:
 
         self.validate()
 
-    def get_expression(self, params) -> list[Any] | tuple[Any]:
-        if isinstance(self.expression, (list, tuple)):
+    def get_expression(self, params) -> list[Any] | None:
+        if self.expression is not None:
             return deepcopy(self.expression)
         elif self.expression_fn is not None:
             return self.expression_fn(params)
-        return None
+        else:
+            return None
 
     def get_field(self, params=None):
         expression = self.get_expression(params)
@@ -88,7 +92,7 @@ class PseudoField:
             return expression
         return self.alias
 
-    def validate(self):
+    def validate(self) -> None:
         assert self.alias is not None, f"{self.name}: alias is required"
         assert (
             self.expression is None or self.expression_fn is None
@@ -131,7 +135,7 @@ def project_threshold_config_expression(
         "project_threshold.count.grouped",
         format_grouped_length(num_project_thresholds, [10, 100, 250, 500]),
     )
-    set_measurement("project_threshold.count", num_project_thresholds)
+    set_span_attribute("project_threshold.count", num_project_thresholds)
 
     num_transaction_thresholds = transaction_threshold_configs.count()
     sentry_sdk.set_tag("txn_threshold.count", num_transaction_thresholds)
@@ -139,7 +143,7 @@ def project_threshold_config_expression(
         "txn_threshold.count.grouped",
         format_grouped_length(num_transaction_thresholds, [10, 100, 250, 500]),
     )
-    set_measurement("txn_threshold.count", num_transaction_thresholds)
+    set_span_attribute("txn_threshold.count", num_transaction_thresholds)
 
     if num_project_thresholds + num_transaction_thresholds == 0:
         return ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]]
@@ -279,7 +283,7 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
     sentry_sdk.set_tag(
         "team_key_txns.count.grouped", format_grouped_length(count, [10, 100, 250, 500])
     )
-    set_measurement("team_key_txns.count", count)
+    set_span_attribute("team_key_txns.count", count)
 
     # There are no team key transactions marked, so hard code false into the query.
     if count == 0:
@@ -323,6 +327,8 @@ def normalize_count_if_value(args: Mapping[str, str]) -> float | str | int:
     """
     column = args["column"]
     value = args["value"]
+
+    normalized_value: float | str | int
     if (
         column == "transaction.duration"
         or is_duration_measurement(column)
@@ -447,7 +453,7 @@ FIELD_ALIASES = {
 }
 
 
-def format_column_arguments(column_args, arguments):
+def format_column_arguments(column_args, arguments) -> None:
     for i in range(len(column_args)):
         if isinstance(column_args[i], (list, tuple)):
             if isinstance(column_args[i][0], ArgValue):
@@ -459,30 +465,37 @@ def format_column_arguments(column_args, arguments):
             column_args[i] = arguments[column_args[i].arg]
 
 
-def parse_arguments(function: str, columns: str) -> list[str]:
+def _lookback(columns, j, string):
+    """For parse_arguments, check that the current character is preceeded by string"""
+    if j < len(string):
+        return False
+    return columns[j - len(string) : j] == string
+
+
+def parse_arguments(_function: str, columns: str) -> list[str]:
     """
     Some functions take a quoted string for their arguments that may contain commas,
     which requires special handling.
     This function attempts to be identical with the similarly named parse_arguments
     found in static/app/utils/discover/fields.tsx
     """
-    if (function != "to_other" and function != "count_if" and function != "spans_histogram") or len(
-        columns
-    ) == 0:
-        return [c.strip() for c in columns.split(",") if len(c.strip()) > 0]
-
     args = []
 
     quoted = False
+    in_tag = False
     escaped = False
 
     i, j = 0, 0
 
     while j < len(columns):
-        if i == j and columns[j] == '"':
+        if not in_tag and i == j and columns[j] == '"':
             # when we see a quote at the beginning of
             # an argument, then this is a quoted string
             quoted = True
+        elif not quoted and columns[j] == "[" and _lookback(columns, j, "tags"):
+            # when the argument begins with tags[,
+            # then this is the beginning of the tag that may contain commas
+            in_tag = True
         elif i == j and columns[j] == " ":
             # argument has leading spaces, skip over them
             i += 1
@@ -494,12 +507,16 @@ def parse_arguments(function: str, columns: str) -> list[str]:
             # when we see a non-escaped quote while inside
             # of a quoted string, we should end it
             quoted = False
+        elif in_tag and not escaped and columns[j] == "]":
+            # when we see a non-escaped quote while inside
+            # of a quoted string, we should end it
+            in_tag = False
         elif quoted and escaped:
             # when we are inside a quoted string and have
             # begun an escape character, we should end it
             escaped = False
-        elif quoted and columns[j] == ",":
-            # when we are inside a quoted string and see
+        elif (quoted or in_tag) and columns[j] == ",":
+            # when we are inside a quoted string or tag and see
             # a comma, it should not be considered an
             # argument separator
             pass
@@ -542,7 +559,7 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
     if params is not None and field in params.get("aliases", {}):
         alias = params["aliases"][field]
         return ResolvedFunction(
-            FunctionDetails(field, FUNCTIONS["percentage"], []),
+            FunctionDetails(field, FUNCTIONS["percentage"], {}),
             None,
             alias.aggregate,
         )
@@ -649,12 +666,15 @@ def parse_function(field, match=None, err_msg=None):
     )
 
 
-def is_function(field: NormalizedArg) -> Match[str] | None:
-    function_match = FUNCTION_PATTERN.search(field)
-    if function_match:
-        return function_match
+def is_function(field: str) -> Match[str] | None:
+    return FUNCTION_PATTERN.search(field)
 
-    return None
+
+def is_typed_numeric_tag(key: str) -> bool:
+    match = TYPED_TAG_KEY_RE.search(key)
+    if match and match.group("type") == "number":
+        return True
+    return False
 
 
 def get_function_alias(field: str) -> str:
@@ -783,15 +803,15 @@ class FunctionArg:
         self.name = name
         self.has_default = False
 
-    def get_default(self, _):
+    def get_default(self, _) -> object:
         raise InvalidFunctionArgument(f"{self.name} has no defaults")
 
     def normalize(
         self, value: str, params: ParamsType, combinator: Combinator | None
-    ) -> NormalizedArg:
+    ) -> str | float | datetime | list[Any] | None:
         return value
 
-    def get_type(self, _):
+    def get_type(self, _) -> str:
         raise InvalidFunctionArgument(f"{self.name} has no type defined")
 
 
@@ -941,7 +961,7 @@ class NullableNumberRange(NumberRange):
         return None
 
     def normalize(
-        self, value: str, params: ParamsType, combinator: Combinator | None
+        self, value: str | None, params: ParamsType, combinator: Combinator | None
     ) -> float | None:
         if value is None:
             return value
@@ -969,9 +989,7 @@ class TimestampArg(FunctionArg):
     def __init__(self, name: str):
         super().__init__(name)
 
-    def normalize(
-        self, value: str, params: ParamsType, combinator: Combinator | None
-    ) -> float | None:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> datetime:
         if not params or not params.get("start") or not params.get("end"):
             raise InvalidFunctionArgument("function called without date range")
 
@@ -1012,7 +1030,9 @@ class ColumnArg(FunctionArg):
         # Normalize the value to check if it is valid, but return the value as-is
         self.validate_only = validate_only
 
-    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
+    def normalize(
+        self, value: str, params: ParamsType, combinator: Combinator | None
+    ) -> str | list[Any]:
         snuba_column = SEARCH_MAP.get(value)
         if len(self.allowed_columns) > 0:
             if (
@@ -1036,7 +1056,9 @@ class ColumnArg(FunctionArg):
 class ColumnTagArg(ColumnArg):
     """Validate that the argument is either a column or a valid tag"""
 
-    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
+    def normalize(
+        self, value: str, params: ParamsType, combinator: Combinator | None
+    ) -> str | list[Any]:
         if TAG_KEY_RE.match(value) or VALID_FIELD_PATTERN.match(value):
             return value
         return super().normalize(value, params, combinator)
@@ -1050,7 +1072,9 @@ class CountColumn(ColumnArg):
     def get_default(self, _) -> None:
         return None
 
-    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
+    def normalize(
+        self, value: str, params: ParamsType, combinator: Combinator | None
+    ) -> str | list[Any]:
         if value is None:
             raise InvalidFunctionArgument("a column is required")
 
@@ -1113,7 +1137,16 @@ class NumericColumn(ColumnArg):
         # this even in child classes where `normalize` have been overridden.
         # Shortcutting this for now
         # TODO: handle different datasets better here
-        if self.spans and value in ["span.duration", "span.self_time"]:
+        if self.spans and value in [
+            "span.duration",
+            "span.self_time",
+            "ai.total_tokens.used",
+            "ai.total_cost",
+            "cache.item_size",
+            "http.decoded_response_content_length",
+            "http.response_content_length",
+            "http.response_transfer_size",
+        ]:
             return value
         snuba_column = SEARCH_MAP.get(value)
         if not snuba_column and is_measurement(value):
@@ -1121,6 +1154,9 @@ class NumericColumn(ColumnArg):
         if not snuba_column and is_span_op_breakdown(value):
             return value
         if not snuba_column and is_mri(value):
+            return value
+        match = TYPED_TAG_KEY_RE.search(value)
+        if match and match.group("type") == "number":
             return value
         if not snuba_column:
             raise InvalidFunctionArgument(f"{value} is not a valid column")
@@ -1150,7 +1186,7 @@ class NumericColumn(ColumnArg):
         else:
             return snuba_column
 
-    def get_type(self, value: str) -> str:
+    def get_type(self, value: str | list[Any]) -> str:
         if isinstance(value, str) and value in self.numeric_array_columns:
             return "number"
 
@@ -1165,6 +1201,8 @@ class NumericColumn(ColumnArg):
                 expression = field.get_expression(None)
                 if expression == value:
                     return field.result_type
+            else:
+                raise AssertionError(f"unreachable: {value}")
 
         if value in self.measurement_aliases:
             return "percentage"
@@ -1378,8 +1416,8 @@ class DiscoverFunction:
                 normalized_value = argument.normalize(column, params, combinator)
                 if not isinstance(self, SnQLFunction) and isinstance(argument, NumericColumn):
                     if normalized_value in argument.measurement_aliases:
-                        field = FIELD_ALIASES[normalized_value]
-                        normalized_value = field.get_expression(params)
+                        field_obj = FIELD_ALIASES[normalized_value]
+                        normalized_value = field_obj.get_expression(params)
                     elif normalized_value in NumericColumn.numeric_array_columns:
                         normalized_value = ["arrayJoin", [normalized_value]]
                 arguments[argument.name] = normalized_value
@@ -1403,7 +1441,7 @@ class DiscoverFunction:
         self.validate_result_type(result_type)
         return result_type
 
-    def validate(self):
+    def validate(self) -> None:
         # assert that all optional args have defaults available
         for i, arg in enumerate(self.optional_args):
             assert (
@@ -1469,7 +1507,7 @@ class DiscoverFunction:
                     f"{field}: expected at most {total_args_count:g} argument(s) but got {args_count:g} argument(s)"
                 )
 
-    def validate_result_type(self, result_type):
+    def validate_result_type(self, result_type) -> None:
         assert (
             result_type is None or result_type in RESULT_TYPES
         ), f"{self.name}: result type {result_type} not one of {list(RESULT_TYPES)}"
@@ -1629,9 +1667,9 @@ FUNCTIONS = {
             calculated_args=[
                 {
                     "name": "tolerated",
-                    "fn": lambda args: args["satisfaction"] * 4.0
-                    if args["satisfaction"] is not None
-                    else None,
+                    "fn": lambda args: (
+                        args["satisfaction"] * 4.0 if args["satisfaction"] is not None else None
+                    ),
                 }
             ],
             conditional_transform=ConditionalFunction(
@@ -1670,9 +1708,9 @@ FUNCTIONS = {
             calculated_args=[
                 {
                     "name": "tolerated",
-                    "fn": lambda args: args["satisfaction"] * 4.0
-                    if args["satisfaction"] is not None
-                    else None,
+                    "fn": lambda args: (
+                        args["satisfaction"] * 4.0 if args["satisfaction"] is not None else None
+                    ),
                 },
                 {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
             ],
@@ -1803,6 +1841,12 @@ FUNCTIONS = {
             "count",
             optional_args=[NullColumn("column")],
             aggregate=["count", None, None],
+            default_result_type="integer",
+        ),
+        DiscoverFunction(
+            "upsampled_count",
+            optional_args=[NullColumn("column")],
+            aggregate=["toInt64(sum(ifNull(sample_weight, 1)))", None, None],
             default_result_type="integer",
         ),
         DiscoverFunction(
@@ -2169,7 +2213,7 @@ class MetricArg(FunctionArg):
     def __init__(
         self,
         name: str,
-        allowed_columns: Iterable[str] | None = None,
+        allowed_columns: Collection[str] | None = None,
         allow_custom_measurements: bool | None = True,
         validate_only: bool | None = True,
         allow_mri: bool = True,
@@ -2198,7 +2242,8 @@ class MetricArg(FunctionArg):
         allowed_column = True
         if self.allowed_columns is not None and len(self.allowed_columns) > 0:
             allowed_column = value in self.allowed_columns or (
-                self.allow_custom_measurements and CUSTOM_MEASUREMENT_PATTERN.match(value)
+                bool(self.allow_custom_measurements)
+                and bool(CUSTOM_MEASUREMENT_PATTERN.match(value))
             )
 
         allowed_mri = self.allow_mri and is_mri(value)

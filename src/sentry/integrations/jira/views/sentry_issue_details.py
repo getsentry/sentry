@@ -6,6 +6,7 @@ from functools import reduce
 from typing import Any
 from urllib.parse import quote
 
+import sentry_sdk
 from django.db.models.query import QuerySet
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
@@ -17,12 +18,14 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
+from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectValidationError,
+    get_integration_from_request,
+)
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
-from sentry.utils.sdk import Scope
 from sentry.web.frontend.base import region_silo_view
 
 from ..utils import handle_jira_api_error, set_badge
@@ -121,7 +124,7 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
             raise
 
     def get(self, request: Request, issue_key, *args, **kwargs) -> Response:
-        scope = Scope.get_isolation_scope()
+        scope = sentry_sdk.get_isolation_scope()
 
         try:
             integration = get_integration_from_request(request, "jira")

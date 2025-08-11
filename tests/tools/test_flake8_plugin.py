@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import ast
 
-import pytest
-
 from tools.flake8_plugin import SentryCheck
 
 
@@ -13,7 +11,7 @@ def _run(src: str, filename: str = "getsentry/t.py") -> list[str]:
     return ["t.py:{}:{}: {}".format(*error) for error in errors]
 
 
-def test_S001():
+def test_S001() -> None:
     S001_py = """\
 class A:
     def called_once():
@@ -30,7 +28,7 @@ A().called_once()
     ]
 
 
-def test_S002():
+def test_S002() -> None:
     S002_py = """\
 print("print statements are not allowed")
 """
@@ -39,7 +37,7 @@ print("print statements are not allowed")
     assert errors == ["t.py:1:0: S002 print functions or statements are not allowed."]
 
 
-def test_S003():
+def test_S003() -> None:
     S003_py = """\
 import json
 import simplejson
@@ -59,21 +57,21 @@ def bad_code():
 
     errors = _run(S003_py)
     assert errors == [
-        "t.py:1:0: S003 Use ``from sentry.utils import json`` instead.",
-        "t.py:2:0: S003 Use ``from sentry.utils import json`` instead.",
-        "t.py:3:0: S003 Use ``from sentry.utils import json`` instead.",
-        "t.py:4:0: S003 Use ``from sentry.utils import json`` instead.",
+        "t.py:1:0: S003 Use `from sentry.utils import json` instead.",
+        "t.py:2:0: S003 Use `from sentry.utils import json` instead.",
+        "t.py:3:0: S003 Use `from sentry.utils import json` instead.",
+        "t.py:4:0: S003 Use `from sentry.utils import json` instead.",
     ]
 
 
-def test_S004():
+def test_S004() -> None:
     S004_py = """\
 import unittest
 from something import func
 
 
 class Test(unittest.TestCase):
-    def test(self):
+    def test(self) -> None:
         with self.assertRaises(ValueError):
             func()
 """
@@ -83,7 +81,7 @@ class Test(unittest.TestCase):
     ]
 
 
-def test_S005():
+def test_S005() -> None:
     S005_py = """\
 from sentry.models import User
 """
@@ -93,7 +91,7 @@ from sentry.models import User
     ]
 
 
-def test_S006():
+def test_S006() -> None:
     src = """\
 from django.utils.encoding import force_bytes
 from django.utils.encoding import force_str
@@ -107,7 +105,7 @@ from django.utils.encoding import force_str
     ]
 
 
-def test_S007():
+def test_S007() -> None:
     src = """\
 from sentry.testutils.outbox import outbox_runner
 """
@@ -135,21 +133,24 @@ import sentry.testutils.outbox as outbox_utils
     ]
 
 
-@pytest.mark.parametrize(
-    "src",
-    (
-        "from pytz import utc",
-        "from pytz import UTC",
-        "pytz.utc",
-        "pytz.UTC",
-    ),
-)
-def test_S008(src):
-    expected = ["t.py:1:0: S008 Use stdlib datetime.timezone.utc instead of pytz.utc / pytz.UTC"]
-    assert _run(src) == expected
+def test_s008() -> None:
+    src = """\
+from dateutil.parser import parse
+"""
+    # no errors in source
+    assert _run(src, filename="src/sentry/example.py") == []
+
+    # errors in tests
+    tests1 = _run(src, filename="tests/test_example.py")
+    tests2 = _run(src, filename="src/sentry/testutils/example.py")
+    assert (
+        tests1
+        == tests2
+        == ["t.py:1:0: S008 Use datetime.fromisoformat rather than guessing at date formats"]
+    )
 
 
-def test_S009():
+def test_S009() -> None:
     src = """\
 try:
     ...
@@ -164,7 +165,7 @@ except ValueError as e:
     assert _run(src) == expected
 
 
-def test_S010():
+def test_S010() -> None:
     src = """\
 try:
     ...
@@ -183,12 +184,12 @@ except Exception:
     assert _run(src) == expected
 
 
-def test_S011():
+def test_S011() -> None:
     src = """\
 from sentry.testutils.cases import APITestCase
 from django.test import override_settings
 
-def test():
+def test() -> None:
     with override_settings(SENTRY_OPTIONS={"foo": "bar"}):  # bad
         ...
 
@@ -202,7 +203,7 @@ def test():
         ...
 
 class Test(ApiTestCase):
-    def test(self):
+    def test(self) -> None:
         with self.settings(SENTRY_OPTIONS={"foo": "bar"}):  # bad
             ...
 """
@@ -212,3 +213,30 @@ class Test(ApiTestCase):
         "t.py:19:27: S011 Use override_options(...) instead to ensure proper cleanup",
     ]
     assert _run(src, filename="tests/test_example.py") == expected
+
+
+def test_S012() -> None:
+    src = """\
+from rest_framework.permissions import BasePermission, IsAuthenticated, SAFE_METHODS
+"""
+
+    expected = [
+        "t.py:1:0: S012 Use `from sentry.api.permissions import SentryIsAuthenticated` instead"
+    ]
+    assert _run(src) == expected
+
+
+def test_S013() -> None:
+    src = """\
+from sentry.db.models.fields.array import ArrayField
+"""
+    expected = ["t.py:1:0: S013 Use `django.contrib.postgres.fields.array.ArrayField` instead"]
+    assert _run(src) == expected
+
+
+def test_S014() -> None:
+    src = """\
+def test(monkeypatch) -> None: pass
+"""
+    expected = ["t.py:1:9: S014 Use `unittest.mock` instead"]
+    assert _run(src) == expected

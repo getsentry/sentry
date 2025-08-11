@@ -9,6 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.utils import handle_query_errors
+from sentry.models.organization import Organization
 from sentry.snuba import discover
 
 # The maximum number of array columns allowed to be queried at at time
@@ -47,17 +48,17 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
 
     def has_feature(self, organization, request):
         return features.has("organizations:performance-view", organization, actor=request.user)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 
         try:
-            snuba_params, _ = self.get_snuba_dataclass(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response({})
 
@@ -72,7 +73,7 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
 
-        with sentry_sdk.start_span(op="discover.endpoint", description="histogram"):
+        with sentry_sdk.start_span(op="discover.endpoint", name="histogram"):
             serializer = HistogramSerializer(data=request.GET)
             if serializer.is_valid():
                 data = serializer.validated_data
@@ -81,7 +82,6 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
                     results = dataset.histogram_query(
                         fields=data["field"],
                         user_query=data.get("query"),
-                        params={},
                         snuba_params=snuba_params,
                         num_buckets=data["numBuckets"],
                         precision=data["precision"],

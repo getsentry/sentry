@@ -1,54 +1,65 @@
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 
 const popularPlatformCategories: Set<PlatformKey> = new Set([
-  'android',
-  'apple-ios',
-  'dotnet',
-  'dotnet-aspnetcore',
-  'flutter',
-  'go',
-  'java',
-  'java-spring-boot',
-  'javascript',
-  'javascript-angular',
   'javascript-nextjs',
   'javascript-react',
-  'javascript-vue',
-  'node',
-  'node-express',
-  'node-nestjs',
-  'php',
-  'php-laravel',
-  'python',
-  'python-django',
-  'python-fastapi',
-  'python-flask',
   'react-native',
+  'node',
+  'php-laravel',
+  'python-fastapi',
+  'flutter',
+  'python-django',
+  'python',
+  'node-express',
+  'javascript',
+  'php',
   'ruby-rails',
-  'ruby',
+  'apple-ios',
+  'node-nestjs',
+  'python-flask',
+  'javascript-vue',
+  'dotnet-aspnetcore',
+  'javascript-nuxt',
+  'dotnet-maui',
+  'javascript-angular',
+  'android',
+  'java-spring-boot',
+  'php-symfony',
+  'node-cloudflare-workers',
+  'electron',
   'unity',
+  'javascript-remix',
 ]);
 
 const browser: Set<PlatformKey> = new Set([
   'dart',
+  'flutter',
   'javascript',
   'javascript-angular',
   'javascript-astro',
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',
+  'javascript-nuxt',
   'javascript-react',
+  'javascript-react-router',
   'javascript-remix',
   'javascript-solid',
+  'javascript-solidstart',
   'javascript-svelte',
   'javascript-sveltekit',
+  'javascript-tanstackstart-react',
   'javascript-vue',
+  'javascript-nuxt',
+  'react-native',
   'unity',
 ]);
 
 const server: Set<PlatformKey> = new Set([
   'bun',
+  'dart',
   'deno',
   'dotnet',
   'dotnet-aspnet',
@@ -61,7 +72,6 @@ const server: Set<PlatformKey> = new Set([
   'go-fiber',
   'go-gin',
   'go-iris',
-  'go-martini',
   'go-negroni',
   'java',
   'java-log4j2',
@@ -71,6 +81,8 @@ const server: Set<PlatformKey> = new Set([
   'kotlin',
   'native',
   'node',
+  'node-cloudflare-pages',
+  'node-cloudflare-workers',
   'node-connect',
   'node-express',
   'node-fastify',
@@ -112,6 +124,7 @@ const mobile: Set<PlatformKey> = new Set([
   'cordova',
   'dotnet-maui',
   'dotnet-xamarin',
+  'dart',
   'flutter',
   'ionic',
   'react-native',
@@ -126,7 +139,9 @@ const desktop: Set<PlatformKey> = new Set([
   'dotnet-winforms',
   'dotnet-wpf',
   'electron',
+  'dart',
   'flutter',
+  'godot',
   'java',
   'kotlin',
   'minidump',
@@ -142,9 +157,21 @@ const serverless: Set<PlatformKey> = new Set([
   'node-awslambda',
   'node-azurefunctions',
   'node-gcpfunctions',
+  'node-cloudflare-pages',
+  'node-cloudflare-workers',
   'python-awslambda',
   'python-gcpfunctions',
   'python-serverless',
+]);
+
+const gaming: Set<PlatformKey> = new Set([
+  'godot',
+  'native',
+  'nintendo-switch',
+  'playstation',
+  'unity',
+  'unreal',
+  'xbox',
 ]);
 
 export const createablePlatforms: Set<PlatformKey> = new Set([
@@ -171,13 +198,22 @@ const categoryList = [
   {id: 'desktop', name: t('Desktop'), platforms: desktop},
   {id: 'serverless', name: t('Serverless'), platforms: serverless},
   {
+    id: 'gaming',
+    name: t('Gaming'),
+    platforms: gaming,
+    display: (organization?: Organization) =>
+      organization?.features.includes('project-creation-games-tab') ?? false,
+  },
+  {
     id: 'all',
     name: t('All'),
     platforms: createablePlatforms,
   },
 ];
 
-export default categoryList;
+export function getCategoryList(organization?: Organization) {
+  return categoryList.filter(({display}) => display?.(organization) ?? true);
+}
 
 // TODO(aknaus): Drop in favour of PlatformIntegration
 export type Platform = {

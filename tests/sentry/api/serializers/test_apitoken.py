@@ -2,7 +2,6 @@ from sentry.api.serializers import ApiTokenSerializer
 from sentry.models.apitoken import ApiToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -56,7 +55,6 @@ class TestRefreshTokens(TestApiTokenSerializer):
 
         assert "refreshToken" not in serialized_object
 
-    @override_options({"apitoken.save-hash-on-create": True})
     def test_refresh_token_on_non_user_token(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self._user)

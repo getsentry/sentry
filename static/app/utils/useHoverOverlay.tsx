@@ -3,6 +3,7 @@ import {
   isValidElement,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -10,8 +11,8 @@ import {
 import type {PopperProps} from 'react-popper';
 import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 
-import domId from 'sentry/utils/domId';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 
 function makeDefaultPopperModifiers(arrowElement: HTMLElement | null, offset: number) {
@@ -99,9 +100,22 @@ interface UseHoverOverlayProps {
    */
   offset?: number;
   /**
+   * Callback whenever the hovercard is blurred
+   * See also `onHover`
+   */
+  onBlur?: () => void;
+
+  /**
+   * Callback whenever the hovercard is hovered
+   * See also `onBlur`
+   */
+  onHover?: () => void;
+
+  /**
    * Position for the overlay.
    */
   position?: PopperProps<any>['placement'];
+
   /**
    * Only display the overlay only if the content overflows
    */
@@ -116,13 +130,27 @@ interface UseHoverOverlayProps {
    */
   skipWrapper?: boolean;
   /**
+   * style for when a wrapper is used. Does nothing using skipWrapper.
+   */
+  style?: React.CSSProperties;
+
+  /**
    * Color of the dotted underline, if available. See also: showUnderline.
    */
   underlineColor?: ColorOrAlias;
 }
 
 function isOverflown(el: Element): boolean {
-  return el.scrollWidth > el.clientWidth || Array.from(el.children).some(isOverflown);
+  // Safari seems to calculate scrollWidth incorrectly, causing isOverflown to always return true in some cases.
+  // Adding a 2 pixel tolerance seems to account for this discrepancy.
+  const tolerance =
+    navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome')
+      ? 2
+      : 0;
+  return (
+    el.scrollWidth - el.clientWidth > tolerance ||
+    Array.from(el.children).some(isOverflown)
+  );
 }
 
 function maybeClearRefTimeout(ref: React.MutableRefObject<number | undefined>) {
@@ -135,28 +163,36 @@ function maybeClearRefTimeout(ref: React.MutableRefObject<number | undefined>) {
 /**
  * A hook used to trigger a positioned overlay on hover.
  */
-function useHoverOverlay(
-  overlayType: string,
-  {
-    className,
-    delay,
-    displayTimeout,
-    isHoverable,
-    showUnderline,
-    underlineColor,
-    showOnlyOnOverflow,
-    skipWrapper,
-    forceVisible,
-    offset = 8,
-    position = 'top',
-    containerDisplayMode = 'inline-block',
-  }: UseHoverOverlayProps
-) {
+function useHoverOverlay({
+  className,
+  style,
+  delay,
+  displayTimeout,
+  isHoverable,
+  showUnderline,
+  underlineColor,
+  showOnlyOnOverflow,
+  skipWrapper,
+  forceVisible,
+  offset = 8,
+  position = 'top',
+  containerDisplayMode = 'inline-block',
+  onHover,
+  onBlur,
+}: UseHoverOverlayProps) {
   const theme = useTheme();
-  const describeById = useMemo(() => domId(`${overlayType}-`), [overlayType]);
+  const describeById = useId();
 
   const [isVisible, setIsVisible] = useState(forceVisible ?? false);
   const isOpen = forceVisible ?? isVisible;
+
+  useEffect(() => {
+    if (isOpen) {
+      onHover?.();
+    } else {
+      onBlur?.();
+    }
+  }, [isOpen, onBlur, onHover]);
 
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const [overlayElement, setOverlayElement] = useState<HTMLElement | null>(null);
@@ -228,9 +264,11 @@ function useHoverOverlay(
    */
   const wrapTrigger = useCallback(
     (triggerChildren: React.ReactNode) => {
-      const props = {
+      const providedProps = {
+        // !!These props are always overriden!!
         'aria-describedby': describeById,
         ref: setTriggerElement,
+        // The following props are composed from the componentProps trigger props
         onFocus: handleMouseEnter,
         onBlur: handleMouseLeave,
         onPointerEnter: handleMouseEnter,
@@ -247,30 +285,35 @@ function useHoverOverlay(
       ) {
         if (showUnderline) {
           const triggerStyle = {
-            ...triggerChildren.props.style,
+            ...(triggerChildren.props as any).style,
             ...theme.tooltipUnderline(underlineColor),
           };
 
           return cloneElement<any>(
             triggerChildren,
-            Object.assign(props, {style: triggerStyle})
+            Object.assign(mergeProps(triggerChildren.props as any, providedProps), {
+              ref: mergeRefs((triggerChildren.props as any).ref, setTriggerElement),
+              style: triggerStyle,
+            })
           );
         }
 
         // Basic DOM nodes can be cloned and have more props applied.
         return cloneElement<any>(
           triggerChildren,
-          Object.assign(props, {
-            style: triggerChildren.props.style,
+          Object.assign(mergeProps(triggerChildren.props as any, providedProps), {
+            ref: mergeRefs((triggerChildren.props as any).ref, setTriggerElement),
+            style: (triggerChildren.props as any).style,
           })
         );
       }
 
-      const containerProps = Object.assign(props, {
+      const containerProps = Object.assign(providedProps, {
         style: {
           ...(showUnderline ? theme.tooltipUnderline(underlineColor) : {}),
           ...(containerDisplayMode ? {display: containerDisplayMode} : {}),
           maxWidth: '100%',
+          ...style,
         },
         className,
       });
@@ -287,6 +330,7 @@ function useHoverOverlay(
       showUnderline,
       skipWrapper,
       describeById,
+      style,
       theme,
       underlineColor,
     ]

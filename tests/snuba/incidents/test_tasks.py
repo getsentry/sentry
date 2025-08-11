@@ -1,6 +1,5 @@
 from copy import deepcopy
 from functools import cached_property
-from uuid import uuid4
 
 from arroyo.utils import metrics
 from confluent_kafka import Producer
@@ -8,11 +7,11 @@ from confluent_kafka.admin import AdminClient
 from django.conf import settings
 from django.core import mail
 
+from sentry.api.serializers import serialize
 from sentry.conf.types.kafka_definition import Topic
-from sentry.incidents.action_handlers import (
-    EmailActionHandler,
-    generate_incident_trigger_email_context,
-)
+from sentry.incidents.action_handlers import build_message, generate_incident_trigger_email_context
+from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
+from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     create_alert_rule_trigger,
@@ -25,6 +24,11 @@ from sentry.incidents.models.incident import (
     IncidentStatus,
     IncidentType,
     TriggerStatus,
+)
+from sentry.incidents.typings.metric_detector import (
+    AlertContext,
+    MetricIssueContext,
+    OpenPeriodContext,
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.snuba.query_subscriptions.consumer import subscriber_registry
@@ -105,10 +109,6 @@ class HandleSnubaQueryUpdateTest(TestCase):
         }
         return Producer(conf)
 
-    @cached_property
-    def topic(self):
-        return uuid4().hex
-
     def run_test(self, consumer):
         # Full integration test to ensure that when a subscription receives an update
         # the `QuerySubscriptionConsumer` successfully retries the subscription and
@@ -157,17 +157,26 @@ class HandleSnubaQueryUpdateTest(TestCase):
             assert active_incident().exists()
 
         assert len(mail.outbox) == 1
-        handler = EmailActionHandler(self.action, active_incident().get(), self.project)
-        incident_activity = IncidentActivity.objects.filter(incident=handler.incident).order_by(
-            "-id"
-        )[0]
-        message_builder = handler.build_message(
+        incident_activity = IncidentActivity.objects.filter(
+            incident=active_incident().get()
+        ).order_by("-id")[0]
+        message_builder = build_message(
             generate_incident_trigger_email_context(
-                handler.project,
-                handler.incident,
-                handler.action.alert_rule_trigger,
-                TriggerStatus.ACTIVE,
-                IncidentStatus.CRITICAL,
+                project=self.project,
+                organization=self.project.organization,
+                alert_rule_serialized_response=serialize(self.rule, None, AlertRuleSerializer()),
+                incident_serialized_response=serialize(
+                    active_incident().get(), None, DetailedIncidentSerializer()
+                ),
+                alert_context=AlertContext.from_alert_rule_incident(self.rule),
+                metric_issue_context=MetricIssueContext.from_legacy_models(
+                    incident=active_incident().get(),
+                    new_status=IncidentStatus.CRITICAL,
+                ),
+                open_period_context=OpenPeriodContext.from_incident(active_incident().get()),
+                trigger_status=TriggerStatus.ACTIVE,
+                trigger_threshold=self.trigger.alert_threshold,
+                user=self.user,
                 notification_uuid=str(incident_activity.notification_uuid),
             ),
             TriggerStatus.ACTIVE,
@@ -181,7 +190,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
         built_message = message_builder.build(self.user.email)
         assert out.body == built_message.body
 
-    def test_arroyo(self):
+    def test_arroyo(self) -> None:
         from sentry.consumers import get_stream_processor
 
         consumer = get_stream_processor(

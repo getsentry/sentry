@@ -67,6 +67,7 @@ function getMockReplay(rrwebEvents: any[], errors: ReplayError[]) {
   const replay = ReplayReader.factory({
     replayRecord,
     errors,
+    fetching: false,
     attachments,
   });
 
@@ -97,10 +98,11 @@ function getMockReplayWithCrumbFrame(
   const replay = ReplayReader.factory({
     replayRecord,
     errors,
+    fetching: false,
     attachments,
   });
 
-  invariant(isHydrationErrorFrame(hydrationErrorFrame), '');
+  invariant(isHydrationErrorFrame(hydrationErrorFrame!), '');
   return {hydrationErrorFrame, replay};
 }
 
@@ -115,7 +117,11 @@ describe('getReplayDiffOffsetsFromFrame', () => {
       []
     );
 
+    const [hydratedHydrationCrumbFrame] = hydrateBreadcrumbs(replayRecord, [
+      rawHydrationCrumbFrame,
+    ]);
     expect(getReplayDiffOffsetsFromFrame(replay, hydrationErrorFrame)).toEqual({
+      frameOrEvent: hydratedHydrationCrumbFrame,
       leftOffsetMs: 200, // offset of FULL_DATE
       rightOffsetMs: 5_000, // offset of the INCR_DATE
     });
@@ -131,7 +137,11 @@ describe('getReplayDiffOffsetsFromFrame', () => {
       []
     );
 
+    const [hydratedHydrationCrumbFrame] = hydrateBreadcrumbs(replayRecord, [
+      rawHydrationCrumbFrame,
+    ]);
     expect(getReplayDiffOffsetsFromFrame(replay, hydrationErrorFrame)).toEqual({
+      frameOrEvent: hydratedHydrationCrumbFrame,
       leftOffsetMs: 5_000, // offset of INCR_DATE
       rightOffsetMs: 1, // no next mutation date, so offset is 1
     });
@@ -148,7 +158,11 @@ describe('getReplayDiffOffsetsFromEvent', () => {
       errorEvent as any as ReplayError,
     ]);
 
+    const [hydratedHydrationCrumbFrame] = hydrateBreadcrumbs(replayRecord, [
+      rawHydrationCrumbFrame,
+    ]);
     expect(getReplayDiffOffsetsFromEvent(replay!, errorEvent)).toEqual({
+      frameOrEvent: hydratedHydrationCrumbFrame,
       leftOffsetMs: 200, // offset of FULL_DATE
       rightOffsetMs: 5_000, // offset of the INCR_DATE
     });
@@ -159,6 +173,7 @@ describe('getReplayDiffOffsetsFromEvent', () => {
     const {replay} = getMockReplay(RRWEB_EVENTS, [errorEvent as any as ReplayError]);
 
     expect(getReplayDiffOffsetsFromEvent(replay!, errorEvent)).toEqual({
+      frameOrEvent: errorEvent,
       leftOffsetMs: 1_000, // offset of ERROR_DATE
       rightOffsetMs: 5_000, // offset of the INCR_DATE
     });

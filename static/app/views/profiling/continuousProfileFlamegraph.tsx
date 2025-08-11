@@ -25,11 +25,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
-import {useContinuousProfile} from './continuousProfileProvider';
+import {useProfiles} from './profilesProvider';
 
 function ContinuousProfileFlamegraph(): React.ReactElement {
   const organization = useOrganization();
-  const profiles = useContinuousProfile();
+  const profiles = useProfiles();
   const params = useParams();
 
   const [storedPreferences] = useLocalStorageState<DeepPartial<FlamegraphState>>(
@@ -50,7 +50,6 @@ function ContinuousProfileFlamegraph(): React.ReactElement {
     trackAnalytics('profiling_views.profile_flamegraph', {
       organization,
       project_platform: currentProject?.platform,
-      project_id: currentProject?.id,
     });
     // ignore  currentProject so we don't block the analytics event
     // or fire more than once unnecessarily
@@ -69,7 +68,7 @@ function ContinuousProfileFlamegraph(): React.ReactElement {
         ...queryStringState.preferences,
         timelines: {
           ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
-          ...(storedPreferences?.preferences?.timelines ?? {}),
+          ...storedPreferences?.preferences?.timelines,
         },
         layout:
           storedPreferences?.preferences?.layout ??
@@ -89,7 +88,7 @@ function ContinuousProfileFlamegraph(): React.ReactElement {
       <FlamegraphStateProvider initialState={initialFlamegraphPreferencesState}>
         <ProfileGroupTypeProvider
           input={profiles.type === 'resolved' ? profiles.data : null}
-          traceID={params.eventID}
+          traceID={params.eventId!}
         >
           <FlamegraphThemeProvider>
             <FlamegraphStateQueryParamSync />

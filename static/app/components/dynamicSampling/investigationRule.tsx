@@ -1,12 +1,13 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {BaseButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {Tooltip} from 'sentry/components/tooltip';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconQuestion, IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -14,6 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -22,12 +24,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {Datasource} from 'sentry/views/alerts/rules/metric/types';
 import {getQueryDatasource} from 'sentry/views/alerts/utils';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 
 // Number of samples under which we can trigger an investigation rule
 const INVESTIGATION_MAX_SAMPLES_TRIGGER = 5;
 
 type Props = {
-  buttonProps: BaseButtonProps;
+  buttonProps: Partial<ButtonProps>;
   eventView: EventView;
   numSamples: number | null | undefined;
 };
@@ -49,7 +52,6 @@ type CustomDynamicSamplingRule = {
 };
 type CreateCustomRuleVariables = {
   organization: Organization;
-  period: string | null;
   projects: number[];
   query: string;
 };
@@ -134,13 +136,13 @@ function useCreateInvestigationRuleMutation() {
     onSuccess: (_data, variables) => {
       addSuccessMessage(t('Successfully created investigation rule'));
       // invalidate the rule-exists query
-      queryClient.invalidateQueries(
-        makeRuleExistsQueryKey(
+      queryClient.invalidateQueries({
+        queryKey: makeRuleExistsQueryKey(
           variables.query,
           variables.projects,
           variables.organization
-        )
-      );
+        ),
+      });
       trackAnalytics('dynamic_sampling.custom_rule_add', {
         organization: variables.organization,
         projects: variables.projects,
@@ -172,9 +174,9 @@ function useCreateInvestigationRuleMutation() {
 }
 
 const InvestigationInProgressNotification = styled('span')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   display: inline-flex;
   align-items: center;
   gap: ${space(0.5)};
@@ -183,15 +185,20 @@ const InvestigationInProgressNotification = styled('span')`
 function InvestigationRuleCreationInternal(props: PropsInternal) {
   const {organization, eventView} = props;
   const projects = [...props.eventView.project];
-  const period = eventView.statsPeriod || null;
 
   const isTransactionsDataset =
     hasDatasetSelector(organization) &&
     eventView.dataset === DiscoverDatasets.TRANSACTIONS;
 
-  const query = isTransactionsDataset
+  let query = isTransactionsDataset
     ? appendEventTypeCondition(eventView.getQuery())
     : eventView.getQuery();
+
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
+  if (shouldUseOTelFriendlyUI) {
+    query = query.replace(/\bis_transaction:true\b/i, 'event.type:transaction');
+  }
+
   const isTransactionQueryMissing =
     getQueryDatasource(query)?.source !== Datasource.TRANSACTION &&
     !isTransactionsDataset;
@@ -201,6 +208,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
     data: rule,
     isFetching: isLoading,
     isError,
+    error,
   } = useGetExistingRule(query, projects, organization, !isTransactionQueryMissing);
 
   const isBreakingRequestError = isError && !isTransactionQueryMissing;
@@ -208,25 +216,24 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
 
   useEffect(() => {
     if (isBreakingRequestError) {
-      addErrorMessage(t('Unable to fetch investigation rule'));
+      const msg = t('Unable to fetch investigation rule');
+      handleXhrErrorResponse(msg, error);
+      Sentry.withScope(scope => {
+        scope.setExtra('query', query);
+        Sentry.captureException(error);
+      });
     }
-  }, [isBreakingRequestError]);
+  }, [isBreakingRequestError, error, query]);
 
-  if (isLoading) {
-    return null;
-  }
-  if (isBreakingRequestError) {
+  if (isLoading || isBreakingRequestError) {
     return null;
   }
 
-  const isInvestigationRuleInProgress = !!rule;
-
-  if (isInvestigationRuleInProgress) {
-    // investigation rule in progress, just show a message
-    const existingRule = rule as CustomDynamicSamplingRule;
-    const ruleStartDate = new Date(existingRule.startDate);
-    const now = new Date();
-    const interval = moment.duration(now.getTime() - ruleStartDate.getTime()).humanize();
+  // investigation rule in progress
+  if (rule) {
+    const interval = moment
+      .duration(Date.now() - new Date(rule.startDate).getTime())
+      .humanize();
 
     return (
       <InvestigationInProgressNotification>
@@ -235,7 +242,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
         <Tooltip
           isHoverable
           title={tct(
-            'A user has temporarily adjusted retention priorities, increasing the odds of getting events matching your search query. [link:Learn more.]',
+            'A user has temporarily adjusted sampling priorities, increasing the odds of getting events matching your search query. [link:Learn more.]',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/#investigation-mode" />
@@ -254,31 +261,33 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
     <Tooltip
       isHoverable
       title={
-        isTransactionQueryMissing
-          ? tct(
-              'If you filter by [code:event.type:transaction] we can adjust your retention priorities, increasing the odds of getting matching events. [link:Learn more.]',
-              {
-                code: <code />,
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/#investigation-mode" />
-                ),
-              }
-            )
-          : tct(
-              'We can find more events that match your search query by adjusting your retention priorities for an hour, increasing the odds of getting matching events. [link:Learn more.]',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/#investigation-mode" />
-                ),
-              }
-            )
+        isBreakingRequestError
+          ? t('Search query unsupported.')
+          : isTransactionQueryMissing
+            ? tct(
+                'If you filter by [code:event.type:transaction] we can adjust your sampling priorities, increasing the odds of getting matching events. [link:Learn more.]',
+                {
+                  code: <code />,
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/#investigation-mode" />
+                  ),
+                }
+              )
+            : tct(
+                'We can find more events that match your search query by adjusting your sampling priorities for an hour, increasing the odds of getting matching events. [link:Learn more.]',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/#investigation-mode" />
+                  ),
+                }
+              )
       }
     >
       <Button
-        priority={isLikelyMoreNeeded ? 'primary' : 'default'}
         {...props.buttonProps}
-        disabled={isTransactionQueryMissing}
-        onClick={() => createInvestigationRule({organization, period, projects, query})}
+        priority={isLikelyMoreNeeded ? 'primary' : 'default'}
+        disabled={isTransactionQueryMissing || isBreakingRequestError}
+        onClick={() => createInvestigationRule({organization, projects, query})}
         icon={<IconStack />}
       >
         {t('Get Samples')}

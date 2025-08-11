@@ -1,20 +1,19 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportGenericInstallStep,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {csharpFeedbackOnboarding} from 'sentry/gettingStartedDocs/dotnet/dotnet';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -39,12 +38,12 @@ sealed partial class App : Application
         SentrySdk.Init(o =>
         {
             // Tells which project in Sentry to send events to:
-            o.Dsn = "${params.dsn}";
+            o.Dsn = "${params.dsn.public}";
             // When configuring for the first time, to see what the SDK is doing:
             o.Debug = true;${
               params.isPerformanceSelected
                 ? `
-            // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+            // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
             o.TracesSampleRate = 1.0;`
                 : ''
@@ -153,7 +152,7 @@ const onboarding: OnboardingConfig = {
       ),
     },
     {
-      title: t('Performance Monitoring'),
+      title: t('Tracing'),
       description: t(
         'You can measure the performance of your code by capturing transactions and spans.'
       ),
@@ -244,7 +243,6 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: csharpFeedbackOnboarding,
-  customMetricsOnboarding: getDotnetMetricsOnboarding({packageName: 'Sentry'}),
   crashReportOnboarding,
 };
 

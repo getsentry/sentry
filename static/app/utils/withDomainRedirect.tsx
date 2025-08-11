@@ -1,11 +1,13 @@
-import type {RouteComponent, RouteComponentProps} from 'react-router';
-import {formatPattern} from 'react-router';
+import {generatePath} from 'react-router-dom';
+import trim from 'lodash/trim';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
 import Redirect from 'sentry/components/redirect';
 import ConfigStore from 'sentry/stores/configStore';
+import type {RouteComponent, RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import recreateRoute from 'sentry/utils/recreateRoute';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 import useOrganization from './useOrganization';
@@ -29,7 +31,7 @@ import useOrganization from './useOrganization';
  * If either a customer domain is not being used, or if :orgId is not present in the route path, then WrappedComponent
  * is rendered.
  */
-function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
+function withDomainRedirect<P extends RouteComponentProps>(
   WrappedComponent: RouteComponent
 ) {
   return function WithDomainRedirectWrapper(props: P) {
@@ -50,7 +52,7 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
         (currentOrganization.slug !== customerDomain.subdomain ||
           !features.has('system:multi-region'))
       ) {
-        window.location.replace(redirectURL);
+        testableWindowLocation.replace(redirectURL);
         return null;
       }
 
@@ -69,8 +71,8 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
         return <WrappedComponent {...props} />;
       }
 
-      const orglessRedirectPath = formatPattern(orglessSlugRoute, params);
-      const redirectOrgURL = `/${trimStart(orglessRedirectPath, '/')}${
+      const orglessRedirectPath = generatePath(orglessSlugRoute, params);
+      const redirectOrgURL = `/${trim(orglessRedirectPath, '/')}/${
         window.location.search
       }${window.location.hash}`;
 

@@ -4,11 +4,12 @@ import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
-from sentry.models.commit import Commit
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.plugins.providers.integration_repository import RepositoryConfig
 
 MAX_COMMIT_DATA_REQUESTS = 90
 
@@ -17,12 +18,15 @@ logger = logging.getLogger(__name__)
 
 class VstsRepositoryProvider(IntegrationRepositoryProvider):
     name = "Azure DevOps"
-    repo_provider = "vsts"
+    repo_provider = IntegrationProviderSlug.AZURE_DEVOPS.value
 
     def get_repository_data(
         self, organization: Organization, config: MutableMapping[str, Any]
     ) -> Mapping[str, str]:
+        from sentry.integrations.vsts.integration import VstsIntegration
+
         installation = self.get_installation(config.get("installation"), organization.id)
+        assert isinstance(installation, VstsIntegration), installation
         client = installation.get_client()
 
         repo_id = config["identifier"]
@@ -43,8 +47,8 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
         return config
 
     def build_repository_config(
-        self, organization: RpcOrganization, data: Mapping[str, str]
-    ) -> Mapping[str, Any]:
+        self, organization: RpcOrganization, data: dict[str, Any]
+    ) -> RepositoryConfig:
         return {
             "name": data["name"],
             "external_id": data["external_id"],
@@ -72,8 +76,8 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
         return file_changes
 
     def zip_commit_data(
-        self, repo: Repository, commit_list: Sequence[Commit], organization_id: int
-    ) -> Sequence[Commit]:
+        self, repo: Repository, commit_list: list[dict[str, Any]], organization_id: int
+    ) -> list[dict[str, Any]]:
         installation = self.get_installation(repo.integration_id, organization_id)
         client = installation.get_client()
         n = 0
@@ -130,5 +134,5 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
             for c in commit_list
         ]
 
-    def repository_external_slug(self, repo: Repository) -> str:
+    def repository_external_slug(self, repo: Repository) -> str | None:
         return repo.external_id

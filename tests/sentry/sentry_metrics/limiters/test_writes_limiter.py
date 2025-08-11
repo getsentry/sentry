@@ -24,7 +24,6 @@ MOCK_METRIC_PATH_MAPPING = {
     UseCaseID.TRANSACTIONS: UseCaseKey.PERFORMANCE,
     UseCaseID.SPANS: UseCaseKey.PERFORMANCE,
     UseCaseID.ESCALATING_ISSUES: UseCaseKey.PERFORMANCE,
-    UseCaseID.CUSTOM: UseCaseKey.PERFORMANCE,
 }
 
 MOCK_REVERSE_METRIC_PATH_MAPPING = {
@@ -43,7 +42,7 @@ MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
     "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
     MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
 )
-def test_writes_limiter_no_limits():
+def test_writes_limiter_no_limits() -> None:
     with override_options(
         {
             "sentry-metrics.writes-limiter.limits.transactions.global": [],
@@ -72,10 +71,6 @@ def test_writes_limiter_no_limits():
                     3: {"x", "y", "z"},
                     4: {"a", "b", "c"},
                 },
-                UseCaseID.CUSTOM: {
-                    1: {"x", "y", "z"},
-                    2: {"a", "b", "c"},
-                },
             }
         )
         with writes_limiter.check_write_limits(use_case_keys) as state:
@@ -87,7 +82,7 @@ def test_writes_limiter_no_limits():
     "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
     MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
 )
-def test_writes_limiter_doesnt_limit():
+def test_writes_limiter_doesnt_limit() -> None:
     with override_options(
         {
             "sentry-metrics.writes-limiter.limits.transactions.global": [],
@@ -124,10 +119,6 @@ def test_writes_limiter_doesnt_limit():
                     5: {"g", "h", "i"},
                     6: {"j", "k", "l"},
                 },
-                UseCaseID.CUSTOM: {
-                    7: {"m", "n", "o", "p"},
-                    8: {"q", "r", "s", "t"},
-                },
             }
         )
 
@@ -140,7 +131,7 @@ def test_writes_limiter_doesnt_limit():
     "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
     MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
 )
-def test_writes_limiter_org_limit():
+def test_writes_limiter_org_limit() -> None:
     with override_options(
         {
             "sentry-metrics.writes-limiter.limits.transactions.global": [],
@@ -177,15 +168,11 @@ def test_writes_limiter_org_limit():
                     5: {"g", "h", "i"},
                     6: {"j", "k", "l"},
                 },
-                UseCaseID.CUSTOM: {
-                    7: {"m", "n", "o", "p"},
-                    8: {"q", "r", "s", "t"},
-                },
             }
         )
 
         with writes_limiter.check_write_limits(use_case_keys) as state:
-            assert len(state.dropped_strings) == 8
+            assert len(state.dropped_strings) == 6
             assert sorted(ds.use_case_key_result.org_id for ds in state.dropped_strings) == [
                 1,
                 2,
@@ -193,8 +180,6 @@ def test_writes_limiter_org_limit():
                 4,
                 5,
                 6,
-                7,
-                8,
             ]
             assert sorted(org_id for _, org_id, _ in state.accepted_keys.as_tuples()) == [
                 3,
@@ -203,12 +188,6 @@ def test_writes_limiter_org_limit():
                 5,
                 6,
                 6,
-                7,
-                7,
-                7,
-                8,
-                8,
-                8,
             ]
 
 
@@ -216,7 +195,7 @@ def test_writes_limiter_org_limit():
     "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
     MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
 )
-def test_writes_limiter_global_limit():
+def test_writes_limiter_global_limit() -> None:
     with override_options(
         {
             "sentry-metrics.writes-limiter.limits.transactions.global": [
@@ -255,22 +234,18 @@ def test_writes_limiter_global_limit():
                     5: {"g", "h", "i"},
                     6: {"j", "k", "l"},
                 },
-                UseCaseID.CUSTOM: {
-                    7: {"m", "n", "o", "p"},
-                    8: {"q", "r", "s", "t"},
-                },
             }
         )
 
         with writes_limiter.check_write_limits(use_case_keys) as state:
-            assert len(state.dropped_strings) == 10
+            assert len(state.dropped_strings) == 6
 
 
 @patch(
     "sentry.sentry_metrics.indexer.limiters.writes.USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS",
     MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS,
 )
-def test_writes_limiter_respects_use_case_id():
+def test_writes_limiter_respects_use_case_id() -> None:
     """
     Here we test that a use_case_id currently exceededing quota results in
     dropping all strings for subsequent calls to check_write_limits
@@ -311,10 +286,6 @@ def test_writes_limiter_respects_use_case_id():
                     3: {"x", "y", "z"},
                     4: {"a", "b", "c"},
                 },
-                UseCaseID.CUSTOM: {
-                    1: {"x", "y", "z"},
-                    2: {"a", "b", "c"},
-                },
             }
         )
 
@@ -322,9 +293,9 @@ def test_writes_limiter_respects_use_case_id():
             assert len(state.dropped_strings) == 0
 
         with writes_limiter_perf.check_write_limits(use_case_keys) as state:
-            assert len(state.dropped_strings) == 24
+            assert len(state.dropped_strings) == 18
 
         writes_limiter_rh = get_writes_limiter(RELEASE_HEALTH_PG_NAMESPACE)
 
         with writes_limiter_rh.check_write_limits(use_case_keys) as state:
-            assert len(state.dropped_strings) == 24
+            assert len(state.dropped_strings) == 18

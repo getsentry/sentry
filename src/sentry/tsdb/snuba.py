@@ -24,8 +24,11 @@ from snuba_sdk.entity import get_required_time_column
 from snuba_sdk.legacy import is_condition, parse_condition
 from snuba_sdk.query import SelectableExpression
 
+from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
 from sentry.constants import DataCategory
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
+from sentry.issues.constants import get_issue_tsdb_group_model
+from sentry.issues.grouptype import GroupCategory
 from sentry.issues.query import manual_group_on_time_aggregation
 from sentry.snuba.dataset import Dataset
 from sentry.tsdb.base import BaseTSDB, TSDBItem, TSDBKey, TSDBModel
@@ -33,10 +36,13 @@ from sentry.utils import outcomes, snuba
 from sentry.utils.dates import to_datetime
 from sentry.utils.snuba import (
     get_snuba_translators,
+    get_upsampled_count_snql_with_alias,
     infer_project_ids_from_related_models,
     nest_groups,
     raw_snql_query,
 )
+
+LIMIT = 10000
 
 
 @dataclasses.dataclass
@@ -376,13 +382,18 @@ class SnubaTSDB(BaseTSDB):
             model_aggregate = None
 
         aggregated_as = "aggregate"
-        aggregations: list[SelectableExpression] = [
-            Function(
-                aggregation,
-                [Column(model_aggregate)] if model_aggregate else [],
-                aggregated_as,
-            )
-        ]
+        if aggregation == "upsampled_count":
+            aggregations: list[SelectableExpression] = [
+                get_upsampled_count_snql_with_alias(aggregated_as)
+            ]
+        else:
+            aggregations = [
+                Function(
+                    function=aggregation,
+                    parameters=[Column(model_aggregate)] if model_aggregate else [],
+                    alias=aggregated_as,
+                )
+            ]
 
         if group_on_time and manual_group_on_time:
             aggregations.append(manual_group_on_time_aggregation(rollup, "time"))
@@ -390,7 +401,7 @@ class SnubaTSDB(BaseTSDB):
         if keys:
             start = to_datetime(series[0])
             end = to_datetime(series[-1] + rollup)
-            limit = min(10000, int(len(keys) * ((end - start).total_seconds() / rollup)))
+            limit = min(LIMIT, int(len(keys) * ((end - start).total_seconds() / rollup)))
 
             # build up order by
             orderby: list[OrderBy] = []
@@ -566,7 +577,7 @@ class SnubaTSDB(BaseTSDB):
 
         start = to_datetime(series[0])
         end = to_datetime(series[-1] + rollup)
-        limit = min(10000, int(len(keys) * ((end - start).total_seconds() / rollup)))
+        limit = min(LIMIT, int(len(keys) * ((end - start).total_seconds() / rollup)))
 
         conditions = conditions if conditions is not None else []
         if model_query_settings.conditions is not None:
@@ -703,6 +714,75 @@ class SnubaTSDB(BaseTSDB):
                     else:
                         self.unnest(val, aggregated_as)
 
+    def get_aggregate_function(self, model) -> str:
+        model_query_settings = self.model_query_settings.get(model)
+        assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
+
+        if model_query_settings.dataset == Dataset.Outcomes:
+            aggregate_function = "sum"
+        else:
+            aggregate_function = "count()"
+        return aggregate_function
+
+    def get_sums_data(
+        self,
+        model: TSDBModel,
+        keys: Sequence[TSDBKey],
+        start: datetime,
+        end: datetime,
+        rollup: int | None = None,
+        environment_ids: Sequence[int] | None = None,
+        conditions=None,
+        use_cache: bool = False,
+        jitter_value: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+        referrer_suffix: str | None = None,
+        group_on_time: bool = True,
+        project_ids: Sequence[int] | None = None,
+    ) -> Mapping[TSDBKey, int]:
+
+        aggregation = self.get_aggregate_function(model)
+
+        if self._should_use_upsampled_aggregation(model, project_ids):
+            aggregation = "upsampled_count"
+
+        result: Mapping[TSDBKey, int] = self.get_data(
+            model,
+            keys,
+            start,
+            end,
+            rollup,
+            environment_ids,
+            aggregation=aggregation,
+            group_on_time=group_on_time,
+            conditions=conditions,
+            use_cache=use_cache,
+            jitter_value=jitter_value,
+            tenant_ids=tenant_ids,
+            referrer_suffix=referrer_suffix,
+        )
+        return result
+
+    def _should_use_upsampled_aggregation(
+        self, model: TSDBModel, project_ids: Sequence[int] | None
+    ) -> bool:
+        """Check if we should use upsampled aggregation based on model and project allowlist."""
+
+        # Only apply to error models
+        error_model = get_issue_tsdb_group_model(GroupCategory.ERROR)
+
+        if model != error_model:
+            return False
+
+        # Check if any projects are in upsampling allowlist
+        if not project_ids:
+            return False
+
+        try:
+            return are_any_projects_error_upsampled(list(project_ids))
+        except Exception:
+            return False
+
     def get_range(
         self,
         model: TSDBModel,
@@ -716,14 +796,18 @@ class SnubaTSDB(BaseTSDB):
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
+        group_on_time: bool = True,
+        aggregation_override: str | None = None,
+        project_ids: Sequence[int] | None = None,
     ) -> dict[TSDBKey, list[tuple[int, int]]]:
-        model_query_settings = self.model_query_settings.get(model)
-        assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
 
-        if model_query_settings.dataset == Dataset.Outcomes:
-            aggregate_function = "sum"
+        if aggregation_override:
+            aggregation = aggregation_override
         else:
-            aggregate_function = "count()"
+            aggregation = self.get_aggregate_function(model)
+
+            if self._should_use_upsampled_aggregation(model, project_ids):
+                aggregation = "upsampled_count"
 
         result = self.get_data(
             model,
@@ -732,7 +816,7 @@ class SnubaTSDB(BaseTSDB):
             end,
             rollup,
             environment_ids,
-            aggregation=aggregate_function,
+            aggregation=aggregation,
             group_on_time=True,
             conditions=conditions,
             use_cache=use_cache,
@@ -749,12 +833,13 @@ class SnubaTSDB(BaseTSDB):
     def get_distinct_counts_series(
         self,
         model,
-        keys: Sequence[int],
+        keys: Sequence[TSDBKey],
         start,
         end=None,
         rollup=None,
         environment_id=None,
         tenant_ids=None,
+        project_ids: Sequence[int] | None = None,
     ):
         result = self.get_data(
             model,
@@ -776,7 +861,7 @@ class SnubaTSDB(BaseTSDB):
     def get_distinct_counts_totals(
         self,
         model,
-        keys: Sequence[int],
+        keys: Sequence[TSDBKey],
         start,
         end=None,
         rollup=None,
@@ -785,7 +870,10 @@ class SnubaTSDB(BaseTSDB):
         jitter_value=None,
         tenant_ids=None,
         referrer_suffix=None,
-    ):
+        conditions=None,
+        group_on_time: bool = False,
+        project_ids: Sequence[int] | None = None,
+    ) -> Mapping[TSDBKey, int]:
         return self.get_data(
             model,
             keys,
@@ -798,89 +886,9 @@ class SnubaTSDB(BaseTSDB):
             jitter_value=jitter_value,
             tenant_ids=tenant_ids,
             referrer_suffix=referrer_suffix,
+            conditions=conditions,
+            group_on_time=group_on_time,
         )
-
-    def get_distinct_counts_union(
-        self, model, keys, start, end=None, rollup=None, environment_id=None, tenant_ids=None
-    ):
-        return self.get_data(
-            model,
-            keys,
-            start,
-            end,
-            rollup,
-            [environment_id] if environment_id is not None else None,
-            aggregation="uniq",
-            group_on_model=False,
-            tenant_ids=tenant_ids,
-        )
-
-    def get_most_frequent(
-        self,
-        model,
-        keys: Sequence[TSDBKey],
-        start,
-        end=None,
-        rollup=None,
-        limit=10,
-        environment_id=None,
-        tenant_ids=None,
-    ):
-        aggregation = f"topK({limit})"
-        result = self.get_data(
-            model,
-            keys,
-            start,
-            end,
-            rollup,
-            [environment_id] if environment_id is not None else None,
-            aggregation=aggregation,
-            tenant_ids=tenant_ids,
-        )
-        # convert
-        #    {group:[top1, ...]}
-        # into
-        #    {group: [(top1, score), ...]}
-        for k, top in result.items():
-            item_scores = [(v, float(i + 1)) for i, v in enumerate(reversed(top or []))]
-            result[k] = list(reversed(item_scores))
-
-        return result
-
-    def get_most_frequent_series(
-        self,
-        model,
-        keys,
-        start,
-        end=None,
-        rollup=None,
-        limit=10,
-        environment_id=None,
-        tenant_ids=None,
-    ):
-        aggregation = f"topK({limit})"
-        result = self.get_data(
-            model,
-            keys,
-            start,
-            end,
-            rollup,
-            [environment_id] if environment_id is not None else None,
-            aggregation=aggregation,
-            group_on_time=True,
-            tenant_ids=tenant_ids,
-        )
-        # convert
-        #    {group:{timestamp:[top1, ...]}}
-        # into
-        #    {group: [(timestamp, {top1: score, ...}), ...]}
-        return {
-            k: sorted(
-                (timestamp, {v: float(i + 1) for i, v in enumerate(reversed(topk or []))})
-                for (timestamp, topk) in result[k].items()
-            )
-            for k in result.keys()
-        }
 
     def get_frequency_series(
         self,
@@ -891,6 +899,7 @@ class SnubaTSDB(BaseTSDB):
         rollup: int | None = None,
         environment_id: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
+        project_ids: Sequence[int] | None = None,
     ) -> dict[TSDBKey, list[tuple[float, dict[TSDBItem, float]]]]:
         result = self.get_data(
             model,
@@ -908,27 +917,6 @@ class SnubaTSDB(BaseTSDB):
         # into
         #    {group: [(timestamp, {agg: count, ...}), ...]}
         return {k: sorted(result[k].items()) for k in result}
-
-    def get_frequency_totals(
-        self,
-        model: TSDBModel,
-        items: Mapping[TSDBKey, Sequence[TSDBItem]],
-        start: datetime,
-        end: datetime | None = None,
-        rollup: int | None = None,
-        environment_id: int | None = None,
-        tenant_ids: dict[str, str | int] | None = None,
-    ) -> dict[TSDBKey, dict[TSDBItem, float]]:
-        return self.get_data(
-            model,
-            items,
-            start,
-            end,
-            rollup,
-            [environment_id] if environment_id is not None else None,
-            aggregation="count()",
-            tenant_ids=tenant_ids,
-        )
 
     def flatten_keys(self, items: Mapping | Sequence | Set) -> tuple[list, Sequence | None]:
         """

@@ -5,10 +5,11 @@ import {space} from 'sentry/styles/space';
 
 import type {FieldGroupProps} from './types';
 
-type FieldWrapperProps = Pick<
-  FieldGroupProps,
-  'hasControlState' | 'highlighted' | 'inline' | 'stacked'
->;
+interface FieldWrapperProps
+  extends Pick<
+    FieldGroupProps,
+    'hasControlState' | 'highlighted' | 'inline' | 'stacked'
+  > {}
 
 const inlineStyle = (p: FieldWrapperProps) =>
   p.inline
@@ -29,7 +30,7 @@ const getPadding = (p: FieldWrapperProps) =>
         padding: ${space(2)};
       `;
 
-const FieldWrapper = styled('div')<FieldWrapperProps>`
+export const FieldWrapper = styled('div')<FieldWrapperProps>`
   ${getPadding}
   ${inlineStyle}
   display: flex;
@@ -50,10 +51,7 @@ const FieldWrapper = styled('div')<FieldWrapperProps>`
         content: '';
         display: block;
         position: absolute;
-        top: -1px;
-        left: -1px;
-        right: -1px;
-        bottom: -1px;
+        inset: -1px;
         border: 1px solid ${p.theme.purple300};
         pointer-events: none;
       }
@@ -74,5 +72,3 @@ const FieldWrapper = styled('div')<FieldWrapperProps>`
     ${p => (p.stacked ? 'padding-bottom: 0' : '')};
   }
 `;
-
-export default FieldWrapper;

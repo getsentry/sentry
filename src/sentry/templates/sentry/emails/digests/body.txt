@@ -3,10 +3,10 @@
 {{ start|date:"N j, Y, P e" }} to {{ end|date:"N j, Y, P e" }}
 
 {% for rule, groups in digest.items %}{{ rule.label }}
-{% for group, records in groups.items %}
-* {{ group.title }} ({{ group.event_count }} event{{ group.event_count|pluralize }}, {{ group.user_count }} user{{ group.user_count|pluralize }}){% url 'sentry-organization-issue' group.organization.slug group.id as group_link %}
+{% for group, records in groups.items %}{% with event_count=event_counts|get_item:group.id user_count=user_counts|get_item:group.id %}
+* {{ group.title }} ({{ event_count }} event{{ event_count|pluralize }}, {{ user_count }} user{{ user_count|pluralize }}){% url 'sentry-organization-issue' group.organization.slug group.id as group_link %}
   {% absolute_uri group_link %}?referrer=digest_email
-{% endfor %}
+{% endwith %}{% endfor %}
 {% endfor %}
 
 Unsubscribe: {{ unsubscribe_link }}

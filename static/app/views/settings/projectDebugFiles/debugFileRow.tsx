@@ -2,15 +2,16 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import {Role} from 'sentry/components/acl/role';
-import Tag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {useRole} from 'sentry/components/acl/useRole';
 import Confirm from 'sentry/components/confirm';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import FileSize from 'sentry/components/fileSize';
-import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,7 +22,6 @@ import {getFeatureTooltip, getPrettyFileType} from './utils';
 
 type Props = {
   debugFile: DebugFile;
-  downloadRole: string;
   downloadUrl: string;
   onDelete: (id: string) => void;
   orgSlug: string;
@@ -33,11 +33,11 @@ function DebugFileRow({
   debugFile,
   showDetails,
   downloadUrl,
-  downloadRole,
   onDelete,
   orgSlug,
   project,
 }: Props) {
+  const {hasRole, roleRequired: downloadRole} = useRole({role: 'debugFilesRole'});
   const {id, data, debugId, uuid, size, dateCreated, objectName, symbolType, codeId} =
     debugFile;
   const {features} = data || {};
@@ -68,9 +68,9 @@ function DebugFileRow({
           {features && (
             <FeatureTags>
               {features.map(feature => (
-                <StyledTag key={feature} tooltipText={getFeatureTooltip(feature)}>
-                  {feature}
-                </StyledTag>
+                <Tooltip key={feature} title={getFeatureTooltip(feature)} skipWrapper>
+                  <StyledTag>{feature}</StyledTag>
+                </Tooltip>
               ))}
             </FeatureTags>
           )}
@@ -87,32 +87,28 @@ function DebugFileRow({
         </Description>
       </Column>
       <RightColumn>
-        <ButtonBar gap={0.5}>
-          <Role role={downloadRole}>
-            {({hasRole}) => (
-              <Tooltip
-                disabled={hasRole}
-                title={tct(
-                  'Debug files can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
-                  {
-                    downloadRole,
-                    orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
-                    settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
-                  }
-                )}
-                isHoverable
-              >
-                <Button
-                  size="xs"
-                  icon={<IconDownload />}
-                  href={downloadUrl}
-                  disabled={!hasRole}
-                >
-                  {t('Download')}
-                </Button>
-              </Tooltip>
+        <ButtonBar gap="xs">
+          <Tooltip
+            disabled={hasRole}
+            title={tct(
+              'Debug files can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
+              {
+                downloadRole,
+                orHigher: downloadRole === 'owner' ? '' : ` ${t('or higher')}`,
+                settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
+              }
             )}
-          </Role>
+            isHoverable
+          >
+            <LinkButton
+              size="xs"
+              icon={<IconDownload />}
+              href={downloadUrl}
+              disabled={!hasRole}
+            >
+              {t('Download')}
+            </LinkButton>
+          </Tooltip>
           <Access access={['project:write']} project={project}>
             {({hasAccess}) => (
               <Tooltip
@@ -172,13 +168,13 @@ const RightColumn = styled('div')`
 `;
 
 const DebugId = styled('code')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const TimeAndSizeWrapper = styled('div')`
   width: 100%;
   display: flex;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-top: ${space(1)};
   color: ${p => p.theme.subText};
   align-items: center;
@@ -199,14 +195,14 @@ const TimeWrapper = styled('div')`
 `;
 
 const Name = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: ${space(1)};
 `;
 
 const Description = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     line-height: 1.7;
   }
 `;

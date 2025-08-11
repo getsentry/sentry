@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -7,7 +6,7 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -17,6 +16,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {
@@ -25,19 +25,18 @@ import {
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import DebugFileRow from './debugFileRow';
 import Sources from './sources';
 
-type Props = RouteComponentProps<{projectId: string}, {}> & {
+type Props = RouteComponentProps<{projectId: string}> & {
   organization: Organization;
   project: Project;
 };
@@ -49,14 +48,9 @@ function makeDebugFilesQueryKey({
 }: {
   orgSlug: string;
   projectSlug: string;
-  query: string;
+  query: {cursor: string | undefined; query: string | undefined};
 }): ApiQueryKey {
-  return [
-    `/projects/${orgSlug}/${projectSlug}/files/dsyms/`,
-    {
-      query: {query},
-    },
-  ];
+  return [`/projects/${orgSlug}/${projectSlug}/files/dsyms/`, {query}];
 }
 
 function makeSymbolSourcesQueryKey({orgSlug}: {orgSlug: string}): ApiQueryKey {
@@ -69,20 +63,21 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
   const queryClient = useQueryClient();
   const [showDetails, setShowDetails] = useState(false);
 
-  const query = decodeScalar(location.query.query, '');
+  const query = location.query.query as string | undefined;
+  const cursor = location.query.cursor as string | undefined;
   const hasSymbolSourcesFeatureFlag = organization.features.includes('symbol-sources');
 
   const {
     data: debugFiles,
     getResponseHeader: getDebugFilesResponseHeader,
-    isLoading: isLoadingDebugFiles,
+    isPending: isLoadingDebugFiles,
     isLoadingError: isLoadingErrorDebugFiles,
     refetch: refetchDebugFiles,
   } = useApiQuery<DebugFile[] | null>(
     makeDebugFilesQueryKey({
       projectSlug: params.projectId,
       orgSlug: organization.slug,
-      query,
+      query: {query, cursor},
     }),
     {
       staleTime: 0,
@@ -92,7 +87,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
 
   const {
     data: builtinSymbolSources,
-    isLoading: isLoadingSymbolSources,
+    isPending: isLoadingSymbolSources,
     isError: isErrorSymbolSources,
     refetch: refetchSymbolSources,
   } = useApiQuery<BuiltinSymbolSource[] | null>(
@@ -108,7 +103,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
     (value: string) => {
       navigate({
         ...location,
-        query: {...location.query, cursor: undefined, query: !value ? undefined : value},
+        query: {...location.query, cursor: undefined, query: value ? value : undefined},
       });
     },
     [navigate, location]
@@ -130,20 +125,20 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
       addSuccessMessage('Successfully deleted debug file');
 
       // invalidate debug files query
-      queryClient.invalidateQueries(
-        makeDebugFilesQueryKey({
+      queryClient.invalidateQueries({
+        queryKey: makeDebugFilesQueryKey({
           projectSlug: params.projectId,
           orgSlug: organization.slug,
-          query,
-        })
-      );
+          query: {query, cursor},
+        }),
+      });
 
       // invalidate symbol sources query
-      queryClient.invalidateQueries(
-        makeSymbolSourcesQueryKey({
+      queryClient.invalidateQueries({
+        queryKey: makeSymbolSourcesQueryKey({
           orgSlug: organization.slug,
-        })
-      );
+        }),
+      });
     },
     onError: () => {
       addErrorMessage('Failed to delete debug file');
@@ -164,7 +159,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
 
       {organization.features.includes('symbol-sources') && (
         <Fragment>
-          <PermissionAlert project={project} />
+          <ProjectPermissionAlert project={project} />
 
           {isLoadingSymbolSources ? (
             <LoadingIndicator />
@@ -236,9 +231,8 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
             isEmpty={debugFiles?.length === 0}
             isLoading={isLoadingDebugFiles}
           >
-            {!debugFiles?.length
-              ? null
-              : debugFiles.map(debugFile => {
+            {debugFiles?.length
+              ? debugFiles.map(debugFile => {
                   const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${params.projectId}/files/dsyms/?id=${debugFile.id}`;
 
                   return (
@@ -246,14 +240,14 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
                       debugFile={debugFile}
                       showDetails={showDetails}
                       downloadUrl={downloadUrl}
-                      downloadRole={organization.debugFilesRole}
                       onDelete={handleDeleteDebugFile}
                       key={debugFile.id}
                       orgSlug={organization.slug}
                       project={project}
                     />
                   );
-                })}
+                })
+              : null}
           </StyledPanelTable>
           <Pagination pageLinks={getDebugFilesResponseHeader?.('Link')} />
         </Fragment>
@@ -277,7 +271,7 @@ const Wrapper = styled('div')`
   align-items: center;
   margin-top: ${space(4)};
   margin-bottom: ${space(1)};
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: block;
   }
 `;
@@ -288,13 +282,13 @@ const Filters = styled('div')`
   align-items: center;
   justify-content: flex-end;
   gap: ${space(2)};
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: min-content 1fr;
   }
 `;
 
 const Label = styled('label')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   display: flex;
   align-items: center;
   margin-bottom: 0;

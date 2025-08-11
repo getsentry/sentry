@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {IconArrow, IconMute, IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -50,17 +51,17 @@ export default function AlertRuleStatus({rule}: Props) {
   }
 
   const criticalTrigger = rule.triggers.find(
-    ({label}) => label === AlertRuleTriggerType.CRITICAL
+    ({label}: any) => label === AlertRuleTriggerType.CRITICAL
   );
   const warningTrigger = rule.triggers.find(
-    ({label}) => label === AlertRuleTriggerType.WARNING
+    ({label}: any) => label === AlertRuleTriggerType.WARNING
   );
   const resolvedTrigger = rule.resolveThreshold;
 
   const trigger =
     activeIncident && rule.latestIncident?.status === IncidentStatus.CRITICAL
       ? criticalTrigger
-      : warningTrigger ?? criticalTrigger;
+      : (warningTrigger ?? criticalTrigger);
 
   let iconColor: ColorOrAlias = 'successText';
   let iconDirection: 'up' | 'down' | undefined;
@@ -68,6 +69,9 @@ export default function AlertRuleStatus({rule}: Props) {
     activeIncident && rule.thresholdType === AlertRuleThresholdType.ABOVE
       ? t('Above')
       : t('Below');
+
+  // Anomaly detection alerts have different labels
+  const statusLabel = activeIncident ? t('Critical') : t('Resolved');
 
   if (activeIncident) {
     iconColor =
@@ -85,22 +89,28 @@ export default function AlertRuleStatus({rule}: Props) {
   }
 
   return (
-    <FlexCenter>
-      <IconArrow color={iconColor} direction={iconDirection} />
-      <TriggerText>
-        {`${thresholdTypeText} ${
-          rule.latestIncident || (!rule.latestIncident && !resolvedTrigger)
-            ? trigger?.alertThreshold?.toLocaleString()
-            : resolvedTrigger?.toLocaleString()
-        }`}
-        {getThresholdUnits(
-          rule.aggregate,
-          rule.comparisonDelta
-            ? AlertRuleComparisonType.CHANGE
-            : AlertRuleComparisonType.COUNT
-        )}
-      </TriggerText>
-    </FlexCenter>
+    <Flex align="center">
+      {rule.detectionType !== AlertRuleComparisonType.DYNAMIC && (
+        <IconArrow color={iconColor} direction={iconDirection} />
+      )}
+      {rule.detectionType === AlertRuleComparisonType.DYNAMIC ? (
+        <TriggerText>{statusLabel}</TriggerText>
+      ) : (
+        <TriggerText>
+          {`${thresholdTypeText} ${
+            rule.latestIncident || (!rule.latestIncident && !resolvedTrigger)
+              ? trigger?.alertThreshold?.toLocaleString()
+              : resolvedTrigger?.toLocaleString()
+          }`}
+          {getThresholdUnits(
+            rule.aggregate,
+            rule.comparisonDelta
+              ? AlertRuleComparisonType.CHANGE
+              : AlertRuleComparisonType.COUNT
+          )}
+        </TriggerText>
+      )}
+    </Flex>
   );
 }
 
@@ -115,10 +125,4 @@ const TriggerText = styled('div')`
   margin-left: ${space(1)};
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
-`;
-
-// TODO: explore utilizing the FlexContainer from app/components/container/flex.tsx
-const FlexCenter = styled('div')`
-  display: flex;
-  align-items: center;
 `;

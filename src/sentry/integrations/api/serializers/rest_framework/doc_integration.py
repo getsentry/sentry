@@ -8,14 +8,14 @@ from rest_framework.serializers import Serializer, ValidationError
 
 from sentry.api.fields.avatar import AvatarField
 from sentry.api.helpers.slugs import sentry_slugify
-from sentry.api.serializers.rest_framework.sentry_app import URLField
-from sentry.api.validators.doc_integration import validate_metadata_schema
+from sentry.integrations.api.parsers.doc_integration import validate_metadata_schema
 from sentry.integrations.models.doc_integration import DocIntegration
 from sentry.integrations.models.integration_feature import (
     Feature,
     IntegrationFeature,
     IntegrationTypes,
 )
+from sentry.sentry_apps.api.parsers.sentry_app import URLField
 
 
 class MetadataField(serializers.JSONField):

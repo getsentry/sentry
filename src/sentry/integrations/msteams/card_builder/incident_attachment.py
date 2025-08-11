@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Literal
 
-from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.integrations.msteams.card_builder.block import (
     AdaptiveCard,
@@ -10,18 +11,21 @@ from sentry.integrations.msteams.card_builder.block import (
     ImageSize,
     TextWeight,
 )
+from sentry.models.organization import Organization
 
 
 def build_incident_attachment(
-    incident: Incident,
-    new_status: IncidentStatus,
-    metric_value: float | None = None,
+    alert_context: AlertContext,
+    metric_issue_context: MetricIssueContext,
+    organization: Organization,
+    date_started: datetime,
     notification_uuid: str | None = None,
 ) -> AdaptiveCard:
+
     data = incident_attachment_info(
-        incident,
-        new_status,
-        metric_value,
+        alert_context=alert_context,
+        metric_issue_context=metric_issue_context,
+        organization=organization,
         notification_uuid=notification_uuid,
         referrer="metric_alert_msteams",
     )
@@ -29,7 +33,7 @@ def build_incident_attachment(
     colors: dict[str, Literal["good", "warning", "attention"]]
     colors = {"Resolved": "good", "Warning": "warning", "Critical": "attention"}
 
-    footer_text = "Sentry Incident | {}".format(data["ts"].strftime("%b %d"))
+    footer_text = "Sentry Incident | {}".format(date_started.strftime("%b %d"))
 
     return {
         "type": "AdaptiveCard",

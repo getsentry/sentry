@@ -2,9 +2,7 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
-from typing import TYPE_CHECKING, Any
-
-from typing_extensions import TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from sentry.hybridcloud.rpc import RpcModel
 
@@ -28,7 +26,7 @@ class RpcIdentity(RpcModel):
     def get_identity(self) -> "Provider":
         from sentry.identity import get
         from sentry.identity.services.identity import identity_service
-        from sentry.models.identity import IdentityProvider
+        from sentry.users.models.identity import IdentityProvider
 
         identity_provider = identity_service.get_provider(provider_id=self.idp_id)
         if identity_provider is None:

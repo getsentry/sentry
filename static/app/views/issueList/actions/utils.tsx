@@ -1,9 +1,8 @@
 import {Fragment} from 'react';
 
-import {Alert} from 'sentry/components/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import {t, tct, tn} from 'sentry/locale';
-import type {IgnoredStatusDetails} from 'sentry/types/group';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 import ExtraDescription from './extraDescription';
@@ -54,9 +53,9 @@ function PerformanceIssueAlert({
   }
 
   return (
-    <Alert type="info" showIcon>
-      {children}
-    </Alert>
+    <Alert.Container>
+      <Alert type="info">{children}</Alert>
+    </Alert.Container>
   );
 }
 
@@ -124,7 +123,7 @@ export function getConfirm({
         );
         break;
       default:
-        message = !canBeUndone ? <p>{t('This action cannot be undone.')}</p> : null;
+        message = canBeUndone ? null : <p>{t('This action cannot be undone.')}</p>;
     }
 
     return (
@@ -156,8 +155,15 @@ export function getLabel(numIssues: number, allInQuerySelected: boolean) {
   };
 }
 
-export function performanceIssuesSupportsIgnoreAction(
-  statusDetails: IgnoredStatusDetails
-) {
-  return !(statusDetails.ignoreWindow || statusDetails.ignoreUserWindow);
-}
+// A mapping of which container sizes will trigger the column to disappear
+// e.g. 'Trend': screen.small => 'Trend' column will disappear on screen.small widths
+export const COLUMN_BREAKPOINTS = {
+  ISSUE: undefined, // Issue column is always visible
+  TREND: '800px',
+  LAST_SEEN: '500px',
+  FIRST_SEEN: '900px',
+  EVENTS: '700px',
+  USERS: '900px',
+  PRIORITY: '1100px',
+  ASSIGNEE: '500px',
+};

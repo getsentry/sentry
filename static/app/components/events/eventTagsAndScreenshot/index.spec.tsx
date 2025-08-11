@@ -13,6 +13,7 @@ import {
 import {TagFilter} from 'sentry/components/events/eventTags/util';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import GlobalModal from 'sentry/components/globalModal';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import type {EventAttachment} from 'sentry/types/group';
 
 describe('EventTagsAndScreenshot', function () {
@@ -123,7 +124,7 @@ describe('EventTagsAndScreenshot', function () {
     },
   ];
 
-  let mockDetailedProject;
+  let mockDetailedProject: jest.Mock;
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -140,6 +141,8 @@ describe('EventTagsAndScreenshot', function () {
       url: '/organizations/org-slug/releases/io.sentry.sample.iOS-Swift%407.2.3%2B390/deploys/',
       body: [],
     });
+    ProjectsStore.init();
+    ProjectsStore.loadInitialData([project]);
     mockDetailedProject = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       body: project,
@@ -148,12 +151,12 @@ describe('EventTagsAndScreenshot', function () {
 
   async function assertTagsView() {
     expect(screen.getByText('Tags')).toBeInTheDocument();
-    const tagsContainer = within(screen.getByTestId('event-tags'));
+    const tagsContainer = within(screen.getByRole('region', {name: 'tags'}));
     expect(tagsContainer.getAllByRole('radio')).toHaveLength(
       Object.keys(TagFilter).length
     );
 
-    await expect(mockDetailedProject).toHaveBeenCalled();
+    expect(mockDetailedProject).toHaveBeenCalled();
     expect(await tagsContainer.findByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(screen.getByTestId('event-tags-tree')).toBeInTheDocument();
   }
@@ -218,7 +221,7 @@ describe('EventTagsAndScreenshot', function () {
       const allTags = applicationTags.concat(customTags);
       const testEvent = EventFixture({tags: allTags});
       render(<EventTagsAndScreenshot projectSlug={project.slug} event={testEvent} />, {
-        organization: organization,
+        organization,
       });
       expect(mockDetailedProject).toHaveBeenCalled();
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -257,7 +260,7 @@ describe('EventTagsAndScreenshot', function () {
       ];
       const testEvent = EventFixture({tags: applicationTags});
       render(<EventTagsAndScreenshot projectSlug={project.slug} event={testEvent} />, {
-        organization: organization,
+        organization,
       });
       expect(mockDetailedProject).toHaveBeenCalled();
       expect(await screen.findByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -302,24 +305,12 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.queryByText('Tags')).not.toBeInTheDocument();
 
       // Screenshot Container
-      expect(
-        (await screen.findByTestId('screenshot-data-section'))?.textContent
-      ).toContain('Screenshot');
+      expect(await screen.findByRole('region', {name: 'Screenshot'})).toBeInTheDocument();
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1]!.id}/?download`
       );
-
-      // Display help text when hovering question element
-      await userEvent.hover(screen.getByTestId('more-information'));
-
-      expect(
-        await screen.findByText(
-          'This image was captured around the time that the event occurred.'
-        )
-      ).toBeInTheDocument();
-
       // Screenshot is clickable
       await userEvent.click(screen.getByTestId('image-viewer'));
 
@@ -351,12 +342,11 @@ describe('EventTagsAndScreenshot', function () {
       expect(await screen.findByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1]!.id}/?download`
       );
 
-      expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
-        'Screenshot'
-      );
+      expect(screen.getByRole('region', {name: 'Screenshot'})).toBeInTheDocument();
+
       expect(
         screen.queryByRole('button', {name: 'Previous Screenshot'})
       ).not.toBeInTheDocument();
@@ -393,26 +383,23 @@ describe('EventTagsAndScreenshot', function () {
         {organization}
       );
 
-      expect(
-        (await screen.findByTestId('screenshot-data-section'))?.textContent
-      ).toContain('1 of 2');
+      const screenShotSection = await screen.findByRole('region', {name: 'Screenshots'});
+      expect(screenShotSection).toHaveTextContent('1 of 2');
 
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${moreAttachments[1].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${moreAttachments[1]!.id}/?download`
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Next Screenshot'}));
 
-      expect(await screen.findByTestId('screenshot-data-section')).toHaveTextContent(
-        '2 of 2'
-      );
+      expect(screenShotSection).toHaveTextContent('2 of 2');
 
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${moreAttachments[2].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${moreAttachments[2]!.id}/?download`
       );
     });
 
@@ -464,13 +451,11 @@ describe('EventTagsAndScreenshot', function () {
       await assertTagsView();
 
       // Screenshot Container
-      expect(
-        (await screen.findByTestId('screenshot-data-section'))?.textContent
-      ).toContain('Screenshot');
+      expect(await screen.findByRole('region', {name: 'Screenshot'})).toBeInTheDocument();
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1]!.id}/?download`
       );
     });
   });

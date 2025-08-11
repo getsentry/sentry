@@ -4,62 +4,53 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
-import type {
-  MetricsProperty,
-  MetricsResponse,
-  SpanIndexedField,
-  SpanIndexedResponse,
-  SpanMetricsProperty,
-  SpanMetricsResponse,
-} from 'sentry/views/insights/types';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {
+  useWrappedDiscoverQuery,
+  useWrappedDiscoverQueryWithoutPageFilters,
+} from 'sentry/views/insights/common/queries/useSpansQuery';
+import type {SpanProperty, SpanResponse} from 'sentry/views/insights/types';
 
-interface UseMetricsOptions<Fields> {
+interface UseDiscoverQueryOptions {
+  additonalQueryKey?: string[];
+}
+
+interface UseDiscoverOptions<Fields> {
   cursor?: string;
   enabled?: boolean;
   fields?: Fields;
+  keepPreviousData?: boolean;
   limit?: number;
   noPagination?: boolean;
+  orderby?: string | string[];
   pageFilters?: PageFilters;
-  search?: MutableSearch | string; // TODO - ideally this probably would be only `Mutable Search`, but it doesn't handle some situations well
+  projectIds?: number[];
+  /**
+   * If true, the query will be executed without the page filters.
+   * {@link pageFilters} can still be passed and will be used to build the event view on top of the query.
+   */
+  queryWithoutPageFilters?: boolean;
+  samplingMode?: SamplingMode;
+  /**
+   * TODO - ideally this probably would be only `Mutable Search`, but it doesn't handle some situations well
+   */
+  search?: MutableSearch | string;
   sorts?: Sort[];
+  useQueryOptions?: UseDiscoverQueryOptions;
 }
 
-export const useSpansIndexed = <Fields extends SpanIndexedField[]>(
-  options: UseMetricsOptions<Fields> = {},
+// The default sampling mode for eap queries
+export const DEFAULT_SAMPLING_MODE: SamplingMode = 'NORMAL';
+
+export const useSpans = <Fields extends SpanProperty[]>(
+  options: UseDiscoverOptions<Fields> = {},
   referrer: string
 ) => {
-  return useDiscover<Fields, SpanIndexedResponse>(
-    options,
-    DiscoverDatasets.SPANS_INDEXED,
-    referrer
-  );
+  return useDiscover<Fields, SpanResponse>(options, DiscoverDatasets.SPANS, referrer);
 };
 
-export const useSpanMetrics = <Fields extends SpanMetricsProperty[]>(
-  options: UseMetricsOptions<Fields> = {},
-  referrer: string
-) => {
-  return useDiscover<Fields, SpanMetricsResponse>(
-    options,
-    DiscoverDatasets.SPANS_METRICS,
-    referrer
-  );
-};
-
-export const useMetrics = <Fields extends MetricsProperty[]>(
-  options: UseMetricsOptions<Fields> = {},
-  referrer: string
-) => {
-  return useDiscover<Fields, MetricsResponse>(
-    options,
-    DiscoverDatasets.METRICS,
-    referrer
-  );
-};
-
-const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseType>(
-  options: UseMetricsOptions<T> = {},
+const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, ResponseType>(
+  options: UseDiscoverOptions<T> = {},
   dataset: DiscoverDatasets,
   referrer: string
 ) => {
@@ -71,6 +62,10 @@ const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseTy
     cursor,
     pageFilters: pageFiltersFromOptions,
     noPagination,
+    projectIds,
+    orderby,
+    samplingMode = DEFAULT_SAMPLING_MODE,
+    useQueryOptions,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -80,10 +75,16 @@ const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseTy
     fields,
     sorts,
     pageFiltersFromOptions ?? pageFilters.selection,
-    dataset
+    dataset,
+    projectIds,
+    orderby
   );
 
-  const result = useWrappedDiscoverQuery({
+  const queryFn = options.queryWithoutPageFilters
+    ? useWrappedDiscoverQueryWithoutPageFilters
+    : useWrappedDiscoverQuery;
+
+  const result = queryFn({
     eventView,
     initialData: [],
     limit,
@@ -91,11 +92,13 @@ const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseTy
     referrer,
     cursor,
     noPagination,
+    samplingMode,
+    additionalQueryKey: useQueryOptions?.additonalQueryKey,
+    keepPreviousData: options.keepPreviousData,
   });
 
   // This type is a little awkward but it explicitly states that the response could be empty. This doesn't enable unchecked access errors, but it at least indicates that it's possible that there's no data
-  // eslint-disable-next-line @typescript-eslint/ban-types
-  const data = (result?.data ?? []) as Pick<ResponseType, T[number]>[];
+  const data = (result?.data ?? []) as Array<Pick<ResponseType, T[number]>>;
 
   return {
     ...result,
@@ -104,14 +107,16 @@ const useDiscover = <T extends Extract<keyof ResponseType, string>[], ResponseTy
   };
 };
 
-function getEventView(
+export function getEventView(
   search: MutableSearch | string | undefined,
   fields: string[] = [],
   sorts: Sort[] = [],
   pageFilters: PageFilters,
-  dataset: DiscoverDatasets
+  dataset: DiscoverDatasets,
+  projectIds?: number[],
+  orderby?: string | string[]
 ) {
-  const query = typeof search === 'string' ? search : search?.formatString() ?? '';
+  const query = typeof search === 'string' ? search : (search?.formatString() ?? '');
 
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
@@ -120,9 +125,14 @@ function getEventView(
       fields,
       dataset,
       version: 2,
+      orderby,
     },
     pageFilters
   );
+
+  if (projectIds) {
+    eventView.project = projectIds;
+  }
 
   if (sorts.length > 0) {
     eventView.sorts = sorts;

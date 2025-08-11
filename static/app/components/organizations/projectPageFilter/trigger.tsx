@@ -1,17 +1,14 @@
-import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import Badge from 'sentry/components/badge/badge';
+import {Badge} from 'sentry/components/core/badge';
 import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import DropdownButton from 'sentry/components/dropdownButton';
-import PlatformList from 'sentry/components/platformList';
-import {IconProject} from 'sentry/icons';
+import {DesyncedFilterIndicator} from 'sentry/components/organizations/pageFilters/desyncedFilter';
+import {PlatformList} from 'sentry/components/platformList';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {trimSlug} from 'sentry/utils/string/trimSlug';
-
-import {DesyncedFilterIndicator} from '../pageFilters/desyncedFilter';
 
 interface ProjectPageFilterTriggerProps extends Omit<DropdownButtonProps, 'value'> {
   desynced: boolean;
@@ -19,19 +16,17 @@ interface ProjectPageFilterTriggerProps extends Omit<DropdownButtonProps, 'value
   nonMemberProjects: Project[];
   ready: boolean;
   value: number[];
+  ref?: React.Ref<HTMLButtonElement>;
 }
 
-function BaseProjectPageFilterTrigger(
-  {
-    value,
-    memberProjects,
-    nonMemberProjects,
-    ready,
-    desynced,
-    ...props
-  }: ProjectPageFilterTriggerProps,
-  forwardedRef: React.ForwardedRef<HTMLButtonElement>
-) {
+export function ProjectPageFilterTrigger({
+  value,
+  memberProjects,
+  nonMemberProjects,
+  ready,
+  desynced,
+  ...props
+}: ProjectPageFilterTriggerProps) {
   const isMemberProjectsSelected = memberProjects.every(p =>
     value.includes(parseInt(p.id, 10))
   );
@@ -55,7 +50,7 @@ function BaseProjectPageFilterTrigger(
   // Show 2 projects only if the combined string does not exceed maxTitleLength.
   // Otherwise show only 1 project.
   const projectsToShow =
-    selectedProjects[0]?.slug?.length + selectedProjects[1]?.slug?.length <= 23
+    selectedProjects[0]?.slug?.length! + selectedProjects[1]?.slug?.length! <= 23
       ? selectedProjects.slice(0, 2)
       : selectedProjects.slice(0, 1);
 
@@ -78,39 +73,37 @@ function BaseProjectPageFilterTrigger(
   return (
     <DropdownButton
       {...props}
-      ref={forwardedRef}
       data-test-id="page-filter-project-selector"
       icon={
-        <TriggerIconWrap>
-          {!ready || isAllProjectsSelected || isMyProjectsSelected ? (
-            <IconProject />
-          ) : (
-            <PlatformList
-              platforms={projectsToShow.map(p => p.platform ?? 'other').reverse()}
-            />
-          )}
-          {desynced && <DesyncedFilterIndicator role="presentation" />}
-        </TriggerIconWrap>
+        ready &&
+        !isAllProjectsSelected &&
+        !isMyProjectsSelected && (
+          <PlatformList
+            platforms={projectsToShow.map(p => p.platform ?? 'other').reverse()}
+          />
+        )
       }
     >
-      <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
-      {remainingCount > 0 && <StyledBadge text={`+${remainingCount}`} />}
+      <TriggerLabelWrap>
+        <TriggerLabel>{ready ? label : t('Loading\u2026')}</TriggerLabel>
+        {desynced && <DesyncedFilterIndicator role="presentation" />}
+      </TriggerLabelWrap>
+      {remainingCount > 0 && (
+        <StyledBadge type="default">{`+${remainingCount}`}</StyledBadge>
+      )}
     </DropdownButton>
   );
 }
 
-export const ProjectPageFilterTrigger = forwardRef(BaseProjectPageFilterTrigger);
+const TriggerLabelWrap = styled('span')`
+  position: relative;
+  min-width: 0;
+`;
 
 const TriggerLabel = styled('span')`
   ${p => p.theme.overflowEllipsis};
   position: relative;
   width: auto;
-`;
-
-const TriggerIconWrap = styled('div')`
-  position: relative;
-  display: flex;
-  align-items: center;
 `;
 
 const StyledBadge = styled(Badge)`

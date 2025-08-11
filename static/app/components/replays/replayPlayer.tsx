@@ -6,59 +6,48 @@ import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceCon
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
 import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
+import {
+  baseReplayerCss,
+  sentryReplayerCss,
+} from 'sentry/components/replays/player/styles';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useReplayPlayerSize} from 'sentry/utils/replays/playback/providers/replayPlayerSizeContext';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
-import PlayerDOMAlert from './playerDOMAlert';
+import UnmaskAlert from './unmaskAlert';
 
 type Dimensions = ReturnType<typeof useReplayContext>['dimensions'];
 
 interface Props {
   className?: string;
+  /**
+   * When the player is "inspectable" it'll capture the mouse and things like
+   * css :hover properties will be applied.
+   * This makes it easier to Right-Click > Inspect Dom Element
+   * But it also makes it harder to have sliders or mouse interactions that overlay
+   * on top of the player.
+   *
+   * Therefore, in cases where the replay is in a debugging/video context it
+   * should be interactable.
+   * But when the player is used for things like static rendering or hydration
+   * diffs, people interact with the
+   *
+   */
+  inspectable?: boolean;
+  /**
+   * Use when the player is shown in an embedded preview context.
+   */
   isPreview?: boolean;
   overlayContent?: React.ReactNode;
 }
 
-function useVideoSizeLogger({
-  videoDimensions,
-  windowDimensions,
-}: {
-  videoDimensions: Dimensions;
-  windowDimensions: Dimensions;
-}) {
-  const organization = useOrganization();
-  const [didLog, setDidLog] = useState<boolean>(false);
-  const {analyticsContext} = useReplayContext();
-
-  useEffect(() => {
-    if (didLog || (videoDimensions.width === 0 && videoDimensions.height === 0)) {
-      return;
-    }
-
-    const aspect_ratio =
-      videoDimensions.width > videoDimensions.height ? 'landscape' : 'portrait';
-
-    const scale = Math.min(
-      windowDimensions.width / videoDimensions.width,
-      windowDimensions.height / videoDimensions.height,
-      1
-    );
-    const scale_bucket = (Math.floor(scale * 10) * 10) as Parameters<
-      typeof trackAnalytics<'replay.render-player'>
-    >[1]['scale_bucket'];
-
-    trackAnalytics('replay.render-player', {
-      organization,
-      aspect_ratio,
-      context: analyticsContext,
-      scale_bucket,
-    });
-    setDidLog(true);
-  }, [organization, windowDimensions, videoDimensions, didLog, analyticsContext]);
-}
-
-function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
+function BasePlayerRoot({
+  className,
+  overlayContent,
+  isPreview = false,
+  inspectable,
+}: Props) {
+  const replay = useReplayReader();
   const {
     dimensions: videoDimensions,
     fastForwardSpeed,
@@ -70,6 +59,14 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
     isVideoReplay,
   } = useReplayContext();
 
+  const sdkOptions = replay?.getSDKOptions();
+
+  const hasDefaultMaskSettings = sdkOptions
+    ? Boolean(
+        sdkOptions.maskAllInputs && sdkOptions.maskAllText && sdkOptions.blockAllMedia
+      )
+    : true;
+
   const windowEl = useRef<HTMLDivElement>(null);
   const viewEl = useRef<HTMLDivElement>(null);
 
@@ -77,8 +74,6 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
     width: 0,
     height: 0,
   });
-
-  useVideoSizeLogger({videoDimensions, windowDimensions});
 
   // Sets the parent element where the player
   // instance will use as root (i.e. where it will
@@ -120,6 +115,8 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
     updateWindowDimensions();
   }, [updateWindowDimensions]);
 
+  const [, setViewSize] = useReplayPlayerSize();
+
   // Update the scale of the view whenever dimensions have changed.
   useEffect(() => {
     if (viewEl.current) {
@@ -131,13 +128,19 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
         1.5
       );
       if (scale) {
+        setViewSize({
+          width: windowDimensions.width,
+          height: windowDimensions.height,
+          scale,
+        });
+        // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
         viewEl.current.style['transform-origin'] = 'top left';
         viewEl.current.style.transform = `scale(${scale})`;
         viewEl.current.style.width = `${videoDimensions.width * scale}px`;
         viewEl.current.style.height = `${videoDimensions.height * scale}px`;
       }
     }
-  }, [windowDimensions, videoDimensions]);
+  }, [windowDimensions, videoDimensions, setViewSize]);
 
   return (
     <Fragment>
@@ -147,10 +150,12 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
         </Overlay>
       )}
       <StyledNegativeSpaceContainer ref={windowEl} className="sentry-block">
-        <div ref={viewEl} className={className} />
+        <div ref={viewEl} className={className} data-inspectable={inspectable} />
         {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
         {isBuffering || isVideoBuffering ? <PositionedBuffering /> : null}
-        {isPreview || isVideoReplay || isFetching ? null : <PlayerDOMAlert />}
+        {isPreview || isVideoReplay || isFetching || !hasDefaultMaskSettings ? null : (
+          <UnmaskAlert />
+        )}
         {isFetching ? <PositionedLoadingIndicator /> : null}
       </StyledNegativeSpaceContainer>
     </Fragment>
@@ -175,128 +180,18 @@ const PositionedLoadingIndicator = styled(LoadingIndicator)`
   position: absolute;
 `;
 
-// Base styles, to make the Replayer instance work
-const PlayerRoot = styled(BasePlayerRoot)`
-  .replayer-wrapper {
-    user-select: none;
-  }
+const SentryPlayerRoot = styled(BasePlayerRoot)`
+  /* Base styles, to make the Replayer instance work */
+  ${baseReplayerCss}
+  /* Sentry-specific styles for the player */
+  ${p => sentryReplayerCss(p.theme)}
 
-  .replayer-wrapper > .replayer-mouse {
-    pointer-events: none;
-  }
-  .replayer-wrapper > .replayer-mouse-tail {
+  .video-replayer-wrapper + .replayer-wrapper {
     position: absolute;
-    pointer-events: none;
-  }
-
-  /* Override default user-agent styles */
-  .replayer-wrapper > iframe {
-    border: none;
-    background: white;
-
-    /* Set pointer-events to make it easier to right-click & inspect */
-    pointer-events: initial !important;
-  }
-`;
-
-// Sentry-specific styles for the player.
-// The elements we have to work with are:
-// ```css
-// div.replayer-wrapper {}
-// div.replayer-wrapper > div.replayer-mouse {}
-// div.replayer-wrapper > canvas.replayer-mouse-tail {}
-// div.replayer-wrapper > iframe {}
-// ```
-// The mouse-tail is also configured for color/size in `app/components/replays/replayContext.tsx`
-const SentryPlayerRoot = styled(PlayerRoot)`
-  .replayer-mouse {
-    position: absolute;
-    width: 32px;
-    height: 32px;
-    transition:
-      left 0.05s linear,
-      top 0.05s linear;
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTkiIHZpZXdCb3g9IjAgMCAxMiAxOSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTAgMTZWMEwxMS42IDExLjZINC44TDQuNCAxMS43TDAgMTZaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNOS4xIDE2LjdMNS41IDE4LjJMMC43OTk5OTkgNy4xTDQuNSA1LjZMOS4xIDE2LjdaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNNC42NzQ1MSA4LjYxODUxTDIuODMwMzEgOS4zOTI3MUw1LjkyNzExIDE2Ljc2OTVMNy43NzEzMSAxNS45OTUzTDQuNjc0NTEgOC42MTg1MVoiIGZpbGw9ImJsYWNrIi8+CjxwYXRoIGQ9Ik0xIDIuNFYxMy42TDQgMTAuN0w0LjQgMTAuNkg5LjJMMSAyLjRaIiBmaWxsPSJibGFjayIvPgo8L3N2Zz4K');
-    border-color: transparent;
-  }
-  .replayer-mouse:after {
-    content: '';
-    display: inline-block;
-    width: 32px;
-    height: 32px;
-    background: ${p => p.theme.purple300};
-    border-radius: 100%;
-    transform: translate(-50%, -50%);
-    opacity: 0.3;
-  }
-  .replayer-mouse.active:after {
-    animation: click 0.2s ease-in-out 1;
-  }
-  .replayer-mouse.touch-device {
-    background-image: none;
-    width: 70px;
-    height: 70px;
-    border-radius: 100%;
-    margin-left: -37px;
-    margin-top: -37px;
-    border: 4px solid rgba(73, 80, 246, 0);
-    transition:
-      left 0s linear,
-      top 0s linear,
-      border-color 0.2s ease-in-out;
-  }
-  .replayer-mouse.touch-device.touch-active {
-    border-color: ${p => p.theme.purple200};
-    transition:
-      left 0.25s linear,
-      top 0.25s linear,
-      border-color 0.2s ease-in-out;
-  }
-  .replayer-mouse.touch-device:after {
-    opacity: 0;
-  }
-  .replayer-mouse.touch-device.active:after {
-    animation: touch-click 0.2s ease-in-out 1;
-  }
-  @keyframes click {
-    0% {
-      opacity: 0.3;
-      width: 20px;
-      height: 20px;
-    }
-    50% {
-      opacity: 0.5;
-      width: 10px;
-      height: 10px;
-    }
-  }
-  @keyframes touch-click {
-    0% {
-      opacity: 0;
-      width: 20px;
-      height: 20px;
-    }
-    50% {
-      opacity: 0.5;
-      width: 10px;
-      height: 10px;
-    }
-  }
-
-  /* Correctly positions the canvas for video replays and shows the purple "mousetails" */
-  &.video-replayer {
-    .replayer-wrapper {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-    }
-    .replayer-wrapper > iframe {
-      opacity: 0;
-    }
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
   }
 `;
 

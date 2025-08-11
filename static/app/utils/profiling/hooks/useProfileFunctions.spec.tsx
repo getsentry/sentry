@@ -13,9 +13,7 @@ function TestContext({children}: {children: React.ReactNode}) {
 
   return (
     <QueryClientProvider client={makeTestQueryClient()}>
-      <OrganizationContext.Provider value={organization}>
-        {children}
-      </OrganizationContext.Provider>
+      <OrganizationContext value={organization}>{children}</OrganizationContext>
     </QueryClientProvider>
   );
 }
@@ -68,8 +66,8 @@ describe('useProfileFunctions', function () {
         }),
       {wrapper: TestContext}
     );
-    expect(hook.result.current.isLoading).toEqual(true);
-    expect(hook.result.current.isFetched).toEqual(false);
+    expect(hook.result.current.isPending).toBe(true);
+    expect(hook.result.current.isFetched).toBe(false);
     await waitFor(() =>
       expect(hook.result.current).toMatchObject(
         expect.objectContaining({

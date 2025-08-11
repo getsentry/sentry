@@ -16,8 +16,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.api.utils import generate_region_url
 from sentry.models.files.fileblob import FileBlob
+from sentry.models.files.utils import MAX_FILE_SIZE
+from sentry.models.organization import Organization
+from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.utils.files import get_max_file_size
 from sentry.utils.http import absolute_uri
 
 MAX_CHUNKS_PER_REQUEST = 64
@@ -36,6 +38,9 @@ CHUNK_UPLOAD_ACCEPT = (
     "portablepdbs",  # Portable PDB debug file
     "artifact_bundles",  # Artifact Bundles for JavaScript Source Maps
     "artifact_bundles_v2",  # The `assemble` endpoint will check for missing chunks
+    "proguard",  # Chunk-uploaded proguard mappings
+    "preprod_artifacts",  # Preprod artifacts (mobile builds, etc.)
+    "dartsymbolmap",  # Dart/Flutter symbol mapping files
 )
 
 
@@ -47,6 +52,34 @@ class GzipChunk(BytesIO):
         super().__init__(data)
 
 
+class ChunkUploadPermission(OrganizationReleasePermission):
+    """
+    Allow OrganizationReleasePermission OR Launchpad service authentication
+    """
+
+    def _is_launchpad_authenticated(self, request: Request) -> bool:
+        """Check if the request is authenticated via Launchpad service."""
+        return isinstance(
+            getattr(request, "successful_authenticator", None), LaunchpadRpcSignatureAuthentication
+        )
+
+    def has_permission(self, request: Request, view) -> bool:
+        # Allow access for Launchpad service authentication
+        if self._is_launchpad_authenticated(request):
+            return True
+
+        # Fall back to standard organization permission check
+        return super().has_permission(request, view)
+
+    def has_object_permission(self, request: Request, view, organization) -> bool:
+        # Allow access for Launchpad service authentication
+        if self._is_launchpad_authenticated(request):
+            return True
+
+        # Fall back to standard organization permission check
+        return super().has_object_permission(request, view, organization)
+
+
 @region_silo_endpoint
 class ChunkUploadEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -54,10 +87,15 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.OWNERS_INGEST
-    permission_classes = (OrganizationReleasePermission,)
+
+    authentication_classes = OrganizationEndpoint.authentication_classes + (
+        LaunchpadRpcSignatureAuthentication,
+    )
+
+    permission_classes = (ChunkUploadPermission,)
     rate_limits = RateLimitConfig(group="CLI")
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Return chunk upload parameters
         ``````````````````````````````
@@ -102,18 +140,26 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             # If user overridden upload url prefix, we want an absolute, versioned endpoint, with user-configured prefix
             url = absolute_uri(relative_url, endpoint)
 
+        compression = (
+            [] if organization.id in options.get("chunk-upload.no-compression") else ["gzip"]
+        )
         accept = CHUNK_UPLOAD_ACCEPT
 
+        # Sentry CLI versions ≤2.39.1 require "chunkSize" to be a power of two, and will error otherwise,
+        # with no way for the user to work around the error. This restriction has been removed from
+        # newer Sentry CLI versions.
+        # Be aware that changing "chunkSize" to something that is not a power of two will break
+        # Sentry CLI ≤2.39.1.
         return Response(
             {
                 "url": url,
                 "chunkSize": settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE,
                 "chunksPerRequest": MAX_CHUNKS_PER_REQUEST,
-                "maxFileSize": get_max_file_size(organization),
+                "maxFileSize": MAX_FILE_SIZE,
                 "maxRequestSize": MAX_REQUEST_SIZE,
                 "concurrency": MAX_CONCURRENCY,
                 "hashAlgorithm": HASH_ALGORITHM,
-                "compression": ["gzip"],
+                "compression": compression,
                 "accept": accept,
             }
         )
@@ -122,6 +168,9 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         """
         Upload chunks and store them as FileBlobs
         `````````````````````````````````````````
+        Requests to this endpoint should use the region-specific domain
+        eg. `us.sentry.io` or `de.sentry.io`
+
         :pparam file file: The filename should be sha1 hash of the content.
                             Also not you can add up to MAX_CHUNKS_PER_REQUEST files
                             in this request.
@@ -134,9 +183,9 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
         logger.info("chunkupload.start")
 
         files = []
-        if request.data:
-            files = request.data.getlist("file")
-            files += [GzipChunk(chunk) for chunk in request.data.getlist("file_gzip")]
+        if request.FILES:
+            files = request.FILES.getlist("file")
+            files += [GzipChunk(chunk) for chunk in request.FILES.getlist("file_gzip")]
 
         if len(files) == 0:
             # No files uploaded is ok

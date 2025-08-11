@@ -16,7 +16,6 @@ from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.utils.snuba import raw_snql_query
 
 DEFAULT_LIMIT = 50
-QUERY_LIMIT = 10000 // 2
 BUFFER = timedelta(hours=6)
 BASE_REFERRER = "api.organization-events-root-cause-analysis"
 SPAN_ANALYSIS_SCORE_THRESHOLD = 0
@@ -193,13 +192,12 @@ class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase
 
         regression_breakpoint = parse_datetime_string(regression_breakpoint)
 
-        snuba_params, _ = self.get_snuba_dataclass(request, organization)
+        snuba_params = self.get_snuba_params(request, organization)
 
         with handle_query_errors():
             transaction_count_query = metrics_query(
                 ["count()"],
                 f'event.type:transaction transaction:"{transaction_name}"',
-                params={},
                 referrer=BASE_REFERRER,
                 snuba_params=snuba_params,
             )

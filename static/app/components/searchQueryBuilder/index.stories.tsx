@@ -1,16 +1,21 @@
 import {Fragment, useState} from 'react';
 
+import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Button} from 'sentry/components/core/button';
+import {ItemType} from 'sentry/components/deprecatedSmartSearchBar/types';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilder,
+} from 'sentry/components/searchQueryBuilder/context';
+import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import type {
   FieldDefinitionGetter,
   FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
-import {ItemType} from 'sentry/components/smartSearchBar/types';
-import JSXNode from 'sentry/components/stories/jsxNode';
-import JSXProperty from 'sentry/components/stories/jsxProperty';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import type {TagCollection} from 'sentry/types/group';
 import {
   FieldKey,
@@ -47,7 +52,7 @@ const FILTER_KEYS: TagCollection = {
     name: 'Browser Name',
     kind: FieldKind.FIELD,
     predefined: true,
-    values: ['Chrome', 'Firefox', 'Safari', 'Edge'],
+    values: ['Chrome', 'Firefox', 'Safari', 'Edge', 'Internet Explorer', 'Opera 1,2'],
   },
   [FieldKey.IS]: {
     key: FieldKey.IS,
@@ -85,7 +90,7 @@ const FILTER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: 'cat_1',
     label: 'Category 1',
-    children: [FieldKey.ASSIGNED, FieldKey.BROWSER_NAME, FieldKey.IS],
+    children: [FieldKey.ASSIGNED, FieldKey.IS],
   },
   {
     value: 'cat_2',
@@ -100,7 +105,7 @@ const FILTER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: 'cat_4',
     label: 'Category 4',
-    children: [FieldKey.LAST_SEEN],
+    children: [FieldKey.LAST_SEEN, FieldKey.TIMES_SEEN],
   },
   {
     value: 'cat_5',
@@ -117,13 +122,13 @@ const getTagValues = (): Promise<string[]> => {
   });
 };
 
-export default storyBook(SearchQueryBuilder, story => {
+export default Storybook.story('SearchQueryBuilder', story => {
   story('Getting started', () => {
     return (
       <Fragment>
         <p>
-          <JSXNode name="SearchQueryBuilder" /> is a component which allows you to build a
-          search query using a set of predefined filter keys and values.
+          <Storybook.JSXNode name="SearchQueryBuilder" /> is a component which allows you
+          to build a search query using a set of predefined filter keys and values.
         </p>
         <p>
           The search query, unless configured otherwise, may contain filters, logical
@@ -301,6 +306,18 @@ export default storyBook(SearchQueryBuilder, story => {
           getTagValues={getTagValues}
           searchSource="storybook"
         />
+        <p>
+          If you wish to modify the size of the filter key menu, use
+          <code>filterKeyMenuWidth</code> to define the width in pixels.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeySections={FILTER_KEY_SECTIONS}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          filterKeyMenuWidth={600}
+        />
       </Fragment>
     );
   });
@@ -351,6 +368,11 @@ export default storyBook(SearchQueryBuilder, story => {
       count_if: {
         key: 'count_if',
         name: 'count_if',
+        kind: FieldKind.FUNCTION,
+      },
+      p95: {
+        key: 'p95',
+        name: 'p95',
         kind: FieldKind.FUNCTION,
       },
       'transaction.duration': {
@@ -453,6 +475,32 @@ export default storyBook(SearchQueryBuilder, story => {
               },
             ],
           };
+        case 'p95':
+          return {
+            desc: 'Returns results with the 95th percentile of the selected column.',
+            kind: FieldKind.FUNCTION,
+            defaultValue: '300ms',
+            valueType: null,
+            parameterDependentValueType: parameters => {
+              const column = parameters[0];
+              const fieldDef = column ? getFieldDefinition(column) : null;
+              return fieldDef?.valueType ?? FieldValueType.NUMBER;
+            },
+            parameters: [
+              {
+                name: 'column',
+                kind: 'column' as const,
+                columnTypes: [
+                  FieldValueType.DURATION,
+                  FieldValueType.NUMBER,
+                  FieldValueType.INTEGER,
+                  FieldValueType.PERCENTAGE,
+                ],
+                defaultValue: 'transaction.duration',
+                required: true,
+              },
+            ],
+          };
         default:
           return getFieldDefinition(key);
       }
@@ -512,6 +560,13 @@ export default storyBook(SearchQueryBuilder, story => {
             </li>
           </li>
         </ul>
+        <p>
+          Some aggreate filters may have a return type that is dependent on the
+          parameters. For example, <code>p95(column)</code> may return a few different
+          types depending on the column type. In this case, the field definition should
+          implement <code>parameterDependentValueType</code>. This function accepts an
+          array of parameters and returns the value type.
+        </p>
         <SearchQueryBuilder
           initialQuery=""
           filterKeys={aggregateFilterKeys}
@@ -576,6 +631,7 @@ export default storyBook(SearchQueryBuilder, story => {
 
     const [enabledConfigs, setEnabledConfigs] = useState<string[]>([...configs]);
     const queryBuilderOptions = enabledConfigs.reduce((acc, config) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[config] = true;
       return acc;
     }, {});
@@ -612,7 +668,7 @@ export default storyBook(SearchQueryBuilder, story => {
           red and display a tooltip with a message when focused. The invalid token
           messages can be customized using the <code>invalidMessages</code> prop. In this
           case, the unsupported tag message is modified with{' '}
-          <JSXProperty
+          <Storybook.JSXProperty
             name="invalidMessages"
             value={{[InvalidReason.LOGICAL_AND_NOT_ALLOWED]: 'foo bar baz'}}
           />
@@ -643,13 +699,205 @@ export default storyBook(SearchQueryBuilder, story => {
     );
   });
 
+  story('FormattedQuery', () => {
+    return (
+      <Fragment>
+        <p>
+          If you just need to render a formatted query outside of the search bar,{' '}
+          <Storybook.JSXNode name="ProvidedFormattedQuery" /> is exported for this
+          purpose:
+        </p>
+        <ProvidedFormattedQuery
+          query="count():>1 AND (browser.name:[Firefox,Chrome] OR lastSeen:-7d) TypeError"
+          filterKeys={FILTER_KEYS}
+        />
+      </Fragment>
+    );
+  });
+
+  story('Match key suggestions', () => {
+    return (
+      <Fragment>
+        <p>
+          If you would like to show suggestions for keys when the user types a value, you
+          can do so by passing the <code>matchKeySuggestions</code> prop, which requires a
+          key and a value regex pattern.
+        </p>
+        <p>
+          The suggestions will be the values for the provided keys. The following example,
+          will show suggestions for the <code>id</code> key when the user types a value
+          that matches the regex pattern <code>{`/^[0-9]{3}$/`}</code>.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeySections={FILTER_KEY_SECTIONS}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          matchKeySuggestions={[{key: 'id', valuePattern: /^[0-9]{3}$/}]}
+        />
+        <p>
+          You can also pass multiple values in the prop to show suggestions for multiple
+          keys.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeySections={FILTER_KEY_SECTIONS}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          matchKeySuggestions={[
+            {key: 'test-1.id', valuePattern: /^[0-9]{3}$/},
+            {key: 'test-2.id', valuePattern: /^[0-9]{3}$/},
+          ]}
+        />
+      </Fragment>
+    );
+  });
+
+  story('Raw search replacement', () => {
+    return (
+      <Fragment>
+        <p>
+          If you would like to replace raw search for your{' '}
+          <Storybook.JSXNode name="SearchQueryBuilder" /> component, you can do so by
+          passing the <code>replaceRawSearchKeys</code> prop.
+        </p>
+        <p>
+          The raw search will be replaced with option(s) in the dropdown. The options will
+          be the values for the provided keys. The following example shows the prop set as{' '}
+          <code>{`replaceRawSearchKeys={['span.description']}`}</code>.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeySections={FILTER_KEY_SECTIONS}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          replaceRawSearchKeys={['span.description']}
+        />
+        <p>
+          You can also pass multiple values in the prop to replace multiple keys.{' '}
+          <code>{`replaceRawSearchKeys={['span.op', 'span.description']}`}</code>.
+        </p>
+        <SearchQueryBuilder
+          initialQuery=""
+          filterKeySections={FILTER_KEY_SECTIONS}
+          filterKeys={FILTER_KEYS}
+          getTagValues={getTagValues}
+          searchSource="storybook"
+          replaceRawSearchKeys={['span.op', 'span.description']}
+        />
+      </Fragment>
+    );
+  });
+
+  story('SearchQueryBuilderProvider', () => {
+    function OpenDropdownButton() {
+      const {dispatch} = useSearchQueryBuilder();
+
+      return (
+        <Button
+          style={{marginTop: '16px'}}
+          onClick={() =>
+            dispatch({
+              type: 'UPDATE_QUERY',
+              query: 'browser.name:""',
+              focusOverride: {
+                itemKey: 'filter:0',
+                part: 'value',
+              },
+            })
+          }
+        >
+          Open Dropdown
+        </Button>
+      );
+    }
+
+    function SearchQueryBuilderExample() {
+      const props = {
+        initialQuery: 'browser.name:""',
+        filterKeys: FILTER_KEYS,
+        getTagValues,
+        searchSource: 'storybook',
+      };
+      return (
+        <SearchQueryBuilderProvider {...props}>
+          <SearchQueryBuilder {...props} />
+          <OpenDropdownButton />
+        </SearchQueryBuilderProvider>
+      );
+    }
+
+    return (
+      <Fragment>
+        <p>
+          The <Storybook.JSXNode name="SearchQueryBuilder" /> component already comes
+          pre-wrapped with the <Storybook.JSXNode name="SearchQueryBuilderProvider" />.
+          However, in the event that you need to control the inner state of the{' '}
+          <Storybook.JSXNode name="SearchQueryBuilder" />, you can wrap it in the provider
+          yourself. When passed this way, the search bar will ditch its original provider
+          and use the one you defined. The provider accepts the same props as the{' '}
+          <Storybook.JSXNode name="SearchQueryBuilder" /> component.
+        </p>
+        <p>
+          The provider will give you access to the context values within the search bar.
+          Access these values using the <code>useSearchQueryBuilder</code> hook within any
+          of the provider's child components.
+        </p>
+        <p>
+          Here is an example of a custom component that uses the provider. In this
+          implementation, clicking the button will open the dropdown for the first filter
+          with the <code>focusOverride</code> prop.
+        </p>
+        <CodeSnippet language="tsx">
+          {`
+function OpenDropdownButton() {
+  const {dispatch} = useSearchQueryBuilder();
+
+  const handleClick = () => {
+    dispatch({
+      type: "UPDATE_QUERY",
+      query: 'browser.name:""',
+      focusOverride: {
+        // Focuses the filter with index 0
+        itemKey: 'filter:0',
+        part: 'value',
+      },
+    })
+  }
+
+  return (
+    <Button onClick={handleClick}>
+      {'Open Dropdown'}
+    </Button>
+  );
+};
+
+function SearchQueryBuilderExample(queryBuilderProps: SearchQueryBuilderProps) {
+  return (
+    <SearchQueryBuilderProvider {...queryBuilderProps}>
+      <SearchQueryBuilder {...queryBuilderProps} />
+      <OpenDropdownButton />
+    </SearchQueryBuilderProvider>
+  )
+}
+      `}
+        </CodeSnippet>
+        <p>The following is the above code in action:</p>
+        <SearchQueryBuilderExample />
+      </Fragment>
+    );
+  });
+
   story('Migrating from SmartSearchBar', () => {
     return (
       <Fragment>
         <p>
-          <JSXNode name="SearchQueryBuilder" /> is a replacement for{' '}
-          <JSXNode name="SmartSearchBar" />. It provides a more flexible and powerful
-          search query builder.
+          <Storybook.JSXNode name="SearchQueryBuilder" /> is a replacement for{' '}
+          <Storybook.JSXNode name="SmartSearchBar" />. It provides a more flexible and
+          powerful search query builder.
         </p>
         <p>
           Some props have been renamed:

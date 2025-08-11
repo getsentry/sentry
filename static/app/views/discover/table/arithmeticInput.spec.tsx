@@ -34,7 +34,6 @@ describe('ArithmeticInput', function () {
         name="refinement"
         key="parameter:text"
         type="text"
-        required
         value=""
         onUpdate={jest.fn()}
         options={columns}
@@ -60,7 +59,6 @@ describe('ArithmeticInput', function () {
         name="refinement"
         key="parameter:text"
         type="text"
-        required
         value=""
         onUpdate={jest.fn()}
         options={columns}
@@ -81,10 +79,10 @@ describe('ArithmeticInput', function () {
 
     options.forEach((option, i) => {
       if (i < numericColumns.length) {
-        expect(option).toHaveTextContent(generateFieldAsString(numericColumns[i]));
+        expect(option).toHaveTextContent(generateFieldAsString(numericColumns[i]!));
         return;
       }
-      expect(option).toHaveTextContent(operators[i - numericColumns.length]);
+      expect(option).toHaveTextContent(operators[i - numericColumns.length]!);
     });
   });
 
@@ -94,7 +92,6 @@ describe('ArithmeticInput', function () {
         name="refinement"
         key="parameter:text"
         type="text"
-        required
         value=""
         onUpdate={jest.fn()}
         options={columns}
@@ -142,7 +139,7 @@ describe('ArithmeticInput', function () {
     await userEvent.keyboard('{Escape}');
 
     expect(screen.getByRole('textbox')).toHaveValue(
-      `${generateFieldAsString(numericColumns[0])} `
+      `${generateFieldAsString(numericColumns[0]!)} `
     );
   });
 
@@ -152,7 +149,6 @@ describe('ArithmeticInput', function () {
         name="refinement"
         key="parameter:text"
         type="text"
-        required
         value=""
         onUpdate={jest.fn()}
         options={columns}
@@ -161,10 +157,10 @@ describe('ArithmeticInput', function () {
 
     await userEvent.click(screen.getByRole('textbox'));
 
-    await userEvent.click(screen.getByText(generateFieldAsString(numericColumns[2])));
+    await userEvent.click(screen.getByText(generateFieldAsString(numericColumns[2]!)));
 
     expect(screen.getByRole('textbox')).toHaveValue(
-      `${generateFieldAsString(numericColumns[2])} `
+      `${generateFieldAsString(numericColumns[2]!)} `
     );
   });
 
@@ -174,14 +170,13 @@ describe('ArithmeticInput', function () {
         name="refinement"
         key="parameter:text"
         type="text"
-        required
         value=""
         onUpdate={jest.fn()}
         options={columns}
       />
     );
 
-    const element = screen.getByRole('textbox') as HTMLInputElement;
+    const element = screen.getByRole('textbox');
 
     await userEvent.type(element, 'lcp + transaction.duration');
     await userEvent.type(element, '{ArrowLeft>24}');
@@ -198,7 +193,6 @@ describe('ArithmeticInput', function () {
         name="refinement"
         key="parameter:text"
         type="text"
-        required
         value=""
         onUpdate={jest.fn()}
         options={columns}
@@ -220,7 +214,6 @@ describe('ArithmeticInput', function () {
         name="refinement"
         key="parameter:text"
         type="text"
-        required
         value=""
         onUpdate={jest.fn()}
         options={columns}
@@ -239,7 +232,6 @@ describe('ArithmeticInput', function () {
       <ArithmeticInput
         name="refinement"
         type="text"
-        required
         value=""
         onUpdate={() => {}}
         options={[]}

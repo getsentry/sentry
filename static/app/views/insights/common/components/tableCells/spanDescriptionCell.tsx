@@ -7,18 +7,23 @@ import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
 import {SpanGroupDetailsLink} from 'sentry/views/insights/common/components/spanGroupDetailsLink';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {SupportedDatabaseSystem} from 'sentry/views/insights/database/utils/constants';
+import {formatMongoDBQuery} from 'sentry/views/insights/database/utils/formatMongoDBQuery';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 
 const formatter = new SQLishFormatter();
 
-const {SPAN_OP} = SpanMetricsField;
+const {SPAN_OP} = SpanFields;
 
 interface Props {
   description: string;
   moduleName: ModuleName.DB | ModuleName.RESOURCE;
   projectId: number;
+  extraLinkQueryParams?: Record<string, string>;
   group?: string;
+  spanAction?: string;
   spanOp?: string;
+  system?: string;
 }
 
 export function SpanDescriptionCell({
@@ -27,14 +32,21 @@ export function SpanDescriptionCell({
   moduleName,
   spanOp,
   projectId,
+  system,
+  spanAction,
+  extraLinkQueryParams,
 }: Props) {
   const formatterDescription = useMemo(() => {
     if (moduleName !== ModuleName.DB) {
       return rawDescription;
     }
 
+    if (system === SupportedDatabaseSystem.MONGODB) {
+      return spanAction ? formatMongoDBQuery(rawDescription, spanAction) : rawDescription;
+    }
+
     return formatter.toSimpleMarkup(rawDescription);
-  }, [moduleName, rawDescription]);
+  }, [moduleName, rawDescription, spanAction, system]);
 
   if (!rawDescription) {
     return NULL_DESCRIPTION;
@@ -47,6 +59,7 @@ export function SpanDescriptionCell({
       projectId={projectId}
       spanOp={spanOp}
       description={formatterDescription}
+      extraLinkQueryParams={extraLinkQueryParams}
     />
   );
 
@@ -58,7 +71,7 @@ export function SpanDescriptionCell({
           <FullSpanDescription
             group={group}
             shortDescription={rawDescription}
-            language="sql"
+            moduleName={moduleName}
           />
         }
       >
@@ -77,7 +90,7 @@ export function SpanDescriptionCell({
             <FullSpanDescription
               group={group}
               shortDescription={rawDescription}
-              language="http"
+              moduleName={moduleName}
               filters={spanOp ? {[SPAN_OP]: spanOp} : undefined}
             />
           </Fragment>

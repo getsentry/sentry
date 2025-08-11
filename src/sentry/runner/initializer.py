@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.metadata
 import logging
 import os
+import sys
 from typing import IO, Any
 
 import click
@@ -10,6 +11,7 @@ from django.conf import settings
 
 from sentry.silo.patches.silo_aware_transaction_patch import patch_silo_aware_atomic
 from sentry.utils import warnings
+from sentry.utils.arroyo import initialize_arroyo_main
 from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
 
@@ -28,7 +30,7 @@ def register_plugins(settings: Any, raise_on_plugin_load_failure: bool = False) 
 
     # entry_points={
     #    'sentry.plugins': [
-    #         'phabricator = sentry_phabricator.plugins:PhabricatorPlugin'
+    #         'example = sentry_plugins.example.plugin:ExamplePlugin'
     #     ],
     # },
     entry_points = {
@@ -203,15 +205,6 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
     # these will be validated later after bootstrapping
     for k, v in options.items():
         settings.SENTRY_OPTIONS[k] = v
-        # If SENTRY_URL_PREFIX is used in config, show deprecation warning and
-        # set the newer SENTRY_OPTIONS['system.url-prefix']. Needs to be here
-        # to check from the config file directly before the django setup is done.
-        # TODO: delete when SENTRY_URL_PREFIX is removed
-        if k == "SENTRY_URL_PREFIX":
-            warnings.warn(
-                DeprecatedSettingWarning("SENTRY_URL_PREFIX", "SENTRY_OPTIONS['system.url-prefix']")
-            )
-            settings.SENTRY_OPTIONS["system.url-prefix"] = v
 
     # Now go back through all of SENTRY_OPTIONS and promote
     # back into settings. This catches the case when values are defined
@@ -268,7 +261,14 @@ def configure_structlog() -> None:
 
         kwargs["processors"].append(JSONRenderer())
 
+    is_s4s = os.environ.get("CUSTOMER_ID") == "sentry4sentry"
+    if is_s4s:
+        kwargs["logger_factory"] = structlog.PrintLoggerFactory(sys.stderr)
+
     structlog.configure(**kwargs)
+
+    if is_s4s:
+        logging.info("Writing logs to stderr. Expected only in s4s")
 
     lvl = os.environ.get("SENTRY_LOG_LEVEL")
 
@@ -356,9 +356,6 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
     settings.ASSET_VERSION = get_asset_version(settings)
     settings.STATIC_URL = settings.STATIC_URL.format(version=settings.ASSET_VERSION)
 
-    if getattr(settings, "SENTRY_DEBUGGER", None) is None:
-        settings.SENTRY_DEBUGGER = settings.DEBUG
-
     monkeypatch_drf_listfield_serializer_errors()
 
     import django
@@ -389,10 +386,9 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     setup_services(validate=not skip_service_validation)
 
-    from django.utils import timezone
+    import_grouptype()
 
-    from sentry.app import env
-    from sentry.runner.settings import get_sentry_conf
+    initialize_arroyo_main()
 
     # Hacky workaround to dynamically set the CSRF_TRUSTED_ORIGINS for self hosted
     if settings.SENTRY_SELF_HOSTED and not settings.CSRF_TRUSTED_ORIGINS:
@@ -404,9 +400,6 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
         else:
             # For first time users that have not yet set system url prefix, let's default to localhost url
             settings.CSRF_TRUSTED_ORIGINS = ["http://localhost:9000", "http://127.0.0.1:9000"]
-
-    env.data["config"] = get_sentry_conf()
-    env.data["start_date"] = timezone.now()
 
 
 def setup_services(validate: bool = True) -> None:
@@ -463,11 +456,10 @@ def validate_options(settings: Any) -> None:
 def validate_regions(settings: Any) -> None:
     from sentry.types.region import load_from_config
 
-    region_config = getattr(settings, "SENTRY_REGION_CONFIG", None)
-    if not region_config:
+    if not settings.SENTRY_REGION_CONFIG:
         return
 
-    load_from_config(region_config).validate_all()
+    load_from_config(settings.SENTRY_REGION_CONFIG).validate_all()
 
 
 def monkeypatch_django_migrations() -> None:
@@ -551,6 +543,8 @@ def apply_legacy_settings(settings: Any) -> None:
         ("SENTRY_FILESTORE_OPTIONS", "filestore.options"),
         ("SENTRY_RELOCATION_BACKEND", "filestore.relocation-backend"),
         ("SENTRY_RELOCATION_OPTIONS", "filestore.relocation-options"),
+        ("SENTRY_PROFILES_BACKEND", "filestore.profiles-backend"),
+        ("SENTRY_PROFILES_OPTIONS", "filestore.profiles-options"),
         ("GOOGLE_CLIENT_ID", "auth-google.client-id"),
         ("GOOGLE_CLIENT_SECRET", "auth-google.client-secret"),
     ):
@@ -579,13 +573,6 @@ def apply_legacy_settings(settings: Any) -> None:
         # deprecated. (This also assumes ``FLAG_NOSTORE`` on the configuration
         # option.)
         settings.SENTRY_REDIS_OPTIONS = options.get("redis.clusters")["default"]
-
-    if not hasattr(settings, "SENTRY_URL_PREFIX"):
-        url_prefix = options.get("system.url-prefix", silent=True)
-        if not url_prefix:
-            # HACK: We need to have some value here for backwards compatibility
-            url_prefix = "http://sentry.example.com"
-        settings.SENTRY_URL_PREFIX = url_prefix
 
     if settings.TIME_ZONE != "UTC":
         # non-UTC timezones are not supported
@@ -704,10 +691,16 @@ See: https://github.com/getsentry/snuba#sentry--snuba"""
 
 
 def validate_outbox_config() -> None:
-    from sentry.models.outbox import ControlOutboxBase, RegionOutboxBase
+    from sentry.hybridcloud.models.outbox import ControlOutboxBase, RegionOutboxBase
 
     for outbox_name in settings.SENTRY_OUTBOX_MODELS["CONTROL"]:
         ControlOutboxBase.from_outbox_name(outbox_name)
 
     for outbox_name in settings.SENTRY_OUTBOX_MODELS["REGION"]:
         RegionOutboxBase.from_outbox_name(outbox_name)
+
+
+def import_grouptype() -> None:
+    from sentry.issues.grouptype import import_grouptype
+
+    import_grouptype()

@@ -4,19 +4,30 @@ from rest_framework.response import Response
 from sentry import tagstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, region_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.environments import get_environment_id
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.models.environment import Environment
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @region_silo_endpoint
-class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
+class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
     owner = ApiOwner.UNOWNED
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
+    }
+
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=10, window=1, concurrent_limit=10),
+            RateLimitCategory.USER: RateLimit(limit=10, window=1, concurrent_limit=10),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1, concurrent_limit=5),
+        }
     }
 
     def get(self, request: Request, project, key) -> Response:
@@ -37,13 +48,21 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
         lookup_key = tagstore.backend.prefix_reserved_key(key)
         tenant_ids = {"organization_id": project.organization_id}
         try:
-            environment_id = self._get_environment_id_from_request(request, project.organization_id)
+            environment_id = get_environment_id(request, project.organization_id)
         except Environment.DoesNotExist:
             # if the environment doesn't exist then the tag can't possibly exist
             raise ResourceDoesNotExist
 
+        # Flags are stored on the same table as tags but on a different column. Ideally both
+        # could be queried in a single request. But at present we're not sure if we want to
+        # treat tags and flags as the same or different and in which context.
+        if request.GET.get("useFlagsBackend") == "1":
+            backend = tagstore.flag_backend
+        else:
+            backend = tagstore.backend
+
         try:
-            tagkey = tagstore.backend.get_tag_key(
+            tagkey = backend.get_tag_key(
                 project.id,
                 environment_id,
                 lookup_key,
@@ -54,7 +73,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         start, end = get_date_range_from_params(request.GET)
 
-        paginator = tagstore.backend.get_tag_value_paginator(
+        paginator = backend.get_tag_value_paginator(
             project.id,
             environment_id,
             tagkey.key,

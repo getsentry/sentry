@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -15,14 +17,15 @@ from sentry.api.serializers.models.projectownership import ProjectOwnershipSeria
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples import ownership_examples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.issues.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
-from sentry.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
 from sentry.signals import ownership_rule_created
 from sentry.utils.audit import create_audit_entry
 
-MAX_RAW_LENGTH = 100_000
-HIGHER_MAX_RAW_LENGTH = 250_000
+DEFAULT_MAX_RAW_LENGTH = 100_000
+LARGE_MAX_RAW_LENGTH = 250_000
+XLARGE_MAX_RAW_LENGTH = 750_000
 
 
 class ProjectOwnershipRequestSerializer(serializers.Serializer):
@@ -62,11 +65,12 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
                 )
 
     def get_max_length(self):
-        if features.has(
-            "organizations:higher-ownership-limit", self.context["ownership"].project.organization
-        ):
-            return HIGHER_MAX_RAW_LENGTH
-        return MAX_RAW_LENGTH
+        organization = self.context["ownership"].project.organization
+        if features.has("organizations:ownership-size-limit-xlarge", organization):
+            return XLARGE_MAX_RAW_LENGTH
+        if features.has("organizations:ownership-size-limit-large", organization):
+            return LARGE_MAX_RAW_LENGTH
+        return DEFAULT_MAX_RAW_LENGTH
 
     def validate_autoAssignment(self, value):
         if value not in [
@@ -102,7 +106,7 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
         attrs["schema"] = schema
         return attrs
 
-    def save(self):
+    def save(self, **kwargs: Any) -> ProjectOwnership:
         ownership = self.context["ownership"]
 
         changed = False
@@ -180,15 +184,13 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectOwnershipPermission,)
 
-    def get_ownership(self, project):
+    def get_ownership(self, project: Project) -> ProjectOwnership:
         try:
             return ProjectOwnership.objects.get(project=project)
         except ProjectOwnership.DoesNotExist:
-            return ProjectOwnership(
-                project=project,
-                date_created=None,
-                last_updated=None,
-            )
+            # XXX: the values for last_updated / date_created aren't valid but
+            # this is the "simplest" way to show an empty state in the api
+            return ProjectOwnership(project=project, last_updated=None, date_created=None)  # type: ignore[misc]
 
     def refresh_ownership_schema(self, ownership: ProjectOwnership, project: Project) -> None:
         if hasattr(ownership, "schema") and (

@@ -1,7 +1,8 @@
 import moment from 'moment-timezone';
 
-import ConfigStore from 'sentry/stores/configStore';
+import {useTimezone} from 'sentry/components/timezoneProvider';
 import {getFormat} from 'sentry/utils/dates';
+import {useUser} from 'sentry/utils/useUser';
 
 export interface DateTimeProps extends React.HTMLAttributes<HTMLTimeElement> {
   /**
@@ -21,6 +22,10 @@ export interface DateTimeProps extends React.HTMLAttributes<HTMLTimeElement> {
    * other formatting props (dateOnly, timeOnly, year).
    */
   format?: string;
+  /**
+   * Whether to show the milliseconds. Is false by default.
+   */
+  milliseconds?: boolean;
   /**
    * Whether to show the seconds. Is false by default.
    */
@@ -56,11 +61,14 @@ export function DateTime({
   year,
   timeZone,
   seconds = false,
+  milliseconds = false,
   forcedTimezone,
   ...props
 }: DateTimeProps) {
-  const user = ConfigStore.get('user');
-  const options = user?.options;
+  const user = useUser();
+  const currentTimezone = useTimezone();
+
+  const tz = forcedTimezone ?? currentTimezone;
 
   const formatString =
     format ??
@@ -69,23 +77,20 @@ export function DateTime({
       timeOnly,
       // If the year prop is defined, then use it. Otherwise only show the year if `date`
       // is in the current year.
-      year: year ?? moment().year() !== moment(date).year(),
+      year: year ?? moment.tz(tz).year() !== moment.tz(date, tz).year(),
       // If timeZone is defined, use it. Otherwise only show the time zone if we're using
       // UTC time.
       timeZone: timeZone ?? utc,
       seconds,
-      ...options,
+      milliseconds,
+      clock24Hours: user?.options.clock24Hours,
     });
 
   return (
     <time {...props}>
       {utc
-        ? moment.utc(date as moment.MomentInput).format(formatString)
-        : moment.tz(date, forcedTimezone ?? options?.timezone ?? '').format(formatString)}
+        ? moment.utc(date).format(formatString)
+        : moment.tz(date, tz).format(formatString)}
     </time>
   );
 }
-
-const DO_NOT_USE = DateTime;
-
-export default DO_NOT_USE;

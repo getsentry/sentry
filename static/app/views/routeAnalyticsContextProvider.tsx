@@ -1,8 +1,12 @@
 import {createContext, useMemo} from 'react';
-import type {RouteContextInterface} from 'react-router';
 
 import HookStore from 'sentry/stores/hookStore';
+import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
+import useRouter from 'sentry/utils/useRouter';
+import {useRoutes} from 'sentry/utils/useRoutes';
 
 const DEFAULT_CONTEXT = {
   setDisableRouteAnalytics: () => {},
@@ -29,19 +33,27 @@ export const RouteAnalyticsContext = createContext<{
   setRouteAnalyticsParams: (params: Record<string, any>) => void;
 }>(DEFAULT_CONTEXT);
 
-interface Props extends RouteContextInterface {
-  children?: React.ReactNode;
+interface Props {
+  children: React.ReactNode;
 }
 
-export default function RouteAnalyticsContextProvider({children, ...props}: Props) {
+export default function RouteAnalyticsContextProvider({children}: Props) {
   const useRouteActivatedHook = HookStore.get('react-hook:route-activated')[0];
+
+  const context: RouteContextInterface = {
+    params: useParams(),
+    routes: useRoutes(),
+    router: useRouter(),
+    location: useLocation(),
+  };
+
   const {
     setDisableRouteAnalytics,
     setRouteAnalyticsParams,
     setOrganization,
     setEventNames,
     previousUrl,
-  } = useRouteActivatedHook?.(props) || DEFAULT_CONTEXT;
+  } = useRouteActivatedHook?.(context) || DEFAULT_CONTEXT;
 
   const memoizedValue = useMemo(
     () => ({
@@ -60,9 +72,5 @@ export default function RouteAnalyticsContextProvider({children, ...props}: Prop
     ]
   );
 
-  return (
-    <RouteAnalyticsContext.Provider value={memoizedValue}>
-      {children}
-    </RouteAnalyticsContext.Provider>
-  );
+  return <RouteAnalyticsContext value={memoizedValue}>{children}</RouteAnalyticsContext>;
 }

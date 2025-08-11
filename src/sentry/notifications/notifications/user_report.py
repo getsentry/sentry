@@ -36,7 +36,7 @@ class UserReportNotification(ProjectNotification):
         email_participants = data_by_provider.get_participants_by_provider(ExternalProviders.EMAIL)
 
         result = ParticipantMap()
-        for (actor, reason) in email_participants:
+        for actor, reason in email_participants:
             result.add(ExternalProviders.EMAIL, actor, reason)
         return result
 

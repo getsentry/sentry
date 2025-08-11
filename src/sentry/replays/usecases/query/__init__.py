@@ -19,6 +19,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, Literal, cast
 
+import sentry_sdk
 from rest_framework.exceptions import ParseError
 from snuba_sdk import (
     And,
@@ -36,23 +37,37 @@ from snuba_sdk import (
 )
 from snuba_sdk.expressions import Expression
 
-from sentry.api.event_search import ParenExpression, SearchFilter, SearchKey, SearchValue
+from sentry import options
+from sentry.api.event_search import (
+    ParenExpression,
+    QueryToken,
+    SearchFilter,
+    SearchKey,
+    SearchValue,
+)
+from sentry.api.exceptions import BadRequest
 from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
 from sentry.replays.lib.new_query.fields import ColumnField, ExpressionField, FieldProtocol
+from sentry.replays.usecases.query.errors import RetryAggregated
 from sentry.replays.usecases.query.fields import ComputedField, TagField
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.snuba import RateLimitExceeded, raw_snql_query
 
 VIEWED_BY_ME_KEY_ALIASES = ["viewed_by_me", "seen_by_me"]
+VIEWED_BY_KEYS = ["viewed_by_me", "seen_by_me", "viewed_by_id", "seen_by_id"]
 NULL_VIEWED_BY_ID_VALUE = 0  # default value in clickhouse
 DEFAULT_SORT_FIELD = "started_at"
 
-PREFERRED_SOURCE = Literal["aggregated", "materialized-view", "scalar"]
+VIEWED_BY_DENYLIST_MSG = (
+    "Viewed by search has been disabled for your project due to a data irregularity."
+)
+
+PREFERRED_SOURCE = Literal["aggregated", "scalar"]
 
 
 def handle_viewed_by_me_filters(
-    search_filters: Sequence[SearchFilter | str | ParenExpression], request_user_id: int | None
-) -> Sequence[SearchFilter | str | ParenExpression]:
+    search_filters: Sequence[QueryToken], request_user_id: int | None
+) -> Sequence[QueryToken]:
     """Translate "viewed_by_me" as it's not a valid Snuba field, but a convenience alias for the frontend"""
     new_filters = []
     for search_filter in search_filters:
@@ -91,7 +106,7 @@ def handle_viewed_by_me_filters(
 
 def handle_search_filters(
     search_config: dict[str, FieldProtocol],
-    search_filters: Sequence[SearchFilter | str | ParenExpression],
+    search_filters: Sequence[QueryToken],
 ) -> list[Condition]:
     """Convert search filters to snuba conditions."""
     result: list[Condition] = []
@@ -101,14 +116,19 @@ def handle_search_filters(
         # are top level filters they are implicitly AND'ed in the WHERE/HAVING clause.  Otherwise
         # explicit operators are used.
         if isinstance(search_filter, SearchFilter):
+
             try:
                 condition = search_filter_to_condition(search_config, search_filter)
                 if condition is None:
                     raise ParseError(f"Unsupported search field: {search_filter.key.name}")
             except OperatorNotSupported:
                 raise ParseError(f"Invalid operator specified for `{search_filter.key.name}`")
-            except CouldNotParseValue:
-                raise ParseError(f"Could not parse value for `{search_filter.key.name}`")
+            except CouldNotParseValue as e:
+                err_msg = f"Could not parse value for `{search_filter.key.name}`."
+                if e.args and e.args[0]:
+                    # avoid using str(e) as it may expose stack trace info
+                    err_msg += f" Detail: {e.args[0]}"
+                raise ParseError(err_msg)
 
             if look_back == "AND":
                 look_back = None
@@ -171,7 +191,6 @@ def search_filter_to_condition(
 # Leaving it here for now so this is easier to review/remove.
 import dataclasses
 
-from sentry.replays.usecases.query.configs import materialized_view as mv
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
 from sentry.replays.usecases.query.configs.aggregate_sort import sort_config as agg_sort_config
 from sentry.replays.usecases.query.configs.aggregate_sort import sort_is_scalar_compatible
@@ -194,9 +213,18 @@ class QueryResponse:
     source: str
 
 
+def _has_viewed_by_filter(search_filter: QueryToken) -> bool:
+    if isinstance(search_filter, SearchFilter):
+        return search_filter.key.name in VIEWED_BY_KEYS
+    if isinstance(search_filter, ParenExpression):
+        return any([_has_viewed_by_filter(child) for child in search_filter.children])
+
+    return False  # isinstance(search_filter, str) - not parseable
+
+
 def query_using_optimized_search(
     fields: list[str],
-    search_filters: Sequence[SearchFilter | str | ParenExpression],
+    search_filters: Sequence[QueryToken],
     environments: list[str],
     sort: str | None,
     pagination: Paginators,
@@ -217,18 +245,17 @@ def query_using_optimized_search(
             SearchFilter(SearchKey("environment"), "IN", SearchValue(environments)),
         ]
 
-    # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
-    search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
+    viewed_by_denylist = options.get("replay.viewed-by.project-denylist")
+    if any([project_id in viewed_by_denylist for project_id in project_ids]):
+        # Skip all viewed by filters if in denylist
+        for search_filter in search_filters:
+            if _has_viewed_by_filter(search_filter):
+                raise BadRequest(message=VIEWED_BY_DENYLIST_MSG)
+    else:
+        # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
+        search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
 
-    if preferred_source == "materialized-view":
-        query, referrer, source = _query_using_materialized_view_strategy(
-            search_filters,
-            sort,
-            project_ids,
-            period_start,
-            period_stop,
-        )
-    elif preferred_source == "aggregated":
+    if preferred_source == "aggregated":
         query, referrer, source = _query_using_aggregated_strategy(
             search_filters,
             sort,
@@ -290,57 +317,16 @@ def query_using_optimized_search(
     )
 
 
-def _query_using_materialized_view_strategy(
-    search_filters: Sequence[SearchFilter | str | ParenExpression],
-    sort: str | None,
-    project_ids: list[int],
-    period_start: datetime,
-    period_stop: datetime,
-):
-    if not mv.can_search(search_filters) or not mv.can_sort(sort or DEFAULT_SORT_FIELD):
-        return _query_using_scalar_strategy(
-            search_filters,
-            sort,
-            project_ids,
-            period_start,
-            period_stop,
-        )
-
-    orderby = handle_ordering(mv.sort_config, sort or "-" + DEFAULT_SORT_FIELD)
-
-    having: list[Condition] = handle_search_filters(mv.search_config, search_filters)
-    having.append(Condition(Function("minMerge", parameters=[Column("min_segment_id")]), Op.EQ, 0))
-
-    query = Query(
-        match=Entity("replays_aggregated"),
-        select=[Column("replay_id")],
-        where=[
-            Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column("to_hour_timestamp"), Op.LT, period_stop),
-            Condition(Column("to_hour_timestamp"), Op.GTE, period_start),
-        ],
-        having=having,
-        orderby=orderby,
-        groupby=[Column("replay_id")],
-    )
-
-    return (
-        query,
-        "replays.query.browse_materialized_view_conditions_subquery",
-        "materialized-view",
-    )
-
-
 def _query_using_scalar_strategy(
-    search_filters: Sequence[SearchFilter | str | ParenExpression],
+    search_filters: Sequence[QueryToken],
     sort: str | None,
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
 ):
-    if not can_scalar_search_subquery(search_filters) or not sort_is_scalar_compatible(
-        sort or DEFAULT_SORT_FIELD
-    ):
+    can_scalar_search = can_scalar_search_subquery(search_filters, period_start)
+    can_scalar_sort = sort_is_scalar_compatible(sort or DEFAULT_SORT_FIELD)
+    if not can_scalar_search or not can_scalar_sort:
         return _query_using_aggregated_strategy(
             search_filters,
             sort,
@@ -356,8 +342,17 @@ def _query_using_scalar_strategy(
     # To fix this issue remove the ability to search against "varying" columns and apply a
     # "segment_id = 0" condition to the WHERE clause.
 
-    where = handle_search_filters(scalar_search_config, search_filters)
-    orderby = handle_ordering(agg_sort_config, sort or "-" + DEFAULT_SORT_FIELD)
+    try:
+        where = handle_search_filters(scalar_search_config, search_filters)
+        orderby = handle_ordering(agg_sort_config, sort or "-" + DEFAULT_SORT_FIELD)
+    except RetryAggregated:
+        return _query_using_aggregated_strategy(
+            search_filters,
+            sort,
+            project_ids,
+            period_start,
+            period_stop,
+        )
 
     query = Query(
         match=Entity("replays"),
@@ -377,7 +372,7 @@ def _query_using_scalar_strategy(
 
 
 def _query_using_aggregated_strategy(
-    search_filters: Sequence[SearchFilter | str | ParenExpression],
+    search_filters: Sequence[QueryToken],
     sort: str | None,
     project_ids: list[int],
     period_start: datetime,
@@ -450,15 +445,22 @@ def make_full_aggregation_query(
 
 
 def execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Mapping[str, Any]:
-    return raw_snql_query(
-        Request(
-            dataset="replays",
-            app_id="replay-backend-web",
-            query=query,
-            tenant_ids=tenant_id,
-        ),
-        referrer,
-    )
+    try:
+        return raw_snql_query(
+            Request(
+                dataset="replays",
+                app_id="replay-backend-web",
+                query=query,
+                tenant_ids=tenant_id,
+            ),
+            referrer,
+        )
+    except RateLimitExceeded as exc:
+        sentry_sdk.set_tag("replay-rate-limit-exceeded", True)
+        sentry_sdk.set_tag("org_id", tenant_id.get("organization_id"))
+        sentry_sdk.set_extra("referrer", referrer)
+        sentry_sdk.capture_exception(exc)
+        raise
 
 
 def handle_ordering(config: dict[str, Expression], sort: str) -> list[OrderBy]:

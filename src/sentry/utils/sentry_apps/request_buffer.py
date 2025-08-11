@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, NotRequired, TypedDict, overload
 
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -10,11 +10,11 @@ from django.utils import timezone
 from redis.client import Pipeline
 from requests.models import Response
 
-from sentry.models.integrations.sentry_app import VALID_EVENTS
+from sentry.sentry_apps.models.sentry_app import VALID_EVENTS
 from sentry.utils import json, redis
 
 if TYPE_CHECKING:
-    from sentry.models.integrations.sentry_app import SentryApp
+    from sentry.sentry_apps.models.sentry_app import SentryApp
     from sentry.sentry_apps.services.app.model import RpcSentryApp
 
 BUFFER_SIZE = 100
@@ -38,6 +38,19 @@ EXTENDED_VALID_EVENTS = VALID_EVENTS + (
 )
 
 
+class SentryAppRequest(TypedDict):
+    date: str
+    response_code: int
+    webhook_url: str
+    organization_id: int
+    event_type: str
+    error_id: NotRequired[str | None]
+    project_id: NotRequired[int | None]
+    request_body: NotRequired[str | None]
+    request_headers: NotRequired[Mapping[str, str] | None]
+    response_body: NotRequired[str | None]
+
+
 class SentryAppWebhookRequestsBuffer:
     """
     Create a data structure to store basic information about Sentry App webhook requests in Redis
@@ -58,7 +71,7 @@ class SentryAppWebhookRequestsBuffer:
         else:
             return f"sentry-app-webhook-request:{{{sentry_app_id}}}:{event}"
 
-    def _convert_redis_request(self, redis_request: str, event: str) -> dict[str, Any]:
+    def _convert_redis_request(self, redis_request: str, event: str) -> SentryAppRequest:
         """
         Convert the request string stored in Redis to a python dict
         Add the event type to the dict so that the request can be identified correctly
@@ -81,12 +94,10 @@ class SentryAppWebhookRequestsBuffer:
         pipeline.expire(buffer_key, KEY_EXPIRY)
 
     @overload
-    def _get_all_from_buffer(self, buffer_key: str, pipeline: Pipeline[str]) -> None:
-        ...
+    def _get_all_from_buffer(self, buffer_key: str, pipeline: Pipeline[str]) -> None: ...
 
     @overload
-    def _get_all_from_buffer(self, buffer_key: str) -> list[str]:
-        ...
+    def _get_all_from_buffer(self, buffer_key: str) -> list[str]: ...
 
     def _get_all_from_buffer(
         self, buffer_key: str, pipeline: Pipeline[str] | None = None
@@ -102,35 +113,31 @@ class SentryAppWebhookRequestsBuffer:
         else:
             return self.client.lrange(buffer_key, 0, BUFFER_SIZE - 1)
 
-    def _get_requests(self, event: str | None = None, error: bool = False) -> list[dict[str, Any]]:
+    def _get_requests(
+        self, event: str | list[str] | None = None, error: bool = False
+    ) -> list[SentryAppRequest]:
+        if isinstance(event, str):
+            event = [event]
         # If no event is specified, return the latest requests/errors for all event types
-        if event is None:
-            pipe = self.client.pipeline()
+        event_types = event or EXTENDED_VALID_EVENTS
+        pipe = self.client.pipeline()
 
-            all_requests = []
-            for evt in EXTENDED_VALID_EVENTS:
-                self._get_all_from_buffer(self._get_redis_key(evt, error=error), pipeline=pipe)
+        all_requests: list[SentryAppRequest] = []
+        for evt in event_types:
+            self._get_all_from_buffer(self._get_redis_key(evt, error=error), pipeline=pipe)
 
-            values = pipe.execute()
+        values = pipe.execute()
 
-            for idx, evt in enumerate(EXTENDED_VALID_EVENTS):
-                event_requests = [
-                    self._convert_redis_request(request, evt) for request in values[idx]
-                ]
-                all_requests.extend(event_requests)
+        for idx, evt in enumerate(event_types):
+            event_requests = [self._convert_redis_request(request, evt) for request in values[idx]]
+            all_requests.extend(event_requests)
 
-            all_requests.sort(key=lambda x: parse_date(x["date"]), reverse=True)
-            return all_requests[0:BUFFER_SIZE]
-
-        else:
-            return [
-                self._convert_redis_request(request, event)
-                for request in self._get_all_from_buffer(self._get_redis_key(event, error=error))
-            ]
+        all_requests.sort(key=lambda x: parse_date(x["date"]), reverse=True)
+        return all_requests[0:BUFFER_SIZE]
 
     def get_requests(
-        self, event: str | None = None, errors_only: bool = False
-    ) -> list[dict[str, Any]]:
+        self, event: str | list[str] | None = None, errors_only: bool = False
+    ) -> list[SentryAppRequest]:
         return self._get_requests(event=event, error=errors_only)
 
     def add_request(

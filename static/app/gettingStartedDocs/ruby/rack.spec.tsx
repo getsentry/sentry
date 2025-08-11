@@ -2,7 +2,7 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
 import docs from './rack';
 
@@ -44,6 +44,19 @@ describe('getting started with rack', function () {
       await screen.findByText(
         textWithMarkupMatcher(/Make sure stackprof is loaded before sentry-ruby/)
       )
+    ).toBeInTheDocument();
+  });
+
+  it('enables logs by setting enable_logs to true', function () {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/config.enable_logs = true/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/config.enabled_patches = \[:logger\]/))
     ).toBeInTheDocument();
   });
 });

@@ -2,11 +2,10 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import ActionButton from 'sentry/components/actions/button';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {Input} from 'sentry/components/core/input';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import Input from 'sentry/components/input';
 import {
   DEBUG_SOURCE_CASINGS,
   DEBUG_SOURCE_LAYOUTS,
@@ -87,9 +86,9 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
       password:
         validData.password === undefined
           ? {'hidden-secret': true}
-          : !validData.password
-            ? undefined
-            : validData.password,
+          : validData.password
+            ? validData.password
+            : undefined,
     });
   }
 
@@ -208,10 +207,11 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
           help={t('The layout of the folder structure.')}
           options={Object.keys(DEBUG_SOURCE_LAYOUTS).map(key => ({
             value: key,
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             label: DEBUG_SOURCE_LAYOUTS[key],
           }))}
           value={data['layout.type']}
-          onChange={value =>
+          onChange={(value: any) =>
             setData({
               ...data,
               ['layout.type']: value,
@@ -227,10 +227,11 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
           help={t('The case of files and folders.')}
           options={Object.keys(DEBUG_SOURCE_CASINGS).map(key => ({
             value: key,
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             label: DEBUG_SOURCE_CASINGS[key],
           }))}
           value={data['layout.casing']}
-          onChange={value =>
+          onChange={(value: any) =>
             setData({
               ...data,
               ['layout.casing']: value,
@@ -265,7 +266,7 @@ const PasswordInput = styled(Input)`
     p.theme.formPadding.md.paddingRight + CLEAR_PASSWORD_BUTTON_SIZE}px;
 `;
 
-const ClearPasswordButton = styled(ActionButton)`
+const ClearPasswordButton = styled(Button)`
   background: transparent;
   height: ${CLEAR_PASSWORD_BUTTON_SIZE}px;
   width: ${CLEAR_PASSWORD_BUTTON_SIZE}px;

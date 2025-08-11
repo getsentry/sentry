@@ -2,7 +2,6 @@ import type React from 'react';
 import {createContext, useContext, useLayoutEffect, useMemo} from 'react';
 import * as qs from 'query-string';
 
-import {t} from 'sentry/locale';
 import {
   type DispatchingReducerEmitter,
   useDispatchingReducer,
@@ -13,10 +12,10 @@ import {storeTraceViewPreferences, type TracePreferencesState} from './tracePref
 
 interface TraceStateContext {}
 
-export const TraceStateContext = createContext<TraceReducerState | null>(null);
-export const TraceStateDispatchContext =
+const TraceStateContext = createContext<TraceReducerState | null>(null);
+const TraceStateDispatchContext =
   createContext<React.Dispatch<TraceReducerAction> | null>(null);
-export const TraceStateEmitterContext = createContext<DispatchingReducerEmitter<
+const TraceStateEmitterContext = createContext<DispatchingReducerEmitter<
   typeof TraceReducer
 > | null>(null);
 
@@ -50,12 +49,6 @@ export function useTraceStateEmitter(): DispatchingReducerEmitter<typeof TraceRe
   return context;
 }
 
-const TRACE_TAB: TraceReducerState['tabs']['tabs'][0] = {
-  node: 'trace',
-  label: t('Trace'),
-};
-
-const STATIC_DRAWER_TABS: TraceReducerState['tabs']['tabs'] = [TRACE_TAB];
 interface TraceStateProviderProps {
   children: React.ReactNode;
   initialPreferences: TracePreferencesState;
@@ -71,7 +64,6 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
     }
     return undefined;
     // We only want to decode on load
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [traceState, traceDispatch, traceStateEmitter] = useDispatchingReducer(
@@ -93,8 +85,8 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
       },
       preferences: props.initialPreferences,
       tabs: {
-        tabs: STATIC_DRAWER_TABS,
-        current_tab: STATIC_DRAWER_TABS[0] ?? null,
+        tabs: [],
+        current_tab: null,
         last_clicked_tab: null,
       },
     }
@@ -107,12 +99,12 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
   }, [traceState.preferences, props.preferencesStorageKey]);
 
   return (
-    <TraceStateContext.Provider value={traceState}>
-      <TraceStateDispatchContext.Provider value={traceDispatch}>
-        <TraceStateEmitterContext.Provider value={traceStateEmitter}>
+    <TraceStateContext value={traceState}>
+      <TraceStateDispatchContext value={traceDispatch}>
+        <TraceStateEmitterContext value={traceStateEmitter}>
           {props.children}
-        </TraceStateEmitterContext.Provider>
-      </TraceStateDispatchContext.Provider>
-    </TraceStateContext.Provider>
+        </TraceStateEmitterContext>
+      </TraceStateDispatchContext>
+    </TraceStateContext>
   );
 }

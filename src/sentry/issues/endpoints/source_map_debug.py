@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
@@ -20,7 +20,7 @@ from sentry.models.sourcemapprocessingissue import SourceMapProcessingIssue
 class SourceMapProcessingIssueResponse(TypedDict):
     type: str
     message: str
-    data: dict | None
+    data: dict[str, Any] | None
 
 
 class SourceMapProcessingResponse(TypedDict):
@@ -78,9 +78,6 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         debug_response = source_map_debug(project, event_id, exception_idx, frame_idx)
         issue, data = debug_response.issue, debug_response.data
 
-        return self._create_response(issue, data)
-
-    def _create_response(self, issue=None, data=None) -> Response:
         errors_list = []
         if issue:
             response = SourceMapProcessingIssue(issue, data=data).get_api_context()

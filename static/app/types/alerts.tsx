@@ -39,6 +39,7 @@ export const enum IssueAlertConditionType {
   REAPPEARED_EVENT = 'sentry.rules.conditions.reappeared_event.ReappearedEventCondition',
   EVENT_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
   EVENT_UNIQUE_USER_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
+  EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS = 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions',
   EVENT_FREQUENCY_PERCENT = 'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition',
   NEW_HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition',
   EXISTING_HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition',
@@ -158,7 +159,7 @@ interface IssueAlertSentryAppIntegrationConfig extends IssueAlertConfigBase {
 /**
  * The actions that an organization has enabled and can be used to create an issue alert.
  */
-export type IssueAlertConfigurationAction =
+type IssueAlertConfigurationAction =
   | IssueAlertGenericActionConfig
   | IssueAlertTicketIntegrationConfig
   | IssueAlertSentryAppIntegrationConfig
@@ -183,11 +184,7 @@ export interface IssueAlertRuleActionTemplate {
   id: string;
   label: string;
   actionType?: 'ticket' | 'sentryapp';
-  formFields?:
-    | {
-        [key: string]: IssueAlertRuleFormField;
-      }
-    | SchemaFormConfig;
+  formFields?: Record<string, IssueAlertRuleFormField> | SchemaFormConfig;
   link?: string;
   prompt?: string;
   sentryAppInstallationUuid?: string;
@@ -210,10 +207,35 @@ export type IssueAlertRuleCondition = Omit<
   'formFields' | 'enabled' | 'label'
 > & {
   dynamic_form_fields?: IssueConfigField[];
-} & {
-  // These are the same values as the keys in `formFields` for a template
-  [key: string]: number | string;
-};
+} & Record<string, number | string>;
+
+export interface TicketActionData {
+  [key: string]: any;
+  integration: string;
+  dynamic_form_fields?: IssueConfigField[];
+}
+
+interface SlackAction {
+  channel: string | undefined;
+  id: IssueAlertActionType.SLACK;
+  workspace: string | undefined;
+  channel_id?: string | undefined;
+  notes?: string | undefined;
+  tags?: string | undefined;
+}
+interface DiscordAction {
+  channel_id: string | undefined;
+  id: IssueAlertActionType.DISCORD;
+  server: string | undefined;
+  tags?: string | undefined;
+}
+interface MSTeamsAction {
+  channel: string | undefined;
+  id: IssueAlertActionType.MS_TEAMS;
+  team: string | undefined;
+}
+
+export type IntegrationAction = SlackAction | DiscordAction | MSTeamsAction;
 
 export interface UnsavedIssueAlertRule {
   /** When an issue matches [actionMatch] of the following */
@@ -242,7 +264,7 @@ export interface IssueAlertRule extends UnsavedIssueAlertRule {
    */
   disableDate?: string;
   disableReason?: 'noisy';
-  errors?: {detail: string}[];
+  errors?: Array<{detail: string}>;
   lastTriggered?: string;
   /**
    * Set to true to opt out of the rule being automatically disabled
@@ -290,37 +312,3 @@ export enum RuleActionsCategories {
   SOME_DEFAULT = 'some_default',
   NO_DEFAULT = 'no_default',
 }
-
-export enum MonitorType {
-  CONTINUOUS = 0,
-  ACTIVATED = 1,
-}
-
-export enum ActivationConditionType {
-  RELEASE_CREATION = 0,
-  DEPLOY_CREATION = 1,
-}
-
-export type AlertRuleActivation = {
-  activator: string;
-  alertRuleId: string;
-  conditionType: string;
-  dateCreated: string;
-  finishedAt: string;
-  id: string;
-  isComplete: boolean;
-  querySubscriptionId: string;
-  metricValue?: number;
-};
-
-export enum ActivationTrigger {
-  ACTIVATED = 'activated',
-  FINISHED = 'finished',
-}
-
-export type ActivationTriggerActivity = {
-  activator: string;
-  conditionType: string;
-  dateCreated: string;
-  type: ActivationTrigger;
-};

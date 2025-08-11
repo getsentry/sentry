@@ -13,12 +13,12 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    GzippedDictField,
     Model,
     region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.types.actor import Actor
 from sentry.utils.cache import cache
@@ -48,7 +48,7 @@ class Rule(Model):
     environment_id = BoundedPositiveIntegerField(null=True)
     label = models.CharField(max_length=256)
     # `data` contain all the specifics of the rule - conditions, actions, frequency, etc.
-    data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField()
+    data = LegacyTextJSONField(default=dict)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE,
         choices=((ObjectStatus.ACTIVE, "Active"), (ObjectStatus.DISABLED, "Disabled")),
@@ -58,6 +58,7 @@ class Rule(Model):
     # for use in other parts of the product (e.g. cron monitor alerting rules)
     source = BoundedPositiveIntegerField(
         default=RuleSource.ISSUE,
+        db_default=RuleSource.ISSUE,
         choices=RuleSource.as_choices(),
     )
     owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
@@ -76,7 +77,7 @@ class Rule(Model):
         )
         constraints = (
             models.CheckConstraint(
-                check=(
+                condition=(
                     models.Q(owner_user_id__isnull=True, owner_team__isnull=False)
                     | models.Q(owner_user_id__isnull=False, owner_team__isnull=True)
                     | models.Q(owner_user_id__isnull=True, owner_team__isnull=True)

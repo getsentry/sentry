@@ -11,10 +11,11 @@ class CreateOrganizationTest(AcceptanceTestCase):
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         settings.PRIVACY_URL = "https://sentry.io/privacy/"
         settings.TERMS_URL = "https://sentry.io/terms/"
         self.browser.get("/organizations/new/")
+        assert self.browser.wait_until('input[name="name"]')
         assert self.browser.element_exists('input[name="name"]')
         assert self.browser.element_exists('input[name="agreeTerms"]')
         self.browser.element('input[name="name"]').send_keys("new org")

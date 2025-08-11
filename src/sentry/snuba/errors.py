@@ -1,10 +1,10 @@
 import logging
 from collections.abc import Mapping, Sequence
-from copy import deepcopy
 from datetime import timedelta
 from typing import cast
 
 import sentry_sdk
+from snuba_sdk import Column, Condition
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
@@ -15,10 +15,11 @@ from sentry.search.events.builder.errors import (
     ErrorsTimeseriesQueryBuilder,
     ErrorsTopEventsQueryBuilder,
 )
-from sentry.search.events.fields import get_json_meta_type
-from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderConfig, SnubaParams
+from sentry.search.events.types import EventsResponse, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.discover import OTHER_KEY, create_result_key, transform_tips, zerofill
+from sentry.snuba.discover import OTHER_KEY, TOP_KEYS_DEFAULT_LIMIT, FacetResult, create_result_key
+from sentry.snuba.discover import get_facets as get_discover_facets
+from sentry.snuba.discover import transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
@@ -32,38 +33,41 @@ logger = logging.getLogger(__name__)
 
 
 def query(
-    selected_columns,
-    query,
-    params,
-    snuba_params=None,
-    equations=None,
-    orderby=None,
-    offset=None,
-    limit=50,
-    referrer=None,
-    auto_fields=False,
-    auto_aggregations=False,
-    include_equation_fields=False,
-    allow_metric_aggregates=False,
-    use_aggregate_conditions=False,
-    conditions=None,
-    functions_acl=None,
-    transform_alias_to_input_format=False,
-    sample=None,
-    has_metrics=False,
-    use_metrics_layer=False,
-    skip_tag_resolution=False,
-    on_demand_metrics_enabled=False,
+    selected_columns: list[str],
+    query: str,
+    snuba_params: SnubaParams,
+    equations: list[str] | None = None,
+    orderby: list[str] | None = None,
+    offset: int | None = None,
+    limit: int = 50,
+    auto_fields: bool = False,
+    auto_aggregations: bool = False,
+    include_equation_fields: bool = False,
+    allow_metric_aggregates: bool = False,
+    use_aggregate_conditions: bool = False,
+    conditions: list[Condition] | None = None,
+    functions_acl: list[str] | None = None,
+    transform_alias_to_input_format: bool = False,
+    sample: float | None = None,
+    has_metrics: bool = False,
+    use_metrics_layer: bool = False,
+    skip_tag_resolution: bool = False,
+    extra_columns: list[Column] | None = None,
+    on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
-    fallback_to_transactions=False,
+    dataset: Dataset = Dataset.Events,
+    fallback_to_transactions: bool = False,
     query_source: QuerySource | None = None,
+    debug: bool = False,
+    *,
+    referrer: str,
 ) -> EventsResponse:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
 
     builder = ErrorsQueryBuilder(
         Dataset.Events,
-        params,
+        params={},
         snuba_params=snuba_params,
         query=query,
         selected_columns=selected_columns,
@@ -88,16 +92,16 @@ def query(
         builder.add_conditions(conditions)
     result = builder.process_results(builder.run_query(referrer, query_source=query_source))
     result["meta"]["tips"] = transform_tips(builder.tips)
+    if debug:
+        result["meta"]["debug_info"] = {"query": str(builder.get_snql_query().query)}
     return result
 
 
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: ParamsType,
+    snuba_params: SnubaParams,
     rollup: int,
-    snuba_params: SnubaParams | None = None,
-    referrer: str | None = None,
     zerofill_results: bool = True,
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
@@ -107,17 +111,18 @@ def timeseries_query(
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
+    *,
+    referrer: str,
 ):
 
-    if len(params) == 0 and snuba_params is not None:
-        params = snuba_params.filter_params
-
-    with sentry_sdk.start_span(op="errors", description="timeseries.filter_transform"):
+    with sentry_sdk.start_span(op="errors", name="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
         base_builder = ErrorsTimeseriesQueryBuilder(
             Dataset.Events,
-            params,
-            rollup,
+            params={},
+            interval=rollup,
             snuba_params=snuba_params,
             query=query,
             selected_columns=columns,
@@ -126,19 +131,23 @@ def timeseries_query(
                 functions_acl=functions_acl,
                 has_metrics=has_metrics,
                 parser_config_overrides=PARSER_CONFIG_OVERRIDES,
+                transform_alias_to_input_format=transform_alias_to_input_format,
             ),
         )
         query_list = [base_builder]
         if comparison_delta:
             if len(base_builder.aggregates) != 1:
                 raise InvalidSearchQuery("Only one column can be selected for comparison queries")
-            comp_query_params = deepcopy(params)
-            comp_query_params["start"] -= comparison_delta
-            comp_query_params["end"] -= comparison_delta
+            comp_query_params = snuba_params.copy()
+            assert comp_query_params.start is not None
+            assert comp_query_params.end is not None
+            comp_query_params.start -= comparison_delta
+            comp_query_params.end -= comparison_delta
             comparison_builder = ErrorsTimeseriesQueryBuilder(
                 Dataset.Events,
-                comp_query_params,
+                {},
                 rollup,
+                snuba_params=comp_query_params,
                 query=query,
                 selected_columns=columns,
                 equations=equations,
@@ -150,9 +159,11 @@ def timeseries_query(
             [query.get_snql_query() for query in query_list], referrer, query_source=query_source
         )
 
-    with sentry_sdk.start_span(op="errors", description="timeseries.transform_results"):
+    with sentry_sdk.start_span(op="errors", name="timeseries.transform_results"):
         results = []
         for snql_query, result in zip(query_list, query_results):
+            assert snql_query.params.start is not None
+            assert snql_query.params.end is not None
             results.append(
                 {
                     "data": (
@@ -161,7 +172,7 @@ def timeseries_query(
                             snql_query.params.start,
                             snql_query.params.end,
                             rollup,
-                            "time",
+                            ["time"],
                             time_col_name="events.time",
                         )
                         if zerofill_results
@@ -175,26 +186,19 @@ def timeseries_query(
         col_name = base_builder.aggregates[0].alias
         # If we have two sets of results then we're doing a comparison queries. Divide the primary
         # results by the comparison results.
-        for result, cmp_result in zip(results[0]["data"], results[1]["data"]):
+        for ret_result, cmp_result in zip(results[0]["data"], results[1]["data"]):
             cmp_result_val = cmp_result.get(col_name, 0)
-            result["comparisonCount"] = cmp_result_val
+            ret_result["comparisonCount"] = cmp_result_val
 
-    result = results[0]
+    result = base_builder.process_results(results[0])
 
     return SnubaTSResult(
         {
             "data": result["data"],
-            "meta": {
-                "fields": {
-                    value["name"]: get_json_meta_type(
-                        value["name"], value.get("type"), base_builder
-                    )
-                    for value in result["meta"]
-                }
-            },
+            "meta": result["meta"],
         },
-        params["start"],
-        params["end"],
+        snuba_params.start_date,
+        snuba_params.end_date,
         rollup,
     )
 
@@ -203,14 +207,12 @@ def top_events_timeseries(
     timeseries_columns: list[str],
     selected_columns: list[str],
     user_query: str,
-    params: ParamsType,
+    snuba_params: SnubaParams,
     orderby: list[str],
     rollup: int,
     limit: int,
     organization: Organization,
-    snuba_params: SnubaParams | None = None,
     equations: list[str] | None = None,
-    referrer: str | None = None,
     top_events: EventsResponse | None = None,
     allow_empty: bool = True,
     zerofill_results: bool = True,
@@ -220,6 +222,10 @@ def top_events_timeseries(
     on_demand_metrics_type: MetricSpecType | None = None,
     dataset: Dataset = Dataset.Discover,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
+    *,
+    referrer: str,
 ) -> dict[str, SnubaTSResult] | SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -242,16 +248,15 @@ def top_events_timeseries(
     top_events - A dictionary with a 'data' key containing a list of dictionaries that
                     represent the top events matching the query. Useful when you have found
                     the top events earlier and want to save a query.
-    """
-    if len(params) == 0 and snuba_params is not None:
-        params = snuba_params.filter_params
+    transform_alias_to_input_format - Whether aggregate columns should be returned in the originally
+                                    requested function format.
 
+    """
     if top_events is None:
-        with sentry_sdk.start_span(op="discover.errors", description="top_events.fetch_events"):
+        with sentry_sdk.start_span(op="discover.errors", name="top_events.fetch_events"):
             top_events = query(
                 selected_columns,
                 query=user_query,
-                params=params,
                 equations=equations,
                 orderby=orderby,
                 limit=limit,
@@ -266,9 +271,9 @@ def top_events_timeseries(
 
     top_events_builder = ErrorsTopEventsQueryBuilder(
         Dataset.Events,
-        params,
-        rollup,
-        top_events["data"],
+        params={},
+        interval=rollup,
+        top_events=top_events["data"],
         other=False,
         query=user_query,
         selected_columns=selected_columns,
@@ -278,14 +283,15 @@ def top_events_timeseries(
         config=QueryBuilderConfig(
             functions_acl=functions_acl,
             skip_tag_resolution=True,
+            transform_alias_to_input_format=transform_alias_to_input_format,
         ),
     )
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = ErrorsTopEventsQueryBuilder(
             Dataset.Events,
-            params,
-            rollup,
-            top_events["data"],
+            params={},
+            interval=rollup,
+            top_events=top_events["data"],
             other=True,
             query=user_query,
             selected_columns=selected_columns,
@@ -309,18 +315,16 @@ def top_events_timeseries(
         return SnubaTSResult(
             {
                 "data": (
-                    zerofill([], params["start"], params["end"], rollup, ["time"])
+                    zerofill([], snuba_params.start_date, snuba_params.end_date, rollup, ["time"])
                     if zerofill_results
                     else []
                 ),
             },
-            params["start"],
-            params["end"],
+            snuba_params.start_date,
+            snuba_params.end_date,
             rollup,
         )
-    with sentry_sdk.start_span(
-        op="discover.errors", description="top_events.transform_results"
-    ) as span:
+    with sentry_sdk.start_span(op="discover.errors", name="top_events.transform_results") as span:
         span.set_data("result_count", len(result.get("data", [])))
         result = top_events_builder.process_results(result)
 
@@ -328,7 +332,7 @@ def top_events_timeseries(
         if "issue" in selected_columns:
             issues = Group.objects.get_issues_mapping(
                 {cast(int, event["issue.id"]) for event in top_events["data"]},
-                params["project_id"],
+                snuba_params.project_ids,
                 organization,
             )
         translated_groupby = top_events_builder.translated_groupby
@@ -357,15 +361,33 @@ def top_events_timeseries(
             top_events_results[key] = SnubaTSResult(
                 {
                     "data": (
-                        zerofill(item["data"], params["start"], params["end"], rollup, ["time"])
+                        zerofill(
+                            item["data"],
+                            snuba_params.start_date,
+                            snuba_params.end_date,
+                            rollup,
+                            ["time"],
+                        )
                         if zerofill_results
                         else item["data"]
                     ),
+                    "meta": result["meta"],
                     "order": item["order"],
                 },
-                params["start"],
-                params["end"],
+                snuba_params.start_date,
+                snuba_params.end_date,
                 rollup,
             )
 
     return top_events_results
+
+
+def get_facets(
+    query: str | None,
+    snuba_params: SnubaParams,
+    referrer: str,
+    per_page: int | None = TOP_KEYS_DEFAULT_LIMIT,
+    cursor: int | None = 0,
+    dataset: Dataset | None = Dataset.Events,
+) -> list[FacetResult]:
+    return get_discover_facets(query, snuba_params, referrer, per_page, cursor, Dataset.Events)

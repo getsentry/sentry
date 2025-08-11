@@ -19,7 +19,7 @@ export default function JsonViewer(props: ViewerProps) {
     }
   );
 
-  if (query.isLoading) {
+  if (query.isPending) {
     return (
       <LoadingContainer>
         <LoadingIndicator mini />
@@ -37,7 +37,7 @@ export default function JsonViewer(props: ViewerProps) {
     return null;
   }
 
-  let json;
+  let json: any;
   try {
     /**
      * The api might return a string or an object depending on headers and filename.

@@ -1,12 +1,13 @@
 import {MembersFixture} from 'sentry-fixture/members';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import type {IssueOwnership} from 'sentry/types';
+import type {IssueOwnership} from 'sentry/types/group';
 
 import {EditOwnershipRules} from './editRulesModal';
 
@@ -40,6 +41,7 @@ describe('Project Ownership Input', () => {
   it('renders', () => {
     render(
       <EditOwnershipRules
+        theme={ThemeFixture()}
         organization={org}
         ownership={ownership}
         project={project}

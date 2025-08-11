@@ -15,7 +15,14 @@
   },
   "servers": [
     {
-      "url": "https://sentry.io/"
+      "url": "https://{region}.sentry.io",
+      "variables": {
+        "region": {
+          "default": "us",
+          "description": "The data-storage-location for an organization",
+          "enum": ["us", "de"]
+        }
+      }
     }
   ],
   "tags": [
@@ -87,20 +94,8 @@
     }
   ],
   "paths": {
-    "/api/0/teams/{organization_id_or_slug}/{team_id_or_slug}/stats/": {
-      "$ref": "paths/teams/stats.json"
-    },
-    "/api/0/organizations/{organization_id_or_slug}/eventids/{event_id}/": {
-      "$ref": "paths/organizations/event-id-lookup.json"
-    },
     "/api/0/organizations/{organization_id_or_slug}/repos/": {
       "$ref": "paths/organizations/repos.json"
-    },
-    "/api/0/organizations/{organization_id_or_slug}/repos/{repo_id}/commits/": {
-      "$ref": "paths/organizations/repo-commits.json"
-    },
-    "/api/0/organizations/{organization_id_or_slug}/shortids/{short_id}/": {
-      "$ref": "paths/organizations/shortid.json"
     },
     "/api/0/projects/": {
       "$ref": "paths/projects/index.json"
@@ -129,29 +124,14 @@
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/events/{event_id}/": {
       "$ref": "paths/events/project-event-details.json"
     },
-    "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/events/": {
-      "$ref": "paths/events/project-events.json"
-    },
     "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/issues/": {
       "$ref": "paths/events/project-issues.json"
     },
     "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/tags/{key}/values/": {
       "$ref": "paths/events/tag-values.json"
     },
-    "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/tags/{key}/": {
-      "$ref": "paths/events/tag-details.json"
-    },
     "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/hashes/": {
       "$ref": "paths/events/issue-hashes.json"
-    },
-    "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/events/oldest/": {
-      "$ref": "paths/events/oldest-event.json"
-    },
-    "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/events/latest/": {
-      "$ref": "paths/events/latest-event.json"
-    },
-    "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/events/": {
-      "$ref": "paths/events/issue-events.json"
     },
     "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/": {
       "$ref": "paths/events/issue-details.json"
@@ -179,9 +159,6 @@
     },
     "/api/0/organizations/{organization_id_or_slug}/releases/{version}/commitfiles/": {
       "$ref": "paths/releases/organization-release-commit-files.json"
-    },
-    "/api/0/organizations/{organization_id_or_slug}/releases/{version}/deploys/": {
-      "$ref": "paths/releases/deploys.json"
     },
     "/api/0/organizations/{organization_id_or_slug}/sentry-app-installations/": {
       "$ref": "paths/integration-platform/sentry-app-installations.json"

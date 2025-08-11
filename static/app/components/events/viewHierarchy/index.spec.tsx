@@ -1,8 +1,22 @@
+import {EventFixture} from 'sentry-fixture/event';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
-import {ViewHierarchy} from '.';
+import {
+  getPlatform,
+  getPlatformViewConfig,
+} from 'sentry/components/events/viewHierarchy/utils';
+import type {Project} from 'sentry/types/project';
+
+import type {ViewHierarchyData} from './index';
+import {ViewHierarchy} from './index';
 
 // Mocks for useVirtualizedTree hook
 class ResizeObserver {
@@ -46,16 +60,30 @@ const DEFAULT_MOCK_DATA = {
   ],
 };
 
-describe('View Hierarchy', function () {
-  let MOCK_DATA;
-  let project;
-  beforeEach(() => {
-    MOCK_DATA = DEFAULT_MOCK_DATA;
-    project = ProjectFixture();
+function getMockData(project?: Project) {
+  const platform = getPlatform({
+    event: EventFixture(),
+    project: project ?? ProjectFixture(),
   });
+  const platformViewConfig = getPlatformViewConfig(platform);
+  return {
+    platform,
+    ...platformViewConfig,
+  };
+}
 
+describe('View Hierarchy', function () {
   it('can continue make selections for inspecting data', async function () {
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
+    const mockData = getMockData();
+    render(
+      <ViewHierarchy
+        viewHierarchy={DEFAULT_MOCK_DATA}
+        emptyMessage={mockData.emptyMessage}
+        nodeField={mockData.nodeField}
+        showWireframe={mockData.showWireframe}
+        platform={mockData.platform}
+      />
+    );
 
     // 1 for the tree node, 1 for the details panel header
     expect(screen.getAllByText('Container - test_identifier')).toHaveLength(2);
@@ -76,9 +104,18 @@ describe('View Hierarchy', function () {
   });
 
   it('can expand and collapse by clicking the icon', async function () {
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
+    const mockData = getMockData();
+    render(
+      <ViewHierarchy
+        viewHierarchy={DEFAULT_MOCK_DATA}
+        emptyMessage={mockData.emptyMessage}
+        nodeField={mockData.nodeField}
+        showWireframe={mockData.showWireframe}
+        platform={mockData.platform}
+      />
+    );
 
-    expect(screen.queryByText('Text')).toBeInTheDocument();
+    expect(screen.getByText('Text')).toBeInTheDocument();
 
     await userEvent.click(
       within(screen.getByLabelText('Nested Container - nested')).getByRole('button', {
@@ -90,13 +127,22 @@ describe('View Hierarchy', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
 
-    expect(screen.queryByText('Text')).toBeInTheDocument();
+    expect(screen.getByText('Text')).toBeInTheDocument();
   });
 
   it('can navigate with keyboard shortcuts after a selection', async function () {
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
+    const mockData = getMockData();
+    render(
+      <ViewHierarchy
+        viewHierarchy={DEFAULT_MOCK_DATA}
+        emptyMessage={mockData.emptyMessage}
+        nodeField={mockData.nodeField}
+        showWireframe={mockData.showWireframe}
+        platform={mockData.platform}
+      />
+    );
 
-    await userEvent.click(screen.getAllByText('Container - test_identifier')[0]);
+    await userEvent.click(screen.getAllByText('Container - test_identifier')[0]!);
 
     await userEvent.keyboard('{ArrowDown}');
 
@@ -105,9 +151,17 @@ describe('View Hierarchy', function () {
   });
 
   it('can expand/collapse with the keyboard', async function () {
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
-
-    await userEvent.click(screen.getAllByText('Nested Container - nested')[0]);
+    const mockData = getMockData();
+    render(
+      <ViewHierarchy
+        viewHierarchy={DEFAULT_MOCK_DATA}
+        emptyMessage={mockData.emptyMessage}
+        nodeField={mockData.nodeField}
+        showWireframe={mockData.showWireframe}
+        platform={mockData.platform}
+      />
+    );
+    await userEvent.click(screen.getAllByText('Nested Container - nested')[0]!);
 
     await userEvent.keyboard('{Enter}');
 
@@ -119,39 +173,67 @@ describe('View Hierarchy', function () {
   });
 
   it('can render multiple windows together', function () {
-    MOCK_DATA.windows = [
-      ...MOCK_DATA.windows,
-      {
-        ...DEFAULT_VALUES,
-        type: 'Second Window',
-        children: [
-          {
-            ...DEFAULT_VALUES,
-            type: 'Second Window Child',
-            children: [],
-          },
-        ],
-      },
-    ];
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
+    const mockData = getMockData();
+    render(
+      <ViewHierarchy
+        viewHierarchy={{
+          ...DEFAULT_MOCK_DATA,
+          windows: [
+            ...DEFAULT_MOCK_DATA.windows,
+            {
+              ...DEFAULT_VALUES,
+              type: 'Second Window',
+              children: [
+                {
+                  ...DEFAULT_VALUES,
+                  type: 'Second Window Child',
+                  children: [],
+                },
+              ],
+            },
+          ],
+        }}
+        emptyMessage={mockData.emptyMessage}
+        nodeField={mockData.nodeField}
+        showWireframe={mockData.showWireframe}
+        platform={mockData.platform}
+      />
+    );
 
     expect(screen.getByText('Second Window')).toBeInTheDocument();
     expect(screen.getByText('Second Window Child')).toBeInTheDocument();
   });
 
   it('does not render the wireframe for the Unity platform', function () {
-    const mockUnityProject = ProjectFixture({platform: 'unity'});
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={mockUnityProject} />);
+    const mockData = getMockData(ProjectFixture({platform: 'unity'}));
+    render(
+      <ViewHierarchy
+        viewHierarchy={DEFAULT_MOCK_DATA}
+        emptyMessage={mockData.emptyMessage}
+        nodeField={mockData.nodeField}
+        showWireframe={mockData.showWireframe}
+        platform={mockData.platform}
+      />
+    );
 
     expect(screen.queryByTestId('view-hierarchy-wireframe')).not.toBeInTheDocument();
   });
 
   it('draws the selected node when a tree selection is made', async function () {
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
+    const mockData = getMockData();
+    render(
+      <ViewHierarchy
+        viewHierarchy={DEFAULT_MOCK_DATA}
+        emptyMessage={mockData.emptyMessage}
+        nodeField={mockData.nodeField}
+        showWireframe={mockData.showWireframe}
+        platform={mockData.platform}
+      />
+    );
 
-    const canvas = screen.getByTestId(
+    const canvas = screen.getByTestId<HTMLCanvasElement>(
       'view-hierarchy-wireframe-overlay'
-    ) as HTMLCanvasElement;
+    );
 
     const context = canvas.getContext('2d');
     if (!context) {
@@ -167,11 +249,20 @@ describe('View Hierarchy', function () {
   });
 
   it('does not render a wireframe selection initially', function () {
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
+    const mockData = getMockData();
+    render(
+      <ViewHierarchy
+        viewHierarchy={DEFAULT_MOCK_DATA}
+        emptyMessage={mockData.emptyMessage}
+        nodeField={mockData.nodeField}
+        showWireframe={mockData.showWireframe}
+        platform={mockData.platform}
+      />
+    );
 
-    const canvas = screen.getByTestId(
+    const canvas = screen.getByTestId<HTMLCanvasElement>(
       'view-hierarchy-wireframe-overlay'
-    ) as HTMLCanvasElement;
+    );
 
     const context = canvas.getContext('2d');
     if (!context) {
@@ -183,10 +274,14 @@ describe('View Hierarchy', function () {
   });
 
   it('renders an empty state if there is no data in windows to visualize', function () {
+    const mockData = getMockData();
     render(
       <ViewHierarchy
         viewHierarchy={{rendering_system: 'This can be anything', windows: []}}
-        project={project}
+        emptyMessage={mockData.emptyMessage}
+        nodeField={mockData.nodeField}
+        showWireframe={mockData.showWireframe}
+        platform={mockData.platform}
       />
     );
 
@@ -196,14 +291,102 @@ describe('View Hierarchy', function () {
   });
 
   it('renders with depth markers', function () {
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
+    const mockData = getMockData();
+    render(
+      <ViewHierarchy
+        viewHierarchy={DEFAULT_MOCK_DATA}
+        emptyMessage={mockData.emptyMessage}
+        nodeField={mockData.nodeField}
+        showWireframe={mockData.showWireframe}
+        platform={mockData.platform}
+      />
+    );
   });
 
   it('renders an icon with a tooltip for the rendering system', async function () {
-    MOCK_DATA.rendering_system = 'flutter';
-    render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
+    const mockData = getMockData();
+    render(
+      <ViewHierarchy
+        viewHierarchy={{
+          ...DEFAULT_MOCK_DATA,
+          rendering_system: 'flutter',
+        }}
+        emptyMessage={mockData.emptyMessage}
+        nodeField={mockData.nodeField}
+        showWireframe={mockData.showWireframe}
+        platform={mockData.platform}
+      />
+    );
 
     await userEvent.hover(screen.getByTestId('rendering-system-icon'));
     expect(await screen.findByText('Rendering System: flutter')).toBeInTheDocument();
+  });
+
+  it('renders a custom ui for godot platform', async function () {
+    const mockData = getMockData(ProjectFixture({platform: 'godot'}));
+    render(
+      <ViewHierarchy
+        viewHierarchy={
+          {
+            rendering_system: 'Godot',
+            windows: [
+              {
+                name: 'root',
+                class: 'Window',
+                children: [
+                  {
+                    name: 'SentryConfigurationScript',
+                    class: 'SentryConfiguration',
+                    script: 'res://example_configuration.gd',
+                    children: [
+                      {
+                        name: 'Header - Output',
+                        class: 'Label',
+                        children: [],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          } as unknown as ViewHierarchyData
+        }
+        emptyMessage={mockData.emptyMessage}
+        nodeField={mockData.nodeField}
+        showWireframe={mockData.showWireframe}
+        platform={mockData.platform}
+      />
+    );
+
+    expect(screen.queryByTestId('view-hierarchy-wireframe')).not.toBeInTheDocument();
+
+    expect(screen.getAllByRole('button', {name: 'Collapse'})).toHaveLength(3);
+
+    expect(screen.getByText('Header - Output')).toBeInTheDocument();
+
+    const collapseButton = within(
+      screen.getByLabelText('SentryConfigurationScript')
+    ).getByRole('button', {name: 'Collapse'});
+
+    await userEvent.click(collapseButton);
+
+    await waitFor(() =>
+      expect(screen.queryByText('Header - Output')).not.toBeInTheDocument()
+    );
+  });
+
+  it('renders a custom empty message for godot platform', function () {
+    const mockData = getMockData(ProjectFixture({platform: 'godot'}));
+    render(
+      <ViewHierarchy
+        viewHierarchy={{rendering_system: 'This can be anything', windows: []}}
+        emptyMessage={mockData.emptyMessage}
+        nodeField={mockData.nodeField}
+        showWireframe={mockData.showWireframe}
+        platform={mockData.platform}
+      />
+    );
+
+    expect(screen.getByText(/no scene tree data/)).toBeInTheDocument();
   });
 });

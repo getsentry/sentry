@@ -5,12 +5,12 @@ import {
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import Screenshot from 'sentry/components/events/eventTagsAndScreenshot/screenshot';
 import ScreenshotModal, {
   modalCss,
 } from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
-import Link from 'sentry/components/links/link';
 import {t, tn} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {EventAttachment} from 'sentry/types/group';
@@ -18,20 +18,11 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {SCREENSHOT_TYPE} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {EventAttachmentFilter} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-const SCREENSHOT_NAMES = [
-  'screenshot.jpg',
-  'screenshot.png',
-  'screenshot-1.jpg',
-  'screenshot-1.png',
-  'screenshot-2.jpg',
-  'screenshot-2.png',
-];
 
 interface ScreenshotDataSectionProps {
   event: Event;
@@ -56,14 +47,18 @@ export function ScreenshotDataSection({
     },
     {enabled: !isShare}
   );
-  const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
-  const screenshots =
-    attachments?.filter(({name}) => SCREENSHOT_NAMES.includes(name)) ?? [];
-
   const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
+  const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
+  const screenshots = attachments?.filter(attachment =>
+    attachment.name.includes('screenshot')
+  );
 
-  const showScreenshot = !isShare && !!screenshots.length;
-  const screenshot = screenshots[screenshotInFocus];
+  const showScreenshot = !isShare && !!screenshots?.length;
+  if (!showScreenshot) {
+    return null;
+  }
+
+  const screenshot = screenshots[screenshotInFocus]!;
 
   const handleDeleteScreenshot = (attachmentId: string) => {
     deleteAttachment({
@@ -92,8 +87,6 @@ export function ScreenshotDataSection({
       modalProps => (
         <ScreenshotModal
           {...modalProps}
-          event={event}
-          orgSlug={organization.slug}
           projectSlug={projectSlug}
           eventAttachment={eventAttachment}
           downloadUrl={downloadUrl}
@@ -104,7 +97,6 @@ export function ScreenshotDataSection({
             })
           }
           attachments={screenshots}
-          attachmentIndex={screenshotInFocus}
         />
       ),
       {modalCss}
@@ -113,17 +105,17 @@ export function ScreenshotDataSection({
 
   const linkPath = {
     pathname: `${location.pathname}${TabPaths[Tab.ATTACHMENTS]}`,
-    query: {...location.query, types: SCREENSHOT_TYPE},
+    query: {...location.query, attachmentFilter: EventAttachmentFilter.SCREENSHOT},
   };
   const title = tn('Screenshot', 'Screenshots', screenshots.length);
 
-  return !showScreenshot ? null : (
+  return showScreenshot ? (
     <InterimSection
       title={hasStreamlinedUI ? title : <Link to={linkPath}>{title}</Link>}
       showPermalink={false}
       help={t('This image was captured around the time that the event occurred.')}
       data-test-id="screenshot-data-section"
-      type={FoldSectionKey.SCREENSHOT}
+      type={SectionKey.SCREENSHOT}
       actions={
         hasStreamlinedUI ? (
           <LinkButton to={linkPath} size="xs">
@@ -146,5 +138,5 @@ export function ScreenshotDataSection({
         openVisualizationModal={handleOpenVisualizationModal}
       />
     </InterimSection>
-  );
+  ) : null;
 }

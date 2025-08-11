@@ -1,8 +1,10 @@
+from django.forms import ValidationError
 from django.utils.encoding import force_str
 from rest_framework import serializers
 
 from sentry import analytics
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from sentry.auth.access import Access
 from sentry.incidents.logic import (
     InvalidTriggerActionError,
     create_alert_rule_trigger_action,
@@ -12,10 +14,10 @@ from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING, STRING_TO_ACTION_TARGET_TYPE
 from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
 from sentry.integrations.pagerduty.utils import PAGERDUTY_CUSTOM_PRIORITIES
-from sentry.integrations.slack.utils import validate_channel_id
-from sentry.models.notificationaction import ActionService
+from sentry.integrations.slack.utils.channel import validate_slack_entity_id
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
+from sentry.notifications.models.notificationaction import ActionService
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 
 
@@ -83,7 +85,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             )
         type = attrs.get("type")
         target_type = attrs.get("target_type")
-        access = self.context["access"]
+        access: Access = self.context["access"]
         identifier = attrs.get("target_identifier")
 
         if type is not None:
@@ -186,19 +188,25 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         should_validate_channel_id = self.context.get("validate_channel_id", True)
         # validate_channel_id is assumed to be true unless explicitly passed as false
         if attrs["input_channel_id"] and should_validate_channel_id:
-            validate_channel_id(identifier, attrs["integration_id"], attrs["input_channel_id"])
+            validate_slack_entity_id(
+                integration_id=attrs["integration_id"],
+                input_name=identifier,
+                input_id=attrs["input_channel_id"],
+            )
         return attrs
 
     def create(self, validated_data):
         for key in ("id", "sentry_app_installation_uuid"):
             validated_data.pop(key, None)
-
         try:
             action = create_alert_rule_trigger_action(
                 trigger=self.context["trigger"], **validated_data
             )
         except (ApiRateLimitedError, InvalidTriggerActionError) as e:
             raise serializers.ValidationError(force_str(e))
+        except ValidationError as e:
+            # invalid action type
+            raise serializers.ValidationError(str(e))
 
         analytics.record(
             "metric_alert_with_ui_component.created",
@@ -206,6 +214,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
             alert_rule_id=getattr(self.context["alert_rule"], "id"),
             organization_id=getattr(self.context["organization"], "id"),
         )
+
         return action
 
     def update(self, instance, validated_data):

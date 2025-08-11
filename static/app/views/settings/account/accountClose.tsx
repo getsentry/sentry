@@ -1,12 +1,14 @@
 import {useEffect, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -14,8 +16,9 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {Organization, OrganizationSummary} from 'sentry/types';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import useApi from 'sentry/utils/useApi';
 import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -23,11 +26,6 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const BYE_URL = '/';
 const leaveRedirect = () => (window.location.href = BYE_URL);
-
-const Important = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: 1.2em;
-`;
 
 function GoodbyeModalContent({Header, Body, Footer}: ModalRenderProps) {
   return (
@@ -42,7 +40,7 @@ function GoodbyeModalContent({Header, Body, Footer}: ModalRenderProps) {
         </TextBlock>
       </Body>
       <Footer>
-        <Button href={BYE_URL}>{t('Goodbye')}</Button>
+        <LinkButton href={BYE_URL}>{t('Goodbye')}</LinkButton>
       </Footer>
     </div>
   );
@@ -111,8 +109,10 @@ function AccountClose() {
         data: {organizations: Array.from(orgsToRemove)},
       });
 
-      openModal(GoodbyeModalContent, {
-        onClose: leaveRedirect,
+      requestAnimationFrame(() => {
+        openModal(GoodbyeModalContent, {
+          onClose: leaveRedirect,
+        });
       });
 
       // Redirect after 10 seconds
@@ -134,6 +134,7 @@ function AccountClose() {
 
   return (
     <div>
+      <SentryDocumentTitle title={t('Close Account')} />
       <SettingsPageHeader title={t('Close Account')} />
 
       <TextBlock>
@@ -142,17 +143,17 @@ function AccountClose() {
         )}
       </TextBlock>
 
-      <Alert type="error" showIcon>
-        <Important>
+      <Alert.Container>
+        <Alert type="error">
           {t('Closing your account is permanent and cannot be undone')}!
-        </Important>
-      </Alert>
+        </Alert>
+      </Alert.Container>
 
       <Panel>
         <PanelHeader>{t('Delete the following organizations')}</PanelHeader>
         <PanelBody>
           <PanelAlert type="warning">
-            <strong>{t('ORGANIZATIONS WITH CHECKED BOXES WILL BE DELETED!')}</strong>
+            {t('Organizations with checked boxes will be deleted!')}
             <br />
             {t(
               'Ownership will remain with other organization owners if an organization is not deleted.'
@@ -165,18 +166,21 @@ function AccountClose() {
 
           {organizations?.map(({organization, singleOwner}) => (
             <PanelItem key={organization.slug}>
-              <label>
-                <input
-                  style={{marginRight: 6}}
-                  type="checkbox"
-                  value={organization.slug}
-                  onChange={evt => handleChange(organization, singleOwner, evt)}
+              <PanelLabel>
+                <Checkbox
+                  css={css`
+                    margin-right: 6px;
+                  `}
                   name="organizations"
                   checked={orgsToRemove.has(organization.slug)}
                   disabled={singleOwner}
+                  value={organization.slug}
+                  onChange={evt => handleChange(organization, singleOwner, evt)}
+                  size="sm"
+                  role="checkbox"
                 />
                 {organization.slug}
-              </label>
+              </PanelLabel>
             </PanelItem>
           ))}
         </PanelBody>
@@ -188,5 +192,10 @@ function AccountClose() {
     </div>
   );
 }
+
+const PanelLabel = styled('label')`
+  display: flex;
+  align-items: center;
+`;
 
 export default AccountClose;

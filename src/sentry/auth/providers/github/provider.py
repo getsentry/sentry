@@ -7,6 +7,9 @@ from django.http.request import HttpRequest
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
 from sentry.auth.services.auth.model import RpcAuthProvider
+from sentry.auth.view import AuthView
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.authidentity import AuthIdentity
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.base.response import DeferredResponse
 
@@ -19,6 +22,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
     access_token_url = ACCESS_TOKEN_URL
     authorize_url = AUTHORIZE_URL
     name = "GitHub"
+    key = IntegrationProviderSlug.GITHUB.value
 
     def get_client_id(self):
         return CLIENT_ID
@@ -26,7 +30,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
     def get_client_secret(self):
         return CLIENT_SECRET
 
-    def __init__(self, org=None, **config):
+    def __init__(self, org=None, **config) -> None:
         super().__init__(**config)
         self.org = org
 
@@ -35,7 +39,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
     ) -> Callable[[HttpRequest, RpcOrganization, RpcAuthProvider], DeferredResponse]:
         return github_configure_view
 
-    def get_auth_pipeline(self):
+    def get_auth_pipeline(self) -> list[AuthView]:
         return [
             OAuth2Login(
                 authorize_url=self.authorize_url, client_id=self.get_client_id(), scope=SCOPE
@@ -49,12 +53,12 @@ class GitHubOAuth2Provider(OAuth2Provider):
             ConfirmEmail(),
         ]
 
-    def get_setup_pipeline(self):
+    def get_setup_pipeline(self) -> list[AuthView]:
         pipeline = self.get_auth_pipeline()
         pipeline.append(SelectOrganization())
         return pipeline
 
-    def get_refresh_token_url(self):
+    def get_refresh_token_url(self) -> str:
         return ACCESS_TOKEN_URL
 
     def build_config(self, state):
@@ -75,7 +79,7 @@ class GitHubOAuth2Provider(OAuth2Provider):
             "data": self.get_oauth_data(data),
         }
 
-    def refresh_identity(self, auth_identity):
+    def refresh_identity(self, auth_identity: AuthIdentity) -> None:
         with GitHubClient(auth_identity.data["access_token"]) as client:
             try:
                 if not client.is_org_member(self.org["id"]):

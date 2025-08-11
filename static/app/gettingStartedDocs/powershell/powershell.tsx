@@ -1,13 +1,13 @@
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import altCrashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/altCrashReportCallout';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
@@ -30,7 +30,7 @@ Start-Sentry -Debug {
     # A Sentry Data Source Name (DSN) is required.
     # See https://docs.sentry.io/product/sentry-basics/dsn-explainer/
     # You can set it in the SENTRY_DSN environment variable, or you can set it in code here.
-    $_.Dsn = '${params.dsn}'
+    $_.Dsn = '${params.dsn.public}'
 
     # This option will enable Sentry's tracing features. You still need to start transactions and spans.
     # For example, setting the rate to 0.1 would capture 10% of transactions.
@@ -39,7 +39,7 @@ Start-Sentry -Debug {
 
 # Later on in your production script, you should omit the \`-Debug\` flag.:
 Start-Sentry {
-    $_.Dsn = '${params.dsn}'
+    $_.Dsn = '${params.dsn.public}'
     $_.TracesSampleRate = 0.1
 }`;
 
@@ -108,7 +108,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
     {
-      title: t('Performance Monitoring'),
+      title: t('Tracing'),
       description: t(
         'You can measure the performance of your code by capturing transactions and spans.'
       ),

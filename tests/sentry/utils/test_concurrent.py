@@ -16,14 +16,14 @@ from sentry.utils.concurrent import (
 )
 
 
-def test_execute():
+def test_execute() -> None:
     assert execute(_thread.get_ident).result() != _thread.get_ident()
 
     with pytest.raises(Exception):
         assert execute(mock.Mock(side_effect=Exception("Boom!"))).result()
 
 
-def test_future_set_callback_success():
+def test_future_set_callback_success() -> None:
     future_set = FutureSet([Future() for i in range(3)])
 
     callback = mock.Mock()
@@ -43,7 +43,7 @@ def test_future_set_callback_success():
     assert other_callback.call_args == mock.call(future_set)
 
 
-def test_future_set_callback_error():
+def test_future_set_callback_error() -> None:
     future_set = FutureSet([Future() for i in range(3)])
 
     callback = mock.Mock()
@@ -63,7 +63,7 @@ def test_future_set_callback_error():
     assert other_callback.call_args == mock.call(future_set)
 
 
-def test_future_set_callback_empty():
+def test_future_set_callback_empty() -> None:
     future_set = FutureSet([])
 
     callback = mock.Mock()
@@ -73,15 +73,12 @@ def test_future_set_callback_empty():
     assert callback.call_args == mock.call(future_set)
 
 
-def test_future_broken_callback():
+def test_future_broken_callback() -> None:
     future_set = FutureSet([])
 
     callback = mock.Mock(side_effect=Exception("Boom!"))
 
-    try:
-        future_set.add_done_callback(callback)
-    except Exception:
-        assert False, "should not raise"
+    future_set.add_done_callback(callback)  # should not raise
 
     assert callback.call_count == 1
     assert callback.call_args == mock.call(future_set)
@@ -94,7 +91,7 @@ def timestamp(t):
         yield
 
 
-def test_timed_future_success():
+def test_timed_future_success() -> None:
     future: TimedFuture[object] = TimedFuture()
     assert future.get_timing() == (None, None)
 
@@ -120,7 +117,7 @@ def test_timed_future_success():
     assert callback_results[0] == (expected_result, expected_timing)
 
 
-def test_time_is_not_overwritten_if_fail_to_set_result():
+def test_time_is_not_overwritten_if_fail_to_set_result() -> None:
     future: TimedFuture[int] = TimedFuture()
 
     with timestamp(1.0):
@@ -139,7 +136,7 @@ def test_time_is_not_overwritten_if_fail_to_set_result():
         assert future.get_timing() == (1.0, 1.0)
 
 
-def test_timed_future_error():
+def test_timed_future_error() -> None:
     future: TimedFuture[None] = TimedFuture()
     assert future.get_timing() == (None, None)
 
@@ -164,7 +161,7 @@ def test_timed_future_error():
     assert callback_timings[0] == expected_timing
 
 
-def test_timed_future_cancel():
+def test_timed_future_cancel() -> None:
     future: TimedFuture[None] = TimedFuture()
     assert future.get_timing() == (None, None)
 
@@ -186,25 +183,24 @@ def test_timed_future_cancel():
     assert future.get_timing() == (2.0, 1.0)
 
 
-def test_synchronous_executor():
-    executor: SynchronousExecutor[object] = SynchronousExecutor()
+def test_synchronous_executor() -> None:
+    executor = SynchronousExecutor()
 
     assert executor.submit(lambda: mock.sentinel.RESULT).result() is mock.sentinel.RESULT
 
+    class SentinelException(ValueError):
+        pass
+
     def callable():
-        raise Exception(mock.sentinel.EXCEPTION)
+        raise SentinelException
 
     future = executor.submit(callable)
-    try:
+    with pytest.raises(SentinelException):
         future.result()
-    except Exception as e:
-        assert e.args[0] == mock.sentinel.EXCEPTION
-    else:
-        assert False, "expected future to raise"
 
 
-def test_threaded_same_priority_Tasks():
-    executor: ThreadedExecutor[None] = ThreadedExecutor(worker_count=1)
+def test_threaded_same_priority_Tasks() -> None:
+    executor = ThreadedExecutor(worker_count=1)
 
     def callable():
         pass
@@ -214,8 +210,8 @@ def test_threaded_same_priority_Tasks():
     executor.submit(callable)
 
 
-def test_threaded_executor():
-    executor: ThreadedExecutor[int] = ThreadedExecutor(worker_count=1, maxsize=3)
+def test_threaded_executor() -> None:
+    executor = ThreadedExecutor(worker_count=1, maxsize=3)
 
     def waiter(ready, waiting, result):
         ready.set()

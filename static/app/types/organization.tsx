@@ -1,4 +1,3 @@
-import type {Project} from 'sentry/types/project';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {
   DatasetSource,
@@ -8,9 +7,9 @@ import type {
 import type {WidgetType} from 'sentry/views/dashboards/types';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
-import type {OrgExperiments} from './experiments';
 import type {ExternalTeam} from './integrations';
 import type {OnboardingTaskStatus} from './onboarding';
+import type {Project} from './project';
 import type {Relay} from './relay';
 import type {User} from './user';
 
@@ -18,7 +17,6 @@ import type {User} from './user';
  * Organization summaries are sent when you request a list of all organizations
  */
 export interface OrganizationSummary {
-  aiSuggestedSolution: boolean;
   avatar: Avatar;
   codecovAccess: boolean;
   dateCreated: string;
@@ -26,6 +24,8 @@ export interface OrganizationSummary {
   githubNudgeInvite: boolean;
   githubOpenPRBot: boolean;
   githubPRBot: boolean;
+  gitlabPRBot: boolean;
+  hideAiFeatures: boolean;
   id: string;
   isEarlyAdopter: boolean;
   issueAlertsThreadFlag: boolean;
@@ -41,7 +41,6 @@ export interface OrganizationSummary {
     id: ObjectStatus;
     name: string;
   };
-  uptimeAutodetection?: boolean;
 }
 
 /**
@@ -52,23 +51,27 @@ export interface Organization extends OrganizationSummary {
   aggregatedDataConsent: boolean;
   alertsMemberWrite: boolean;
   allowJoinRequests: boolean;
+  allowMemberInvite: boolean;
   allowMemberProjectCreation: boolean;
   allowSharedIssues: boolean;
+  allowSuperuserAccess: boolean;
   attachmentsRole: string;
   /** @deprecated use orgRoleList instead. */
-  availableRoles: {id: string; name: string}[];
+  availableRoles: Array<{id: string; name: string}>;
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
   defaultRole: string;
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
-  experiments: Partial<OrgExperiments>;
-  genAIConsent: boolean;
   isDefault: boolean;
   isDynamicallySampled: boolean;
   onboardingTasks: OnboardingTaskStatus[];
   openMembership: boolean;
+  /**
+   * A list of roles that are available to the organization.
+   * eg: billing, admin, member, manager, owner
+   */
   orgRoleList: OrgRole[];
   pendingAccessRequests: number;
   quota: {
@@ -80,14 +83,29 @@ export interface Organization extends OrganizationSummary {
   relayPiiConfig: string | null;
   requiresSso: boolean;
   safeFields: string[];
+  samplingMode: 'organization' | 'project';
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
   sensitiveFields: string[];
   storeCrashReports: number;
+  streamlineOnly: boolean | null;
+  targetSampleRate: number;
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
+  defaultAutofixAutomationTuning?:
+    | 'off'
+    | 'super_low'
+    | 'low'
+    | 'medium'
+    | 'high'
+    | 'always'
+    | null;
+  defaultSeerScannerAutomation?: boolean;
   desiredSampleRate?: number | null;
   effectiveSampleRate?: number | null;
+  enableSeerCoding?: boolean;
+  enableSeerEnhancedAlerts?: boolean;
+  enabledConsolePlatforms?: string[];
   extraOptions?: {
     traces: {
       checkSpanExtractionDate: boolean;
@@ -130,7 +148,10 @@ export interface BaseRole {
 export interface OrgRole extends BaseRole {
   minimumTeamRole: string;
   isGlobal?: boolean;
-  is_global?: boolean; // Deprecated: use isGlobal
+  /**
+   * @deprecated use isGlobal
+   */
+  is_global?: boolean;
 }
 export interface TeamRole extends BaseRole {
   isMinimumRoleFor: string;
@@ -173,10 +194,10 @@ export interface Member {
   teamRoleList: TeamRole[];
 
   // TODO: Move to global store
-  teamRoles: {
+  teamRoles: Array<{
     role: string | null;
     teamSlug: string;
-  }[];
+  }>;
   /**
    * @deprecated use teamRoles
    */
@@ -212,7 +233,7 @@ export interface MissingMember {
  */
 export type SharedViewOrganization = {
   slug: string;
-  features?: Array<string>;
+  features?: string[];
   id?: string;
 };
 
@@ -245,7 +266,7 @@ export type AccessRequest = {
 export type SavedQueryVersions = 1 | 2;
 
 export interface NewQuery {
-  fields: Readonly<string[]>;
+  fields: readonly string[];
   name: string;
   version: SavedQueryVersions;
   createdBy?: User;
@@ -253,20 +274,21 @@ export interface NewQuery {
   datasetSource?: DatasetSource;
   display?: string;
   end?: string | Date;
-  environment?: Readonly<string[]>;
+  environment?: readonly string[];
   expired?: boolean;
   id?: string;
   interval?: string;
-  orderby?: string;
-  projects?: Readonly<number[]>;
+  multiSort?: boolean;
+  orderby?: string | string[];
+  projects?: readonly number[];
   query?: string;
   queryDataset?: SavedQueryDatasets;
   range?: string;
   start?: string | Date;
-  teams?: Readonly<('myteams' | number)[]>;
+  teams?: ReadonlyArray<'myteams' | number>;
   topEvents?: string;
   utc?: boolean | string;
-  widths?: Readonly<string[]>;
+  widths?: readonly string[];
   yAxis?: string[];
 }
 
@@ -276,17 +298,25 @@ export interface SavedQuery extends NewQuery {
   id: string;
 }
 
-export type SavedQueryState = {
-  hasError: boolean;
-  isLoading: boolean;
-  savedQueries: SavedQuery[];
+export type Confidence = 'high' | 'low' | null;
+
+export type EventsStatsData = Array<
+  [number, Array<{count: number; comparisonCount?: number}>]
+>;
+
+type ConfidenceStatsData = Array<[number, Array<{count: Confidence}>]>;
+
+type AccuracyStatsItem<T> = {
+  timestamp: number;
+  value: T;
 };
 
-export type EventsStatsData = [number, {count: number; comparisonCount?: number}[]][];
+export type AccuracyStats<T> = Array<AccuracyStatsItem<T>>;
 
-// API response format for a single series
+// API response for a single Discover timeseries
 export type EventsStats = {
   data: EventsStatsData;
+  confidence?: ConfidenceStatsData; // deprecated
   end?: number;
   isExtrapolatedData?: boolean;
   isMetricsData?: boolean;
@@ -295,7 +325,16 @@ export type EventsStats = {
     fields: Record<string, AggregationOutputType>;
     isMetricsData: boolean;
     tips: {columns?: string; query?: string};
-    units: Record<string, string>;
+    units: Record<string, string | null>;
+    accuracy?: {
+      confidence?: AccuracyStats<Confidence>;
+      sampleCount?: AccuracyStats<number>;
+      // 0 sample count can result in null sampling rate
+      samplingRate?: AccuracyStats<number | null>;
+    };
+    dataScanned?: 'full' | 'partial';
+    dataset?: string;
+    datasetReason?: string;
     discoverSplitDecision?: WidgetType;
     isMetricsExtractedData?: boolean;
   };
@@ -304,17 +343,24 @@ export type EventsStats = {
   totals?: {count: number};
 };
 
-// API response format for multiple series
-export type MultiSeriesEventsStats = {
-  [seriesName: string]: EventsStats;
-};
+// API response for a top N Discover series or a multi-axis Discover series
+export type MultiSeriesEventsStats = Record<string, EventsStats>;
+
+// API response for a grouped top N Discover series
+export type GroupedMultiSeriesEventsStats = Record<
+  string,
+  {
+    [seriesName: string]: EventsStats | number;
+    order: number;
+  }
+>;
 
 export type EventsStatsSeries<F extends string> = {
-  data: {
+  data: Array<{
     axis: F;
     values: number[];
     label?: string;
-  }[];
+  }>;
   meta: {
     dataset: string;
     end: number;
@@ -328,11 +374,11 @@ export type EventsStatsSeries<F extends string> = {
  */
 // Base type for series style API response
 export interface SeriesApi {
-  groups: {
+  groups: Array<{
     by: Record<string, string | number>;
     series: Record<string, number[]>;
     totals: Record<string, number>;
-  }[];
+  }>;
   intervals: string[];
 }
 
@@ -355,4 +401,29 @@ export enum SessionStatus {
   ABNORMAL = 'abnormal',
   ERRORED = 'errored',
   CRASHED = 'crashed',
+}
+
+interface IssuesMetricsTimeseries {
+  axis: 'new_issues_count' | 'resolved_issues_count' | 'new_issues_count_by_release';
+  groupBy: string[];
+  meta: {
+    interval: number;
+    isOther: boolean;
+    order: number;
+    valueType: string;
+    valueUnit: null | string;
+  };
+  values: Array<{
+    timestamp: number;
+    value: number;
+  }>;
+}
+
+export interface IssuesMetricsApiResponse {
+  meta: {
+    dataset: string;
+    end: number;
+    start: number;
+  };
+  timeseries: IssuesMetricsTimeseries[];
 }

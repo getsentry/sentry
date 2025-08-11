@@ -63,8 +63,7 @@ def _dispatch_tick(ts: datetime):
         # XXX(epurkhiser): Unclear what we want to do if we're not using kafka
         return
 
-    message: ClockTick = {"ts": ts.timestamp()}
-    payload = KafkaPayload(None, CLOCK_TICK_CODEC.encode(message), [])
+    payload = KafkaPayload(None, CLOCK_TICK_CODEC.encode({"ts": ts.timestamp()}), [])
 
     topic = get_topic_definition(Topic.MONITORS_CLOCK_TICK)["real_topic_name"]
     _clock_tick_producer.produce(ArroyoTopic(topic), payload)
@@ -84,8 +83,7 @@ def try_monitor_clock_tick(ts: datetime, partition: int):
 
     # Trim the timestamp seconds off, these tasks are run once per minute and
     # should have their timestamp clamped to the minute.
-    reference_datetime = ts.replace(second=0, microsecond=0)
-    reference_ts = int(reference_datetime.timestamp())
+    reference_ts = int(ts.replace(second=0, microsecond=0).timestamp())
 
     # Store the current clock value for this partition.
     redis_client.zadd(

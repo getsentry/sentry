@@ -1,15 +1,16 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import type {SelectOption} from 'sentry/components/compactSelect/types';
+import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect/types';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
+import {AggregateFlamegraphSidePanel} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphSidePanel';
 import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {IconPanel} from 'sentry/icons';
+import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DeepPartial} from 'sentry/types/utils';
@@ -30,6 +31,7 @@ import {
   useFlamegraph,
 } from 'sentry/views/profiling/flamegraphProvider';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
+import type {DataState} from 'sentry/views/profiling/useLandingAnalytics';
 
 const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
   preferences: {
@@ -54,12 +56,14 @@ function decodeViewOrDefault(
 
 interface AggregateFlamegraphToolbarProps {
   canvasPoolManager: CanvasPoolManager;
+  expanded: boolean;
   frameFilter: 'system' | 'application' | 'all';
   hideSystemFrames: boolean;
   onFrameFilterChange: (value: 'system' | 'application' | 'all') => void;
   onHideRegressionsClick: () => void;
   onVisualizationChange: (value: 'flamegraph' | 'call tree') => void;
   scheduler: CanvasScheduler;
+  setExpanded: (expanded: boolean) => void;
   setHideSystemFrames: (value: boolean) => void;
   visualization: 'flamegraph' | 'call tree';
 }
@@ -69,7 +73,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
   const flamegraphs = useMemo(() => [flamegraph], [flamegraph]);
   const spans = useMemo(() => [], []);
 
-  const frameSelectOptions: SelectOption<'system' | 'application' | 'all'>[] =
+  const frameSelectOptions: Array<SelectOption<'system' | 'application' | 'all'>> =
     useMemo(() => {
       return [
         {value: 'system', label: t('System Frames')},
@@ -118,23 +122,76 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
         value={props.frameFilter}
         options={frameSelectOptions}
       />
-      <Button
-        size="xs"
-        onClick={props.onHideRegressionsClick}
-        title={t('Expand or collapse the view')}
-      >
-        <IconPanel size="xs" direction="right" />
-      </Button>
+      <CollapseExpandButtonContainer>
+        <CollapseExpandButton
+          aria-label={props.expanded ? t('Collapse sidebar') : t('Expande sidebar')}
+          size="xs"
+          icon={<IconDoubleChevron direction={props.expanded ? 'right' : 'left'} />}
+          onClick={() => props.setExpanded(!props.expanded)}
+        />
+      </CollapseExpandButtonContainer>
     </AggregateFlamegraphToolbarContainer>
   );
 }
 
-export function LandingAggregateFlamegraph(): React.ReactNode {
+const CollapseExpandButtonContainer = styled('div')`
+  width: 28px;
+`;
+
+const CollapseExpandButton = styled(Button)`
+  width: 28px;
+  margin-right: -9px;
+  border-right: 0px;
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 0px;
+`;
+
+function IconDoubleChevron(props: React.ComponentProps<typeof IconChevron>) {
+  return (
+    <DoubleChevronWrapper>
+      <IconChevron style={{marginRight: `-3px`}} {...props} />
+      <IconChevron style={{marginLeft: `-3px`}} {...props} />
+    </DoubleChevronWrapper>
+  );
+}
+
+const DoubleChevronWrapper = styled('div')`
+  display: flex;
+`;
+
+interface LandingAggregateFlamegraphProps {
+  onDataState?: (dataState: DataState) => void;
+}
+
+export function LandingAggregateFlamegraph({
+  onDataState,
+}: LandingAggregateFlamegraphProps): React.ReactNode {
   const location = useLocation();
 
-  const {data, isLoading, isError} = useAggregateFlamegraphQuery({
+  const {
+    data,
+    isPending: isLoading,
+    isError,
+    status,
+  } = useAggregateFlamegraphQuery({
     dataSource: 'profiles',
   });
+
+  const hasData = (data?.profiles?.length || 0) > 0;
+
+  useEffect(() => {
+    if (onDataState) {
+      if (isLoading) {
+        onDataState('loading');
+      } else if (isError) {
+        onDataState('errored');
+      } else if (hasData) {
+        onDataState('populated');
+      } else {
+        onDataState('empty');
+      }
+    }
+  }, [onDataState, hasData, isLoading, isError]);
 
   const [visualization, setVisualization] = useLocalStorageState<
     'flamegraph' | 'call tree'
@@ -162,14 +219,18 @@ export function LandingAggregateFlamegraph(): React.ReactNode {
     [setFrameFilter]
   );
 
+  const onResetFrameFilter = useCallback(() => {
+    setFrameFilter('all');
+  }, [setFrameFilter]);
+
   const flamegraphFrameFilter: ((frame: Frame) => boolean) | undefined = useMemo(() => {
     if (frameFilter === 'all') {
       return () => true;
     }
     if (frameFilter === 'application') {
-      return frame => frame.is_application;
+      return (frame: Frame) => frame.is_application;
     }
-    return frame => !frame.is_application;
+    return (frame: Frame) => !frame.is_application;
   }, [frameFilter]);
 
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
@@ -190,6 +251,8 @@ export function LandingAggregateFlamegraph(): React.ReactNode {
     return setHideRegressions(!hideRegressions);
   }, [hideRegressions, setHideRegressions]);
 
+  const [showSidePanel, setShowSidePanel] = useState(true);
+
   return (
     <ProfileGroupProvider
       traceID=""
@@ -200,48 +263,74 @@ export function LandingAggregateFlamegraph(): React.ReactNode {
       <FlamegraphStateProvider initialState={DEFAULT_FLAMEGRAPH_PREFERENCES}>
         <FlamegraphThemeProvider>
           <FlamegraphProvider>
-            <AggregateFlamegraphContainer>
-              <AggregateFlamegraphToolbar
-                scheduler={scheduler}
-                canvasPoolManager={canvasPoolManager}
-                visualization={visualization}
-                onVisualizationChange={onVisualizationChange}
-                frameFilter={frameFilter}
-                onFrameFilterChange={onFrameFilterChange}
-                hideSystemFrames={false}
-                setHideSystemFrames={noop}
-                onHideRegressionsClick={onHideRegressionsClick}
-              />
-              {isLoading ? (
-                <RequestStateMessageContainer>
-                  <LoadingIndicator />
-                </RequestStateMessageContainer>
-              ) : isError ? (
-                <RequestStateMessageContainer>
-                  {t('There was an error loading the flamegraph.')}
-                </RequestStateMessageContainer>
-              ) : null}
-              {visualization === 'flamegraph' ? (
-                <AggregateFlamegraph
-                  canvasPoolManager={canvasPoolManager}
+            <AggregateFlamegraphLayout>
+              <AggregateFlamegraphContainer>
+                <AggregateFlamegraphToolbar
                   scheduler={scheduler}
-                />
-              ) : (
-                <AggregateFlamegraphTreeTable
-                  recursion={null}
-                  expanded={false}
-                  withoutBorders
-                  frameFilter={frameFilter}
                   canvasPoolManager={canvasPoolManager}
+                  visualization={visualization}
+                  onVisualizationChange={onVisualizationChange}
+                  frameFilter={frameFilter}
+                  onFrameFilterChange={onFrameFilterChange}
+                  hideSystemFrames={false}
+                  setHideSystemFrames={noop}
+                  onHideRegressionsClick={onHideRegressionsClick}
+                  expanded={showSidePanel}
+                  setExpanded={setShowSidePanel}
                 />
-              )}
-            </AggregateFlamegraphContainer>
+                {status === 'pending' ? (
+                  <RequestStateMessageContainer>
+                    <LoadingIndicator />
+                  </RequestStateMessageContainer>
+                ) : status === 'error' ? (
+                  <RequestStateMessageContainer>
+                    {t('There was an error loading the flamegraph.')}
+                  </RequestStateMessageContainer>
+                ) : null}
+                {visualization === 'flamegraph' ? (
+                  <AggregateFlamegraph
+                    filter={frameFilter}
+                    status={status}
+                    onResetFilter={onResetFrameFilter}
+                    canvasPoolManager={canvasPoolManager}
+                    scheduler={scheduler}
+                  />
+                ) : (
+                  <AggregateFlamegraphTreeTable
+                    recursion={null}
+                    expanded={false}
+                    withoutBorders
+                    frameFilter={frameFilter}
+                    canvasPoolManager={canvasPoolManager}
+                  />
+                )}
+              </AggregateFlamegraphContainer>
+              <AggregateFlamegraphSidePanelContainer visible={showSidePanel}>
+                <AggregateFlamegraphSidePanel scheduler={scheduler} />
+              </AggregateFlamegraphSidePanelContainer>
+            </AggregateFlamegraphLayout>
           </FlamegraphProvider>
         </FlamegraphThemeProvider>
       </FlamegraphStateProvider>
     </ProfileGroupProvider>
   );
 }
+
+/**
+ * force height to be the same as profile digest header,
+ * but subtract 1px for the border that doesnt exist on the header
+ */
+const toolbarHeight = '41px';
+
+const AggregateFlamegraphLayout = styled('div')`
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  left: 0px;
+  top: 0px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+`;
 
 const AggregateFlamegraphSearch = styled(FlamegraphSearch)`
   max-width: 300px;
@@ -252,11 +341,7 @@ const AggregateFlamegraphToolbarContainer = styled('div')`
   justify-content: space-between;
   gap: ${space(1)};
   padding: ${space(1)} ${space(1)};
-  /*
-    force height to be the same as profile digest header,
-    but subtract 1px for the border that doesnt exist on the header
-   */
-  height: 41px;
+  height: ${toolbarHeight};
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
@@ -280,10 +365,9 @@ const AggregateFlamegraphContainer = styled('div')`
   display: flex;
   flex-direction: column;
   flex: 1 1 100%;
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-  position: absolute;
-  left: 0px;
-  top: 0px;
+`;
+
+const AggregateFlamegraphSidePanelContainer = styled('div')<{visible: boolean}>`
+  overflow-y: scroll;
+  ${p => !p.visible && 'display: none;'}
 `;

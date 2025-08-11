@@ -90,10 +90,10 @@ def build_action_response(
 class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Fetches actions that an alert rule can perform for an organization
         """
@@ -119,7 +119,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
 
             # Add all alertable SentryApps to the list.
             elif registered_type.service_type == AlertRuleTriggerAction.Type.SENTRY_APP:
-                installs = app_service.get_installed_for_organization(
+                installs = app_service.installations_for_organization(
                     organization_id=organization.id
                 )
                 actions += [

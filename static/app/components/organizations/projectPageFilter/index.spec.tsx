@@ -54,6 +54,7 @@ describe('ProjectPageFilter', function () {
     render(<ProjectPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu
@@ -77,17 +78,18 @@ describe('ProjectPageFilter', function () {
     render(<ProjectPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu
     await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
 
     // Deselect project-1 & project-2 by clicking on their checkboxes
-    await fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-1'}));
-    await fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-2'}));
+    fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-1'}));
+    fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-2'}));
 
     // Select project-3 by clicking on its checkbox
-    await fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-3'}));
+    fireEvent.click(screen.getByRole('checkbox', {name: 'Select project-3'}));
 
     // Click "Apply"
     await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
@@ -108,6 +110,7 @@ describe('ProjectPageFilter', function () {
     render(<ProjectPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open the menu, search input has focus
@@ -127,9 +130,11 @@ describe('ProjectPageFilter', function () {
 
     // Activating the link triggers a route change
     await userEvent.keyboard('{Enter}');
-    expect(router.push).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/projects/project-1/?project=1`
-    );
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/projects/project-1/',
+      query: {project: '1'},
+    });
 
     // Move focus to "Project Settings" link
     await userEvent.keyboard('{ArrowRight}');
@@ -145,14 +150,12 @@ describe('ProjectPageFilter', function () {
 
     // Move focus to "Bookmark Project" button
     await userEvent.keyboard('{ArrowRight}');
-    expect(
-      within(optionOne).getByRole('button', {name: 'Bookmark Project'})
-    ).toHaveFocus();
+    expect(within(optionOne).getByRole('button', {name: 'Bookmark'})).toHaveFocus();
 
     // Activate the button
     await userEvent.keyboard('{Enter}');
     expect(
-      within(optionOne).getByRole('button', {name: 'Bookmark Project'})
+      within(optionOne).getByRole('button', {name: 'Remove Bookmark'})
     ).toHaveAttribute('aria-pressed', 'true');
     expect(mockApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project-1/`,
@@ -169,6 +172,7 @@ describe('ProjectPageFilter', function () {
     render(<ProjectPageFilter onReset={onReset} />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Open the menu, select project-1
@@ -193,6 +197,7 @@ describe('ProjectPageFilter', function () {
     render(<ProjectPageFilter />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     // Confirm initial selection
@@ -237,6 +242,7 @@ describe('ProjectPageFilter', function () {
     render(<ProjectPageFilter />, {
       router: desyncRouter,
       organization: desyncOrganization,
+      deprecatedRouterMocks: true,
     });
 
     // Open menu

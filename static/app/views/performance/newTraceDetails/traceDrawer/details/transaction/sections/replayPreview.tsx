@@ -1,14 +1,13 @@
 import styled from '@emotion/styled';
 
 import ReplayClipPreview from 'sentry/components/events/eventReplay/replayClipPreview';
-import {LazyRender} from 'sentry/components/lazyRender';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
-
-import {TraceDrawerComponents} from '../../styles';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 const REPLAY_CLIP_OFFSETS = {
   durationAfterMs: 5_000,
@@ -18,9 +17,11 @@ const REPLAY_CLIP_OFFSETS = {
 function ReplaySection({
   event,
   organization,
+  showTitle = false,
 }: {
   event: EventTransaction;
   organization: Organization;
+  showTitle?: boolean;
 }) {
   const replayId = getReplayIdFromEvent(event);
   const startTimestampMS =
@@ -30,7 +31,7 @@ function ReplaySection({
 
   return replayId ? (
     <ReplaySectionContainer>
-      <ReplaySectionTitle>{t('Session Replay')}</ReplaySectionTitle>
+      {showTitle ? <ReplaySectionTitle>{t('Session Replay')}</ReplaySectionTitle> : null}
       <ReplayClipPreview
         analyticsContext="trace-view"
         replaySlug={replayId}
@@ -50,7 +51,7 @@ function ReplaySection({
   ) : null;
 }
 
-function ReplayPreview({
+export default function ReplayPreview({
   event,
   organization,
 }: {
@@ -64,9 +65,13 @@ function ReplayPreview({
   }
 
   return (
-    <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={480}>
+    <InterimSection
+      title={t('Session Replay')}
+      type="trace_session_replay"
+      disableCollapsePersistence
+    >
       <ReplaySection event={event} organization={organization} />
-    </LazyRender>
+    </InterimSection>
   );
 }
 
@@ -76,9 +81,7 @@ const ReplaySectionContainer = styled('div')`
 `;
 
 const ReplaySectionTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(2)};
 `;
-
-export default ReplayPreview;

@@ -1,7 +1,7 @@
 import {Component} from 'react';
-import type {WithRouterProps} from 'react-router';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
+import type {Location} from 'history';
 import round from 'lodash/round';
 
 import type {AreaChartProps} from 'sentry/components/charts/areaChart';
@@ -13,17 +13,11 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import type {
-  PlatformKey,
-  ReleaseProject,
-  ReleaseWithHealth,
-  SessionApiResponse,
-} from 'sentry/types';
-import {
-  ReleaseComparisonChartType,
-  SessionFieldWithOperation,
-  SessionStatus,
-} from 'sentry/types';
+import type {SessionApiResponse} from 'sentry/types/organization';
+import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/project';
+import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
+import {ReleaseComparisonChartType} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {
   getCountSeries,
@@ -34,20 +28,20 @@ import {
 } from 'sentry/utils/sessions';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
-import {displayCrashFreePercent} from 'sentry/views/releases/utils';
-
 import {
   generateReleaseMarkLines,
   releaseComparisonChartHelp,
   releaseComparisonChartTitles,
   releaseMarkLinesLabels,
-} from '../../utils';
+} from 'sentry/views/releases/detail/utils';
+import {displayCrashFreePercent} from 'sentry/views/releases/utils';
 
 type Props = {
   allSessions: SessionApiResponse | null;
   chartType: ReleaseComparisonChartType;
   diff: React.ReactNode;
   loading: boolean;
+  location: Location;
   platform: PlatformKey;
   project: ReleaseProject;
   release: ReleaseWithHealth;
@@ -59,7 +53,7 @@ type Props = {
   period?: string | null;
   start?: string;
   utc?: boolean;
-} & WithRouterProps;
+};
 
 class ReleaseSessionsChart extends Component<Props> {
   formatTooltipValue = (value: string | number | null, label?: string) => {
@@ -149,9 +143,9 @@ class ReleaseSessionsChart extends Component<Props> {
     }
   }
 
-  getColors() {
+  getColors(): string[] | undefined {
     const {theme, chartType} = this.props;
-    const colors = theme.charts.getColorPalette(14);
+    const colors = theme.chart.getColorPalette(15);
     switch (chartType) {
       case ReleaseComparisonChartType.CRASH_FREE_SESSIONS:
         return [colors[0]];
@@ -555,7 +549,7 @@ class ReleaseSessionsChart extends Component<Props> {
   }
 
   render() {
-    const {chartType, router, period, start, end, utc, value, diff, loading, reloading} =
+    const {chartType, period, start, end, utc, value, diff, loading, reloading} =
       this.props;
 
     const Chart = this.getChart();
@@ -588,14 +582,7 @@ class ReleaseSessionsChart extends Component<Props> {
           {value} {diff}
         </HeaderValue>
 
-        <ChartZoom
-          router={router}
-          period={period}
-          utc={utc}
-          start={start}
-          end={end}
-          usePageDate
-        >
+        <ChartZoom period={period} utc={utc} start={start} end={end} usePageDate>
           {zoomRenderProps => (
             <Chart
               legend={legend}

@@ -32,6 +32,7 @@ describe('ReplayReader', () => {
     const missingAttachments = ReplayReader.factory({
       attachments: undefined,
       errors: [],
+      fetching: false,
       replayRecord,
     });
     expect(missingAttachments).toBeNull();
@@ -39,6 +40,7 @@ describe('ReplayReader', () => {
     const missingErrors = ReplayReader.factory({
       attachments: [],
       errors: undefined,
+      fetching: false,
       replayRecord,
     });
     expect(missingErrors).toBeNull();
@@ -46,6 +48,7 @@ describe('ReplayReader', () => {
     const missingRecord = ReplayReader.factory({
       attachments: [],
       errors: [],
+      fetching: false,
       replayRecord: undefined,
     });
     expect(missingRecord).toBeNull();
@@ -61,6 +64,7 @@ describe('ReplayReader', () => {
         ReplayConsoleEventFixture({timestamp: minuteTen}),
       ],
       errors: [],
+      fetching: false,
       replayRecord: ReplayRecordFixture({
         started_at: new Date('2023-12-25T00:01:00'),
         finished_at: new Date('2023-12-25T00:09:00'),
@@ -79,6 +83,7 @@ describe('ReplayReader', () => {
     const replay = ReplayReader.factory({
       attachments: [],
       errors: [],
+      fetching: false,
       replayRecord,
     });
 
@@ -167,10 +172,11 @@ describe('ReplayReader', () => {
       },
       {
         method: 'getConsoleFrames',
-        expected: [
-          expect.objectContaining({category: 'console'}),
-          expect.objectContaining({category: 'redux.action'}),
-        ],
+        expected: [expect.objectContaining({category: 'console'})],
+      },
+      {
+        method: 'getCustomFrames',
+        expected: [expect.objectContaining({category: 'redux.action'})],
       },
       {
         method: 'getNetworkFrames',
@@ -196,6 +202,7 @@ describe('ReplayReader', () => {
         expected: [
           expect.objectContaining({category: 'replay.init'}),
           expect.objectContaining({category: 'ui.slowClickDetected'}),
+          expect.objectContaining({category: 'redux.action'}),
           expect.objectContaining({op: 'navigation.navigate'}), // prefer the nav span over the breadcrumb
           expect.objectContaining({category: 'ui.click'}),
           expect.objectContaining({category: 'ui.click'}),
@@ -205,15 +212,16 @@ describe('ReplayReader', () => {
         method: 'getSDKOptions',
         expected: optionsFrame,
       },
-    ])('Calling $method will filter frames', ({method, expected}) => {
+    ] as const)('Calling $method will filter frames', ({method, expected}) => {
       const replay = ReplayReader.factory({
         attachments,
         errors: [],
+        fetching: false,
         replayRecord,
       });
 
       const exec = replay?.[method];
-      expect(exec()).toStrictEqual(expected);
+      expect(exec?.()).toStrictEqual(expected);
     });
   });
 
@@ -229,6 +237,7 @@ describe('ReplayReader', () => {
         }),
       ],
       errors: [],
+      fetching: false,
       replayRecord,
     });
 
@@ -251,6 +260,7 @@ describe('ReplayReader', () => {
           }),
         ],
         errors: [],
+        fetching: false,
         replayRecord,
       });
 
@@ -290,6 +300,7 @@ describe('ReplayReader', () => {
           }),
         ],
         errors: [],
+        fetching: false,
         replayRecord,
       });
 
@@ -318,6 +329,7 @@ describe('ReplayReader', () => {
     const replay = ReplayReader.factory({
       attachments,
       errors: [],
+      fetching: false,
       replayRecord,
     });
 
@@ -350,6 +362,7 @@ describe('ReplayReader', () => {
     const replay = ReplayReader.factory({
       attachments: [snapshot, increment],
       errors: [],
+      fetching: false,
       replayRecord,
     });
 
@@ -424,6 +437,7 @@ describe('ReplayReader', () => {
         breadcrumbAttachment3,
       ],
       errors: [error1, error2, error3],
+      fetching: false,
       replayRecord: ReplayRecordFixture({
         started_at: replayStartedAt,
         finished_at: replayFinishedAt,
@@ -436,7 +450,7 @@ describe('ReplayReader', () => {
 
     it('should adjust the end time and duration for the clip window', () => {
       // Duration should be between the clip start time and end time
-      expect(replay?.getDurationMs()).toEqual(10_000);
+      expect(replay?.getDurationMs()).toBe(10_000);
       // Start offset should be set
       expect(replay?.getStartOffsetMs()).toEqual(
         clipStartTimestamp.getTime() - replayStartedAt.getTime()
@@ -477,6 +491,117 @@ describe('ReplayReader', () => {
           timestampMs: new Date(error2.timestamp).getTime(),
           offsetMs: 6_000,
         }),
+      ]);
+    });
+  });
+
+  describe('getRRWebFramesWithoutStyles', () => {
+    it('should remove style nodes and their content', () => {
+      const reader = ReplayReader.factory({
+        attachments: [
+          {
+            type: EventType.FullSnapshot,
+            data: {
+              node: {
+                type: 1,
+                tagName: 'html',
+                childNodes: [],
+              },
+            },
+            timestamp: 0,
+          },
+          {
+            type: EventType.IncrementalSnapshot,
+            data: {
+              source: IncrementalSource.Mutation,
+              adds: [
+                {
+                  parentId: 4,
+                  nextId: 21,
+                  node: {
+                    type: 2,
+                    tagName: 'style',
+                    attributes: {
+                      'data-emotion': 'css',
+                      'data-s': '',
+                      _cssText: '.css {...} ',
+                    },
+                    childNodes: [],
+                    id: 47,
+                  },
+                },
+                {
+                  parentId: 414,
+                  nextId: null,
+                  node: {
+                    type: 3,
+                    textContent: '.css {...}',
+                    isStyle: true,
+                    id: 427,
+                  },
+                },
+                {
+                  parentId: 5,
+                  nextId: 22,
+                  node: {
+                    type: 1,
+                    tagName: 'div',
+                    attributes: {
+                      class: 'test',
+                    },
+                    childNodes: [],
+                    id: 48,
+                  },
+                },
+              ],
+            },
+            timestamp: 0,
+          },
+        ],
+        errors: [],
+        fetching: false,
+        replayRecord: ReplayRecordFixture(),
+      });
+
+      if (!reader) {
+        throw new Error('Failed to create ReplayReader instance');
+      }
+
+      const result = reader.getRRWebFramesForDomExtraction();
+
+      expect(result).toEqual([
+        {data: {node: {childNodes: [], tagName: 'html', type: 1}}, timestamp: 0, type: 2},
+        {
+          data: {
+            adds: [
+              {
+                nextId: 21,
+                node: {attributes: {}, childNodes: [], id: 47, tagName: 'style', type: 2},
+                parentId: 4,
+              },
+              {
+                nextId: null,
+                node: {id: 427, isStyle: true, textContent: '', type: 3},
+                parentId: 414,
+              },
+              {
+                nextId: 22,
+                node: {
+                  attributes: {class: 'test'},
+                  childNodes: [],
+                  id: 48,
+                  tagName: 'div',
+                  type: 1,
+                },
+                parentId: 5,
+              },
+            ],
+            source: 0,
+          },
+          timestamp: 0,
+          type: 3,
+        },
+        {data: {payload: {}, tag: 'replay.end'}, timestamp: expect.any(Number), type: 5},
       ]);
     });
   });

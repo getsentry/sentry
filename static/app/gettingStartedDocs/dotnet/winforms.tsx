@@ -1,24 +1,23 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportGenericInstallStep,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {csharpFeedbackOnboarding} from 'sentry/gettingStartedDocs/dotnet/dotnet';
 import {t, tct} from 'sentry/locale';
+import {getDotnetProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/dotnet';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 type Params = DocsParams;
@@ -65,12 +64,12 @@ static class Program
         SentrySdk.Init(o =>
         {
             // Tells which project in Sentry to send events to:
-            o.Dsn = "${params.dsn}";
+            o.Dsn = "${params.dsn.public}";
             // When configuring for the first time, to see what the SDK is doing:
             o.Debug = true;${
               params.isPerformanceSelected
                 ? `
-            // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+            // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
             o.TracesSampleRate = 1.0;`
                 : ''
@@ -92,7 +91,6 @@ static class Program
             ));`
                 : ''
             }
-          }
         });
         // Configure WinForms to throw exceptions so Sentry can capture them.
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
@@ -171,9 +169,9 @@ const onboarding: OnboardingConfig = {
               },
               {
                 description: (
-                  <AlertWithoutMarginBottom type="info">
+                  <Alert type="info" showIcon={false}>
                     {t('Profiling for .NET Framework is not supported.')}
-                  </AlertWithoutMarginBottom>
+                  </Alert>
                 ),
               },
             ]
@@ -212,7 +210,7 @@ const onboarding: OnboardingConfig = {
     ...(params.isPerformanceSelected
       ? [
           {
-            title: t('Performance Monitoring'),
+            title: t('Tracing'),
             description: t(
               'You can measure the performance of your code by capturing transactions and spans.'
             ),
@@ -292,15 +290,16 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const profilingOnboarding = getDotnetProfilingOnboarding({
+  getInstallSnippetPackageManager,
+  getInstallSnippetCoreCli,
+});
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: csharpFeedbackOnboarding,
-  customMetricsOnboarding: getDotnetMetricsOnboarding({packageName: 'Sentry'}),
   crashReportOnboarding,
+  profilingOnboarding,
 };
 
 export default docs;
-
-const AlertWithoutMarginBottom = styled(Alert)`
-  margin-bottom: 0;
-`;

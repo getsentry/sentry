@@ -1,15 +1,9 @@
-from sentry.models.groupsearchview import GroupSearchView
+from sentry.deletions.base import BaseRelation, ModelDeletionTask
+from sentry.models.organizationmember import OrganizationMember
 
-from ..base import ModelDeletionTask, ModelRelation
 
-
-class OrganizationMemberDeletionTask(ModelDeletionTask):
-    def get_child_relations(self, instance):
-        relations = [
-            ModelRelation(
-                GroupSearchView,
-                {"user_id": instance.user_id, "organization_id": instance.organization_id},
-            )
-        ]
+class OrganizationMemberDeletionTask(ModelDeletionTask[OrganizationMember]):
+    def get_child_relations(self, instance: OrganizationMember) -> list[BaseRelation]:
+        relations: list[BaseRelation] = []
 
         return relations

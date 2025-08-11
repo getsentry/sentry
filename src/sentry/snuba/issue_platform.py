@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from copy import deepcopy
 from datetime import timedelta
 
 import sentry_sdk
@@ -8,7 +7,6 @@ from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.issue_platform import IssuePlatformTimeseriesQueryBuilder
-from sentry.search.events.fields import get_json_meta_type
 from sentry.search.events.types import EventsResponse, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import transform_tips, zerofill
@@ -20,13 +18,11 @@ from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
 def query(
     selected_columns,
     query,
-    params,
-    snuba_params=None,
+    snuba_params,
     equations=None,
     orderby=None,
     offset=None,
     limit=50,
-    referrer=None,
     auto_fields=False,
     auto_aggregations=False,
     include_equation_fields=False,
@@ -42,6 +38,10 @@ def query(
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
     fallback_to_transactions=False,
+    query_source: QuerySource | None = None,
+    debug: bool = False,
+    *,
+    referrer: str,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -79,7 +79,7 @@ def query(
 
     builder = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
-        params,
+        {},
         snuba_params=snuba_params,
         query=query,
         selected_columns=selected_columns,
@@ -101,7 +101,9 @@ def query(
     )
     if conditions is not None:
         builder.add_conditions(conditions)
-    result = builder.process_results(builder.run_query(referrer))
+    result = builder.process_results(builder.run_query(referrer, query_source=query_source))
+    if debug:
+        result["meta"]["debug_info"] = {"query": str(builder.get_snql_query().query)}
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
 
@@ -109,10 +111,8 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: dict[str, str],
+    snuba_params: SnubaParams,
     rollup: int,
-    snuba_params: SnubaParams | None = None,
-    referrer: str | None = None,
     zerofill_results: bool = True,
     comparison_delta: timedelta | None = None,
     functions_acl: list[str] | None = None,
@@ -122,6 +122,10 @@ def timeseries_query(
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
+    *,
+    referrer: str,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -147,14 +151,11 @@ def timeseries_query(
     allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
     """
 
-    if len(params) == 0 and snuba_params is not None:
-        params = snuba_params.filter_params
-
-    with sentry_sdk.start_span(op="issueplatform", description="timeseries.filter_transform"):
+    with sentry_sdk.start_span(op="issueplatform", name="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
         base_builder = IssuePlatformTimeseriesQueryBuilder(
             Dataset.IssuePlatform,
-            params,
+            {},
             rollup,
             snuba_params=snuba_params,
             query=query,
@@ -163,19 +164,23 @@ def timeseries_query(
             config=QueryBuilderConfig(
                 functions_acl=functions_acl,
                 has_metrics=has_metrics,
+                transform_alias_to_input_format=transform_alias_to_input_format,
             ),
         )
         query_list = [base_builder]
         if comparison_delta:
             if len(base_builder.aggregates) != 1:
                 raise InvalidSearchQuery("Only one column can be selected for comparison queries")
-            comp_query_params = deepcopy(params)
-            comp_query_params["start"] -= comparison_delta
-            comp_query_params["end"] -= comparison_delta
+            comp_query_params = snuba_params.copy()
+            assert comp_query_params.start is not None
+            assert comp_query_params.end is not None
+            comp_query_params.start -= comparison_delta
+            comp_query_params.end -= comparison_delta
             comparison_builder = IssuePlatformTimeseriesQueryBuilder(
                 Dataset.IssuePlatform,
-                comp_query_params,
+                {},
                 rollup,
+                snuba_params=comp_query_params,
                 query=query,
                 selected_columns=columns,
                 equations=equations,
@@ -186,9 +191,11 @@ def timeseries_query(
             [query.get_snql_query() for query in query_list], referrer, query_source=query_source
         )
 
-    with sentry_sdk.start_span(op="issueplatform", description="timeseries.transform_results"):
+    with sentry_sdk.start_span(op="issueplatform", name="timeseries.transform_results"):
         results = []
         for snql_query, result in zip(query_list, query_results):
+            assert snql_query.params.start is not None
+            assert snql_query.params.end is not None
             results.append(
                 {
                     "data": (
@@ -197,7 +204,7 @@ def timeseries_query(
                             snql_query.params.start,
                             snql_query.params.end,
                             rollup,
-                            "time",
+                            ["time"],
                         )
                         if zerofill_results
                         else result["data"]
@@ -210,25 +217,18 @@ def timeseries_query(
         col_name = base_builder.aggregates[0].alias
         # If we have two sets of results then we're doing a comparison queries. Divide the primary
         # results by the comparison results.
-        for result, cmp_result in zip(results[0]["data"], results[1]["data"]):
+        for ret_result, cmp_result in zip(results[0]["data"], results[1]["data"]):
             cmp_result_val = cmp_result.get(col_name, 0)
-            result["comparisonCount"] = cmp_result_val
+            ret_result["comparisonCount"] = cmp_result_val
 
-    result = results[0]
+    result = base_builder.process_results(results[0])
 
     return SnubaTSResult(
         {
             "data": result["data"],
-            "meta": {
-                "fields": {
-                    value["name"]: get_json_meta_type(
-                        value["name"], value.get("type"), base_builder
-                    )
-                    for value in result["meta"]
-                }
-            },
+            "meta": result["meta"],
         },
-        params["start"],
-        params["end"],
+        snuba_params.start_date,
+        snuba_params.end_date,
         rollup,
     )

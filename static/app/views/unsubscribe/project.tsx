@@ -1,15 +1,16 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import ApiForm from 'sentry/components/forms/apiForm';
 import HiddenField from 'sentry/components/forms/fields/hiddenField';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useParams} from 'sentry/utils/useParams';
 
 type RouteParams = {
@@ -17,7 +18,7 @@ type RouteParams = {
   orgId: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}>;
+type Props = RouteComponentProps<RouteParams>;
 
 function UnsubscribeProject({location}: Props) {
   const signature = decodeScalar(location.query._);
@@ -28,8 +29,8 @@ function UnsubscribeProject({location}: Props) {
         <h3>{t('Unsubscribe')}</h3>
         <UnsubscribeBody
           signature={signature}
-          orgSlug={params.orgId}
-          issueId={params.id}
+          orgSlug={params.orgId!}
+          issueId={params.id!}
         />
       </NarrowLayout>
     </SentryDocumentTitle>
@@ -51,19 +52,21 @@ type BodyProps = {
 
 function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
   const endpoint = `/organizations/${orgSlug}/unsubscribe/project/${issueId}/`;
-  const {isLoading, isError, data} = useApiQuery<UnsubscribeResponse>(
+  const {isPending, isError, data} = useApiQuery<UnsubscribeResponse>(
     [endpoint, {query: {_: signature}}],
     {staleTime: 0}
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
   if (isError) {
     return (
-      <Alert type="error">
-        {t('There was an error loading unsubscribe data. Your link may have expired.')}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error" showIcon={false}>
+          {t('There was an error loading unsubscribe data. Your link may have expired.')}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -90,11 +93,11 @@ function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
         cancelLabel={t('Cancel')}
         onCancel={() => {
           // Use window.location as we're going to an HTML view
-          window.location.assign('/auth/login/');
+          testableWindowLocation.assign('/auth/login/');
         }}
         onSubmitSuccess={() => {
           // Use window.location as we're going to an HTML view
-          window.location.assign('/auth/login/');
+          testableWindowLocation.assign('/auth/login/');
         }}
         initialData={{cancel: 1}}
       >

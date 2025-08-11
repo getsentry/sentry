@@ -1,8 +1,8 @@
-import type {RouteComponentProps} from 'react-router';
 import moment from 'moment-timezone';
 
 import ResultGrid from 'sentry/components/resultGrid';
 import {t} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 
 type Row = {
@@ -13,7 +13,7 @@ type Row = {
   status: string;
 };
 
-type Props = RouteComponentProps<{}, {}>;
+type Props = RouteComponentProps;
 
 const getRow = (row: Row) => [
   <td key="name">

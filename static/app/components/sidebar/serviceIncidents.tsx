@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
 
+import {ServiceIncidentDetails} from 'sentry/components/serviceIncidentDetails';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useServiceIncidents} from 'sentry/utils/useServiceIncidents';
-
-import {ServiceIncidentDetails} from '../serviceIncidentDetails';
 
 import SidebarItem from './sidebarItem';
 import SidebarPanel from './sidebarPanel';
@@ -22,7 +21,7 @@ function ServiceIncidents({
   collapsed,
   orientation,
 }: Props) {
-  const {data: incidents} = useServiceIncidents({statusFilter: 'unresolved'});
+  const {data: incidents} = useServiceIncidents();
 
   if (!incidents) {
     return null;
@@ -42,6 +41,7 @@ function ServiceIncidents({
         orientation={orientation}
         collapsed={collapsed}
         active={active}
+        badge={incidents.length}
         icon={<IconWarning size="md" />}
         label={t('Service status')}
         onClick={onShowPanel}

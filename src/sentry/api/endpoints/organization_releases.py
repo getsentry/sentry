@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta
 
+import sentry_sdk
 from django.db import IntegrityError
 from django.db.models import F, Q
 from rest_framework.exceptions import ParseError
@@ -11,13 +12,14 @@ from rest_framework.response import Response
 from rest_framework.serializers import ListField
 
 from sentry import analytics, release_health
+from sentry.analytics.events.release_created import ReleaseCreatedEvent
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin, region_silo_endpoint
+from sentry.api.base import ReleaseAnalyticsMixin, region_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ConflictError, InvalidRepository
 from sentry.api.paginator import MergingOffsetPaginator, OffsetPaginator
-from sentry.api.release_search import RELEASE_FREE_TEXT_KEY, parse_search_query
+from sentry.api.release_search import FINALIZED_KEY, RELEASE_FREE_TEXT_KEY, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer,
@@ -27,6 +29,7 @@ from sentry.api.serializers.rest_framework import (
 from sentry.api.utils import get_auth_api_token_type
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.activity import Activity
+from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
@@ -42,11 +45,13 @@ from sentry.search.events.constants import (
     SEMVER_PACKAGE_ALIAS,
 )
 from sentry.search.events.filter import handle_operator_negation, parse_semver
+from sentry.search.utils import get_latest_release
 from sentry.signals import release_created
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cache import cache
-from sentry.utils.sdk import Scope, bind_organization_context
+from sentry.utils.sdk import bind_organization_context
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
 
@@ -77,6 +82,12 @@ def add_date_filter_to_queryset(queryset, filter_params):
 def _filter_releases_by_query(queryset, organization, query, filter_params):
     search_filters = parse_search_query(query)
     for search_filter in search_filters:
+        if search_filter.key.name == FINALIZED_KEY:
+            if search_filter.value.value == "true":
+                queryset = queryset.filter(date_released__isnull=False)
+            elif search_filter.value.value == "false":
+                queryset = queryset.filter(date_released__isnull=True)
+
         if search_filter.key.name == RELEASE_FREE_TEXT_KEY:
             query_q = Q(version__icontains=query)
             suffix_match = _release_suffix.match(query)
@@ -87,20 +98,26 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
         if search_filter.key.name == RELEASE_ALIAS:
             query_q = Q()
-            raw_value = search_filter.value.raw_value
-            if search_filter.value.is_wildcard():
-                if raw_value.endswith("*") and raw_value.startswith("*"):
-                    query_q = Q(version__contains=raw_value[1:-1])
-                elif raw_value.endswith("*"):
-                    query_q = Q(version__startswith=raw_value[:-1])
-                elif raw_value.startswith("*"):
-                    query_q = Q(version__endswith=raw_value[1:])
+            kind, value_o = search_filter.value.classify_and_format_wildcard()
+            if kind == "infix":
+                query_q = Q(version__contains=value_o)
+            elif kind == "suffix":
+                query_q = Q(version__endswith=value_o)
+            elif kind == "prefix":
+                query_q = Q(version__startswith=value_o)
             elif search_filter.operator == "!=":
-                query_q = ~Q(version=search_filter.value.value)
+                query_q = ~Q(version=value_o)
             elif search_filter.operator == "NOT IN":
-                query_q = ~Q(version__in=raw_value)
+                query_q = ~Q(version__in=value_o)
             elif search_filter.operator == "IN":
-                query_q = Q(version__in=raw_value)
+                query_q = Q(version__in=value_o)
+            elif value_o == "latest":
+                latest_releases = get_latest_release(
+                    projects=filter_params["project_id"],
+                    environments=filter_params.get("environment"),
+                    organization_id=organization.id,
+                )
+                query_q = Q(version__in=latest_releases)
             else:
                 query_q = Q(version=search_filter.value.value)
 
@@ -214,13 +231,25 @@ def debounce_update_release_health_data(organization, project_ids: list[int]):
 
 
 @region_silo_endpoint
-class OrganizationReleasesEndpoint(
-    OrganizationReleasesBaseEndpoint, EnvironmentMixin, ReleaseAnalyticsMixin
-):
+class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnalyticsMixin):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
     }
+
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=40, window=1),
+            RateLimitCategory.USER: RateLimit(limit=40, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+        },
+        "POST": {
+            RateLimitCategory.IP: RateLimit(limit=40, window=1),
+            RateLimitCategory.USER: RateLimit(limit=40, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+        },
+    }
+
     SESSION_SORTS = frozenset(
         [
             "crash_free_sessions",
@@ -238,10 +267,10 @@ class OrganizationReleasesEndpoint(
             organization,
             project_ids=project_ids,
             project_slugs=project_slugs,
-            include_all_accessible="GET" != request.method,
+            include_all_accessible=False,
         )
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Releases
         ```````````````````````````````
@@ -260,6 +289,7 @@ class OrganizationReleasesEndpoint(
         health_stat = request.GET.get("healthStat") or "sessions"
         summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
         health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
+
         if summary_stats_period not in STATS_PERIODS:
             raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
         if health_stats_period and health_stats_period not in STATS_PERIODS:
@@ -416,7 +446,7 @@ class OrganizationReleasesEndpoint(
             **paginator_kwargs,
         )
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Create a New Release for an Organization
         ````````````````````````````````````````
@@ -429,8 +459,11 @@ class OrganizationReleasesEndpoint(
 
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :param string version: a version identifier for this release.  Can
-                               be a version number, a commit hash etc.
+        :param string version: a version identifier for this release. Can
+                               be a version number, a commit hash etc. It cannot contain certain
+                               whitespace characters (`\\r`, `\\n`, `\\f`, `\\x0c`, `\\t`) or any
+                               slashes (`\\`, `/`). The version names `.`, `..` and `latest` are also
+                               reserved, and cannot be used.
         :param string ref: an optional commit reference.  This is useful if
                            a tagged version has been provided.
         :param url url: a URL that points to the release.  This can be the
@@ -461,7 +494,7 @@ class OrganizationReleasesEndpoint(
             data=request.data, context={"organization": organization}
         )
 
-        scope = Scope.get_isolation_scope()
+        scope = sentry_sdk.get_isolation_scope()
         if serializer.is_valid():
             result = serializer.validated_data
             scope.set_tag("version", result["version"])
@@ -469,12 +502,12 @@ class OrganizationReleasesEndpoint(
             # Get all projects that are available to the user/token
             # Note: Does not use the "projects" data param from the request
             projects_from_request = self.get_projects(request, organization)
-            allowed_projects = {}
+            allowed_projects: dict[object, Project] = {}
             for project in projects_from_request:
                 allowed_projects[project.slug] = project
                 allowed_projects[project.id] = project
 
-            projects = []
+            projects: list[Project] = []
             for id_or_slug in result["projects"]:
                 if id_or_slug not in allowed_projects:
                     return Response({"projects": ["Invalid project ids or slugs"]}, status=400)
@@ -505,6 +538,23 @@ class OrganizationReleasesEndpoint(
                 raise ConflictError(
                     "Could not create the release it conflicts with existing data",
                 )
+
+            # In case of disabled Open Membership, we have to check for project-level
+            # permissions on the existing release.
+            release_projects = ReleaseProject.objects.filter(release=release)
+            existing_projects = [rp.project for rp in release_projects]
+
+            if not request.access.has_projects_access(existing_projects):
+                projects_str = ", ".join([p.slug for p in existing_projects])
+                return Response(
+                    {
+                        "projects": [
+                            f"You do not have permission to one of the projects: {projects_str}"
+                        ]
+                    },
+                    status=400,
+                )
+
             if created:
                 release_created.send_robust(release=release, sender=self.__class__)
 
@@ -575,31 +625,34 @@ class OrganizationReleasesEndpoint(
                 status = 201
 
             analytics.record(
-                "release.created",
-                user_id=request.user.id if request.user and request.user.id else None,
-                organization_id=organization.id,
-                project_ids=[project.id for project in projects],
-                user_agent=request.META.get("HTTP_USER_AGENT", ""),
-                created_status=status,
-                auth_type=get_auth_api_token_type(request.auth),
+                ReleaseCreatedEvent(
+                    user_id=request.user.id if request.user and request.user.id else None,
+                    organization_id=organization.id,
+                    project_ids=[project.id for project in projects],
+                    user_agent=request.META.get("HTTP_USER_AGENT", ""),
+                    created_status=status,
+                    auth_type=get_auth_api_token_type(request.auth),
+                )
             )
 
             if is_org_auth_token_auth(request.auth):
                 update_org_auth_token_last_used(request.auth, [project.id for project in projects])
 
             scope.set_tag("success_status", status)
-            return Response(serialize(release, request.user), status=status)
+            return Response(
+                serialize(release, request.user, no_snuba_for_release_creation=True), status=status
+            )
         scope.set_tag("failure_reason", "serializer_error")
         return Response(serializer.errors, status=400)
 
 
 @region_silo_endpoint
-class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
+class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Releases specifically for building timeseries
         ```````````````````````````````

@@ -1,14 +1,19 @@
 import {Component, Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {closeModal, openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
-import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
 import plugins from 'sentry/plugins';
-import type {Group, Organization, Plugin, Project} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import type {Group} from 'sentry/types/group';
+import type {Plugin} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import withApi from 'sentry/utils/withApi';
@@ -38,6 +43,41 @@ type State = {
   issue: PluginIssue | null;
   pluginLoading: boolean;
 };
+
+export function openPluginActionModal({
+  project,
+  group,
+  organization,
+  plugin,
+  onModalClose,
+}: {
+  group: Group;
+  onModalClose: (data?: any) => void;
+  organization: Organization;
+  plugin: TitledPlugin;
+  project: Project;
+}) {
+  trackAnalytics('issue_details.external_issue_modal_opened', {
+    organization,
+    ...getAnalyticsDataForGroup(group),
+    external_issue_provider: plugin.slug,
+    external_issue_type: 'plugin',
+  });
+
+  openModal(
+    deps => (
+      <PluginActionsModal
+        {...deps}
+        project={project}
+        group={group}
+        organization={organization}
+        plugin={plugin}
+        onSuccess={onModalClose}
+      />
+    ),
+    {onClose: onModalClose}
+  );
+}
 
 class PluginActions extends Component<Props, State> {
   state: State = {
@@ -99,30 +139,15 @@ class PluginActions extends Component<Props, State> {
   };
 
   openModal = () => {
-    const {issue} = this.state;
-    const {project, group, organization} = this.props;
-    const plugin = {...this.props.plugin, issue};
+    const {project, group, organization, plugin} = this.props;
 
-    trackAnalytics('issue_details.external_issue_modal_opened', {
+    openPluginActionModal({
+      project,
+      group,
       organization,
-      ...getAnalyticsDataForGroup(group),
-      external_issue_provider: plugin.slug,
-      external_issue_type: 'plugin',
+      plugin,
+      onModalClose: this.handleModalClose,
     });
-
-    openModal(
-      deps => (
-        <PluginActionsModal
-          {...deps}
-          project={project}
-          group={group}
-          organization={organization}
-          plugin={plugin}
-          onSuccess={this.handleModalClose}
-        />
-      ),
-      {onClose: this.handleModalClose}
-    );
   };
 
   render() {
@@ -146,7 +171,7 @@ type ModalProps = ModalRenderProps & {
   group: Group;
   onSuccess: (data: any) => void;
   organization: Organization;
-  plugin: TitledPlugin & {issue: PluginIssue | null};
+  plugin: TitledPlugin;
   project: Project;
 };
 
@@ -168,14 +193,19 @@ class PluginActionsModal extends Component<ModalProps, ModalState> {
         <Header closeButton>
           <h4>{tct('[name] Issue', {name: plugin.name || plugin.title})}</h4>
         </Header>
-        <NavTabs underlined>
-          <li className={actionType === 'create' ? 'active' : ''}>
-            <a onClick={() => this.setState({actionType: 'create'})}>{t('Create')}</a>
-          </li>
-          <li className={actionType === 'link' ? 'active' : ''}>
-            <a onClick={() => this.setState({actionType: 'link'})}>{t('Link')}</a>
-          </li>
-        </NavTabs>
+
+        <TabsContainer>
+          <Tabs
+            value={this.state.actionType ?? 'create'}
+            onChange={key => this.setState({actionType: key})}
+          >
+            <TabList>
+              <TabList.Item key="create">{t('Create')}</TabList.Item>
+              <TabList.Item key="link">{t('Link')}</TabList.Item>
+            </TabList>
+          </Tabs>
+        </TabsContainer>
+
         {actionType && (
           // need the key here so React will re-render
           // with new action prop
@@ -186,7 +216,10 @@ class PluginActionsModal extends Component<ModalProps, ModalState> {
               project,
               organization,
               actionType,
-              onSuccess,
+              onSuccess: (...args) => {
+                onSuccess(...args);
+                this.props.closeModal();
+              },
             })}
           </Body>
         )}
@@ -195,6 +228,8 @@ class PluginActionsModal extends Component<ModalProps, ModalState> {
   }
 }
 
-export {PluginActions};
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 export default withApi(withOrganization(PluginActions));

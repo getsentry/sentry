@@ -1,18 +1,23 @@
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportJavaScriptInstallStep,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
-import {getInstallConfig, getSdkInitSnippet} from 'sentry/utils/gettingStartedDocs/node';
+import {
+  getInstallConfig,
+  getNodeAgentMonitoringOnboarding,
+  getNodeMcpOnboarding,
+  getNodeProfilingOnboarding,
+  getSdkInitSnippet,
+} from 'sentry/utils/gettingStartedDocs/node';
 
 type Params = DocsParams;
 
@@ -45,16 +50,11 @@ exports.helloHttp = Sentry.wrapHttpFunction((req, res) => {
   throw new Error("oh, hello there!");
 });`;
 
-const getMetricsConfigureSnippet = (params: DocsParams) => `
-Sentry.init({
-  dsn: "${params.dsn}",
-  // Only needed for SDK versions < 8.0.0
-  // _experiments: {
-  //   metricsAggregator: true,
-  // },
-});`;
-
 const onboarding: OnboardingConfig = {
+  introduction: () =>
+    tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+      strong: <strong />,
+    }),
   install: params => [
     {
       type: StepType.INSTALL,
@@ -76,10 +76,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Ensure that Sentry is imported and initialized at the beginning of your file, prior to any other [require:require] or [import:import] statements. Then, use the Sentry SDK to wrap your functions:',
+        'Ensure that Sentry is imported and initialized at the beginning of your file, prior to any other [code:require] or [code:import] statements. Then, use the Sentry SDK to wrap your functions:',
         {
-          import: <code />,
-          require: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -109,39 +108,22 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-};
+  nextSteps: (params: Params) => {
+    const steps = [];
 
-const customMetricsOnboarding: OnboardingConfig = {
-  install: params => [
-    {
-      type: StepType.INSTALL,
-      description: tct(
-        'You need a minimum version [codeVersion:8.0.0] of [codePackage:@sentry/google-cloud-serverless]:',
-        {
-          codeVersion: <code />,
-          codePackage: <code />,
-        }
-      ),
-      configurations: getInstallConfig(params, {
-        basePackage: '@sentry/google-cloud-serverless',
-      }),
-    },
-  ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      description: t(
-        'With the default snippet in place, there is no need for any further configuration.'
-      ),
-      configurations: [
-        {
-          code: getMetricsConfigureSnippet(params),
-          language: 'javascript',
-        },
-      ],
-    },
-  ],
-  verify: getJSServerMetricsOnboarding().verify,
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/gcp-functions/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const crashReportOnboarding: OnboardingConfig = {
@@ -161,8 +143,14 @@ const crashReportOnboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  customMetricsOnboarding,
   crashReportOnboarding,
+  profilingOnboarding: getNodeProfilingOnboarding({
+    basePackage: '@sentry/google-cloud-serverless',
+  }),
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'google-cloud-serverless',
+  }),
+  mcpOnboarding: getNodeMcpOnboarding(),
 };
 
 export default docs;

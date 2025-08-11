@@ -1,6 +1,5 @@
 import type {DeepPartial} from 'sentry/types/utils';
-
-import type {FlamegraphFrame} from '../flamegraphFrame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 import {selectNearestFrame} from './flamegraphKeyboardNavigation';
 
@@ -34,7 +33,7 @@ function addChild(frame: FlamegraphFrame) {
 
 function addChildrenToDepth(frame: FlamegraphFrame, n: number) {
   let node = frame;
-  Array.from(Array(n)).forEach(() => {
+  Array.from(new Array(n)).forEach(() => {
     node = addChild(node);
   });
   return node;
@@ -61,7 +60,7 @@ describe('selectNearestFrame', () => {
     const rightGrandChild = addChildrenToDepth(root, 2);
     const next = selectNearestFrame(leftGrandChild as any, 'right');
     expect(next).toBe(rightGrandChild);
-    expect(next!.depth).toBe(rightGrandChild.depth);
+    expect(next.depth).toBe(rightGrandChild.depth);
   });
 
   it('selects nearest right node to its max depth', () => {
@@ -70,7 +69,7 @@ describe('selectNearestFrame', () => {
     const rightGrandChild = addChildrenToDepth(root, 2);
     const next = selectNearestFrame(leftGrandChild as any, 'right');
     expect(next).toBe(rightGrandChild);
-    expect(next!.depth).not.toBe(leftGrandChild.depth);
+    expect(next.depth).not.toBe(leftGrandChild.depth);
   });
 
   it('selects nearest left node with same target depth', () => {
@@ -79,7 +78,7 @@ describe('selectNearestFrame', () => {
     const rightGrandChild = addChildrenToDepth(root, 2);
     const next = selectNearestFrame(rightGrandChild as any, 'left');
     expect(next).toBe(leftGrandChild);
-    expect(next!.depth).toBe(rightGrandChild.depth);
+    expect(next.depth).toBe(rightGrandChild.depth);
   });
 
   it('selects nearest left node to its max depth', () => {
@@ -88,7 +87,7 @@ describe('selectNearestFrame', () => {
     const rightGrandChild = addChildrenToDepth(root, 4);
     const next = selectNearestFrame(rightGrandChild as any, 'left');
     expect(next).toBe(leftGrandChild);
-    expect(next!.depth).not.toBe(rightGrandChild.depth);
+    expect(next.depth).not.toBe(rightGrandChild.depth);
   });
 
   it('returns current node when moving up from root', () => {

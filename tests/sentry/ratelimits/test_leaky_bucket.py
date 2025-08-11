@@ -1,11 +1,10 @@
 from typing import Any, Never
-from unittest import mock
+from unittest import TestCase, mock
 
 import pytest
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.ratelimits.leaky_bucket import LeakyBucketLimitInfo, LeakyBucketRateLimiter
-from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
 

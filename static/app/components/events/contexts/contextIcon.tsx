@@ -12,6 +12,7 @@ import logoAppleWatch from 'sentry-logos/logo-apple-watch.svg';
 import logoArm from 'sentry-logos/logo-arm.svg';
 import logoChrome from 'sentry-logos/logo-chrome.svg';
 import logoChromium from 'sentry-logos/logo-chromium.svg';
+import logoCloudflareWorker from 'sentry-logos/logo-cloudflare-worker.svg';
 import logoCrystal from 'sentry-logos/logo-crystal.svg';
 import logoDeno from 'sentry-logos/logo-deno.svg';
 import logoDotnet from 'sentry-logos/logo-dotnet.svg';
@@ -26,8 +27,8 @@ import logoMonogorilla from 'sentry-logos/logo-monogorilla.svg';
 import logoMotorola from 'sentry-logos/logo-motorola.svg';
 import logoNetcore from 'sentry-logos/logo-netcore.svg';
 import logoNetframework from 'sentry-logos/logo-netframework.svg';
-import logoNintendo from 'sentry-logos/logo-nintendo.svg';
 import logoNintendoSwitch from 'sentry-logos/logo-nintendo-switch.svg';
+import logoNintendoSwitch2 from 'sentry-logos/logo-nintendo-switch-2.svg';
 import logoNode from 'sentry-logos/logo-node.svg';
 import logoNvidia from 'sentry-logos/logo-nvidia.svg';
 import logoOpera from 'sentry-logos/logo-opera.svg';
@@ -41,7 +42,9 @@ import logoSamsung from 'sentry-logos/logo-samsung.svg';
 import logoUbuntu from 'sentry-logos/logo-ubuntu.svg';
 import logoUnity from 'sentry-logos/logo-unity.svg';
 import logoUnknown from 'sentry-logos/logo-unknown.svg';
+import logoVercel from 'sentry-logos/logo-vercel.svg';
 import logoWindows from 'sentry-logos/logo-windows.svg';
+import logoXbox from 'sentry-logos/logo-xbox.svg';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -58,10 +61,10 @@ const LOGO_MAPPING = {
   'chrome-os': logoChrome,
   'mobile-safari': logoSafari,
   'nintendo-switch': logoNintendoSwitch,
+  'nintendo-switch-2': logoNintendoSwitch2,
   'net-core': logoNetcore,
   'net-framework': logoNetframework,
   'qq-browser': logoQq,
-  'nintendo-os': logoNintendo,
   amazon: logoAmazon,
   amd: logoAmd,
   android: logoAndroid,
@@ -70,6 +73,7 @@ const LOGO_MAPPING = {
   arm: logoArm,
   chrome: logoChrome,
   chromium: logoChromium,
+  cloudflare: logoCloudflareWorker,
   cpython: logoPython,
   crystal: logoCrystal,
   darwin: logoApple,
@@ -100,11 +104,14 @@ const LOGO_MAPPING = {
   samsung: logoSamsung,
   tvos: logoApple,
   ubuntu: logoUbuntu,
+  vercel: logoVercel,
   watch: logoAppleWatch,
   watchos: logoApple,
   windows: logoWindows,
+  xbox: logoXbox,
 };
 
+/** @internal used in stories **/
 export const NAMES = Object.keys(LOGO_MAPPING);
 
 // The icons in this list will be inverted when the theme is set to dark mode
@@ -117,6 +124,7 @@ const INVERT_IN_DARKMODE = [
   'mac',
   'apple',
   'watchos',
+  'vercel',
 ];
 
 const darkCss = css`
@@ -124,7 +132,7 @@ const darkCss = css`
   opacity: 0.8;
 `;
 
-function getLogoImage(name: string) {
+export function getLogoImage(name: string) {
   if (name.startsWith('amd-')) {
     return logoAmd;
   }
@@ -133,16 +141,20 @@ function getLogoImage(name: string) {
     return logoNvidia;
   }
 
+  if (name.startsWith('nintendo-')) {
+    return logoNintendoSwitch;
+  }
+
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return LOGO_MAPPING[name] ?? logoUnknown;
 }
 
-type Props = {
+export interface ContextIconProps {
   name: string;
-  hideUnknown?: boolean;
   size?: IconSize;
-};
+}
 
-function ContextIcon({name, size: providedSize = 'xl', hideUnknown = false}: Props) {
+export function ContextIcon({name, size: providedSize = 'xl'}: ContextIconProps) {
   const theme = useTheme();
   const size = theme.iconSizes[providedSize];
 
@@ -151,11 +163,6 @@ function ContextIcon({name, size: providedSize = 'xl', hideUnknown = false}: Pro
   const extraCass = isDarkmode && INVERT_IN_DARKMODE.includes(name) ? darkCss : null;
 
   const imageName = getLogoImage(name);
-  if (hideUnknown && imageName === logoUnknown) {
-    return null;
-  }
 
   return <img height={size} width={size} css={extraCass} src={imageName} />;
 }
-
-export default ContextIcon;

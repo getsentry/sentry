@@ -20,10 +20,6 @@ export type Project = {
   digestsMinDelay: number;
   dynamicSamplingBiases: DynamicSamplingBias[] | null;
   environments: string[];
-  eventProcessing: {
-    symbolicationDegraded: boolean;
-  };
-  extrapolateMetrics: boolean;
   features: string[];
   firstEvent: string | null;
   firstTransactionEvent: boolean;
@@ -31,15 +27,19 @@ export type Project = {
   hasAccess: boolean;
   hasCustomMetrics: boolean;
   hasFeedbacks: boolean;
+  hasFlags: boolean;
+  hasInsightsAgentMonitoring: boolean;
   hasInsightsAppStart: boolean;
   hasInsightsAssets: boolean;
   hasInsightsCaches: boolean;
   hasInsightsDb: boolean;
   hasInsightsHttp: boolean;
   hasInsightsLlmMonitoring: boolean;
+  hasInsightsMCP: boolean;
   hasInsightsQueues: boolean;
   hasInsightsScreenLoad: boolean;
   hasInsightsVitals: boolean;
+  hasLogs: boolean;
   hasMinifiedStackTrace: boolean;
   hasMonitors: boolean;
   hasNewFeedbacks: boolean;
@@ -62,10 +62,12 @@ export type Project = {
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
   sensitiveFields: string[];
+  storeCrashReports: number | null;
   subjectTemplate: string;
   team: Team;
   teams: Team[];
   verifySSL: boolean;
+  autofixAutomationTuning?: 'off' | 'super_low' | 'low' | 'medium' | 'high' | 'always';
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;
   hasUserReports?: boolean;
@@ -80,6 +82,7 @@ export type Project = {
   options?: Record<string, boolean | string>;
   securityToken?: string;
   securityTokenHeader?: string;
+  seerScannerAutomation?: boolean;
   sessionStats?: {
     currentCrashFreeRate: number | null;
     hasHealthData: boolean;
@@ -88,6 +91,8 @@ export type Project = {
   stats?: TimeseriesValue[];
   subjectPrefix?: string;
   symbolSources?: string;
+  tempestFetchDumps?: boolean;
+  tempestFetchScreenshots?: boolean;
   transactionStats?: TimeseriesValue[];
 } & AvatarProject;
 
@@ -96,7 +101,7 @@ export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
 // Response from project_keys endpoints.
 export type ProjectKey = {
   browserSdk: {
-    choices: [key: string, value: string][];
+    choices: Array<[key: string, value: string]>;
   };
   browserSdkVersion: ProjectKey['browserSdk']['choices'][number][0];
   dateCreated: string;
@@ -105,6 +110,8 @@ export type ProjectKey = {
     crons: string;
     csp: string;
     minidump: string;
+    otlp_traces: string;
+    playstation: string;
     public: string;
     secret: string;
     security: string;
@@ -162,6 +169,7 @@ export type PlatformKey =
   | 'c'
   | 'capacitor'
   | 'cfml'
+  | 'clojure'
   | 'cocoa'
   | 'cocoa-objc'
   | 'cocoa-swift'
@@ -195,6 +203,7 @@ export type PlatformKey =
   | 'go-iris'
   | 'go-martini'
   | 'go-negroni'
+  | 'godot'
   | 'groovy'
   | 'ionic'
   | 'java'
@@ -218,11 +227,15 @@ export type PlatformKey =
   | 'javascript-ember'
   | 'javascript-gatsby'
   | 'javascript-nextjs'
+  | 'javascript-nuxt'
   | 'javascript-react'
+  | 'javascript-react-router'
   | 'javascript-remix'
   | 'javascript-solid'
+  | 'javascript-solidstart'
   | 'javascript-svelte'
   | 'javascript-sveltekit'
+  | 'javascript-tanstackstart-react'
   | 'javascript-vue'
   | 'kotlin'
   | 'minidump'
@@ -235,6 +248,8 @@ export type PlatformKey =
   | 'node'
   | 'node-awslambda'
   | 'node-azurefunctions'
+  | 'node-cloudflare-pages'
+  | 'node-cloudflare-workers'
   | 'node-connect'
   | 'node-express'
   | 'node-fastify'
@@ -253,6 +268,7 @@ export type PlatformKey =
   | 'php-monolog'
   | 'php-symfony'
   | 'php-symfony2'
+  | 'playstation'
   | 'powershell'
   | 'python'
   | 'python-aiohttp'
@@ -289,10 +305,12 @@ export type PlatformKey =
   | 'ruby-rack'
   | 'ruby-rails'
   | 'rust'
+  | 'scala'
   | 'swift'
   | 'switt'
   | 'unity'
-  | 'unreal';
+  | 'unreal'
+  | 'xbox';
 
 export type PlatformIntegration = {
   id: PlatformKey;
@@ -300,4 +318,7 @@ export type PlatformIntegration = {
   link: string | null;
   name: string;
   type: string;
+  iconConfig?: {
+    withLanguageIcon: boolean;
+  };
 };

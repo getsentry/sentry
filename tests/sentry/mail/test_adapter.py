@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from functools import cached_property
 from unittest import mock
-from unittest.mock import ANY
+from unittest.mock import ANY, MagicMock
 
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
@@ -13,19 +13,19 @@ from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
 from django.utils import timezone
 
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
 from sentry.issues.grouptype import MonitorIncidentType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.ownership import grammar
+from sentry.issues.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models.activity import Activity
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.project_option import ProjectOption
-from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -33,24 +33,27 @@ from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
-from sentry.models.useremail import UserEmail
 from sentry.models.userreport import UserReport
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.digest import get_digest_subject
-from sentry.ownership import grammar
-from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.replays.testutils import mock_replay
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 from sentry.types.rules import RuleFuture
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.useremail import UserEmail
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from tests.sentry.mail import make_event_data, mock_notify
@@ -77,7 +80,7 @@ class BaseMailAdapterTest(TestCase, PerformanceIssueTestCase):
 
 
 class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
-    def test_get_sendable_user_objects(self):
+    def test_get_sendable_user_objects(self) -> None:
         user = self.create_user(email="foo@example.com", is_active=True)
         user2 = self.create_user(email="baz@example.com", is_active=True)
         self.create_user(email="baz2@example.com", is_active=True)
@@ -142,10 +145,10 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
 
 
 class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest):
-    def test_default_prefix(self):
+    def test_default_prefix(self) -> None:
         assert build_subject_prefix(self.project) == "[Sentry]"
 
-    def test_project_level_prefix(self):
+    def test_project_level_prefix(self) -> None:
         prefix = "[Example prefix]"
         ProjectOption.objects.set_value(
             project=self.project, key="mail:subject_prefix", value=prefix
@@ -155,7 +158,7 @@ class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest):
 
 class MailAdapterNotifyTest(BaseMailAdapterTest):
     @mock.patch("sentry.analytics.record")
-    def test_simple_notification(self, mock_record):
+    def test_simple_notification(self, mock_record: MagicMock) -> None:
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
@@ -192,18 +195,44 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             notification_uuid=ANY,
             alert_id=rule.id,
         )
-        mock_record.assert_called_with(
-            "alert.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            provider="email",
-            alert_id=rule.id,
-            alert_type="issue_alert",
-            external_id=ANY,
-            notification_uuid=ANY,
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                provider="email",
+                alert_id=str(rule.id),
+                alert_type="issue_alert",
+                external_id="ANY",
+                notification_uuid="ANY",
+            ),
+            exclude_fields=["external_id", "notification_uuid"],
         )
 
-    def test_notification_with_environment(self):
+    @mock.patch("sentry.mail.notifications.get_context")
+    @mock.patch("sentry.analytics.record")
+    def test_email_with_reply_to(self, mock_record: MagicMock, mock_context: MagicMock) -> None:
+        mock_context.return_value = {"reply_to": "reply@example.com"}
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(
+                notification,
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
+
+        msg = mail.outbox[0]
+        assert msg.message()["Reply-To"] == "reply@example.com"
+
+    def test_notification_with_environment(self) -> None:
         environment = self.create_environment(self.project, name="production")
         event = self.store_event(
             data={"message": "Hello world", "level": "error", "environment": environment.name},
@@ -232,7 +261,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert f"&environment={environment.name}" in msg.body
         assert "notification_uuid" in msg.body
 
-    def test_simple_snooze(self):
+    def test_simple_snooze(self) -> None:
         """Test that notification for alert snoozed by user is not send to that user."""
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
@@ -249,7 +278,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         assert len(mail.outbox) == 0
 
-    def test_snooze_for_all(self):
+    def test_snooze_for_all(self) -> None:
         """Test that notification for alert snoozed for everyone is not send to user."""
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
@@ -266,7 +295,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         assert len(mail.outbox) == 0
 
-    def test_someone_else_snoozes_themself(self):
+    def test_someone_else_snoozes_themself(self) -> None:
         """Test that notification for alert snoozed by user2 for themself is sent to user"""
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
@@ -290,7 +319,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         msg = mail.outbox[0]
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
 
-    def test_someone_else_snoozes_everyone(self):
+    def test_someone_else_snoozes_everyone(self) -> None:
         """Test that notification for alert snoozed by user2 for everyone is not sent to user"""
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
@@ -308,7 +337,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         assert len(mail.outbox) == 0
 
-    def test_simple_notification_generic(self):
+    def test_simple_notification_generic(self) -> None:
         """Test that an issue that is neither error nor performance type renders a generic email template"""
         orig_event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
@@ -368,7 +397,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 checked_value in msg.alternatives[0][0]
             ), f"{checked_value} not present in message"
 
-    def test_simple_notification_generic_no_evidence(self):
+    def test_simple_notification_generic_no_evidence(self) -> None:
         """Test that an issue with no evidence that is neither error nor performance type renders a generic email template"""
         orig_event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
@@ -412,7 +441,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert isinstance(msg.alternatives[0][0], str)
         assert "Issue Data" not in msg.alternatives[0][0]
 
-    def test_simple_notification_perf(self):
+    def test_simple_notification_perf(self) -> None:
         event = self.create_performance_issue()
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -447,7 +476,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.get_title")
     @mock.patch("sentry.interfaces.stacktrace.Stacktrace.to_email_html")
-    def test_notify_users_renders_interfaces_with_utf8(self, _to_email_html, _get_title):
+    def test_notify_users_renders_interfaces_with_utf8(
+        self, _to_email_html: MagicMock, _get_title: MagicMock
+    ) -> None:
         _to_email_html.return_value = "רונית מגן"
         _get_title.return_value = "Stacktrace"
 
@@ -471,7 +502,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
     @mock_notify
     @mock.patch("sentry.notifications.notifications.rules.logger")
-    def test_notify_users_does_email(self, mock_logger, mock_func):
+    def test_notify_users_does_email(self, mock_logger, mock_func) -> None:
         self.create_user_option(user=self.user, key="timezone", value="Europe/Vienna")
         event_manager = EventManager({"message": "hello world", "level": "error"})
         event_manager.normalize()
@@ -492,10 +523,10 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             value="never",
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-
+        rule = self.create_project_rule(project=self.project)
         with self.tasks():
             AlertRuleNotification(
-                Notification(event=event),
+                Notification(event=event, rules=[rule]),
                 ActionTargetType.ISSUE_OWNERS,
                 fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
             ).send()
@@ -512,6 +543,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.assertEqual(notification.reference, group)
         assert notification.get_subject() == "BAR-1 - hello world"
 
+        assert notification.get_context()["snooze_alert"] is True
+
         assert group
         mock_logger.info.assert_called_with(
             "mail.adapter.notify",
@@ -527,7 +560,71 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
 
     @mock_notify
-    def test_email_notification_is_not_sent_to_deleted_email(self, mock_func):
+    @mock.patch("sentry.notifications.notifications.rules.logger")
+    @with_feature("organizations:workflow-engine-ui-links")
+    def test_notify_users_does_email_workflow_engine_ui_links(self, mock_logger, mock_func) -> None:
+        self.create_user_option(user=self.user, key="timezone", value="Europe/Vienna")
+        event_manager = EventManager({"message": "hello world", "level": "error"})
+        event_manager.normalize()
+        event_data = event_manager.get_data()
+        event_type = get_event_type(event_data)
+        event_data["type"] = event_type.key
+        event_data["metadata"] = event_type.get_metadata(event_data)
+
+        event = event_manager.save(self.project.id)
+        group = event.group
+
+        self.create_notification_settings_provider(
+            user_id=self.user.id,
+            scope_type="user",
+            scope_identifier=self.user.id,
+            provider="slack",
+            type="alerts",
+            value="never",
+        )
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+        rule = self.create_project_rule(
+            project=self.project, action_data=[{"workflow_id": "1234567890"}]
+        )
+        with self.tasks():
+            AlertRuleNotification(
+                Notification(event=event, rules=[rule]),
+                ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            ).send()
+
+        assert mock_func.call_count == 1
+
+        args, kwargs = mock_func.call_args
+        notification = args[1]
+
+        recipient_context = notification.get_recipient_context(Actor.from_orm_user(self.user), {})
+        assert recipient_context["timezone"] == zoneinfo.ZoneInfo("Europe/Vienna")
+
+        self.assertEqual(notification.project, self.project)
+        self.assertEqual(notification.reference, group)
+        assert notification.get_subject() == "BAR-1 - hello world"
+
+        # Because we are using the workflow engine, the snooze_alert context should be False
+        # This is because a user cannot snooze a workflow for themselves
+        assert notification.get_context()["snooze_alert"] is False
+
+        assert group
+        mock_logger.info.assert_called_with(
+            "mail.adapter.notify",
+            extra={
+                "target_type": "IssueOwners",
+                "target_identifier": None,
+                "group": group.id,
+                "project_id": group.project.id,
+                "organization": group.organization.id,
+                "fallthrough_choice": "ActiveMembers",
+                "notification_uuid": mock.ANY,
+            },
+        )
+
+    @mock_notify
+    def test_email_notification_is_not_sent_to_deleted_email(self, mock_func) -> None:
         """
         Test that ensures if we still have some stale emails in UserOption, then upon attempting
         to send an email notification to those emails, these stale `UserOption` instances are
@@ -597,7 +694,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             assert not len(UserOption.objects.filter(key="mail:email", value="foo@bar.dodo"))
 
     @mock_notify
-    def test_multiline_error(self, mock_func):
+    def test_multiline_error(self, mock_func) -> None:
         event_manager = EventManager({"message": "hello world\nfoo bar", "level": "error"})
         event_manager.normalize()
         event_data = event_manager.get_data()
@@ -630,7 +727,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         notification = args[1]
         assert notification.get_subject() == "BAR-1 - hello world"
 
-    def test_notify_users_with_utf8_subject(self):
+    def test_notify_users_with_utf8_subject(self) -> None:
         event = self.store_event(
             data={"message": "רונית מגן", "level": "error"}, project_id=self.project.id
         )
@@ -649,7 +746,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         msg = mail.outbox[0]
         assert msg.subject == "[Sentry] BAR-1 - רונית מגן"
 
-    def test_notify_users_with_their_timezones(self):
+    def test_notify_users_with_their_timezones(self) -> None:
         """
         Test that ensures that datetime in issue alert email is in the user's timezone
         """
@@ -663,7 +760,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             UserOption.objects.create(user=self.user, key="timezone", value="Europe/Vienna")
 
         event = self.store_event(
-            data={"message": "foobar", "level": "error", "timestamp": iso_format(timestamp)},
+            data={"message": "foobar", "level": "error", "timestamp": timestamp.isoformat()},
             project_id=self.project.id,
         )
 
@@ -696,13 +793,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         recipient_context = notification.get_recipient_context(Actor.from_orm_user(self.user), {})
         assert recipient_context["timezone"] == UTC
 
-    def test_context_invalid_timezone_empty_string(self):
+    def test_context_invalid_timezone_empty_string(self) -> None:
         self._test_invalid_timezone("")
 
-    def test_context_invalid_timezone_garbage_value(self):
+    def test_context_invalid_timezone_garbage_value(self) -> None:
         self._test_invalid_timezone("not/a/real/timezone")
 
-    def test_notify_with_suspect_commits(self):
+    def test_notify_with_suspect_commits(self) -> None:
         repo = Repository.objects.create(
             organization_id=self.organization.id, name=self.organization.id
         )
@@ -725,7 +822,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -770,7 +867,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         assert "Suspect Commits" in msg.body
 
-    def test_notify_with_replay_id(self):
+    def test_notify_with_replay_id(self) -> None:
         project = self.project
         organization = project.organization
         event = self.store_event(
@@ -778,7 +875,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 "contexts": {"replay": {"replay_id": "46eb3948be25448abd53fe36b5891ff2"}},
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "tags": [("level", "error")],
                 "request": {"url": "example.com"},
             },
@@ -808,7 +905,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert isinstance(msg.alternatives[0][0], str)
         assert expected_url in msg.alternatives[0][0]
 
-    def test_slack_link(self):
+    def test_slack_link(self) -> None:
         project = self.project
         organization = project.organization
         event = self.store_event(data=make_event_data("foo.jx"), project_id=project.id)
@@ -833,7 +930,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
         assert "notification_uuid" in msg.body
 
-    def test_slack_link_with_integration(self):
+    def test_slack_link_with_integration(self) -> None:
         project = self.project
         organization = project.organization
         event = self.store_event(data=make_event_data("foo.jx"), project_id=project.id)
@@ -862,7 +959,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
         assert "notification_uuid" in msg.body
 
-    def test_slack_link_with_plugin(self):
+    def test_slack_link_with_plugin(self) -> None:
         project = self.project
         organization = project.organization
         event = self.store_event(data=make_event_data("foo.jx"), project_id=project.id)
@@ -888,7 +985,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             not in msg.alternatives[0][0]
         )
 
-    def test_notify_team_members(self):
+    def test_notify_team_members(self) -> None:
         """Test that each member of a team is notified"""
 
         user = self.create_user(email="foo@example.com", is_active=True)
@@ -898,7 +995,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event = self.store_event(data=make_event_data("foo.py"), project_id=project.id)
         self.assert_notify(event, [user.email, user2.email], ActionTargetType.TEAM, str(team.id))
 
-    def test_notify_user(self):
+    def test_notify_user(self) -> None:
         user = self.create_user(email="foo@example.com", is_active=True)
         self.create_team(organization=self.organization, members=[user])
         event = self.store_event(data=make_event_data("foo.py"), project_id=self.project.id)
@@ -922,7 +1019,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         )
         po.delete()
 
-    def test_notify_with_path(self):
+    def test_notify_with_path(self) -> None:
         user = self.create_user(email="foo@example.com", is_active=True)
         user2 = self.create_user(email="baz@example.com", is_active=True)
 
@@ -958,12 +1055,6 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             fallthrough=True,
         )
 
-        with self.feature("organizations:notification-all-recipients"):
-            event_all_users = self.store_event(
-                data=make_event_data("foo.cbl"), project_id=project.id
-            )
-            self.assert_notify(event_all_users, [user.email, user2.email])
-
         event_team = self.store_event(data=make_event_data("foo.py"), project_id=project.id)
         self.assert_notify(event_team, [user.email, user2.email])
 
@@ -980,13 +1071,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                 value="never",
             )
 
-        with self.feature("organizations:notification-all-recipients"):
-            event_all_users = self.store_event(
-                data=make_event_data("foo.cbl"), project_id=project.id
-            )
-            self.assert_notify(event_all_users, [user.email])
-
-    def test_notify_with_release_tag(self):
+    def test_notify_with_release_tag(self) -> None:
         owner = self.create_user(email="theboss@example.com", is_active=True)
         organization = self.create_organization(owner=owner)
         team = self.create_team(organization=organization, name="awesome")
@@ -1016,40 +1101,39 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                     type="alerts",
                     value="never",
                 )
-        with self.feature("organizations:notification-all-recipients"):
-            self.create_assert_delete_projectownership(
-                project,
-                [
-                    grammar.Rule(
-                        Matcher("tags.release", "*"),
-                        [Owner("user", user.email)],
-                    ),
-                    grammar.Rule(
-                        Matcher("tags.release", "1"),
-                        [Owner("user", user2.email)],
-                    ),
-                ],
-                {"release": "1"},
-                [user.email, user2.email],
-            )
+        self.create_assert_delete_projectownership(
+            project,
+            [
+                grammar.Rule(
+                    Matcher("tags.release", "*"),
+                    [Owner("user", user.email)],
+                ),
+                grammar.Rule(
+                    Matcher("tags.release", "1"),
+                    [Owner("user", user2.email)],
+                ),
+            ],
+            {"release": "1"},
+            [user2.email],
+        )
 
-            self.create_assert_delete_projectownership(
-                project,
-                [
-                    grammar.Rule(
-                        Matcher("tags.release", "*"),
-                        [Owner("user", user.email)],
-                    ),
-                    grammar.Rule(
-                        Matcher("tags.release", "2"),
-                        [Owner("team", team2.slug)],
-                    ),
-                ],
-                {"release": "2"},
-                [user.email, user3.email, user4.email, user5.email],
-            )
+        self.create_assert_delete_projectownership(
+            project,
+            [
+                grammar.Rule(
+                    Matcher("tags.release", "*"),
+                    [Owner("user", user.email)],
+                ),
+                grammar.Rule(
+                    Matcher("tags.release", "2"),
+                    [Owner("team", team2.slug)],
+                ),
+            ],
+            {"release": "2"},
+            [user3.email, user4.email, user5.email],
+        )
 
-    def test_notify_with_dist_tag(self):
+    def test_notify_with_dist_tag(self) -> None:
         owner = self.create_user(email="theboss@example.com", is_active=True)
         organization = self.create_organization(owner=owner)
         team = self.create_team(organization=organization, name="awesome")
@@ -1080,40 +1164,39 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                     value="never",
                 )
 
-        with self.feature("organizations:notification-all-recipients"):
-            self.create_assert_delete_projectownership(
-                project,
-                [
-                    grammar.Rule(
-                        Matcher("tags.dist", "*"),
-                        [Owner("user", user.email)],
-                    ),
-                    grammar.Rule(
-                        Matcher("tags.dist", "rc1"),
-                        [Owner("user", user2.email)],
-                    ),
-                ],
-                {"dist": "rc1", "release": "1"},
-                [user.email, user2.email],
-            )
+        self.create_assert_delete_projectownership(
+            project,
+            [
+                grammar.Rule(
+                    Matcher("tags.dist", "*"),
+                    [Owner("user", user.email)],
+                ),
+                grammar.Rule(
+                    Matcher("tags.dist", "rc1"),
+                    [Owner("user", user2.email)],
+                ),
+            ],
+            {"dist": "rc1", "release": "1"},
+            [user2.email],
+        )
 
-            self.create_assert_delete_projectownership(
-                project,
-                [
-                    grammar.Rule(
-                        Matcher("tags.dist", "*"),
-                        [Owner("user", user.email)],
-                    ),
-                    grammar.Rule(
-                        Matcher("tags.dist", "lenny"),
-                        [Owner("team", team2.slug)],
-                    ),
-                ],
-                {"dist": "lenny", "release": "1"},
-                [user.email, user3.email, user4.email, user5.email],
-            )
+        self.create_assert_delete_projectownership(
+            project,
+            [
+                grammar.Rule(
+                    Matcher("tags.dist", "*"),
+                    [Owner("user", user.email)],
+                ),
+                grammar.Rule(
+                    Matcher("tags.dist", "lenny"),
+                    [Owner("team", team2.slug)],
+                ),
+            ],
+            {"dist": "lenny", "release": "1"},
+            [user3.email, user4.email, user5.email],
+        )
 
-    def test_dont_notify_with_dist_if_no_rule(self):
+    def test_dont_notify_with_dist_if_no_rule(self) -> None:
         owner = self.create_user(email="theboss@example.com", is_active=True)
         organization = self.create_organization(owner=owner)
         team = self.create_team(organization=organization, name="awesome")
@@ -1121,20 +1204,19 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         user = self.create_user(email="foo@example.com", is_active=True)
         self.create_member(user=user, organization=organization, teams=[team])
 
-        with self.feature("organizations:notification-all-recipients"):
-            self.create_assert_delete_projectownership(
-                project,
-                [
-                    grammar.Rule(
-                        Matcher("tags.abc", "hello"),
-                        [Owner("user", user.email)],
-                    ),
-                ],
-                {"dist": "hello", "release": "1"},
-                [],
-            )
+        self.create_assert_delete_projectownership(
+            project,
+            [
+                grammar.Rule(
+                    Matcher("tags.abc", "hello"),
+                    [Owner("user", user.email)],
+                ),
+            ],
+            {"dist": "hello", "release": "1"},
+            [],
+        )
 
-    def test_notify_with_user_tag(self):
+    def test_notify_with_user_tag(self) -> None:
         owner = self.create_user(email="theboss@example.com", is_active=True)
         organization = self.create_organization(owner=owner)
         team = self.create_team(organization=organization, name="sentry")
@@ -1157,57 +1239,50 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                 user_by_extra,
             ]
         ]
+        self.create_assert_delete_projectownership(
+            project,
+            [
+                grammar.Rule(
+                    Matcher("tags.user.id", "unique_id"),
+                    [Owner("user", user_by_id.email)],
+                ),
+                grammar.Rule(
+                    Matcher("tags.user.username", "my_user"),
+                    [Owner("user", user_by_username.email)],
+                ),
+                grammar.Rule(
+                    Matcher("tags.user.email", "foo@example.com"),
+                    [Owner("user", user_by_email.email)],
+                ),
+                grammar.Rule(
+                    Matcher("tags.user.ip_address", "127.0.0.1"),
+                    [Owner("user", user_by_ip.email)],
+                ),
+                grammar.Rule(
+                    Matcher("tags.user.subscription", "basic"),
+                    [Owner("user", user_by_sub.email)],
+                ),
+                grammar.Rule(
+                    Matcher("tags.user.extra", "detail"),
+                    [Owner("user", user_by_extra.email)],
+                ),
+            ],
+            {
+                "user": {
+                    "id": "unique_id",
+                    "username": "my_user",
+                    "email": "foo@example.com",
+                    "ip_address": "127.0.0.1",
+                    "subscription": "basic",
+                    "extra": "detail",
+                }
+            },
+            [
+                user_by_extra.email,
+            ],
+        )
 
-        with self.feature("organizations:notification-all-recipients"):
-            self.create_assert_delete_projectownership(
-                project,
-                [
-                    grammar.Rule(
-                        Matcher("tags.user.id", "unique_id"),
-                        [Owner("user", user_by_id.email)],
-                    ),
-                    grammar.Rule(
-                        Matcher("tags.user.username", "my_user"),
-                        [Owner("user", user_by_username.email)],
-                    ),
-                    grammar.Rule(
-                        Matcher("tags.user.email", "foo@example.com"),
-                        [Owner("user", user_by_email.email)],
-                    ),
-                    grammar.Rule(
-                        Matcher("tags.user.ip_address", "127.0.0.1"),
-                        [Owner("user", user_by_ip.email)],
-                    ),
-                    grammar.Rule(
-                        Matcher("tags.user.subscription", "basic"),
-                        [Owner("user", user_by_sub.email)],
-                    ),
-                    grammar.Rule(
-                        Matcher("tags.user.extra", "detail"),
-                        [Owner("user", user_by_extra.email)],
-                    ),
-                ],
-                {
-                    "user": {
-                        "id": "unique_id",
-                        "username": "my_user",
-                        "email": "foo@example.com",
-                        "ip_address": "127.0.0.1",
-                        "subscription": "basic",
-                        "extra": "detail",
-                    }
-                },
-                [
-                    user_by_id.email,
-                    user_by_username.email,
-                    user_by_email.email,
-                    user_by_ip.email,
-                    user_by_sub.email,
-                    user_by_extra.email,
-                ],
-            )
-
-    def test_notify_with_user_tag_edge_cases(self):
+    def test_notify_with_user_tag_edge_cases(self) -> None:
         owner = self.create_user(email="theboss@example.com", is_active=True)
         organization = self.create_organization(owner=owner)
         team = self.create_team(organization=organization, name="sentry")
@@ -1244,76 +1319,71 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
 
             tags.user:*someemail* #sentry
         """
-        with self.feature("organizations:notification-all-recipients"):
-            dat = {"user": {"username": "someemail@example.com"}}
-            self.create_assert_delete_projectownership(
-                project,
-                [
-                    grammar.Rule(
-                        Matcher("tags.user.username", "someemail@example.com"),
-                        [Owner("user", user_username.email)],
-                    )
-                ],
-                dat,
-                [user_username.email],
-            )
+        dat = {"user": {"username": "someemail@example.com"}}
+        self.create_assert_delete_projectownership(
+            project,
+            [
+                grammar.Rule(
+                    Matcher("tags.user.username", "someemail@example.com"),
+                    [Owner("user", user_username.email)],
+                )
+            ],
+            dat,
+            [user_username.email],
+        )
 
-            self.create_assert_delete_projectownership(
-                project,
-                [
-                    grammar.Rule(
-                        Matcher("tags.user", "someemail@example.com"), [Owner("user", user.email)]
-                    )
-                ],
-                dat,
-                [],
-            )
+        self.create_assert_delete_projectownership(
+            project,
+            [
+                grammar.Rule(
+                    Matcher("tags.user", "someemail@example.com"), [Owner("user", user.email)]
+                )
+            ],
+            dat,
+            [],
+        )
 
-            self.create_assert_delete_projectownership(
-                project,
-                [grammar.Rule(Matcher("tags.user", "*"), [Owner("user", user_star.email)])],
-                dat,
-                [user_star.email],
-            )
+        self.create_assert_delete_projectownership(
+            project,
+            [grammar.Rule(Matcher("tags.user", "*"), [Owner("user", user_star.email)])],
+            dat,
+            [user_star.email],
+        )
 
-            self.create_assert_delete_projectownership(
-                project,
-                [
-                    grammar.Rule(
-                        Matcher("tags.user.username", "*"),
-                        [Owner("user", user_username_star.email)],
-                    )
-                ],
-                dat,
-                [user_username_star.email],
-            )
+        self.create_assert_delete_projectownership(
+            project,
+            [
+                grammar.Rule(
+                    Matcher("tags.user.username", "*"),
+                    [Owner("user", user_username_star.email)],
+                )
+            ],
+            dat,
+            [user_username_star.email],
+        )
 
-            self.create_assert_delete_projectownership(
-                project,
-                [grammar.Rule(Matcher("tags.user", "username"), [Owner("user", user.email)])],
-                dat,
-                [],
-            )
+        self.create_assert_delete_projectownership(
+            project,
+            [grammar.Rule(Matcher("tags.user", "username"), [Owner("user", user.email)])],
+            dat,
+            [],
+        )
 
-            self.create_assert_delete_projectownership(
-                project,
-                [grammar.Rule(Matcher("tags.user", "*someemail*"), [Owner("team", team.slug)])],
-                dat,
-                [u.email for u in [user, user_star, user_username, user_username_star]],
-            )
+        self.create_assert_delete_projectownership(
+            project,
+            [grammar.Rule(Matcher("tags.user", "*someemail*"), [Owner("team", team.slug)])],
+            dat,
+            [u.email for u in [user, user_star, user_username, user_username_star]],
+        )
 
-            self.create_assert_delete_projectownership(
-                project,
-                [
-                    grammar.Rule(
-                        Matcher("tags.user.email", "someemail*"), [Owner("team", team.slug)]
-                    )
-                ],
-                {"user": {"username": "someemail@example.com"}},
-                [],
-            )
+        self.create_assert_delete_projectownership(
+            project,
+            [grammar.Rule(Matcher("tags.user.email", "someemail*"), [Owner("team", team.slug)])],
+            {"user": {"username": "someemail@example.com"}},
+            [],
+        )
 
-    def test_group_substatus_header(self):
+    def test_group_substatus_header(self) -> None:
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
@@ -1342,7 +1412,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
 
 
 class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):
-    def test_get_digest_subject(self):
+    def test_get_digest_subject(self) -> None:
         assert (
             get_digest_subject(
                 mock.Mock(qualified_short_id="BAR-1"),
@@ -1355,9 +1425,9 @@ class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):
 
 class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
-    def test_notify_digest(self, notify):
+    def test_notify_digest(self, notify: MagicMock) -> None:
         project = self.project
-        timestamp = iso_format(before_now(minutes=1))
+        timestamp = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=project.id,
@@ -1371,7 +1441,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
-        )[0]
+        )
 
         with self.tasks():
             self.adapter.notify_digest(
@@ -1391,12 +1461,12 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         assert "notification_uuid" in message.alternatives[0][0]
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
-    def test_notify_digest_replay_id(self, notify):
+    def test_notify_digest_replay_id(self, notify: MagicMock) -> None:
         project = self.project
         self.project.flags.has_replays = True
         self.project.save()
 
-        timestamp = iso_format(before_now(minutes=1))
+        timestamp = before_now(minutes=1).isoformat()
         replay1_id = "46eb3948be25448abd53fe36b5891ff2"
         event = self.store_event(
             data={
@@ -1427,7 +1497,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
-        )[0]
+        )
 
         features = ["organizations:session-replay", "organizations:session-replay-issue-emails"]
         with self.feature(features), self.tasks():
@@ -1448,10 +1518,10 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         assert "notification_uuid" in message.alternatives[0][0]
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
-    def test_dont_notify_digest_snoozed(self, notify):
+    def test_dont_notify_digest_snoozed(self, notify: MagicMock) -> None:
         """Test that a digest for an alert snoozed by user is not sent."""
         project = self.project
-        timestamp = iso_format(before_now(minutes=1))
+        timestamp = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=project.id,
@@ -1466,7 +1536,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
-        )[0]
+        )
 
         with self.tasks():
             self.adapter.notify_digest(
@@ -1480,12 +1550,12 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         assert len(mail.outbox) == 0
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
-    def test_notify_digest_snooze_one_rule(self, notify):
+    def test_notify_digest_snooze_one_rule(self, notify: MagicMock) -> None:
         """Test that a digest is sent containing only notifications about an unsnoozed alert."""
         user2 = self.create_user(email="baz@example.com", is_active=True)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
         project = self.project
-        timestamp = iso_format(before_now(minutes=1))
+        timestamp = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=project.id,
@@ -1496,14 +1566,15 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = project.rule_set.all()[0]
-        rule2 = Rule.objects.create(project=project, label="my rule")
-        # mute the first rule only for self.user, not user2
+        rule2 = self.create_project_rule(
+            project=project
+        )  # mute the first rule only for self.user, not user2
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
 
         ProjectOwnership.objects.create(project_id=project.id, fallthrough=True)
         digest = build_digest(
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule2,)))
-        )[0]
+        )
 
         with self.tasks():
             self.adapter.notify_digest(
@@ -1529,12 +1600,12 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         assert "2 new alerts since" in message2.subject
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
-    def test_dont_notify_digest_snoozed_multiple_rules(self, notify):
+    def test_dont_notify_digest_snoozed_multiple_rules(self, notify: MagicMock) -> None:
         """Test that a digest is only sent to the user who hasn't snoozed the rules."""
         user2 = self.create_user(email="baz@example.com", is_active=True)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
         project = self.project
-        timestamp = iso_format(before_now(minutes=1))
+        timestamp = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=project.id,
@@ -1545,7 +1616,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = project.rule_set.all()[0]
-        rule2 = Rule.objects.create(project=project, label="my rule")
+        rule2 = self.create_project_rule(project=project)
         # mute the rules for self.user, not user2
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule2)
@@ -1553,7 +1624,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         ProjectOwnership.objects.create(project_id=project.id, fallthrough=True)
         digest = build_digest(
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule2,)))
-        )[0]
+        )
 
         with self.tasks():
             self.adapter.notify_digest(
@@ -1572,12 +1643,14 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         assert "2 new alerts since" in message.subject
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
-    def test_dont_notify_digest_snoozed_multiple_rules_global_snooze(self, notify):
+    def test_dont_notify_digest_snoozed_multiple_rules_global_snooze(
+        self, notify: MagicMock
+    ) -> None:
         """Test that a digest with only one rule is only sent to the user who didn't snooze one rule."""
         user2 = self.create_user(email="baz@example.com", is_active=True)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
         project = self.project
-        timestamp = iso_format(before_now(minutes=1))
+        timestamp = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=project.id,
@@ -1588,7 +1661,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = project.rule_set.all()[0]
-        rule2 = Rule.objects.create(project=project, label="my rule")
+        rule2 = self.create_project_rule(project=project)
         # mute the first rule for self.user, not user2
         self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
         # mute the 2nd rule for both
@@ -1597,7 +1670,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         ProjectOwnership.objects.create(project_id=project.id, fallthrough=True)
         digest = build_digest(
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule2,)))
-        )[0]
+        )
 
         with self.tasks():
             self.adapter.notify_digest(
@@ -1617,11 +1690,11 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     @mock.patch.object(MessageBuilder, "send_async", autospec=True)
-    def test_notify_digest_single_record(self, send_async, notify):
+    def test_notify_digest_single_record(self, send_async: MagicMock, notify: MagicMock) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.project.rule_set.all()[0]
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-        digest = build_digest(self.project, (event_to_record(event, (rule,)),))[0]
+        digest = build_digest(self.project, (event_to_record(event, (rule,)),))
         self.adapter.notify_digest(
             self.project,
             digest,
@@ -1631,12 +1704,12 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         assert send_async.call_count == 1
         assert notify.call_count == 1
 
-    def test_notify_digest_subject_prefix(self):
+    def test_notify_digest_subject_prefix(self) -> None:
         ProjectOption.objects.set_value(
             project=self.project, key="mail:subject_prefix", value="[Example prefix] "
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-        timestamp = iso_format(before_now(minutes=1))
+        timestamp = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=self.project.id,
@@ -1650,7 +1723,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
 
         digest = build_digest(
             self.project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
-        )[0]
+        )
 
         with self.tasks():
             self.adapter.notify_digest(
@@ -1667,12 +1740,12 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         assert msg.subject.startswith("[Example prefix]")
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
-    def test_notify_digest_user_does_not_exist(self, notify):
+    def test_notify_digest_user_does_not_exist(self, notify: MagicMock) -> None:
         """Test that in the event a rule has been created with an action to send to a user who
         no longer exists, we don't blow up when getting users in get_send_to
         """
         project = self.project
-        timestamp = iso_format(before_now(minutes=1))
+        timestamp = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=project.id,
@@ -1698,7 +1771,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
 
         digest = build_digest(
             project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
-        )[0]
+        )
 
         with self.tasks():
             self.adapter.notify_digest(project, digest, ActionTargetType.MEMBER, 444)
@@ -1709,7 +1782,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
 
 class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
     @mock.patch("sentry.mail.adapter.logger")
-    def test_normal(self, mock_logger):
+    def test_normal(self, mock_logger: MagicMock) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         rule = Rule.objects.create(project=self.project, label="my rule")
         futures = [RuleFuture(rule, {})]
@@ -1735,7 +1808,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
 
     @mock.patch("sentry.mail.adapter.digests")
     @mock.patch("sentry.mail.adapter.logger")
-    def test_digest(self, mock_logger, digests):
+    def test_digest(self, mock_logger: MagicMock, digests: MagicMock) -> None:
         digests.backend.enabled.return_value = True
 
         event = self.store_event(data={}, project_id=self.project.id)
@@ -1763,7 +1836,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         )
 
     @mock.patch("sentry.mail.adapter.digests")
-    def test_digest_with_perf_issue(self, digests):
+    def test_digest_with_perf_issue(self, digests: MagicMock) -> None:
         digests.backend.enabled.return_value = True
         event = self.create_performance_issue()
         rule = self.create_project_rule(project=self.project)
@@ -1772,7 +1845,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
         assert digests.backend.add.call_count == 1
 
-    def test_notify_includes_uuid(self):
+    def test_notify_includes_uuid(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         rule = Rule.objects.create(project=self.project, label="my rule")
         futures = [RuleFuture(rule, {})]
@@ -1787,7 +1860,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
 
 
 class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
-    def test_assignment(self):
+    def test_assignment(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingOption.objects.create(
                 user_id=self.user.id,
@@ -1815,7 +1888,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
         assert msg.to == [self.user.email]
         assert "notification_uuid" in msg.body
 
-    def test_assignment_team(self):
+    def test_assignment_team(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingOption.objects.create(
                 user_id=self.user.id,
@@ -1843,7 +1916,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
         assert msg.to == [self.user.email]
         assert "notification_uuid" in msg.body
 
-    def test_note(self):
+    def test_note(self) -> None:
         user_foo = self.create_user("foo@example.com")
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingOption.objects.create(
@@ -1887,7 +1960,7 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
             email="homer.simpson@example.com",
         )
 
-    def test_user_feedback(self):
+    def test_user_feedback(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingOption.objects.create(
                 user_id=self.user.id,
@@ -1919,7 +1992,7 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
         assert msg.to == [self.user.email]
         assert "notification_uuid" in msg.body
 
-    def test_user_feedback__enhanced_privacy(self):
+    def test_user_feedback__enhanced_privacy(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingOption.objects.create(
                 user_id=self.user.id,

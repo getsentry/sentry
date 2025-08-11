@@ -1,41 +1,28 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
-import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DurationUnit} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
-import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {
   PRIMARY_RELEASE_ALIAS,
   ReleaseComparisonSelector,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
-import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
+import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
-import {
-  ScreenCharts,
-  YAxis,
-} from 'sentry/views/insights/mobile/screenload/components/charts/screenCharts';
+import {ScreenCharts} from 'sentry/views/insights/mobile/screenload/components/charts/screenCharts';
 import {ScreenLoadEventSamples} from 'sentry/views/insights/mobile/screenload/components/eventSamples';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
-import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {ScreenLoadSpansTable} from 'sentry/views/insights/mobile/screenload/components/tables/screenLoadSpansTable';
 import {
   MobileCursors,
@@ -53,181 +40,124 @@ type Query = {
   spanDescription?: string;
 };
 
-function ScreenLoadSpans() {
-  const location = useLocation<Query>();
-  const organization = useOrganization();
+export function ScreenLoadSpansContent() {
   const router = useRouter();
-  const {isProjectCrossPlatform} = useCrossPlatformProject();
+  const location = useLocation<Query>();
 
-  const crumbs = useModuleBreadcrumbs('screen_load');
+  const {spanGroup, transaction: transactionName} = location.query;
+  const {primaryRelease, secondaryRelease} = useReleaseSelection();
 
-  const {
-    spanGroup,
-    primaryRelease,
-    secondaryRelease,
-    transaction: transactionName,
-    spanDescription,
-  } = location.query;
+  useSamplesDrawer({
+    Component: (
+      <SpanSamplesPanel groupId={spanGroup} moduleName={ModuleName.SCREEN_LOAD} />
+    ),
+    moduleName: ModuleName.SCREEN_LOAD,
+    requiredParams: ['transaction', 'spanGroup'],
+    onClose: () => {
+      router.replace({
+        pathname: router.location.pathname,
+        query: omit(router.location.query, 'spanGroup', 'transactionMethod'),
+      });
+    },
+  });
 
   return (
-    <Layout.Page>
-      <PageAlertProvider>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                ...crumbs,
-                {
-                  label: t('Screen Summary'),
-                },
-              ]}
-            />
-            <HeaderWrapper>
-              <Layout.Title>{transactionName}</Layout.Title>
-              {organization.features.includes('insights-initial-modules') &&
-                isProjectCrossPlatform && <PlatformSelector />}
-            </HeaderWrapper>
-          </Layout.HeaderContent>
-          <Layout.HeaderActions>
-            <ButtonBar gap={1}>
-              <FeedbackWidgetButton />
-            </ButtonBar>
-          </Layout.HeaderActions>
-        </Layout.Header>
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <PageAlert />
-            <HeaderContainer>
-              <ToolRibbon>
-                <FilterContainer>
-                  <PageFilterBar condensed>
-                    <EnvironmentPageFilter />
-                    <DatePageFilter />
-                  </PageFilterBar>
-                  <ReleaseComparisonSelector />
-                </FilterContainer>
-              </ToolRibbon>
+    <Fragment>
+      <HeaderContainer>
+        <ToolRibbon>
+          <FilterContainer>
+            <ModulePageFilterBar moduleName={ModuleName.APP_START} disableProjectFilter />
+            <ReleaseComparisonSelector />
+          </FilterContainer>
+        </ToolRibbon>
 
-              <MobileMetricsRibbon
-                dataset={DiscoverDatasets.METRICS}
-                filters={[
-                  'event.type:transaction',
-                  'transaction.op:ui.load',
-                  `transaction:${transactionName}`,
-                ]}
-                fields={[
-                  `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
-                  `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
-                  `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
-                  `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
-                  `count_if(measurements.time_to_initial_display,release,${primaryRelease})`,
-                  `count_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
-                ]}
-                blocks={[
-                  {
-                    unit: DurationUnit.MILLISECOND,
-                    dataKey: `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
-                    title: t('Avg TTID (%s)', PRIMARY_RELEASE_ALIAS),
-                  },
-                  {
-                    unit: DurationUnit.MILLISECOND,
-                    dataKey: `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
-                    title: t('Avg TTID (%s)', SECONDARY_RELEASE_ALIAS),
-                  },
-                  {
-                    unit: DurationUnit.MILLISECOND,
-                    dataKey: `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
-                    title: t('Avg TTFD (%s)', PRIMARY_RELEASE_ALIAS),
-                  },
-                  {
-                    unit: DurationUnit.MILLISECOND,
-                    dataKey: `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
-                    title: t('Avg TTFD (%s)', SECONDARY_RELEASE_ALIAS),
-                  },
-                  {
-                    unit: 'count',
-                    dataKey: `count_if(measurements.time_to_initial_display,release,${primaryRelease})`,
-                    title: t('Total Count (%s)', PRIMARY_RELEASE_ALIAS),
-                  },
-                  {
-                    unit: 'count',
-                    dataKey: `count_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
-                    title: t('Total Count (%s)', SECONDARY_RELEASE_ALIAS),
-                  },
-                ]}
-                referrer="api.starfish.mobile-screen-totals"
-              />
-            </HeaderContainer>
+        <MobileMetricsRibbon
+          filters={[
+            'is_transaction:true',
+            'transaction.op:[ui.load,navigation]',
+            `transaction:${transactionName}`,
+          ]}
+          fields={[
+            `avg_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`,
+            `avg_if(measurements.time_to_initial_display,release,equals,${secondaryRelease})`,
+            `avg_if(measurements.time_to_full_display,release,equals,${primaryRelease})`,
+            `avg_if(measurements.time_to_full_display,release,equals,${secondaryRelease})`,
+            `count_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`,
+            `count_if(measurements.time_to_initial_display,release,equals,${secondaryRelease})`,
+          ]}
+          blocks={[
+            {
+              unit: DurationUnit.MILLISECOND,
+              dataKey: `avg_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`,
+              title: t('Avg TTID (%s)', PRIMARY_RELEASE_ALIAS),
+            },
+            {
+              unit: DurationUnit.MILLISECOND,
+              dataKey: `avg_if(measurements.time_to_initial_display,release,equals,${secondaryRelease})`,
+              title: t('Avg TTID (%s)', SECONDARY_RELEASE_ALIAS),
+            },
+            {
+              unit: DurationUnit.MILLISECOND,
+              dataKey: `avg_if(measurements.time_to_full_display,release,equals,${primaryRelease})`,
+              title: t('Avg TTFD (%s)', PRIMARY_RELEASE_ALIAS),
+            },
+            {
+              unit: DurationUnit.MILLISECOND,
+              dataKey: `avg_if(measurements.time_to_full_display,release,equals,${secondaryRelease})`,
+              title: t('Avg TTFD (%s)', SECONDARY_RELEASE_ALIAS),
+            },
+            {
+              unit: 'count',
+              dataKey: `count_if(measurements.time_to_initial_display,release,equals,${primaryRelease})`,
+              title: t('Total Count (%s)', PRIMARY_RELEASE_ALIAS),
+            },
+            {
+              unit: 'count',
+              dataKey: `count_if(measurements.time_to_initial_display,release,equals,${secondaryRelease})`,
+              title: t('Total Count (%s)', SECONDARY_RELEASE_ALIAS),
+            },
+          ]}
+          referrer="api.starfish.mobile-screen-totals"
+        />
+      </HeaderContainer>
 
-            <ErrorBoundary mini>
-              <ScreenCharts
-                yAxes={[YAxis.TTID, YAxis.TTFD, YAxis.COUNT]}
-                additionalFilters={[`transaction:${transactionName}`]}
-                chartHeight={120}
-              />
-              <SampleContainer>
-                <SampleContainerItem>
-                  <ScreenLoadEventSamples
-                    release={primaryRelease}
-                    sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
-                    cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
-                    transaction={transactionName}
-                    showDeviceClassSelector
-                  />
-                </SampleContainerItem>
-                <SampleContainerItem>
-                  <ScreenLoadEventSamples
-                    release={secondaryRelease}
-                    sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
-                    cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
-                    transaction={transactionName}
-                  />
-                </SampleContainerItem>
-              </SampleContainer>
-              <ScreenLoadSpansTable
+      <ErrorBoundary mini>
+        <ScreenCharts
+          additionalFilters={[`transaction:${transactionName}`]}
+          chartHeight={120}
+        />
+        <SampleContainer>
+          <SampleContainerItem>
+            {primaryRelease && (
+              <ScreenLoadEventSamples
+                release={primaryRelease}
+                sortKey={MobileSortKeys.RELEASE_1_EVENT_SAMPLE_TABLE}
+                cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
                 transaction={transactionName}
-                primaryRelease={primaryRelease}
-                secondaryRelease={secondaryRelease}
+                showDeviceClassSelector
               />
-              {spanGroup && (
-                <SpanSamplesPanel
-                  groupId={spanGroup}
-                  moduleName={ModuleName.SCREEN_LOAD}
-                  transactionName={transactionName}
-                  spanDescription={spanDescription}
-                  onClose={() => {
-                    router.replace({
-                      pathname: router.location.pathname,
-                      query: omit(
-                        router.location.query,
-                        'spanGroup',
-                        'transactionMethod'
-                      ),
-                    });
-                  }}
-                />
-              )}
-            </ErrorBoundary>
-          </Layout.Main>
-        </Layout.Body>
-      </PageAlertProvider>
-    </Layout.Page>
+            )}
+          </SampleContainerItem>
+          <SampleContainerItem>
+            {secondaryRelease && (
+              <ScreenLoadEventSamples
+                release={secondaryRelease}
+                sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
+                cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
+                transaction={transactionName}
+              />
+            )}
+          </SampleContainerItem>
+        </SampleContainer>
+        <ScreenLoadSpansTable
+          transaction={transactionName}
+          primaryRelease={primaryRelease}
+          secondaryRelease={secondaryRelease}
+        />
+      </ErrorBoundary>
+    </Fragment>
   );
 }
-
-function PageWithProviders() {
-  return (
-    <ModulePageProviders
-      moduleName="screen_load"
-      pageTitle={t('Screen Summary')}
-      features="insights-initial-modules"
-    >
-      <ScreenLoadSpans />
-    </ModulePageProviders>
-  );
-}
-
-export default PageWithProviders;
 
 const FilterContainer = styled('div')`
   display: grid;
@@ -245,7 +175,4 @@ const SampleContainer = styled('div')`
 
 const SampleContainerItem = styled('div')`
   flex: 1;
-`;
-const HeaderWrapper = styled('div')`
-  display: flex;
 `;

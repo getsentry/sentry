@@ -5,14 +5,14 @@ from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
+from rest_framework import status
 
 from fixtures.gitlab import EXTERNAL_ID, PUSH_EVENT, WEBHOOK_SECRET, WEBHOOK_TOKEN
-from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.middleware.integrations.classifications import IntegrationClassification
 from sentry.middleware.integrations.parsers.gitlab import GitlabRequestParser
-from sentry.models.outbox import ControlOutbox, outbox_context
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
@@ -55,7 +55,7 @@ class GitlabRequestParserTest(TestCase):
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_missing_x_gitlab_token(self):
+    def test_missing_x_gitlab_token(self) -> None:
         self.get_integration()
         request = self.factory.post(
             self.path,
@@ -64,14 +64,14 @@ class GitlabRequestParserTest(TestCase):
             HTTP_X_GITLAB_EVENT="lol",
         )
         response = self.run_parser(request)
-        assert response.status_code == 400
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert (
             response.reason_phrase == "The customer needs to set a Secret Token in their webhook."
         )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_invalid_token(self):
+    def test_invalid_token(self) -> None:
         self.get_integration()
         request = self.factory.post(
             self.path,
@@ -81,14 +81,14 @@ class GitlabRequestParserTest(TestCase):
             HTTP_X_GITLAB_EVENT="Push Hook",
         )
         response = self.run_parser(request)
-        assert response.status_code == 400
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.reason_phrase == "The customer's Secret Token is malformed."
         assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_routing_webhook_properly_no_regions(self):
+    def test_routing_webhook_properly_no_regions(self) -> None:
         request = self.factory.post(
             self.path,
             data=PUSH_EVENT,
@@ -106,14 +106,14 @@ class GitlabRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 400
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_routing_webhook_properly_with_regions(self):
+    def test_routing_webhook_properly_with_regions(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
             self.path,
@@ -126,7 +126,7 @@ class GitlabRequestParserTest(TestCase):
         response = parser.get_response()
 
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 202
+        assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.content == b""
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
@@ -138,7 +138,7 @@ class GitlabRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_routing_webhook_properly_with_multiple_orgs(self):
+    def test_routing_webhook_properly_with_multiple_orgs(self) -> None:
         integration = self.get_integration()
         other_org = self.create_organization(owner=self.user)
         integration.add_organization(other_org)
@@ -166,7 +166,7 @@ class GitlabRequestParserTest(TestCase):
     @override_regions(region_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
-    def test_routing_webhook_with_mailbox_buckets(self):
+    def test_routing_webhook_with_mailbox_buckets(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
             self.path,
@@ -183,7 +183,7 @@ class GitlabRequestParserTest(TestCase):
             response = parser.get_response()
 
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 202
+        assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.content == b""
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
@@ -195,7 +195,7 @@ class GitlabRequestParserTest(TestCase):
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_routing_search_properly(self):
+    def test_routing_search_properly(self) -> None:
         self.get_integration()
         path = reverse(
             "sentry-extensions-gitlab-search",
@@ -209,14 +209,14 @@ class GitlabRequestParserTest(TestCase):
 
         response = parser.get_response()
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         assert response.content == b"passthrough"
         assert len(responses.calls) == 0
         assert_no_webhook_payloads()
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
-    def test_get_integration_from_request(self):
+    def test_get_integration_from_request(self) -> None:
         integration = self.get_integration()
         request = self.factory.post(
             self.path,
@@ -227,12 +227,13 @@ class GitlabRequestParserTest(TestCase):
         )
         parser = GitlabRequestParser(request=request, response_handler=self.get_response)
         result = parser.get_integration_from_request()
+        assert result is not None
         assert result.id == integration.id
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_regions(region_config)
     @responses.activate
-    def test_webhook_outbox_creation(self):
+    def test_webhook_outbox_creation(self) -> None:
         request = self.factory.post(
             self.path,
             data=PUSH_EVENT,
@@ -243,11 +244,10 @@ class GitlabRequestParserTest(TestCase):
         integration = self.get_integration()
         parser = GitlabRequestParser(request=request, response_handler=self.get_response)
 
-        assert ControlOutbox.objects.filter(category=OutboxCategory.WEBHOOK_PROXY).count() == 0
         response = parser.get_response()
 
         assert isinstance(response, HttpResponse)
-        assert response.status_code == 202
+        assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.content == b""
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(

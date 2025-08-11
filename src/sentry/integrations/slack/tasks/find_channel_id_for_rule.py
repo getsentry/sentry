@@ -3,19 +3,23 @@ from collections.abc import Sequence
 from typing import Any
 
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.utils import (
-    SLACK_RATE_LIMITED_MESSAGE,
-    RedisRuleStatus,
+from sentry.integrations.slack.utils.channel import (
+    SlackChannelIdData,
+    get_channel_id_with_timeout,
     strip_channel_name,
 )
-from sentry.integrations.slack.utils.channel import SlackChannelIdData, get_channel_id_with_timeout
-from sentry.mediators.project_rules.creator import Creator
-from sentry.mediators.project_rules.updater import Updater
+from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
+from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.projects.project_rules.creator import ProjectRuleCreator
+from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_tasks
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
 
@@ -24,19 +28,22 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
     name="sentry.integrations.slack.tasks.search_channel_id_for_rule",
     queue="integrations",
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_tasks,
+    ),
 )
 def find_channel_id_for_rule(
-    project: Project,
     actions: Sequence[dict[str, Any]],
     uuid: str,
     rule_id: int | None = None,
     user_id: int | None = None,
+    project_id: int | None = None,
     **kwargs: Any,
 ) -> None:
     redis_rule_status = RedisRuleStatus(uuid)
 
     try:
-        project = Project.objects.get(id=project.id)
+        project = Project.objects.get_from_cache(id=project_id)
     except Project.DoesNotExist:
         redis_rule_status.set_value("failed")
         return
@@ -54,7 +61,9 @@ def find_channel_id_for_rule(
             break
 
     integrations = integration_service.get_integrations(
-        organization_id=organization.id, providers=["slack"], integration_ids=[integration_id]
+        organization_id=organization.id,
+        providers=[IntegrationProviderSlug.SLACK.value],
+        integration_ids=[integration_id],
     )
     if not integrations:
         redis_rule_status.set_value("failed")
@@ -106,9 +115,32 @@ def find_channel_id_for_rule(
 
         if rule_id:
             rule = Rule.objects.get(id=rule_id)
-            rule = Updater.run(rule=rule, pending_save=False, **kwargs)
+            rule = ProjectRuleUpdater(
+                rule=rule,
+                project=project,
+                name=kwargs.get("name"),
+                owner=kwargs.get("owner"),
+                environment=kwargs.get("environment"),
+                action_match=kwargs.get("action_match"),
+                filter_match=kwargs.get("filter_match"),
+                actions=actions,
+                conditions=kwargs.get("conditions"),
+                frequency=kwargs.get("frequency"),
+                request=kwargs.get("request"),
+            ).run()
         else:
-            rule = Creator.run(pending_save=False, **kwargs)
+            rule = ProjectRuleCreator(
+                name=kwargs["name"],
+                project=project,
+                action_match=kwargs["action_match"],
+                actions=actions,
+                conditions=kwargs["conditions"],
+                frequency=kwargs["frequency"],
+                environment=kwargs.get("environment"),
+                owner=kwargs.get("owner"),
+                filter_match=kwargs.get("filter_match"),
+                request=kwargs.get("request"),
+            ).run()
             if user_id:
                 RuleActivity.objects.create(
                     rule=rule, user_id=user_id, type=RuleActivityType.CREATED.value

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from enum import Enum, unique
+from enum import StrEnum, unique
 
 from sentry.utils import metrics
 
@@ -9,10 +9,13 @@ logger = logging.getLogger(__name__)
 
 
 @unique
-class Referrer(Enum):
+class Referrer(StrEnum):
     ALERTRULESERIALIZER_TEST_QUERY_PRIMARY = "alertruleserializer.test_query.primary"
     ALERTRULESERIALIZER_TEST_QUERY = "alertruleserializer.test_query"
     ANOMALY_DETECTION_HISTORICAL_DATA_QUERY = "anomaly_detection_historical_data_query"
+    ANOMALY_DETECTION_RETURN_HISTORICAL_ANOMALIES = (
+        "anomaly_detection_get_historical_anomalies_query"
+    )
     API_ALERTS_ALERT_RULE_CHART_METRICS_ENHANCED = "api.alerts.alert-rule-chart.metrics-enhanced"
     API_ALERTS_ALERT_RULE_CHART = "api.alerts.alert-rule-chart"
     API_ALERTS_CHARTCUTERIE = "api.alerts.chartcuterie"
@@ -69,6 +72,7 @@ class Referrer(Enum):
     API_DASHBOARDS_WIDGET_LINE_CHART = "api.dashboards.widget.line-chart"
 
     API_DISCOVER_TOTAL_COUNT_FIELD = "api.discover.total-events-field"
+    API_SPANS_TOTAL_COUNT_FIELD = "api.spans.total-events-field"
     API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD = (
         "api.discover.total-sum-transaction-duration-field"
     )
@@ -91,6 +95,13 @@ class Referrer(Enum):
     API_DISCOVER_TRANSACTIONS_LIST = "api.discover.transactions-list"
     API_EVENTS_MEASUREMENTS = "api.events.measurements"
     API_EVENTS_VITALS = "api.events.vitals"
+    API_EXPLORE_SPANS_AGGREGATES_TABLE = "api.explore.spans-aggregates-table"
+    API_EXPLORE_SPANS_SAMPLES_TABLE = "api.explore.spans-samples-table"
+    API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
+    API_EXPLORE_LOGS_TABLE = "api.explore.logs-table"
+    API_EXPLORE_LOGS_TABLE_ROW = "api.explore.logs-table-row"
+    API_GROUP_AI_AUTOFIX = "api.group_ai_autofix"
+    API_GROUP_AI_SUMMARY = "api.group_ai_summary"
     API_GROUP_EVENTS_ERROR_DIRECT_HIT = "api.group-events.error.direct-hit"
     API_GROUP_EVENTS_ERROR = "api.group-events.error"
     API_GROUP_EVENTS_PERFORMANCE_DIRECT_HIT = "api.group-events.performance.direct-hit"
@@ -101,9 +112,20 @@ class Referrer(Enum):
     )
     API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = "api.group_hashes_levels.get_levels_overview"
     API_GROUP_HASHES = "api.group-hashes"
+    API_INSIGHTS_APP_STARTS_DEVICE_CLASS_BREAKDOWN_BAR_CHART = (
+        "api.insights.appstarts.device-class-breakdown-bar-chart"
+    )
+    API_INSIGHTS_APP_STARTS_MOBILE_STARTUP_BAR_CHART = (
+        "api.insights.app-starts.mobile-startup-bar-chart"
+    )
+    API_INSIGHTS_USER_GEO_SUBREGION_SELECTOR = "api.insights.user-geo-subregion-selector"
+    API_INSIGHTS_RESOURCE_PAGE_QUERY = "api.insights.resource-page-query"
+    API_INSIGHTS_SCREENLOAD_SCREEN_BAR_CHART = "api.insights.screenload.screen-bar-chart"
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
     API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
     API_METRICS_TOTALS = "api.metrics.totals"
+    API_METRICS_TOTALS_INITIAL_QUERY = "api.metrics.totals.initial_query"
+    API_ORGANIZATION_TRACE_ITEM_DETAILS = "api.organization-trace-item-details"
     API_ORGANIZATION_EVENT_STATS_FIND_TOPN = "api.organization-event-stats.find-topn"
     API_ORGANIZATION_EVENT_STATS_METRICS_ENHANCED = "api.organization-event-stats.metrics-enhanced"
     API_ORGANIZATION_EVENT_STATS = "api.organization-event-stats"
@@ -159,11 +181,9 @@ class Referrer(Enum):
     API_ORGANIZATION_METRICS_DATA = "api.organization.metrics-data"
     API_ORGANIZATION_METRICS_ESTIMATION_STATS = "api.organization-metrics-estimation-stats"
     API_ORGANIZATION_METRICS_METADATA_FETCH_SPANS = "api.organization.metrics-metadata.fetch-spans"
-    API_ORGANIZATION_METRICS_METADATA_FETCH_METRICS_SUMMARIES = (
-        "api.organization.metrics-metadata.fetch-metrics-summaries"
-    )
     API_ORGANIZATION_METRICS_QUERY = "api.organization.metrics-query"
-    API_ORGANIZATION_METRICS_SAMPLES = "api.organization.metrics-samples"
+    API_ORGANIZATION_METRICS_EAP_QUERY = "api.organization.metrics-eap-query"
+    API_ORGANIZATION_ISSUES_COUNT = "api.organization-issues-count"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
     API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
@@ -171,6 +191,34 @@ class Referrer(Enum):
     API_ORGANIZATION_VITALS = "api.organization-vitals"
     API_PERFORMANCE_DURATIONPERCENTILECHART = "api.performance.durationpercentilechart"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
+    API_AI_PIPELINES_DETAILS_VIEW = "api.ai-pipelines.details.view"
+    API_PERFORMANCE_BROWSER_RESOURCE_MAIN_TABLE = "api.performance.browser.resources.main-table"
+    API_PERFORMANCE_BROWSER_RESOURCES_PAGE_SELECTOR = (
+        "api.performance.browser.resources.page-selector"
+    )
+    API_PERFORMANCE_BROWSER_RESOURCES_RESOURCE_SUMMARY_METRICS_RIBBON = (
+        "api.performance.browser.resources.resource-summary-metrics-ribbon"
+    )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_PROFILE_EXISTS = (
+        "api.performance.browser.web-vitals.profile-exists"
+    )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT = "api.performance.browser.web-vitals.project"
+    API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT_SCORES = (
+        "api.performance.browser.web-vitals.project-scores"
+    )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_PROJECT_SCORES_METRICS_ENHANCED_PRIMARY = (
+        "api.performance.browser.web-vitals.project-scores.metrics-enhanced.primary"
+    )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTION = (
+        "api.performance.browser.web-vitals.transaction"
+    )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_TRANSACTIONS_SCORES = (
+        "api.performance.browser.web-vitals.transactions-scores"
+    )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_TIMESERIES_SCORES = (
+        "api.performance.browser.web-vitals.timeseries-scores"
+    )
+    API_PERFORMANCE_BROWSER_WEB_VITALS_SPANS = "api.performance.browser.web-vitals.spans"
     API_PERFORMANCE_GENERIC_WIDGET_CHART_APDEX_AREA_METRICS_ENHANCED = (
         "api.performance.generic-widget-chart.apdex-area.metrics-enhanced"
     )
@@ -201,6 +249,9 @@ class Referrer(Enum):
     API_PERFORMANCE_GENERIC_WIDGET_CHART_FROZEN_FRAMES_AREA = (
         "api.performance.generic-widget-chart.frozen-frames-area"
     )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_HIGHEST_CACHE_MISS_RATE_TRANSACTIONS = (
+        "api.performance.generic-widget-chart.highest-cache--miss-rate-transactions"
+    )
     API_PERFORMANCE_GENERIC_WIDGET_CHART_LCP_HISTOGRAM = (
         "api.performance.generic-widget-chart.lcp-histogram"
     )
@@ -227,6 +278,15 @@ class Referrer(Enum):
     )
     API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_SLOW_FRAMES = (
         "api.performance.generic-widget-chart.most-slow-frames"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_CONSUMING_DOMAINS = (
+        "api.performance.generic-widget-chart.most-time-consuming-domains"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_CONSUMING_RESOURCES = (
+        "api.performance.generic-widget-chart.most-time-consuming-resources"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_MOST_TIME_SPENT_DB_QUERIES = (
+        "api.performance.generic-widget-chart.most-time-spent-db-queries"
     )
     API_PERFORMANCE_GENERIC_WIDGET_CHART_P50_DURATION_AREA_METRICS_ENHANCED = (
         "api.performance.generic-widget-chart.p50-duration-area.metrics-enhanced"
@@ -288,15 +348,24 @@ class Referrer(Enum):
     API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_RESOURCE_OPS = (
         "api.performance.generic-widget-chart.slow-resource-ops"
     )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_SCREENS_BY_TTID = (
+        "api.performance.generic-widget-chart.slow-screens-by-ttid"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_SCREENS_BY_COLD_START = (
+        "api.performance.generic-widget-chart.slow-screens-by-cold-start"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_SLOW_SCREENS_BY_WARM_START = (
+        "api.performance.generic-widget-chart.slow-screens-by-warm-start"
+    )
     API_PERFORMANCE_GENERIC_WIDGET_CHART_TPM_AREA_METRICS_ENHANCED = (
         "api.performance.generic-widget-chart.tpm-area.metrics-enhanced"
     )
     API_PERFORMANCE_GENERIC_WIDGET_CHART_TPM_AREA = "api.performance.generic-widget-chart.tpm-area"
-    API_PERFORMANCE_GENERIC_WIDGET_CHART_USER_MISERY_AREA_METRICS_ENHANCED = (
-        "api.performance.generic-widget-chart.user-misery-area.metrics-enhanced"
-    )
     API_PERFORMANCE_GENERIC_WIDGET_CHART_USER_MISERY_AREA = (
         "api.performance.generic-widget-chart.user-misery-area"
+    )
+    API_PERFORMANCE_GENERIC_WIDGET_CHART_USER_MISERY_AREA_METRICS_ENHANCED = (
+        "api.performance.generic-widget-chart.user-misery-area.metrics-enhanced"
     )
     API_PERFORMANCE_GENERIC_WIDGET_CHART_WARM_STARTUP_AREA_METRICS_ENHANCED = (
         "api.performance.generic-widget-chart.warm-startup-area.metrics-enhanced"
@@ -336,8 +405,16 @@ class Referrer(Enum):
     API_PERFORMANCE_LANDING_TABLE = "api.performance.landing-table"
     API_PERFORMANCE_STATUS_BREAKDOWN = "api.performance.status-breakdown"
     API_PERFORMANCE_TAG_PAGE = "api.performance.tag-page"
+    API_PERFORMANCE_TRACE_TRACE_DRAWER_TRANSACTION_CACHE_METRICS = (
+        "api.performance.trace.trace-drawer-transaction-cache-metrics"
+    )
+    API_PERFORMANCE_TRANSACTION_EVENTS = "api.performance.transaction-events"
+    API_PERFORMANCE_TRANSACTION_NAME_SEARCH_BAR = "api.performance.transaction-name-search-bar"
     API_PERFORMANCE_TRANSACTION_SPANS = "api.performance.transaction-spans"
     API_PERFORMANCE_TRANSACTION_SUMMARY_DURATION = "api.performance.transaction-summary.duration"
+    API_PERFORMANCE_TRANSACTION_SUMMARY_METRICS_ENHANCED_PRIMARY = (
+        "api.performance.transaction-summary.metrics-enhanced.primary"
+    )
     API_PERFORMANCE_TRANSACTION_SUMMARY_SIDEBAR_CHART_METRICS_ENHANCED = (
         "api.performance.transaction-summary.sidebar-chart.metrics-enhanced"
     )
@@ -360,15 +437,16 @@ class Referrer(Enum):
     API_PERFORMANCE_VITAL_DETAIL = "api.performance.vital-detail"
     API_PERFORMANCE_VITALS_CARDS = "api.performance.vitals-cards"
     API_PERFORMANCE_ORG_EVENT_AVERAGE_SPAN = "api.performance.org-event-average-span"
+    API_PROFILING_ONBOARDING = "profiling-onboarding"
     API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
     API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
     API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"
     API_PROFILING_PERFORMANCE_CHANGE_EXPLORER = "api.profiling.performance-change-explorer"
+    API_PROFILING_PROFILE_HAS_CHUNKS = "api.profiling.profile-has-chunks"
     API_PROFILING_PROFILE_SUMMARY_CHART = "api.profiling.profile-summary-chart"
     API_PROFILING_PROFILE_SUMMARY_TOTALS = "api.profiling.profile-summary-totals"
     API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
     API_PROFILING_PROFILE_SUMMARY_FUNCTIONS_TABLE = "api.profiling.profile-summary-functions-table"
-    API_PROFILING_PROFILE_FLAMEGRAPH = "api.profiling.profile-flamegraph"
     API_PROFILING_PROFILE_FLAMEGRAPH_TRANSACTION_CANDIDATES = (
         "api.profiling.profile-flamegraph-transaction-candidates"
     )
@@ -396,6 +474,9 @@ class Referrer(Enum):
     API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_EXAMPLE = (
         "api.profiling.functions.statistical-detector.example"
     )
+    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_CHUNKS = (
+        "api.profiling.functions.statistical-detector.chunks"
+    )
     API_PROFILING_FUNCTIONS_REGRESSION_EXAMPLES = "api.profiling.functions.regression.examples"
     API_PROFILING_FUNCTIONS_REGRESSION_LIST = "api.profiling.functions.regression.list"
     API_PROFILING_FUNCTIONS_REGRESSION_STATS = "api.profiling.functions.regression.stats"
@@ -409,18 +490,24 @@ class Referrer(Enum):
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
-
+    API_REPLAY_SUMMARIZE_BREADCRUMBS = "api.replay.summarize-breadcrumbs"
+    API_STARFISH_DATABASE_SYSTEM_SELECTOR = "api.starfish.database-system-selector"
     API_STARFISH_ENDPOINT_LIST = "api.starfish.endpoint-list"
+    API_STARFISH_FULL_SPAN_FROM_TRACE = "api.starfish.full-span-from-trace"
     API_STARFISH_GET_SPAN_ACTIONS = "api.starfish.get-span-actions"
     API_STARFISH_GET_SPAN_DOMAINS = "api.starfish.get-span-domains"
     API_STARFISH_GET_SPAN_OPERATIONS = "api.starfish.get-span-operations"
     API_STARFISH_SIDEBAR_SPAN_METRICS = "api.starfish.sidebar-span-metrics"
     API_STARFISH_SPAN_CATEGORY_BREAKDOWN = "api.starfish-web-service.span-category-breakdown"
+    API_STARFISH_SPAN_DESCRIPTION = "api.starfish.span-description"
     API_STARFISH_SPAN_LIST = "api.starfish.use-span-list"
     API_STARFISH_SPAN_LIST_PRIMARY = "api.starfish.use-span-list.primary"
     API_STARFISH_SPAN_SUMMARY_P95 = "api.starfish.span-summary-panel-samples-table-p95"
     API_STARFISH_SPAN_SUMMARY_PAGE = "api.starfish.span-summary-page-metrics"
     API_STARFISH_SPAN_SUMMARY_PANEL = "api.starfish.span-summary-panel-metrics"
+    API_STARFISH_SPAN_SUMMARY_PANEL_SAMPLES_TABLE_AVG = (
+        "api.starfish.span-summary-panel-samples-table-avg"
+    )
     API_STARFISH_SPAN_SUMMARY_TRANSACTIONS = (
         "api.starfish.span-summary-panel-samples-table-transactions"
     )
@@ -454,6 +541,8 @@ class Referrer(Enum):
     API_STARFISH_MOBILE_STARTUP_SPAN_TABLE = "api.starfish.mobile-spartup-span-table"
     API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES = "api.starfish.mobile-startup-loaded-libraries"
     API_STARFISH_MOBILE_STARTUP_TOTALS = "api.starfish.mobile-startup-totals"
+    API_STARFISH_MOBILE_SCREENS_METRICS = "api.starfish.mobile-screens-metrics"
+    API_STARFISH_MOBILE_SCREENS_SCREEN_TABLE = "api.starfish.mobile-screens-screen-table"
     API_TRACE_EXPLORER_METRICS_SPANS_LIST = "api.trace-explorer.metrics-spans-list"
     API_TRACE_EXPLORER_SPANS_LIST = "api.trace-explorer.spans-list"
     API_TRACE_EXPLORER_SPANS_LIST_SORTED = "api.trace-explorer.spans-list-sorted"
@@ -463,8 +552,26 @@ class Referrer(Enum):
     API_TRACE_EXPLORER_TRACES_ERRORS = "api.trace-explorer.traces-errors"
     API_TRACE_EXPLORER_TRACES_OCCURRENCES = "api.trace-explorer.traces-occurrences"
     API_TRACE_EXPLORER_TRACE_SPANS_LIST = "api.trace-explorer.trace-spans-list"
+    API_TRACE_EXPLORER_TRACE_SPANS_CANDIDATES_FLAMEGRAPH = (
+        "api.trace-explorer.trace-spans-flamegraph"
+    )
+    API_EXPLORE_COMPARE_SERIES = "api.explore.compare-series"
+    API_EXPLORE_COMPARE_TABLE = "api.explore.compare-table"
+    API_EXPLORE_MULTI_QUERY_SPANS_TABLE = "api.explore.multi-query-spans-table"
+    API_LOGS_TAG_KEYS_RPC = "api.logs.tags-keys.rpc"
+    API_LOGS_TAG_VALUES_RPC = "api.logs.tags-values.rpc"
+    API_LOGS_TAB_VIEW = "api.logs-tab.view"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
+    API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"
+    API_SPANS_TAG_VALUES = "api.spans.tags-values"
+    API_SPANS_FREQUENCY_STATS_RPC = "api.spans.fields-stats.rpc"
+    API_SPANS_TAG_VALUES_RPC = "api.spans.tags-values.rpc"
     API_SPANS_TRACE_VIEW = "api.spans.trace-view"
+
+    # Performance AI Module
+    API_PERFORMANCE_AI_ANALYTICS_TOKEN_USAGE_CHART = (
+        "api.performance.ai-analytics.token-usage-chart"
+    )
 
     # Performance Mobile UI Module
     API_PERFORMANCE_MOBILE_UI_BAR_CHART = "api.performance.mobile.ui.bar-chart"
@@ -476,32 +583,32 @@ class Referrer(Enum):
 
     # Performance Cache Module
     API_PERFORMANCE_CACHE_LANDING_CACHE_THROUGHPUT_CHART = (
-        "api.performance.cache.landing-cache-throughput-chart",
+        "api.performance.cache.landing-cache-throughput-chart"
     )
     API_PERFORMANCE_CACHE_LANDING_CACHE_TRANSACTION_LIST = (
-        "api.performance.cache.landing-cache-transaction-list",
+        "api.performance.cache.landing-cache-transaction-list"
     )
     API_PERFORMANCE_CACHE_LANDING_CACHE_TRANSACTION_DURATION = (
-        "api.performance.cache.landing-cache-transaction-duration",
+        "api.performance.cache.landing-cache-transaction-duration"
     )
 
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_METRICS_RIBBON = (
-        "api.performance.cache.samples-cache-metrics-ribbon",
+        "api.performance.cache.samples-cache-metrics-ribbon"
     )
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_TRANSACTION_DURATION_CHART = (
-        "api.performance.cache.samples-cache-transaction-duration-chart",
+        "api.performance.cache.samples-cache-transaction-duration-chart"
     )
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_TRANSACTION_DURATION = (
-        "api.performance.cache.samples-cache-transaction-duration",
+        "api.performance.cache.samples-cache-transaction-duration"
     )
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_SPAN_SAMPLES = (
-        "api.performance.cache.samples-cache-span-samples",
+        "api.performance.cache.samples-cache-span-samples"
     )
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_SPAN_SAMPLES_TRANSACTION_DURATION = (
-        "api.performance.cache.samples-cache-span-samples-transaction-duration",
+        "api.performance.cache.samples-cache-span-samples-transaction-duration"
     )
     API_PERFORMANCE_CACHE_SAMPLES_CACHE_HIT_MISS_CHART = (
-        "api.performance.cache.samples-cache-hit-miss-chart",
+        "api.performance.cache.samples-cache-hit-miss-chart"
     )
 
     # Performance Queues Module
@@ -566,6 +673,71 @@ class Referrer(Enum):
         "api.performance.span-summary-transaction-throughput-chart"
     )
 
+    # Performance Backend Laravel Overview Page
+    API_PERFORMANCE_BACKEND_OVERVIEW_API_TABLE = "api.performance.backend.overview.api-table"
+    API_PERFORMANCE_BACKEND_OVERVIEW_REQUESTS_CHART = (
+        "api.performance.backend.overview.requests-chart"
+    )
+    API_PERFORMANCE_BACKEND_OVERVIEW_DURATION_CHART = (
+        "api.performance.backend.overview.duration-chart"
+    )
+    API_PERFORMANCE_BACKEND_OVERVIEW_JOBS_CHART = "api.performance.backend.overview.jobs-chart"
+    API_PERFORMANCE_BACKEND_OVERVIEW_PAGES_TABLE = "api.performance.backend.overview.pages-table"
+    API_PERFORMANCE_BACKEND_OVERVIEW_QUERIES_CHART = (
+        "api.performance.backend.overview.queries-chart"
+    )
+    API_PERFORMANCE_BACKEND_OVERVIEW_CACHE_CHART = "api.performance.backend.overview.cache-chart"
+    API_PERFORMANCE_BACKEND_OVERVIEW_CLIENT_TABLE = "api.performance.backend.overview.client-table"
+    API_PERFORMANCE_BACKEND_OVERVIEW_PATHS_TABLE = "api.performance.backend.overview.paths-table"
+    API_PERFORMNACE_BACKEND_OVERVIEW_SLOW_SSR_CHART = (
+        "api.performance.backend.overview.slow-ssr-chart"
+    )
+    API_PERFORMANCE_BACKEND_OVERVIEW_WEB_VITALS_CHART = (
+        "api.performance.backend.overview.web-vitals-chart"
+    )
+    API_PERFORMANCE_BACKEND_OVERVIEW_NEXTJS_API_TREE = "api.performance.nextjs.overview.api-tree"
+
+    # Performance Agent Monitoring Module
+    API_PERFORMANCE_AGENT_MONITORING_MODELS_TABLE = "api.performance.agent-monitoring.models-table"
+    API_PERFORMANCE_AGENT_MONITORING_TOOLS_TABLE = "api.performance.agent-monitoring.tools-table"
+    API_PERFORMANCE_AGENT_MONITORING_TRACE_DRAWER = "api.performance.agent-monitoring.trace-drawer"
+    API_PERFORMANCE_AGENT_MONITORING_TRACES_TABLE = "api.performance.agent-monitoring.traces-table"
+    API_PERFORMANCE_AGENT_MONITORING_TOKEN_USAGE_WIDGET = (
+        "api.performance.agent-monitoring.token-usage-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_TOOL_USAGE_WIDGET = (
+        "api.performance.agent-monitoring.tool-usage-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_LLM_GENERATIONS_WIDGET = (
+        "api.performance.agent-monitoring.llm-generations-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_AGENT_RUNS_WIDGET = (
+        "api.performance.agent-monitoring.agent-runs-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_AGENT_DURATION_WIDGET = (
+        "api.performance.agent-monitoring.agent-duration-widget"
+    )
+    API_PERFORMANCE_AGENT_MONITORING_ONBOARDING = "api.performance.agent-monitoring.onboarding"
+
+    # Performance MCP Module
+    API_PERFORMANCE_MCP_TRAFFIC_WIDGET = "api.performance.mcp.traffic-widget"
+    API_PERFORMANCE_MCP_TRANSPORT_WIDGET = "api.performance.mcp.transport-widget"
+    API_PERFORMANCE_MCP_TRAFFIC_BY_CLIENT_WIDGET = "api.performance.mcp.traffic-by-client-widget"
+    API_PERFORMANCE_MCP_TOOL_TRAFFIC_WIDGET = "api.performance.mcp.tool-traffic-widget"
+    API_PERFORMANCE_MCP_PROMPT_TRAFFIC_WIDGET = "api.performance.mcp.prompt-traffic-widget"
+    API_PERFORMANCE_MCP_RESOURCE_TRAFFIC_WIDGET = "api.performance.mcp.resource-traffic-widget"
+    API_PERFORMANCE_MCP_TOOL_DURATION_WIDGET = "api.performance.mcp.tool-duration-widget"
+    API_PERFORMANCE_MCP_PROMPT_DURATION_WIDGET = "api.performance.mcp.prompt-duration-widget"
+    API_PERFORMANCE_MCP_RESOURCE_DURATION_WIDGET = "api.performance.mcp.resource-duration-widget"
+    API_PERFORMANCE_MCP_TOOL_ERROR_RATE_WIDGET = "api.performance.mcp.tool-error-rate-widget"
+    API_PERFORMANCE_MCP_PROMPT_ERROR_RATE_WIDGET = "api.performance.mcp.prompt-error-rate-widget"
+    API_PERFORMANCE_MCP_RESOURCE_ERROR_RATE_WIDGET = (
+        "api.performance.mcp.resource-error-rate-widget"
+    )
+    API_PERFORMANCE_MCP_TOOL_TABLE = "api.performance.mcp.tool-table"
+    API_PERFORMANCE_MCP_PROMPT_TABLE = "api.performance.mcp.prompt-table"
+    API_PERFORMANCE_MCP_RESOURCE_TABLE = "api.performance.mcp.resource-table"
+
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"
@@ -576,11 +748,17 @@ class Referrer(Enum):
     API_TRACE_VIEW_GET_TIMESTAMP_PROJECTS = "api.trace-view.get-timestamp-projects"
     API_TRACE_VIEW_GET_EVENTS = "api.trace-view.get-events"
     API_TRACE_VIEW_GET_META = "api.trace-view.get-meta"
+    API_TRACE_VIEW_SPAN_META = "api.trace-view.spans-meta"
+    API_TRACE_VIEW_SPAN_OP_META = "api.trace-view.spans-op-count"
+    API_TRACE_VIEW_TRANSACTION_CHILDREN = "api.trace-view.transaction-children"
+    API_TRACE_VIEW_LOGS_META = "api.trace-view.logs-meta"
+    API_TRACE_VIEW_LOGS = "api.trace-view.logs"
     API_TRACE_VIEW_HOVER_CARD = "api.trace-view.hover-card"
     API_TRACE_VIEW_SPAN_DETAIL = "api.trace-view.span-detail"
     API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES = "api.trace-view.count-performance-issues"
     API_TRACE_VIEW_GET_PARENTS = "api.trace-view.get-parents"
     API_TRACE_VIEW_GET_OCCURRENCE_IDS = "api.trace-view.get-occurrence-ids"
+    API_TRACE_VIEW_LINKED_TRACES = "api.trace-view.linked-traces"
     API_TRENDS_GET_EVENT_STATS = "api.trends.get-event-stats"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS = "api.trends.get-event-statsv2.top-events"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS_PRIMARY = (
@@ -594,6 +772,7 @@ class Referrer(Enum):
         "api.trends.get-event-statsv2.timeseries.metrics-enhanced"
     )
     API_TRENDS_GET_PERCENTAGE_CHANGE = "api.trends.get-percentage-change"
+    API_UPTIME_CHECKS_GRID = "api.uptime-checks-grid"
     API_VROOM = "api.vroom"
     BACKFILL_PERF_ISSUE_EVENTS = "migration.backfill_perf_issue_events_issue_platform"
     DATA_EXPORT_TASKS_DISCOVER = "data_export.tasks.discover"
@@ -638,6 +817,7 @@ class Referrer(Enum):
     DYNAMIC_SAMPLING_TASKS_CUSTOM_RULE_NOTIFICATIONS = (
         "dynamic_sampling.tasks.custom_rule_notifications"
     )
+    DYNAMIC_SAMPLING_SETTINGS_GET_SPAN_COUNTS = "dynamic_sampling.settings.get_project_span_counts"
     ESCALATING_GROUPS = "sentry.issues.escalating"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.backend.get_event_by_id_nodestore"
     EVENTSTORE_GET_EVENTS = "eventstore.get_events"
@@ -654,13 +834,21 @@ class Referrer(Enum):
         "getsentry.promotion.mobile_performance_adoption.check_eligible"
     )
     GITHUB_PR_COMMENT_BOT = "tasks.github_comment"
+    GITLAB_PR_COMMENT_BOT = "tasks.gitlab_comment"
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"
+    GROUP_GET_HELPFUL = "Group.get_helpful"
     GROUP_GET_LATEST = "Group.get_latest"
     GROUP_UNHANDLED_FLAG = "group.unhandled-flag"
     GROUPING_RECORDS_BACKFILL_REFERRER = "getsentry.tasks.backfill_grouping_records"
     INCIDENTS_GET_INCIDENT_AGGREGATES_PRIMARY = "incidents.get_incident_aggregates.primary"
     INCIDENTS_GET_INCIDENT_AGGREGATES = "incidents.get_incident_aggregates"
     IS_ESCALATING_GROUP = "sentry.issues.escalating.is_escalating"
+    ISSUE_DETAILS_STREAMLINE_GRAPH = "issue_details.streamline_graph"
+    ISSUE_DETAILS_STREAMLINE_LIST = "issue_details.streamline_list"
+
+    INSIGHTS_MOBILE_HAS_TTFDCONFIGURED = "insights.mobile.hasTTFDConfigured"
+    INSIGHTS_TIME_SPENT_TOTAL_TIME = "insights.time_spent.total_time"
+
     METRIC_EXTRACTION_CARDINALITY_CHECK = "metric_extraction.cardinality_check"
     OUTCOMES_TIMESERIES = "outcomes.timeseries"
     OUTCOMES_TOTALS = "outcomes.totals"
@@ -749,6 +937,8 @@ class Referrer(Enum):
     REPLAYS_QUERY_QUERY_REPLAYS_DATASET_SUBQUERY = "replays.query.query_replays_dataset_subquery"
     REPLAYS_QUERY_BROWSE_SIMPLE_AGGREGATION = "replays.query.browse_simple_aggregation"
     REPLAYS_FILE_REFERRER = "replays.query.download_replay_segments"
+    REPLAYS_SCRIPTS_DELETE_REPLAYS = "replays.scripts.delete_replays"
+    FEEDBACKS_LABEL_QUERY = "feedbacks.label_query"
     REPORTS_KEY_ERRORS = "reports.key_errors"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
     REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"
@@ -769,6 +959,7 @@ class Referrer(Enum):
     SEARCH_GROUP_INDEX_SAMPLE = "search.group_index_sample"
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_QUERY = "search.snuba.group_attributes_search.query"
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_HITS = "search.snuba.group_attributes_search.hits"
+    SEER_RPC = "seer.rpc"
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
         "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
     )
@@ -834,6 +1025,11 @@ class Referrer(Enum):
     TAGSTORE_GET_RELEASE_TAGS = "tagstore.get_release_tags"
     TAGSTORE_GET_TAG_VALUE_PAGINATOR_FOR_PROJECTS = "tagstore.get_tag_value_paginator_for_projects"
     TASKS_MONITOR_RELEASE_ADOPTION = "tasks.monitor_release_adoption"
+    TASKS_UPDATE_USER_REPORTS = "tasks.update_user_reports"
+    TASKS_PERFORMANCE_SPLIT_DISCOVER_DATASET = "tasks.performance.split_discover_dataset"
+    TASKS_PERFORMANCE_SPLIT_DISCOVER_DATASET_METRICS_ENHANCED = (
+        "tasks.performance.split_discover_dataset.metrics-enhanced"
+    )
     TASKS_PROCESS_PROJECTS_WITH_SESSIONS_SESSION_COUNT = (
         "tasks.process_projects_with_sessions.session_count"
     )
@@ -878,10 +1074,18 @@ class Referrer(Enum):
     TSDB_MODELID_4_frequency_snoozes = "tsdb-modelid:4.frequency_snoozes"
     TSDB_MODELID_4_alert_event_frequency = "tsdb-modelid:4.alert_event_frequency"
     TSDB_MODELID_4_alert_event_frequency_percent = "tsdb-modelid:4.alert_event_frequency_percent"
+    TSDB_MODELID_4_batch_alert_event_frequency = "tsdb-modelid:4.batch_alert_event_frequency"
     TSDB_MODELID_20_alert_event_frequency = "tsdb-modelid:20.alert_event_frequency"
     TSDB_MODELID_300_user_count_snoozes = "tsdb-modelid:300.user_count_snoozes"
     TSDB_MODELID_300_alert_event_uniq_user_frequency = (
         "tsdb-modelid:300.alert_event_uniq_user_frequency"
+    )
+    TSDB_MODELID_4_wf_batch_alert_event_frequency = "tsdb-modelid:4.wf_batch_alert_event_frequency"
+    TSDB_MODELID_4_wf_batch_alert_event_frequency_percent = (
+        "tsdb-modelid:4.wf_batch_alert_event_frequency_percent"
+    )
+    TSDB_MODELID_300_wf_batch_alert_event_uniq_user_frequency = (
+        "tsdb-modelid:300.wf_batch_alert_event_uniq_user_frequency"
     )
 
     UNKNOWN = "unknown"
@@ -894,12 +1098,17 @@ class Referrer(Enum):
     ALERTS_MIGRATION_SCRIPT = "alerts.migration_script"
     ALERTS_MIGRATION_SCRIPT_METRICS_ENHANCED = "alerts.migration_script.metrics-enhanced"
 
+    # Getsentry scripts
+    DELETE_EVENTS_FROM_FILE = "delete-events-from-file"
+
     # Referrers in tests
     TESTING_GET_FACETS_TEST = "testing.get-facets-test"
     TESTING_TEST = "testing.test"
     TEST_QUERY_PRIMARY = "test_query.primary"
     TEST_QUERY = "test_query"
     METRIC_VALIDATION = "metric_validation"
+
+    JOB_COMPARE_TIMESERIES = "job-runner.compare-timeseries"
 
 
 VALUES = {referrer.value for referrer in Referrer}
@@ -908,16 +1117,23 @@ VALUES = {referrer.value for referrer in Referrer}
 VALID_SUFFIXES = ["primary", "secondary"]
 
 
-def validate_referrer(referrer: str | None) -> None:
+def is_valid_referrer(referrer: str | None) -> bool:
     if not referrer:
-        return
+        return True
 
     if referrer in VALUES:
-        return
+        return True
 
     for suffix in VALID_SUFFIXES:
         if referrer.removesuffix(f".{suffix}") in VALUES:
-            return
+            return True
+
+    return False
+
+
+def validate_referrer(referrer: str | None) -> bool:
+    if is_valid_referrer(referrer):
+        return True
 
     error_message = f"referrer {referrer} is not part of Referrer Enum"
 
@@ -926,3 +1142,5 @@ def validate_referrer(referrer: str | None) -> None:
     except Exception:
         metrics.incr("snql.sdk.api.new_referrers", tags={"referrer": referrer})
         logger.warning(error_message, exc_info=True)
+
+    return False

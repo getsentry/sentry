@@ -132,6 +132,7 @@ describe('DropdownMenu', function () {
 
   it('renders submenus', async function () {
     const onAction = jest.fn();
+    const onOpenChange = jest.fn();
 
     render(
       <DropdownMenu
@@ -154,10 +155,12 @@ describe('DropdownMenu', function () {
           },
         ]}
         triggerLabel="Menu"
+        onOpenChange={onOpenChange}
       />
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    expect(onOpenChange).toHaveBeenCalledTimes(1);
 
     // Sub item won't be visible until we hover over its parent
     expect(
@@ -166,7 +169,6 @@ describe('DropdownMenu', function () {
 
     const parentItem = screen.getByRole('menuitemradio', {name: 'Item'});
 
-    expect(parentItem).toHaveAttribute('aria-haspopup', 'true');
     expect(parentItem).toHaveAttribute('aria-expanded', 'false');
 
     await userEvent.hover(parentItem);
@@ -191,6 +193,7 @@ describe('DropdownMenu', function () {
     expect(onAction).toHaveBeenCalled();
 
     // Entire menu system is closed
+    expect(onOpenChange).toHaveBeenCalledTimes(2);
     expect(screen.getByRole('button', {name: 'Menu'})).toHaveAttribute(
       'aria-expanded',
       'false'
@@ -198,9 +201,11 @@ describe('DropdownMenu', function () {
 
     // Pressing Esc closes the entire menu system
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    expect(onOpenChange).toHaveBeenCalledTimes(3);
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Item'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Sub Item'}));
     await userEvent.keyboard('{Escape}');
+    expect(onOpenChange).toHaveBeenCalledTimes(4);
     expect(screen.getByRole('button', {name: 'Menu'})).toHaveAttribute(
       'aria-expanded',
       'false'
@@ -208,9 +213,11 @@ describe('DropdownMenu', function () {
 
     // Clicking outside closes the entire menu system
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    expect(onOpenChange).toHaveBeenCalledTimes(5);
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Item'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Sub Item'}));
     await userEvent.click(document.body);
+    expect(onOpenChange).toHaveBeenCalledTimes(6);
     expect(screen.getByRole('button', {name: 'Menu'})).toHaveAttribute(
       'aria-expanded',
       'false'
@@ -249,5 +256,139 @@ describe('DropdownMenu', function () {
 
     // Items should not appear
     expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
+  });
+
+  it('closes after clicking link', async function () {
+    render(
+      <DropdownMenu
+        items={[{key: 'item1', label: 'Item One', to: '/test'}]}
+        triggerLabel="Menu"
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Item One'}));
+    await waitFor(() => {
+      expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
+    });
+  });
+
+  it('closes after clicking external link', async function () {
+    render(
+      <DropdownMenu
+        items={[{key: 'item1', label: 'Item One', externalHref: 'https://example.com'}]}
+        triggerLabel="Menu"
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Item One'}));
+    await waitFor(() => {
+      expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
+    });
+  });
+
+  it('navigates to link on enter', async function () {
+    const onAction = jest.fn();
+    const {router} = render(
+      <DropdownMenu
+        items={[
+          {key: 'item1', label: 'Item One', to: '/test'},
+          {key: 'item2', label: 'Item Two', to: '/test2', onAction},
+        ]}
+        triggerLabel="Menu"
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => {
+      expect(router.location.pathname).toBe('/test2');
+    });
+    expect(onAction).toHaveBeenCalledTimes(1);
+  });
+
+  it('navigates to link on meta key', async function () {
+    const onAction = jest.fn();
+    const user = userEvent.setup();
+
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    render(
+      <DropdownMenu
+        items={[
+          {key: 'item1', label: 'Item One', to: '/test'},
+          {key: 'item2', label: 'Item Two', to: '/test2', onAction},
+        ]}
+        triggerLabel="Menu"
+      />
+    );
+
+    await user.click(screen.getByRole('button', {name: 'Menu'}));
+    await user.keyboard('{ArrowDown}');
+    await user.keyboard('[MetaLeft>]'); // Press meta key without releasing
+    await user.keyboard('{Enter}');
+    await user.keyboard('[/MetaLeft]'); // Release meta key
+
+    expect(onAction).toHaveBeenCalledTimes(1);
+    // JSDOM throws an error on navigation to random urls
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+
+    errorSpy.mockRestore();
+  });
+
+  it('navigates to external link enter', async function () {
+    const onAction = jest.fn();
+    const user = userEvent.setup();
+
+    render(
+      <DropdownMenu
+        items={[
+          {key: 'item1', label: 'Item One', externalHref: 'https://example.com/foo'},
+          {
+            key: 'item2',
+            label: 'Item Two',
+            externalHref: 'https://example.com/bar',
+            onAction,
+          },
+        ]}
+        triggerLabel="Menu"
+      />
+    );
+
+    await user.click(screen.getByRole('button', {name: 'Menu'}));
+    await user.keyboard('{ArrowDown}');
+    await user.keyboard('{Enter}');
+
+    expect(onAction).toHaveBeenCalledTimes(1);
+  });
+
+  it('should allow opening of a nearby menu', async function () {
+    // render two menus
+    render(
+      <Fragment>
+        <DropdownMenu items={[{key: 'item1', label: 'Item One'}]} triggerLabel="Menu A" />
+        <DropdownMenu items={[{key: 'item2', label: 'Item Two'}]} triggerLabel="Menu B" />
+      </Fragment>
+    );
+
+    // Open menu A
+    await userEvent.click(screen.getByRole('button', {name: 'Menu A'}));
+
+    // Open menu B
+    await userEvent.click(screen.getByRole('button', {name: 'Menu B'}));
+
+    // Menu B should be open
+    const menuB = await screen.findByRole('menuitemradio', {name: 'Item Two'});
+    expect(menuB).toBeInTheDocument();
+    await waitFor(() => {
+      expect(menuB).toHaveFocus();
+    });
+
+    // Menu A should be closed
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Item One'})
+    ).not.toBeInTheDocument();
   });
 });

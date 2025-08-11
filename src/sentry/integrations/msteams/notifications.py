@@ -10,9 +10,8 @@ from sentry.integrations.msteams.card_builder.block import AdaptiveCard
 from sentry.integrations.msteams.utils import get_user_conversation_id
 from sentry.integrations.notifications import get_context, get_integrations_by_channel_by_recipient
 from sentry.integrations.types import ExternalProviders
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
+from sentry.notifications.notifications.activity.base import GroupActivityNotification
 from sentry.notifications.notifications.activity.escalating import EscalatingActivityNotification
 from sentry.notifications.notifications.activity.note import NoteActivityNotification
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
@@ -47,8 +46,13 @@ SUPPORTED_NOTIFICATION_TYPES = [
     RegressionActivityNotification,
     EscalatingActivityNotification,
 ]
-MESSAGE_BUILDERS = {
+
+BASE_MESSAGE_BUILDERS = {
     "SlackNotificationsMessageBuilder": MSTeamsNotificationsMessageBuilder,
+}
+
+# For Group-based notifications, it is possible we use a builder that is generic OR uses a group-specific builder
+GROUP_MESSAGE_BUILDERS = BASE_MESSAGE_BUILDERS | {
     "IssueNotificationMessageBuilder": MSTeamsIssueNotificationsMessageBuilder,
 }
 
@@ -62,10 +66,19 @@ def is_supported_notification_type(notification: BaseNotification) -> bool:
     )
 
 
-def get_notification_card(
-    notification: BaseNotification, context: Mapping[str, Any], recipient: User | Team | Actor
+def get_group_notification_card(
+    notification: GroupActivityNotification | AlertRuleNotification,
+    context: Mapping[str, Any],
+    recipient: Actor,
 ) -> AdaptiveCard:
-    cls = MESSAGE_BUILDERS[notification.message_builder]
+    cls = GROUP_MESSAGE_BUILDERS[notification.message_builder]
+    return cls(notification, context, recipient).build_notification_card()
+
+
+def get_base_notification_card(
+    notification: BaseNotification, context: Mapping[str, Any], recipient: Actor
+) -> AdaptiveCard:
+    cls = BASE_MESSAGE_BUILDERS[notification.message_builder]
     return cls(notification, context, recipient).build_notification_card()
 
 
@@ -82,9 +95,7 @@ def send_notification_as_msteams(
         )
         return
 
-    with sentry_sdk.start_span(
-        op="notification.send_msteams", description="gen_channel_integration_map"
-    ):
+    with sentry_sdk.start_span(op="notification.send_msteams", name="gen_channel_integration_map"):
         data = get_integrations_by_channel_by_recipient(
             organization=notification.organization,
             recipients=recipients,
@@ -92,14 +103,17 @@ def send_notification_as_msteams(
         )
 
         for recipient, integrations_by_channel in data.items():
-            with sentry_sdk.start_span(op="notification.send_msteams", description="send_one"):
+            with sentry_sdk.start_span(op="notification.send_msteams", name="send_one"):
                 extra_context = (extra_context_by_actor or {}).get(recipient, {})
                 context = get_context(notification, recipient, shared_context, extra_context)
 
-                with sentry_sdk.start_span(
-                    op="notification.send_msteams", description="gen_attachments"
-                ):
-                    card = get_notification_card(notification, context, recipient)
+                with sentry_sdk.start_span(op="notification.send_msteams", name="gen_attachments"):
+                    if isinstance(notification, GroupActivityNotification) or isinstance(
+                        notification, AlertRuleNotification
+                    ):
+                        card = get_group_notification_card(notification, context, recipient)
+                    else:
+                        card = get_base_notification_card(notification, context, recipient)
 
                 for channel, integration in integrations_by_channel.items():
                     conversation_id = get_user_conversation_id(integration, channel)
@@ -107,7 +121,7 @@ def send_notification_as_msteams(
                     client = MsTeamsClient(integration)
                     try:
                         with sentry_sdk.start_span(
-                            op="notification.send_msteams", description="notify_recipient"
+                            op="notification.send_msteams", name="notify_recipient"
                         ):
                             client.send_card(conversation_id, card)
 

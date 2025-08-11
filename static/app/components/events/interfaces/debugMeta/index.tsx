@@ -1,33 +1,33 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import type {ListRowProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualized';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
-import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
+import {Button} from 'sentry/components/core/button';
+import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
 import {
   DebugImageDetails,
   modalCss,
 } from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
+import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
-import type {Image} from 'sentry/types/debugImage';
+import type {Image, ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
-import type {Event} from 'sentry/types/event';
+import type {EntryDebugMeta, Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
 import SectionToggleButton from 'sentry/views/issueDetails/sectionToggleButton';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
-
-import SearchBarAction from '../searchBarAction';
 
 import Status from './debugImage/status';
 import DebugImage from './debugImage';
@@ -37,26 +37,40 @@ import {
   getFileName,
   IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT,
   normalizeId,
-  shouldSkipSection,
 } from './utils';
 
-const IMAGE_INFO_UNAVAILABLE = '-1';
+function shouldSkipSection(
+  filteredImages: Image[],
+  images: EntryDebugMeta['data']['images']
+) {
+  if (filteredImages.length) {
+    return false;
+  }
 
-type Images = Array<React.ComponentProps<typeof DebugImage>['image']>;
+  const definedImages = images?.filter(image => defined(image));
+
+  if (!definedImages?.length) {
+    return true;
+  }
+
+  if (definedImages.every(image => image.type === 'proguard')) {
+    return true;
+  }
+
+  return false;
+}
 
 interface DebugMetaProps {
-  data: {
-    images: Array<Image | null>;
-  };
+  data: EntryDebugMeta['data'];
   event: Event;
   projectSlug: Project['slug'];
   groupId?: Group['id'];
 }
 
 interface FilterState {
-  allImages: Images;
-  filterOptions: SelectSection<string>[];
-  filterSelections: SelectOption<string>[];
+  allImages: ImageWithCombinedStatus[];
+  filterOptions: Array<SelectSection<string>>;
+  filterSelections: Array<SelectOption<string>>;
 }
 
 const cache = new CellMeasurerCache({
@@ -65,8 +79,8 @@ const cache = new CellMeasurerCache({
 });
 
 function applyImageFilters(
-  images: Images,
-  filterSelections: SelectOption<string>[],
+  images: ImageWithCombinedStatus[],
+  filterSelections: Array<SelectOption<string>>,
   searchTerm: string
 ) {
   const selections = new Set(filterSelections.map(option => option.value));
@@ -86,8 +100,8 @@ function applyImageFilters(
       if (term.indexOf('0x') === 0) {
         const needle = parseAddress(term);
         if (needle > 0 && image.image_addr !== '0x0') {
-          const [startAddress, endAddress] = getImageRange(image as any); // TODO(PRISCILA): remove any
-          return needle >= startAddress && needle < endAddress;
+          const [startAddress, endAddress] = getImageRange(image);
+          return needle >= startAddress! && needle < endAddress!;
         }
       }
 
@@ -110,6 +124,7 @@ function applyImageFilters(
 }
 
 export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
+  const theme = useTheme();
   const organization = useOrganization();
   const listRef = useRef<List>(null);
   const panelTableRef = useRef<HTMLDivElement>(null);
@@ -124,13 +139,11 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   const getRelevantImages = useCallback(() => {
-    const {images} = data;
-
     // There are a bunch of images in debug_meta that are not relevant to this
     // component. Filter those out to reduce the noise. Most importantly, this
     // includes proguard images, which are rendered separately.
 
-    const relevantImages = images.filter(image => {
+    const relevantImages = data.images?.filter((image): image is Image => {
       // in particular proguard images do not have a code file, skip them
       if (image === null || image.code_file === null || image.type === 'proguard') {
         return false;
@@ -144,17 +157,19 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       return true;
     });
 
-    if (!relevantImages.length) {
+    if (!relevantImages?.length) {
       return;
     }
 
-    const formattedRelevantImages = relevantImages.map(releventImage => {
-      const {debug_status, unwind_status} = releventImage as Image;
-      return {
-        ...releventImage,
-        status: combineStatus(debug_status, unwind_status),
-      };
-    }) as Images;
+    const formattedRelevantImages = relevantImages.map<ImageWithCombinedStatus>(
+      releventImage => {
+        return {
+          ...releventImage,
+          // 'debug_status' and 'unwind_status' are only used by native platforms
+          status: combineStatus(releventImage.debug_status, releventImage.unwind_status),
+        };
+      }
+    );
 
     // Sort images by their start address. We assume that images have
     // non-overlapping ranges. Each address is given as hex string (e.g.
@@ -163,17 +178,17 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       (a, b) => parseAddress(a.image_addr) - parseAddress(b.image_addr)
     );
 
-    const unusedImages: Images = [];
+    const unusedImages: ImageWithCombinedStatus[] = [];
 
     const usedImages = formattedRelevantImages.filter(image => {
       if (image.debug_status === ImageStatus.UNUSED) {
-        unusedImages.push(image as Images[0]);
+        unusedImages.push(image);
         return false;
       }
       return true;
-    }) as Images;
+    });
 
-    const allImages = [...usedImages, ...unusedImages];
+    const allImages: ImageWithCombinedStatus[] = [...usedImages, ...unusedImages];
 
     const filterOptions = [
       {
@@ -187,7 +202,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     ];
 
     const defaultFilterSelections = (
-      'options' in filterOptions[0] ? filterOptions[0].options : []
+      'options' in filterOptions[0]! ? filterOptions[0].options : []
     ).filter(opt => opt.value !== ImageStatus.UNUSED);
 
     setFilterState({
@@ -227,7 +242,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   }, [listRef, getScrollbarWidth]);
 
   const getEmptyMessage = useCallback(
-    images => {
+    (images: ImageWithCombinedStatus[]) => {
       const {filterSelections} = filterState;
 
       if (images.length) {
@@ -238,7 +253,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
         const hasActiveFilter = filterSelections.length > 0;
 
         return {
-          emptyMessage: t('Sorry, no images match your search query'),
+          emptyMessage: t('No images match your search query'),
           emptyAction: hasActiveFilter ? (
             <Button
               onClick={() => setFilterState(fs => ({...fs, filterSelections: []}))}
@@ -262,20 +277,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
   );
 
   const handleOpenImageDetailsModal = useCallback(
-    (imageCodeId: Image['code_id'], imageDebugId: Image['debug_id']) => {
-      const {allImages} = filterState;
-      if (!imageCodeId && !imageDebugId) {
-        return;
-      }
-
-      const image =
-        imageCodeId !== IMAGE_INFO_UNAVAILABLE || imageDebugId !== IMAGE_INFO_UNAVAILABLE
-          ? allImages.find(
-              ({code_id, debug_id}) =>
-                code_id === imageCodeId || debug_id === imageDebugId
-            )
-          : undefined;
-
+    (image: ImageWithCombinedStatus) => {
       openModal(
         deps => (
           <DebugImageDetails
@@ -289,10 +291,10 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             }
           />
         ),
-        {modalCss}
+        {modalCss: modalCss(theme)}
       );
     },
-    [filterState, event, groupId, handleReprocessEvent, organization, projectSlug]
+    [event, groupId, handleReprocessEvent, organization, projectSlug, theme]
   );
 
   // This hook replaces the componentDidMount/WillUnmount calls from its class component
@@ -325,7 +327,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     parent,
     style,
     images,
-  }: ListRowProps & {images: Images}) {
+  }: ListRowProps & {images: ImageWithCombinedStatus[]}) {
     return (
       <CellMeasurer
         cache={cache}
@@ -336,14 +338,14 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
       >
         <DebugImage
           style={style}
-          image={images[index]}
+          image={images[index]!}
           onOpenImageDetailsModal={handleOpenImageDetailsModal}
         />
       </CellMeasurer>
     );
   }
 
-  function renderList(images: Images) {
+  function renderList(images: ImageWithCombinedStatus[]) {
     return (
       <AutoSizer disableHeight onResize={updateGrid}>
         {({width}) => (
@@ -354,7 +356,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
             overscanRowCount={5}
             rowCount={images.length}
             rowHeight={cache.rowHeight}
-            rowRenderer={listRowProps => renderRow({...listRowProps, images})}
+            rowRenderer={(listRowProps: any) => renderRow({...listRowProps, images})}
             width={width}
             isScrolling={false}
           />
@@ -367,9 +369,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
 
   const filteredImages = applyImageFilters(allImages, filterSelections, searchTerm);
 
-  const {images} = data;
-
-  if (shouldSkipSection(filteredImages, images)) {
+  if (shouldSkipSection(filteredImages, data.images)) {
     return null;
   }
 
@@ -388,18 +388,18 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
 
   return (
     <InterimSection
-      type={FoldSectionKey.DEBUGMETA}
-      guideTarget="images-loaded"
+      type={SectionKey.DEBUGMETA}
       title={t('Images Loaded')}
       help={t(
-        'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
+        'A list of dynamic libraries, shared objects or source maps loaded into process memory at the time of the crash. Images contribute to the application code that is referenced in stack traces.'
       )}
       actions={actions}
+      initialCollapse
     >
       {isOpen || hasStreamlinedUI ? (
         <Fragment>
           <StyledSearchBarAction
-            placeholder={t('Search images loaded')}
+            placeholder={t('Search images')}
             onChange={value => DebugMetaStore.updateFilter(value)}
             query={searchTerm}
             filterOptions={showFilters ? filterOptions : undefined}
@@ -441,7 +441,7 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
       grid-column: 1/-1;
       ${p =>
         !p.isEmpty &&
-        `
+        css`
           display: grid;
           padding: 0;
         `}

@@ -1,21 +1,27 @@
-import {useMemo} from 'react';
 import * as Sentry from '@sentry/react';
-import type {LegendComponentOption, LineSeriesOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 import orderBy from 'lodash/orderBy';
 import moment from 'moment-timezone';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import type {EventsStats, MultiSeriesEventsStats, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import type {
+  EventsStats,
+  GroupedMultiSeriesEventsStats,
+  MultiSeriesEventsStats,
+} from 'sentry/types/organization';
 import {defined, escape} from 'sentry/utils';
-import {getFormattedDate} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {decodeList} from 'sentry/utils/queryString';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
+
+const {error, fmt} = Sentry.logger;
 
 // In minutes
 export const SIXTY_DAYS = 86400;
@@ -25,7 +31,9 @@ export const ONE_WEEK = 10080;
 export const FORTY_EIGHT_HOURS = 2880;
 export const TWENTY_FOUR_HOURS = 1440;
 export const SIX_HOURS = 360;
+const THREE_HOURS = 180;
 export const ONE_HOUR = 60;
+export const FIVE_MINUTES = 5;
 
 /**
  * If there are more releases than this number we hide "Releases" series by default
@@ -36,30 +44,45 @@ export type DateTimeObject = Partial<PageFilters['datetime']>;
 
 export function truncationFormatter(
   value: string,
-  truncate: number | boolean | undefined
+  truncate: number | boolean | undefined,
+  escaped = true
 ): string {
-  if (!truncate) {
-    return escape(value);
+  // Whitespace characters such as newlines and tabs can
+  // mess up the formatting in legends where it's part of
+  // the formatting as it's handled by ECharts.
+  //
+  // In places like tooltips, it's already ignored and
+  // rendered as a single space.
+  //
+  // So remove whitespace characters such as newlines,
+  // tabs in favor of a space.
+  value = value.replace(/\s+/g, ' ');
+
+  if (truncate) {
+    const truncationLength =
+      truncate && typeof truncate === 'number' ? truncate : DEFAULT_TRUNCATE_LENGTH;
+    value =
+      value.length > truncationLength
+        ? value.substring(0, truncationLength) + '…'
+        : value;
   }
-  const truncationLength =
-    truncate && typeof truncate === 'number' ? truncate : DEFAULT_TRUNCATE_LENGTH;
-  const truncated =
-    value.length > truncationLength ? value.substring(0, truncationLength) + '…' : value;
-  return escape(truncated);
+
+  if (escaped) {
+    value = escape(value);
+  }
+
+  return value;
 }
 
 /**
  * Use a shorter interval if the time difference is <= 24 hours.
  */
-function computeShortInterval(datetimeObj: DateTimeObject): boolean {
+export function computeShortInterval(datetimeObj: DateTimeObject): boolean {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
   return diffInMinutes <= TWENTY_FOUR_HOURS;
 }
-export function useShortInterval(datetimeObj: DateTimeObject): boolean {
-  return computeShortInterval(datetimeObj);
-}
 
-export type GranularityStep = [timeDiff: number, interval: string];
+type GranularityStep = [timeDiff: number, interval: string];
 
 export class GranularityLadder {
   steps: GranularityStep[];
@@ -79,12 +102,9 @@ export class GranularityLadder {
   getInterval(minutes: number): string {
     if (minutes < 0) {
       // Sometimes this happens, in unknown circumstances. See the `getIntervalForMetricFunction` function span in Sentry for more info, the reason might appear there. For now, a reasonable fallback in these rare cases is to return the finest granularity, since it'll either fulfill the request or time out.
-      Sentry.withScope(scope => {
-        scope.setFingerprint(['invalid-duration-for-interval']);
-        Sentry.captureException(
-          new Error('Invalid duration supplied to interval function')
-        );
-      });
+      error(
+        fmt`Invalid duration supplied to interval function. (minutes: ${String(minutes)})`
+      );
 
       return (this.steps.at(-1) as GranularityStep)[1];
     }
@@ -97,7 +117,15 @@ export class GranularityLadder {
   }
 }
 
-export type Fidelity = 'high' | 'medium' | 'low' | 'metrics';
+export type Fidelity =
+  | 'high'
+  | 'medium'
+  | 'low'
+  | 'metrics'
+  | 'issues'
+  | 'spans'
+  | 'spans-low'
+  | 'issues-metrics';
 
 export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
@@ -107,8 +135,18 @@ export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'm
     medium: mediumFidelityLadder,
     low: lowFidelityLadder,
     metrics: metricsFidelityLadder,
+    issues: issuesFidelityLadder,
+    spans: spansFidelityLadder,
+    'spans-low': spansLowFidelityLadder,
+    'issues-metrics': issuesMetricsFidelityLadder,
   }[fidelity].getInterval(diffInMinutes);
 }
+
+const issuesMetricsFidelityLadder = new GranularityLadder([
+  [ONE_WEEK, '86400000'], // 24h
+  [SIX_HOURS, '3600000'], // 1h
+  [0, '300000'], // 5m
+]);
 
 const highFidelityLadder = new GranularityLadder([
   [SIXTY_DAYS, '4h'],
@@ -143,6 +181,42 @@ const metricsFidelityLadder = new GranularityLadder([
   [SIX_HOURS, '5m'],
   [ONE_HOUR, '1m'],
   [0, '1m'],
+]);
+
+const issuesFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '12h'],
+  [TWO_WEEKS, '4h'],
+  [ONE_WEEK, '2h'],
+  [FORTY_EIGHT_HOURS, '1h'],
+  [TWENTY_FOUR_HOURS, '20m'],
+  [SIX_HOURS, '5m'],
+  [THREE_HOURS, '2m'],
+  [ONE_HOUR, '1m'],
+  [0, '1m'],
+]);
+
+const spansFidelityLadder = new GranularityLadder([
+  [SIXTY_DAYS, '1d'],
+  [THIRTY_DAYS, '12h'],
+  [TWO_WEEKS, '4h'],
+  [ONE_WEEK, '2h'],
+  [FORTY_EIGHT_HOURS, '30m'],
+  [TWENTY_FOUR_HOURS, '15m'],
+  [SIX_HOURS, '15m'],
+  [ONE_HOUR, '5m'],
+  [0, '1m'],
+]);
+
+const spansLowFidelityLadder = new GranularityLadder([
+  [THIRTY_DAYS, '1d'],
+  [TWO_WEEKS, '12h'],
+  [ONE_WEEK, '4h'],
+  [FORTY_EIGHT_HOURS, '2h'],
+  [TWENTY_FOUR_HOURS, '1h'],
+  [SIX_HOURS, '30m'],
+  [ONE_HOUR, '10m'],
+  [0, '5m'],
 ]);
 
 /**
@@ -208,14 +282,20 @@ export function getSeriesSelection(
   location: Location
 ): LegendComponentOption['selected'] {
   const unselectedSeries = decodeList(location?.query.unselectedSeries);
-  return unselectedSeries.reduce((selection, series) => {
-    selection[series] = false;
-    return selection;
-  }, {});
+  return unselectedSeries.reduce(
+    (selection, series) => {
+      selection[series] = false;
+      return selection;
+    },
+    {} as Record<string, boolean>
+  );
 }
 
+/**
+ * @deprecated Prefer `isEventsStats`
+ */
 function isSingleSeriesStats(
-  data: MultiSeriesEventsStats | EventsStats
+  data: MultiSeriesEventsStats | EventsStats | GroupedMultiSeriesEventsStats
 ): data is EventsStats {
   return (
     (defined(data.data) || defined(data.totals)) &&
@@ -224,8 +304,16 @@ function isSingleSeriesStats(
   );
 }
 
+/**
+ * @deprecated Prefer `isMultiSeriesEventsStats`
+ */
 export function isMultiSeriesStats(
-  data: MultiSeriesEventsStats | EventsStats | null | undefined,
+  data:
+    | MultiSeriesEventsStats
+    | EventsStats
+    | GroupedMultiSeriesEventsStats
+    | null
+    | undefined,
   isTopN?: boolean
 ): data is MultiSeriesEventsStats {
   return (
@@ -250,7 +338,7 @@ export const getDimensionValue = (dimension?: number | string | null) => {
 };
 
 const RGB_LIGHTEN_VALUE = 30;
-export const lightenHexToRgb = (colors: string[]) =>
+export const lightenHexToRgb = (colors: readonly string[]) =>
   colors.map(hex => {
     const rgb = [
       Math.min(parseInt(hex.slice(1, 3), 16) + RGB_LIGHTEN_VALUE, 255),
@@ -265,19 +353,19 @@ const DEFAULT_GEO_DATA = {
   data: [],
 };
 export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
-  if (!tableResults || !tableResults.length) {
+  if (!tableResults?.length) {
     return DEFAULT_GEO_DATA;
   }
 
-  const tableResult = tableResults[0];
+  const tableResult = tableResults[0]!;
 
   const {data} = tableResult;
 
-  if (!data || !data.length) {
+  if (!data?.length) {
     return DEFAULT_GEO_DATA;
   }
 
-  const preAggregate = Object.keys(data[0]).find(column => {
+  const preAggregate = Object.keys(data[0]!).find(column => {
     return column !== 'geo.country_code';
   });
 
@@ -314,14 +402,14 @@ export function computeEchartsAriaLabels(
     ? series.filter(s => s && !!s.data && s.data.length > 0)
     : [series];
 
-  const dateFormat = computeShortInterval({
+  const isShortInterval = computeShortInterval({
     start: filteredSeries[0]?.data?.[0][0],
     end: filteredSeries[0]?.data?.slice(-1)[0][0],
-  })
-    ? `MMMM D, h:mm A`
-    : 'MMMM Do';
+  });
 
-  function formatDate(date) {
+  const dateFormat = isShortInterval ? getFormat({timeZone: true}) : 'MMMM Do';
+
+  function formatDate(date: any) {
     return getFormattedDate(date, dateFormat, {
       local: !useUTC,
     });
@@ -351,19 +439,19 @@ export function computeEchartsAriaLabels(
         return '';
       }
 
-      let highestValue: NonNullable<LineSeriesOption['data']>[0] = [0, -Infinity];
-      let lowestValue: NonNullable<LineSeriesOption['data']>[0] = [0, Infinity];
+      let highestValue: [number, number] = [0, -Infinity];
+      let lowestValue: [number, number] = [0, Infinity];
 
-      s.data.forEach(datum => {
+      s.data.forEach((datum: any) => {
         if (!Array.isArray(datum)) {
           return;
         }
 
         if (datum[1] > highestValue[1]) {
-          highestValue = datum;
+          highestValue = datum as [number, number];
         }
         if (datum[1] < lowestValue[1]) {
-          lowestValue = datum;
+          lowestValue = datum as [number, number];
         }
       });
 
@@ -395,15 +483,6 @@ export function computeEchartsAriaLabels(
     enabled: true,
     label: {description: [title].concat(seriesDescriptions).join('. ')},
   };
-}
-
-export function useEchartsAriaLabels(
-  {series, useUTC}: {series: unknown; useUTC: boolean | undefined},
-  isGroupedByDate: boolean
-) {
-  return useMemo(() => {
-    return computeEchartsAriaLabels({series, useUTC}, isGroupedByDate);
-  }, [series, useUTC, isGroupedByDate]);
 }
 
 export function isEmptySeries(series: Series) {

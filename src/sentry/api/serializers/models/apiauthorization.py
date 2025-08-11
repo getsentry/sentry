@@ -1,5 +1,6 @@
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models.apiauthorization import ApiAuthorization
+from sentry.organizations.services.organization import organization_service
 
 
 @register(ApiAuthorization)
@@ -23,4 +24,9 @@ class ApiAuthorizationSerializer(Serializer):
             "scopes": obj.get_scopes(),
             "application": attrs["application"],
             "dateCreated": obj.date_added,
+            "organization": (
+                organization_service.serialize_organization(id=obj.organization_id)
+                if obj.organization_id
+                else None
+            ),
         }

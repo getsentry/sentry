@@ -1,14 +1,18 @@
 import type {Location, Query} from 'history';
 
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
-
-import type {SpanOperationBreakdownFilter} from '../filter';
-import {filterToField} from '../filter';
-import {TransactionFilterOptions} from '../utils';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import {filterToField} from 'sentry/views/performance/transactionSummary/filter';
+import {
+  getTransactionSummaryBaseUrl,
+  TransactionFilterOptions,
+} from 'sentry/views/performance/transactionSummary/utils';
 
 export enum EventsDisplayFilterName {
   P50 = 'p50',
@@ -18,22 +22,21 @@ export enum EventsDisplayFilterName {
   P100 = 'p100',
 }
 
-export type PercentileValues = Record<EventsDisplayFilterName, number>;
+type PercentileValues = Record<EventsDisplayFilterName, number>;
 
-export type EventsDisplayFilter = {
+type EventsDisplayFilter = {
   label: string;
   name: EventsDisplayFilterName;
   query?: string[][];
   sort?: {field: string; kind: 'desc' | 'asc'};
 };
 
-export type EventsFilterOptions = {
-  [name in EventsDisplayFilterName]: EventsDisplayFilter;
-};
+type EventsFilterOptions = Record<EventsDisplayFilterName, EventsDisplayFilter>;
 
-export type EventsFilterPercentileValues = {
-  [name in Exclude<EventsDisplayFilterName, EventsDisplayFilterName.P100>]: number;
-};
+type EventsFilterPercentileValues = Record<
+  Exclude<EventsDisplayFilterName, EventsDisplayFilterName.P100>,
+  number
+>;
 
 export function getEventsFilterOptions(
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter,
@@ -87,17 +90,19 @@ export function getEventsFilterOptions(
 }
 
 export function eventsRouteWithQuery({
-  orgSlug,
+  organization,
   transaction,
   projectID,
   query,
+  view,
 }: {
-  orgSlug: string;
+  organization: Organization;
   query: Query;
   transaction: string;
   projectID?: string | string[];
+  view?: DomainView;
 }) {
-  const pathname = `/organizations/${orgSlug}/performance/summary/events/`;
+  const pathname = `${getTransactionSummaryBaseUrl(organization, view)}/events/`;
   return {
     pathname,
     query: {
@@ -145,7 +150,7 @@ export function filterEventsDisplayToLocationQuery(
 }
 
 export function mapShowTransactionToPercentile(
-  showTransaction
+  showTransaction: any
 ): EventsDisplayFilterName | undefined {
   switch (showTransaction) {
     case TransactionFilterOptions.OUTLIER:

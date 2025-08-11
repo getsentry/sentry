@@ -25,10 +25,14 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
+
 from __future__ import annotations
+
+from typing import Any
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.models.lookups import Contains, Exact, IContains, IExact, In, Lookup
 from django.utils.translation import gettext_lazy as _
 
@@ -56,7 +60,8 @@ class JSONField(models.TextField):
     description = "JSON object"
     no_creator_hook = False
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, json_dumps=json.dumps, **kwargs):
+        self.json_dumps = json_dumps
         if not kwargs.get("null", False):
             kwargs["default"] = kwargs.get("default", dict)
         super().__init__(*args, **kwargs)
@@ -88,7 +93,7 @@ class JSONField(models.TextField):
                 default = default()
             if isinstance(default, str):
                 return json.loads(default)
-            return json.loads(json.dumps(default))
+            return json.loads(self.json_dumps(default))
         return super().get_default()
 
     def get_internal_type(self):
@@ -120,7 +125,7 @@ class JSONField(models.TextField):
             if not self.null and self.blank:
                 return ""
             return None
-        return json.dumps(value)
+        return self.json_dumps(value)
 
     def value_to_string(self, obj):
         return self.value_from_object(obj)
@@ -174,3 +179,22 @@ JSONField.register_lookup(JSONFieldIExactLookup)
 JSONField.register_lookup(JSONFieldInLookup)
 JSONField.register_lookup(JSONFieldContainsLookup)
 JSONField.register_lookup(JSONFieldIContainsLookup)
+
+
+class LegacyTextJSONField(models.JSONField):
+    """django JSONField but with `text` database backing
+
+    allows migration off of our JSONField without needing a data type
+    change for large tables
+
+    do not use me for new things!
+    """
+
+    def db_type(self, connection: BaseDatabaseWrapper) -> str:
+        # usually `jsonb`
+        return "text"
+
+    def get_db_prep_value(self, *args: Any, **kwargs: Any) -> Any:
+        jsonb = super().get_db_prep_value(*args, **kwargs)
+        # convert JSONField's ::jsonb back to plain text
+        return jsonb.dumps(jsonb.adapted)

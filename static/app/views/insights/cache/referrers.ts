@@ -10,6 +10,5 @@ export enum Referrer {
   SAMPLES_CACHE_TRANSACTION_DURATION_CHART = 'api.performance.cache.samples-cache-transaction-duration-chart',
   SAMPLES_CACHE_TRANSACTION_DURATION = 'api.performance.cache.samples-cache-transaction-duration',
   SAMPLES_CACHE_SPAN_SAMPLES = 'api.performance.cache.samples-cache-span-samples',
-  SAMPLES_CACHE_SPAN_SAMPLES_TRANSACTION_DURATION = 'api.performance.cache.samples-cache-span-samples',
   SAMPLES_CACHE_HIT_MISS_CHART = 'api.performance.cache.samples-cache-hit-miss-chart',
 }

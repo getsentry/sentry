@@ -2,8 +2,8 @@ import {createRef, Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import type {InputProps} from 'sentry/components/input';
-import Input from 'sentry/components/input';
+import type {InputProps} from 'sentry/components/core/input';
+import {Input} from 'sentry/components/core/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Column} from 'sentry/utils/discover/fields';
@@ -24,6 +24,7 @@ type DropdownOptionGroup = {
 
 type DefaultProps = {
   options: Column[];
+  className?: string;
 };
 
 type Props = DefaultProps &
@@ -104,7 +105,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
     // TODO: add support for when there are no spaces
 
     const matches = [...query.substring(0, currentPosition).matchAll(/\s|^/g)];
-    const match = matches[matches.length - 1];
+    const match = matches[matches.length - 1]!;
     const startOfTerm = match[0] === '' ? 0 : (match.index || 0) + 1;
 
     const cursorOffset = query.slice(currentPosition).search(/\s|$/);
@@ -146,7 +147,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
         continue;
       }
 
-      return group.options[selection];
+      return group.options[selection]!;
     }
 
     return null;
@@ -169,18 +170,18 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
         return;
       }
 
-      let newSelection;
-      if (!startedSelection) {
-        newSelection = key === 'ArrowUp' ? flattenedOptions.length - 1 : 0;
-      } else {
+      let newSelection: any;
+      if (startedSelection) {
         newSelection =
           key === 'ArrowUp'
             ? (activeSelection - 1 + flattenedOptions.length) % flattenedOptions.length
             : (activeSelection + 1) % flattenedOptions.length;
+      } else {
+        newSelection = key === 'ArrowUp' ? flattenedOptions.length - 1 : 0;
       }
       // This is modifying the `active` value of the references so make sure to
       // use `newOptionGroups` at the end.
-      flattenedOptions[newSelection].active = true;
+      flattenedOptions[newSelection]!.active = true;
 
       this.setState({
         activeSelection: newSelection,
@@ -259,11 +260,11 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
   }
 
   render() {
-    const {onUpdate: _onUpdate, options: _options, ...props} = this.props;
+    const {onUpdate: _onUpdate, options: _options, className, ...props} = this.props;
     const {dropdownVisible, dropdownOptionGroups} = this.state;
 
     return (
-      <Container isOpen={dropdownVisible}>
+      <Container isOpen={dropdownVisible} className={className}>
         <Input
           {...props}
           ref={this.input}
@@ -317,7 +318,7 @@ function TermDropdown({isOpen, optionGroups, handleSelect}: TermDropdownProps) {
             return (
               <Fragment key={title}>
                 <ListItem>
-                  <DropdownTitle>{title}</DropdownTitle>
+                  <DropdownTitle aria-label={title}>{title}</DropdownTitle>
                 </ListItem>
                 {options.map(option => {
                   return (
@@ -328,9 +329,11 @@ function TermDropdown({isOpen, optionGroups, handleSelect}: TermDropdownProps) {
                       // prevent the blur event on the input from firing
                       onMouseDown={event => event.preventDefault()}
                       // scroll into view if it is the active element
-                      ref={element =>
-                        option.active && element?.scrollIntoView?.({block: 'nearest'})
-                      }
+                      ref={element => {
+                        if (option.active) {
+                          element?.scrollIntoView?.({block: 'nearest'});
+                        }
+                      }}
                       aria-label={option.value}
                     >
                       <DropdownItemTitleWrapper>{option.value}</DropdownItemTitleWrapper>
@@ -436,9 +439,9 @@ const DropdownTitle = styled('header')`
   align-items: center;
 
   background-color: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.gray300};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
 
   margin: 0;
   padding: ${space(1)} ${space(2)};
@@ -450,7 +453,7 @@ const DropdownTitle = styled('header')`
 
 const DropdownListItem = styled(ListItem)`
   scroll-margin: 40px 0;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   padding: ${space(1)} ${space(2)};
   cursor: pointer;
 
@@ -462,8 +465,8 @@ const DropdownListItem = styled(ListItem)`
 
 const DropdownItemTitleWrapper = styled('div')`
   color: ${p => p.theme.textColor};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  font-size: ${p => p.theme.fontSize.md};
   margin: 0;
   line-height: ${p => p.theme.text.lineHeightHeading};
   ${p => p.theme.overflowEllipsis};
@@ -472,8 +475,8 @@ const DropdownItemTitleWrapper = styled('div')`
 const Info = styled('div')`
   display: flex;
   padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSizeLarge};
-  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSize.lg};
+  color: ${p => p.theme.subText};
 
   &:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};

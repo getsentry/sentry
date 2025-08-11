@@ -1,5 +1,5 @@
 ---
-created: '2023-02-10T13:31:47.690454Z'
+created: '2025-06-23T19:43:17.269318+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_fingerprinting.py
 ---
@@ -12,20 +12,21 @@ config:
     matchers:
     - - message
       - \{\[\*\?\]\}
+    text: message:"\{\[\*\?\]\}" -> "escaped{{ message }}"
   version: 1
 fingerprint:
 - escaped
 - '{{ message }}'
 title: '{[*?]}'
 variants:
-  custom-fingerprint:
+  custom_fingerprint:
     matched_rule: message:"\{\[\*\?\]\}" -> "escaped{{ message }}"
-    type: custom-fingerprint
+    type: custom_fingerprint
     values:
     - escaped
     - '{[*?]}'
   default:
     component:
       contributes: false
-      hint: custom fingerprint takes precedence
+      hint: custom server fingerprint takes precedence
     type: component

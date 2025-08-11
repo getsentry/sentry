@@ -15,7 +15,9 @@ class UserReport(Model):
     environment_id = BoundedBigIntegerField(null=True, db_index=True)
     name = models.CharField(max_length=128)
     email = models.EmailField(max_length=75)
-    comments = models.TextField()
+    comments = models.TextField(
+        max_length=4096
+    )  # Keep max_length <= "feedback.message.max-size" sentry option.
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
@@ -30,12 +32,9 @@ class UserReport(Model):
     __repr__ = sane_repr("event_id", "name", "email")
 
     def notify(self):
-        from django.contrib.auth.models import AnonymousUser
-
-        from sentry.api.serializers import UserReportWithGroupSerializer, serialize
         from sentry.tasks.user_report import user_report
 
         user_report.delay(
             project_id=self.project_id,
-            report=serialize(self, AnonymousUser(), UserReportWithGroupSerializer()),
+            report_id=self.id,
         )

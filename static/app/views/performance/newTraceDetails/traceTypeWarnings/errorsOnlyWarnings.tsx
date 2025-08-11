@@ -1,27 +1,26 @@
 import {useEffect, useMemo} from 'react';
-import {browserHistory} from 'react-router';
-import styled from '@emotion/styled';
 
-import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
-import waitingForSpansImg from 'sentry-images/spot/performance-waiting-for-span.svg';
+import emptyTraceImg from 'sentry-images/spot/performance-empty-trace.svg';
 
-import {Alert} from 'sentry/components/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {withPerformanceOnboarding} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-
-import {traceAnalytics} from '../traceAnalytics';
-import type {TraceTree} from '../traceModels/traceTree';
-import {TraceType} from '../traceType';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceShape} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
 
 import {TraceWarningComponents} from './styles';
+import {usePerformanceSubscriptionDetails} from './usePerformanceSubscriptionDetails';
 import {usePerformanceUsageStats} from './usePerformanceUsageStats';
 
 type ErrorOnlyWarningsProps = {
@@ -35,7 +34,8 @@ function filterProjects(projects: Project[], tree: TraceTree) {
   const projectsWithOnboardingChecklist: Project[] = [];
 
   for (const project of projects) {
-    if (tree.project_ids.has(Number(project.id))) {
+    const hasProject = tree.projects.has(Number(project.id));
+    if (hasProject) {
       if (!project.firstTransactionEvent) {
         projectsWithNoPerformance.push(project);
         if (project.platform && withPerformanceOnboarding.has(project.platform)) {
@@ -81,18 +81,20 @@ function PerformanceSetupBanner({
 
   if (projectsWithOnboardingChecklist.length === 0) {
     return (
-      <Alert type="info" showIcon>
-        {tct(
-          "Some of the projects associated with this trace don't support performance monitoring. To learn more about how to setup performance monitoring, visit our [documentation].",
-          {
-            documentationLink: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/">
-                {t('documentation')}
-              </ExternalLink>
-            ),
-          }
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="info">
+          {tct(
+            "Some of the projects associated with this trace aren't sending spans, so you're only getting a partial trace view. To learn how to enable tracing for all your projects, visit our [documentationLink].",
+            {
+              documentationLink: (
+                <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/">
+                  {t('documentation')}
+                </ExternalLink>
+              ),
+            }
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -100,9 +102,9 @@ function PerformanceSetupBanner({
     <TraceWarningComponents.Banner
       title={t('Your setup is incomplete')}
       description={t(
-        'Want to know why this string of errors happened? Configure tracing for your SDKs to see correlated events accross your services.'
+        'Want to know why this string of errors happened? Configure tracing for your SDKs to see correlated events across your services.'
       )}
-      image={connectDotsImg}
+      image={emptyTraceImg}
       onPrimaryButtonClick={() => {
         traceAnalytics.trackPerformanceSetupChecklistTriggered(organization);
         browserHistory.replace({
@@ -121,30 +123,10 @@ function PerformanceSetupBanner({
       localStorageKey={LOCAL_STORAGE_KEY}
       docsRoute="https://docs.sentry.io/product/performance/"
       organization={organization}
-      primaryButtonText={t('Start Checklist')}
+      primaryButtonText={t('Set Up Tracing')}
     />
   );
 }
-
-type Subscription = {
-  categories:
-    | {
-        transactions: {
-          usageExceeded: boolean;
-        };
-      }
-    | {
-        spans: {
-          usageExceeded: boolean;
-        };
-      };
-  planDetails: {
-    billingInterval: 'monthly' | 'annual';
-  };
-  onDemandBudgets?: {
-    enabled: boolean;
-  };
-};
 
 function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
   const {data: performanceUsageStats} = usePerformanceUsageStats({
@@ -152,32 +134,17 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
     tree: props.tree,
   });
 
-  const {data: subscription} = useApiQuery<Subscription>(
-    [`/subscriptions/${props.organization.slug}/`],
-    {
-      staleTime: Infinity,
-    }
-  );
+  const {
+    data: {hasExceededPerformanceUsageLimit, subscription},
+  } = usePerformanceSubscriptionDetails();
 
   // Check if events were dropped due to exceeding the transaction quota, around when the trace occurred.
   const droppedTransactionsCount = performanceUsageStats?.totals['sum(quantity)'] || 0;
 
-  // Check if the organization still has transaction quota maxed out.
-  const dataCategories = subscription?.categories;
-  let hasExceededTransactionLimit = false;
-
-  if (dataCategories) {
-    if ('transactions' in dataCategories) {
-      hasExceededTransactionLimit = dataCategories.transactions.usageExceeded || false;
-    } else if ('spans' in dataCategories) {
-      hasExceededTransactionLimit = dataCategories.spans.usageExceeded || false;
-    }
-  }
-
   const hideBanner =
     droppedTransactionsCount === 0 ||
     !props.organization.features.includes('trace-view-quota-exceeded-banner') ||
-    !hasExceededTransactionLimit;
+    !hasExceededPerformanceUsageLimit;
 
   useEffect(() => {
     if (hideBanner) {
@@ -191,10 +158,9 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
     return null;
   }
 
-  const title = tct("You've exceeded your [billingInterval] [billingType]", {
-    billingInterval: subscription?.planDetails.billingInterval ?? 'monthly',
+  const title = tct("You've exceeded your [billingType]", {
     billingType: subscription?.onDemandBudgets?.enabled
-      ? t('pay-as-you-go budget')
+      ? subscription.planDetails.budgetTerm
       : t('quota'),
   });
 
@@ -203,54 +169,44 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
     : t('Increase Volumes');
 
   return (
-    <Wrapper>
-      <TraceWarningComponents.Banner
-        localStorageKey={`${props.traceSlug}:transaction-usage-warning-banner-hide`}
-        organization={props.organization}
-        image={waitingForSpansImg}
-        title={title}
-        description={tct(
-          'Spans are being dropped and monitoring is impacted. To start seeing traces with spans, increase your [billingType].',
-          {
-            billingType: subscription?.onDemandBudgets?.enabled
-              ? t('budget')
-              : t('quota'),
-          }
-        )}
-        onSecondaryButtonClick={() => {
-          traceAnalytics.trackQuotaExceededLearnMoreClicked(
-            props.organization,
-            props.tree.shape
-          );
-        }}
-        onPrimaryButtonClick={() => {
-          traceAnalytics.trackQuotaExceededIncreaseBudgetClicked(
-            props.organization,
-            props.tree.shape
-          );
-          browserHistory.push({
-            pathname: `/settings/billing/checkout/`,
-            query: {
-              skipBundles: true,
-            },
-          });
-        }}
-        docsRoute="https://docs.sentry.io/pricing/quotas/"
-        primaryButtonText={ctaText}
-      />
-    </Wrapper>
+    <TraceWarningComponents.Banner
+      localStorageKey={`${props.traceSlug}:transaction-usage-warning-banner-hide`}
+      organization={props.organization}
+      image={emptyTraceImg}
+      title={title}
+      description={tct(
+        'Spans are being dropped. To start seeing traces with spans, increase your [billingType].',
+        {
+          billingType: subscription?.onDemandBudgets?.enabled ? t('budget') : t('quota'),
+        }
+      )}
+      onSecondaryButtonClick={() => {
+        traceAnalytics.trackQuotaExceededLearnMoreClicked(
+          props.organization,
+          props.tree.shape
+        );
+      }}
+      onPrimaryButtonClick={() => {
+        traceAnalytics.trackQuotaExceededIncreaseBudgetClicked(
+          props.organization,
+          props.tree.shape
+        );
+        browserHistory.push({
+          pathname: `/settings/billing/checkout/?referrer=trace-view`,
+          query: {
+            skipBundles: true,
+          },
+        });
+      }}
+      docsRoute={getPricingDocsLinkForEventType(
+        subscription?.categories && 'spans' in subscription.categories
+          ? DataCategoryExact.SPAN
+          : DataCategoryExact.TRANSACTION
+      )}
+      primaryButtonText={ctaText}
+    />
   );
 }
-
-const Wrapper = styled('div')`
-  ${TraceWarningComponents.BannerBackground} {
-    top: 4px;
-    right: 40px;
-    height: 98%;
-    width: 100%;
-    max-width: 270px;
-  }
-`;
 
 export function ErrorsOnlyWarnings({
   traceSlug,
@@ -263,7 +219,7 @@ export function ErrorsOnlyWarnings({
     return filterProjects(projects, tree);
   }, [projects, tree]);
 
-  if (tree.type !== 'trace' || tree.shape !== TraceType.ONLY_ERRORS) {
+  if (tree.type !== 'trace' || tree.shape !== TraceShape.ONLY_ERRORS) {
     return null;
   }
 

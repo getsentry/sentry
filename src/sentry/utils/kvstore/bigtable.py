@@ -6,13 +6,16 @@ from datetime import timedelta
 from threading import Lock
 from typing import Any
 
+import sentry_sdk
 from django.utils import timezone
 from google.api_core import exceptions, retry
 from google.cloud import bigtable
 from google.cloud.bigtable.row import PartialRowData
+from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
 from google.cloud.bigtable.row_set import RowSet
 from google.cloud.bigtable.table import Table
 
+from sentry.utils import metrics
 from sentry.utils.codecs import Codec, ZlibCodec, ZstdCodec
 from sentry.utils.kvstore.abstract import KVStorage
 
@@ -114,13 +117,22 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             return table
 
     def get(self, key: str) -> bytes | None:
-        row = self._get_table().read_row(key)
+        with sentry_sdk.start_span(op="bigtable.get"):
+            # Default timeout is 60 seconds, much too long for our ingestion pipeline
+            # Modify retry based on https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout#configuring-retries
+            modified_retry = DEFAULT_RETRY_READ_ROWS.with_timeout(5.0)
+            row = self._get_table().read_row(key, retry=modified_retry)
         if row is None:
             return None
 
         return self.__decode_row(row)
 
     def get_many(self, keys: Sequence[str]) -> Iterator[tuple[str, bytes]]:
+        if not keys:
+            # This is probably unintentional, and the behavior isn't specified.
+            logging.warning("get_many called with empty keys sequence")
+            return
+
         rows = RowSet()
         for key in keys:
             rows.add_row_key(key)
@@ -228,6 +240,13 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             compression_flag, strategy = self.compression_strategies[self.compression]
             flags |= compression_flag
             value = strategy.encode(value)
+
+            metrics.distribution(
+                "storage.put.size",
+                len(value),
+                tags={"usecase": "nodestore", "compression": self.compression},
+                unit="byte",
+            )
 
         # Only need to write the column at all if any flags are enabled. And if
         # so, pack it into a single byte.

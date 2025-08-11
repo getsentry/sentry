@@ -1,7 +1,7 @@
+import {Link} from 'sentry/components/core/link';
 import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import Highlight from 'sentry/components/highlight';
-import Link from 'sentry/components/links/link';
 import type {
   BreadcrumbTypeDefault,
   BreadcrumbTypeNavigation,
@@ -81,11 +81,11 @@ function FormatMessage({
     breadcrumb.category === 'sentry.transaction' && isEventId(message);
 
   const {projects, fetching: fetchingProjects} = useProjects();
-  const maybeProject = !fetchingProjects
-    ? projects.find(project => {
+  const maybeProject = fetchingProjects
+    ? null
+    : projects.find(project => {
         return event && project.id === event.projectID;
-      })
-    : null;
+      });
 
   const transactionData = transactionEvents?.find(
     transaction => transaction.id === message
@@ -96,14 +96,12 @@ function FormatMessage({
       return content;
     }
 
-    const projectSlug = maybeProject.slug;
     const description = transactionData ? (
       <Link
         to={generateLinkToEventInTraceView({
           eventId: message,
           timestamp: transactionData.timestamp,
           traceSlug: transactionData.trace,
-          projectSlug,
           organization,
           location: {...location, query: {...location.query, referrer: 'breadcrumbs'}},
         })}

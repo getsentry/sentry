@@ -1,27 +1,36 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  DocsPageLocation,
+  type DocsParams,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {TaskSidebar} from 'sentry/components/sidebar/taskSidebar';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDocsPlatformSDKForPlatform} from 'sentry/utils/profiling/platforms';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -43,7 +52,44 @@ const PROFILING_ONBOARDING_STEPS = [
   ProductSolution.PROFILING,
 ];
 
-export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
+export function useProfilingOnboardingDrawer() {
+  const organization = useOrganization();
+  const currentPanel = useLegacyStore(SidebarPanelStore);
+  const isActive = currentPanel === SidebarPanelKey.PROFILING_ONBOARDING;
+  const hasProjectAccess = organization.access.includes('project:read');
+  const initialPathname = useRef<string | null>(null);
+
+  const {openDrawer} = useDrawer();
+
+  useLayoutEffect(() => {
+    if (isActive && hasProjectAccess) {
+      initialPathname.current = window.location.pathname;
+
+      openDrawer(() => <DrawerContent />, {
+        ariaLabel: t('Profile Code'),
+        // Prevent the drawer from closing when the query params change
+        shouldCloseOnLocationChange: location => {
+          return location.pathname !== initialPathname.current;
+        },
+      });
+    }
+  }, [isActive, hasProjectAccess, openDrawer]);
+}
+
+function DrawerContent() {
+  useLayoutEffect(() => {
+    return () => {
+      SidebarPanelStore.hidePanel();
+    };
+  }, []);
+
+  return <SidebarContent />;
+}
+
+/**
+ * @deprecated Use useProfilingOnboardingDrawer instead.
+ */
+export function LegacyProfilingOnboardingSidebar(props: CommonSidebarProps) {
   if (props.currentPanel !== SidebarPanelKey.PROFILING_ONBOARDING) {
     return null;
   }
@@ -52,6 +98,20 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
 }
 
 function ProfilingOnboarding(props: CommonSidebarProps) {
+  return (
+    <TaskSidebar
+      orientation={props.orientation}
+      collapsed={props.collapsed}
+      hidePanel={() => {
+        props.hidePanel();
+      }}
+    >
+      <SidebarContent />
+    </TaskSidebar>
+  );
+}
+
+function SidebarContent() {
   const pageFilters = usePageFilters();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -64,7 +124,18 @@ function ProfilingOnboarding(props: CommonSidebarProps) {
   );
 
   useEffect(() => {
-    if (currentProject) return;
+    return () => {
+      trackAnalytics('profiling_views.onboarding_action', {
+        organization,
+        action: 'dismissed',
+      });
+    };
+  }, [organization]);
+
+  useEffect(() => {
+    if (currentProject) {
+      return;
+    }
 
     // we'll only ever select an unsupportedProject if they do not have a supported project in their organization
     if (supportedProjects.length === 0 && unsupportedProjects.length > 0) {
@@ -93,12 +164,15 @@ function ProfilingOnboarding(props: CommonSidebarProps) {
 
     // if it's a list of projects, pick the first one that's supported
     const supportedProjectsById = supportedProjects.reduce((mapping, project) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       mapping[project.id] = project;
       return mapping;
     }, {});
 
     for (const projectId of pageFilters.selection.projects) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       if (supportedProjectsById[String(projectId)]) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         setCurrentProject(supportedProjectsById[String(projectId)]);
         return;
       }
@@ -111,7 +185,7 @@ function ProfilingOnboarding(props: CommonSidebarProps) {
   ]);
 
   const projectSelectOptions = useMemo(() => {
-    const supportedProjectItems: SelectValue<string>[] = supportedProjects.map(
+    const supportedProjectItems: Array<SelectValue<string>> = supportedProjects.map(
       project => {
         return {
           value: project.id,
@@ -123,7 +197,7 @@ function ProfilingOnboarding(props: CommonSidebarProps) {
       }
     );
 
-    const unsupportedProjectItems: SelectValue<string>[] = unsupportedProjects.map(
+    const unsupportedProjectItems: Array<SelectValue<string>> = unsupportedProjects.map(
       project => {
         return {
           value: project.id,
@@ -152,17 +226,7 @@ function ProfilingOnboarding(props: CommonSidebarProps) {
     : undefined;
 
   return (
-    <TaskSidebar
-      orientation={props.orientation}
-      collapsed={props.collapsed}
-      hidePanel={() => {
-        trackAnalytics('profiling_views.onboarding_action', {
-          organization,
-          action: 'dismissed',
-        });
-        props.hidePanel();
-      }}
-    >
+    <Fragment>
       <Content>
         <Heading>{t('Profile Code')}</Heading>
         <div
@@ -199,12 +263,11 @@ function ProfilingOnboarding(props: CommonSidebarProps) {
             activeProductSelection={PROFILING_ONBOARDING_STEPS}
             organization={organization}
             platform={currentPlatform}
-            projectId={currentProject.id}
-            projectSlug={currentProject.slug}
+            project={currentProject}
           />
         ) : null}
       </Content>
-    </TaskSidebar>
+    </Fragment>
   );
 }
 
@@ -212,16 +275,23 @@ interface ProfilingOnboardingContentProps {
   activeProductSelection: ProductSolution[];
   organization: Organization;
   platform: PlatformIntegration;
-  projectId: Project['id'];
-  projectSlug: Project['slug'];
+  project: Project;
 }
 
 function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
-  const {isLoading, isError, dsn, cdn, docs, refetch} = useLoadGettingStarted({
+  const api = useApi();
+  const organization = useOrganization();
+
+  const {isLoading, isError, dsn, docs, refetch, projectKeyId} = useLoadGettingStarted({
     orgSlug: props.organization.slug,
-    projSlug: props.projectSlug,
+    projSlug: props.project.slug,
     platform: props.platform,
   });
+
+  const {isPending: isLoadingRegistry, data: registryData} =
+    useSourcePackageRegistries(organization);
+
+  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -258,44 +328,67 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     );
   }
 
+  if (!projectKeyId) {
+    return (
+      <LoadingError
+        message={t(
+          'We encountered an issue while loading the Client Key for this getting started documentation.'
+        )}
+        onRetry={refetch}
+      />
+    );
+  }
+
   const docParams: DocsParams<any> = {
-    cdn,
+    api,
+    projectKeyId,
     dsn,
     organization: props.organization,
     platformKey: props.platform.id,
-    projectId: props.projectId,
-    projectSlug: props.projectSlug,
+    project: props.project,
+    isLogsSelected: false,
     isFeedbackSelected: false,
     isPerformanceSelected: true,
     isProfilingSelected: true,
     isReplaySelected: false,
     sourcePackageRegistries: {
-      isLoading: false,
-      data: undefined,
+      isLoading: isLoadingRegistry,
+      data: registryData,
     },
     platformOptions: PROFILING_ONBOARDING_STEPS,
     newOrg: false,
     feedbackOptions: {},
+    /**
+     * Page where the docs will be rendered
+     */
+    docsLocation: DocsPageLocation.PROFILING_PAGE,
+    urlPrefix,
+    isSelfHosted,
+    profilingOptions: {
+      defaultProfilingMode: props.organization.features.includes('continuous-profiling')
+        ? 'continuous'
+        : 'transaction',
+    },
   };
 
-  const steps = [
-    ...docs.onboarding.install(docParams),
-    ...docs.onboarding.configure(docParams),
-  ];
+  const doc = docs.profilingOnboarding ?? docs.onboarding;
+  const steps = [...doc.install(docParams), ...doc.configure(docParams)];
 
   return (
-    <Fragment>
-      {docs.onboarding.introduction && (
-        <Introduction>{docs.onboarding.introduction(docParams)}</Introduction>
-      )}
+    <Wrapper>
+      {doc.introduction && <Introduction>{doc.introduction(docParams)}</Introduction>}
       <Steps>
         {steps.map(step => {
           return <Step key={step.title ?? step.type} {...step} />;
         })}
       </Steps>
-    </Fragment>
+    </Wrapper>
   );
 }
+
+const Wrapper = styled('div')`
+  margin-top: ${space(2)};
+`;
 
 const Steps = styled('div')`
   display: flex;
@@ -304,22 +397,24 @@ const Steps = styled('div')`
 `;
 
 const Introduction = styled('div')`
-  display: flex;
-  flex-direction: column;
-  margin-top: ${space(2)};
-  margin-bottom: ${space(2)};
+  & > p:not(:last-child) {
+    margin-bottom: ${space(2)};
+  }
 `;
 
 const Content = styled('div')`
   padding: ${space(2)};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
 `;
 
 const Heading = styled('div')`
   display: flex;
   color: ${p => p.theme.activeText};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1;
   margin-top: ${space(3)};
 `;

@@ -1,19 +1,19 @@
-import {Component, createRef, Fragment, useMemo} from 'react';
+import {Component, createRef, Fragment} from 'react';
 import {createPortal} from 'react-dom';
-import {css} from '@emotion/react';
+import {css, type Theme, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import Input from 'sentry/components/input';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Input} from 'sentry/components/core/input';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconDelete, IconGrabbable, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MRI, Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Column} from 'sentry/utils/discover/fields';
 import {
@@ -22,17 +22,13 @@ import {
   hasDuplicate,
   isLegalEquationColumn,
 } from 'sentry/utils/discover/fields';
-import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
-import theme from 'sentry/utils/theme';
 import {getPointerPosition} from 'sentry/utils/touch';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import type {UserSelectValues} from 'sentry/utils/userselect';
 import {setBodyUserSelect} from 'sentry/utils/userselect';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {FieldKey} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {SESSIONS_OPERATIONS} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
-
-import type {generateFieldOptions} from '../utils';
+import type {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import type {FieldValueOption} from './queryField';
 import {QueryField} from './queryField';
@@ -47,6 +43,7 @@ type Props = {
   // Fired when columns are added/removed/modified
   onChange: (columns: Column[]) => void;
   organization: Organization;
+  theme: Theme;
   className?: string;
   filterAggregateParameters?: (option: FieldValueOption) => boolean;
   filterPrimaryOptions?: (option: FieldValueOption) => boolean;
@@ -54,6 +51,7 @@ type Props = {
   noFieldsMessage?: string;
   showAliasField?: boolean;
   source?: Sources;
+  supportsEquations?: boolean;
 };
 
 type State = {
@@ -93,7 +91,7 @@ class ColumnEditCollection extends Component<Props, State> {
       portal.style.position = 'absolute';
       portal.style.top = '0';
       portal.style.left = '0';
-      portal.style.zIndex = String(theme.zIndex.modal);
+      portal.style.zIndex = String(this.props.theme.zIndex.modal);
 
       this.portal = portal;
 
@@ -112,7 +110,7 @@ class ColumnEditCollection extends Component<Props, State> {
   checkColumnErrors(columns: Column[]) {
     const error = new Map();
     for (let i = 0; i < columns.length; i += 1) {
-      const column = columns[i];
+      const column = columns[i]!;
       if (column.kind === 'equation') {
         const result = parseArithmetic(column.field);
         if (result.error) {
@@ -178,15 +176,15 @@ class ColumnEditCollection extends Component<Props, State> {
   };
 
   updateEquationFields = (newColumns: Column[], index: number, updatedColumn: Column) => {
-    const oldColumn = newColumns[index];
-    const existingColumn = generateFieldAsString(newColumns[index]);
+    const oldColumn = newColumns[index]!;
+    const existingColumn = generateFieldAsString(newColumns[index]!);
     const updatedColumnString = generateFieldAsString(updatedColumn);
     if (!isLegalEquationColumn(updatedColumn) || hasDuplicate(newColumns, oldColumn)) {
       return;
     }
     // Find the equations in the list of columns
     for (let i = 0; i < newColumns.length; i++) {
-      const newColumn = newColumns[i];
+      const newColumn = newColumns[i]!;
 
       if (newColumn.kind === 'equation') {
         const result = parseArithmetic(newColumn.field);
@@ -216,7 +214,7 @@ class ColumnEditCollection extends Component<Props, State> {
         newColumns[i] = {
           kind: 'equation',
           field: newEquation,
-          alias: newColumns[i].alias,
+          alias: newColumns[i]!.alias,
         };
       }
     }
@@ -326,7 +324,7 @@ class ColumnEditCollection extends Component<Props, State> {
 
   isFixedIssueColumn = (columnIndex: number) => {
     const {source, columns} = this.props;
-    const column = columns[columnIndex];
+    const column = columns[columnIndex]!;
     const issueFieldColumnCount = columns.filter(
       col => col.kind === 'field' && col.field === FieldKey.ISSUE
     ).length;
@@ -345,7 +343,7 @@ class ColumnEditCollection extends Component<Props, State> {
 
   isRemainingReleaseHealthAggregate = (columnIndex: number) => {
     const {source, columns} = this.props;
-    const column = columns[columnIndex];
+    const column = columns[columnIndex]!;
     const aggregateCount = columns.filter(
       col => col.kind === FieldValueKind.FUNCTION
     ).length;
@@ -379,7 +377,7 @@ class ColumnEditCollection extends Component<Props, State> {
     // Reorder columns and trigger change.
     const newColumns = [...this.props.columns];
     const removed = newColumns.splice(sourceIndex, 1);
-    newColumns.splice(targetIndex, 0, removed[0]);
+    newColumns.splice(targetIndex, 0, removed[0]!);
     this.checkColumnErrors(newColumns);
     this.props.onChange(newColumns);
 
@@ -405,7 +403,7 @@ class ColumnEditCollection extends Component<Props, State> {
 
     const top = Number(this.state.top) - dragOffsetY;
     const left = Number(this.state.left) - dragOffsetX;
-    const col = this.props.columns[index];
+    const col = this.props.columns[index]!;
 
     const style = {
       top: `${top}px`,
@@ -450,7 +448,7 @@ class ColumnEditCollection extends Component<Props, State> {
       filterPrimaryOptions,
       noFieldsMessage,
       showAliasField,
-      source,
+      // source,
       isOnDemandWidget,
     } = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
@@ -497,42 +495,21 @@ class ColumnEditCollection extends Component<Props, State> {
           ) : singleColumn && showAliasField ? null : (
             <span />
           )}
-          {source === WidgetType.METRICS && !this.isFixedMetricsColumn(i) ? (
-            <MetricTagQueryField
-              mri={
-                columns[0].kind === FieldValueKind.FUNCTION
-                  ? columns[0].function[1]
-                  : // We should never get here because the first column should always be function for metrics
-                    undefined
-              }
-              gridColumns={gridColumns}
-              fieldValue={col}
-              onChange={value => this.handleUpdateColumn(i, value)}
-              error={this.state.error.get(i)}
-              takeFocus={i === this.props.columns.length - 1}
-              otherColumns={columns}
-              shouldRenderTag
-              disabled={disabled}
-              noFieldsMessage={noFieldsMessage}
-              skipParameterPlaceholder={showAliasField}
-            />
-          ) : (
-            <QueryField
-              fieldOptions={fieldOptions}
-              gridColumns={gridColumns}
-              fieldValue={col}
-              onChange={value => this.handleUpdateColumn(i, value)}
-              error={this.state.error.get(i)}
-              takeFocus={i === this.props.columns.length - 1}
-              otherColumns={columns}
-              shouldRenderTag
-              disabled={disabled}
-              filterPrimaryOptions={filterPrimaryOptions}
-              filterAggregateParameters={filterAggregateParameters}
-              noFieldsMessage={noFieldsMessage}
-              skipParameterPlaceholder={showAliasField}
-            />
-          )}
+          <QueryField
+            fieldOptions={fieldOptions}
+            gridColumns={gridColumns}
+            fieldValue={col}
+            onChange={value => this.handleUpdateColumn(i, value)}
+            error={this.state.error.get(i)}
+            takeFocus={i === this.props.columns.length - 1}
+            otherColumns={columns}
+            shouldRenderTag
+            disabled={disabled}
+            filterPrimaryOptions={filterPrimaryOptions}
+            filterAggregateParameters={filterAggregateParameters}
+            noFieldsMessage={noFieldsMessage}
+            skipParameterPlaceholder={showAliasField}
+          />
           {showAliasField && (
             <AliasField singleColumn={singleColumn}>
               <AliasInput
@@ -581,7 +558,7 @@ class ColumnEditCollection extends Component<Props, State> {
   }
 
   render() {
-    const {className, columns, showAliasField, source} = this.props;
+    const {className, columns, showAliasField, source, supportsEquations} = this.props;
     const canDelete = columns.filter(field => field.kind !== 'equation').length > 1;
     const canDrag = columns.length > 1;
     const canAdd = columns.length < MAX_COL_COUNT;
@@ -605,8 +582,9 @@ class ColumnEditCollection extends Component<Props, State> {
                 return 2;
               }
               const operation =
+                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 AGGREGATIONS[col.function[0]] ?? SESSIONS_OPERATIONS[col.function[0]];
-              if (!operation || !operation.parameters) {
+              if (!operation?.parameters) {
                 // Operation should be in the look-up table, but not all operations are (eg. private). This should be changed at some point.
                 return 3;
               }
@@ -660,7 +638,7 @@ class ColumnEditCollection extends Component<Props, State> {
           });
         })}
         <RowContainer showAliasField={showAliasField} singleColumn={singleColumn}>
-          <Actions gap={1} showAliasField={showAliasField}>
+          <Actions showAliasField={showAliasField}>
             <Button
               size="sm"
               aria-label={t('Add a Column')}
@@ -671,57 +649,23 @@ class ColumnEditCollection extends Component<Props, State> {
             >
               {t('Add a Column')}
             </Button>
-            {WidgetType.ISSUE &&
-              source !== WidgetType.RELEASE &&
-              source !== WidgetType.METRICS && (
-                <Button
-                  size="sm"
-                  aria-label={t('Add an Equation')}
-                  onClick={this.handleAddEquation}
-                  title={title}
-                  disabled={!canAdd}
-                  icon={<IconAdd isCircled />}
-                >
-                  {t('Add an Equation')}
-                </Button>
-              )}
+            {supportsEquations && (
+              <Button
+                size="sm"
+                aria-label={t('Add an Equation')}
+                onClick={this.handleAddEquation}
+                title={title}
+                disabled={!canAdd}
+                icon={<IconAdd isCircled />}
+              >
+                {t('Add an Equation')}
+              </Button>
+            )}
           </Actions>
         </RowContainer>
       </div>
     );
   }
-}
-
-interface MetricTagQueryFieldProps
-  extends Omit<React.ComponentProps<typeof QueryField>, 'fieldOptions'> {
-  mri?: string;
-}
-
-const EMPTY_ARRAY = [];
-function MetricTagQueryField({mri, ...props}: MetricTagQueryFieldProps) {
-  const {projects} = usePageFilters().selection;
-  const {data = EMPTY_ARRAY} = useMetricsTags(mri as MRI | undefined, {projects});
-
-  const fieldOptions = useMemo(() => {
-    return data.reduce(
-      (acc, tag) => {
-        acc[`tag:${tag.key}`] = {
-          label: tag.key,
-          value: {
-            kind: FieldValueKind.TAG,
-            meta: {
-              dataType: 'string',
-              name: tag.key,
-            },
-          },
-        };
-        return acc;
-      },
-      {} as Record<string, FieldValueOption>
-    );
-  }, [data]);
-
-  return <QueryField fieldOptions={fieldOptions} {...props} />;
 }
 
 function OnDemandEquationsWarning() {
@@ -762,7 +706,7 @@ const RowContainer = styled('div')<{
       align-items: flex-start;
       grid-template-columns: ${p.singleColumn ? `1fr` : `${space(3)} 1fr 40px 40px`};
 
-      @media (min-width: ${p.theme.breakpoints.small}) {
+      @media (min-width: ${p.theme.breakpoints.sm}) {
         grid-template-columns: ${p.singleColumn
           ? `1fr calc(200px + ${space(1)})`
           : `${space(3)} 1fr calc(200px + ${space(1)}) 40px 40px`};
@@ -802,7 +746,7 @@ const DragPlaceholder = styled('div')`
   margin: 0 ${space(3)} ${space(1)} ${space(3)};
   border: 2px dashed ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
 `;
 
 const Heading = styled('div')<{gridColumns: number}>`
@@ -824,12 +768,12 @@ const AliasInput = styled(Input)`
 
 const AliasField = styled('div')<{singleColumn: boolean}>`
   margin-top: ${space(1)};
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     margin-top: 0;
     margin-left: ${space(1)};
   }
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-row: 2/2;
     grid-column: ${p => (p.singleColumn ? '1/-1' : '2/2')};
   }
@@ -837,11 +781,12 @@ const AliasField = styled('div')<{singleColumn: boolean}>`
 
 const RemoveButton = styled(Button)`
   margin-left: ${space(1)};
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
 `;
 
 const DragAndReorderButton = styled(Button)`
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
 `;
 
-export default ColumnEditCollection;
+const ColumnEditCollectionWithTheme = withTheme(ColumnEditCollection);
+export {ColumnEditCollectionWithTheme as ColumnEditCollection};

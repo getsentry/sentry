@@ -1,29 +1,26 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {ExternalLink} from 'sentry/components/core/link';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
 import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useEventDetails} from 'sentry/views/insights/common/queries/useEventDetails';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/database/settings';
 
 interface Props {
   frame: Parameters<typeof useStacktraceLink>[0]['frame'];
-  eventId?: string;
+  event?: Parameters<typeof useStacktraceLink>[0]['event'];
   projectId?: string;
 }
 
-export function StackTraceMiniFrame({frame, eventId, projectId}: Props) {
+export function StackTraceMiniFrame({frame, event, projectId}: Props) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === projectId);
-
-  const {data: event} = useEventDetails({eventId, projectSlug: project?.slug});
 
   return (
     <FrameContainer>
@@ -55,17 +52,27 @@ export function StackTraceMiniFrame({frame, eventId, projectId}: Props) {
   );
 }
 
-export function MissingFrame() {
+type MissingFrameProps = {
+  system?: string;
+};
+
+export function MissingFrame({system}: MissingFrameProps) {
+  const documentation = <ExternalLink href={`${MODULE_DOC_LINK}#query-sources`} />;
+
+  const errorMessage =
+    system === 'mongodb'
+      ? tct(
+          'Query sources are not currently supported for MongoDB queries. Learn more in our [documentation:documentation].',
+          {documentation}
+        )
+      : tct(
+          'Could not find query source in the selected date range. Learn more in our [documentation:documentation].',
+          {documentation}
+        );
+
   return (
     <FrameContainer>
-      <Deemphasize>
-        {tct(
-          'Could not find query source in the selected date range. Learn more in our [documentation:documentation].',
-          {
-            documentation: <ExternalLink href={`${MODULE_DOC_LINK}#query-sources`} />,
-          }
-        )}
-      </Deemphasize>
+      <Deemphasize>{errorMessage}</Deemphasize>
     </FrameContainer>
   );
 }
@@ -78,7 +85,7 @@ export const FrameContainer = styled('div')`
   padding: ${space(1.5)} ${space(2)};
 
   font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 
   border-top: 1px solid ${p => p.theme.border};
 
@@ -94,7 +101,7 @@ const Emphasize = styled('span')`
 `;
 
 const Deemphasize = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const PushRight = styled('span')`
@@ -113,14 +120,14 @@ function SourceCodeIntegrationLink({
 }: SourceCodeIntegrationLinkProps) {
   const organization = useOrganization();
 
-  const {data: match, isLoading} = useStacktraceLink({
+  const {data: match, isPending} = useStacktraceLink({
     event,
     frame,
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
 
-  if (match?.config && match.sourceUrl && frame.lineNo && !isLoading) {
+  if (match?.config && match.sourceUrl && frame.lineNo && !isPending) {
     return (
       <DeemphasizedExternalLink
         href={getIntegrationSourceUrl(
@@ -145,7 +152,7 @@ const DeemphasizedExternalLink = styled(ExternalLink)`
   display: flex;
   align-items: center;
   gap: ${space(0.75)};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const StyledIconWrapper = styled('span')`

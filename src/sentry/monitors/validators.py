@@ -1,7 +1,8 @@
+import re
 from typing import Literal
 
 import sentry_sdk
-from croniter import CroniterBadDateError, croniter
+from cronsim import CronSimError
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
@@ -16,13 +17,12 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
-from sentry.monitors.constants import MAX_SLUG_LENGTH, MAX_THRESHOLD, MAX_TIMEOUT
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorType, ScheduleType
+from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
+from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT
+from sentry.monitors.models import CheckInStatus, Monitor, ScheduleType
 from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
-from sentry.monitors.types import CrontabSchedule
+from sentry.monitors.types import CrontabSchedule, slugify_monitor_slug
 from sentry.utils.dates import AVAILABLE_TIMEZONES
-
-MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
 MONITOR_STATUSES = {
     "active": ObjectStatus.ACTIVE,
@@ -37,6 +37,8 @@ SCHEDULE_TYPES = {
 IntervalNames = Literal["year", "month", "week", "day", "hour", "minute"]
 
 INTERVAL_NAMES = ("year", "month", "week", "day", "hour", "minute")
+
+CRONTAB_WHITESPACE = re.compile(r"\s+")
 
 # XXX(dcramer): @reboot is not supported (as it cannot be)
 NONSTANDARD_CRONTAB_SCHEDULES = {
@@ -117,6 +119,7 @@ class ConfigValidator(serializers.Serializer):
         default=None,
         help_text="How long (in minutes) after the expected checkin time will we wait until we consider the checkin to have been missed.",
         min_value=1,
+        max_value=MAX_MARGIN,
     )
 
     max_runtime = EmptyIntegerField(
@@ -183,8 +186,7 @@ class ConfigValidator(serializers.Serializer):
 
         # Translate alternative schedule type key
         if isinstance(schedule, dict) and schedule.get("type"):
-            schedule_type = schedule.get("type")
-            schedule_type = SCHEDULE_TYPES.get(schedule_type)
+            schedule_type = SCHEDULE_TYPES.get(schedule["type"])
 
         if schedule_type is None:
             raise ValidationError({"schedule_type": "Missing or invalid schedule type"})
@@ -209,24 +211,26 @@ class ConfigValidator(serializers.Serializer):
 
             if not isinstance(schedule, str):
                 raise ValidationError({"schedule": "Invalid schedule for 'crontab' type"})
-            schedule = schedule.strip()
+
+            # normalize whitespace
+            schedule = re.sub(CRONTAB_WHITESPACE, " ", schedule).strip()
+
             if schedule.startswith("@"):
                 try:
                     schedule = NONSTANDARD_CRONTAB_SCHEDULES[schedule]
                 except KeyError:
                     raise ValidationError({"schedule": "Schedule was not parseable"})
-            # crontab schedule must be valid
-            if not croniter.is_valid(schedule):
-                raise ValidationError({"schedule": "Schedule was not parseable"})
 
-            # XXX(epurkhiser): Make sure we can traverse forward and back in
-            # the schedule. croniter is good, but there are some very edge case
-            # schedules that give it trouble
+            # Do not support 6 or 7 field crontabs
+            if len(schedule.split()) > 5:
+                raise ValidationError({"schedule": "Only 5 field crontab syntax is supported"})
+
+            # Validate the expression and ensure we can traverse forward / back
             now = timezone.now()
             try:
                 get_next_schedule(now, CrontabSchedule(schedule))
                 get_prev_schedule(now, now, CrontabSchedule(schedule))
-            except CroniterBadDateError:
+            except CronSimError:
                 raise ValidationError({"schedule": "Schedule is invalid"})
 
             # Do not support 6 or 7 field crontabs
@@ -238,15 +242,19 @@ class ConfigValidator(serializers.Serializer):
         return attrs
 
 
-@extend_schema_serializer(exclude_fields=["project", "config", "alert_rule"])
+@extend_schema_serializer(exclude_fields=["alert_rule"])
 class MonitorValidator(CamelSnakeSerializer):
-    project = ProjectField(scope="project:read")
+    project = ProjectField(
+        scope="project:read",
+        required=True,
+        help_text="The project slug to associate the monitor to.",
+    )
     name = serializers.CharField(
         max_length=128,
-        help_text="Name of the monitor. Used for notifications.",
+        help_text="Name of the monitor. Used for notifications. If not set the slug will be derived from your monitor name.",
     )
     slug = SentrySerializerSlugField(
-        max_length=MAX_SLUG_LENGTH,
+        max_length=DEFAULT_SLUG_MAX_LENGTH,
         required=False,
         help_text="Uniquely identifies your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.",
     )
@@ -264,8 +272,7 @@ class MonitorValidator(CamelSnakeSerializer):
         required=False,
         help_text="Disable creation of monitor incidents",
     )
-    type = serializers.ChoiceField(choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())))
-    config = ConfigValidator()
+    config = ConfigValidator(help_text="The configuration for the monitor.")
     alert_rule = MonitorAlertRuleValidator(required=False)
 
     def validate_status(self, value):
@@ -276,7 +283,7 @@ class MonitorValidator(CamelSnakeSerializer):
         # a seat, otherwise fail with the reason it cannot.
         #
         # XXX: This check will ONLY be performed when a monitor is provided via
-        #      context. It is the callers responsabiliy to ensure that a
+        #      context. It is the caller's responsibility to ensure that a
         #      monitor is provided in context for this to be validated.
         if status == ObjectStatus.ACTIVE and monitor:
             result = quotas.backend.check_assign_monitor_seat(monitor)
@@ -285,12 +292,13 @@ class MonitorValidator(CamelSnakeSerializer):
 
         return status
 
-    def validate_type(self, value):
-        return MONITOR_TYPES.get(value, value)
-
     def validate_slug(self, value):
+        if not value:
+            return value
+
+        value = slugify_monitor_slug(value)
         # Ignore if slug is equal to current value
-        if not value or (self.instance and value == self.instance.get("slug")):
+        if self.instance and value == self.instance.get("slug"):
             return value
 
         if Monitor.objects.filter(

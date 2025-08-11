@@ -2,13 +2,17 @@ import {useCallback} from 'react';
 
 import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
-import type {Actor, GroupStatus, Organization} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
+import type {GroupStatus} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {MutateOptions} from 'sentry/utils/queryClient';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
 
 type TFeedbackIds = 'all' | string[];
-type TPayload = {hasSeen: boolean} | {status: GroupStatus} | {assignedTo: Actor | null};
+type TPayload =
+  | {hasSeen: boolean}
+  | {status: GroupStatus}
+  | {assignedTo: Actor | undefined};
 type TData = unknown;
 type TError = unknown;
 type TVariables = [TFeedbackIds, TPayload];
@@ -25,13 +29,10 @@ export default function useMutateFeedback({
   organization,
   projectIds,
 }: Props) {
-  const api = useApi({
-    persistInFlight: false,
-  });
   const {listQueryKey} = useFeedbackQueryKeys();
   const {updateCached, invalidateCached} = useFeedbackCache();
 
-  const mutation = useMutation<TData, TError, TVariables, TContext>({
+  const {mutate} = useMutation<TData, TError, TVariables, TContext>({
     onMutate: ([ids, payload]) => {
       updateCached(ids, payload);
     },
@@ -47,21 +48,21 @@ export default function useMutateFeedback({
       const options = isSingleId
         ? {}
         : ids === 'all'
-          ? listQueryKey[1]!
+          ? listQueryKey?.[2]!
           : {query: {id: ids, project: projectIds}};
-      return fetchMutation(api)(['PUT', url, options, payload]);
+      return fetchMutation({method: 'PUT', url, options, data: payload});
     },
     onSettled: (_resp, _error, [ids, _payload]) => {
       invalidateCached(ids);
     },
-    cacheTime: 0,
+    gcTime: 0,
   });
 
   const markAsRead = useCallback(
     (hasSeen: boolean, options?: MutateOptions<TData, TError, TVariables, TContext>) => {
-      mutation.mutate([feedbackIds, {hasSeen}], options);
+      mutate([feedbackIds, {hasSeen}], options);
     },
-    [mutation, feedbackIds]
+    [mutate, feedbackIds]
   );
 
   const resolve = useCallback(
@@ -69,24 +70,13 @@ export default function useMutateFeedback({
       status: GroupStatus,
       options?: MutateOptions<TData, TError, TVariables, TContext>
     ) => {
-      mutation.mutate([feedbackIds, {status}], options);
+      mutate([feedbackIds, {status}], options);
     },
-    [mutation, feedbackIds]
-  );
-
-  const assign = useCallback(
-    (
-      assignedTo: Actor | null,
-      options?: MutateOptions<TData, TError, TVariables, TContext>
-    ) => {
-      mutation.mutate([feedbackIds, {assignedTo}], options);
-    },
-    [mutation, feedbackIds]
+    [mutate, feedbackIds]
   );
 
   return {
     markAsRead,
     resolve,
-    assign,
   };
 }

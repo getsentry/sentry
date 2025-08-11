@@ -1,24 +1,26 @@
 import {Fragment} from 'react';
 
-import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import type {ClickFrame} from 'sentry/utils/replays/types';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 export default function SelectorList({frame}: {frame: ClickFrame}) {
   const location = useLocation();
   const organization = useOrganization();
 
-  const componentName = frame.data.node?.attributes['data-sentry-component'];
-  const lastComponentIndex =
-    frame.message.lastIndexOf('>') === -1 ? 0 : frame.message.lastIndexOf('>') + 2;
+  // There's a rare case where `frame.data` is undefined, either SDK error or
+  // user creating bad breadcrumbs
+  const componentName = frame.data?.node?.attributes['data-sentry-component'];
+  const indexOfArrow = frame.message?.lastIndexOf('>') ?? -1;
+  const lastComponentIndex = indexOfArrow === -1 ? 0 : indexOfArrow + 2;
 
   return componentName ? (
     <Fragment>
-      <span>{frame.message.substring(0, lastComponentIndex)}</span>
+      <span>{frame.message?.substring(0, lastComponentIndex)}</span>
       <Tooltip
         title={t('Search by this component')}
         containerDisplayMode="inline"
@@ -26,7 +28,10 @@ export default function SelectorList({frame}: {frame: ClickFrame}) {
       >
         <Link
           to={{
-            pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
+            pathname: makeReplaysPathname({
+              path: '/',
+              organization,
+            }),
             query: {
               ...location.query,
               query: `click.component_name:${componentName}`,

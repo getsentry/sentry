@@ -1,7 +1,7 @@
 """
-    This list is tracking old api endpoints that we couldn't decide publish status for.
-    The goal is to eventually find owners for all and shrink this list.
-    DO NOT ADD ANY NEW APIS
+This list is tracking old api endpoints that we couldn't decide publish status for.
+The goal is to eventually find owners for all and shrink this list.
+DO NOT ADD ANY NEW APIS
 """
 
 API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
@@ -15,15 +15,13 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/relays/{relay_id}/": {"DELETE"},
     "/api/0/{var}/{issue_id}/": {"DELETE", "GET", "PUT"},
     "/api/0/{var}/{issue_id}/activities/": {"GET"},
-    "/api/0/{var}/{issue_id}/events/": {"GET"},
     "/api/0/{var}/{issue_id}/events/{event_id}/": {"GET"},
     "/api/0/{var}/{issue_id}/{var}/": {"GET", "POST"},
     "/api/0/{var}/{issue_id}/{var}/{note_id}/": {"DELETE", "PUT"},
-    "/api/0/{var}/{issue_id}/hashes/": {"GET", "DELETE"},
+    "/api/0/{var}/{issue_id}/hashes/": {"GET", "PUT"},
     "/api/0/{var}/{issue_id}/reprocessing/": {"POST"},
     "/api/0/{var}/{issue_id}/stats/": {"GET"},
     "/api/0/{var}/{issue_id}/tags/": {"GET"},
-    "/api/0/{var}/{issue_id}/tags/{key}/": {"GET"},
     "/api/0/{var}/{issue_id}/tags/{key}/values/": {"GET"},
     "/api/0/{var}/{issue_id}/attachments/": {"GET"},
     "/api/0/{var}/{issue_id}/similar/": {"GET"},
@@ -52,10 +50,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/{var}/{issue_id}/plugins/jira/link/": {"GET", "POST"},
     "/api/0/{var}/{issue_id}/plugins/jira/unlink/": {"GET", "POST"},
     "/api/0/{var}/{issue_id}/plugins/jira/autocomplete": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/phabricator/create/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/phabricator/link/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/phabricator/unlink/": {"GET", "POST"},
-    "/api/0/{var}/{issue_id}/plugins/phabricator/autocomplete": {"GET", "POST"},
     "/api/0/{var}/{issue_id}/plugins/pivotal/create/": {"GET", "POST"},
     "/api/0/{var}/{issue_id}/plugins/pivotal/link/": {"GET", "POST"},
     "/api/0/{var}/{issue_id}/plugins/pivotal/unlink/": {"GET", "POST"},
@@ -82,7 +76,7 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     },
     "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/hashes/": {
         "GET",
-        "DELETE",
+        "PUT",
     },
     "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/reprocessing/": {"POST"},
     "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/stats/": {"GET"},
@@ -177,22 +171,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
         "POST",
     },
     "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/jira/autocomplete": {
-        "GET",
-        "POST",
-    },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/phabricator/create/": {
-        "GET",
-        "POST",
-    },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/phabricator/link/": {
-        "GET",
-        "POST",
-    },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/phabricator/unlink/": {
-        "GET",
-        "POST",
-    },
-    "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/plugins/phabricator/autocomplete": {
         "GET",
         "POST",
     },
@@ -305,10 +283,8 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
         "PUT",
     },
     "/api/0/organizations/{organization_id_or_slug}/dashboards/{dashboard_id}/visit/": {"POST"},
-    "/api/0/organizations/{organization_id_or_slug}/shortids/{short_id}/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/eventids/{event_id}/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/data-scrubbing-selector-suggestions/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/slugs/": {"PUT"},
     "/api/0/organizations/{organization_id_or_slug}/access-requests/": {"GET", "PUT"},
     "/api/0/organizations/{organization_id_or_slug}/access-requests/{request_id}/": {
         "GET",
@@ -408,9 +384,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/organizations/{organization_id_or_slug}/sessions/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/releases/{version}/resolved/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/request-project-creation/": {"POST"},
-    "/api/0/organizations/{organization_id_or_slug}/members/{member_id}/unreleased-commits/": {
-        "GET"
-    },
     "/api/0/organizations/{organization_id_or_slug}/members/{member_id}/teams/{team_id_or_slug}/": {
         "GET",
         "PUT",
@@ -483,11 +456,7 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/organizations/{organization_id_or_slug}/scim/v2/Users/{member_id}": {"PUT"},
     "/api/0/organizations/{organization_id_or_slug}/scim/v2/Groups/{team_id}": {"PUT"},
     "/api/0/organizations/{organization_id_or_slug}/scim/v2/Schemas": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/metrics/meta/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/metrics/meta/{metric_name}/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/metrics/data/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/metrics/tags/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/metrics/tags/{tag_name}/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/profiling/filters/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/profiling/flamegraph/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/profiling/function-trends/": {"GET"},
@@ -804,8 +773,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/users/{user_id}/permissions/{permission_name}/": {"DELETE", "GET", "POST"},
     "/api/0/users/{user_id}/roles/": {"GET"},
     "/api/0/users/{user_id}/roles/{role_name}/": {"DELETE", "GET", "POST"},
-    "/api/0/users/{user_id}/social-identities/": {"GET"},
-    "/api/0/users/{user_id}/social-identities/{identity_id}/": {"DELETE"},
     "/api/0/users/{user_id}/subscriptions/": {"GET", "PUT", "POST"},
     "/api/0/users/{user_id}/organization-integrations/": {"GET"},
     "/api/0/users/{user_id}/user-identities/": {"GET"},

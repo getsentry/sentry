@@ -16,30 +16,39 @@
     }
     var host = '';
     if (window.__initialData.links && window.__initialData.links.regionUrl !== window.__initialData.links.sentryUrl) {
-      var host = window.__initialData.links.regionUrl;
+      host = window.__initialData.links.regionUrl;
     }
 
-    function promiseRequest(url) {
-      return new Promise(function (resolve, reject) {
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', url);
-        xhr.setRequestHeader("sentry-trace", window.__initialData.initialTrace.sentry_trace);
-        xhr.setRequestHeader("baggage", window.__initialData.initialTrace.baggage);
-        xhr.withCredentials = true;
-        xhr.onload = function () {
-          try {
-            this.status >= 200 && this.status < 300
-              ? resolve([JSON.parse(xhr.response), this.statusText, xhr])
-              : reject([this.status, this.statusText]);
-          } catch (e) {
-            reject();
-          }
-        };
-        xhr.onerror = function () {
-          reject([this.status, this.statusText]);
-        };
-        xhr.send();
-      });
+    async function promiseRequest(url) {
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json; charset=utf-8',
+            'Content-Type': 'application/json',
+            'sentry-trace': window.__initialData.initialTrace.sentry_trace,
+            'baggage': window.__initialData.initialTrace.baggage,
+          },
+          credentials: 'include',
+          priority: 'high',
+        });
+        if (response.status >= 200 && response.status < 300) {
+          const text = await response.text();
+          const json = JSON.parse(text);
+          // Matching ResponseMeta from api
+          const responseMeta = {
+            status: response.status,
+            statusText: response.statusText,
+            responseJSON: json,
+            responseText: text,
+            getResponseHeader: (header) => response.headers.get(header),
+          };
+          return [json, response.statusText, responseMeta];
+        }
+        throw [response.status, response.statusText];
+      } catch (error) {
+        throw [error.status, error.statusText];
+      }
     }
 
     function makeUrl(suffix) {

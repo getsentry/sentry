@@ -1,10 +1,9 @@
-def _import_all():
+def _import_all() -> None:
     # The import order here is important due to cross dependencies
     strategy_modules = [
         "message",
         "security",
         "template",
-        "legacy",
         "newstyle",
         "configurations",
     ]

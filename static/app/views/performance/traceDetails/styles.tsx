@@ -4,12 +4,12 @@ import type {Location} from 'history';
 
 import EventTagsPill from 'sentry/components/events/eventTags/eventTagsPill';
 import {SecondaryHeader} from 'sentry/components/events/interfaces/spans/header';
-import Panel from 'sentry/components/panels/panel';
 import Pills from 'sentry/components/pills';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTag, Organization} from 'sentry/types';
+import type {EventTag} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import type {
   TraceError,
@@ -48,7 +48,7 @@ export const TraceDetailHeader = styled('div')`
   gap: ${space(3)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: max-content max-content;
     grid-row-gap: 0;
   }
@@ -62,11 +62,6 @@ export const TraceViewContainer = styled('div')`
   overflow-x: hidden;
   border-bottom-left-radius: 3px;
   border-bottom-right-radius: 3px;
-`;
-
-export const TracePanel = styled(Panel)`
-  height: 100%;
-  overflow: auto;
 `;
 
 export const ProjectBadgeContainer = styled('span')`
@@ -99,7 +94,6 @@ export function Tags({
     return null;
   }
 
-  const orgSlug = organization.slug;
   const renderText = showingAll ? t('Show less') : t('Show more') + '...';
 
   return (
@@ -113,7 +107,7 @@ export function Tags({
 
             if (isTraceTransaction(event)) {
               const route = transactionSummaryRouteWithQuery({
-                orgSlug,
+                organization,
                 transaction: event.transaction,
                 projectID: String(event.project_id),
                 query: {
@@ -133,7 +127,7 @@ export function Tags({
 
             return (
               <EventTagsPill
-                key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
+                key={defined(tag.key) ? tag.key : `tag-pill-${index}`}
                 tag={tag}
                 projectSlug={event.project_slug}
                 projectId={event.project_id.toString()}

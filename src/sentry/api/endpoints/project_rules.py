@@ -26,24 +26,14 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
-from sentry.integrations.slack.utils import RedisRuleStatus
-from sentry.mediators.project_rules.creator import Creator
+from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
+from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
-from sentry.rules.actions.base import instantiate_action
 from sentry.rules.processing.processor import is_condition_slow
+from sentry.sentry_apps.utils.errors import SentryAppBaseError
 from sentry.signals import alert_rule_created
-from sentry.utils import metrics
-
-
-def send_confirmation_notification(rule: Rule, new: bool, changed: dict | None = None):
-    for action in rule.data.get("actions", ()):
-        action_inst = instantiate_action(rule, action)
-        action_inst.send_confirmation_notification(
-            rule=rule,
-            new=new,
-            changed=changed,
-        )
 
 
 def clean_rule_data(data):
@@ -281,10 +271,9 @@ def get_max_alerts(project, kind: Literal["slow", "fast"]) -> int:
 
         return settings.MAX_SLOW_CONDITION_ISSUE_ALERTS
 
-    has_grouped_processing = features.has("organizations:process-slow-alerts", project.organization)
     has_more_fast_alerts = features.has("organizations:more-fast-alerts", project.organization)
 
-    if has_grouped_processing and has_more_fast_alerts:
+    if has_more_fast_alerts:
         return settings.MAX_MORE_FAST_CONDITION_ISSUE_ALERTS
 
     return settings.MAX_FAST_CONDITION_ISSUE_ALERTS
@@ -437,7 +426,7 @@ A list of filters that determine if a rule fires after the necessary conditions 
 ```
 
 **The event's `attribute` value `match` `value`**
-- `attribute` - Valid values are `message`, `platform`, `environment`, `type`, `error.handled`, `error.unhandled`, `error.main_thread`, `exception.type`, `exception.value`, `user.id`, `user.email`, `user.username`, `user.ip_address`, `http.method`, `http.url`, `http.status_code`, `sdk.name`, `stacktrace.code`, `stacktrace.module`, `stacktrace.filename`, `stacktrace.abs_path`, `stacktrace.package`, `unreal.crashtype`, and `app.in_foreground`.
+- `attribute` - Valid values are `message`, `platform`, `environment`, `type`, `error.handled`, `error.unhandled`, `error.main_thread`, `exception.type`, `exception.value`, `user.id`, `user.email`, `user.username`, `user.ip_address`, `http.method`, `http.url`, `http.status_code`, `sdk.name`, `stacktrace.code`, `stacktrace.module`, `stacktrace.filename`, `stacktrace.abs_path`, `stacktrace.package`, `unreal.crash_type`, `app.in_foreground`.
 - `match` - The comparison operator. Valid values are `eq` (equals), `ne` (does not equal), `sw` (starts with), `ew` (ends with), `co` (contains), `nc` (does not contain), `is` (is set), and `ns` (is not set).
 - `value` - A string. Not required when `match` is `is` or `ns`.
 ```json
@@ -506,8 +495,8 @@ A list of actions that take place when all required conditions and filters for t
 - `workspace` - The integration ID associated with the Slack workspace.
 - `channel` - The name of the channel to send the notification to (e.g., #critical, Jane Schmidt).
 - `channel_id` (optional) - The ID of the channel to send the notification to.
-- `tags` - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
-- `notes` - Text to show alongside the notification. To @ a user, include their user id like `@<USER_ID>`. To include a clickable link, format the link and title like `<http://example.com|Click Here>`.
+- `tags` (optional) - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
+- `notes` (optional) - Text to show alongside the notification. To @ a user, include their user id like `@<USER_ID>`. To include a clickable link, format the link and title like `<http://example.com|Click Here>`.
 ```json
 {
     "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
@@ -532,7 +521,7 @@ A list of actions that take place when all required conditions and filters for t
 **Send a Discord notification**
 - `server` - The integration ID associated with the Discord server.
 - `channel_id` - The ID of the channel to send the notification to.
-- `tags` - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
+- `tags` (optional) - A string of tags to show in the notification, separated by commas (e.g., "environment, user, my_tag").
 ```json
 {
     "id": "sentry.integrations.discord.notify_action.DiscordNotifyServiceAction",
@@ -704,7 +693,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         },
         examples=IssueAlertExamples.LIST_PROJECT_RULES,
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Return a list of active issue alert rules bound to a project.
 
@@ -718,11 +707,15 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             status=ObjectStatus.ACTIVE,
         ).select_related("project")
 
+        expand = request.GET.getlist("expand", ["lastTriggered"])
+
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by="-id",
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(
+                x, request.user, RuleSerializer(expand=expand, project_slug=project.slug)
+            ),
         )
 
     @extend_schema(
@@ -811,7 +804,8 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         kwargs = {
             "name": data["name"],
             "environment": data.get("environment"),
-            "project": project,
+            "project": None,
+            "project_id": project.id,
             "action_match": data["actionMatch"],
             "filter_match": data.get("filterMatch"),
             "conditions": conditions,
@@ -842,10 +836,28 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             find_channel_id_for_rule.apply_async(kwargs=kwargs)
             return Response(uuid_context, status=202)
 
-        created_alert_rule_ui_component = trigger_sentry_app_action_creators_for_issues(
-            kwargs["actions"]
-        )
-        rule = Creator.run(request=request, **kwargs)
+        try:
+            created_alert_rule_ui_component = trigger_sentry_app_action_creators_for_issues(
+                kwargs["actions"]
+            )
+        except SentryAppBaseError as e:
+            response = e.response_from_exception()
+            response.data["actions"] = [response.data.pop("detail")]
+
+            return response
+
+        rule = ProjectRuleCreator(
+            name=kwargs["name"],
+            project=project,
+            action_match=kwargs["action_match"],
+            actions=kwargs["actions"],
+            conditions=conditions,
+            frequency=kwargs["frequency"],
+            environment=kwargs["environment"],
+            owner=owner,
+            filter_match=kwargs["filter_match"],
+            request=request,
+        ).run()
 
         RuleActivity.objects.create(
             rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
@@ -871,13 +883,5 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             duplicate_rule=duplicate_rule,
             wizard_v3=wizard_v3,
         )
-        if features.has(
-            "organizations:rule-create-edit-confirm-notification", project.organization
-        ):
-            send_confirmation_notification(rule=rule, new=True)
-            metrics.incr(
-                "rule_confirmation.create.notification.sent",
-                skip_internal=False,
-            )
 
         return Response(serialize(rule, request.user))

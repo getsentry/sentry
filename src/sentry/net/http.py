@@ -15,6 +15,7 @@ from urllib3.connectionpool import connection_from_url as _connection_from_url
 from urllib3.exceptions import ConnectTimeoutError, NewConnectionError
 from urllib3.poolmanager import PoolManager
 from urllib3.util.connection import _set_socket_options
+from urllib3.util.timeout import _DEFAULT_TIMEOUT
 
 from sentry import VERSION as SENTRY_VERSION
 from sentry.net.socket import safe_create_connection
@@ -105,7 +106,9 @@ class SafeHTTPSConnection(SafeConnectionMixin, HTTPSConnection):
     pass
 
 
-class InjectIPAddressMixin:
+class SafeHTTPConnectionPool(HTTPConnectionPool):
+    ConnectionCls = SafeHTTPConnection
+
     def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
         super().__init__(*args, **kwargs)
         self.ConnectionCls = partial(
@@ -113,12 +116,14 @@ class InjectIPAddressMixin:
         )
 
 
-class SafeHTTPConnectionPool(InjectIPAddressMixin, HTTPConnectionPool):
-    ConnectionCls = SafeHTTPConnection
-
-
-class SafeHTTPSConnectionPool(InjectIPAddressMixin, HTTPSConnectionPool):
+class SafeHTTPSConnectionPool(HTTPSConnectionPool):
     ConnectionCls = SafeHTTPSConnection
+
+    def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.ConnectionCls = partial(
+            self.ConnectionCls, is_ipaddress_permitted=is_ipaddress_permitted
+        )
 
 
 class SafePoolManager(PoolManager):
@@ -131,8 +136,8 @@ class SafePoolManager(PoolManager):
     def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
         PoolManager.__init__(self, *args, **kwargs)
         self.pool_classes_by_scheme = {
-            "http": partial(SafeHTTPConnectionPool, is_ipaddress_permitted=is_ipaddress_permitted),
-            "https": partial(
+            "http": partial(SafeHTTPConnectionPool, is_ipaddress_permitted=is_ipaddress_permitted),  # type: ignore[dict-item]  # https://github.com/urllib3/urllib3/issues/3554
+            "https": partial(  # type: ignore[dict-item]  # https://github.com/urllib3/urllib3/issues/3554
                 SafeHTTPSConnectionPool, is_ipaddress_permitted=is_ipaddress_permitted
             ),
         }
@@ -231,7 +236,7 @@ class UnixHTTPConnection(HTTPConnection):
         # If provided, set socket level options before connecting.
         _set_socket_options(sock, self.socket_options)
 
-        if self.timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:  # type: ignore[attr-defined]
+        if self.timeout is not _DEFAULT_TIMEOUT:
             sock.settimeout(self.timeout)
         sock.connect(self.socket_path)
         return sock
@@ -240,7 +245,7 @@ class UnixHTTPConnection(HTTPConnection):
 class UnixHTTPConnectionPool(HTTPConnectionPool):
     ConnectionCls = UnixHTTPConnection
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{type(self).__name__}(host={self.host!r})"
 
 

@@ -1,9 +1,17 @@
 import {type Reducer, useCallback, useReducer} from 'react';
 
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
-import type {
-  FieldDefinitionGetter,
-  FocusOverride,
+import {
+  convertTokenTypeToValueType,
+  getArgsToken,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {getDefaultValueForValueType} from 'sentry/components/searchQueryBuilder/tokens/utils';
+import {
+  type FieldDefinitionGetter,
+  type FocusOverride,
+  isWildcardOperator,
+  type SearchQueryBuilderOperators,
+  WildcardOperators,
 } from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
@@ -11,25 +19,46 @@ import {
   parseQueryBuilderValue,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
+  type AggregateFilter,
   FilterType,
   type ParseResultToken,
   TermOperator,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {stringifyToken} from 'sentry/components/searchSyntax/utils';
+import {getKeyName, stringifyToken} from 'sentry/components/searchSyntax/utils';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type QueryBuilderState = {
+  /**
+   * This may lag the `query` value in the cases where:
+   * 1. The filter has been created, but no value has been entered yet.
+   * 2. A free text value has been typed, but the user has not blurred the input or pressed enter.
+   */
+  committedQuery: string;
+  /**
+   * There are certain cases where we want to move the cursor to a different location after
+   * a state change. useApplyFocusOverride reads this value and focuses the selected item.
+   */
   focusOverride: FocusOverride | null;
+  /**
+   * The current query value.
+   * This is the basic source of truth for what is currently being displayed.
+   */
   query: string;
 };
 
 type ClearAction = {type: 'CLEAR'};
 
+type CommitQueryAction = {
+  type: 'COMMIT_QUERY';
+};
+
 type UpdateQueryAction = {
   query: string;
   type: 'UPDATE_QUERY';
   focusOverride?: FocusOverride | null;
+  shouldCommitQuery?: boolean;
 };
 
 type ResetFocusOverrideAction = {type: 'RESET_FOCUS_OVERRIDE'};
@@ -46,6 +75,7 @@ type DeleteTokensAction = {
 };
 
 type UpdateFreeTextAction = {
+  shouldCommitQuery: boolean;
   text: string;
   tokens: ParseResultToken[];
   type: 'UPDATE_FREE_TEXT';
@@ -56,10 +86,17 @@ type ReplaceTokensWithTextAction = {
   text: string;
   tokens: ParseResultToken[];
   type: 'REPLACE_TOKENS_WITH_TEXT';
+  focusOverride?: FocusOverride;
+};
+
+type UpdateFilterKeyAction = {
+  key: string;
+  token: TokenResult<Token.FILTER>;
+  type: 'UPDATE_FILTER_KEY';
 };
 
 type UpdateFilterOpAction = {
-  op: TermOperator;
+  op: SearchQueryBuilderOperators;
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_FILTER_OP';
 };
@@ -76,37 +113,27 @@ type MultiSelectFilterValueAction = {
   value: string;
 };
 
-type DeleteLastMultiSelectFilterValueAction = {
-  token: TokenResult<Token.FILTER>;
-  type: 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE';
-};
-
 type UpdateAggregateArgsAction = {
-  token: TokenResult<Token.KEY_AGGREGATE_ARGS> | TokenResult<Token.SPACES>;
+  token: AggregateFilter;
   type: 'UPDATE_AGGREGATE_ARGS';
   value: string;
+  focusOverride?: FocusOverride;
 };
 
 export type QueryBuilderActions =
   | ClearAction
+  | CommitQueryAction
   | UpdateQueryAction
   | ResetFocusOverrideAction
   | DeleteTokenAction
   | DeleteTokensAction
   | UpdateFreeTextAction
   | ReplaceTokensWithTextAction
+  | UpdateFilterKeyAction
   | UpdateFilterOpAction
   | UpdateTokenValueAction
   | UpdateAggregateArgsAction
-  | MultiSelectFilterValueAction
-  | DeleteLastMultiSelectFilterValueAction;
-
-function removeQueryToken(query: string, token: TokenResult<Token>): string {
-  return removeExcessWhitespaceFromParts(
-    query.substring(0, token.location.start.offset),
-    query.substring(token.location.end.offset)
-  );
-}
+  | MultiSelectFilterValueAction;
 
 function removeQueryTokensFromQuery(
   query: string,
@@ -117,7 +144,7 @@ function removeQueryTokensFromQuery(
   }
 
   return removeExcessWhitespaceFromParts(
-    query.substring(0, tokens[0].location.start.offset),
+    query.substring(0, tokens[0]!.location.start.offset),
     query.substring(tokens.at(-1)!.location.end.offset)
   );
 }
@@ -137,28 +164,133 @@ function deleteQueryTokens(
   };
 }
 
-function modifyFilterOperator(
+export function addWildcardToToken(
+  token: TokenResult<Token.VALUE_TEXT>,
+  isContains: boolean,
+  isStartsWith: boolean,
+  isEndsWith: boolean
+) {
+  let newTokenValue = token.value;
+  if ((isContains || isEndsWith) && !token.value.startsWith('*')) {
+    newTokenValue = `*${newTokenValue}`;
+  }
+
+  if ((isContains || isStartsWith) && !token.value.endsWith('*')) {
+    newTokenValue = `${newTokenValue}*`;
+  }
+
+  return newTokenValue;
+}
+
+export function removeWildcardFromToken(
+  token: TokenResult<Token.VALUE_TEXT>,
+  isContains: boolean,
+  isStartsWith: boolean,
+  isEndsWith: boolean
+) {
+  let newTokenValue = token.value;
+  if (!isEndsWith && !isContains && token.value.startsWith('*')) {
+    newTokenValue = newTokenValue.slice(1);
+  }
+
+  if (!isStartsWith && !isContains && token.value.endsWith('*')) {
+    newTokenValue = newTokenValue.slice(0, -1);
+  }
+
+  return newTokenValue;
+}
+
+function modifyFilterOperatorQuery(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: TermOperator
+  newOperator: SearchQueryBuilderOperators,
+  hasWildcardOperators: boolean
 ): string {
   if (isDateToken(token)) {
     return modifyFilterOperatorDate(query, token, newOperator);
   }
 
-  const isNotEqual = newOperator === TermOperator.NOT_EQUAL;
-
+  const isNotEqual =
+    newOperator === TermOperator.NOT_EQUAL ||
+    newOperator === WildcardOperators.DOES_NOT_CONTAIN;
   const newToken: TokenResult<Token.FILTER> = {...token};
-  newToken.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
   newToken.negated = isNotEqual;
 
+  if (isWildcardOperator(newOperator)) {
+    // whenever we have a wildcard operator, we want to set the operator to the default,
+    // because there is no special characters for the wildcard operators just the asterisk
+    newToken.operator = TermOperator.DEFAULT;
+  } else {
+    newToken.operator = isNotEqual ? TermOperator.DEFAULT : newOperator;
+  }
+
+  const isContains =
+    newOperator === WildcardOperators.CONTAINS ||
+    newOperator === WildcardOperators.DOES_NOT_CONTAIN;
+  const isStartsWith = newOperator === WildcardOperators.STARTS_WITH;
+  const isEndsWith = newOperator === WildcardOperators.ENDS_WITH;
+
+  if (hasWildcardOperators && newToken.value.type === Token.VALUE_TEXT) {
+    newToken.value.value = addWildcardToToken(
+      newToken.value,
+      isContains,
+      isStartsWith,
+      isEndsWith
+    );
+    newToken.value.value = removeWildcardFromToken(
+      newToken.value,
+      isContains,
+      isStartsWith,
+      isEndsWith
+    );
+  } else if (hasWildcardOperators && newToken.value.type === Token.VALUE_TEXT_LIST) {
+    newToken.value.items.forEach(item => {
+      if (!item.value) return;
+      item.value.value = addWildcardToToken(
+        item.value,
+        isContains,
+        isStartsWith,
+        isEndsWith
+      );
+      item.value.value = removeWildcardFromToken(
+        item.value,
+        isContains,
+        isStartsWith,
+        isEndsWith
+      );
+    });
+  }
+
   return replaceQueryToken(query, token, stringifyToken(newToken));
+}
+
+function modifyFilterOperator(
+  state: QueryBuilderState,
+  action: UpdateFilterOpAction,
+  hasWildcardOperators: boolean
+): QueryBuilderState {
+  const newQuery = modifyFilterOperatorQuery(
+    state.query,
+    action.token,
+    action.op,
+    hasWildcardOperators
+  );
+
+  if (newQuery === state.query) {
+    return state;
+  }
+
+  return {
+    ...state,
+    query: newQuery,
+    committedQuery: newQuery,
+  };
 }
 
 function modifyFilterOperatorDate(
   query: string,
   token: TokenResult<Token.FILTER>,
-  newOperator: TermOperator
+  newOperator: SearchQueryBuilderOperators
 ): string {
   switch (newOperator) {
     case TermOperator.GREATER_THAN:
@@ -219,27 +351,48 @@ function modifyFilterValueDate(
   return replaceQueryToken(query, token, `${token.key.text}:${newValue}`);
 }
 
+// Uses the token's location to replace a sequence of tokens with the new text value
 function replaceQueryTokens(
   query: string,
-  tokens: TokenResult<Token>[],
+  tokens: Array<TokenResult<Token>>,
   value: string
 ): string {
   if (tokens.length === 0) {
     return query;
   }
 
-  const start = query.substring(0, tokens[0].location.start.offset);
+  const start = query.substring(0, tokens[0]!.location.start.offset);
   const end = query.substring(tokens.at(-1)!.location.end.offset);
 
   return start + value + end;
 }
 
+// Uses the token's location to replace the given with the new text value
 function replaceQueryToken(
   query: string,
   token: TokenResult<Token>,
   value: string
 ): string {
   return replaceQueryTokens(query, [token], value);
+}
+
+// Takes a list of token replacements and applies them to the query
+function multipleReplaceQueryToken(
+  query: string,
+  replacements: Array<{replacement: string; token: TokenResult<Token>}>
+) {
+  // Because replacements to earlier tokens can affect the offsets of later tokens,
+  // we need to apply the replacements in order from rightmost to leftmost
+  const sortedReplacements = replacements.sort(
+    (a, b) => b.token.location.start.offset - a.token.location.start.offset
+  );
+
+  let newQuery = query;
+  for (const {token, replacement} of sortedReplacements) {
+    newQuery = replaceQueryToken(newQuery, token, replacement);
+  }
+
+  return newQuery;
 }
 
 function removeExcessWhitespaceFromParts(...parts: string[]): string {
@@ -252,16 +405,16 @@ function removeExcessWhitespaceFromParts(...parts: string[]): string {
 
 // Ensures that the replaced token is separated from the rest of the query
 // and cleans up any extra whitespace
-export function replaceTokensWithPadding(
+function replaceTokensWithPadding(
   query: string,
-  tokens: TokenResult<Token>[],
+  tokens: Array<TokenResult<Token>>,
   value: string
 ): string {
   if (tokens.length === 0) {
     return query;
   }
 
-  const start = query.substring(0, tokens[0].location.start.offset);
+  const start = query.substring(0, tokens[0]!.location.start.offset);
   const end = query.substring(tokens.at(-1)!.location.end.offset);
 
   return removeExcessWhitespaceFromParts(start, value, end);
@@ -273,9 +426,17 @@ function updateFreeText(
 ): QueryBuilderState {
   const newQuery = replaceTokensWithPadding(state.query, action.tokens, action.text);
 
+  if (newQuery === state.query) {
+    return state;
+  }
+
+  // Only update the committed query if we aren't in the middle of creating a filter
+  const committedQuery = action.shouldCommitQuery ? newQuery : state.committedQuery;
+
   return {
     ...state,
     query: newQuery,
+    committedQuery,
     focusOverride:
       action.focusOverride === undefined ? state.focusOverride : action.focusOverride,
   };
@@ -283,23 +444,53 @@ function updateFreeText(
 
 function replaceTokensWithText(
   state: QueryBuilderState,
-  action: ReplaceTokensWithTextAction,
-  getFieldDefinition: FieldDefinitionGetter
+  {
+    getFieldDefinition,
+    text,
+    tokens,
+    focusOverride: incomingFocusOverride,
+  }: {
+    getFieldDefinition: FieldDefinitionGetter;
+    text: string;
+    tokens: Array<TokenResult<Token>>;
+    focusOverride?: FocusOverride;
+  }
 ): QueryBuilderState {
-  const newQuery = replaceTokensWithPadding(state.query, action.tokens, action.text);
-  const cursorPosition =
-    (action.tokens[0]?.location.start.offset ?? 0) + action.text.length;
+  const newQuery = replaceTokensWithPadding(state.query, tokens, text);
+
+  if (newQuery === state.query) {
+    return state;
+  }
+
+  // Only update the committed query if we aren't in the middle of creating a filter
+  const committedQuery =
+    incomingFocusOverride?.part === 'value' ? state.committedQuery : newQuery;
+
+  if (incomingFocusOverride) {
+    return {
+      ...state,
+      query: newQuery,
+      committedQuery,
+      focusOverride: incomingFocusOverride,
+    };
+  }
+
+  const cursorPosition = (tokens[0]?.location.start.offset ?? 0) + text.length; // TODO: Ensure this is sorted
   const newParsedQuery = parseQueryBuilderValue(newQuery, getFieldDefinition);
   const focusedToken = newParsedQuery?.find(
-    token => token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition
+    (token: any) =>
+      token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition
   );
 
-  const focusedItemKey = focusedToken ? makeTokenKey(focusedToken, newParsedQuery) : null;
+  const focusOverride = focusedToken
+    ? {itemKey: makeTokenKey(focusedToken, newParsedQuery)}
+    : null;
 
   return {
     ...state,
     query: newQuery,
-    focusOverride: focusedItemKey ? {itemKey: focusedItemKey} : null,
+    committedQuery: newQuery,
+    focusOverride,
   };
 }
 
@@ -311,6 +502,9 @@ function modifyFilterValue(
   if (isDateToken(token)) {
     return modifyFilterValueDate(query, token, newValue);
   }
+
+  // stop the user from entering multiple wildcards by themselves
+  newValue = newValue.replace(/\*\*+/g, '*');
 
   return replaceQueryToken(query, token.value, newValue);
 }
@@ -330,7 +524,7 @@ function updateFilterMultipleValues(
   const newValue =
     uniqNonEmptyValues.length > 1
       ? `[${uniqNonEmptyValues.join(',')}]`
-      : uniqNonEmptyValues[0];
+      : uniqNonEmptyValues[0]!;
 
   return {...state, query: replaceQueryToken(state.query, token.value, newValue)};
 }
@@ -343,7 +537,7 @@ function multiSelectTokenValue(
 
   switch (tokenValue.type) {
     case Token.VALUE_TEXT_LIST:
-    case Token.VALUE_NUMBER_LIST:
+    case Token.VALUE_NUMBER_LIST: {
       const values = tokenValue.items.map(item => item.value?.text ?? '');
       const containsValue = values.includes(action.value);
       const newValues = containsValue
@@ -351,7 +545,8 @@ function multiSelectTokenValue(
         : [...values, action.value];
 
       return updateFilterMultipleValues(state, action.token, newValues);
-    default:
+    }
+    default: {
       if (tokenValue.text === action.value) {
         return updateFilterMultipleValues(state, action.token, ['']);
       }
@@ -359,24 +554,71 @@ function multiSelectTokenValue(
         ? [tokenValue.text, action.value]
         : [action.value];
       return updateFilterMultipleValues(state, action.token, newValue);
+    }
   }
 }
 
-function deleteLastMultiSelectTokenValue(
+function updateAggregateArgs(
   state: QueryBuilderState,
-  action: DeleteLastMultiSelectFilterValueAction
-) {
-  const tokenValue = action.token.value;
-
-  switch (tokenValue.type) {
-    case Token.VALUE_TEXT_LIST:
-    case Token.VALUE_NUMBER_LIST:
-      const newValues = tokenValue.items.slice(0, -1).map(item => item.value?.text ?? '');
-
-      return updateFilterMultipleValues(state, action.token, newValues);
-    default:
-      return updateFilterMultipleValues(state, action.token, ['']);
+  action: UpdateAggregateArgsAction,
+  {
+    getFieldDefinition,
+  }: {
+    getFieldDefinition: FieldDefinitionGetter;
   }
+): QueryBuilderState {
+  const fieldDefinition = getFieldDefinition(getKeyName(action.token.key));
+  const focusOverride =
+    action.focusOverride === undefined ? state.focusOverride : action.focusOverride;
+
+  if (!fieldDefinition?.parameterDependentValueType) {
+    return {
+      ...state,
+      query: replaceQueryToken(state.query, getArgsToken(action.token), action.value),
+      focusOverride,
+    };
+  }
+
+  const newValueType = fieldDefinition.parameterDependentValueType(
+    action.value.split(',').map(arg => arg.trim())
+  );
+  const oldValueType = convertTokenTypeToValueType(action.token.value.type);
+
+  if (newValueType === oldValueType) {
+    return {
+      ...state,
+      query: replaceQueryToken(state.query, getArgsToken(action.token), action.value),
+      focusOverride,
+    };
+  }
+
+  const newValue = getDefaultValueForValueType(newValueType);
+
+  return {
+    ...state,
+    query: multipleReplaceQueryToken(state.query, [
+      {token: getArgsToken(action.token), replacement: action.value},
+      {token: action.token.value, replacement: newValue},
+    ]),
+    focusOverride,
+  };
+}
+
+function updateFilterKey(
+  state: QueryBuilderState,
+  action: UpdateFilterKeyAction
+): QueryBuilderState {
+  const newQuery = replaceQueryToken(state.query, action.token.key, action.key);
+
+  if (newQuery === state.query) {
+    return state;
+  }
+
+  return {
+    ...state,
+    query: newQuery,
+    committedQuery: newQuery,
+  };
 }
 
 export function useQueryBuilderState({
@@ -388,8 +630,15 @@ export function useQueryBuilderState({
   getFieldDefinition: FieldDefinitionGetter;
   initialQuery: string;
 }) {
-  const initialState: QueryBuilderState = {query: initialQuery, focusOverride: null};
+  const hasWildcardOperators = useOrganization().features.includes(
+    'search-query-builder-wildcard-operators'
+  );
 
+  const initialState: QueryBuilderState = {
+    query: initialQuery,
+    committedQuery: initialQuery,
+    focusOverride: null,
+  };
   const reducer: Reducer<QueryBuilderState, QueryBuilderActions> = useCallback(
     (state, action): QueryBuilderState => {
       if (disabled) {
@@ -401,56 +650,68 @@ export function useQueryBuilderState({
           return {
             ...state,
             query: '',
+            committedQuery: '',
             focusOverride: {
               itemKey: `${Token.FREE_TEXT}:0`,
             },
           };
-        case 'UPDATE_QUERY':
+        case 'COMMIT_QUERY':
+          if (state.query === state.committedQuery) {
+            return state;
+          }
+          return {
+            ...state,
+            committedQuery: state.query,
+          };
+        case 'UPDATE_QUERY': {
+          const shouldCommitQuery = action.shouldCommitQuery ?? true;
           return {
             ...state,
             query: action.query,
+            committedQuery: shouldCommitQuery ? action.query : state.committedQuery,
             focusOverride: action.focusOverride ?? null,
           };
+        }
         case 'RESET_FOCUS_OVERRIDE':
           return {
             ...state,
             focusOverride: null,
           };
         case 'DELETE_TOKEN':
-          return {
-            ...state,
-            query: removeQueryToken(state.query, action.token),
-          };
+          return replaceTokensWithText(state, {
+            tokens: [action.token],
+            text: '',
+            getFieldDefinition,
+          });
         case 'DELETE_TOKENS':
           return deleteQueryTokens(state, action);
         case 'UPDATE_FREE_TEXT':
           return updateFreeText(state, action);
         case 'REPLACE_TOKENS_WITH_TEXT':
-          return replaceTokensWithText(state, action, getFieldDefinition);
+          return replaceTokensWithText(state, {
+            tokens: action.tokens,
+            text: action.text,
+            focusOverride: action.focusOverride,
+            getFieldDefinition,
+          });
+        case 'UPDATE_FILTER_KEY':
+          return updateFilterKey(state, action);
         case 'UPDATE_FILTER_OP':
-          return {
-            ...state,
-            query: modifyFilterOperator(state.query, action.token, action.op),
-          };
+          return modifyFilterOperator(state, action, hasWildcardOperators);
         case 'UPDATE_TOKEN_VALUE':
           return {
             ...state,
             query: modifyFilterValue(state.query, action.token, action.value),
           };
         case 'UPDATE_AGGREGATE_ARGS':
-          return {
-            ...state,
-            query: replaceQueryToken(state.query, action.token, action.value),
-          };
+          return updateAggregateArgs(state, action, {getFieldDefinition});
         case 'TOGGLE_FILTER_VALUE':
           return multiSelectTokenValue(state, action);
-        case 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE':
-          return deleteLastMultiSelectTokenValue(state, action);
         default:
           return state;
       }
     },
-    [disabled, getFieldDefinition]
+    [disabled, getFieldDefinition, hasWildcardOperators]
   );
 
   const [state, dispatch] = useReducer(reducer, initialState);

@@ -1,14 +1,18 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {ContextValue} from 'sentry/components/events/contexts';
 import {
   getContextIcon,
   getContextMeta,
   getContextTitle,
+  getContextType,
   getFormattedContextData,
 } from 'sentry/components/events/contexts/utils';
-import KeyValueData, {
+import {
+  KeyValueData,
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
 import type {Event} from 'sentry/types/event';
@@ -37,7 +41,7 @@ interface ContextCardContentConfig {
   includeAliasInSubject?: boolean;
 }
 
-export interface ContextCardContentProps {
+interface ContextCardContentProps {
   item: KeyValueListDataItem;
   meta: Record<string, any>;
   alias?: string;
@@ -80,6 +84,8 @@ export default function ContextCard({
 }: ContextCardProps) {
   const location = useLocation();
   const organization = useOrganization();
+  const theme = useTheme();
+
   if (isEmptyObject(value)) {
     return null;
   }
@@ -88,7 +94,7 @@ export default function ContextCard({
   const contextItems = getFormattedContextData({
     event,
     contextValue: value,
-    contextType: type,
+    contextType: getContextType({alias, type}),
     organization,
     project,
     location,
@@ -110,7 +116,19 @@ export default function ContextCard({
       title={
         <Title>
           <div>{getContextTitle({alias, type, value})}</div>
-          <div>{getContextIcon({alias, type, value})}</div>
+          <div style={{minWidth: 14}}>
+            <ErrorBoundary customComponent={null}>
+              {getContextIcon({
+                alias,
+                type,
+                value,
+                contextIconProps: {
+                  size: 'sm',
+                },
+                theme,
+              })}
+            </ErrorBoundary>
+          </div>
         </Title>
       }
       sortAlphabetically

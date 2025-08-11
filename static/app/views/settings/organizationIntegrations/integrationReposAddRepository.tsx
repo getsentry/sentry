@@ -1,15 +1,19 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import {useMemo, useState} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {addRepository, migrateRepository} from 'sentry/actionCreators/integrations';
-import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {t} from 'sentry/locale';
 import RepositoryStore from 'sentry/stores/repositoryStore';
-import type {Integration, IntegrationRepository, Repository} from 'sentry/types';
+import type {
+  Integration,
+  IntegrationRepository,
+  Repository,
+} from 'sentry/types/integrations';
+import {fetchDataQuery, useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface IntegrationReposAddRepositoryProps {
@@ -21,8 +25,9 @@ interface IntegrationReposAddRepositoryProps {
 
 interface IntegrationRepoSearchResult {
   repos: IntegrationRepository[];
-  searchable: boolean;
 }
+
+const defaultSearchResult: IntegrationRepoSearchResult = {repos: []};
 
 export function IntegrationReposAddRepository({
   integration,
@@ -32,47 +37,31 @@ export function IntegrationReposAddRepository({
 }: IntegrationReposAddRepositoryProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
-  const [dropdownBusy, setDropdownBusy] = useState(true);
   const [adding, setAdding] = useState(false);
-  const [searchResult, setSearchResult] = useState<IntegrationRepoSearchResult>({
-    repos: [],
-    searchable: false,
-  });
+  const [search, setSearch] = useState<string>();
+  const debouncedSearch = useDebouncedValue(search, 200);
 
-  const searchRepositoriesRequest = useCallback(
-    async (searchQuery?: string) => {
+  const query = useQuery({
+    queryKey: [
+      `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
+      {method: 'GET', query: {search: debouncedSearch}},
+    ] as const,
+    queryFn: async context => {
       try {
-        const data: IntegrationRepoSearchResult = await api.requestPromise(
-          `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
-          {method: 'GET', query: {search: searchQuery}}
-        );
-        setSearchResult(data);
+        onSearchError(null);
+        return await fetchDataQuery<IntegrationRepoSearchResult>(context);
       } catch (error) {
         onSearchError(error?.status);
+        throw error;
       }
-      setDropdownBusy(false);
     },
-    [api, integration, organization, onSearchError]
-  );
+    retry: 0,
+    staleTime: 20_000,
+    placeholderData: previousData => (debouncedSearch ? previousData : undefined),
+    enabled: !!debouncedSearch,
+  });
 
-  useEffect(() => {
-    // Load the repositories before the dropdown is opened
-    searchRepositoriesRequest();
-  }, [searchRepositoriesRequest]);
-
-  const debouncedSearchRepositoriesRequest = useMemo(
-    () => debounce(query => searchRepositoriesRequest(query), 200),
-    [searchRepositoriesRequest]
-  );
-
-  const handleSearchRepositories = useCallback(
-    (e?: React.ChangeEvent<HTMLInputElement>) => {
-      setDropdownBusy(true);
-      onSearchError(null);
-      debouncedSearchRepositoriesRequest(e?.target.value);
-    },
-    [debouncedSearchRepositoriesRequest, onSearchError]
-  );
+  const searchResult = query.data?.[0] ?? defaultSearchResult;
 
   const addRepo = async (selection: {value: string}) => {
     setAdding(true);
@@ -111,9 +100,9 @@ export function IntegrationReposAddRepository({
       repo => !repositories.has(repo.identifier)
     );
     return repositoryOptions.map(repo => ({
-      searchKey: repo.name,
       value: repo.identifier,
-      label: <RepoName>{repo.name}</RepoName>,
+      label: repo.name,
+      textValue: repo.name,
     }));
   }, [currentRepositories, searchResult]);
 
@@ -136,31 +125,31 @@ export function IntegrationReposAddRepository({
   }
 
   return (
-    <DropdownWrapper>
-      <DropdownAutoComplete
-        items={dropdownItems}
-        onSelect={addRepo}
-        onChange={searchResult.searchable ? handleSearchRepositories : undefined}
-        emptyMessage={t('No repositories available')}
-        noResultsMessage={t('No repositories found')}
-        searchPlaceholder={t('Search Repositories')}
-        busy={dropdownBusy}
-        alignMenu="right"
-      >
-        {({isOpen}) => (
-          <DropdownButton isOpen={isOpen} size="xs" busy={adding}>
-            {t('Add Repository')}
-          </DropdownButton>
-        )}
-      </DropdownAutoComplete>
-    </DropdownWrapper>
+    <CompactSelect
+      size="xs"
+      menuWidth={250}
+      options={dropdownItems}
+      onChange={addRepo}
+      disabled={false}
+      menuTitle={t('Repositories')}
+      triggerLabel={t('Add Repository')}
+      emptyMessage={
+        query.isFetching
+          ? t('Searching\u2026')
+          : debouncedSearch
+            ? t(
+                'No repositories found. Newly added repositories may take a few minutes to appear.'
+              )
+            : t('Please enter a repository name')
+      }
+      searchPlaceholder={t('Search Repositories')}
+      loading={query.isFetching}
+      searchable
+      onSearch={setSearch}
+      triggerProps={{
+        busy: adding,
+      }}
+      disableSearchFilter
+    />
   );
 }
-
-const DropdownWrapper = styled('div')`
-  text-transform: none;
-`;
-
-const RepoName = styled('div')`
-  font-weight: ${p => p.theme.fontWeightNormal};
-`;

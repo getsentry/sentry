@@ -13,12 +13,13 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
+import {mockTour} from 'sentry/components/tours/testUtils';
 import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
-import {GroupStatus, IssueCategory} from 'sentry/types';
+import {GroupStatus, IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
-import GroupActions from 'sentry/views/issueDetails/actions';
+import {GroupActions} from 'sentry/views/issueDetails/actions';
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 const project = ProjectFixture({
   id: '2448',
@@ -34,16 +35,28 @@ const group = GroupFixture({
   project,
 });
 
+const issuePlatformGroup = GroupFixture({
+  id: '1338',
+  issueCategory: IssueCategory.FEEDBACK,
+  project,
+});
+
 const organization = OrganizationFixture({
   id: '4660',
   slug: 'org',
 });
+
+jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
+  useIssueDetailsTour: () => mockTour(),
+}));
 
 describe('GroupActions', function () {
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
   beforeEach(function () {
     ConfigStore.init();
+    ModalStore.init();
   });
   afterEach(function () {
     MockApiClient.clearMockResponses();
@@ -53,12 +66,10 @@ describe('GroupActions', function () {
   describe('render()', function () {
     it('renders correctly', async function () {
       render(
-        <GroupActions
-          group={group}
-          project={project}
-          organization={organization}
-          disabled={false}
-        />
+        <GroupActions group={group} project={project} disabled={false} event={null} />,
+        {
+          organization,
+        }
       );
       expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
     });
@@ -76,12 +87,10 @@ describe('GroupActions', function () {
 
     it('can subscribe', async function () {
       render(
-        <GroupActions
-          group={group}
-          project={project}
-          organization={organization}
-          disabled={false}
-        />
+        <GroupActions group={group} project={project} disabled={false} event={null} />,
+        {
+          organization,
+        }
       );
       await userEvent.click(screen.getByRole('button', {name: 'Subscribe'}));
 
@@ -107,12 +116,10 @@ describe('GroupActions', function () {
 
     it('can bookmark', async function () {
       render(
-        <GroupActions
-          group={group}
-          project={project}
-          organization={organization}
-          disabled={false}
-        />
+        <GroupActions group={group} project={project} disabled={false} event={null} />,
+        {
+          organization,
+        }
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -136,13 +143,10 @@ describe('GroupActions', function () {
       });
 
       render(
-        <GroupActions
-          group={group}
-          project={project}
-          organization={organization}
-          event={event}
-          disabled={false}
-        />
+        <GroupActions group={group} project={project} event={event} disabled={false} />,
+        {
+          organization,
+        }
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -157,13 +161,10 @@ describe('GroupActions', function () {
       });
 
       render(
-        <GroupActions
-          group={group}
-          project={project}
-          organization={organization}
-          event={event}
-          disabled={false}
-        />
+        <GroupActions group={group} project={project} event={event} disabled={false} />,
+        {
+          organization,
+        }
       );
 
       const onReprocessEventFunc = jest.spyOn(ModalStore, 'openModal');
@@ -177,80 +178,98 @@ describe('GroupActions', function () {
     });
   });
 
-  it('opens share modal from more actions dropdown', async () => {
-    const org = {
-      ...organization,
-      features: ['shared-issues'],
-    };
+  describe('delete', function () {
+    it('opens delete confirm modal from more actions dropdown', async () => {
+      const org = OrganizationFixture({
+        ...organization,
+        access: [...organization.access, 'event:admin'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/issues/`,
+        method: 'PUT',
+        body: {},
+      });
+      const deleteMock = MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/issues/`,
+        method: 'DELETE',
+        body: {},
+      });
+      const {router} = render(
+        <Fragment>
+          <GlobalModal />
+          <GroupActions group={group} project={project} disabled={false} event={null} />
+        </Fragment>,
+        {
+          organization: org,
+        }
+      );
 
-    const updateMock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/issues/`,
-      method: 'PUT',
-      body: {},
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
+
+      const modal = screen.getByRole('dialog');
+      expect(
+        within(modal).getByText(/Deleting this issue is permanent/)
+      ).toBeInTheDocument();
+
+      await userEvent.click(within(modal).getByRole('button', {name: 'Delete'}));
+
+      expect(deleteMock).toHaveBeenCalled();
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/organizations/${org.slug}/issues/`,
+          query: {project: project.id},
+        })
+      );
     });
-    render(
-      <Fragment>
-        <GlobalModal />
-        <GroupActions
-          group={group}
-          project={project}
-          organization={org}
-          disabled={false}
-        />
-      </Fragment>,
-      {organization: org}
-    );
 
-    await userEvent.click(screen.getByLabelText('More Actions'));
-    await userEvent.click(await screen.findByText('Share'));
+    it('delete for issue platform', async () => {
+      const org = OrganizationFixture({
+        ...organization,
+        access: [...organization.access, 'event:admin'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/issues/`,
+        method: 'PUT',
+        body: {},
+      });
+      const deleteMock = MockApiClient.addMockResponse({
+        url: `/projects/${org.slug}/${project.slug}/issues/`,
+        method: 'DELETE',
+        body: {},
+      });
+      const {router} = render(
+        <Fragment>
+          <GlobalModal />
+          <GroupActions
+            group={issuePlatformGroup}
+            project={project}
+            disabled={false}
+            event={null}
+          />
+        </Fragment>,
+        {
+          organization: org,
+        }
+      );
 
-    const modal = screen.getByRole('dialog');
-    expect(within(modal).getByText('Share Issue')).toBeInTheDocument();
-    expect(updateMock).toHaveBeenCalled();
-  });
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
 
-  it('opens delete confirm modal from more actions dropdown', async () => {
-    const org = OrganizationFixture({
-      ...organization,
-      access: [...organization.access, 'event:admin'],
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/issues/`,
-      method: 'PUT',
-      body: {},
-    });
-    const deleteMock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/issues/`,
-      method: 'DELETE',
-      body: {},
-    });
-    render(
-      <Fragment>
-        <GlobalModal />
-        <GroupActions
-          group={group}
-          project={project}
-          organization={org}
-          disabled={false}
-        />
-      </Fragment>,
-      {organization: org}
-    );
+      const modal = screen.getByRole('dialog');
+      expect(
+        within(modal).getByText(/Deleting this issue is permanent/)
+      ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByLabelText('More Actions'));
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
+      await userEvent.click(within(modal).getByRole('button', {name: 'Delete'}));
 
-    const modal = screen.getByRole('dialog');
-    expect(
-      within(modal).getByText(/Deleting this issue is permanent/)
-    ).toBeInTheDocument();
-
-    await userEvent.click(within(modal).getByRole('button', {name: 'Delete'}));
-
-    expect(deleteMock).toHaveBeenCalled();
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: `/organizations/${org.slug}/issues/`,
-      query: {project: project.id},
+      expect(deleteMock).toHaveBeenCalled();
+      expect(router.location).toEqual(
+        expect.objectContaining({
+          pathname: `/organizations/${org.slug}/issues/`,
+          query: {project: project.id},
+        })
+      );
     });
   });
 
@@ -262,12 +281,7 @@ describe('GroupActions', function () {
     });
 
     const {rerender} = render(
-      <GroupActions
-        group={group}
-        project={project}
-        organization={organization}
-        disabled={false}
-      />,
+      <GroupActions group={group} project={project} disabled={false} event={null} />,
       {organization}
     );
 
@@ -290,12 +304,12 @@ describe('GroupActions', function () {
       <GroupActions
         group={{...group, status: GroupStatus.RESOLVED, statusDetails: {}}}
         project={project}
-        organization={organization}
         disabled={false}
+        event={null}
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Resolved'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Unresolve'}));
 
     expect(issuesApi).toHaveBeenCalledWith(
       `/projects/${organization.slug}/project/issues/`,
@@ -313,13 +327,11 @@ describe('GroupActions', function () {
     });
 
     render(
-      <GroupActions
-        group={group}
-        project={project}
-        organization={organization}
-        disabled={false}
-      />,
-      {organization}
+      <GroupActions group={group} project={project} disabled={false} event={null} />,
+      {
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Archive'}));
@@ -341,5 +353,52 @@ describe('GroupActions', function () {
         action_type: 'ignored',
       })
     );
+  });
+
+  it('refetches group data after resolve action using useGroup hook', async () => {
+    const issuesApi = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project/issues/`,
+      method: 'PUT',
+      body: {...group, status: 'resolved'},
+    });
+
+    // Mock the group fetch API that useGroup hook will call
+    const groupFetchApi = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      method: 'GET',
+      body: group,
+    });
+
+    function GroupActionsWrapper() {
+      const {data: groupData, isLoading} = useGroup({groupId: group.id});
+
+      if (isLoading || !groupData) {
+        return <div>Loading...</div>;
+      }
+
+      return (
+        <GroupActions group={groupData} project={project} disabled={false} event={null} />
+      );
+    }
+
+    render(<GroupActionsWrapper />, {organization});
+
+    await waitFor(() => {
+      expect(groupFetchApi).toHaveBeenCalledTimes(1);
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+
+    expect(issuesApi).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/project/issues/`,
+      expect.objectContaining({
+        data: {status: 'resolved', statusDetails: {}, substatus: null},
+      })
+    );
+
+    // Verify that the group is fetched a second time after the action to refresh data
+    await waitFor(() => {
+      expect(groupFetchApi).toHaveBeenCalledTimes(2);
+    });
   });
 });

@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import type {EventGroupComponent} from 'sentry/types';
+import type {EventGroupComponent} from 'sentry/types/event';
 
 import GroupingComponent, {
   GroupingComponentListItem,
@@ -16,10 +16,10 @@ type Props = {
 function GroupingComponentChildren({component, showNonContributing}: Props) {
   return (
     <Fragment>
-      {(component.values as EventGroupComponent[])
-        .filter(value => groupingComponentFilter(value, showNonContributing))
-        .map(value => (
-          <GroupingComponentListItem key={value.id}>
+      {component.values
+        .filter((value: any) => groupingComponentFilter(value, showNonContributing))
+        .map((value: any) => (
+          <GroupingComponentListItem key={typeof value === 'object' ? value.id : value}>
             {typeof value === 'object' ? (
               <GroupingComponent
                 component={value}

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
+import type {ControlProps} from 'sentry/components/core/select';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import {space} from 'sentry/styles/space';
 import type {Organization, Team, TeamMember, TeamRole} from 'sentry/types/organization';
@@ -56,7 +56,7 @@ function TeamRoleSelect({
     member.teamRole || // From TeamMemberEndpoint
     member.teamRoles?.find(tr => tr.teamSlug === team.slug)?.role || // From OrgMemberDetailEndpoint
     null;
-  const teamRole = teamRoleList.find(r => r.id === teamRoleId) || teamRoleList[0];
+  const teamRole = teamRoleList.find(r => r.id === teamRoleId) || teamRoleList[0]!;
 
   return (
     <RoleSelectControl

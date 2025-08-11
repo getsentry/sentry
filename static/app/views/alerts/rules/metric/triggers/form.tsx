@@ -14,16 +14,18 @@ import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import ThresholdControl from 'sentry/views/alerts/rules/metric/triggers/thresholdControl';
-
-import {isSessionAggregate} from '../../../utils';
 import type {
   AlertRuleThresholdType,
   ThresholdControlValue,
   Trigger,
   UnsavedMetricRule,
   UnsavedTrigger,
-} from '../types';
-import {AlertRuleComparisonType, AlertRuleTriggerType} from '../types';
+} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleComparisonType,
+  AlertRuleTriggerType,
+} from 'sentry/views/alerts/rules/metric/types';
+import {isSessionAggregate} from 'sentry/views/alerts/utils';
 
 type Props = {
   aggregate: UnsavedMetricRule['aggregate'];
@@ -35,13 +37,11 @@ type Props = {
   fieldHelp: React.ReactNode;
   isCritical: boolean;
   onChange: (trigger: Trigger, changeObj: Partial<Trigger>) => void;
-  onThresholdPeriodChange: (value: number) => void;
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
   organization: Organization;
   placeholder: string;
   projects: Project[];
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
-  thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   trigger: Trigger;
 
@@ -50,7 +50,7 @@ type Props = {
   /**
    * Map of fieldName -> errorMessage
    */
-  error?: {[fieldName: string]: string};
+  error?: Record<string, string>;
 
   hideControl?: boolean;
 };
@@ -79,14 +79,12 @@ class TriggerFormItem extends PureComponent<Props> {
       trigger,
       isCritical,
       thresholdType,
-      thresholdPeriod,
       hideControl,
       comparisonType,
       fieldHelp,
       triggerLabel,
       placeholder,
       onThresholdTypeChange,
-      onThresholdPeriodChange,
     } = this.props;
 
     return (
@@ -101,14 +99,12 @@ class TriggerFormItem extends PureComponent<Props> {
           disableThresholdType={!isCritical}
           type={trigger.label}
           thresholdType={thresholdType}
-          thresholdPeriod={thresholdPeriod}
           hideControl={hideControl}
           threshold={trigger.alertThreshold}
           comparisonType={comparisonType}
           placeholder={placeholder}
           onChange={this.handleChangeThreshold}
           onThresholdTypeChange={onThresholdTypeChange}
-          onThresholdPeriodChange={onThresholdPeriodChange}
         />
       </StyledField>
     );
@@ -132,7 +128,7 @@ type TriggerFormContainerProps = Omit<
     resolveThreshold: UnsavedMetricRule['resolveThreshold']
   ) => void;
   triggers: Trigger[];
-  errors?: Map<number, {[fieldName: string]: string}>;
+  errors?: Map<number, Record<string, string>>;
 };
 
 class TriggerFormContainer extends Component<TriggerFormContainerProps> {
@@ -193,13 +189,11 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
       organization,
       triggers,
       thresholdType,
-      thresholdPeriod,
       comparisonType,
       aggregate,
       resolveThreshold,
       projects,
       onThresholdTypeChange,
-      onThresholdPeriodChange,
     } = this.props;
 
     const resolveTrigger: UnsavedTrigger = {
@@ -214,7 +208,7 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
       <Fragment>
         {triggers.map((trigger, index) => {
           const isCritical = index === 0;
-          // eslint-disable-next-line no-use-before-define
+
           return (
             <TriggerFormItem
               key={index}
@@ -223,7 +217,6 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
               disabled={disabled}
               error={errors?.get(index)}
               trigger={trigger}
-              thresholdPeriod={thresholdPeriod}
               thresholdType={thresholdType}
               comparisonType={comparisonType}
               aggregate={aggregate}
@@ -254,7 +247,6 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
               }
               onChange={this.handleChangeTrigger(index)}
               onThresholdTypeChange={onThresholdTypeChange}
-              onThresholdPeriodChange={onThresholdPeriodChange}
             />
           );
         })}
@@ -265,7 +257,6 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
           error={errors?.get(2)}
           trigger={resolveTrigger}
           // Flip rule thresholdType to opposite
-          thresholdPeriod={thresholdPeriod}
           thresholdType={+!thresholdType}
           comparisonType={comparisonType}
           aggregate={aggregate}
@@ -284,7 +275,6 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
           placeholder={t('Automatic')}
           onChange={this.handleChangeResolveTrigger}
           onThresholdTypeChange={onThresholdTypeChange}
-          onThresholdPeriodChange={onThresholdPeriodChange}
         />
       </Fragment>
     );

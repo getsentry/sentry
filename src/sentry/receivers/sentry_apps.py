@@ -3,16 +3,15 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from sentry import features
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.models.user import User
-from sentry.sentry_apps.apps import consolidate_events
+from sentry.sentry_apps.logic import consolidate_events
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
+from sentry.sentry_apps.tasks.sentry_apps import build_comment_webhook, workflow_notification
 from sentry.signals import (
     comment_created,
     comment_deleted,
@@ -23,7 +22,7 @@ from sentry.signals import (
     issue_resolved,
     issue_unresolved,
 )
-from sentry.tasks.sentry_apps import build_comment_webhook, workflow_notification
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 
@@ -90,14 +89,13 @@ def send_issue_unresolved_webhook_helper(
     **kwargs,
 ) -> None:
     organization = project.organization
-    if features.has("organizations:webhooks-unresolved", organization):
-        send_workflow_webhooks(
-            organization=organization,
-            issue=group,
-            user=user,
-            event="issue.unresolved",
-            data=data,
-        )
+    send_workflow_webhooks(
+        organization=organization,
+        issue=group,
+        user=user,
+        event="issue.unresolved",
+        data=data,
+    )
 
 
 @comment_created.connect(weak=False)
@@ -117,6 +115,8 @@ def send_comment_deleted_webhook(project, user, group, data, **kwargs):
 
 def send_comment_webhooks(organization, issue, user, event, data=None):
     data = data or {}
+    if "timestamp" in data:
+        data["timestamp"] = data["timestamp"].isoformat()
 
     for install in installations_to_notify(organization, "comment"):
         build_comment_webhook.delay(
@@ -152,7 +152,7 @@ def send_workflow_webhooks(
 def installations_to_notify(
     organization: Organization, resource_type: str
 ) -> list[RpcSentryAppInstallation]:
-    installations = app_service.get_installed_for_organization(organization_id=organization.id)
+    installations = app_service.installations_for_organization(organization_id=organization.id)
     # All issue webhooks are under one subscription, so if an intallation is subscribed to any issue
     # events it should get notified for all the issue events
     # TODO: Refactor sentry_app model so it doesn't store event, instead it stores subscription

@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {ExportQueryType} from 'sentry/components/dataExport';
 import {DateTime} from 'sentry/components/dateTime';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -10,9 +10,10 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import Layout from 'sentry/views/auth/layout';
 
 export enum DownloadStatus {
@@ -31,7 +32,7 @@ type Download = {
   dateCreated: string;
   id: number;
   query: {
-    info: object;
+    info: Record<PropertyKey, unknown>;
     type: ExportQueryType;
   };
   status: DownloadStatus;
@@ -44,19 +45,19 @@ type Download = {
   dateFinished?: string;
 };
 
-type Props = {} & RouteComponentProps<RouteParams, {}>;
+type Props = {} & RouteComponentProps<RouteParams>;
 
 function DataDownload({params: {orgId, dataExportId}}: Props) {
   const {
     data: download,
-    isLoading,
+    isPending,
     isError,
     error,
   } = useApiQuery<Download>([`/organizations/${orgId}/data-export/${dataExportId}/`], {
     staleTime: 0,
   });
 
-  const route = useRouteContext();
+  const navigate = useNavigate();
 
   if (isError) {
     const errDetail = error?.responseJSON?.detail;
@@ -78,11 +79,11 @@ function DataDownload({params: {orgId, dataExportId}}: Props) {
     );
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
-  const getActionLink = (queryType): string => {
+  const getActionLink = (queryType: any): string => {
     switch (queryType) {
       case ExportQueryType.ISSUES_BY_TAG:
         return `/organizations/${orgId}/issues/`;
@@ -155,7 +156,6 @@ function DataDownload({params: {orgId, dataExportId}}: Props) {
   };
 
   const openInDiscover = () => {
-    const navigator = route.router;
     const {
       query: {info},
     } = download;
@@ -165,7 +165,7 @@ function DataDownload({params: {orgId, dataExportId}}: Props) {
       query: info,
     };
 
-    navigator.push(normalizeUrl(to));
+    navigate(normalizeUrl(to));
   };
 
   const renderOpenInDiscover = () => {
@@ -201,13 +201,13 @@ function DataDownload({params: {orgId, dataExportId}}: Props) {
         </Header>
         <Body>
           <p>{t("See, that wasn't so bad. Your data is all ready for download.")}</p>
-          <Button
+          <LinkButton
             priority="primary"
             icon={<IconDownload />}
             href={`/api/0/organizations/${orgId}/data-export/${dataExportId}/?download=true`}
           >
             {t('Download CSV')}
-          </Button>
+          </LinkButton>
           <p>
             {t("That link won't last forever — it expires:")}
             <br />
@@ -273,7 +273,7 @@ const Body = styled('div')`
   }
 `;
 
-const DownloadButton = styled(Button)`
+const DownloadButton = styled(LinkButton)`
   margin-bottom: ${space(1.5)};
 `;
 

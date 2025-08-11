@@ -2,7 +2,9 @@ import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 
 import type {Client} from 'sentry/api';
-import type {Group, Organization, Project} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import withApi from 'sentry/utils/withApi';
 
 const DEFAULT_POLL_INTERVAL = 5000;
@@ -18,12 +20,11 @@ type FirstIssue = null | boolean | Group;
 export interface EventWaiterProps {
   api: Client;
   children: (props: {firstIssue: FirstIssue}) => React.ReactNode;
-  eventType: 'error' | 'transaction' | 'replay' | 'profile';
+  eventType: 'error' | 'transaction' | 'replay' | 'profile' | 'log';
   organization: Organization;
   project: Project;
   disabled?: boolean;
   onIssueReceived?: (props: {firstIssue: FirstIssue}) => void;
-  onTransactionReceived?: (props: {firstIssue: FirstIssue}) => void;
   pollInterval?: number;
 }
 
@@ -41,6 +42,8 @@ function getFirstEvent(eventType: EventWaiterProps['eventType'], resp: Project) 
       return resp.hasReplays;
     case 'profile':
       return resp.hasProfiles;
+    case 'log':
+      return resp.hasLogs;
     default:
       return null;
   }
@@ -119,6 +122,10 @@ class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
     } else if (eventType === 'transaction') {
       firstIssue = Boolean(firstEvent);
     } else if (eventType === 'replay') {
+      firstIssue = Boolean(firstEvent);
+    } else if (eventType === 'profile') {
+      firstIssue = Boolean(firstEvent);
+    } else if (eventType === 'log') {
       firstIssue = Boolean(firstEvent);
     }
 

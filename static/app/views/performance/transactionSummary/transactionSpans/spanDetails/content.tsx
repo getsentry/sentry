@@ -18,12 +18,11 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import SpanSummary from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/content';
+import {SpanSortOthers} from 'sentry/views/performance/transactionSummary/transactionSpans/types';
+import {getTotalsView} from 'sentry/views/performance/transactionSummary/transactionSpans/utils';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
-
-import Tab from '../../tabs';
-import {SpanSortOthers} from '../types';
-import {getTotalsView} from '../utils';
 
 import SpanChart from './chart';
 import SpanDetailsControls from './spanDetailsControls';
@@ -138,7 +137,6 @@ export default function SpanDetailsContentWrapper(props: Props) {
                           project={project}
                           eventView={eventView}
                           spanSlug={spanSlug}
-                          transactionName={transactionName}
                           totalCount={totalCount}
                           suspectSpansResults={suspectSpansResults}
                           spanExamplesResults={spanExamplesResults}
@@ -165,7 +163,6 @@ type ContentProps = {
   spanSlug: SpanSlug;
   suspectSpansResults: SuspectSpansProps;
   totalCount: number;
-  transactionName: string;
 };
 
 function SpanDetailsContent(props: ContentProps) {
@@ -175,7 +172,6 @@ function SpanDetailsContent(props: ContentProps) {
     project,
     eventView,
     spanSlug,
-    transactionName,
     totalCount,
     suspectSpansResults,
     spanExamplesResults,
@@ -211,7 +207,6 @@ function SpanDetailsContent(props: ContentProps) {
         organization={organization}
         project={project}
         suspectSpan={suspectSpan}
-        transactionName={transactionName}
         isLoading={spanExamplesResults.isLoading}
         examples={examples ?? []}
         pageLinks={spanExamplesResults.pageLinks}

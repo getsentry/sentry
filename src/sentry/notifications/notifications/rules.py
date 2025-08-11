@@ -5,13 +5,19 @@ import zoneinfo
 from collections.abc import Iterable, Mapping, MutableMapping
 from datetime import UTC, tzinfo
 from typing import Any
-from urllib.parse import urlencode
+
+import sentry_sdk
 
 from sentry import analytics, features
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.db.models import Model
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.issue_alert_image_builder import IssueAlertImageBuilder
-from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
+from sentry.integrations.types import (
+    ExternalProviderEnum,
+    ExternalProviders,
+    IntegrationProviderSlug,
+)
 from sentry.issues.grouptype import (
     GROUP_CATEGORIES_CUSTOM_EMAIL,
     GroupCategory,
@@ -28,18 +34,23 @@ from sentry.notifications.types import (
 from sentry.notifications.utils import (
     get_commits,
     get_generic_data,
-    get_group_settings_link,
-    get_integration_link,
     get_interface_list,
-    get_issue_replay_link,
     get_performance_issue_alert_subtitle,
     get_replay_id,
-    get_rules,
     get_transaction_data,
     has_alert_integration,
     has_integrations,
 )
+from sentry.notifications.utils.links import (
+    create_link_to_workflow,
+    get_group_settings_link,
+    get_integration_link,
+    get_issue_replay_link,
+    get_rules,
+    get_snooze_url,
+)
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
+from sentry.notifications.utils.rules import get_key_from_rule_data
 from sentry.plugins.base.structs import Notification
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
@@ -142,19 +153,13 @@ class AlertRuleNotification(ProjectNotification):
         }
 
     def get_image_url(self) -> str | None:
-        if features.has(
-            "organizations:email-performance-regression-image", self.group.organization
-        ):
-            image_builder = IssueAlertImageBuilder(
-                group=self.group, provider=ExternalProviderEnum.EMAIL
-            )
-            return image_builder.get_image_url()
-        return None
+        image_builder = IssueAlertImageBuilder(
+            group=self.group, provider=ExternalProviderEnum.EMAIL
+        )
+        return image_builder.get_image_url()
 
     def is_new_design(self) -> bool:
-        return features.has(
-            "organizations:email-performance-regression-image", self.group.organization
-        ) and self.group.issue_type in [
+        return self.group.issue_type in [
             PerformanceP95EndpointRegressionGroupType,
             ProfileFunctionRegressionType,
         ]
@@ -162,7 +167,7 @@ class AlertRuleNotification(ProjectNotification):
     def get_context(self) -> MutableMapping[str, Any]:
         environment = self.event.get_tag("environment")
         enhanced_privacy = self.organization.flags.enhanced_privacy
-        rule_details = get_rules(self.rules, self.organization, self.project)
+        rule_details = get_rules(self.rules, self.organization, self.project, self.group.type)
         sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
         for rule in rule_details:
             rule.url = rule.url + sentry_query_params
@@ -196,7 +201,9 @@ class AlertRuleNotification(ProjectNotification):
             "enhanced_privacy": enhanced_privacy,
             "commits": get_commits(self.project, self.event),
             "environment": environment,
-            "slack_link": get_integration_link(self.organization, "slack", self.notification_uuid),
+            "slack_link": get_integration_link(
+                self.organization, IntegrationProviderSlug.SLACK.value, self.notification_uuid
+            ),
             "notification_reason": notification_reason,
             "notification_settings_link": absolute_uri(
                 f"/settings/account/notifications/alerts/{sentry_query_params}"
@@ -252,11 +259,21 @@ class AlertRuleNotification(ProjectNotification):
                 },
             )
 
-        if len(self.rules) > 0:
-            context["snooze_alert"] = True
-            context[
-                "snooze_alert_url"
-            ] = f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/{sentry_query_params}&{urlencode({'mute': '1'})}"
+        # We don't show the snooze alert if the organization has not enabled the workflow engine UI links
+        # This is because in the new UI/system a user can't individually disable a workflow
+        if not features.has("organizations:workflow-engine-ui-links", self.organization):
+            if len(self.rules) > 0:
+                context["snooze_alert"] = True
+                context["snooze_alert_url"] = get_snooze_url(
+                    self.rules[0],
+                    self.organization,
+                    self.project,
+                    sentry_query_params,
+                    self.group.type,
+                )
+        else:
+            context["snooze_alert"] = False
+            context["snooze_alert_url"] = None
 
         if isinstance(self.event, GroupEvent) and self.event.occurrence:
             context["issue_title"] = self.event.occurrence.issue_title
@@ -277,12 +294,19 @@ class AlertRuleNotification(ProjectNotification):
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:
-        from sentry.integrations.message_builder import build_rule_url
+        from sentry.integrations.messaging.message_builder import build_rule_url
 
         title_str = "Alert triggered"
 
         if self.rules:
-            rule_url = build_rule_url(self.rules[0], self.group, self.project)
+            if features.has("organizations:workflow-engine-ui-links", self.organization):
+                rule_url = absolute_uri(
+                    create_link_to_workflow(
+                        self.organization.id, get_key_from_rule_data(self.rules[0], "workflow_id")
+                    )
+                )
+            else:
+                rule_url = build_rule_url(self.rules[0], self.group, self.project)
             title_str += (
                 f" {self.format_url(text=self.rules[0].label, url=rule_url, provider=provider)}"
             )
@@ -342,13 +366,17 @@ class AlertRuleNotification(ProjectNotification):
     def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
         super().record_notification_sent(recipient, provider)
         log_params = self.get_log_params(recipient)
-        analytics.record(
-            "alert.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            provider=provider.name,
-            alert_id=log_params["alert_id"] if log_params["alert_id"] else "",
-            alert_type="issue_alert",
-            external_id=str(recipient.id),
-            notification_uuid=self.notification_uuid,
-        )
+        try:
+            analytics.record(
+                AlertSentEvent(
+                    organization_id=self.organization.id,
+                    project_id=self.project.id,
+                    provider=provider.name,
+                    alert_id=log_params["alert_id"] if log_params["alert_id"] else "",
+                    alert_type="issue_alert",
+                    external_id=str(recipient.id),
+                    notification_uuid=self.notification_uuid,
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)

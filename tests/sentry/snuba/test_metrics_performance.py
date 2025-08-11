@@ -4,7 +4,7 @@ from datetime import timezone
 import pytest
 
 from sentry.exceptions import IncompatibleMetricsQuery
-from sentry.search.events.types import ParamsType
+from sentry.search.events.types import SnubaParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics_performance import timeseries_query
@@ -16,7 +16,7 @@ pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
 @pytest.mark.snuba_ci
 class TimeseriesQueryTest(MetricsEnhancedPerformanceTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         # We want to always consider 7 days for simplicity.
         self.start = datetime.datetime.now(tz=timezone.utc).replace(
@@ -26,13 +26,13 @@ class TimeseriesQueryTest(MetricsEnhancedPerformanceTestCase):
             hour=10, minute=0, second=0, microsecond=0
         )
         self.default_interval = 3600
-        self.projects = [self.project.id]
-        self.params: ParamsType = {
-            "organization_id": self.organization.id,
-            "project_id": self.projects,
-            "start": self.start,
-            "end": self.end,
-        }
+        self.projects = [self.project]
+        self.snuba_params = SnubaParams(
+            organization=self.organization,
+            projects=self.projects,
+            start=self.start,
+            end=self.end,
+        )
 
         indexer.record(
             use_case_id=UseCaseID.TRANSACTIONS, org_id=self.organization.id, string="transaction"
@@ -51,11 +51,11 @@ class TimeseriesQueryTest(MetricsEnhancedPerformanceTestCase):
                         - datetime.timedelta(weeks=week),
                     )
 
-    def test_timeseries_query(self):
+    def test_timeseries_query(self) -> None:
         results = timeseries_query(
             selected_columns=["avg(transaction.duration)"],
             query="",
-            params=self.params,
+            snuba_params=self.snuba_params,
             rollup=self.default_interval,
             referrer="test_query",
         )
@@ -90,11 +90,11 @@ class TimeseriesQueryTest(MetricsEnhancedPerformanceTestCase):
         for index, data in enumerate(results.data["data"]):
             assert data.get("avg_transaction_duration") == expected[index]
 
-    def test_timeseries_query_with_comparison(self):
+    def test_timeseries_query_with_comparison(self) -> None:
         results = timeseries_query(
             selected_columns=["avg(transaction.duration)"],
             query="",
-            params=self.params,
+            snuba_params=self.snuba_params,
             rollup=self.default_interval,
             comparison_delta=datetime.timedelta(weeks=1),
             referrer="test_query",
@@ -158,7 +158,7 @@ class TimeseriesQueryTest(MetricsEnhancedPerformanceTestCase):
             assert data.get("avg_transaction_duration") == expected[index]
             assert data.get("comparisonCount") == expected_comparison[index]
 
-    def test_timeseries_query_with_comparison_and_multiple_aggregates(self):
+    def test_timeseries_query_with_comparison_and_multiple_aggregates(self) -> None:
         with pytest.raises(
             IncompatibleMetricsQuery,
             match="The comparison query for metrics supports only one aggregate.",
@@ -166,7 +166,7 @@ class TimeseriesQueryTest(MetricsEnhancedPerformanceTestCase):
             timeseries_query(
                 selected_columns=["avg(transaction.duration)", "sum(transaction.duration)"],
                 query="",
-                params=self.params,
+                snuba_params=self.snuba_params,
                 rollup=self.default_interval,
                 comparison_delta=datetime.timedelta(weeks=1),
                 referrer="test_query",

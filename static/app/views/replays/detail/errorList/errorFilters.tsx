@@ -1,5 +1,5 @@
-import type {SelectOption} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
@@ -25,7 +25,7 @@ function ErrorFilters({
       <CompactSelect
         disabled={!projectOptions.length}
         multiple
-        onChange={setFilters as (selection: SelectOption<string>[]) => void}
+        onChange={setFilters as (selection: Array<SelectOption<string>>) => void}
         options={projectOptions}
         size="sm"
         triggerLabel={selectValue?.length === 0 ? t('Any') : null}
@@ -37,7 +37,7 @@ function ErrorFilters({
         onChange={setSearchTerm}
         placeholder={t('Search Errors')}
         query={searchTerm}
-        disabled={!errorFrames || !errorFrames.length}
+        disabled={!errorFrames?.length}
       />
     </FiltersGrid>
   );

@@ -3,9 +3,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import Checkbox from 'sentry/components/checkbox';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Checkbox} from 'sentry/components/core/checkbox';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {StatusMessage} from 'sentry/components/modals/inviteMembersModal/inviteStatusMessage';
 import type {InviteStatus} from 'sentry/components/modals/inviteMembersModal/types';
@@ -16,7 +17,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import TeamSelector from 'sentry/components/teamSelector';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconCommit, IconGithub, IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -67,9 +67,9 @@ export function InviteMissingMembersModal({
     (role: string, index: number) => {
       setMemberInvites(prevInvites => {
         const invites = prevInvites.map(i => ({...i}));
-        invites[index].role = role;
-        if (!allowedRolesMap[role].isTeamRolesAllowed) {
-          invites[index].teamSlugs = new Set([]);
+        invites[index]!.role = role;
+        if (!allowedRolesMap[role]!.isTeamRolesAllowed) {
+          invites[index]!.teamSlugs = new Set([]);
         }
         return invites;
       });
@@ -80,7 +80,7 @@ export function InviteMissingMembersModal({
   const setTeams = useCallback((teamSlugs: string[], index: number) => {
     setMemberInvites(prevInvites => {
       const invites = prevInvites.map(i => ({...i}));
-      invites[index].teamSlugs = new Set(teamSlugs);
+      invites[index]!.teamSlugs = new Set(teamSlugs);
       return invites;
     });
   }, []);
@@ -96,7 +96,7 @@ export function InviteMissingMembersModal({
   const toggleCheckbox = useCallback(
     (checked: boolean, index: number) => {
       const selectedMembers = [...memberInvites];
-      selectedMembers[index].selected = checked;
+      selectedMembers[index]!.selected = checked;
       setMemberInvites(selectedMembers);
     },
     [memberInvites]
@@ -110,7 +110,7 @@ export function InviteMissingMembersModal({
     if (sendingInvites) {
       return (
         <StatusMessage>
-          <LoadingIndicator mini relative hideMessage size={16} />
+          <LoadingIndicator mini relative size={16} />
           {t('Sending organization invitations\u2026')}
         </StatusMessage>
       );
@@ -162,12 +162,11 @@ export function InviteMissingMembersModal({
 
       // Use the email error message if available. This inconsistently is
       // returned as either a list of errors for the field, or a single error.
-      const emailError =
-        !errorResponse || !errorResponse.email
-          ? false
-          : Array.isArray(errorResponse.email)
-            ? errorResponse.email[0]
-            : errorResponse.email;
+      const emailError = errorResponse?.email
+        ? Array.isArray(errorResponse.email)
+          ? errorResponse.email[0]
+          : errorResponse.email
+        : false;
 
       const error = emailError || t('Could not invite user');
 
@@ -205,7 +204,7 @@ export function InviteMissingMembersModal({
     return tct('Invite [prefix][memberCount] missing member[isPlural]', {
       prefix: memberInvites.length === selectedCount ? 'all ' : '',
       memberCount: selectedCount === 0 ? '' : selectedCount,
-      isPlural: selectedCount !== 1 ? 's' : '',
+      isPlural: selectedCount === 1 ? '' : 's',
     });
   };
 
@@ -234,7 +233,7 @@ export function InviteMissingMembersModal({
         stickyHeaders
       >
         {memberInvites?.map((member, i) => {
-          const checked = memberInvites[i].selected;
+          const checked = memberInvites[i]!.selected;
           const username = member.externalId.split(':').pop();
           const isTeamRolesAllowed =
             allowedRolesMap[member.role]?.isTeamRolesAllowed ?? true;
@@ -277,7 +276,9 @@ export function InviteMissingMembersModal({
                 data-test-id="select-teams"
                 disabled={!isTeamRolesAllowed}
                 placeholder={isTeamRolesAllowed ? t('None') : t('Role cannot join teams')}
-                onChange={opts => setTeams(opts ? opts.map(v => v.value) : [], i)}
+                onChange={(opts: any) =>
+                  setTeams(opts ? opts.map((v: any) => v.value) : [], i)
+                }
                 multiple
                 clearable
                 menuPortalTarget={modalContainerRef?.current}
@@ -289,7 +290,7 @@ export function InviteMissingMembersModal({
       </StyledPanelTable>
       <Footer>
         <div>{renderStatusMessage()}</div>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <Button
             size="sm"
             onClick={() => {
@@ -329,8 +330,6 @@ export function InviteMissingMembersModal({
   );
 }
 
-export default InviteMissingMembersModal;
-
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: max-content 1fr max-content 1fr 1fr;
   overflow: scroll;
@@ -354,16 +353,16 @@ const Footer = styled('div')`
 const ContentRow = styled('div')`
   display: flex;
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   gap: ${space(0.75)};
 `;
 
 const MemberEmail = styled('div')`
   display: block;
   max-width: 150px;
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.normal};
+  color: ${p => p.theme.subText};
   text-overflow: ellipsis;
   overflow: hidden;
 `;

@@ -26,6 +26,8 @@ from sentry.monitors.models import (
 from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import crons_tasks
 from sentry.types.actor import Actor
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.manager import get_email_addresses
@@ -162,6 +164,7 @@ def build_open_incidents_queryset():
     time_limit=15 * 60,
     soft_time_limit=10 * 60,
     record_timing=True,
+    taskworker_config=TaskworkerConfig(namespace=crons_tasks, processing_deadline_duration=15 * 60),
 )
 def detect_broken_monitor_envs():
     open_incidents_qs = build_open_incidents_queryset()
@@ -179,6 +182,7 @@ def detect_broken_monitor_envs():
     time_limit=15 * 60,
     soft_time_limit=10 * 60,
     record_timing=True,
+    taskworker_config=TaskworkerConfig(namespace=crons_tasks, processing_deadline_duration=15 * 60),
 )
 def detect_broken_monitor_envs_for_org(org_id: int):
     current_time = django_timezone.now()

@@ -1,18 +1,21 @@
-import {useEffect} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import AvatarList from 'sentry/components/avatar/avatarList';
+import AvatarList from 'sentry/components/core/avatar/avatarList';
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import {DataSection} from 'sentry/components/events/styles';
 import Panel from 'sentry/components/panels/panel';
 import TimeSince from 'sentry/components/timeSince';
 import {IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {ReleaseWithHealth, User} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
+import type {ReleaseWithHealth} from 'sentry/types/release';
+import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {uniqueId} from 'sentry/utils/guid';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {useUser} from 'sentry/utils/useUser';
 
 import {NoContext} from './quickContextWrapper';
 import {
@@ -27,8 +30,9 @@ import type {BaseContextProps} from './utils';
 import {ContextType, tenSecondInMs} from './utils';
 
 function ReleaseContext(props: BaseContextProps) {
+  const user = useUser();
   const {dataRow, organization} = props;
-  const {isLoading, isError, data} = useApiQuery<ReleaseWithHealth>(
+  const {isPending, isError, data} = useApiQuery<ReleaseWithHealth>(
     [
       `/organizations/${organization.slug}/releases/${encodeURIComponent(
         dataRow.release
@@ -39,6 +43,19 @@ function ReleaseContext(props: BaseContextProps) {
     }
   );
 
+  const authors = useMemo(
+    () =>
+      data?.authors.map<Actor | User>(author =>
+        // Add a unique id if missing
+        ({
+          ...author,
+          type: 'user',
+          id: 'id' in author ? author.id : uniqueId(),
+        })
+      ),
+    [data?.authors]
+  );
+
   useEffect(() => {
     trackAnalytics('discover_v2.quick_context_hover_contexts', {
       organization,
@@ -47,14 +64,13 @@ function ReleaseContext(props: BaseContextProps) {
   }, [organization]);
 
   const getCommitAuthorTitle = () => {
-    const user = ConfigStore.get('user');
     const commitCount = data?.commitCount || 0;
     let authorsCount = data?.authors?.length || 0;
 
     const userInAuthors =
       data &&
       authorsCount >= 1 &&
-      data.authors.find((author: User) => author.id && user.id && author.id === user.id);
+      data.authors.find(author => 'id' in author && user.id && author.id === user.id);
 
     if (userInAuthors) {
       authorsCount = authorsCount - 1;
@@ -63,15 +79,15 @@ function ReleaseContext(props: BaseContextProps) {
             commitCount,
             authorsCount,
           })
-        : commitCount !== 1
-          ? tct('[commitCount] commits by you and 1 other', {
-              commitCount,
-            })
-          : authorsCount !== 1
-            ? tct('1 commit by you and [authorsCount] others', {
+        : commitCount === 1
+          ? authorsCount === 1
+            ? t('1 commit by you and 1 other')
+            : tct('1 commit by you and [authorsCount] others', {
                 authorsCount,
               })
-            : t('1 commit by you and 1 other');
+          : tct('[commitCount] commits by you and 1 other', {
+              commitCount,
+            });
     }
 
     return (
@@ -81,15 +97,15 @@ function ReleaseContext(props: BaseContextProps) {
             commitCount,
             authorsCount,
           })
-        : commitCount !== 1
-          ? tct('[commitCount] commits by 1 author', {
-              commitCount,
-            })
-          : authorsCount !== 1
-            ? tct('1 commit by [authorsCount] authors', {
+        : commitCount === 1
+          ? authorsCount === 1
+            ? t('1 commit by 1 author')
+            : tct('1 commit by [authorsCount] authors', {
                 authorsCount,
               })
-            : t('1 commit by 1 author'))
+          : tct('[commitCount] commits by 1 author', {
+              commitCount,
+            }))
     );
   };
 
@@ -104,7 +120,7 @@ function ReleaseContext(props: BaseContextProps) {
             {data.commitCount === 0 ? (
               <IconNot color="gray500" size="md" />
             ) : (
-              <StyledAvatarList users={data.authors} maxVisibleAvatars={10} />
+              <StyledAvatarList users={authors} maxVisibleAvatars={10} />
             )}
           </ContextBody>
         </ReleaseContextContainer>
@@ -156,8 +172,8 @@ function ReleaseContext(props: BaseContextProps) {
       </ReleaseContextContainer>
     );
 
-  if (isLoading || isError) {
-    return <NoContext isLoading={isLoading} />;
+  if (isPending || isError) {
+    return <NoContext isLoading={isPending} />;
   }
 
   return (
@@ -187,7 +203,7 @@ const ReleaseContextContainer = styled(ContextContainer)`
   }
 `;
 
-const ReleaseBody = styled(ContextBody)<{}>`
+const ReleaseBody = styled(ContextBody)`
   font-size: 13px;
   color: ${p => p.theme.subText};
 `;

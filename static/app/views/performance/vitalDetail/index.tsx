@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import isEqual from 'lodash/isEqual';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
@@ -8,7 +7,10 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters, Project} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -20,17 +22,17 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-
-import {generatePerformanceVitalDetailView} from '../data';
+import {generatePerformanceVitalDetailView} from 'sentry/views/performance/data';
 import {
   addRoutePerformanceContext,
+  getPerformanceBaseUrl,
   getSelectedProjectPlatforms,
   getTransactionName,
-} from '../utils';
+} from 'sentry/views/performance/utils';
 
 import VitalDetailContent from './vitalDetailContent';
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = RouteComponentProps & {
   api: Client;
   loadingProjects: boolean;
   organization: Organization;
@@ -44,19 +46,13 @@ type State = {
 
 class VitalDetail extends Component<Props, State> {
   state: State = {
-    eventView: generatePerformanceVitalDetailView(
-      this.props.location,
-      this.props.organization
-    ),
+    eventView: generatePerformanceVitalDetailView(this.props.location),
   };
 
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
-      eventView: generatePerformanceVitalDetailView(
-        nextProps.location,
-        nextProps.organization
-      ),
+      eventView: generatePerformanceVitalDetailView(nextProps.location),
     };
   }
 
@@ -101,7 +97,7 @@ class VitalDetail extends Component<Props, State> {
     if (!eventView) {
       browserHistory.replace(
         normalizeUrl({
-          pathname: `/organizations/${organization.slug}/performance/`,
+          pathname: getPerformanceBaseUrl(organization.slug),
           query: {
             ...location.query,
           },
@@ -111,9 +107,9 @@ class VitalDetail extends Component<Props, State> {
     }
 
     const vitalNameQuery = decodeScalar(location.query.vitalName);
-    const vitalName = !Object.values(WebVital).includes(vitalNameQuery as WebVital)
-      ? undefined
-      : (vitalNameQuery as WebVital);
+    const vitalName = Object.values(WebVital).includes(vitalNameQuery as WebVital)
+      ? (vitalNameQuery as WebVital)
+      : undefined;
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>

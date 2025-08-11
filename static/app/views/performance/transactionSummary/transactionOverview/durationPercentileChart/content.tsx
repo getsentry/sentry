@@ -1,16 +1,18 @@
-import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {IconWarning} from 'sentry/icons';
-import type {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {useApiQuery} from 'sentry/utils/queryClient';
-
-import type {ViewProps} from '../../../types';
-import {filterToColor, SpanOperationBreakdownFilter} from '../../filter';
+import {
+  filterToColor,
+  SpanOperationBreakdownFilter,
+} from 'sentry/views/performance/transactionSummary/filter';
+import type {ViewProps} from 'sentry/views/performance/types';
 
 import Chart from './chart';
 import {transformData} from './utils';
@@ -46,6 +48,7 @@ function Content({
   environment,
   project,
 }: Props) {
+  const theme = useTheme();
   const eventView = EventView.fromSavedQuery({
     id: '',
     name: '',
@@ -68,7 +71,7 @@ function Content({
 
   const {
     data: chartData,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<{data: ApiResult[]}>(
     [`/organizations/${organization.slug}/events/`, {query: apiPayload}],
@@ -85,7 +88,7 @@ function Content({
     );
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingPanel data-test-id="histogram-loading" />;
   }
 
@@ -93,10 +96,10 @@ function Content({
     return null;
   }
 
-  const colors = (theme: Theme) =>
+  const colors = () =>
     currentFilter === SpanOperationBreakdownFilter.NONE
-      ? theme.charts.getColorPalette(1)
-      : [filterToColor(currentFilter)];
+      ? theme.chart.getColorPalette(1)
+      : [filterToColor(currentFilter, theme)];
 
   return <Chart series={transformData(chartData.data, false)} colors={colors} />;
 }

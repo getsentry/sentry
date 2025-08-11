@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {cloneDeep} from 'lodash';
+import cloneDeep from 'lodash/cloneDeep';
 
 import {updateUser} from 'sentry/actionCreators/account';
 import AvatarChooser from 'sentry/components/avatarChooser';
@@ -44,12 +44,12 @@ function AccountDetails() {
   const queryClient = useQueryClient();
   const {
     data: user,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<User>(USER_ENDPOINT_QUERY_KEY, {staleTime: 0});
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <Fragment>
         <SettingsPageHeader title={t('Account Details')} />
@@ -92,7 +92,7 @@ function AccountDetails() {
     help: `The unique identifier for your account. It cannot be modified.`,
   };
 
-  formConfig[0].fields = [...formConfig[0].fields, userIdField];
+  formConfig[0]!.fields = [...formConfig[0]!.fields, userIdField];
 
   return (
     <Fragment>
@@ -112,11 +112,10 @@ function AccountDetails() {
       </Form>
       <AvatarChooser
         endpoint="/users/me/avatar/"
+        supportedTypes={['letter_avatar', 'gravatar', 'upload']}
         model={user}
-        onSave={resp => {
-          handleSubmitSuccess(resp as ChangeAvatarUser);
-        }}
-        isUser
+        type="user"
+        onSave={resp => handleSubmitSuccess(resp as ChangeAvatarUser)}
       />
     </Fragment>
   );

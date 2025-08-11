@@ -9,7 +9,12 @@
         "negated": true,
         "key": {"type": "keySimple", "value": "user.id", "quoted": false},
         "operator": "",
-        "value": {"type": "valueText", "value": "500s", "quoted": false}
+        "value": {
+          "type": "valueText",
+          "value": "500s",
+          "quoted": false,
+          "wildcard": false
+        }
       },
       {"type": "spaces", "value": ""}
     ]

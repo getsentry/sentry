@@ -3,10 +3,11 @@ import {t} from 'sentry/locale';
 import type {Entry, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {IssueCategory} from 'sentry/types/group';
 import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {isJavascriptPlatform} from 'sentry/utils/platform';
+import type {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import {Breadcrumbs} from './interfaces/breadcrumbs';
@@ -29,7 +30,7 @@ type Props = {
   projectSlug: Project['slug'];
   group?: Group;
   isShare?: boolean;
-  sectionKey?: FoldSectionKey;
+  sectionKey?: SectionKey;
 };
 
 function EventEntryContent({
@@ -40,21 +41,18 @@ function EventEntryContent({
   group,
   isShare,
 }: Props) {
-  const hasHierarchicalGrouping =
-    !!organization.features?.includes('grouping-stacktrace-ui') &&
-    !!(event.metadata.current_tree_label || event.metadata.finest_tree_label);
-
   const groupingCurrentLevel = group?.metadata?.current_level;
+  const issueTypeConfig = group ? getConfigForIssueType(group, group.project) : null;
 
   switch (entry.type) {
     case EntryType.EXCEPTION:
       return (
         <Exception
           event={event}
+          group={group}
           data={entry.data}
           projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       );
 
@@ -71,7 +69,6 @@ function EventEntryContent({
           data={entry.data}
           projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       );
 
@@ -82,10 +79,10 @@ function EventEntryContent({
       return <Csp event={event} data={entry.data} />;
 
     case EntryType.EXPECTCT:
-    case EntryType.EXPECTSTAPLE:
+    case EntryType.EXPECTSTAPLE: {
       const {data, type} = entry;
       return <Generic type={type} data={data} />;
-
+    }
     case EntryType.HPKP:
       return (
         <Generic type={entry.type} data={entry.data} meta={event._meta?.hpkp ?? {}} />
@@ -104,15 +101,15 @@ function EventEntryContent({
       return (
         <Threads
           event={event}
+          group={group}
           data={entry.data}
           projectSlug={projectSlug}
           groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
         />
       );
 
     case EntryType.DEBUGMETA:
-      if (isShare) {
+      if (isShare || isJavascriptPlatform(event.platform)) {
         return null;
       }
 
@@ -130,7 +127,7 @@ function EventEntryContent({
       if (isShare) {
         return null;
       }
-      if (group?.issueCategory === IssueCategory.PERFORMANCE) {
+      if (issueTypeConfig?.spanEvidence.enabled) {
         return (
           <SpanEvidenceSection
             event={event as EventTransaction}
@@ -139,12 +136,7 @@ function EventEntryContent({
           />
         );
       }
-      return (
-        <Spans
-          event={event as EventTransaction}
-          organization={organization as Organization}
-        />
-      );
+      return <Spans event={event as EventTransaction} />;
 
     // this should not happen
     default:
@@ -159,11 +151,11 @@ function EventEntryContent({
 export function EventEntry(props: Props) {
   return (
     <ErrorBoundary
-      customComponent={
+      customComponent={() => (
         <InterimSection type={props.entry.type} title={props.entry.type}>
           <p>{t('There was an error rendering this data.')}</p>
         </InterimSection>
-      }
+      )}
     >
       <EventEntryContent {...props} />
     </ErrorBoundary>

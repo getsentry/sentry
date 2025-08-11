@@ -27,6 +27,9 @@ from sentry.snuba.metrics.extraction import (
     should_use_on_demand_metrics,
 )
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import telemetry_experience_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils import json
 
 # The time range over which the check script queries the data for determining the compatibility state.
@@ -428,9 +431,9 @@ class CheckAM2Compatibility:
 
     @classmethod
     def get_outdated_sdks(cls, found_sdks_per_project):
-        outdated_sdks_per_project: Mapping[
-            str, Mapping[str, set[tuple[str, str | None]]]
-        ] = defaultdict(lambda: defaultdict(set))
+        outdated_sdks_per_project: Mapping[str, Mapping[str, set[tuple[str, str | None]]]] = (
+            defaultdict(lambda: defaultdict(set))
+        )
 
         for project, found_sdks in found_sdks_per_project.items():
             for sdk_name, sdk_versions in found_sdks.items():
@@ -482,7 +485,6 @@ class CheckAM2Compatibility:
             results = discover_query(
                 selected_columns=selected_columns,
                 query="event.type:transaction",
-                params={},
                 snuba_params=params,
                 referrer="api.organization-events",
             )
@@ -725,6 +727,14 @@ def refresh_check_state(org_id):
     soft_time_limit=TASK_SOFT_LIMIT_IN_SECONDS,  # 30 minutes
     time_limit=TASK_SOFT_LIMIT_IN_SECONDS + 5,  # 30 minutes + 5 seconds
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=telemetry_experience_tasks,
+        processing_deadline_duration=TASK_SOFT_LIMIT_IN_SECONDS + 5,
+        retry=Retry(
+            times=1,
+            delay=5,
+        ),
+    ),
 )
 def run_compatibility_check_async(org_id):
     try:

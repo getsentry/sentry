@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 interface FeatureRenderProps {
   hasFeature: boolean;
@@ -47,14 +48,14 @@ function ProjectPageFilterMenuFooter({
           return null;
         }}
       </Feature>
-      <Button
+      <LinkButton
         size="xs"
         aria-label={t('Add Project')}
-        to={`/organizations/${organization.slug}/projects/new/`}
+        to={makeProjectsPathname({path: '/new/', organization})}
         icon={<IconAdd isCircled />}
       >
         {t('Project')}
-      </Button>
+      </LinkButton>
     </Fragment>
   );
 }

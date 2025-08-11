@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, ClassVar, Literal, overload
+from typing import TYPE_CHECKING, ClassVar
 
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from sentry.app import env
 from sentry.backup.scopes import RelocationScope
-from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -29,55 +28,31 @@ from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
-    from sentry.models.project import Project
-    from sentry.models.user import User
+    from sentry.users.models.user import User
     from sentry.users.services.user import RpcUser
 
 
 class TeamManager(BaseManager["Team"]):
-    @overload
     def get_for_user(
         self,
         organization: Organization,
-        user: User | RpcUser,
-        scope: str | None = None,
-    ) -> list[Team]:
-        ...
-
-    @overload
-    def get_for_user(
-        self,
-        organization: Organization,
-        user: User | RpcUser,
-        scope: str | None = None,
-        *,
-        with_projects: Literal[True],
-    ) -> list[tuple[Team, list[Project]]]:
-        ...
-
-    def get_for_user(
-        self,
-        organization: Organization,
-        user: User | RpcUser,
+        user: User | RpcUser | AnonymousUser,
         scope: str | None = None,
         is_team_admin: bool = False,
-        with_projects: bool = False,
-    ) -> Sequence[Team] | Sequence[tuple[Team, Sequence[Project]]]:
+    ) -> Sequence[Team]:
         """
         Returns a list of all teams a user has some level of access to.
         """
         from sentry.auth.superuser import is_active_superuser
         from sentry.models.organizationmember import OrganizationMember
         from sentry.models.organizationmemberteam import OrganizationMemberTeam
-        from sentry.models.project import Project
-        from sentry.models.projectteam import ProjectTeam
 
         if not user.is_authenticated:
             return []
 
         base_team_qs = self.filter(organization=organization, status=TeamStatus.ACTIVE)
 
-        if env.request and is_active_superuser(env.request) or settings.SENTRY_PUBLIC:
+        if env.request and is_active_superuser(env.request):
             team_list = list(base_team_qs)
         else:
             try:
@@ -99,38 +74,15 @@ class TeamManager(BaseManager["Team"]):
 
             team_list = list(base_team_qs.filter(id__in=org_member_team_filter.values_list("team")))
 
-        results = sorted(team_list, key=lambda x: x.name.lower())
-
-        if with_projects:
-            project_list = sorted(
-                Project.objects.filter(teams__in=team_list, status=ObjectStatus.ACTIVE),
-                key=lambda x: x.name.lower(),
-            )
-
-            teams_by_project = defaultdict(set)
-            for project_id, team_id in ProjectTeam.objects.filter(
-                project__in=project_list, team__in=team_list
-            ).values_list("project_id", "team_id"):
-                teams_by_project[project_id].add(team_id)
-
-            projects_by_team: dict[int, list[Project]] = {t.id: [] for t in team_list}
-            for project in project_list:
-                for team_id in teams_by_project[project.id]:
-                    projects_by_team[team_id].append(project)
-
-            # these kinds of queries make people sad :(
-            return [(team, projects_by_team[team.id]) for team in results]
-
-        return results
+        return sorted(team_list, key=lambda x: x.name.lower())
 
     def post_save(self, *, instance: Team, created: bool, **kwargs: object) -> None:
         self.process_resource_change(instance, **kwargs)
 
-    def post_delete(self, instance, **kwargs):
+    def post_delete(self, instance: Team, **kwargs):
         self.process_resource_change(instance, **kwargs)
 
-    def process_resource_change(self, instance, **kwargs):
-        from sentry.models.organization import Organization
+    def process_resource_change(self, instance: Team, **kwargs):
         from sentry.models.project import Project
         from sentry.tasks.codeowners import update_code_owners_schema
 
@@ -138,11 +90,11 @@ class TeamManager(BaseManager["Team"]):
             try:
                 update_code_owners_schema.apply_async(
                     kwargs={
-                        "organization": instance.organization,
-                        "projects": list(instance.get_projects()),
+                        "organization": instance.organization_id,
+                        "projects": [project.id for project in instance.get_projects()],
                     }
                 )
-            except (Organization.DoesNotExist, Project.DoesNotExist):
+            except Project.DoesNotExist:
                 pass
 
         transaction.on_commit(_spawn_task, router.db_for_write(Team))
@@ -179,7 +131,7 @@ class Team(ReplicatedRegionModel):
         ),
         default=TeamStatus.ACTIVE,
     )
-    idp_provisioned = models.BooleanField(default=False)
+    idp_provisioned = models.BooleanField(default=False, db_default=False)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     objects: ClassVar[TeamManager] = TeamManager(cache_fields=("pk", "slug"))
@@ -194,7 +146,7 @@ class Team(ReplicatedRegionModel):
     def class_name(self):
         return "Team"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.slug})"
 
     def handle_async_replication(self, shard_identifier: int) -> None:

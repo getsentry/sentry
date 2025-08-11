@@ -370,7 +370,7 @@ class BaseProjects extends Component<Props, State> {
       });
 
       this.setState((state: State) => {
-        let fetchedProjects;
+        let fetchedProjects: any;
         if (append) {
           // Remove duplicates
           fetchedProjects = uniqBy(
@@ -515,8 +515,8 @@ async function fetchProjects(
     const paginationObject = parseLinkHeader(pageLinks);
     hasMore =
       paginationObject &&
-      (paginationObject.next.results || paginationObject.previous.results);
-    nextCursor = paginationObject.next.cursor;
+      (paginationObject.next!.results || paginationObject.previous!.results);
+    nextCursor = paginationObject.next!.cursor;
   }
 
   // populate the projects store if all projects were fetched

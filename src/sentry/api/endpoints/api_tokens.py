@@ -4,21 +4,22 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from rest_framework import serializers
 from rest_framework.fields import CharField
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.analytics.events.api_token_created import ApiTokenCreated
+from sentry.analytics.events.api_token_deleted import ApiTokenDeleted
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.fields import MultipleChoiceField
+from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.auth.elevated_mode import has_elevated_mode
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.apitoken import ApiToken
-from sentry.models.outbox import outbox_context
 from sentry.security.utils import capture_security_activity
 from sentry.types.token import AuthTokenType
 
@@ -27,7 +28,7 @@ ALLOWED_FIELDS = ["name", "tokenId"]
 
 class ApiTokenSerializer(serializers.Serializer):
     name = CharField(max_length=255, allow_blank=True, required=False)
-    scopes = MultipleChoiceField(required=True, choices=settings.SENTRY_SCOPES)
+    scopes = serializers.MultipleChoiceField(required=True, choices=list(settings.SENTRY_SCOPES))
 
 
 def get_appropriate_user_id(request: Request) -> int:
@@ -40,6 +41,8 @@ def get_appropriate_user_id(request: Request) -> int:
     For GET endpoints, the GET dict is used.
     For all others, the DATA dict is used.
     """
+    assert request.user.is_authenticated
+
     # Get the user id for the user that made the current request as a baseline default
     user_id = request.user.id
     if has_elevated_mode(request):
@@ -62,7 +65,7 @@ class ApiTokensEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (SessionNoAuthTokenAuthentication,)
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (SentryIsAuthenticated,)
 
     @method_decorator(never_cache)
     def get(self, request: Request) -> Response:
@@ -100,7 +103,7 @@ class ApiTokensEndpoint(Endpoint):
                 send_email=True,
             )
 
-            analytics.record("api_token.created", user_id=request.user.id)
+            analytics.record(ApiTokenCreated(user_id=request.user.id))
 
             return Response(serialize(token, request.user), status=201)
         return Response(serializer.errors, status=400)
@@ -125,6 +128,6 @@ class ApiTokensEndpoint(Endpoint):
 
             token_to_delete.delete()
 
-        analytics.record("api_token.deleted", user_id=request.user.id)
+        analytics.record(ApiTokenDeleted(user_id=request.user.id))
 
         return Response(status=204)

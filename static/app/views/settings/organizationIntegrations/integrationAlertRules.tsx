@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Panel from 'sentry/components/panels/panel';
@@ -10,6 +10,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
 export default function IntegrationAlertRules() {
   const organization = useOrganization();
@@ -26,12 +27,15 @@ export default function IntegrationAlertRules() {
         {projects.map(project => (
           <ProjectItem key={project.slug}>
             <ProjectBadge project={project} avatarSize={16} />
-            <Button
-              to={`/organizations/${organization.slug}/alerts/${project.slug}/wizard/`}
+            <LinkButton
+              to={makeAlertsPathname({
+                path: `/${project.slug}/wizard/`,
+                organization,
+              })}
               size="xs"
             >
               {t('Add Alert Rule')}
-            </Button>
+            </LinkButton>
           </ProjectItem>
         ))}
       </PanelBody>

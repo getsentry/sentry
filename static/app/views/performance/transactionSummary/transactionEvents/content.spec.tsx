@@ -34,16 +34,16 @@ function initializeData() {
     },
     projects: [],
   });
-  act(() => void ProjectsStore.loadInitialData(initialData.projects));
+  act(() => ProjectsStore.loadInitialData(initialData.projects));
   return initialData;
 }
 
 describe('Performance Transaction Events Content', function () {
-  let fields;
-  let data;
-  let transactionName;
-  let eventView;
-  let initialData;
+  let fields: string[];
+  let data: any[];
+  let transactionName: string;
+  let eventView: EventView;
+  let initialData: ReturnType<typeof initializeData>;
   const query =
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
   beforeEach(function () {
@@ -153,6 +153,14 @@ describe('Performance Transaction Events Content', function () {
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/recent-searches/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/tags/`,
+      body: [],
+    });
     initialData = initializeData();
     eventView = EventView.fromNewQueryWithLocation(
       {
@@ -176,7 +184,7 @@ describe('Performance Transaction Events Content', function () {
 
   it('basic rendering', async function () {
     render(
-      <OrganizationContext.Provider value={initialData.organization}>
+      <OrganizationContext value={initialData.organization}>
         <EventsPageContent
           eventView={eventView}
           organization={initialData.organization}
@@ -190,8 +198,7 @@ describe('Performance Transaction Events Content', function () {
           projectId="123"
           projects={[]}
         />
-      </OrganizationContext.Provider>,
-      {router: initialData.router}
+      </OrganizationContext>
     );
 
     expect(await screen.findByTestId('events-table')).toBeInTheDocument();
@@ -216,7 +223,7 @@ describe('Performance Transaction Events Content', function () {
 
   it('rendering with webvital selected', async function () {
     render(
-      <OrganizationContext.Provider value={initialData.organization}>
+      <OrganizationContext value={initialData.organization}>
         <EventsPageContent
           eventView={eventView}
           organization={initialData.organization}
@@ -231,8 +238,7 @@ describe('Performance Transaction Events Content', function () {
           projectId="123"
           projects={[]}
         />
-      </OrganizationContext.Provider>,
-      {router: initialData.router}
+      </OrganizationContext>
     );
 
     expect(await screen.findByTestId('events-table')).toBeInTheDocument();
@@ -262,7 +268,7 @@ describe('Performance Transaction Events Content', function () {
       initialData.router.location
     );
     render(
-      <OrganizationContext.Provider value={initialData.organization}>
+      <OrganizationContext value={initialData.organization}>
         <EventsPageContent
           eventView={_eventView}
           organization={initialData.organization}
@@ -277,8 +283,7 @@ describe('Performance Transaction Events Content', function () {
           projectId="1"
           projects={[ProjectFixture({id: '1', platform: 'python'})]}
         />
-      </OrganizationContext.Provider>,
-      {router: initialData.router}
+      </OrganizationContext>
     );
 
     expect(await screen.findByTestId('events-table')).toBeInTheDocument();

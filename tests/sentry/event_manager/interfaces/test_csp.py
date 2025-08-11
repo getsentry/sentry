@@ -15,7 +15,7 @@ def make_csp_snapshot(insta_snapshot):
         event_type = get_event_type(data)
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
-        evt = eventstore.backend.create_event(data=data)
+        evt = eventstore.backend.create_event(project_id=1, data=data)
         interface = evt.interfaces.get("csp")
 
         insta_snapshot(
@@ -30,7 +30,7 @@ def make_csp_snapshot(insta_snapshot):
     return inner
 
 
-def test_basic(make_csp_snapshot):
+def test_basic(make_csp_snapshot) -> None:
     make_csp_snapshot(
         dict(
             document_uri="http://example.com",
@@ -41,7 +41,7 @@ def test_basic(make_csp_snapshot):
     )
 
 
-def test_coerce_blocked_uri_if_missing(make_csp_snapshot):
+def test_coerce_blocked_uri_if_missing(make_csp_snapshot) -> None:
     make_csp_snapshot(dict(document_uri="http://example.com", effective_directive="script-src"))
 
 
@@ -96,5 +96,5 @@ def test_coerce_blocked_uri_if_missing(make_csp_snapshot):
         ),
     ],
 )
-def test_get_message(make_csp_snapshot, input):
+def test_get_message(make_csp_snapshot, input) -> None:
     make_csp_snapshot(input)

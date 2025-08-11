@@ -5,8 +5,9 @@ import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import DiscoverButton from 'sentry/components/discoverButton';
 import GroupList from 'sentry/components/issues/groupList';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -14,7 +15,6 @@ import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
@@ -25,8 +25,8 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {appendQueryDatasetParam} from 'sentry/views/dashboards/utils';
-
-import NoGroupsHandler from '../issueList/noGroupsHandler';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
+import NoGroupsHandler from 'sentry/views/issueList/noGroupsHandler';
 
 enum IssuesType {
   NEW = 'new',
@@ -75,7 +75,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
   });
 
   const fetchIssuesCount = useCallback(async () => {
-    const getIssueCountEndpoint = queryParameters => {
+    const getIssueCountEndpoint = (queryParameters: any) => {
       const issuesCountPath = `/organizations/${organization.slug}/issues-count/`;
 
       return `${issuesCountPath}?${qs.stringify(queryParameters)}`;
@@ -136,7 +136,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
     trackAnalytics('project_detail.open_discover', {organization});
   }
 
-  function handleFetchSuccess(groupListState, cursorHandler) {
+  function handleFetchSuccess(groupListState: any, cursorHandler: any) {
     setPageLinks(groupListState.pageLinks);
     setOnCursor(() => cursorHandler);
   }
@@ -148,11 +148,14 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
 
   function getDiscoverUrl() {
     return {
-      pathname: `/organizations/${organization.slug}/discover/results/`,
+      pathname: makeDiscoverPathname({
+        path: `/results/`,
+        organization,
+      }),
       query: {
         name: t('Frequent Unhandled Issues'),
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
-        sort: ['-count'],
+        sort: '-count',
         query: discoverQuery,
         display: 'top5',
         ...normalizeDateTimeParams(pick(location.query, [...Object.values(URL_PARAM)])),
@@ -164,11 +167,12 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
   const endpointPath = `/organizations/${organization.slug}/issues/`;
 
   const issueQuery = (Object.values(IssuesType) as string[]).includes(issuesType)
-    ? [`${IssuesQuery[issuesType.toUpperCase()]}`, query].join(' ').trim()
+    ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+      [`${IssuesQuery[issuesType.toUpperCase()]}`, query].join(' ').trim()
     : [`${IssuesQuery.ALL}`, query].join(' ').trim();
 
   const queryParams = {
-    limit: 5,
+    limit: '5',
     ...normalizeDateTimeParams(
       pick(location.query, [...Object.values(URL_PARAM), 'cursor'])
     ),
@@ -197,7 +201,8 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
   function renderEmptyMessage() {
     const selectedTimePeriod = location.query.start
       ? null
-      : DEFAULT_RELATIVE_PERIODS[
+      : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        DEFAULT_RELATIVE_PERIODS[
           decodeScalar(location.query.statsPeriod, DEFAULT_STATS_PERIOD)
         ];
     const displayedPeriod = selectedTimePeriod
@@ -259,15 +264,15 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
             </SegmentedControl.Item>
           ))}
         </SegmentedControl>
-        <OpenInButtonBar gap={1}>
-          <Button
+        <OpenInButtonBar>
+          <LinkButton
             data-test-id="issues-open"
             size="xs"
             to={issueSearch}
             onClick={handleOpenInIssuesClick}
           >
             {t('Open in Issues')}
-          </Button>
+          </LinkButton>
           <DiscoverButton
             onClick={handleOpenInDiscoverClick}
             to={getDiscoverUrl()}
@@ -280,7 +285,6 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
       </ControlsWrapper>
 
       <GroupList
-        orgSlug={organization.slug}
         queryParams={queryParams}
         canSelectGroups={false}
         renderEmptyMessage={renderEmptyMessage}
@@ -304,7 +308,7 @@ const ControlsWrapper = styled('div')`
 const OpenInButtonBar = styled(ButtonBar)`
   margin-top: ${space(1)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     width: 100%;
   }
 `;

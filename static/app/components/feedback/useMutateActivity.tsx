@@ -1,31 +1,32 @@
 import {useCallback} from 'react';
 
-import type {Group, GroupActivity, Organization} from 'sentry/types';
 import type {NoteType} from 'sentry/types/alerts';
+import type {Group, GroupActivity} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import type {MutateOptions} from 'sentry/utils/queryClient';
 import {fetchMutation, useMutation} from 'sentry/utils/queryClient';
-import useApi from 'sentry/utils/useApi';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
 type TPayload = {activity: GroupActivity[]; note?: NoteType; noteId?: string};
 type TMethod = 'PUT' | 'POST' | 'DELETE';
 export type TData = GroupActivity;
-export type TError = unknown;
+export type TError = RequestError;
 export type TVariables = [TPayload, TMethod];
 export type TContext = unknown;
 
-export type DeleteCommentCallback = (
+type DeleteCommentCallback = (
   noteId: string,
   activity: GroupActivity[],
   options?: MutateOptions<TData, TError, TVariables, TContext>
 ) => void;
 
-export type CreateCommentCallback = (
+type CreateCommentCallback = (
   note: NoteType,
   activity: GroupActivity[],
   options?: MutateOptions<TData, TError, TVariables, TContext>
 ) => void;
 
-export type UpdateCommentCallback = (
+type UpdateCommentCallback = (
   note: NoteType,
   noteId: string,
   activity: GroupActivity[],
@@ -52,11 +53,7 @@ export default function useMutateActivity({
   onMutate,
   onSettled,
 }: Props) {
-  const api = useApi({
-    persistInFlight: false,
-  });
-
-  const mutation = useMutation<TData, TError, TVariables, TContext>({
+  const {mutate} = useMutation<TData, TError, TVariables, TContext>({
     onMutate: onMutate ?? undefined,
     mutationFn: ([{note, noteId}, method]) => {
       const url =
@@ -64,36 +61,36 @@ export default function useMutateActivity({
           ? `/organizations/${organization.slug}/issues/${group.id}/comments/${noteId}/`
           : `/organizations/${organization.slug}/issues/${group.id}/comments/`;
 
-      return fetchMutation(api)([
+      return fetchMutation({
         method,
         url,
-        {},
-        {text: note?.text, mentions: note?.mentions},
-      ]);
+        options: {},
+        data: {text: note?.text, mentions: note?.mentions},
+      });
     },
     onSettled: onSettled ?? undefined,
-    cacheTime: 0,
+    gcTime: 0,
   });
 
   const handleUpdate = useCallback<UpdateCommentCallback>(
     (note, noteId, activity, options) => {
-      mutation.mutate([{note, noteId, activity}, 'PUT'], options);
+      mutate([{note, noteId, activity}, 'PUT'], options);
     },
-    [mutation]
+    [mutate]
   );
 
   const handleCreate = useCallback<CreateCommentCallback>(
     (note, activity, options) => {
-      mutation.mutate([{note, activity}, 'POST'], options);
+      mutate([{note, activity}, 'POST'], options);
     },
-    [mutation]
+    [mutate]
   );
 
   const handleDelete = useCallback<DeleteCommentCallback>(
     (noteId, activity, options) => {
-      mutation.mutate([{noteId, activity}, 'DELETE'], options);
+      mutate([{noteId, activity}, 'DELETE'], options);
     },
-    [mutation]
+    [mutate]
   );
 
   return {

@@ -4,10 +4,11 @@ from collections import namedtuple
 from collections.abc import Iterable, Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, NotRequired, Optional, TypedDict, Union
+from datetime import datetime, timedelta, timezone
+from typing import Any, Literal, NotRequired, Optional, TypedDict, Union
 
 from django.utils import timezone as django_timezone
+from google.protobuf.timestamp_pb2 import Timestamp
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import BooleanCondition, Condition
@@ -28,13 +29,13 @@ WhereType = Union[Condition, BooleanCondition]
 
 # Replaced by SnubaParams
 class ParamsType(TypedDict, total=False):
-    project_id: list[int]
+    project_id: Sequence[int]
     projects: list[Project]
     project_objects: list[Project]
     start: datetime
     end: datetime
     environment: NotRequired[str | list[str]]
-    organization_id: NotRequired[int]
+    organization_id: NotRequired[int | None]
     use_case_id: NotRequired[str]
     team_id: NotRequired[list[int]]
     environment_objects: NotRequired[list[Environment]]
@@ -64,9 +65,15 @@ SnubaData = list[SnubaRow]
 
 
 class EventsMeta(TypedDict):
+    datasetReason: NotRequired[str]
     fields: dict[str, str]
     tips: NotRequired[dict[str, str | None]]
     isMetricsData: NotRequired[bool]
+    isMetricsExtractedData: NotRequired[bool]
+    discoverSplitDecision: NotRequired[str]
+    # only returned when debug=True
+    debug_info: NotRequired[dict[str, Any]]
+    full_scan: NotRequired[bool]
 
 
 class EventsResponse(TypedDict):
@@ -74,17 +81,25 @@ class EventsResponse(TypedDict):
     meta: EventsMeta
 
 
+SAMPLING_MODES = Literal["BEST_EFFORT", "PREFLIGHT", "NORMAL", "HIGHEST_ACCURACY"]
+
+
 @dataclass
 class SnubaParams:
     start: datetime | None = None
     end: datetime | None = None
     stats_period: str | None = None
+    query_string: str | None = None
+    # granularity is used with timeseries requests to specifiy bucket size
+    granularity_secs: int | None = None
     # The None value in this sequence is because the filter params could include that
     environments: Sequence[Environment | None] = field(default_factory=list)
     projects: Sequence[Project] = field(default_factory=list)
     user: RpcUser | None = None
     teams: Iterable[Team] = field(default_factory=list)
     organization: Organization | None = None
+    sampling_mode: SAMPLING_MODES | None = None
+    debug: bool = False
 
     def __post_init__(self) -> None:
         if self.start:
@@ -98,6 +113,9 @@ class SnubaParams:
 
         # Only used in the trend query builder
         self.aliases: dict[str, Alias] | None = {}
+
+    def __repr__(self) -> str:
+        return f"<SnubaParams: start={self.start},end={self.end},environments={self.environment_ids},projects={self.project_ids}>"
 
     def parse_stats_period(self) -> None:
         if self.stats_period is not None:
@@ -114,15 +132,49 @@ class SnubaParams:
         return self.start
 
     @property
+    def rpc_start_date(self) -> Timestamp:
+        timestamp = Timestamp()
+        timestamp.FromDatetime(self.start_date)
+        return timestamp
+
+    @property
     def end_date(self) -> datetime:
         if self.end is None:
             raise InvalidSearchQuery("end is required")
         return self.end
 
     @property
+    def rpc_end_date(self) -> Timestamp:
+        timestamp = Timestamp()
+        timestamp.FromDatetime(self.end_date)
+        return timestamp
+
+    @property
+    def timeseries_granularity_secs(self) -> int:
+        if self.granularity_secs is None:
+            raise InvalidSearchQuery("granularity is required")
+        return self.granularity_secs
+
+    @property
+    def is_timeseries_request(self) -> bool:
+        return self.granularity_secs is not None
+
+    @property
+    def date_range(self) -> timedelta:
+        return self.end_date - self.start_date
+
+    @property
     def environment_names(self) -> list[str]:
         return (
             [env.name if env is not None else "" for env in self.environments]
+            if self.environments
+            else []
+        )
+
+    @property
+    def environment_ids(self) -> list[int]:
+        return (
+            [env.id for env in self.environments if env is not None and env.id is not None]
             if self.environments
             else []
         )
@@ -145,10 +197,8 @@ class SnubaParams:
         return [team.id for team in self.teams]
 
     @property
-    def interval(self) -> float | None:
-        if self.start and self.end:
-            return (self.end - self.start).total_seconds()
-        return None
+    def interval(self) -> float:
+        return (self.end_date - self.start_date).total_seconds()
 
     @property
     def organization_id(self) -> int | None:
@@ -165,7 +215,9 @@ class SnubaParams:
             "project_objects": list(self.projects),
             "environment": list(self.environment_names),
             "team_id": list(self.team_ids),
-            "environment_objects": [env for env in self.environments if env is not None],
+            "environment_objects": (
+                [env for env in self.environments if env is not None] if self.environments else []
+            ),
         }
         if self.organization_id:
             filter_params["organization_id"] = self.organization_id
@@ -191,7 +243,7 @@ class QueryBuilderConfig:
     # This allows queries to be resolved without adding time constraints. Currently this is just
     # used to allow metric alerts to be built and validated before creation in snuba.
     skip_time_conditions: bool = False
-    parser_config_overrides: Mapping[str, Any] | None = None
+    parser_config_overrides: Mapping[str, Any] = field(default_factory=dict)
     has_metrics: bool = False
     transform_alias_to_input_format: bool = False
     use_metrics_layer: bool = False
@@ -203,6 +255,9 @@ class QueryBuilderConfig:
     on_demand_metrics_type: Any | None = None
     skip_field_validation_for_entity_subscription_deletion: bool = False
     allow_metric_aggregates: bool | None = False
+    insights_metrics_override_metric_layer: bool = False
+    # Allow the errors query builder to use the entity prefix for fields
+    use_entity_prefix_for_fields: bool = False
 
 
 @dataclass(frozen=True)

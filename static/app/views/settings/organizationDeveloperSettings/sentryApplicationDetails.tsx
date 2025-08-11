@@ -1,8 +1,7 @@
-import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
 import scrollToElement from 'scroll-to-element';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -11,24 +10,25 @@ import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'sentry/actionCreators/sentryAppTokens';
-import {Alert} from 'sentry/components/alert';
-import Avatar from 'sentry/components/avatar';
-import type {Model} from 'sentry/components/avatarChooser';
 import AvatarChooser from 'sentry/components/avatarChooser';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {FieldValue} from 'sentry/components/forms/model';
 import FormModel from 'sentry/components/forms/model';
-import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import {Tooltip} from 'sentry/components/tooltip';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {
   internalIntegrationForms,
@@ -37,20 +37,22 @@ import {
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  InternalAppApiToken,
-  NewInternalAppApiToken,
-  Organization,
-  Scope,
-  SentryApp,
-} from 'sentry/types';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import type {Avatar, Scope} from 'sentry/types/core';
+import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {
+  type ApiQueryKey,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
-import NewTokenHandler from 'sentry/views/settings/components/newTokenHandler';
+import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
@@ -58,15 +60,13 @@ type Resource = 'Project' | 'Team' | 'Release' | 'Event' | 'Organization' | 'Mem
 
 const AVATAR_STYLES = {
   color: {
-    size: 50,
-    title: t('Default Logo'),
-    previewText: t('The default icon for integrations'),
+    label: t('Default logo'),
+    description: t('The default icon for integrations'),
     help: t('Image must be between 256px by 256px and 1024px by 1024px.'),
   },
   simple: {
-    size: 20,
-    title: t('Default Icon'),
-    previewText: tct('This is a silhouette icon used only for [uiDocs:UI Components]', {
+    label: t('Default small icon'),
+    description: tct('This is a silhouette icon used only for [uiDocs:UI Components]', {
       uiDocs: (
         <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/ui-components/" />
       ),
@@ -143,6 +143,7 @@ class SentryAppFormModel extends FormModel {
   getData() {
     return this.fields.toJSON().reduce((data, [k, v]) => {
       if (!k.endsWith('--permission')) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         data[k] = v;
       }
       return data;
@@ -150,80 +151,99 @@ class SentryAppFormModel extends FormModel {
   }
 }
 
-type Props = RouteComponentProps<{appSlug?: string}, {}> & {
-  organization: Organization;
+type Props = RouteComponentProps<{appSlug?: string}>;
+const makeSentryAppQueryKey = (appSlug?: string): ApiQueryKey => {
+  return [`/sentry-apps/${appSlug}/`];
 };
 
-type State = DeprecatedAsyncView['state'] & {
-  app: SentryApp | null;
-  newTokens: NewInternalAppApiToken[];
-  tokens: InternalAppApiToken[];
+const makeSentryAppApiTokensQueryKey = (appSlug?: string): ApiQueryKey => {
+  return [`/sentry-apps/${appSlug}/api-tokens/`];
 };
 
-class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
-  form = new SentryAppFormModel({mapFormErrors});
+export default function SentryApplicationDetails(props: Props) {
+  const {appSlug} = props.params;
+  const {router, location} = props;
+  const organization = useOrganization();
+  const [form] = useState<SentryAppFormModel>(
+    () => new SentryAppFormModel({mapFormErrors})
+  );
 
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      app: null,
-      tokens: [],
-      newTokens: [],
-    };
-  }
+  const isEditingApp = !!appSlug;
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {appSlug} = this.props.params;
-    if (appSlug) {
-      const endpoints = [['app', `/sentry-apps/${appSlug}/`]];
-      if (this.hasTokenAccess) {
-        endpoints.push(['tokens', `/sentry-apps/${appSlug}/api-tokens/`]);
-      }
-      return endpoints as [string, string][];
+  const api = useApi();
+  const queryClient = useQueryClient();
+
+  const SENTRY_APP_QUERY_KEY = makeSentryAppQueryKey(appSlug);
+  const SENTRY_APP_API_TOKENS_QUERY_KEY = makeSentryAppApiTokensQueryKey(appSlug);
+
+  const {
+    data: app = undefined,
+    isPending,
+    isError,
+    refetch,
+  } = useApiQuery<SentryApp>(SENTRY_APP_QUERY_KEY, {
+    staleTime: 30000,
+    enabled: isEditingApp,
+  });
+  const {data: tokens = []} = useApiQuery<InternalAppApiToken[]>(
+    SENTRY_APP_API_TOKENS_QUERY_KEY,
+    {
+      staleTime: 30000,
+      enabled: isEditingApp,
     }
-
-    return [];
-  }
-
-  getHeaderTitle() {
-    const {app} = this.state;
-    const action = app ? 'Edit' : 'Create';
-    const type = this.isInternal ? 'Internal' : 'Public';
-    return tct('[action] [type] Integration', {action, type});
-  }
+  );
+  const [newTokens, setNewTokens] = useState<NewInternalAppApiToken[]>([]);
 
   // Events may come from the API as "issue.created" when we just want "issue" here.
-  normalize(events) {
+  const normalize = (events: any) => {
     if (events.length === 0) {
       return events;
     }
 
-    return events.map(e => e.split('.').shift());
-  }
+    return events.map((e: any) => e.split('.').shift());
+  };
 
-  handleSubmitSuccess = (data: SentryApp) => {
-    const {app} = this.state;
-    const {organization} = this.props;
-    const type = this.isInternal ? 'internal' : 'public';
+  const hasTokenAccess = () => {
+    return organization.access.includes('org:write');
+  };
+
+  const isInternal = () => {
+    if (app) {
+      // if we are editing an existing app, check the status of the app
+      return app.status === 'internal';
+    }
+    return location.pathname.endsWith('new-internal/');
+  };
+
+  const showAuthInfo = () => !(app?.clientSecret && app.clientSecret[0] === '*');
+
+  const headerTitle = () => {
+    const action = app ? 'Edit' : 'Create';
+    const type = isInternal() ? 'Internal' : 'Public';
+    return tct('[action] [type] Integration', {action, type});
+  };
+
+  const handleSubmitSuccess = (data: SentryApp) => {
+    const type = isInternal() ? 'internal' : 'public';
     const baseUrl = `/settings/${organization.slug}/developer-settings/`;
     const url = app ? `${baseUrl}?type=${type}` : `${baseUrl}${data.slug}/`;
     if (app) {
       addSuccessMessage(t('%s successfully saved.', data.name));
+      refetch();
     } else {
       addSuccessMessage(t('%s successfully created.', data.name));
     }
-    browserHistory.push(normalizeUrl(url));
+    router.push(normalizeUrl(url));
   };
 
-  handleSubmitError = err => {
+  const handleSubmitError = (err: any) => {
     let errorMessage = t('Unknown Error');
     if (err.status >= 400 && err.status < 500) {
       errorMessage = err?.responseJSON.detail ?? errorMessage;
     }
     addErrorMessage(errorMessage);
-
-    if (this.form.formErrors) {
-      const firstErrorFieldId = Object.keys(this.form.formErrors)[0];
+    if (form.formErrors) {
+      const firstErrorFieldId = Object.keys(form.formErrors)[0];
 
       if (firstErrorFieldId) {
         scrollToElement(`#${firstErrorFieldId}`, {
@@ -234,61 +254,35 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
     }
   };
 
-  get hasTokenAccess() {
-    return this.props.organization.access.includes('org:write');
-  }
-
-  get isInternal() {
-    const {app} = this.state;
-    if (app) {
-      // if we are editing an existing app, check the status of the app
-      return app.status === 'internal';
-    }
-    return this.props.location.pathname.endsWith('new-internal/');
-  }
-
-  get showAuthInfo() {
-    const {app} = this.state;
-    return !(app?.clientSecret && app.clientSecret[0] === '*');
-  }
-
-  onAddToken = async (evt: React.MouseEvent): Promise<void> => {
+  const onAddToken = async (evt: React.MouseEvent): Promise<void> => {
     evt.preventDefault();
-    const {app, newTokens} = this.state;
     if (!app) {
       return;
     }
-
-    const api = this.api;
-
     const token = await addSentryAppToken(api, app);
     const updatedNewTokens = newTokens.concat(token);
-    this.setState({newTokens: updatedNewTokens});
+    setNewTokens(updatedNewTokens);
+    displayNewToken(token.token, () => handleFinishNewToken(token));
   };
 
-  onRemoveToken = async (token: InternalAppApiToken) => {
-    const {app, tokens} = this.state;
+  const handleFinishNewToken = (newToken: NewInternalAppApiToken) => {
+    const updatedNewTokens = newTokens.filter(token => token.id !== newToken.id);
+    const updatedTokens = tokens.concat(newToken as InternalAppApiToken);
+    setApiQueryData(queryClient, SENTRY_APP_API_TOKENS_QUERY_KEY, updatedTokens);
+    setNewTokens(updatedNewTokens);
+  };
+
+  const onRemoveToken = async (token: InternalAppApiToken) => {
     if (!app) {
       return;
     }
-
-    const api = this.api;
-    const newTokens = tokens.filter(tok => tok.id !== token.id);
-
+    const updatedTokens = tokens.filter(tok => tok.id !== token.id);
     await removeSentryAppToken(api, app, token.id);
-    this.setState({tokens: newTokens});
+    setApiQueryData(queryClient, SENTRY_APP_API_TOKENS_QUERY_KEY, updatedTokens);
   };
 
-  handleFinishNewToken = (newToken: NewInternalAppApiToken) => {
-    const {tokens, newTokens} = this.state;
-    const updatedNewTokens = newTokens.filter(token => token.id !== newToken.id);
-    const updatedTokens = tokens.concat(newToken as InternalAppApiToken);
-    this.setState({tokens: updatedTokens, newTokens: updatedNewTokens});
-  };
-
-  renderTokens = () => {
-    const {tokens, newTokens} = this.state;
-    if (!this.hasTokenAccess) {
+  const renderTokens = () => {
+    if (!hasTokenAccess) {
       return (
         <EmptyMessage description={t('You do not have access to view these tokens.')} />
       );
@@ -301,176 +295,131 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
         data-test-id="api-token"
         key={token.id}
         token={token}
-        onRemove={this.onRemoveToken}
+        onRemove={onRemoveToken}
       />
     ));
-    tokensToDisplay.push(
-      ...newTokens.map(newToken => (
-        <NewTokenHandler
-          data-test-id="new-api-token"
-          key={newToken.id}
-          token={getDynamicText({value: newToken.token, fixed: 'ORG_AUTH_TOKEN'})}
-          handleGoBack={() => this.handleFinishNewToken(newToken)}
-        />
-      ))
-    );
 
     return tokensToDisplay;
   };
 
-  rotateClientSecret = async () => {
-    try {
-      const rotateResponse = await this.api.requestPromise(
-        `/sentry-apps/${this.props.params.appSlug}/rotate-secret/`,
-        {
-          method: 'POST',
-        }
-      );
+  const rotateClientSecret = async () => {
+    const rotateResponse = await api.requestPromise(
+      `/sentry-apps/${appSlug}/rotate-secret/`,
+      {
+        method: 'POST',
+      }
+    );
+
+    // Ensures that the modal is opened after the confirmation modal closes itself
+    requestAnimationFrame(() => {
       openModal(({Body, Header}) => (
         <Fragment>
           <Header>{t('Your new Client Secret')}</Header>
           <Body>
-            <Alert type="info" showIcon>
-              {t('This will be the only time your client secret is visible!')}
-            </Alert>
+            <Alert.Container>
+              <Alert type="info">
+                {t('This will be the only time your client secret is visible!')}
+              </Alert>
+            </Alert.Container>
             <TextCopyInput aria-label={t('new-client-secret')}>
               {rotateResponse.clientSecret}
             </TextCopyInput>
           </Body>
         </Fragment>
       ));
-    } catch {
-      addErrorMessage(t('Error rotating secret'));
-    }
+    });
   };
 
-  onFieldChange = (name: string, value: FieldValue): void => {
-    if (name === 'webhookUrl' && !value && this.isInternal) {
+  const onFieldChange = (name: string, value: FieldValue): void => {
+    if (name === 'webhookUrl' && !value && isInternal()) {
       // if no webhook, then set isAlertable to false
-      this.form.setValue('isAlertable', false);
+      form.setValue('isAlertable', false);
     }
   };
 
-  addAvatar = ({avatar}: Model) => {
-    const {app} = this.state;
+  const addAvatar = ({avatar}: {avatar?: Avatar}) => {
     if (app && avatar) {
       const avatars =
         app?.avatars?.filter(prevAvatar => prevAvatar.color !== avatar.color) || [];
-      avatars.push(avatar);
-      this.setState({app: {...app, avatars}});
+
+      avatars.push(avatar as SentryAppAvatar);
+      setApiQueryData(queryClient, SENTRY_APP_QUERY_KEY, {...app, avatars});
     }
   };
 
-  getAvatarModel = (isColor: boolean): Model => {
-    const {app} = this.state;
-    const defaultModel: Model = {
-      avatar: {
-        avatarType: 'default',
-        avatarUuid: null,
-      },
-    };
-    if (!app) {
-      return defaultModel;
-    }
-    return {
-      avatar: app?.avatars?.find(({color}) => color === isColor) || defaultModel.avatar,
-    };
-  };
-
-  getAvatarPreview = (isColor: boolean) => {
-    const {app} = this.state;
+  const getAvatarChooser = (isColor: boolean) => {
     if (!app) {
       return null;
     }
     const avatarStyle = isColor ? 'color' : 'simple';
-    return (
-      <AvatarPreview>
-        <StyledPreviewAvatar
-          size={AVATAR_STYLES[avatarStyle].size}
-          sentryApp={app}
-          isDefault
-        />
-        <AvatarPreviewTitle>{AVATAR_STYLES[avatarStyle].title}</AvatarPreviewTitle>
-        <AvatarPreviewText>{AVATAR_STYLES[avatarStyle].previewText}</AvatarPreviewText>
-      </AvatarPreview>
-    );
-  };
+    const styleProps = AVATAR_STYLES[avatarStyle];
 
-  getAvatarChooser = (isColor: boolean) => {
-    const {app} = this.state;
-    if (!app) {
-      return null;
-    }
-    const avatarStyle = isColor ? 'color' : 'simple';
     return (
       <AvatarChooser
-        type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
-        allowGravatar={false}
-        allowLetter={false}
         endpoint={`/sentry-apps/${app.slug}/avatar/`}
-        model={this.getAvatarModel(isColor)}
-        onSave={this.addAvatar}
+        supportedTypes={['default', 'upload']}
+        type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
+        model={app}
+        onSave={addAvatar}
         title={isColor ? t('Logo') : t('Small Icon')}
-        help={AVATAR_STYLES[avatarStyle].help.concat(
-          this.isInternal ? '' : t(' Required for publishing.')
-        )}
-        savedDataUrl={undefined}
+        help={styleProps.help.concat(isInternal() ? '' : t(' Required for publishing.'))}
         defaultChoice={{
-          allowDefault: true,
-          choiceText: isColor ? t('Default logo') : t('Default small icon'),
-          preview: this.getAvatarPreview(isColor),
+          label: styleProps.label,
+          description: styleProps.description,
         }}
       />
     );
   };
 
-  renderBody() {
-    const {app} = this.state;
-    const scopes = (app && [...app.scopes]) || [];
-    const events = (app && this.normalize(app.events)) || [];
-    const method = app ? 'PUT' : 'POST';
-    const endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
+  const scopes = (app && [...app.scopes]) || [];
+  const events = (app && normalize(app.events)) || [];
+  const method = app ? 'PUT' : 'POST';
+  const endpoint = app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/';
 
-    const forms = this.isInternal ? internalIntegrationForms : publicIntegrationForms;
-    let verifyInstall: boolean;
-    if (this.isInternal) {
-      // force verifyInstall to false for all internal apps
-      verifyInstall = false;
-    } else {
-      // use the existing value for verifyInstall if the app exists, otherwise default to true
-      verifyInstall = app ? app.verifyInstall : true;
-    }
+  const forms = isInternal() ? internalIntegrationForms : publicIntegrationForms;
+  let verifyInstall: boolean;
+  if (isInternal()) {
+    // force verifyInstall to false for all internal apps
+    verifyInstall = false;
+  } else {
+    // use the existing value for verifyInstall if the app exists, otherwise default to true
+    verifyInstall = app ? app.verifyInstall : true;
+  }
 
-    return (
-      <div>
-        <SettingsPageHeader title={this.getHeaderTitle()} />
+  return (
+    <div>
+      <SettingsPageHeader title={headerTitle()} />
+      {isEditingApp && isPending ? (
+        <LoadingIndicator />
+      ) : isEditingApp && isError ? (
+        <LoadingError onRetry={refetch} />
+      ) : (
         <Form
           apiMethod={method}
           apiEndpoint={endpoint}
           allowUndo
           initialData={{
-            organization: this.props.organization.slug,
+            organization: organization.slug,
             isAlertable: false,
-            isInternal: this.isInternal,
+            isInternal: isInternal(),
             schema: {},
             scopes: [],
             ...app,
             verifyInstall, // need to overwrite the value in app for internal if it is true
           }}
-          model={this.form}
-          onSubmitSuccess={this.handleSubmitSuccess}
-          onSubmitError={this.handleSubmitError}
-          onFieldChange={this.onFieldChange}
+          model={form}
+          onSubmitSuccess={handleSubmitSuccess}
+          onSubmitError={handleSubmitError}
+          onFieldChange={onFieldChange}
         >
           <Observer>
             {() => {
-              const webhookDisabled =
-                this.isInternal && !this.form.getValue('webhookUrl');
+              const webhookDisabled = isInternal() && !form.getValue('webhookUrl');
               return (
                 <Fragment>
                   <JsonForm additionalFieldProps={{webhookDisabled}} forms={forms} />
-                  {this.getAvatarChooser(true)}
-                  {this.getAvatarChooser(false)}
+                  {getAvatarChooser(true)}
+                  {getAvatarChooser(false)}
                   <PermissionsObserver
                     webhookDisabled={webhookDisabled}
                     appPublished={app ? app.status === 'published' : false}
@@ -484,24 +433,27 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
           </Observer>
 
           {app && app.status === 'internal' && (
-            <Panel>
-              {this.hasTokenAccess ? (
-                <PanelHeader hasButtons>
-                  {t('Tokens')}
+            <PanelTable
+              headers={[
+                t('Token'),
+                t('Created On'),
+                t('Scopes'),
+                <AddTokenHeader key="token-add">
                   <Button
                     size="xs"
                     icon={<IconAdd isCircled />}
-                    onClick={evt => this.onAddToken(evt)}
+                    onClick={evt => onAddToken(evt)}
                     data-test-id="token-add"
                   >
                     {t('New Token')}
                   </Button>
-                </PanelHeader>
-              ) : (
-                <PanelHeader>{t('Tokens')}</PanelHeader>
-              )}
-              <PanelBody>{this.renderTokens()}</PanelBody>
-            </Panel>
+                </AddTokenHeader>,
+              ]}
+              isEmpty={tokens.length === 0}
+              emptyMessage={t("You haven't created any authentication tokens yet.")}
+            >
+              {renderTokens()}
+            </PanelTable>
           )}
 
           {app && (
@@ -510,7 +462,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
               <PanelBody>
                 {app.status !== 'internal' && (
                   <FormField name="clientId" label="Client ID">
-                    {({value, id}) => (
+                    {({value, id}: any) => (
                       <TextCopyInput id={id}>
                         {getDynamicText({value, fixed: 'CI_CLIENT_ID'})}
                       </TextCopyInput>
@@ -523,10 +475,10 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
                   help={t(`Your secret is only available briefly after integration creation. Make
                     sure to save this value!`)}
                 >
-                  {({value, id}) =>
+                  {({value, id}: any) =>
                     value ? (
                       <Tooltip
-                        disabled={this.showAuthInfo}
+                        disabled={showAuthInfo()}
                         position="right"
                         containerDisplayMode="inline"
                         title={t(
@@ -540,12 +492,13 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
                     ) : (
                       <ClientSecret>
                         <HiddenSecret>{t('hidden')}</HiddenSecret>
-                        {this.hasTokenAccess ? (
+                        {hasTokenAccess() ? (
                           <Confirm
-                            onConfirm={this.rotateClientSecret}
+                            onConfirm={rotateClientSecret}
                             message={t(
                               'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
                             )}
+                            errorMessage={t('Error rotating secret')}
                           >
                             <Button priority="danger">Rotate client secret</Button>
                           </Confirm>
@@ -558,36 +511,10 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
             </Panel>
           )}
         </Form>
-      </div>
-    );
-  }
+      )}
+    </div>
+  );
 }
-
-export default withOrganization(SentryApplicationDetails);
-
-const AvatarPreview = styled('div')`
-  flex: 1;
-  display: grid;
-  grid: 25px 25px / 50px 1fr;
-`;
-
-const StyledPreviewAvatar = styled(Avatar)`
-  grid-area: 1 / 1 / 3 / 2;
-  justify-self: end;
-`;
-
-const AvatarPreviewTitle = styled('span')`
-  display: block;
-  grid-area: 1 / 2 / 2 / 3;
-  padding-left: ${space(2)};
-  font-weight: ${p => p.theme.fontWeightBold};
-`;
-
-const AvatarPreviewText = styled('span')`
-  display: block;
-  grid-area: 2 / 2 / 3 / 3;
-  padding-left: ${space(2)};
-`;
 
 const HiddenSecret = styled('span')`
   width: 100px;
@@ -599,4 +526,10 @@ const ClientSecret = styled('div')`
   justify-content: right;
   align-items: center;
   margin-right: 0;
+`;
+
+const AddTokenHeader = styled('div')`
+  margin: -${space(1)} 0;
+  display: flex;
+  justify-content: flex-end;
 `;

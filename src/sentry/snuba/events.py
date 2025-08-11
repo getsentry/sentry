@@ -601,20 +601,20 @@ class Columns(Enum):
         alias="app.in_foreground",
     )
     OS_DISTRIBUTION_NAME = Column(
-        group_name="events.contexts[os.distribution.name]",
-        event_name="contexts[os.distribution.name]",
-        transaction_name="contexts[os.distribution.name]",
-        discover_name="contexts[os.distribution.name]",
-        issue_platform_name="contexts[os.distribution.name]",
-        alias="os.distribution.name",
+        group_name="events.contexts[os.distribution_name]",
+        event_name="contexts[os.distribution_name]",
+        transaction_name="contexts[os.distribution_name]",
+        discover_name="contexts[os.distribution_name]",
+        issue_platform_name="contexts[os.distribution_name]",
+        alias="os.distribution_name",
     )
     OS_DISTRIBUTION_VERSION = Column(
-        group_name="events.contexts[os.distribution.version]",
-        event_name="contexts[os.distribution.version]",
-        transaction_name="contexts[os.distribution.version]",
-        discover_name="contexts[os.distribution.version]",
-        issue_platform_name="contexts[os.distribution.version]",
-        alias="os.distribution.version",
+        group_name="events.contexts[os.distribution_version]",
+        event_name="contexts[os.distribution_version]",
+        transaction_name="contexts[os.distribution_version]",
+        discover_name="contexts[os.distribution_version]",
+        issue_platform_name="contexts[os.distribution_version]",
+        alias="os.distribution_version",
     )
     # Transactions specific columns
     TRANSACTION_OP = Column(
@@ -631,6 +631,14 @@ class Columns(Enum):
         discover_name="duration",
         issue_platform_name="transaction_duration",
         alias="transaction.duration",
+    )
+    # span.duration is here to help migrate the frontend to EAP
+    SPAN_DURATION = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name="duration",
+        discover_name="duration",
+        alias="span.duration",
     )
     TRANSACTION_STATUS = Column(
         group_name=None,
@@ -811,4 +819,47 @@ class Columns(Enum):
         discover_name=None,
         issue_platform_name=None,
         alias="num_processing_errors",
+    )
+
+    SYMBOLICATED_IN_APP = Column(
+        group_name="events.symbolicated_in_app",
+        event_name="symbolicated_in_app",
+        transaction_name=None,
+        discover_name="symbolicated_in_app",
+        issue_platform_name=None,
+        alias="symbolicated_in_app",
+    )
+
+    OTA_UPDATES_CHANNEL = Column(
+        group_name="events.contexts[ota_updates.channel]",
+        event_name="contexts[ota_updates.channel]",
+        transaction_name="contexts[ota_updates.channel]",
+        discover_name="contexts[ota_updates.channel]",
+        issue_platform_name="contexts[ota_updates.channel]",
+        alias="ota_updates.channel",
+    )
+
+    OTA_UPDATES_RUNTIME_VERSION = Column(
+        group_name="events.contexts[ota_updates.runtime_version]",
+        event_name="contexts[ota_updates.runtime_version]",
+        transaction_name="contexts[ota_updates.runtime_version]",
+        discover_name="contexts[ota_updates.runtime_version]",
+        alias="ota_updates.runtime_version",
+    )
+
+    OTA_UPDATES_UPDATE_ID = Column(
+        group_name="events.contexts[ota_updates.update_id]",
+        event_name="contexts[ota_updates.update_id]",
+        transaction_name="contexts[ota_updates.update_id]",
+        discover_name="contexts[ota_updates.update_id]",
+        alias="ota_updates.update_id",
+    )
+
+    TIMESTAMP_MS = Column(
+        group_name="events.timestamp_ms",
+        event_name="timestamp_ms",
+        transaction_name=None,
+        discover_name="timestamp_ms",
+        issue_platform_name=None,
+        alias="timestamp_ms",
     )

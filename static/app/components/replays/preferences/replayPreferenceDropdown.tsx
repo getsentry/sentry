@@ -1,22 +1,50 @@
-import {Button} from 'sentry/components/button';
-import {CompositeSelect} from 'sentry/components/compactSelect/composite';
+import styled from '@emotion/styled';
+
+import {Button} from 'sentry/components/core/button';
+import {CompositeSelect} from 'sentry/components/core/compactSelect/composite';
+import {Flex} from 'sentry/components/core/layout';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import useReplayPrefs from 'sentry/utils/replays/playback/providers/useReplayPrefs';
+import formatDuration from 'sentry/utils/duration/formatDuration';
+import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+
+const timestampOptions: Array<'relative' | 'absolute'> = ['relative', 'absolute'];
 
 export default function ReplayPreferenceDropdown({
   speedOptions,
   hideFastForward = false,
+  isLoading,
 }: {
   speedOptions: number[];
   hideFastForward?: boolean;
+  isLoading?: boolean;
 }) {
   const [prefs, setPrefs] = useReplayPrefs();
+  const replay = useReplayReader();
+  const {isFetching} = useReplayContext();
 
   const SKIP_OPTION_VALUE = 'skip';
 
+  // Calculate adjusted duration for each speed, rounded up to the nearest second.
+  // Returns in seconds
+  const calculateAdjustedDuration = (originalDurationMs: number, speed: number) => {
+    if (speed === 1) {
+      return originalDurationMs / 1000;
+    }
+
+    return Math.ceil(originalDurationMs / speed / 1000);
+  };
+
+  // Check if we should show duration (data is loaded and duration is available)
+  const shouldShowDuration =
+    !isLoading && !isFetching && replay && replay.getDurationMs() > 0;
+
   return (
     <CompositeSelect
+      disabled={isLoading}
       trigger={triggerProps => (
         <Button
           {...triggerProps}
@@ -31,8 +59,42 @@ export default function ReplayPreferenceDropdown({
         label={t('Playback Speed')}
         value={prefs.playbackSpeed}
         onChange={opt => setPrefs({playbackSpeed: opt.value})}
-        options={speedOptions.map(option => ({
-          label: `${option}x`,
+        options={speedOptions.map(option => {
+          const baseLabel = `${option}x`;
+
+          if (shouldShowDuration) {
+            const adjustedDurationMs = calculateAdjustedDuration(
+              replay.getDurationMs(),
+              option
+            );
+            const durationDisplay = formatDuration({
+              duration: [adjustedDurationMs, 'sec'],
+              precision: 'sec',
+              style: 'h:mm:ss',
+            });
+            return {
+              label: (
+                <Flex justify="between">
+                  <span>{baseLabel}</span>
+                  <DurationDisplay>{durationDisplay}</DurationDisplay>
+                </Flex>
+              ),
+              value: option,
+            };
+          }
+
+          return {
+            label: baseLabel,
+            value: option,
+          };
+        })}
+      />
+      <CompositeSelect.Region
+        label={t('Timestamps')}
+        value={prefs.timestampType}
+        onChange={opt => setPrefs({timestampType: opt.value})}
+        options={timestampOptions.map(option => ({
+          label: `${toTitleCase(option)}`,
           value: option,
         }))}
       />
@@ -53,3 +115,7 @@ export default function ReplayPreferenceDropdown({
     </CompositeSelect>
   );
 }
+
+const DurationDisplay = styled('span')`
+  color: ${p => p.theme.subText};
+`;

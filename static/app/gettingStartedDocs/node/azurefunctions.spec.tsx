@@ -1,8 +1,10 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
 import docs from './azurefunctions';
 
@@ -13,7 +15,9 @@ describe('express onboarding docs', function () {
     // Renders main headings
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Upload Source Maps'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: /Upload Source Maps/i})
+    ).toBeInTheDocument();
 
     // Includes import statement
     const allMatches = screen.getAllByText(
@@ -34,11 +38,19 @@ describe('express onboarding docs', function () {
     });
 
     expect(
-      screen.queryByText(textWithMarkupMatcher(/tracesSampleRate/))
+      screen.getByText(textWithMarkupMatcher(/tracesSampleRate/))
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(textWithMarkupMatcher(/profilesSampleRate/))
+      screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).toBeInTheDocument();
+  });
+
+  it('enables logs', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
+    });
+
+    expect(screen.getByText('Logging Integrations')).toBeInTheDocument();
   });
 
   it('enables performance setting the tracesSampleRate to 1', () => {
@@ -66,8 +78,43 @@ describe('express onboarding docs', function () {
         )
       )
     ).toBeInTheDocument();
+
     expect(
       screen.getByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
     ).toBeInTheDocument();
+  });
+
+  it('continuous profiling', () => {
+    const organization = OrganizationFixture({
+      features: ['continuous-profiling'],
+    });
+
+    renderWithOnboardingLayout(
+      docs,
+      {},
+      {
+        organization,
+      }
+    );
+
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          /const { nodeProfilingIntegration } = require\("@sentry\/profiling-node"\)/
+        )
+      )
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profileLifecycle: 'trace'/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profileSessionSampleRate: 1\.0/))
+    ).toBeInTheDocument();
+
+    // Profiles sample rate should not be set for continuous profiling
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/profilesSampleRate: 1\.0/))
+    ).not.toBeInTheDocument();
   });
 });

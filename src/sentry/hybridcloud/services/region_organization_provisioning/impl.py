@@ -4,6 +4,7 @@ from sentry_sdk import capture_exception
 
 from sentry import roles
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.hybridcloud.models.outbox import RegionOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
@@ -11,11 +12,10 @@ from sentry.hybridcloud.services.control_organization_provisioning import (
 from sentry.hybridcloud.services.region_organization_provisioning import (
     RegionOrganizationProvisioningRpcService,
 )
-from sentry.models.organization import Organization
+from sentry.models.organization import ORGANIZATION_NAME_MAX_LENGTH, Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationslugreservation import OrganizationSlugReservationType
-from sentry.models.outbox import RegionOutbox, outbox_context
 from sentry.services.organization import OrganizationProvisioningOptions
 
 
@@ -51,9 +51,12 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
         assert (user_id is None and email) or (
             user_id and email is None
         ), "Must set either user_id or email"
+        truncated_name = organization_name[:ORGANIZATION_NAME_MAX_LENGTH]
         org = Organization.objects.create(
-            id=organization_id, name=organization_name, slug=slug, is_test=is_test
+            id=organization_id, name=truncated_name, slug=slug, is_test=is_test
         )
+        # New organizations should not see the legacy UI
+        org.update_option("sentry:streamline_ui_only", True)
 
         # Slug changes mean there was either a collision with the organization slug
         # or a bug in the slugify implementation, so we reject the organization creation

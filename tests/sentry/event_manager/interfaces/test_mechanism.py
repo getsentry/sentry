@@ -12,7 +12,7 @@ def make_mechanism_snapshot(insta_snapshot):
             data={"exception": {"values": [{"type": "FooError", "mechanism": data}]}}
         )
         mgr.normalize()
-        evt = eventstore.backend.create_event(data=mgr.get_data())
+        evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
         mechanism = evt.interfaces["exception"].values[0].mechanism
 
         insta_snapshot(
@@ -26,34 +26,34 @@ def make_mechanism_snapshot(insta_snapshot):
     return inner
 
 
-def test_empty_mechanism(make_mechanism_snapshot):
+def test_empty_mechanism(make_mechanism_snapshot) -> None:
     data = {"type": "generic"}
     make_mechanism_snapshot(data)
 
 
-def test_tag(make_mechanism_snapshot):
+def test_tag(make_mechanism_snapshot) -> None:
     data = {"type": "generic"}
     make_mechanism_snapshot(data)
 
 
-def test_tag_with_handled(make_mechanism_snapshot):
+def test_tag_with_handled(make_mechanism_snapshot) -> None:
     data = {"type": "generic", "handled": False}
 
     make_mechanism_snapshot(data)
 
 
-def test_data(make_mechanism_snapshot):
+def test_data(make_mechanism_snapshot) -> None:
     data = {"type": "generic", "data": {"relevant_address": "0x1"}}
     make_mechanism_snapshot(data)
 
 
-def test_empty_data(make_mechanism_snapshot):
+def test_empty_data(make_mechanism_snapshot) -> None:
     data = {"type": "generic", "data": {}}
 
     make_mechanism_snapshot(data)
 
 
-def test_min_mach_meta(make_mechanism_snapshot):
+def test_min_mach_meta(make_mechanism_snapshot) -> None:
     input = {
         "type": "generic",
         "meta": {"mach_exception": {"exception": 10, "code": 0, "subcode": 0}},
@@ -61,7 +61,7 @@ def test_min_mach_meta(make_mechanism_snapshot):
     make_mechanism_snapshot(input)
 
 
-def test_full_mach_meta(make_mechanism_snapshot):
+def test_full_mach_meta(make_mechanism_snapshot) -> None:
     data = {
         "type": "generic",
         "meta": {"mach_exception": {"exception": 10, "code": 0, "subcode": 0, "name": "EXC_CRASH"}},
@@ -69,12 +69,12 @@ def test_full_mach_meta(make_mechanism_snapshot):
     make_mechanism_snapshot(data)
 
 
-def test_min_signal_meta(make_mechanism_snapshot):
+def test_min_signal_meta(make_mechanism_snapshot) -> None:
     data = {"type": "generic", "meta": {"signal": {"number": 10, "code": 0}}}
     make_mechanism_snapshot(data)
 
 
-def test_full_signal_meta(make_mechanism_snapshot):
+def test_full_signal_meta(make_mechanism_snapshot) -> None:
     data = {
         "type": "generic",
         "meta": {"signal": {"number": 10, "code": 0, "name": "SIGBUS", "code_name": "BUS_NOOP"}},
@@ -82,17 +82,17 @@ def test_full_signal_meta(make_mechanism_snapshot):
     make_mechanism_snapshot(data)
 
 
-def test_min_errno_meta(make_mechanism_snapshot):
+def test_min_errno_meta(make_mechanism_snapshot) -> None:
     data = {"type": "generic", "meta": {"errno": {"number": 2}}}
     make_mechanism_snapshot(data)
 
 
-def test_full_errno_meta(make_mechanism_snapshot):
+def test_full_errno_meta(make_mechanism_snapshot) -> None:
     data = {"type": "generic", "meta": {"errno": {"number": 2, "name": "ENOENT"}}}
     make_mechanism_snapshot(data)
 
 
-def test_upgrade():
+def test_upgrade() -> None:
     data = {
         "posix_signal": {"name": "SIGSEGV", "code_name": "SEGV_NOOP", "signal": 11, "code": 0},
         "relevant_address": "0x1",

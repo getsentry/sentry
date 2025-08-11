@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import type {EventGroupComponent} from 'sentry/types';
+import type {EventGroupComponent} from 'sentry/types/event';
 
 import GroupingComponent from './groupingComponent';
 import GroupingComponentFrames from './groupingComponentFrames';

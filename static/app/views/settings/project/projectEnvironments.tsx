@@ -1,15 +1,13 @@
 import {Component, Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ListLink from 'sentry/components/links/listLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import NavTabs from 'sentry/components/navTabs';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -18,18 +16,20 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Environment, Organization, Project} from 'sentry/types';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
+import type {Environment, Project} from 'sentry/types/project';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import withApi from 'sentry/utils/withApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 type Props = {
   api: Client;
   organization: Organization;
   project: Project;
-} & RouteComponentProps<{projectId: string}, {}>;
+} & RouteComponentProps<{projectId: string}>;
 
 type State = {
   environments: null | Environment[];
@@ -80,13 +80,10 @@ class ProjectEnvironments extends Component<Props, State> {
     const {projectId} = this.props.params;
 
     this.props.api.request(
-      `/projects/${organization.slug}/${projectId}/environments/${getUrlRoutingName(
-        env
-      )}/`,
+      `/projects/${organization.slug}/${projectId}/environments/${getUrlRoutingName(env)}/`,
       {
         method: 'PUT',
         data: {
-          name: env.name,
           isHidden: shouldHide,
         },
         success: () => {
@@ -195,17 +192,21 @@ class ProjectEnvironments extends Component<Props, State> {
         <SettingsPageHeader
           title={t('Manage Environments')}
           tabs={
-            <NavTabs underlined>
-              <ListLink to={baseUrl} index isActive={() => !isHidden}>
-                {t('Environments')}
-              </ListLink>
-              <ListLink to={`${baseUrl}hidden/`} index isActive={() => isHidden}>
-                {t('Hidden')}
-              </ListLink>
-            </NavTabs>
+            <TabsContainer>
+              <Tabs value={isHidden ? 'hidden' : 'environments'}>
+                <TabList>
+                  <TabList.Item key="environments" to={baseUrl}>
+                    {t('Environments')}
+                  </TabList.Item>
+                  <TabList.Item key="hidden" to={`${baseUrl}hidden/`}>
+                    {t('Hidden')}
+                  </TabList.Item>
+                </TabList>
+              </Tabs>
+            </TabsContainer>
           }
         />
-        <PermissionAlert project={project} />
+        <ProjectPermissionAlert project={project} />
 
         <Panel>
           <PanelHeader>{isHidden ? t('Hidden') : t('Active Environments')}</PanelHeader>
@@ -264,6 +265,10 @@ const EnvironmentItem = styled(PanelItem)`
   justify-content: space-between;
 `;
 
+const TabsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
+
 const Name = styled('div')`
   display: flex;
   align-items: center;
@@ -273,5 +278,4 @@ const EnvironmentButton = styled(Button)`
   margin-left: ${space(0.5)};
 `;
 
-export {ProjectEnvironments};
 export default withApi(ProjectEnvironments);

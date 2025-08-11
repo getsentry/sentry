@@ -4,6 +4,7 @@ from datetime import timedelta
 from urllib.parse import urljoin
 from urllib.robotparser import RobotFileParser
 
+from dateutil.parser import parse as parse_datetime
 from django.utils import timezone
 
 from sentry import features
@@ -11,6 +12,8 @@ from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import uptime_tasks
 from sentry.uptime.detectors.ranking import (
     _get_cluster,
     delete_candidate_projects_for_org,
@@ -22,14 +25,14 @@ from sentry.uptime.detectors.ranking import (
     should_detect_for_organization,
     should_detect_for_project,
 )
-from sentry.uptime.models import ProjectUptimeSubscriptionMode
+from sentry.uptime.models import ProjectUptimeSubscription
 from sentry.uptime.subscriptions.subscriptions import (
     create_project_uptime_subscription,
-    create_uptime_subscription,
-    delete_project_uptime_subscription,
-    get_auto_monitored_subscriptions_for_project,
+    delete_uptime_detector,
+    get_auto_monitored_detectors_for_project,
     is_url_auto_monitored_for_project,
 )
+from sentry.uptime.types import UptimeMonitorMode
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 from sentry.utils.locking import UnableToAcquireLock
@@ -42,8 +45,8 @@ URL_MIN_TIMES_SEEN = 5
 URL_MIN_PERCENT = 0.05
 # Default value for how often we should run these subscriptions when onboarding them
 ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS = int(timedelta(minutes=60).total_seconds())
-# Default timeout for subscriptions when we're onboarding them
-ONBOARDING_SUBSCRIPTION_TIMEOUT_MS = 10000
+# Default timeout for auto-detected uptime monitors
+ONBOARDING_SUBSCRIPTION_TIMEOUT_MS = 10_000
 
 logger = logging.getLogger("sentry.uptime-url-autodetection")
 
@@ -53,6 +56,10 @@ logger = logging.getLogger("sentry.uptime-url-autodetection")
     queue="uptime",
     time_limit=60,
     soft_time_limit=55,
+    taskworker_config=TaskworkerConfig(
+        namespace=uptime_tasks,
+        processing_deadline_duration=60,
+    ),
 )
 def schedule_detections():
     """
@@ -81,7 +88,7 @@ def schedule_detections():
             for _ in range(minutes_since_last_processed):
                 metrics.incr("uptime.detectors.scheduler.scheduled_bucket")
                 last_processed = last_processed + timedelta(minutes=1)
-                process_detection_bucket.delay(last_processed)
+                process_detection_bucket.delay(last_processed.isoformat())
 
             cluster.set(LAST_PROCESSED_KEY, int(last_processed.timestamp()), timedelta(hours=1))
     except UnableToAcquireLock:
@@ -93,20 +100,29 @@ def schedule_detections():
 @instrumented_task(
     name="sentry.uptime.detectors.tasks.process_detection_bucket",
     queue="uptime",
+    taskworker_config=TaskworkerConfig(
+        namespace=uptime_tasks,
+    ),
 )
-def process_detection_bucket(bucket: datetime.datetime):
+def process_detection_bucket(bucket: str):
     """
     Schedules url detection for all projects in this time bucket that saw promising urls.
     """
-    for organization_id in get_organization_bucket(bucket):
+    date_bucket = parse_datetime(bucket)
+
+    for organization_id in get_organization_bucket(date_bucket):
         metrics.incr("uptime.detectors.scheduler.scheduled_organization")
         process_organization_url_ranking.delay(organization_id)
-    delete_organization_bucket(bucket)
+    delete_organization_bucket(date_bucket)
 
 
 @instrumented_task(
     name="sentry.uptime.detectors.tasks.process_organization_url_ranking",
     queue="uptime",
+    taskworker_config=TaskworkerConfig(
+        namespace=uptime_tasks,
+        processing_deadline_duration=20,
+    ),
 )
 def process_organization_url_ranking(organization_id: int):
     org = Organization.objects.get_from_cache(id=organization_id)
@@ -146,7 +162,7 @@ def process_project_url_ranking(project: Project, project_url_count: int) -> boo
 
     found_url = False
 
-    for url, url_count in get_candidate_urls_for_project(project)[:5]:
+    for url, url_count in get_candidate_urls_for_project(project, limit=5):
         if process_candidate_url(project, project_url_count, url, url_count):
             found_url = True
             break
@@ -220,37 +236,37 @@ def process_candidate_url(
             "project": project.id,
         },
     )
-    if features.has("organizations:uptime-automatic-subscription-creation", project.organization):
+    if features.has(
+        "organizations:uptime-automatic-subscription-creation", project.organization
+    ) and features.has("organizations:uptime", project.organization):
         # If we hit this point, then the url looks worth monitoring. Create an uptime subscription in monitor mode.
         monitor_url_for_project(project, url)
-        # Disable auto-detection on this project now that we've successfully found a hostname
+        # Disable auto-detection on this project and organization now that we've successfully found a hostname
         project.update_option("sentry:uptime_autodetection", False)
+        project.organization.update_option("sentry:uptime_autodetection", False)
 
     metrics.incr("uptime.detectors.candidate_url.succeeded", sample_rate=1.0)
     return True
 
 
-def monitor_url_for_project(project: Project, url: str):
+def monitor_url_for_project(project: Project, url: str) -> ProjectUptimeSubscription:
     """
     Start monitoring a url for a project. Creates a subscription using our onboarding interval and links the project to
     it. Also deletes any other auto-detected monitors since this one should replace them.
     """
-    for monitored_subscription in get_auto_monitored_subscriptions_for_project(project):
-        delete_project_uptime_subscription(
-            project,
-            monitored_subscription.uptime_subscription,
-            modes=[
-                ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
-                ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
-            ],
-        )
-    subscription = create_uptime_subscription(
-        url, ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS, ONBOARDING_SUBSCRIPTION_TIMEOUT_MS
-    )
-    create_project_uptime_subscription(
-        project, subscription, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING
-    )
+    for uptime_detector in get_auto_monitored_detectors_for_project(project):
+        delete_uptime_detector(uptime_detector)
     metrics.incr("uptime.detectors.candidate_url.monitor_created", sample_rate=1.0)
+    return create_project_uptime_subscription(
+        project,
+        # TODO(epurkhiser): This is where we would put the environment object
+        # from autodetection if we decide to do that.
+        environment=None,
+        url=url,
+        interval_seconds=ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS,
+        timeout_ms=ONBOARDING_SUBSCRIPTION_TIMEOUT_MS,
+        mode=UptimeMonitorMode.AUTO_DETECTED_ONBOARDING,
+    )
 
 
 def is_failed_url(url: str) -> bool:

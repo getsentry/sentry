@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any, Literal
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from django.conf import settings
@@ -7,11 +10,14 @@ from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 from django.utils import timezone
 from django.utils.safestring import mark_safe
+from rest_framework.request import Request
 
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
+from sentry.users.models.user import User
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.web.frontend.auth_login import AuthLoginView
 
@@ -21,7 +27,7 @@ logger = logging.getLogger("sentry.api.oauth_authorize")
 class OAuthAuthorizeView(AuthLoginView):
     auth_required = False
 
-    def get_next_uri(self, request: HttpRequest):
+    def get_next_uri(self, request: HttpRequest) -> str:
         return request.get_full_path()
 
     def redirect_response(self, response_type, redirect_uri, params):
@@ -69,15 +75,15 @@ class OAuthAuthorizeView(AuthLoginView):
 
         return self.redirect_response(response_type, redirect_uri, {"error": name, "state": state})
 
-    def respond_login(self, request: HttpRequest, context, application, **kwargs):
+    def respond_login(self, request: Request, context, **kwargs):
+        application = kwargs["application"]  # required argument
         context["banner"] = f"Connect Sentry to {application.name}"
         return self.respond("sentry/login.html", context)
 
-    def get(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
+    def get(self, request: Request, **kwargs) -> HttpResponseBase:
         response_type = request.GET.get("response_type")
         client_id = request.GET.get("client_id")
         redirect_uri = request.GET.get("redirect_uri")
-        scopes = request.GET.get("scope")
         state = request.GET.get("state")
         force_prompt = request.GET.get("force_prompt")
 
@@ -127,10 +133,17 @@ class OAuthAuthorizeView(AuthLoginView):
                 err_response="client_id",
             )
 
-        if scopes:
-            scopes = scopes.split(" ")
+        scopes_s = request.GET.get("scope")
+        if scopes_s:
+            scopes = scopes_s.split(" ")
+        else:
+            scopes = []
+        if application.requires_org_level_access:
+            # Applications that require org level access have a maximum scope limit set
+            # in admin that should not pass
+            max_scopes = application.scopes
             for scope in scopes:
-                if scope not in settings.SENTRY_SCOPES:
+                if scope not in max_scopes:
                     return self.error(
                         request=request,
                         client_id=client_id,
@@ -139,8 +152,17 @@ class OAuthAuthorizeView(AuthLoginView):
                         name="invalid_scope",
                         state=state,
                     )
-        else:
-            scopes = []
+
+        for scope in scopes:
+            if scope not in settings.SENTRY_SCOPES:
+                return self.error(
+                    request=request,
+                    client_id=client_id,
+                    response_type=response_type,
+                    redirect_uri=redirect_uri,
+                    name="invalid_scope",
+                    state=state,
+                )
 
         payload = {
             "rt": response_type,
@@ -155,7 +177,9 @@ class OAuthAuthorizeView(AuthLoginView):
         if not request.user.is_authenticated:
             return super().get(request, application=application)
 
-        if not force_prompt:
+        # If the application expects org level access, we need to prompt the user to choose which
+        # organization they want to give access to every time. We should not presume the user intention
+        if not (force_prompt or application.requires_org_level_access):
             try:
                 existing_auth = ApiAuthorization.objects.get(
                     user_id=request.user.id, application=application
@@ -168,6 +192,7 @@ class OAuthAuthorizeView(AuthLoginView):
                 if all(existing_auth.has_scope(s) for s in scopes):
                     return self.approve(
                         request=request,
+                        user=request.user,
                         application=application,
                         scopes=scopes,
                         response_type=response_type,
@@ -201,15 +226,43 @@ class OAuthAuthorizeView(AuthLoginView):
             if pending_scopes:
                 raise NotImplementedError(f"{pending_scopes} scopes did not have descriptions")
 
-        context = {
+        if application.requires_org_level_access:
+            organization_options = user_service.get_organizations(user_id=request.user.id)
+            if not organization_options:
+                return self.respond(
+                    "sentry/oauth-error.html",
+                    {
+                        "error": "This authorization flow is only available for users who are members of an organization."
+                    },
+                    status=400,
+                )
+        else:
+            # If application is not org level we should not show organizations to choose from at all
+            organization_options = []
+
+        context = self.get_default_context(request) | {
             "user": request.user,
             "application": application,
             "scopes": scopes,
             "permissions": permissions,
+            "organization_options": organization_options,
         }
+
         return self.respond("sentry/oauth-authorize.html", context)
 
-    def post(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
+    def _logged_out_post(
+        self, request: Request, application: ApiApplication, **kwargs: Any
+    ) -> HttpResponseBase:
+        # subtle indirection to avoid "unreachable" after `.is_authenticated` below
+        # since `.post()` mutates `request.user`
+        response = super().post(request, application=application, **kwargs)
+        # once they login, bind their user ID
+        if request.user.is_authenticated:
+            request.session["oa2"]["uid"] = request.user.id
+            request.session.modified = True
+        return response
+
+    def post(self, request: Request, **kwargs) -> HttpResponseBase:
         try:
             payload = request.session["oa2"]
         except KeyError:
@@ -231,12 +284,7 @@ class OAuthAuthorizeView(AuthLoginView):
             )
 
         if not request.user.is_authenticated:
-            response = super().post(request, application=application, **kwargs)
-            # once they login, bind their user ID
-            if request.user.is_authenticated:
-                request.session["oa2"]["uid"] = request.user.id
-                request.session.modified = True
-            return response
+            return self._logged_out_post(request, application, **kwargs)
 
         if payload["uid"] != request.user.id:
             return self.respond(
@@ -254,6 +302,7 @@ class OAuthAuthorizeView(AuthLoginView):
         if op == "approve":
             return self.approve(
                 request=request,
+                user=request.user,
                 application=application,
                 scopes=scopes,
                 response_type=response_type,
@@ -273,18 +322,38 @@ class OAuthAuthorizeView(AuthLoginView):
         else:
             raise NotImplementedError
 
-    def approve(self, request: HttpRequest, application, **params):
+    def approve(
+        self,
+        *,
+        request: HttpRequest,
+        user: User,
+        application,
+        scopes,
+        response_type: Literal["code", "token"],
+        redirect_uri,
+        state,
+    ) -> HttpResponseBase:
+        # Some applications require org level access, so user who approves only gives
+        # access to that organization by selecting one. If None, means the application
+        # has user level access and will be able to have access to all the organizations of that user.
+        selected_organization_id = request.POST.get("selected_organization_id")
+
         try:
             with transaction.atomic(router.db_for_write(ApiAuthorization)):
                 ApiAuthorization.objects.create(
-                    application=application, user_id=request.user.id, scope_list=params["scopes"]
+                    application=application,
+                    user_id=user.id,
+                    scope_list=scopes,
+                    organization_id=selected_organization_id,
                 )
         except IntegrityError:
-            if params["scopes"]:
+            if scopes:
                 auth = ApiAuthorization.objects.get(
-                    application=application, user_id=request.user.id
+                    application=application,
+                    user_id=user.id,
+                    organization_id=selected_organization_id,
                 )
-                for scope in params["scopes"]:
+                for scope in scopes:
                     if scope not in auth.scope_list:
                         auth.scope_list.append(scope)
                 auth.save()
@@ -293,57 +362,61 @@ class OAuthAuthorizeView(AuthLoginView):
             "oauth_authorize.get.approve",
             sample_rate=1.0,
             tags={
-                "response_type": params["response_type"],
+                "response_type": response_type,
             },
         )
 
-        if params["response_type"] == "code":
+        if response_type == "code":
             grant = ApiGrant.objects.create(
-                user_id=request.user.id,
+                user_id=user.id,
                 application=application,
-                redirect_uri=params["redirect_uri"],
-                scope_list=params["scopes"],
+                redirect_uri=redirect_uri,
+                scope_list=scopes,
+                organization_id=selected_organization_id,
             )
             logger.info(
                 "approve.grant",
                 extra={
-                    "response_type": params["response_type"],
-                    "redirect_uri": params["redirect_uri"],
-                    "scope": params["scopes"],
+                    "response_type": response_type,
+                    "redirect_uri": redirect_uri,
+                    "scope": scopes,
                 },
             )
             return self.redirect_response(
-                params["response_type"],
-                params["redirect_uri"],
-                {"code": grant.code, "state": params["state"]},
+                response_type,
+                redirect_uri,
+                {"code": grant.code, "state": state},
             )
-        elif params["response_type"] == "token":
+        elif response_type == "token":
             token = ApiToken.objects.create(
                 application=application,
-                user_id=request.user.id,
+                user_id=user.id,
                 refresh_token=None,
-                scope_list=params["scopes"],
+                scope_list=scopes,
+                scoping_organization_id=selected_organization_id,
             )
 
             logger.info(
                 "approve.token",
                 extra={
-                    "response_type": params["response_type"],
-                    "redirect_uri": params["redirect_uri"],
+                    "response_type": response_type,
+                    "redirect_uri": redirect_uri,
                     "scope": " ".join(token.get_scopes()),
-                    "state": params["state"],
+                    "state": state,
                 },
             )
 
             return self.redirect_response(
-                params["response_type"],
-                params["redirect_uri"],
+                response_type,
+                redirect_uri,
                 {
                     "access_token": token.token,
                     "expires_in": int((timezone.now() - token.expires_at).total_seconds()),
                     "expires_at": token.expires_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                     "token_type": "bearer",
                     "scope": " ".join(token.get_scopes()),
-                    "state": params["state"],
+                    "state": state,
                 },
             )
+        else:
+            raise AssertionError(response_type)

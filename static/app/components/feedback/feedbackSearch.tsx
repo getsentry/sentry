@@ -1,11 +1,14 @@
-import type {CSSProperties} from 'react';
-import {useCallback} from 'react';
-import styled from '@emotion/styled';
+import {useCallback, useMemo} from 'react';
+import orderBy from 'lodash/orderBy';
+import union from 'lodash/union';
 
-import {fetchTagValues} from 'sentry/actionCreators/tags';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
+import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
+import type {SearchGroup} from 'sentry/components/deprecatedSmartSearchBar/types';
+import {EMAIL_REGEX} from 'sentry/components/events/contexts/knownContext/user';
+import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
-import type {Tag, TagCollection, TagValue} from 'sentry/types';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
@@ -14,72 +17,218 @@ import {
   FieldKey,
   FieldKind,
   getFieldDefinition,
+  IsFieldValues,
 } from 'sentry/utils/fields';
+import useAssignedSearchValues from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useTags from 'sentry/utils/useTags';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
-const EXCLUDED_TAGS = [
-  FeedbackFieldKey.BROWSER_VERSION,
-  FeedbackFieldKey.EMAIL,
-  FeedbackFieldKey.LOCALE_LANG,
-  FeedbackFieldKey.LOCALE_TIMEZONE,
-  FeedbackFieldKey.NAME,
+const EXCLUDED_TAGS: string[] = [
+  // These are found in issue platform and redundant (= __.name, ex os.name)
+  'browser',
+  'device',
+  'os',
+  'user',
   FieldKey.PLATFORM,
-  FeedbackFieldKey.OS_VERSION,
+];
+
+const NON_TAG_FIELDS: string[] = [
+  FieldKey.ASSIGNED,
+  FieldKey.HAS,
+  FieldKey.IS,
+  FieldKey.MESSAGE,
 ];
 
 const getFeedbackFieldDefinition = (key: string) => getFieldDefinition(key, 'feedback');
 
-function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
-  return Object.fromEntries(
-    fieldKeys.map(key => [
-      key,
-      {
-        key,
-        name: key,
-        ...getFeedbackFieldDefinition(key),
-      },
-    ])
+function getHasFieldValues(supportedTags: TagCollection): string[] {
+  const customTagKeys = Object.values(supportedTags)
+    .map(tag => tag.key)
+    .filter(key => !EXCLUDED_TAGS.includes(key));
+
+  // Ensure suggested fields are included.
+  const feedbackFieldKeys = FEEDBACK_FIELDS.map(String).filter(
+    key => !NON_TAG_FIELDS.includes(key)
   );
+
+  return union(customTagKeys, feedbackFieldKeys).sort();
 }
 
-const FEEDBACK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(FEEDBACK_FIELDS);
-
-function getSupportedTags(supportedTags: TagCollection) {
-  return {
+/**
+ * Get the full collection of feedback search properties and custom tags.
+ */
+function getFeedbackFilterKeys(
+  supportedTags: TagCollection,
+  assignedValues: SearchGroup[] | string[]
+) {
+  const allTags = {
     ...Object.fromEntries(
-      Object.keys(supportedTags).map(key => [
-        key,
-        {
-          ...supportedTags[key],
-          kind: getFeedbackFieldDefinition(key)?.kind ?? FieldKind.TAG,
-        },
-      ])
+      Object.keys(supportedTags)
+        .filter(key => !EXCLUDED_TAGS.includes(key))
+        .map(key => [
+          key,
+          {
+            ...supportedTags[key]!,
+            kind: FieldKind.TAG,
+          },
+        ])
     ),
-    ...FEEDBACK_FIELDS_AS_TAGS,
+    ...Object.fromEntries(
+      FEEDBACK_FIELDS.map(key => {
+        const fieldDefinition = getFeedbackFieldDefinition(key);
+
+        if (key === FieldKey.ASSIGNED) {
+          return [
+            key,
+            {
+              key,
+              name: key,
+              ...fieldDefinition,
+              predefined: true,
+              values: assignedValues,
+            },
+          ];
+        }
+
+        if (key === FieldKey.HAS) {
+          return [
+            key,
+            {
+              key,
+              name: key,
+              ...fieldDefinition,
+              predefined: true,
+              values: getHasFieldValues(supportedTags),
+            },
+          ];
+        }
+
+        if (key === FieldKey.IS) {
+          return [
+            key,
+            {
+              key,
+              name: key,
+              ...fieldDefinition,
+              predefined: true,
+              values: Object.values(IsFieldValues),
+            },
+          ];
+        }
+
+        if (key === FeedbackFieldKey.MESSAGE) {
+          return [
+            key,
+            {
+              key,
+              name: key,
+              ...fieldDefinition,
+              predefined: true,
+              values: [], // message tag suggestions are not relevant to user feedback.
+            },
+          ];
+        }
+
+        return [
+          key,
+          {
+            key,
+            name: key,
+            ...fieldDefinition,
+          },
+        ];
+      })
+    ),
   };
+
+  // A hack used to "sort" the dictionary for SearchQueryBuilder.
+  // Technically dicts are unordered but this seems to work.
+  // To guarantee ordering, we need to implement filterKeySections.
+  const keys = Object.keys(allTags).sort();
+  return Object.fromEntries(keys.map(key => [key, allTags[key]!]));
 }
 
-interface Props {
-  className?: string;
-  style?: CSSProperties;
-}
+const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
+  const customTags: Tag[] = Object.values(tags).filter(
+    tag =>
+      tag.kind === FieldKind.TAG &&
+      !EXCLUDED_TAGS.includes(tag.key) &&
+      !(FEEDBACK_FIELDS as string[]).includes(tag.key) // Sections can't overlap.
+  );
 
-export default function FeedbackSearch({className, style}: Props) {
+  const orderedTagKeys: string[] = orderBy(
+    customTags,
+    ['totalValues', 'key'],
+    ['desc', 'asc']
+  ).map(tag => tag.key);
+
+  return [
+    {
+      value: 'feedback_field',
+      label: t('Suggested'),
+      children: FEEDBACK_FIELDS,
+    },
+    {
+      value: FieldKind.TAG,
+      label: t('Tags'),
+      children: orderedTagKeys,
+    },
+  ];
+};
+
+export default function FeedbackSearch() {
   const {selection: pageFilters} = usePageFilters();
   const projectIds = pageFilters.projects;
-  const {pathname, query} = useLocation();
+  const {pathname, query: locationQuery} = useLocation();
   const organization = useOrganization();
-  const tags = useTags();
   const api = useApi();
 
+  const start = pageFilters.datetime.start
+    ? getUtcDateString(pageFilters.datetime.start)
+    : undefined;
+  const end = pageFilters.datetime.end
+    ? getUtcDateString(pageFilters.datetime.end)
+    : undefined;
+  const statsPeriod = pageFilters.datetime.period;
+  const tagQuery = useFetchOrganizationTags(
+    {
+      orgSlug: organization.slug,
+      projectIds: projectIds.map(String),
+      dataset: Dataset.ISSUE_PLATFORM,
+      useCache: true,
+      enabled: true,
+      keepPreviousData: false,
+      start,
+      end,
+      statsPeriod,
+    },
+    {}
+  );
+  const issuePlatformTags: TagCollection = useMemo(() => {
+    return (tagQuery.data ?? []).reduce<TagCollection>((acc, tag) => {
+      acc[tag.key] = {...tag, kind: FieldKind.TAG};
+      return acc;
+    }, {});
+  }, [tagQuery]);
+
+  const assignedValues = useAssignedSearchValues();
+
+  const filterKeys = useMemo(
+    () => getFeedbackFilterKeys(issuePlatformTags, assignedValues),
+    [issuePlatformTags, assignedValues]
+  );
+
+  const filterKeySections = useMemo(() => {
+    return getFilterKeySections(issuePlatformTags);
+  }, [issuePlatformTags]);
+
   const getTagValues = useCallback(
-    (tag: Tag, searchQuery: string, _params: object): Promise<string[]> => {
+    (tag: Tag, searchQuery: string): Promise<string[]> => {
       if (isAggregateField(tag.key)) {
         // We can't really auto suggest values for aggregate fields
         // or measurements, so we simply don't
@@ -87,13 +236,9 @@ export default function FeedbackSearch({className, style}: Props) {
       }
 
       const endpointParams = {
-        start: pageFilters.datetime.start
-          ? getUtcDateString(pageFilters.datetime.start)
-          : undefined,
-        end: pageFilters.datetime.end
-          ? getUtcDateString(pageFilters.datetime.end)
-          : undefined,
-        statsPeriod: pageFilters.datetime.period,
+        start,
+        end,
+        statsPeriod,
       };
 
       return fetchTagValues({
@@ -104,59 +249,43 @@ export default function FeedbackSearch({className, style}: Props) {
         projectIds: projectIds?.map(String),
         endpointParams,
       }).then(
-        tagValues => (tagValues as TagValue[]).map(({value}) => value),
+        tagValues =>
+          tagValues.filter(tagValue => tagValue.name !== '').map(({value}) => value),
         () => {
           throw new Error('Unable to fetch event field values');
         }
       );
     },
-    [
-      api,
-      organization.slug,
-      projectIds,
-      pageFilters.datetime.start,
-      pageFilters.datetime.end,
-      pageFilters.datetime.period,
-    ]
+    [api, organization.slug, projectIds, start, end, statsPeriod]
   );
 
   const navigate = useNavigate();
 
   const onSearch = useCallback(
-    searchQuery => {
+    (searchQuery: any) => {
       navigate({
         pathname,
         query: {
-          ...query,
+          ...locationQuery,
           cursor: undefined,
           query: searchQuery.trim(),
         },
       });
     },
-    [navigate, pathname, query]
+    [navigate, pathname, locationQuery]
   );
 
   return (
-    <SearchContainer className={className} style={style}>
-      <SmartSearchBar
-        hasRecentSearches
-        projectIds={projectIds}
-        placeholder={t('Search Feedback')}
-        organization={organization}
-        onGetTagValues={getTagValues}
-        supportedTags={getSupportedTags(tags)}
-        excludedTags={EXCLUDED_TAGS}
-        fieldDefinitionGetter={getFeedbackFieldDefinition}
-        maxMenuHeight={500}
-        defaultQuery=""
-        query={decodeScalar(query.query, '')}
-        onSearch={onSearch}
-      />
-    </SearchContainer>
+    <SearchQueryBuilder
+      initialQuery={decodeScalar(locationQuery.query, '')}
+      fieldDefinitionGetter={getFeedbackFieldDefinition}
+      filterKeys={filterKeys}
+      filterKeySections={filterKeySections}
+      getTagValues={getTagValues}
+      onSearch={onSearch}
+      searchSource={'feedback-list'}
+      placeholder={t('Search Feedback')}
+      matchKeySuggestions={[{key: 'user.email', valuePattern: EMAIL_REGEX}]}
+    />
   );
 }
-
-const SearchContainer = styled('div')`
-  display: grid;
-  width: 100%;
-`;

@@ -7,7 +7,7 @@ import orjson
 
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.ingest.consumer.processors import CACHE_TIMEOUT
-from sentry.lang.java.utils import get_jvm_images, get_proguard_images
+from sentry.lang.java.utils import JAVA_PLATFORMS, get_jvm_images, get_proguard_images
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models.eventerror import EventError
@@ -78,6 +78,12 @@ def _merge_frame(new_frame: dict[str, Any], symbolicated: dict[str, Any]) -> Non
     if symbolicated.get("post_context"):
         new_frame["post_context"] = symbolicated["post_context"]
 
+    # Frames with synthesized methods were made up by the compiler,
+    # so we mark them as not in app.
+    if symbolicated.get("method_synthesized"):
+        new_frame["method_synthesized"] = True
+        new_frame["in_app"] = False
+
 
 def _handles_frame(frame: dict[str, Any], platform: str) -> bool:
     "Returns whether the frame should be symbolicated by JVM symbolication."
@@ -85,11 +91,11 @@ def _handles_frame(frame: dict[str, Any], platform: str) -> bool:
     return (
         "function" in frame
         and "module" in frame
-        and (frame.get("platform", None) or platform) == "java"
+        and (frame.get("platform", None) or platform) in JAVA_PLATFORMS
     )
 
 
-FRAME_FIELDS = ("abs_path", "lineno", "function", "module", "filename", "in_app")
+FRAME_FIELDS = ("platform", "abs_path", "lineno", "function", "module", "filename", "in_app")
 
 
 def _normalize_frame(raw_frame: dict[str, Any], index: int) -> dict[str, Any]:
@@ -287,6 +293,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     release_package = _get_release_package(symbolicator.project, data.get("release"))
     metrics.incr("process.java.symbolicate.request")
     response = symbolicator.process_jvm(
+        platform=data.get("platform"),
         exceptions=[
             {"module": exc["module"], "type": exc["type"]} for exc in processable_exceptions
         ],
@@ -328,6 +335,8 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             }
 
     for raw_exc, exc in zip(processable_exceptions, response["exceptions"]):
+        raw_exc["raw_module"] = raw_exc["module"]
+        raw_exc["raw_type"] = raw_exc["type"]
         raw_exc["module"] = exc["module"]
         raw_exc["type"] = exc["type"]
 

@@ -4,18 +4,15 @@ import itertools
 import logging
 import math
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, NotRequired, Protocol, TypedDict
 
-from snuba_sdk import BooleanCondition, Column, Condition, Function, Limit, Op
+from snuba_sdk import BooleanCondition, Column, Condition, Function
 
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.release_health.base import AllowedResolution, SessionsQueryConfig
-from sentry.search.events.builder.sessions import (
-    SessionsV2QueryBuilder,
-    TimeseriesSessionsV2QueryBuilder,
-)
+from sentry.search.events.builder.sessions import SessionsV2QueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import to_intervals
@@ -101,10 +98,21 @@ Is then "exploded" into something like:
 """
 
 
+class _Field(Protocol):
+    def extract_from_row(self, row, group) -> float | None: ...
+    def get_snuba_columns(self, raw_groupby) -> list[str]: ...
+
+
 class SessionsField:
     def get_snuba_columns(self, raw_groupby):
         if "session.status" in raw_groupby:
-            return ["sessions", "sessions_abnormal", "sessions_crashed", "sessions_errored"]
+            return [
+                "sessions",
+                "sessions_abnormal",
+                "sessions_crashed",
+                "sessions_errored",
+                "sessions_unhandled",
+            ]
         return ["sessions"]
 
     def extract_from_row(self, row, group):
@@ -114,15 +122,20 @@ class SessionsField:
         if status is None:
             return row["sessions"]
         if status == "healthy":
-            healthy_sessions = row["sessions"] - row["sessions_errored"]
+            healthy_sessions = row["sessions"] - row["sessions_errored"] - row["sessions_unhandled"]
             return max(healthy_sessions, 0)
         if status == "abnormal":
             return row["sessions_abnormal"]
+        if status == "unhandled":
+            return row["sessions_unhandled"]
         if status == "crashed":
             return row["sessions_crashed"]
         if status == "errored":
             errored_sessions = (
-                row["sessions_errored"] - row["sessions_crashed"] - row["sessions_abnormal"]
+                row["sessions_errored"]
+                - row["sessions_unhandled"]
+                - row["sessions_crashed"]
+                - row["sessions_abnormal"]
             )
             return max(errored_sessions, 0)
         return 0
@@ -131,7 +144,7 @@ class SessionsField:
 class UsersField:
     def get_snuba_columns(self, raw_groupby):
         if "session.status" in raw_groupby:
-            return ["users", "users_abnormal", "users_crashed", "users_errored"]
+            return ["users", "users_abnormal", "users_crashed", "users_errored", "users_unhandled"]
         return ["users"]
 
     def extract_from_row(self, row, group):
@@ -141,14 +154,21 @@ class UsersField:
         if status is None:
             return row["users"]
         if status == "healthy":
-            healthy_users = row["users"] - row["users_errored"]
+            healthy_users = row["users"] - row["users_errored"] - row["users_unhandled"]
             return max(healthy_users, 0)
         if status == "abnormal":
             return row["users_abnormal"]
+        if status == "unhandled":
+            return row["users_unhandled"]
         if status == "crashed":
             return row["users_crashed"]
         if status == "errored":
-            errored_users = row["users_errored"] - row["users_crashed"] - row["users_abnormal"]
+            errored_users = (
+                row["users_errored"]
+                - row["users_crashed"]
+                - row["users_abnormal"]
+                - row["users_unhandled"]
+            )
             return max(errored_users, 0)
         return 0
 
@@ -188,7 +208,7 @@ class DurationQuantileField:
         return None
 
 
-COLUMN_MAP = {
+COLUMN_MAP: dict[str, _Field] = {
     "sum(session)": SessionsField(),
     "count_unique(user)": UsersField(),
     "avg(session.duration)": DurationAverageField(),
@@ -199,6 +219,12 @@ COLUMN_MAP = {
     "p99(session.duration)": DurationQuantileField(4),
     "max(session.duration)": DurationQuantileField(5),
 }
+
+
+class _GroupBy(Protocol):
+    def get_snuba_columns(self) -> list[str]: ...
+    def get_snuba_groupby(self) -> list[str]: ...
+    def get_keys_for_row(self, row) -> list[tuple[str, str]]: ...
 
 
 class SimpleGroupBy:
@@ -224,12 +250,15 @@ class SessionStatusGroupBy:
         return []
 
     def get_keys_for_row(self, row):
-        return [("session.status", key) for key in ["healthy", "abnormal", "crashed", "errored"]]
+        return [
+            ("session.status", key)
+            for key in ["healthy", "abnormal", "crashed", "errored", "unhandled"]
+        ]
 
 
 # NOTE: in the future we might add new `user_agent` and `os` fields
 
-GROUPBY_MAP = {
+GROUPBY_MAP: dict[str, _GroupBy] = {
     "project": SimpleGroupBy("project_id", "project"),
     "environment": SimpleGroupBy("environment"),
     "release": SimpleGroupBy("release"),
@@ -384,7 +413,7 @@ class QueryDefinition:
                 if condition.lhs.function == "match":
                     raise InvalidField("Invalid condition: wildcard search is not supported")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({repr(self.__dict__)})"
 
 
@@ -423,8 +452,8 @@ def get_constrained_date_range(
     max_points=MAX_POINTS,
     restrict_date_range=True,
 ) -> tuple[datetime, datetime, int]:
-    interval = parse_stats_period(params.get("interval", "1h"))
-    interval = int(3600 if interval is None else interval.total_seconds())
+    interval_td = parse_stats_period(params.get("interval", "1h"))
+    interval = int(3600 if interval_td is None else interval_td.total_seconds())
 
     smallest_interval, interval_str = allowed_resolution.value
     if interval % smallest_interval != 0 or interval < smallest_interval:
@@ -458,72 +487,6 @@ def get_constrained_date_range(
 
 
 TS_COL = "bucketed_started"
-
-
-def _run_sessions_query(query):
-    """
-    Runs the `query` as defined by [`QueryDefinition`] two times, once for the
-    `totals` and again for the actual time-series data grouped by the requested
-    interval.
-    """
-    # If we don't have any fields that can be derived from raw fields, it doesn't make sense to even
-    # run the query in the first place.
-    if len(query.fields) == 0:
-        return [], []
-
-    # We only return the top-N groups, based on the first field that is being
-    # queried, assuming that those are the most relevant to the user.
-    # In a future iteration we might expose an `orderBy` query parameter.
-    #
-    # In case we don't have a primary column because only metrics-only fields have been supplied to
-    # the query definition we just avoid the order by under the assumption that the result set of
-    # the query will be empty.
-    orderby = [f"-{query.primary_column}"] if hasattr(query, "primary_column") else None
-
-    try:
-        query_builder_dict = query.to_query_builder_dict(orderby=orderby)
-    except ZeroIntervalsException:
-        return [], []
-
-    result_totals = SessionsV2QueryBuilder(**query_builder_dict).run_query("sessions.totals")[
-        "data"
-    ]
-    if not result_totals:
-        # No need to query time series if totals is already empty
-        return [], []
-
-    # We only get the time series for groups which also have a total:
-    if query.query_groupby:
-        # E.g. (release, environment) IN [(1, 2), (3, 4), ...]
-        extra_conditions = []
-        if len(query.query_groupby) > 1:
-            groups = {tuple(row[column] for column in query.query_groupby) for row in result_totals}
-
-            extra_conditions = [
-                Condition(
-                    Function("tuple", [Column(col) for col in query.query_groupby]),
-                    Op.IN,
-                    Function("tuple", list(groups)),
-                )
-            ]
-
-        extra_conditions += [
-            Condition(
-                Column(column),
-                Op.IN,
-                Function("tuple", list({row[column] for row in result_totals})),
-            )
-            for column in query.query_groupby
-        ]
-    else:
-        extra_conditions = []
-
-    timeseries_query_builder = TimeseriesSessionsV2QueryBuilder(**query_builder_dict)
-    timeseries_query_builder.where.extend(extra_conditions)
-    timeseries_query_builder.limit = Limit(SNUBA_LIMIT)
-    result_timeseries = timeseries_query_builder.run_query("sessions.timeseries")["data"]
-
-    return result_totals, result_timeseries
 
 
 def massage_sessions_result(
@@ -569,7 +532,8 @@ def massage_sessions_result(
             row[ts_col] = row[ts_col][:19] + "Z"
 
         rows.sort(key=lambda row: row[ts_col])
-        fields = [(name, field, list()) for name, field in query.fields.items()]
+        fields: list[tuple[str, _Field, list[float | None]]]
+        fields = [(name, field, []) for name, field in query.fields.items()]
         group_index = 0
 
         while group_index < len(rows):
@@ -618,9 +582,28 @@ def massage_sessions_result(
     }
 
 
+class _CategoryStats(TypedDict):
+    category: str
+    outcomes: dict[str, int]
+    totals: dict[str, int]
+    reason: NotRequired[str]
+
+
+class _Project(TypedDict):
+    id: int
+    slug: str
+    stats: list[_CategoryStats]
+
+
+class _Period(TypedDict):
+    start: str
+    end: str
+    projects: list[_Project]
+
+
 def massage_sessions_result_summary(
     query, result_totals, outcome_query=None
-) -> dict[str, list[Any]]:
+) -> tuple[dict[int, dict[str, dict[str, _CategoryStats]]], _Period]:
     """
     Post-processes the query result.
 
@@ -667,14 +650,16 @@ def massage_sessions_result_summary(
         }
 
     def get_category_stats(
-        reason, totals, outcome, category, category_stats: dict[str, int] | None = None
-    ):
+        reason, totals, outcome, category, category_stats: _CategoryStats | None = None
+    ) -> _CategoryStats:
         if not category_stats:
             category_stats = {
                 "category": category,
-                "outcomes": {o.api_name(): 0 for o in Outcome}
-                if not outcome_query
-                else {o: 0 for o in outcome_query},
+                "outcomes": (
+                    {o.api_name(): 0 for o in Outcome}
+                    if not outcome_query
+                    else {o: 0 for o in outcome_query}
+                ),
                 "totals": {},
             }
             if not outcome_query or any([o in dropped_outcomes for o in outcome_query]):
@@ -695,7 +680,7 @@ def massage_sessions_result_summary(
         return category_stats
 
     keys = set(total_groups.keys())
-    projects = {}
+    projects: dict[int, dict[str, dict[str, _CategoryStats]]] = {}
 
     for key in keys:
         by = dict(key)
@@ -706,8 +691,7 @@ def massage_sessions_result_summary(
 
         totals = make_totals(total_groups.get(key, [None]), by)
 
-        if project_id not in projects:
-            projects[project_id] = {"categories": {}}
+        projects.setdefault(project_id, {"categories": {}})
 
         if category in projects[project_id]["categories"]:
             # update stats dict for category
@@ -728,7 +712,7 @@ def massage_sessions_result_summary(
     # format stats for each project
     for key, values in projects.items():
         categories = values["categories"]
-        project_dict = {"id": key, "slug": project_id_to_slug[key], "stats": []}
+        project_dict: _Project = {"id": key, "slug": project_id_to_slug[key], "stats": []}
 
         for key, stats in categories.items():
             project_dict["stats"].append(stats)
@@ -761,18 +745,16 @@ def get_timestamps(query):
 
 
 def _split_rows_groupby(rows, groupby):
-    groups = {}
+    groups: dict[frozenset[str], list[object]] = {}
     if rows is None:
         return groups
     for row in rows:
         key_parts = (group.get_keys_for_row(row) for group in groupby)
         keys = itertools.product(*key_parts)
 
-        for key in keys:
-            key = frozenset(key)
+        for key_tup in keys:
+            key = frozenset(key_tup)
 
-            if key not in groups:
-                groups[key] = []
-            groups[key].append(row)
+            groups.setdefault(key, []).append(row)
 
     return groups

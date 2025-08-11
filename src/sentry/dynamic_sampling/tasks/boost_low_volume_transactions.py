@@ -19,10 +19,11 @@ from snuba_sdk import (
 )
 
 from sentry import options, quotas
-from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
-from sentry.dynamic_sampling.models.factory import model_factory
-from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
+from sentry.dynamic_sampling.models.transactions_rebalancing import (
+    TransactionsRebalancingInput,
+    TransactionsRebalancingModel,
+)
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgs, TimedIterator
 from sentry.dynamic_sampling.tasks.constants import (
     BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
@@ -42,9 +43,10 @@ from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, 
 from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task,
     dynamic_sampling_task_with_context,
-    has_dynamic_sampling,
     sample_function,
 )
+from sentry.dynamic_sampling.utils import has_dynamic_sampling, is_project_mode_sampling
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -54,6 +56,9 @@ from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import telemetry_experience_tasks
+from sentry.taskworker.retry import Retry
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -91,9 +96,17 @@ class ProjectTransactionsTotals(TypedDict, total=True):
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=2 * 60 * 60,
-    time_limit=2 * 60 * 60 + 5,
+    soft_time_limit=6 * 60,  # 6 minutes
+    time_limit=6 * 60 + 5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=telemetry_experience_tasks,
+        processing_deadline_duration=6 * 60 + 5,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 @dynamic_sampling_task_with_context(max_task_execution=MAX_TASK_SECONDS)
 def boost_low_volume_transactions(context: TaskContext) -> None:
@@ -138,7 +151,10 @@ def boost_low_volume_transactions(context: TaskContext) -> None:
         for project_transactions in transactions_zip(
             totals_it, big_transactions_it, small_transactions_it
         ):
-            boost_low_volume_transactions_of_project.delay(project_transactions)
+            boost_low_volume_transactions_of_project.apply_async(
+                kwargs={"project_transactions": project_transactions},
+                headers={"sentry-propagate-traces": False},
+            )
 
 
 @instrumented_task(
@@ -146,9 +162,17 @@ def boost_low_volume_transactions(context: TaskContext) -> None:
     queue="dynamicsampling",
     default_retry_delay=5,
     max_retries=5,
-    soft_time_limit=25 * 60,
-    time_limit=2 * 60 + 5,
+    soft_time_limit=4 * 60,  # 4 minutes
+    time_limit=4 * 60 + 5,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=telemetry_experience_tasks,
+        processing_deadline_duration=4 * 60 + 5,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 @dynamic_sampling_task
 def boost_low_volume_transactions_of_project(project_transactions: ProjectTransactions) -> None:
@@ -170,33 +194,30 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
     if not has_dynamic_sampling(organization):
         return
 
-    # We try to use the sample rate that was individually computed for each project, but if we don't find it, we will
-    # resort to the blended sample rate of the org.
-    sample_rate, success = get_boost_low_volume_projects_sample_rate(
+    if is_project_mode_sampling(organization):
+        sample_rate = ProjectOption.objects.get_value(project_id, "sentry:target_sample_rate")
+        source = "project_setting"
+    else:
+        # We try to use the sample rate that was individually computed for each project, but if we don't find it, we will
+        # resort to the blended sample rate of the org.
+        sample_rate, success = get_boost_low_volume_projects_sample_rate(
+            org_id=org_id,
+            project_id=project_id,
+            error_sample_rate_fallback=quotas.backend.get_blended_sample_rate(
+                organization_id=org_id
+            ),
+        )
+        source = "boost_low_volume_projects" if success else "blended_sample_rate"
+
+    sample_function(
+        function=log_sample_rate_source,
+        _sample_rate=0.1,
         org_id=org_id,
         project_id=project_id,
-        error_sample_rate_fallback=quotas.backend.get_blended_sample_rate(organization_id=org_id),
+        used_for="boost_low_volume_transactions",
+        source=source,
+        sample_rate=sample_rate,
     )
-    if success:
-        sample_function(
-            function=log_sample_rate_source,
-            _sample_rate=0.1,
-            org_id=org_id,
-            project_id=project_id,
-            used_for="boost_low_volume_transactions",
-            source="boost_low_volume_projects",
-            sample_rate=sample_rate,
-        )
-    else:
-        sample_function(
-            function=log_sample_rate_source,
-            _sample_rate=0.1,
-            org_id=org_id,
-            project_id=project_id,
-            used_for="boost_low_volume_transactions",
-            source="blended_sample_rate",
-            sample_rate=sample_rate,
-        )
 
     if sample_rate is None:
         sentry_sdk.capture_message(
@@ -208,9 +229,13 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
     if sample_rate == 1.0:
         return
 
+    # the model fails when we are not having any transactions, thus we can simply return here
+    if len(transactions) == 0:
+        return
+
     intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity", 1.0)
 
-    model = model_factory(ModelType.TRANSACTIONS_REBALANCING)
+    model = TransactionsRebalancingModel()
     rebalanced_transactions = guarded_run(
         model,
         TransactionsRebalancingInput(
@@ -256,7 +281,7 @@ def is_project_identity_before(left: ProjectIdentity, right: ProjectIdentity) ->
 class FetchProjectTransactionTotals:
     """
     Fetches the total number of transactions and the number of distinct transaction types for each
-    project in the given organisations
+    project in the given organizations
     """
 
     def __init__(self, orgs: Sequence[int]):
@@ -658,9 +683,9 @@ def merge_transactions(
         "org_id": left["org_id"],
         "project_id": left["project_id"],
         "transaction_counts": merged_transactions,
-        "total_num_transactions": totals.get("total_num_transactions")
-        if totals is not None
-        else None,
+        "total_num_transactions": (
+            totals.get("total_num_transactions") if totals is not None else None
+        ),
         "total_num_classes": totals.get("total_num_classes") if totals is not None else None,
     }
 

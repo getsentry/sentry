@@ -1,5 +1,5 @@
-import {createRef, Fragment, useEffect} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {Fragment, useEffect, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -20,6 +20,7 @@ import {
 } from 'sentry/components/performance/waterfall/miniHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {tct} from 'sentry/locale';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -40,7 +41,7 @@ import type {TraceInfo, TreeDepth} from 'sentry/views/performance/traceDetails/t
 import {
   getTraceInfo,
   hasTraceData,
-  isRootTransaction,
+  isRootEvent,
 } from 'sentry/views/performance/traceDetails/utils';
 
 import LimitExceededMessage from './limitExceededMessage';
@@ -52,7 +53,7 @@ type AccType = {
   renderedChildren: React.ReactNode[];
 };
 
-type TraceViewProps = Pick<RouteComponentProps<{}, {}>, 'location'> & {
+type TraceViewProps = Pick<RouteComponentProps, 'location'> & {
   meta: TraceMeta | null;
   organization: Organization;
   traceEventView: EventView;
@@ -144,6 +145,7 @@ export default function TraceView({
   handleLimitChange,
   ...props
 }: TraceViewProps) {
+  const theme = useTheme();
   const sentrySpan = Sentry.startInactiveSpan({
     op: 'trace.render',
     name: 'trace-view-content',
@@ -236,7 +238,7 @@ export default function TraceView({
             }}
             measurements={
               traces && traces.length > 0
-                ? getMeasurements(traces[0], generateBounds(traceInfo))
+                ? getMeasurements(traces[0]!, generateBounds(traceInfo))
                 : undefined
             }
             generateBounds={generateBounds(traceInfo)}
@@ -247,7 +249,7 @@ export default function TraceView({
             isVisible={isVisible}
             hasGuideAnchor={hasGuideAnchor}
             renderedChildren={accumulated.renderedChildren}
-            barColor={pickBarColor(transaction['transaction.op'])}
+            barColor={pickBarColor(transaction['transaction.op'], theme)}
           />
         </Fragment>
       ),
@@ -256,8 +258,8 @@ export default function TraceView({
     };
   }
 
-  const traceViewRef = createRef<HTMLDivElement>();
-  const virtualScrollbarContainerRef = createRef<HTMLDivElement>();
+  const traceViewRef = useRef<HTMLDivElement>(null);
+  const virtualScrollbarContainerRef = useRef<HTMLDivElement>(null);
 
   if (!hasTraceData(traces, orphanErrors)) {
     return (
@@ -285,18 +287,18 @@ export default function TraceView({
     transactionGroups: [],
   };
 
-  let lastIndex: number = 0;
+  let lastIndex = 0;
   const {transactionGroups, numberOfHiddenTransactionsAbove} = traces.reduce(
     (acc, trace, index) => {
       const isLastTransaction = index === traces.length - 1;
       const hasChildren = trace.children.length > 0;
       const isNextChildOrphaned =
-        !isLastTransaction && traces[index + 1].parent_span_id !== null;
+        !isLastTransaction && traces[index + 1]!.parent_span_id !== null;
 
       const result = renderTransaction(trace, {
         ...acc,
         // if the root of a subtrace has a parent_span_id, then it must be an orphan
-        isOrphan: !isRootTransaction(trace),
+        isOrphan: !isRootEvent(trace),
         isLast: isLastTransaction && !hasOrphanErrors,
         continuingDepths:
           (!isLastTransaction && hasChildren) || hasOrphanErrors
@@ -323,11 +325,11 @@ export default function TraceView({
       const isVisible = isRowVisible(error, filteredEventIds);
       const currentHiddenCount = numOfHiddenErrorsAbove;
 
-      if (!isVisible) {
+      if (isVisible) {
+        numOfHiddenErrorsAbove = 0;
+      } else {
         numOfHiddenErrorsAbove += 1;
         totalNumOfHiddenErrors += 1;
-      } else {
-        numOfHiddenErrorsAbove = 0;
       }
 
       transactionGroups.push(
@@ -351,7 +353,7 @@ export default function TraceView({
             generateBounds={generateBounds(traceInfo)}
             measurements={
               traces && traces.length > 0
-                ? getMeasurements(traces[0], generateBounds(traceInfo))
+                ? getMeasurements(traces[0]!, generateBounds(traceInfo))
                 : undefined
             }
             continuingDepths={[]}
@@ -369,8 +371,8 @@ export default function TraceView({
 
   const bounds = generateBounds(traceInfo);
   const measurements =
-    traces.length > 0 && Object.keys(traces[0].measurements ?? {}).length > 0
-      ? getMeasurements(traces[0], bounds)
+    traces.length > 0 && Object.keys(traces[0]!.measurements ?? {}).length > 0
+      ? getMeasurements(traces[0]!, bounds)
       : undefined;
 
   const traceView = (
@@ -446,7 +448,7 @@ export default function TraceView({
                     isVisible
                     hasGuideAnchor={false}
                     renderedChildren={transactionGroups}
-                    barColor={pickBarColor('')}
+                    barColor={pickBarColor('', theme)}
                     onlyOrphanErrors={onlyOrphanErrors}
                     traceViewRef={traceViewRef}
                     numOfOrphanErrors={orphanErrors?.length}
@@ -477,7 +479,7 @@ export default function TraceView({
   return traceView;
 }
 
-export const StyledTracePanel = styled(Panel)`
+const StyledTracePanel = styled(Panel)`
   height: 100%;
   overflow-x: visible;
 

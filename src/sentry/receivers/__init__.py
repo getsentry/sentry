@@ -8,7 +8,9 @@ from .onboarding import *  # noqa: F401,F403
 from .outbox.control import *  # noqa: F401,F403
 from .outbox.region import *  # noqa: F401,F403
 from .owners import *  # noqa: F401,F403
+from .project_detectors import *  # noqa: F401,F403
 from .releases import *  # noqa: F401,F403
+from .rule_snooze import *  # noqa: F401,F403
 from .rules import *  # noqa: F401,F403
 from .sentry_apps import *  # noqa: F401,F403
 from .stats import *  # noqa: F401,F403

@@ -6,15 +6,13 @@ import {
   computeHighlightedBounds,
   createProgram,
   createShader,
-  ELLIPSIS,
   getCenterScaleMatrixFromConfigPosition,
   getContext,
   lowerBound,
   makeProjectionMatrix,
   upperBound,
 } from 'sentry/utils/profiling/gl/utils';
-
-import {findRangeBinarySearch, Rect, trimTextCenter} from '../speedscope';
+import {findRangeBinarySearch, Rect} from 'sentry/utils/profiling/speedscope';
 
 describe('makeProjectionMatrix', () => {
   it('should return a projection matrix', () => {
@@ -67,8 +65,8 @@ describe('upperBound', () => {
     const view = new Rect(4, 0, 2, 0);
 
     expect(upperBound(view.right, frames)).toBe(6);
-    expect(frames[6].start).toBeGreaterThanOrEqual(view.right);
-    expect(frames[6].end).toBeGreaterThanOrEqual(view.right);
+    expect(frames[6]!.start).toBeGreaterThanOrEqual(view.right);
+    expect(frames[6]!.end).toBeGreaterThanOrEqual(view.right);
   });
 });
 
@@ -93,8 +91,8 @@ describe('lowerBound', () => {
     const view = new Rect(4, 0, 2, 0);
 
     expect(lowerBound(view.left, frames)).toBe(3);
-    expect(frames[3].start).toBeLessThanOrEqual(view.left);
-    expect(frames[3].end).toBeLessThanOrEqual(view.left);
+    expect(frames[3]!.start).toBeLessThanOrEqual(view.left);
+    expect(frames[3]!.end).toBeLessThanOrEqual(view.left);
   });
 });
 
@@ -399,33 +397,6 @@ describe('findRangeBinarySearch', () => {
     expect([low, high]).toEqual([3.75, 4.375]);
     expect(fn).toHaveBeenCalledTimes(4);
     expect(text.substring(0, low)).toBe('abc');
-  });
-});
-
-describe('trimTextCenter', () => {
-  it('trims nothing if low > length', () => {
-    expect(trimTextCenter('abc', 4)).toMatchObject({
-      end: 0,
-      length: 0,
-      start: 0,
-      text: 'abc',
-    });
-  });
-  it('trims center perfectly', () => {
-    expect(trimTextCenter('abcdef', 5.5)).toMatchObject({
-      end: 4,
-      length: 2,
-      start: 2,
-      text: `ab${ELLIPSIS}ef`,
-    });
-  });
-  it('favors prefix length', () => {
-    expect(trimTextCenter('abcdef', 5)).toMatchObject({
-      end: 5,
-      length: 3,
-      start: 2,
-      text: `ab${ELLIPSIS}f`,
-    });
   });
 });
 

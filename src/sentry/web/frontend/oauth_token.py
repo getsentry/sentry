@@ -1,4 +1,8 @@
+from __future__ import annotations
+
 import logging
+from datetime import datetime
+from typing import Literal, NotRequired, TypedDict
 
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
@@ -9,15 +13,34 @@ from django.views.generic.base import View
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.mediators.token_exchange.util import GrantTypes
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
+from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.utils import json, metrics
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.openidtoken import OpenIDToken
 
 logger = logging.getLogger("sentry.api.oauth_token")
+
+
+class _TokenInformationUser(TypedDict):
+    id: str
+    name: str
+    email: str
+
+
+class _TokenInformation(TypedDict):
+    access_token: str
+    refresh_token: str | None
+    expires_in: int | None
+    expires_at: datetime | None
+    token_type: Literal["bearer"]
+    scope: str
+    user: _TokenInformationUser
+    id_token: NotRequired[OpenIDToken]
+    organization_id: NotRequired[str]
 
 
 @control_silo_view
@@ -47,7 +70,7 @@ class OAuthTokenView(View):
         )
 
     @method_decorator(never_cache)
-    def post(self, request: HttpRequest) -> HttpResponse:
+    def post(self, request: Request) -> HttpResponse:
         grant_type = request.POST.get("grant_type")
         client_id = request.POST.get("client_id")
         client_secret = request.POST.get("client_secret")
@@ -106,7 +129,9 @@ class OAuthTokenView(View):
     def get_access_tokens(self, request: Request, application: ApiApplication) -> dict:
         code = request.POST.get("code")
         try:
-            grant = ApiGrant.objects.get(application=application, code=code)
+            grant = ApiGrant.objects.get(
+                application=application, application__status=ApiApplicationStatus.active, code=code
+            )
         except ApiGrant.DoesNotExist:
             return {"error": "invalid_grant", "reason": "invalid grant"}
 
@@ -119,7 +144,12 @@ class OAuthTokenView(View):
         elif grant.redirect_uri != redirect_uri:
             return {"error": "invalid_grant", "reason": "invalid redirect URI"}
 
-        token_data = {"token": ApiToken.from_grant(grant=grant)}
+        try:
+            token_data = {"token": ApiToken.from_grant(grant=grant)}
+        except UnableToAcquireLock:
+            # TODO(mdtro): we should return a 409 status code here
+            return {"error": "invalid_grant", "reason": "invalid grant"}
+
         if grant.has_scope("openid") and options.get("codecov.signing_secret"):
             open_id_token = OpenIDToken(
                 request.POST.get("client_id"),
@@ -128,6 +158,7 @@ class OAuthTokenView(View):
                 nonce=request.POST.get("nonce"),
             )
             token_data["id_token"] = open_id_token.get_signed_id_token(grant=grant)
+
         return token_data
 
     def get_refresh_token(self, request: Request, application: ApiApplication) -> dict:
@@ -154,12 +185,14 @@ class OAuthTokenView(View):
     def process_token_details(
         self, token: ApiToken, id_token: OpenIDToken | None = None
     ) -> HttpResponse:
-        token_information = {
+        token_information: _TokenInformation = {
             "access_token": token.token,
             "refresh_token": token.refresh_token,
-            "expires_in": int((token.expires_at - timezone.now()).total_seconds())
-            if token.expires_at
-            else None,
+            "expires_in": (
+                int((token.expires_at - timezone.now()).total_seconds())
+                if token.expires_at
+                else None
+            ),
             "expires_at": token.expires_at,
             "token_type": "bearer",
             "scope": " ".join(token.get_scopes()),
@@ -172,6 +205,8 @@ class OAuthTokenView(View):
         }
         if id_token:
             token_information["id_token"] = id_token
+        if token.scoping_organization_id:
+            token_information["organization_id"] = str(token.scoping_organization_id)
         return HttpResponse(
             json.dumps(token_information),
             content_type="application/json",

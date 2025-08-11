@@ -1,13 +1,16 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  Docs,
-  DocsParams,
-  OnboardingConfig,
+import {ExternalLink} from 'sentry/components/core/link';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  type Docs,
+  type DocsParams,
+  type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
+import {
+  agentMonitoringOnboarding,
+  crashReportOnboardingPython,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {getPythonInstallConfig} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
@@ -15,20 +18,20 @@ const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
 from sentry_sdk.integrations.pymongo import PyMongoIntegration
 
-
 sentry_sdk.init(
-    dsn="${params.dsn}",
+    dsn="${params.dsn.public}",
     integrations=[
         PyMongoIntegration(),
     ],
 
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
     # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
+    # of transactions for tracing.
     # We recommend adjusting this value in production,
     traces_sample_rate=1.0,
 )`;
-
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[pymongo]'`;
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
@@ -38,31 +41,16 @@ const onboarding: OnboardingConfig = {
         link: <ExternalLink href="https://www.mongodb.com/docs/drivers/pymongo/" />,
       }
     ),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'Install [sentrySdkCode:sentry-sdk] from PyPI with the [pymongoCode:pymongo] extra:',
+        'Install [code:sentry-sdk] from PyPI with the [code:pymongo] extra:',
         {
-          sentrySdkCode: <code />,
-          pymongoCode: <code />,
+          code: <code />,
         }
       ),
-      configurations: [
-        {
-          description: params.isProfilingSelected
-            ? tct(
-                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
-                {
-                  codeVersion: <code />,
-                  codePackage: <code />,
-                }
-              )
-            : undefined,
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-      ],
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[pymongo]'}),
     },
   ],
   configure: (params: Params) => [
@@ -88,10 +76,9 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  customMetricsOnboarding: getPythonMetricsOnboarding({
-    installSnippet: getInstallSnippet(),
-  }),
+
   crashReportOnboarding: crashReportOnboardingPython,
+  agentMonitoringOnboarding,
 };
 
 export default docs;

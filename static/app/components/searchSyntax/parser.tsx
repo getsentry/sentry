@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 import merge from 'lodash/merge';
 import moment from 'moment-timezone';
-import type {LocationRange} from 'pegjs';
+import type {LocationRange} from 'peggy';
 
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
@@ -42,7 +42,12 @@ export enum Token {
   LOGIC_GROUP = 'logicGroup',
   LOGIC_BOOLEAN = 'logicBoolean',
   KEY_SIMPLE = 'keySimple',
+  KEY_EXPLICIT_FLAG = 'keyExplicitFlag',
+  KEY_EXPLICIT_NUMBER_FLAG = 'keyExplicitNumberFlag',
+  KEY_EXPLICIT_STRING_FLAG = 'keyExplicitStringFlag',
   KEY_EXPLICIT_TAG = 'keyExplicitTag',
+  KEY_EXPLICIT_NUMBER_TAG = 'keyExplicitNumberTag',
+  KEY_EXPLICIT_STRING_TAG = 'keyExplicitStringTag',
   KEY_AGGREGATE = 'keyAggregate',
   KEY_AGGREGATE_ARGS = 'keyAggregateArgs',
   KEY_AGGREGATE_PARAMS = 'keyAggregateParam',
@@ -106,6 +111,33 @@ export enum FilterType {
   IS = 'is',
 }
 
+/**
+ * The type of wildcard based off of positions of asterisks in the token value.
+ * These can be used to determine the type of wildcard operator used in the token value,
+ * and include the following:
+ *
+ * - `leading` (ends with): The value is prefixed with `*` e.g. `*value`
+ * - `trailing` (starts with): The value is suffixed with `*` e.g. `value*`
+ * - `surrounded` (contains): The value is prefixed and suffixed with `*` e.g. `*value*`
+ */
+export enum WildcardPositions {
+  /**
+   * The value is leads with `*`, e.g. `*value`, i.e. the user is searching for values
+   * that end with `<value>`.
+   */
+  LEADING = 'leading',
+  /**
+   * The value is trails with `*`, e.g. `value*`, i.e. the user is searching for values
+   * that start with `<value>`.
+   */
+  TRAILING = 'trailing',
+  /**
+   * The value is lead and trailed with `*`, e.g. `*value*`, i.e. the user is
+   * searching for values that contain `<value>`.
+   */
+  SURROUNDED = 'surrounded',
+}
+
 export const allOperators = [
   TermOperator.DEFAULT,
   TermOperator.GREATER_THAN_EQUAL,
@@ -127,7 +159,13 @@ export const interchangeableFilterOperators = {
   [FilterType.DATE]: [FilterType.SPECIFIC_DATE],
 };
 
-const textKeys = [Token.KEY_SIMPLE, Token.KEY_EXPLICIT_TAG] as const;
+const textKeys = [
+  Token.KEY_SIMPLE,
+  Token.KEY_EXPLICIT_TAG,
+  Token.KEY_EXPLICIT_STRING_TAG,
+  Token.KEY_EXPLICIT_FLAG,
+  Token.KEY_EXPLICIT_STRING_FLAG,
+] as const;
 
 /**
  * This constant-type configuration object declares how each filter type
@@ -377,7 +415,9 @@ export class TokenConverter {
     isNumeric: (key: string) =>
       this.config.numericKeys.has(key) ||
       isMeasurement(key) ||
-      isSpanOperationBreakdownField(key),
+      isSpanOperationBreakdownField(key) ||
+      this.keyValidation.isDuration(key) ||
+      this.keyValidation.isSize(key),
     isBoolean: (key: string) => this.config.booleanKeys.has(key),
     isPercentage: (key: string) => this.config.percentageKeys.has(key),
     isDate: (key: string) => this.config.dateKeys.has(key),
@@ -476,12 +516,62 @@ export class TokenConverter {
     quoted,
   });
 
+  tokenKeyExplicitFlag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_FLAG as const,
+    prefix,
+    key,
+  });
+
+  tokenKeyExplicitStringFlag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_STRING_FLAG as const,
+    prefix,
+    key,
+  });
+
+  tokenKeyExplicitNumberFlag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_NUMBER_FLAG as const,
+    prefix,
+    key,
+  });
+
   tokenKeyExplicitTag = (
     prefix: string,
     key: ReturnType<TokenConverter['tokenKeySimple']>
   ) => ({
     ...this.defaultTokenFields,
     type: Token.KEY_EXPLICIT_TAG as const,
+    prefix,
+    key,
+  });
+
+  tokenKeyExplicitStringTag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_STRING_TAG as const,
+    prefix,
+    key,
+  });
+
+  tokenKeyExplicitNumberTag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_NUMBER_TAG as const,
     prefix,
     key,
   });
@@ -509,7 +599,7 @@ export class TokenConverter {
 
   tokenKeyAggregateArgs = (
     arg1: ReturnType<TokenConverter['tokenKeyAggregateParam']>,
-    args: ListItem<ReturnType<TokenConverter['tokenKeyAggregateParam']>>[]
+    args: Array<ListItem<ReturnType<TokenConverter['tokenKeyAggregateParam']>>>
   ) => {
     return {
       ...this.defaultTokenFields,
@@ -521,12 +611,12 @@ export class TokenConverter {
   tokenValueIso8601Date = (
     value: string,
     date: Array<string | string[]>,
-    time?: Array<string | string[] | Array<string[]>>,
+    time?: Array<string | string[] | string[][]>,
     tz?: Array<string | string[]>
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_ISO_8601_DATE as const,
-    value: value,
+    value,
     parsed: this.config.parse ? parseDate(value) : undefined,
     date: date.flat().join(''),
     time: Array.isArray(time) ? time.flat().flat().join('').replace('T', '') : time,
@@ -540,7 +630,7 @@ export class TokenConverter {
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_RELATIVE_DATE as const,
-    value: value,
+    value,
     parsed: this.config.parse ? parseRelativeDate(value, {unit, sign}) : undefined,
     sign,
     unit,
@@ -553,7 +643,7 @@ export class TokenConverter {
     ...this.defaultTokenFields,
 
     type: Token.VALUE_DURATION as const,
-    value: value,
+    value,
     parsed: this.config.parse ? parseDuration(value, unit) : undefined,
     unit,
   });
@@ -584,7 +674,7 @@ export class TokenConverter {
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_SIZE as const,
-    value: value,
+    value,
     // units are case insensitive, normalize them in their parsed representation
     // so that we dont have to compare all possible permutations.
     parsed: this.config.parse ? parseSize(value, unit) : undefined,
@@ -594,14 +684,14 @@ export class TokenConverter {
   tokenValuePercentage = (value: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_PERCENTAGE as const,
-    value: value,
+    value,
     parsed: this.config.parse ? parsePercentage(value) : undefined,
   });
 
   tokenValueBoolean = (value: string) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_BOOLEAN as const,
-    value: value,
+    value,
     parsed: this.config.parse ? parseBoolean(value) : undefined,
   });
 
@@ -617,7 +707,7 @@ export class TokenConverter {
 
   tokenValueNumberList = (
     item1: ReturnType<TokenConverter['tokenValueNumber']>,
-    items: ListItem<ReturnType<TokenConverter['tokenValueNumber']>>[]
+    items: Array<ListItem<ReturnType<TokenConverter['tokenValueNumber']>>>
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_NUMBER_LIST as const,
@@ -626,7 +716,7 @@ export class TokenConverter {
 
   tokenValueTextList = (
     item1: ReturnType<TokenConverter['tokenValueText']>,
-    items: ListItem<ReturnType<TokenConverter['tokenValueText']>>[]
+    items: Array<ListItem<ReturnType<TokenConverter['tokenValueText']>>>
   ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_TEXT_LIST as const,
@@ -634,11 +724,27 @@ export class TokenConverter {
   });
 
   tokenValueText = (value: string, quoted: boolean) => {
+    // we want to ignore setting the wildcard if the value is only asterisks because the
+    // value is solely matching anything and we don't want to consider it to be any of
+    // our new operators
+    const valueSet = new Set(value);
+    const onlyAsterisks = valueSet.size === 1 && valueSet.has('*');
+
+    let wildcard: WildcardPositions | false = false;
+    if (!onlyAsterisks && value.startsWith('*') && value.endsWith('*')) {
+      wildcard = WildcardPositions.SURROUNDED;
+    } else if (!onlyAsterisks && value.endsWith('*')) {
+      wildcard = WildcardPositions.TRAILING;
+    } else if (!onlyAsterisks && value.startsWith('*')) {
+      wildcard = WildcardPositions.LEADING;
+    }
+
     return {
       ...this.defaultTokenFields,
       type: Token.VALUE_TEXT as const,
       value,
       quoted,
+      wildcard,
     };
   };
 
@@ -770,11 +876,32 @@ export class TokenConverter {
    * Checks a filter against some non-grammar validation rules
    */
   checkFilterWarning = <T extends FilterType>(key: FilterMap[T]['key']) => {
-    if (![Token.KEY_SIMPLE, Token.KEY_EXPLICIT_TAG].includes(key.type)) {
+    if (
+      ![
+        Token.KEY_SIMPLE,
+        Token.KEY_EXPLICIT_TAG,
+        Token.KEY_AGGREGATE,
+        Token.KEY_EXPLICIT_NUMBER_TAG,
+        Token.KEY_EXPLICIT_STRING_TAG,
+        Token.KEY_EXPLICIT_FLAG,
+        Token.KEY_EXPLICIT_NUMBER_FLAG,
+        Token.KEY_EXPLICIT_STRING_FLAG,
+      ].includes(key.type)
+    ) {
       return null;
     }
+
     const keyName = getKeyName(
-      key as TokenResult<Token.KEY_SIMPLE | Token.KEY_EXPLICIT_TAG>
+      key as TokenResult<
+        | Token.KEY_SIMPLE
+        | Token.KEY_EXPLICIT_TAG
+        | Token.KEY_EXPLICIT_FLAG
+        | Token.KEY_AGGREGATE
+        | Token.KEY_EXPLICIT_NUMBER_TAG
+        | Token.KEY_EXPLICIT_NUMBER_FLAG
+        | Token.KEY_EXPLICIT_STRING_TAG
+        | Token.KEY_EXPLICIT_STRING_FLAG
+      >
     );
     return this.config.getFilterTokenWarning?.(keyName) ?? null;
   };
@@ -793,7 +920,7 @@ export class TokenConverter {
     if (
       this.config.validateKeys &&
       this.config.supportedTags &&
-      !this.config.supportedTags[key.text]
+      !this.config.supportedTags[getKeyName(key)]
     ) {
       return {
         type: InvalidReason.INVALID_KEY,
@@ -835,7 +962,12 @@ export class TokenConverter {
    */
   checkInvalidTextFilter = (key: TextFilter['key'], value: TextFilter['value']) => {
     // Explicit tag keys will always be treated as text filters
-    if (key.type === Token.KEY_EXPLICIT_TAG) {
+    if (
+      key.type === Token.KEY_EXPLICIT_TAG ||
+      key.type === Token.KEY_EXPLICIT_STRING_TAG ||
+      key.type === Token.KEY_EXPLICIT_FLAG ||
+      key.type === Token.KEY_EXPLICIT_STRING_FLAG
+    ) {
       return this.checkInvalidTextValue(value);
     }
 
@@ -941,6 +1073,7 @@ export class TokenConverter {
 
     if (
       this.config.disallowWildcard &&
+      // @ts-expect-error TS(2531): Object is possibly 'null'.
       items.some(item => item.value.value.includes('*'))
     ) {
       return {
@@ -980,7 +1113,7 @@ function parseRelativeDate(
   input: string,
   {sign, unit}: {sign: '-' | '+'; unit: string}
 ): {value: Date} {
-  let date = new Date().getTime();
+  let date = Date.now();
   const number = numeric(input);
 
   if (isNaN(date)) {
@@ -1330,6 +1463,7 @@ export const defaultConfig: SearchConfig = {
     'error.unhandled',
     'stack.in_app',
     'team_key_transaction',
+    'symbolicated_in_app',
   ]),
   sizeKeys: new Set([]),
   disallowedLogicalOperators: new Set(),
@@ -1373,11 +1507,9 @@ function tryParseSearch<T extends {config: SearchConfig}>(
   try {
     return grammar.parse(query, config);
   } catch (e) {
-    Sentry.withScope(scope => {
-      scope.setFingerprint(['search-syntax-parse-error']);
-      scope.setExtra('message', e.message?.slice(-100));
-      scope.setExtra('found', e.found);
-      Sentry.captureException(e);
+    Sentry.logger.error('Search syntax parse error', {
+      message: e.message?.slice(-100),
+      found: e.found,
     });
 
     return null;
@@ -1415,14 +1547,14 @@ export function joinQuery(
   leadingSpace?: boolean,
   additionalSpaceBetween?: boolean
 ): string {
-  if (!parsedTerms || !parsedTerms.length) {
+  if (!parsedTerms?.length) {
     return '';
   }
 
   return (
     (leadingSpace ? ' ' : '') +
     (parsedTerms.length === 1
-      ? parsedTerms[0].text
+      ? parsedTerms[0]!.text
       : parsedTerms.map(p => p.text).join(additionalSpaceBetween ? ' ' : ''))
   );
 }

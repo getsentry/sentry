@@ -11,7 +11,7 @@ describe('IntegrationExternalMappingForm', function () {
     dataEndpoint,
     getBaseFormEndpoint: jest.fn(_mapping => dataEndpoint),
     sentryNamesMapper: mappings => mappings,
-  };
+  } satisfies Partial<React.ComponentProps<typeof IntegrationExternalMappingForm>>;
   const MOCK_USER_MAPPING = {
     id: '1',
     userId: '1',
@@ -30,7 +30,9 @@ describe('IntegrationExternalMappingForm', function () {
     {id: '3', name: 'option3'},
   ];
 
-  let getResponse, postResponse, putResponse;
+  let getResponse: jest.Mock;
+  let postResponse: jest.Mock;
+  let putResponse: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -143,7 +145,7 @@ describe('IntegrationExternalMappingForm', function () {
     expect(baseProps.getBaseFormEndpoint).not.toHaveBeenCalled();
     expect(postResponse).not.toHaveBeenCalled();
     await userEvent.type(screen.getByText('Select Sentry User'), 'option2');
-    await userEvent.click(screen.getAllByText('option2')[1]);
+    await userEvent.click(screen.getAllByText('option2')[1]!);
     await userEvent.click(screen.getByTestId('form-submit'));
 
     await waitFor(() => {
@@ -174,7 +176,7 @@ describe('IntegrationExternalMappingForm', function () {
     expect(putResponse).not.toHaveBeenCalled();
     await userEvent.type(screen.getByRole('textbox'), 'option3');
     expect(await screen.findAllByText('option3')).toHaveLength(2);
-    await userEvent.click(screen.getAllByText('option3')[1]);
+    await userEvent.click(screen.getAllByText('option3')[1]!);
     await waitFor(() => {
       expect(baseProps.getBaseFormEndpoint).toHaveBeenCalledWith({
         ...MOCK_TEAM_MAPPING,
@@ -204,7 +206,7 @@ describe('IntegrationExternalMappingForm', function () {
     expect(getResponse).not.toHaveBeenCalled();
     // Now that the user types, query for results
     await userEvent.type(sentryNameField, 'option2');
-    await userEvent.click(screen.getAllByText('option2')[1]);
+    await userEvent.click(screen.getAllByText('option2')[1]!);
     await waitFor(() => expect(getResponse).toHaveBeenCalled());
   });
 });

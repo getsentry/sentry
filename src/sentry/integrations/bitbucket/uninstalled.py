@@ -1,3 +1,5 @@
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,7 +11,11 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import repository_service
-from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_jwt
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectValidationError,
+    get_integration_from_jwt,
+)
 
 
 @control_silo_endpoint
@@ -22,7 +28,7 @@ class BitbucketUninstalledEndpoint(Endpoint):
     permission_classes = ()
 
     @csrf_exempt
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: Request, *args, **kwargs) -> Response:
@@ -33,7 +39,11 @@ class BitbucketUninstalledEndpoint(Endpoint):
 
         try:
             rpc_integration = get_integration_from_jwt(
-                token, request.path, "bitbucket", request.GET, method="POST"
+                token,
+                request.path,
+                IntegrationProviderSlug.BITBUCKET.value,
+                request.GET,
+                method="POST",
             )
         except AtlassianConnectValidationError:
             return self.respond(status=400)

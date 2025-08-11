@@ -51,24 +51,28 @@ describe('AccountSecurityDetails', function () {
       const params = {
         authId: '15',
       };
-      const {routerProps, router} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
-      expect(await screen.findByTestId('auth-status-enabled')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('status', {name: 'Authentication Method Active'})
+      ).toBeInTheDocument();
 
       // has created and last used dates
       expect(screen.getByText('Created at')).toBeInTheDocument();
@@ -84,21 +88,23 @@ describe('AccountSecurityDetails', function () {
       const params = {
         authId: '15',
       };
-      const {routerProps, router} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(await screen.findByRole('button', {name: 'Remove'}));
@@ -124,21 +130,23 @@ describe('AccountSecurityDetails', function () {
       const params = {
         authId: '15',
       };
-      const {routerProps, router} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(await screen.findByRole('button', {name: 'Remove'}));
@@ -165,21 +173,23 @@ describe('AccountSecurityDetails', function () {
         authId: '15',
       };
 
-      const {router, routerProps} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(await screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
@@ -214,24 +224,29 @@ describe('AccountSecurityDetails', function () {
         authId: '16',
       };
 
-      const {routerProps, router} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
-      expect(await screen.findByTestId('auth-status-enabled')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('status', {name: 'Authentication Method Active'})
+      ).toBeInTheDocument();
+
       // does not have remove button
       expect(screen.queryByRole('button', {name: 'Remove'})).not.toBeInTheDocument();
     });
@@ -246,21 +261,23 @@ describe('AccountSecurityDetails', function () {
         authId: '16',
       };
 
-      const {routerProps, router} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(
@@ -285,7 +302,7 @@ describe('AccountSecurityDetails', function () {
         authId: '16',
       };
 
-      const {routerProps, router} = initializeOrg({
+      const {router} = initializeOrg({
         router: {
           params,
         },
@@ -296,14 +313,16 @@ describe('AccountSecurityDetails', function () {
       });
 
       render(
-        <AccountSecurityWrapper {...routerProps}>
+        <AccountSecurityWrapper>
           <AccountSecurityDetails
-            {...routerProps}
             onRegenerateBackupCodes={jest.fn()}
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {router}
+        {
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(await screen.findByRole('button', {name: 'print'})).toBeInTheDocument();

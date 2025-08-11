@@ -1,13 +1,9 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {
-  BarSeriesOption,
-  LegendComponentOption,
-  SeriesOption,
-  TooltipComponentOption,
-} from 'echarts';
+import type {BarSeriesOption, LegendComponentOption, SeriesOption} from 'echarts';
 
-import BaseChart, {type BaseChartProps} from 'sentry/components/charts/baseChart';
+import type {BaseChartProps} from 'sentry/components/charts/baseChart';
+import BaseChart from 'sentry/components/charts/baseChart';
 import Legend from 'sentry/components/charts/components/legend';
 import xAxis from 'sentry/components/charts/components/xAxis';
 import barSeries from 'sentry/components/charts/series/barSeries';
@@ -19,81 +15,39 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Outcome} from 'sentry/types';
-import type {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types/core';
+import type {DataCategory, IntervalPeriod, SelectValue} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
+import type {Theme} from 'sentry/utils/theme';
+import {isChonkTheme} from 'sentry/utils/theme/withChonk';
+import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
 
-import {formatUsageWithUnits} from '../utils';
-
-import {getTooltipFormatter, getXAxisDates, getXAxisLabelInterval} from './utils';
-
-const GIGABYTE = 10 ** 9;
+import {getTooltipFormatter, getXAxisDates, getXAxisLabelVisibility} from './utils';
 
 export type CategoryOption = {
   /**
    * Scale of y-axis with no usage data.
    */
   yAxisMinInterval: number;
-} & SelectValue<DataCategoryInfo['plural']>;
+} & SelectValue<DataCategory>;
 
-export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
-  {
-    label: DATA_CATEGORY_INFO.error.titleName,
-    value: DATA_CATEGORY_INFO.error.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-  {
-    label: DATA_CATEGORY_INFO.transaction.titleName,
-    value: DATA_CATEGORY_INFO.transaction.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-  {
-    label: DATA_CATEGORY_INFO.replay.titleName,
-    value: DATA_CATEGORY_INFO.replay.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-  {
-    label: DATA_CATEGORY_INFO.attachment.titleName,
-    value: DATA_CATEGORY_INFO.attachment.plural,
-    disabled: false,
-    yAxisMinInterval: 0.5 * GIGABYTE,
-  },
-  {
-    label: DATA_CATEGORY_INFO.profile.titleName,
-    value: DATA_CATEGORY_INFO.profile.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-  {
-    label: DATA_CATEGORY_INFO.monitor.titleName,
-    value: DATA_CATEGORY_INFO.monitor.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-  {
-    label: DATA_CATEGORY_INFO.span.titleName,
-    value: DATA_CATEGORY_INFO.span.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-  {
-    label: DATA_CATEGORY_INFO.profileDuration.titleName,
-    value: DATA_CATEGORY_INFO.profileDuration.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-];
+export const CHART_OPTIONS_DATACATEGORY = [
+  ...Object.values(DATA_CATEGORY_INFO)
+    .filter(categoryInfo => categoryInfo.statsInfo.showExternalStats)
+    .map(categoryInfo => ({
+      label: categoryInfo.titleName,
+      value: categoryInfo.plural,
+      disabled: false,
+      yAxisMinInterval: categoryInfo.statsInfo.yAxisMinInterval,
+    })),
+] satisfies CategoryOption[];
 
 export enum ChartDataTransform {
   CUMULATIVE = 'cumulative',
   PERIODIC = 'periodic',
 }
 
-export const CHART_OPTIONS_DATA_TRANSFORM: SelectValue<ChartDataTransform>[] = [
+export const CHART_OPTIONS_DATA_TRANSFORM: Array<SelectValue<ChartDataTransform>> = [
   {
     label: t('Cumulative'),
     value: ChartDataTransform.CUMULATIVE,
@@ -108,6 +62,7 @@ export const CHART_OPTIONS_DATA_TRANSFORM: SelectValue<ChartDataTransform>[] = [
 
 export const enum SeriesTypes {
   ACCEPTED = 'Accepted',
+  ACCEPTED_STORED = 'Accepted (stored)',
   FILTERED = 'Filtered',
   RATE_LIMITED = 'Rate Limited',
   INVALID = 'Invalid',
@@ -116,7 +71,7 @@ export const enum SeriesTypes {
 }
 
 export type UsageChartProps = {
-  dataCategory: DataCategoryInfo['plural'];
+  dataCategory: DataCategory;
   dataTransform: ChartDataTransform;
   usageDateEnd: string;
   usageDateStart: string;
@@ -124,10 +79,6 @@ export type UsageChartProps = {
    * Usage data to draw on chart
    */
   usageStats: ChartStats;
-  /**
-   * Override chart colors for each outcome
-   */
-  categoryColors?: string[];
   /**
    * Config for category dropdown options
    */
@@ -139,7 +90,7 @@ export type UsageChartProps = {
   /**
    * Replace default tooltip
    */
-  chartTooltip?: TooltipComponentOption;
+  chartTooltip?: BaseChartProps['tooltip'];
   errors?: Record<string, Error>;
   /**
    * Modify the usageStats using the transformation method selected.
@@ -192,7 +143,7 @@ const cumulativeTotalDataTransformation: UsageChartProps['handleDataTransformati
   Object.keys(stats).forEach(k => {
     let count = 0;
 
-    chartData[k] = stats[k].map((stat: any) => {
+    (chartData as any)[k] = (stats as any)[k].map((stat: any) => {
       const [x, y] = stat.value;
       count = isCumulative ? count + y : y;
 
@@ -216,6 +167,7 @@ const getUnitYaxisFormatter =
 export type ChartStats = {
   accepted: NonNullable<BarSeriesOption['data']>;
   projected: NonNullable<BarSeriesOption['data']>;
+  accepted_stored?: NonNullable<BarSeriesOption['data']>;
   clientDiscard?: NonNullable<BarSeriesOption['data']>;
   dropped?: NonNullable<BarSeriesOption['data']>;
   filtered?: NonNullable<BarSeriesOption['data']>;
@@ -253,8 +205,7 @@ function chartMetadata({
   chartLabel: React.ReactNode;
   tooltipValueFormatter: (val?: number) => string;
   xAxisData: string[];
-  xAxisLabelInterval: number;
-  xAxisTickInterval: number;
+  xAxisLabelVisibility: Record<number, boolean>;
   yAxisMinInterval: number;
 } {
   const selectDataCategory = categoryOptions.find(o => o.value === dataCategory);
@@ -271,7 +222,7 @@ function chartMetadata({
     const isProjected = k === SeriesTypes.PROJECTED;
 
     // Map the array and destructure elements to avoid side-effects
-    chartData[k] = chartData[k]?.map((stat: any) => {
+    (chartData as any)[k] = (chartData as any)[k]?.map((stat: any) => {
       return {
         ...stat,
         tooltip: {show: false},
@@ -286,11 +237,6 @@ function chartMetadata({
   if (dataPeriod < 0 || barPeriod < 0) {
     throw new Error('UsageChart: Unable to parse data time period');
   }
-
-  const {xAxisTickInterval, xAxisLabelInterval} = getXAxisLabelInterval(
-    dataPeriod,
-    dataPeriod / barPeriod
-  );
 
   const {label, yAxisMinInterval} = selectDataCategory;
 
@@ -308,16 +254,30 @@ function chartMetadata({
     usageDateInterval
   );
 
+  const {xAxisLabelVisibility} = getXAxisLabelVisibility(dataPeriod, xAxisDates);
+
   return {
     chartLabel: label,
     chartData,
     xAxisData: xAxisDates,
-    xAxisTickInterval,
-    xAxisLabelInterval,
+    xAxisLabelVisibility,
     yAxisMinInterval,
     tooltipValueFormatter: getTooltipFormatter(dataCategory),
   };
 }
+
+const outputChartColors = (theme: Theme) => {
+  return isChonkTheme(theme)
+    ? theme.chart.getColorPalette(5)
+    : ([
+        theme.chart.colors[5][0],
+        theme.chart.colors[5][2],
+        theme.chart.colors[5][3],
+        theme.chart.colors[5][4],
+        theme.chart.colors[5][5],
+        theme.chartOther, // Projected
+      ] as const);
+};
 
 function UsageChartBody({
   usageDateStart,
@@ -327,7 +287,6 @@ function UsageChartBody({
   dataTransform,
   chartSeries,
   chartTooltip,
-  categoryColors,
   isLoading,
   isError,
   errors,
@@ -367,9 +326,8 @@ function UsageChartBody({
     chartData,
     tooltipValueFormatter,
     xAxisData,
-    xAxisTickInterval,
-    xAxisLabelInterval,
     yAxisMinInterval,
+    xAxisLabelVisibility,
   } = chartMetadata({
     categoryOptions,
     dataCategory,
@@ -419,16 +377,7 @@ function UsageChartBody({
     return legend;
   }
 
-  const colors = categoryColors?.length
-    ? categoryColors
-    : [
-        theme.outcome[Outcome.ACCEPTED],
-        theme.outcome[Outcome.FILTERED],
-        theme.outcome[Outcome.RATE_LIMITED],
-        theme.outcome[Outcome.INVALID],
-        theme.outcome[Outcome.CLIENT_DISCARD],
-        theme.chartOther, // Projected
-      ];
+  const colors = outputChartColors(theme);
 
   const series: SeriesOption[] = [
     barSeries({
@@ -438,6 +387,28 @@ function UsageChartBody({
       stack: 'usage',
       legendHoverLink: false,
     }),
+    ...(chartData.accepted_stored
+      ? [
+          barSeries({
+            name: SeriesTypes.ACCEPTED,
+            data: chartData.accepted_stored,
+            barMinHeight: 1,
+            barGap: '-100%',
+            z: 3,
+            silent: true,
+            tooltip: {show: false},
+            itemStyle: {
+              decal: {
+                color: theme.subText,
+                dashArrayX: [1, 0],
+                dashArrayY: [3, 5],
+                rotation: -Math.PI / 4,
+              },
+            },
+            legendHoverLink: false,
+          }),
+        ]
+      : []),
     barSeries({
       name: SeriesTypes.FILTERED,
       data: chartData.filtered,
@@ -478,6 +449,13 @@ function UsageChartBody({
   return (
     <BaseChart
       colors={colors}
+      options={{
+        aria: {
+          decal: {
+            show: true,
+          },
+        },
+      }}
       grid={{bottom: '3px', left: '3px', right: '10px', top: '40px'}}
       xAxis={xAxis({
         show: true,
@@ -485,11 +463,12 @@ function UsageChartBody({
         name: 'Date',
         data: xAxisData,
         axisTick: {
-          interval: xAxisTickInterval,
           alignWithLabel: true,
         },
         axisLabel: {
-          interval: xAxisLabelInterval,
+          interval: function (index: number) {
+            return xAxisLabelVisibility[index]!;
+          },
           formatter: (label: string) => label.slice(0, 6), // Limit label to 6 chars
         },
         theme,
@@ -549,5 +528,5 @@ const ErrorMessages = styled('div')`
   flex-direction: column;
 
   margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;

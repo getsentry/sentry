@@ -5,7 +5,7 @@ import displayRawContent, {
   getJavaFrame,
   getJavaPreamble,
 } from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
-import type {StacktraceType} from 'sentry/types';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 
 describe('RawStacktraceContent', () => {
   describe('getJavaFrame()', () => {
@@ -17,9 +17,10 @@ describe('RawStacktraceContent', () => {
             function: 'run',
             filename: 'QueuedThreadPool.java',
             lineNo: 582,
-          })
+          }),
+          true
         )
-      ).toEqual(
+      ).toBe(
         '    at org.mortbay.thread.QueuedThreadPool$PoolThread.run(QueuedThreadPool.java:582)'
       );
 
@@ -30,9 +31,10 @@ describe('RawStacktraceContent', () => {
             module: 'org.mortbay.thread.QueuedThreadPool$PoolThread',
             function: 'run',
             filename: 'QueuedThreadPool.java',
-          })
+          }),
+          true
         )
-      ).toEqual(
+      ).toBe(
         '    at org.mortbay.thread.QueuedThreadPool$PoolThread.run(QueuedThreadPool.java)'
       );
 
@@ -43,9 +45,10 @@ describe('RawStacktraceContent', () => {
             module: 'org.mortbay.thread.QueuedThreadPool$PoolThread',
             function: 'run',
             filename: 'QueuedThreadPool.java',
-          })
+          }),
+          true
         )
-      ).toEqual(
+      ).toBe(
         '    at org.mortbay.thread.QueuedThreadPool$PoolThread.run(QueuedThreadPool.java)'
       );
     });
@@ -61,7 +64,7 @@ describe('RawStacktraceContent', () => {
             module: undefined,
           })
         )
-      ).toEqual('Baz: message');
+      ).toBe('Baz: message');
     });
 
     it('takes a module name', () => {
@@ -73,7 +76,7 @@ describe('RawStacktraceContent', () => {
             value: 'message',
           })
         )
-      ).toEqual('foo.bar.Baz: message');
+      ).toBe('foo.bar.Baz: message');
     });
   });
 
@@ -107,7 +110,7 @@ describe('RawStacktraceContent', () => {
     };
 
     it('renders java example', () => {
-      expect(displayRawContent(data, 'java', exception)).toEqual(
+      expect(displayRawContent(data, 'java', exception)).toBe(
         `example.application.Error: an error occurred
     at example.application.doThing(application:2)
     at example.application.main(application:1)`
@@ -115,7 +118,7 @@ describe('RawStacktraceContent', () => {
     });
 
     it('renders python example', () => {
-      expect(displayRawContent(data, 'python', exception)).toEqual(
+      expect(displayRawContent(data, 'python', exception)).toBe(
         `Error: an error occurred
   File "application", line 1, in main
   File "application", line 2, in doThing`
@@ -153,7 +156,7 @@ describe('RawStacktraceContent', () => {
           }),
         ],
       };
-      expect(displayRawContent(dartData, 'dart', exception)).toEqual(
+      expect(displayRawContent(dartData, 'dart', exception)).toBe(
         `Error: an error occurred
   #0      main (package:sentry_flutter/main.dart:778:5)
   #1      <asynchronous suspension>
@@ -161,7 +164,7 @@ describe('RawStacktraceContent', () => {
       );
     });
 
-    const inAppFrame = (fnName, line) =>
+    const inAppFrame = (fnName: string, line: number) =>
       FrameFixture({
         function: fnName,
         module: 'example.application',
@@ -169,7 +172,7 @@ describe('RawStacktraceContent', () => {
         filename: 'application',
         platform: undefined,
       });
-    const systemFrame = (fnName, line) =>
+    const systemFrame = (fnName: string, line: number) =>
       FrameFixture({
         function: fnName,
         module: 'example.application',
@@ -203,7 +206,7 @@ describe('RawStacktraceContent', () => {
     it.each([onlyInAppFrames, onlySystemFrames, mixedFrames])(
       'renders all frames when similarity flag is off, in-app or not',
       stacktrace => {
-        expect(displayRawContent(stacktrace, 'python', exception)).toEqual(
+        expect(displayRawContent(stacktrace, 'python', exception)).toBe(
           `Error: an error occurred
   File "application", line 1, in main
   File "application", line 2, in doThing`
@@ -221,7 +224,7 @@ describe('RawStacktraceContent', () => {
             exception,
             similarityFeatureEnabled
           )
-        ).toEqual(
+        ).toBe(
           `Error: an error occurred
   File "application", line 1, in main
   File "application", line 2, in doThing`
@@ -230,7 +233,7 @@ describe('RawStacktraceContent', () => {
     );
 
     it('renders only in-app frames when they exist and hasSimilarityEmbeddingsFeature is on', () => {
-      expect(displayRawContent(mixedFrames, 'python', exception, true)).toEqual(
+      expect(displayRawContent(mixedFrames, 'python', exception, true)).toBe(
         `Error: an error occurred
   File "application", line 1, in main`
       );

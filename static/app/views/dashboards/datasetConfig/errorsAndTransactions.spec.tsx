@@ -1,12 +1,52 @@
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
+import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
-import {getCustomEventsFieldRenderer} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+import {
+  getCustomEventsFieldRenderer,
+  transformEventsResponseToTable,
+} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+
+const theme = ThemeFixture();
+
+describe('transformEventsResponseToTable', function () {
+  it('unsplats table meta field types', function () {
+    const rawData = {
+      data: [{'p75(measurements.inp)': null}],
+      meta: {
+        'p75(measurements.inp)': 'duration',
+        units: {
+          'p75(measurements.inp)': 'millisecond',
+        },
+        dataset: 'metricsEnhanced',
+        fields: {
+          'p75(measurements.inp)': 'duration',
+        },
+      },
+      title: 'A Query',
+    } as unknown as TableData;
+
+    const widgetQuery = WidgetQueryFixture();
+
+    expect(transformEventsResponseToTable(rawData, widgetQuery).meta).toEqual({
+      'p75(measurements.inp)': 'duration',
+      units: {
+        'p75(measurements.inp)': 'millisecond',
+      },
+      dataset: 'metricsEnhanced',
+      fields: {
+        'p75(measurements.inp)': 'duration',
+      },
+    });
+  });
+});
 
 describe('getCustomFieldRenderer', function () {
   const {organization, router} = initializeOrg();
@@ -37,17 +77,21 @@ describe('getCustomFieldRenderer', function () {
         {
           organization,
           location: router.location,
+          theme,
           eventView: new EventView({
             ...baseEventViewOptions,
             fields: [{field: 'trace'}],
           }),
         }
       ) as React.ReactElement<any, any>,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
     await userEvent.click(await screen.findByText('abcd'));
     expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/trace/abcd/',
+      pathname: '/organizations/org-slug/dashboards/trace/abcd/',
       query: {
         pageEnd: undefined,
         pageStart: undefined,
@@ -65,6 +109,7 @@ describe('getCustomFieldRenderer', function () {
         {
           organization,
           location: router.location,
+          theme,
           eventView: new EventView({
             ...baseEventViewOptions,
             fields: [{field: 'id'}],
@@ -72,7 +117,10 @@ describe('getCustomFieldRenderer', function () {
           }),
         }
       ) as React.ReactElement<any, any>,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByText('defg'));
@@ -80,16 +128,16 @@ describe('getCustomFieldRenderer', function () {
       pathname: `/organizations/org-slug/discover/${project.slug}:defg/`,
       query: {
         display: undefined,
-        environment: [],
-        field: ['id'],
+        environment: undefined,
+        field: 'id',
         id: undefined,
         interval: undefined,
         name: undefined,
-        project: [parseInt(project.id, 10)],
+        project: project.id,
         query: '',
-        sort: [],
+        sort: undefined,
         topEvents: undefined,
-        widths: [],
+        widths: undefined,
         yAxis: 'count()',
         pageEnd: undefined,
         pageStart: undefined,
@@ -107,6 +155,7 @@ describe('getCustomFieldRenderer', function () {
         {
           organization,
           location: router.location,
+          theme,
           eventView: new EventView({
             ...baseEventViewOptions,
             fields: [{field: 'id'}],
@@ -114,7 +163,10 @@ describe('getCustomFieldRenderer', function () {
           }),
         }
       ) as React.ReactElement<any, any>,
-      {router}
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByText('<< unparameterized >>'));

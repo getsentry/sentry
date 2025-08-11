@@ -3,16 +3,23 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {IssueCategory, PriorityLevel} from 'sentry/types';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {mockTour} from 'sentry/components/tours/testUtils';
+import {IssueCategory, PriorityLevel} from 'sentry/types/group';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
+
+jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
+  ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
+  useIssueDetailsTour: () => mockTour(),
+}));
 
 describe('GroupHeader', () => {
   const baseUrl = 'BASE_URL/';
   const organization = OrganizationFixture();
+  const {router} = initializeOrg();
   const project = ProjectFixture({
     teams: [TeamFixture()],
   });
@@ -24,6 +31,7 @@ describe('GroupHeader', () => {
       group: GroupFixture({issueCategory: IssueCategory.ERROR}),
       groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
       project,
+      event: null,
     };
 
     it('displays the correct tabs with all features enabled', async () => {
@@ -51,55 +59,61 @@ describe('GroupHeader', () => {
           organization={orgWithFeatures}
           project={jsProjectWithSimilarityView}
         />,
-        {organization: orgWithFeatures}
+        {
+          organization: orgWithFeatures,
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByRole('tab', {name: /details/i}));
-      expect(browserHistory.push).toHaveBeenLastCalledWith('BASE_URL/');
+      expect(router.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({pathname: 'BASE_URL/'})
+      );
 
       await userEvent.click(screen.getByRole('tab', {name: /activity/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/activity/',
         query: {},
       });
 
       await userEvent.click(screen.getByRole('tab', {name: /user feedback/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/feedback/',
         query: {},
       });
 
       await userEvent.click(screen.getByRole('tab', {name: /attachments/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/attachments/',
         query: {},
       });
 
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: 'BASE_URL/tags/',
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/distributions/',
         query: {},
       });
 
       await userEvent.click(screen.getByRole('tab', {name: /all events/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/events/',
         query: {},
       });
 
       await userEvent.click(screen.getByRole('tab', {name: /merged issues/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/merged/',
         query: {},
       });
 
       await userEvent.click(screen.getByRole('tab', {name: /replays/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/replays/',
         query: {},
       });
 
-      expect(screen.queryByRole('tab', {name: /replays/i})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: /replays/i})).toBeInTheDocument();
     });
   });
 
@@ -110,6 +124,7 @@ describe('GroupHeader', () => {
       group: GroupFixture({issueCategory: IssueCategory.ERROR}),
       groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
       project,
+      event: null,
     };
 
     it('displays the correct tabs with all features enabled', async () => {
@@ -137,11 +152,15 @@ describe('GroupHeader', () => {
           organization={orgWithFeatures}
           project={mobileProjectWithSimilarityView}
         />,
-        {organization: orgWithFeatures}
+        {
+          organization: orgWithFeatures,
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByRole('tab', {name: /similar issues/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/similar/',
         query: {},
       });
@@ -157,6 +176,7 @@ describe('GroupHeader', () => {
       group: GroupFixture({issueCategory: IssueCategory.PERFORMANCE}),
       groupReprocessingStatus: ReprocessingStatus.NO_STATUS,
       project,
+      event: null,
     };
 
     it('displays the correct tabs with all features enabled', async () => {
@@ -184,20 +204,26 @@ describe('GroupHeader', () => {
           organization={orgWithFeatures}
           project={projectWithSimilarityView}
         />,
-        {organization: orgWithFeatures}
+        {
+          organization: orgWithFeatures,
+          router,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByRole('tab', {name: /details/i}));
-      expect(browserHistory.push).toHaveBeenLastCalledWith('BASE_URL/');
+      expect(router.push).toHaveBeenLastCalledWith(
+        expect.objectContaining({pathname: 'BASE_URL/'})
+      );
 
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
-        pathname: 'BASE_URL/tags/',
+      expect(router.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/distributions/',
         query: {},
       });
 
       await userEvent.click(screen.getByRole('tab', {name: /sampled events/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/events/',
         query: {},
       });
@@ -235,8 +261,11 @@ describe('GroupHeader', () => {
             issueCategory: IssueCategory.UPTIME,
           })}
           project={ProjectFixture()}
-          groupReprocessingStatus={ReprocessingStatus.NO_STATUS}
-        />
+          event={null}
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(await screen.findByText('Priority')).toBeInTheDocument();
@@ -256,8 +285,11 @@ describe('GroupHeader', () => {
           organization={OrganizationFixture()}
           group={GroupFixture({priority: PriorityLevel.MEDIUM})}
           project={ProjectFixture()}
-          groupReprocessingStatus={ReprocessingStatus.NO_STATUS}
-        />
+          event={null}
+        />,
+        {
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Modify issue priority'}));

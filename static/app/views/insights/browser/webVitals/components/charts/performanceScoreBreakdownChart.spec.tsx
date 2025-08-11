@@ -1,20 +1,19 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  formatTimeSeriesResultsToChartData,
-  PerformanceScoreBreakdownChart,
-} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreBreakdownChart';
+import {formatTimeSeriesResultsToChartData} from 'sentry/views/insights/browser/webVitals/components/charts/formatTimeSeriesResultsToChartData';
+import PerformanceScoreBreakdownChartWidget from 'sentry/views/insights/common/components/widgets/performanceScoreBreakdownChartWidget';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('PerformanceScoreBreakdownChart', function () {
+describe('PerformanceScoreBreakdownChartWidget', function () {
   const organization = OrganizationFixture();
-  let eventsStatsMock;
+  let eventsStatsMock: jest.Mock;
 
   beforeEach(function () {
     jest.mocked(useLocation).mockReturnValue({
@@ -26,26 +25,23 @@ describe('PerformanceScoreBreakdownChart', function () {
       action: 'PUSH',
       key: '',
     });
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/stats/`,
+      body: [],
     });
 
     eventsStatsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
-      body: {},
+      body: {
+        'performance_score(measurements.score.lcp)': {
+          data: [[1743348600, [{count: 0.6106921965623204}]]],
+        },
+        'performance_score(measurements.score.fcp)': {
+          data: [[1743435000, [{count: 0.7397871866098699}]]],
+        },
+      },
     });
   });
 
@@ -63,8 +59,8 @@ describe('PerformanceScoreBreakdownChart', function () {
       action: 'PUSH',
       key: '',
     });
-    render(<PerformanceScoreBreakdownChart />, {organization});
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    render(<PerformanceScoreBreakdownChartWidget />, {organization});
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
@@ -72,11 +68,6 @@ describe('PerformanceScoreBreakdownChart', function () {
         method: 'GET',
         query: expect.objectContaining({
           yAxis: [
-            'weighted_performance_score(measurements.score.lcp)',
-            'weighted_performance_score(measurements.score.fcp)',
-            'weighted_performance_score(measurements.score.cls)',
-            'weighted_performance_score(measurements.score.inp)',
-            'weighted_performance_score(measurements.score.ttfb)',
             'performance_score(measurements.score.lcp)',
             'performance_score(measurements.score.fcp)',
             'performance_score(measurements.score.cls)',
@@ -101,7 +92,6 @@ describe('PerformanceScoreBreakdownChart', function () {
           total: [],
         },
         ['#444674', '#895289', '#d6567f', '#f38150', '#f2b712'],
-        false,
         ['lcp', 'fcp', 'inp', 'cls', 'ttfb']
       );
       expect(result).toEqual([

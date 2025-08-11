@@ -1,32 +1,30 @@
 import {useMemo} from 'react';
 
 import {getHasTag} from 'sentry/components/events/searchBar';
-import type {PageFilters, TagCollection} from 'sentry/types';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {TagCollection} from 'sentry/types/group';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
-const DATASET_TO_FIELDS = {
-  [DiscoverDatasets.SPANS_INDEXED]: SpanIndexedField,
-  [DiscoverDatasets.SPANS_METRICS]: SpanMetricsField,
-};
+function useSpanFieldBaseTags(excludedTags: string[]) {
+  const builtinTags = useMemo(() => {
+    const fields = SpanFields;
 
-const getSpanFieldSupportedTags = (
-  excludedTags,
-  dataset: DiscoverDatasets.SPANS_INDEXED | DiscoverDatasets.SPANS_METRICS
-) => {
-  const fields = DATASET_TO_FIELDS[dataset];
+    const tags: TagCollection = Object.fromEntries(
+      Object.values(fields)
+        .filter(v => !excludedTags.includes(v))
+        .map(v => [v, {key: v, name: v}])
+    );
 
-  const tags: TagCollection = Object.fromEntries(
-    Object.values(fields)
-      .filter(v => !excludedTags.includes(v))
-      .map(v => [v, {key: v, name: v}])
-  );
-  tags.has = getHasTag(tags);
-  return tags;
-};
+    tags.has = getHasTag(tags);
+
+    return tags;
+  }, [excludedTags]);
+
+  return builtinTags;
+}
 
 interface SpanFieldEntry {
   key: string;
@@ -49,35 +47,15 @@ const getDynamicSpanFieldsEndpoint = (
   },
 ];
 
-export function useSpanMetricsFieldSupportedTags(options?: {excludedTags?: string[]}) {
-  const {excludedTags = []} = options || {};
-
-  // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP
-  return getSpanFieldSupportedTags(
-    [SpanIndexedField.SPAN_AI_PIPELINE_GROUP, ...excludedTags],
-    DiscoverDatasets.SPANS_METRICS
-  );
-}
-
-export function useSpanFieldSupportedTags(options?: {
-  excludedTags?: string[];
+export function useSpanFieldCustomTags(options?: {
+  enabled?: boolean;
   projects?: PageFilters['projects'];
-}): TagCollection {
-  const {excludedTags = [], projects} = options || {};
+}) {
+  const {enabled, projects} = options || {};
   const {selection} = usePageFilters();
   const organization = useOrganization();
-  // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP and SPAN_CATEGORY should not be surfaced to users
-  const staticTags = getSpanFieldSupportedTags(
-    [
-      SpanIndexedField.SPAN_AI_PIPELINE_GROUP,
-      SpanIndexedField.SPAN_CATEGORY,
-      SpanIndexedField.SPAN_GROUP,
-      ...excludedTags,
-    ],
-    DiscoverDatasets.SPANS_INDEXED
-  );
 
-  const {data} = useApiQuery<SpanFieldsResponse>(
+  const {data, ...rest} = useApiQuery<SpanFieldsResponse>(
     getDynamicSpanFieldsEndpoint(
       organization.slug,
       projects ?? selection.projects,
@@ -86,20 +64,53 @@ export function useSpanFieldSupportedTags(options?: {
     {
       staleTime: 0,
       retry: false,
+      enabled,
     }
   );
 
-  const tags = useMemo(() => {
+  const tags: TagCollection = useMemo(() => {
     if (!data) {
-      return staticTags;
+      return {};
     }
+    return Object.fromEntries(
+      data.map(entry => [entry.key, {key: entry.key, name: entry.name}])
+    );
+  }, [data]);
+
+  return {...rest, data: tags};
+}
+
+function useSpanFieldStaticTags(options?: {excludedTags?: string[]}) {
+  const {excludedTags = []} = options || {};
+  // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP and SPAN_CATEGORY should not be surfaced to users
+  const staticTags: TagCollection = useSpanFieldBaseTags([
+    SpanFields.SPAN_AI_PIPELINE_GROUP,
+    SpanFields.SPAN_CATEGORY,
+    SpanFields.SPAN_GROUP,
+    ...excludedTags,
+  ]);
+
+  return staticTags;
+}
+
+export function useSpanFieldSupportedTags(options?: {
+  excludedTags?: string[];
+  projects?: PageFilters['projects'];
+}) {
+  const {excludedTags = [], projects} = options || {};
+  // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP and SPAN_CATEGORY should not be surfaced to users
+  const staticTags: TagCollection = useSpanFieldStaticTags({
+    excludedTags,
+  });
+
+  const {data: customTags, ...rest} = useSpanFieldCustomTags({projects});
+
+  const tags: TagCollection = useMemo(() => {
     return {
-      ...Object.fromEntries(
-        data.map(entry => [entry.key, {key: entry.key, name: entry.name}])
-      ),
+      ...customTags,
       ...staticTags,
     };
-  }, [data, staticTags]);
+  }, [customTags, staticTags]);
 
-  return tags;
+  return {...rest, data: tags};
 }

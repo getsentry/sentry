@@ -19,7 +19,7 @@ class PromptsActivity(Model):
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
     feature = models.CharField(max_length=64, null=False)
     # typically will include a dismissed/snoozed timestamp or something similar
-    data = JSONField(default={})
+    data = JSONField(default=dict)
 
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -27,5 +27,7 @@ class PromptsActivity(Model):
         app_label = "sentry"
         db_table = "sentry_promptsactivity"
         unique_together = (("user_id", "feature", "organization_id", "project_id"),)
+
+        indexes = [models.Index(fields=("feature", "organization_id", "project_id"))]
 
     __repr__ = sane_repr("user_id", "feature")

@@ -5,7 +5,7 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
@@ -14,13 +14,13 @@ pytestmark = [requires_snuba]
 
 # TODO(dcramer): These tests rely too much on implicit fixtures
 class EventCommittersTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
 
         release = self.create_release(project, self.user)
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "fingerprint": ["group1"],
@@ -28,7 +28,7 @@ class EventCommittersTest(APITestCase):
                 "release": release.version,
             },
             project_id=project.id,
-            event_type=EventType.ERROR,
+            default_event_type=EventType.DEFAULT,
         )
 
         url = reverse(
@@ -49,12 +49,12 @@ class EventCommittersTest(APITestCase):
             response.data["committers"][0]["commits"][0]["message"] == "placeholder commit message"
         )
 
-    def test_no_group(self):
+    def test_no_group(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
 
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         event_data = load_data("transaction")
         event_data["start_timestamp"] = min_ago
         event_data["timestamp"] = min_ago
@@ -74,12 +74,12 @@ class EventCommittersTest(APITestCase):
         assert response.status_code == 404, response.content
         assert response.data["detail"] == "Issue not found"
 
-    def test_no_release(self):
+    def test_no_release(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
 
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": min_ago}, project_id=project.id
         )
@@ -97,14 +97,14 @@ class EventCommittersTest(APITestCase):
         assert response.status_code == 404, response.content
         assert response.data["detail"] == "Release not found"
 
-    def test_null_stacktrace(self):
+    def test_null_stacktrace(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
 
         release = self.create_release(project, self.user)
 
-        min_ago = iso_format(before_now(minutes=1))
+        min_ago = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={
                 "fingerprint": ["group1"],
@@ -139,7 +139,7 @@ class EventCommittersTest(APITestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
 
-    def test_with_commit_context(self):
+    def test_with_commit_context(self) -> None:
         self.login_as(user=self.user)
         self.repo = Repository.objects.create(
             organization_id=self.organization.id,
@@ -156,10 +156,9 @@ class EventCommittersTest(APITestCase):
         event = self.store_event(
             data={
                 "fingerprint": ["group1"],
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
         )
         assert event.group is not None
 
@@ -190,7 +189,7 @@ class EventCommittersTest(APITestCase):
         assert commits[0]["message"] == "placeholder commit message"
         assert commits[0]["suspectCommitType"] == "via SCM integration"
 
-    def test_with_commit_context_pull_request(self):
+    def test_with_commit_context_pull_request(self) -> None:
         self.login_as(user=self.user)
         self.repo = Repository.objects.create(
             organization_id=self.organization.id,
@@ -217,10 +216,9 @@ class EventCommittersTest(APITestCase):
         event = self.store_event(
             data={
                 "fingerprint": ["group1"],
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
             },
             project_id=self.project.id,
-            event_type=EventType.ERROR,
         )
         assert event.group is not None
 

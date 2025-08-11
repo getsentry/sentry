@@ -1,7 +1,7 @@
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import DefaultIssueActions from 'sentry/plugins/components/issueActions';
-import type {Writable} from 'sentry/types';
+import type {Writable} from 'sentry/types/core';
 
 class IssueActions extends DefaultIssueActions {
   changeField = (
@@ -30,12 +30,12 @@ class IssueActions extends DefaultIssueActions {
                 // Try not to change things the user might have edited
                 // unless they're no longer valid
                 const oldData = this.state.createFormData;
-                const createFormData = {};
+                const createFormData: Record<string, any> = {};
                 data?.forEach(field => {
-                  let val;
+                  let val: any;
                   if (
                     field.choices &&
-                    !field.choices.find(c => c[0] === oldData[field.name])
+                    !field.choices.some(c => c[0] === oldData[field.name])
                   ) {
                     val = field.default;
                   } else {
@@ -69,7 +69,7 @@ class IssueActions extends DefaultIssueActions {
     // For create form, split into required and optional fields
     if (this.props.actionType === 'create') {
       if (this.state.createFieldList) {
-        const renderField = field => {
+        const renderField = (field: any) => {
           if (field.has_autocomplete) {
             field = Object.assign(
               {
@@ -93,7 +93,7 @@ class IssueActions extends DefaultIssueActions {
             </div>
           );
         };
-        const isRequired = f => (f.required !== null ? f.required : true);
+        const isRequired = (f: any) => (f.required === null ? true : f.required);
 
         const fields = this.state.createFieldList;
         const requiredFields = fields.filter(f => isRequired(f)).map(f => renderField(f));

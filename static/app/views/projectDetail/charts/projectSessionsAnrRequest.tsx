@@ -12,8 +12,7 @@ import {defined} from 'sentry/utils';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
-
-import {DisplayModes} from '../projectCharts';
+import {DisplayModes} from 'sentry/views/projectDetail/projectCharts';
 
 import type {ProjectSessionsChartRequestProps} from './projectSessionsChartRequest';
 
@@ -103,9 +102,9 @@ function ProjectSessionsAnrRequest({
       const totalUsers = filteredResponse.groups.reduce(
         (acc, group) =>
           acc +
-          group.series['count_unique(user)']
-            .slice(shouldFetchWithPrevious ? dataMiddleIndex : 0)
-            .reduce((value, groupAcc) => groupAcc + value, 0),
+          group.series['count_unique(user)']!.slice(
+            shouldFetchWithPrevious ? dataMiddleIndex : 0
+          ).reduce((value, groupAcc) => groupAcc + value, 0),
         0
       );
 
@@ -116,9 +115,10 @@ function ProjectSessionsAnrRequest({
         ? filteredResponse.groups.reduce(
             (acc, group) =>
               acc +
-              group.series['count_unique(user)']
-                .slice(0, dataMiddleIndex)
-                .reduce((value, groupAcc) => groupAcc + value, 0),
+              group.series['count_unique(user)']!.slice(0, dataMiddleIndex).reduce(
+                (value, groupAcc) => groupAcc + value,
+                0
+              ),
             0
           )
         : 0;
@@ -134,7 +134,7 @@ function ProjectSessionsAnrRequest({
                   acc +
                   group.series[yAxis]?.slice(
                     shouldFetchWithPrevious ? dataMiddleIndex : 0
-                  )[i],
+                  )[i]!,
                 0
               );
 
@@ -174,7 +174,8 @@ function ProjectSessionsAnrRequest({
               .slice(0, dataMiddleIndex)
               .map((_interval, i) => {
                 const previousAnrRate = filteredResponse.groups.reduce(
-                  (acc, group) => acc + group.series[yAxis]?.slice(0, dataMiddleIndex)[i],
+                  (acc, group) =>
+                    acc + group.series[yAxis]?.slice(0, dataMiddleIndex)[i]!,
                   0
                 );
 

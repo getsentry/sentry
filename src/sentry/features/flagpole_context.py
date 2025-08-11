@@ -5,11 +5,12 @@ from django.contrib.auth.models import AnonymousUser
 from flagpole.evaluation_context import ContextBuilder, EvaluationContextDict
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.models.organization import Organization
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
-from sentry.models.user import User
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 from sentry.projects.services.project import RpcProject
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 
@@ -20,9 +21,14 @@ class InvalidContextDataException(Exception):
 @dataclass()
 class SentryContextData:
     actor: User | RpcUser | AnonymousUser | None = None
-    organization: Organization | RpcOrganization | RpcOrganizationSummary | RpcOrganizationMapping | None = (
-        None
-    )
+    organization: (
+        Organization
+        | RpcOrganization
+        | RpcOrganizationSummary
+        | RpcOrganizationMapping
+        | OrganizationMapping
+        | None
+    ) = None
     project: Project | RpcProject | None = None
 
 
@@ -38,6 +44,12 @@ def organization_context_transformer(data: SentryContextData) -> EvaluationConte
         context_data["organization_id"] = org.id
         early_adopter = bool(org.flags.early_adopter) if org.flags is not None else False
         context_data["organization_is-early-adopter"] = early_adopter
+
+    elif isinstance(org, OrganizationMapping):
+        context_data["organization_slug"] = org.slug
+        context_data["organization_name"] = org.name
+        context_data["organization_id"] = org.organization_id
+        context_data["organization_is-early-adopter"] = org.flags.early_adopter
 
     elif isinstance(org, RpcOrganization):
         context_data["organization_slug"] = org.slug
@@ -66,6 +78,7 @@ def project_context_transformer(data: SentryContextData) -> EvaluationContextDic
         context_data["project_slug"] = proj.slug
         context_data["project_name"] = proj.name
         context_data["project_id"] = proj.id
+        context_data["project_platform"] = proj.platform
 
     return context_data
 
@@ -89,7 +102,7 @@ def user_context_transformer(data: SentryContextData) -> EvaluationContextDict:
     if isinstance(user, RpcUser):
         verified_emails = list(user.emails)
     else:
-        verified_emails = user.get_verified_emails().values_list("email", flat=True)
+        verified_emails = list(user.get_verified_emails().values_list("email", flat=True))
 
     if user.email in verified_emails:
         context_data["user_email"] = user.email

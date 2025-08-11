@@ -39,7 +39,7 @@ export function useUserTeams(): UseTeamsResult {
 
   const {
     data: additionalTeams = [],
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<Team[]>(buildUserTeamsQueryKey(organization?.slug ?? ''), {
     staleTime: 0,
@@ -63,7 +63,7 @@ export function useUserTeams(): UseTeamsResult {
 
   return {
     teams,
-    isLoading: queryEnabled ? isLoading : storeState.loading,
+    isLoading: queryEnabled ? isPending : storeState.loading,
     isError: queryEnabled ? isError : null,
   };
 }

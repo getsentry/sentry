@@ -1,11 +1,11 @@
 from sentry import tsdb
-from sentry.models.servicehook import ServiceHook
+from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.testutils.cases import APITestCase
 from sentry.tsdb.base import TSDBModel
 
 
 class ProjectServiceHookStatsTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project()
         hook = ServiceHook.objects.get_or_create(
             project_id=project.id, actor_id=self.user.id, url="http://example.com"

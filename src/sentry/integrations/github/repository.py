@@ -3,13 +3,16 @@ from __future__ import annotations
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.plugins.providers.integration_repository import RepositoryConfig
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 WEBHOOK_EVENTS = ["push", "pull_request"]
@@ -17,7 +20,7 @@ WEBHOOK_EVENTS = ["push", "pull_request"]
 
 class GitHubRepositoryProvider(IntegrationRepositoryProvider):
     name = "GitHub"
-    repo_provider = "github"
+    repo_provider = IntegrationProviderSlug.GITHUB.value
 
     def _validate_repo(self, client: Any, installation: IntegrationInstallation, repo: str) -> Any:
         try:
@@ -49,8 +52,8 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
         return config
 
     def build_repository_config(
-        self, organization: RpcOrganization, data: Mapping[str, Any]
-    ) -> Mapping[str, Any]:
+        self, organization: RpcOrganization, data: dict[str, Any]
+    ) -> RepositoryConfig:
         return {
             "name": data["identifier"],
             "external_id": data["external_id"],
@@ -75,9 +78,13 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
         integration_id = repo.integration_id
         if integration_id is None:
             raise NotImplementedError("GitHub apps requires an integration id to fetch commits")
-        integration = integration_service.get_integration(integration_id=integration_id)
+        integration = integration_service.get_integration(
+            integration_id=integration_id, status=ObjectStatus.ACTIVE
+        )
         if integration is None:
-            raise NotImplementedError("GitHub apps requires a valid integration to fetch commits")
+            raise NotImplementedError(
+                "GitHub apps requires a valid active integration to fetch commits"
+            )
 
         installation = integration.get_installation(organization_id=repo.organization_id)
         client = installation.get_client()

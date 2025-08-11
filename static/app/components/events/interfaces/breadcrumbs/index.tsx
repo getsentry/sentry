@@ -3,12 +3,13 @@ import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
-import {Button} from 'sentry/components/button';
-import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {Button} from 'sentry/components/core/button';
+import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 import type {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/breadcrumbs/types';
+import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,12 +19,10 @@ import {EntryType} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
-import SearchBarAction from '../searchBarAction';
-
-import Level from './breadcrumb/level';
+import {Level} from './breadcrumb/level';
 import Type from './breadcrumb/type';
 import Breadcrumbs from './breadcrumbs';
 import {getVirtualCrumb, transformCrumbs} from './utils';
@@ -32,10 +31,11 @@ type SelectOptionWithLevels = SelectOption<string> & {levels?: BreadcrumbLevelTy
 
 type Props = {
   data: {
-    values: Array<RawCrumb>;
+    values: RawCrumb[];
   };
   event: Event;
   organization: Organization;
+  disableCollapsePersistence?: boolean;
   hideTitle?: boolean;
 };
 
@@ -72,6 +72,7 @@ export function applyBreadcrumbSearch<T extends BreadcrumbListType>(
     Object.keys(
       pick(breadcrumb, ['type', 'category', 'message', 'level', 'timestamp', 'data'])
     ).some(key => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       const info = breadcrumb[key];
 
       if (!defined(info) || !String(info).trim()) {
@@ -87,9 +88,17 @@ export function applyBreadcrumbSearch<T extends BreadcrumbListType>(
   );
 }
 
-function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Props) {
+function BreadcrumbsContainer({
+  data,
+  event,
+  organization,
+  hideTitle = false,
+  disableCollapsePersistence,
+}: Props) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterSelections, setFilterSelections] = useState<SelectOption<string>[]>([]);
+  const [filterSelections, setFilterSelections] = useState<Array<SelectOption<string>>>(
+    []
+  );
   const [displayRelativeTime, setDisplayRelativeTime] = useState(false);
   const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
     BREADCRUMB_SORT_LOCALSTORAGE_KEY,
@@ -121,7 +130,7 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
     const typeOptions = getFilterTypes(initialBreadcrumbs);
     const levels = getFilterLevels(typeOptions);
 
-    const options: SelectSection<string>[] = [];
+    const options: Array<SelectSection<string>> = [];
 
     if (typeOptions.length) {
       options.push({
@@ -145,8 +154,7 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
   function getFilterTypes(crumbs: ReturnType<typeof transformCrumbs>) {
     const filterTypes: SelectOptionWithLevels[] = [];
 
-    for (const index in crumbs) {
-      const breadcrumb = crumbs[index];
+    for (const breadcrumb of crumbs) {
       const foundFilterType = filterTypes.findIndex(
         f => f.value === `type-${breadcrumb.type}`
       );
@@ -156,16 +164,16 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
           value: `type-${breadcrumb.type}`,
           leadingItems: <Type type={breadcrumb.type} color={breadcrumb.color} />,
           label: breadcrumb.description,
-          levels: breadcrumb?.level ? [breadcrumb.level] : [],
+          levels: breadcrumb.level ? [breadcrumb.level] : [],
         });
         continue;
       }
 
       if (
         breadcrumb?.level &&
-        !filterTypes[foundFilterType].levels?.includes(breadcrumb.level)
+        !filterTypes[foundFilterType]!.levels?.includes(breadcrumb.level)
       ) {
-        filterTypes[foundFilterType].levels?.push(breadcrumb.level);
+        filterTypes[foundFilterType]!.levels?.push(breadcrumb.level);
       }
     }
 
@@ -173,12 +181,10 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
   }
 
   function getFilterLevels(types: SelectOptionWithLevels[]) {
-    const filterLevels: SelectOption<string>[] = [];
+    const filterLevels: Array<SelectOption<string>> = [];
 
-    for (const indexType in types) {
-      for (const indexLevel in types[indexType].levels) {
-        const level = types[indexType].levels?.[indexLevel];
-
+    for (const typeValue of types) {
+      for (const level of typeValue.levels ?? []) {
         if (filterLevels.some(f => f.value === `level-${level}`)) {
           continue;
         }
@@ -200,7 +206,7 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
 
   function applySelectedFilters(
     breadcrumbs: BreadcrumbWithMeta[],
-    selectedFilterOptions: SelectOption<string>[]
+    selectedFilterOptions: Array<SelectOption<string>>
   ) {
     const checkedTypeOptions = new Set(
       selectedFilterOptions
@@ -316,10 +322,10 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
   return (
     <InterimSection
       showPermalink={!hideTitle}
-      type={FoldSectionKey.BREADCRUMBS}
+      type={SectionKey.BREADCRUMBS}
       title={hideTitle ? '' : t('Breadcrumbs')}
-      guideTarget="breadcrumbs"
       actions={actions}
+      disableCollapsePersistence={disableCollapsePersistence}
     >
       <ErrorBoundary>
         <Breadcrumbs
@@ -344,8 +350,12 @@ export const SearchAndSortWrapper = styled('div')`
   grid-template-columns: 1fr auto;
   gap: ${space(1)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr;
+  }
+
+  @container breadcrumbs (width < 640px) {
+    display: none;
   }
 `;
 

@@ -1,14 +1,25 @@
+import {DashboardFixture} from 'sentry-fixture/dashboard';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  makeAllTheProviders,
+  render,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
+import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
+import WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {DashboardsMEPProvider} from './dashboardsMEPContext';
 
 describe('Dashboards > IssueWidgetCard', function () {
   const {router, organization} = initializeOrg({
@@ -45,8 +56,30 @@ describe('Dashboards > IssueWidgetCard', function () {
     },
   };
 
+  const BasicProvidersWrapper = makeAllTheProviders({
+    organization,
+    router,
+    deprecatedRouterMocks: true,
+  });
+  function Wrapper({children}: {children: React.ReactNode}) {
+    return (
+      <BasicProvidersWrapper>
+        <DashboardsMEPProvider>
+          <MEPSettingProvider forceTransactions={false}>{children}</MEPSettingProvider>
+        </DashboardsMEPProvider>
+      </BasicProvidersWrapper>
+    );
+  }
+
   const user = UserFixture();
   const api = new MockApiClient();
+
+  const widgetLegendState = new WidgetLegendSelectionState({
+    location: LocationFixture(),
+    dashboard: DashboardFixture([widget]),
+    organization,
+    navigate: jest.fn(),
+  });
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -95,7 +128,12 @@ describe('Dashboards > IssueWidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-      />
+        widgetLegendState={widgetLegendState}
+      />,
+      {
+        wrapper: Wrapper,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('Issues')).toBeInTheDocument();
@@ -125,16 +163,19 @@ describe('Dashboards > IssueWidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
       />,
-      {router}
+      {
+        wrapper: Wrapper,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     expect(screen.getByText('Duplicate Widget')).toBeInTheDocument();
 
-    expect(screen.getByText('Open in Issues')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('Open in Issues'));
-    expect(router.push).toHaveBeenCalledWith(
+    expect(screen.getByRole('menuitemradio', {name: 'Open in Issues'})).toHaveAttribute(
+      'href',
       '/organizations/org-slug/issues/?environment=prod&project=1&query=event.type%3Adefault&sort=freq&statsPeriod=14d'
     );
   });
@@ -154,7 +195,12 @@ describe('Dashboards > IssueWidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-      />
+        widgetLegendState={widgetLegendState}
+      />,
+      {
+        wrapper: Wrapper,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -178,7 +224,12 @@ describe('Dashboards > IssueWidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached
-      />
+        widgetLegendState={widgetLegendState}
+      />,
+      {
+        wrapper: Wrapper,
+        deprecatedRouterMocks: true,
+      }
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
@@ -197,7 +248,7 @@ describe('Dashboards > IssueWidgetCard', function () {
           ...widget,
           queries: [
             {
-              ...widget.queries[0],
+              ...widget.queries[0]!,
               fields: ['issue', 'assignee', 'title', 'lifetimeEvents', 'lifetimeUsers'],
             },
           ],
@@ -210,7 +261,12 @@ describe('Dashboards > IssueWidgetCard', function () {
         renderErrorMessage={() => undefined}
         showContextMenu
         widgetLimitReached={false}
-      />
+        widgetLegendState={widgetLegendState}
+      />,
+      {
+        wrapper: Wrapper,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(await screen.findByText('Lifetime Events')).toBeInTheDocument();

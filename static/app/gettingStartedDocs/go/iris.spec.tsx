@@ -2,7 +2,7 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
 import docs from './iris';
 
@@ -25,6 +25,35 @@ describe('iris onboarding docs', function () {
       textWithMarkupMatcher(/TracesSampleRate/)
     );
     for (const element of elements) {
+      expect(element).toBeInTheDocument();
+    }
+  });
+
+  it('renders logs onboarding docs correctly', async function () {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.LOGS],
+    });
+
+    const elements = await screen.findAllByText(textWithMarkupMatcher(/EnableLogs/));
+    for (const element of elements) {
+      expect(element).toBeInTheDocument();
+    }
+  });
+
+  it('renders performance and logs onboarding docs correctly', async function () {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+    });
+
+    const traceElements = await screen.findAllByText(
+      textWithMarkupMatcher(/TracesSampleRate/)
+    );
+    for (const element of traceElements) {
+      expect(element).toBeInTheDocument();
+    }
+
+    const logElements = await screen.findAllByText(textWithMarkupMatcher(/EnableLogs/));
+    for (const element of logElements) {
       expect(element).toBeInTheDocument();
     }
   });

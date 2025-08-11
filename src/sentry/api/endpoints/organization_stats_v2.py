@@ -20,6 +20,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.exceptions import InvalidParams
+from sentry.models.organization import Organization
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.outcomes import (
     COLUMN_MAP,
@@ -99,11 +100,31 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
     )
 
     category = serializers.ChoiceField(
-        ("error", "transaction", "attachment", "replay", "profile", "monitor"),
+        (
+            "error",
+            "transaction",
+            "attachment",
+            "replay",
+            "profile",
+            "profile_duration",
+            "profile_duration_ui",
+            "profile_chunk",
+            "profile_chunk_ui",
+            "monitor",
+        ),
         required=False,
         help_text=(
-            "If filtering by attachments, you cannot filter by any other category due to quantity values becoming nonsensical (combining bytes and event counts).\n\n"
-            "If filtering by `error`, it will automatically add `default` and `security` as we currently roll those two categories into `error` for displaying."
+            "Filter by data category. Each category represents a different type of data:\n\n"
+            "- `error`: Error events (includes `default` and `security` categories)\n"
+            "- `transaction`: Transaction events\n"
+            "- `attachment`: File attachments (note: cannot be combined with other categories since quantity represents bytes)\n"
+            "- `replay`: Session replay events\n"
+            "- `profile`: Performance profiles\n"
+            "- `profile_duration`: Profile duration data (note: cannot be combined with other categories since quantity represents milliseconds)\n"
+            "- `profile_duration_ui`: Profile duration (UI) data (note: cannot be combined with other categories since quantity represents milliseconds)\n"
+            "- `profile_chunk`: Profile chunk data\n"
+            "- `profile_chunk_ui`: Profile chunk (UI) data\n"
+            "- `monitor`: Cron monitor events"
         ),
     )
     outcome = serializers.ChoiceField(
@@ -158,7 +179,7 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         },
         examples=OrganizationExamples.RETRIEVE_EVENT_COUNTS_V2,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Query event counts for your Organization.
         Select a field, define a date range, and group or filter by columns.
@@ -166,21 +187,19 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         with self.handle_query_errors():
 
             tenant_ids = {"organization_id": organization.id}
-            with sentry_sdk.start_span(op="outcomes.endpoint", description="build_outcomes_query"):
+            with sentry_sdk.start_span(op="outcomes.endpoint", name="build_outcomes_query"):
                 query = self.build_outcomes_query(
                     request,
                     organization,
                 )
-            with sentry_sdk.start_span(op="outcomes.endpoint", description="run_outcomes_query"):
+            with sentry_sdk.start_span(op="outcomes.endpoint", name="run_outcomes_query"):
                 result_totals = run_outcomes_query_totals(query, tenant_ids=tenant_ids)
                 result_timeseries = (
                     None
                     if "project_id" in query.query_groupby
                     else run_outcomes_query_timeseries(query, tenant_ids=tenant_ids)
                 )
-            with sentry_sdk.start_span(
-                op="outcomes.endpoint", description="massage_outcomes_result"
-            ):
+            with sentry_sdk.start_span(op="outcomes.endpoint", name="massage_outcomes_result"):
                 result = massage_outcomes_result(query, result_totals, result_timeseries)
             return Response(result, status=200)
 

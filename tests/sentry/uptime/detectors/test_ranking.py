@@ -3,7 +3,7 @@ from unittest import mock
 
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import UptimeTestCase
 from sentry.uptime.detectors.ranking import (
     _get_cluster,
     add_base_url_to_rank,
@@ -17,9 +17,10 @@ from sentry.uptime.detectors.ranking import (
     should_detect_for_organization,
     should_detect_for_project,
 )
+from sentry.uptime.models import get_detector
 
 
-class AddBaseUrlToRankTest(TestCase):
+class AddBaseUrlToRankTest(UptimeTestCase):
     def assert_project_count(
         self, project: Project, count: int | None, expiry: int | None
     ) -> int | None:
@@ -53,7 +54,7 @@ class AddBaseUrlToRankTest(TestCase):
             assert ttl == expiry
         return ttl
 
-    def test(self):
+    def test(self) -> None:
         project_2 = self.create_project()
         url_1 = "https://sentry.io"
         url_2 = "https://sentry.sentry.io"
@@ -85,9 +86,10 @@ class AddBaseUrlToRankTest(TestCase):
         project_2_url_expiry = self.assert_url_count(project_2, url_1, None, None)
         self.assert_url_count(project_2, url_2, 1, project_2_url_expiry)
 
-    def test_trim(self):
-        with mock.patch("sentry.uptime.detectors.ranking.RANKED_TRIM_CHANCE", new=1), mock.patch(
-            "sentry.uptime.detectors.ranking.RANKED_MAX_SIZE", new=2
+    def test_trim(self) -> None:
+        with (
+            mock.patch("sentry.uptime.detectors.ranking.RANKED_TRIM_CHANCE", new=1),
+            mock.patch("sentry.uptime.detectors.ranking.RANKED_MAX_SIZE", new=2),
         ):
             key = get_project_base_url_rank_key(self.project)
             url_1 = "https://sentry.io"
@@ -106,8 +108,8 @@ class AddBaseUrlToRankTest(TestCase):
             assert cluster.zrange(key, 0, -1) == [url_2, url_1]
 
 
-class GetCandidateProjectsForOrgTest(TestCase):
-    def test(self):
+class GetCandidateProjectsForOrgTest(UptimeTestCase):
+    def test(self) -> None:
         assert get_candidate_projects_for_org(self.organization) == []
         url_1 = "https://sentry.io"
         url_2 = "https://sentry.sentry.io"
@@ -122,8 +124,8 @@ class GetCandidateProjectsForOrgTest(TestCase):
         ]
 
 
-class GetCandidateUrlsForProjectTest(TestCase):
-    def test(self):
+class GetCandidateUrlsForProjectTest(UptimeTestCase):
+    def test(self) -> None:
         assert get_candidate_urls_for_project(self.project) == []
         url_1 = "https://sentry.io"
         url_2 = "https://sentry.sentry.io"
@@ -133,9 +135,23 @@ class GetCandidateUrlsForProjectTest(TestCase):
         add_base_url_to_rank(self.project, url_2)
         assert get_candidate_urls_for_project(self.project) == [(url_2, 2), (url_1, 1)]
 
+    def test_limits(self) -> None:
+        with mock.patch("sentry.uptime.subscriptions.subscriptions.MAX_MONITORS_PER_DOMAIN", 1):
+            other_proj = self.create_project()
+            url_1 = "https://sentry.io"
+            self.create_project_uptime_subscription(
+                project=other_proj, uptime_subscription=self.create_uptime_subscription(url=url_1)
+            )
+            url_2 = "https://sentry.sentry.io"
+            url_3 = "https://sentry.santry.io"
+            add_base_url_to_rank(self.project, url_1)
+            add_base_url_to_rank(self.project, url_2)
+            add_base_url_to_rank(self.project, url_3)
+            assert get_candidate_urls_for_project(self.project) == [(url_3, 1)]
 
-class DeleteCandidateUrlsForProjectTest(TestCase):
-    def test(self):
+
+class DeleteCandidateUrlsForProjectTest(UptimeTestCase):
+    def test(self) -> None:
         delete_candidate_urls_for_project(self.project)
         url_1 = "https://sentry.io"
         add_base_url_to_rank(self.project, url_1)
@@ -144,8 +160,8 @@ class DeleteCandidateUrlsForProjectTest(TestCase):
         assert get_candidate_urls_for_project(self.project) == []
 
 
-class GetOrganizationBucketTest(TestCase):
-    def test(self):
+class GetOrganizationBucketTest(UptimeTestCase):
+    def test(self) -> None:
         bucket = datetime(2024, 7, 18, 0, 47)
         assert get_organization_bucket(bucket) == set()
         dummy_org_id = 47
@@ -155,8 +171,8 @@ class GetOrganizationBucketTest(TestCase):
         assert get_organization_bucket(bucket) == {self.project.organization_id}
 
 
-class DeleteOrganizationBucketTest(TestCase):
-    def test(self):
+class DeleteOrganizationBucketTest(UptimeTestCase):
+    def test(self) -> None:
         bucket = datetime(2024, 7, 18, 0, 47)
         delete_organization_bucket(bucket)
         dummy_org_id = 1487
@@ -168,8 +184,8 @@ class DeleteOrganizationBucketTest(TestCase):
         assert get_organization_bucket(bucket) == set()
 
 
-class ShouldDetectForProjectTest(TestCase):
-    def test(self):
+class ShouldDetectForProjectTest(UptimeTestCase):
+    def test(self) -> None:
         assert should_detect_for_project(self.project)
         self.project.update_option("sentry:uptime_autodetection", False)
         assert not should_detect_for_project(self.project)
@@ -177,17 +193,20 @@ class ShouldDetectForProjectTest(TestCase):
         assert should_detect_for_project(self.project)
 
 
-class ShouldDetectForOrgTest(TestCase):
-    def test(self):
+class ShouldDetectForOrgTest(UptimeTestCase):
+    def test(self) -> None:
         assert should_detect_for_organization(self.organization)
         self.organization.update_option("sentry:uptime_autodetection", False)
         assert not should_detect_for_organization(self.organization)
         self.organization.update_option("sentry:uptime_autodetection", True)
         assert should_detect_for_organization(self.organization)
 
-    def test_quota(self):
+    def test_quota(self) -> None:
         assert should_detect_for_organization(self.organization)
         uptime_monitor = self.create_project_uptime_subscription()
         assert not should_detect_for_organization(self.organization)
+        detector = get_detector(uptime_monitor.uptime_subscription)
+        assert detector
+        detector.delete()
         uptime_monitor.delete()
         assert should_detect_for_organization(self.organization)

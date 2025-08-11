@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
-import Link from 'sentry/components/links/link';
 import {
   ErrorDot,
   ErrorLevel,
@@ -61,29 +61,31 @@ class TransactionDetail extends Component<Props> {
     }
 
     return (
-      <Alert
-        system
-        type="error"
-        expand={[...errors, ...performance_issues].map(error => (
-          <ErrorMessageContent key={error.event_id}>
-            <ErrorDot level={error.level} />
-            <ErrorLevel>{error.level}</ErrorLevel>
-            <ErrorTitle>
-              <Link to={generateIssueEventTarget(error, organization)}>
-                {error.title}
-              </Link>
-            </ErrorTitle>
-          </ErrorMessageContent>
-        ))}
-      >
-        <ErrorMessageTitle>
-          {tn(
-            '%s issue occurred in this transaction.',
-            '%s issues occurred in this transaction.',
-            errors.length + performance_issues.length
-          )}
-        </ErrorMessageTitle>
-      </Alert>
+      <Alert.Container>
+        <Alert
+          system
+          type="error"
+          expand={[...errors, ...performance_issues].map(error => (
+            <ErrorMessageContent key={error.event_id}>
+              <ErrorDot level={error.level} />
+              <ErrorLevel>{error.level}</ErrorLevel>
+              <ErrorTitle>
+                <Link to={generateIssueEventTarget(error, organization)}>
+                  {error.title}
+                </Link>
+              </ErrorTitle>
+            </ErrorMessageContent>
+          ))}
+        >
+          <ErrorMessageTitle>
+            {tn(
+              '%s issue occurred in this transaction.',
+              '%s issues occurred in this transaction.',
+              errors.length + performance_issues.length
+            )}
+          </ErrorMessageTitle>
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -103,9 +105,9 @@ class TransactionDetail extends Component<Props> {
     );
 
     return (
-      <StyledButton size="xs" to={target}>
+      <StyledLinkButton size="xs" to={target}>
         {t('View Event')}
-      </StyledButton>
+      </StyledLinkButton>
     );
   }
 
@@ -113,16 +115,16 @@ class TransactionDetail extends Component<Props> {
     const {location, organization, transaction} = this.props;
 
     const target = transactionSummaryRouteWithQuery({
-      orgSlug: organization.slug,
+      organization,
       transaction: transaction.transaction,
       query: omit(location.query, Object.values(PAGE_URL_PARAM)),
       projectID: String(transaction.project_id),
     });
 
     return (
-      <StyledButton size="xs" to={target}>
+      <StyledLinkButton size="xs" to={target}>
         {t('View Summary')}
-      </StyledButton>
+      </StyledLinkButton>
     );
   }
 
@@ -134,7 +136,7 @@ class TransactionDetail extends Component<Props> {
     }
 
     const target = generateProfileFlamechartRoute({
-      orgSlug: organization.slug,
+      organization,
       projectSlug: transaction.project_slug,
       profileId: transaction.profile_id,
     });
@@ -142,14 +144,14 @@ class TransactionDetail extends Component<Props> {
     function handleOnClick() {
       trackAnalytics('profiling_views.go_to_flamegraph', {
         organization,
-        source: 'performance.trace_view',
+        source: 'performance.trace_view.details',
       });
     }
 
     return (
-      <StyledButton size="xs" to={target} onClick={handleOnClick}>
+      <StyledLinkButton size="xs" to={target} onClick={handleOnClick}>
         {t('View Profile')}
-      </StyledButton>
+      </StyledLinkButton>
     );
   }
 
@@ -158,6 +160,7 @@ class TransactionDetail extends Component<Props> {
     const {measurements = {}} = transaction;
 
     const measurementKeys = Object.keys(measurements)
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
       .sort();
 
@@ -170,9 +173,10 @@ class TransactionDetail extends Component<Props> {
         {measurementKeys.map(measurement => (
           <Row
             key={measurement}
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
           >
-            {`${Number(measurements[measurement].value.toFixed(3)).toLocaleString()}ms`}
+            {`${Number(measurements[measurement]!.value.toFixed(3)).toLocaleString()}ms`}
           </Row>
         ))}
       </Fragment>
@@ -305,7 +309,7 @@ const TransactionIdTitle = styled('a')`
   }
 `;
 
-const StyledButton = styled(Button)`
+const StyledLinkButton = styled(LinkButton)`
   position: absolute;
   top: ${space(0.75)};
   right: ${space(0.5)};

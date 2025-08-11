@@ -4,8 +4,9 @@ from unittest import mock
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.replays.testutils import mock_replay
+from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -13,9 +14,9 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
     def setUp(self):
         super().setUp()
-        self.min_ago = iso_format(before_now(minutes=1))
+        self.min_ago = before_now(minutes=1).isoformat()
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -59,7 +60,61 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             {"name": "Some Tag", "key": "some_tag", "totalValues": 1},
         ]
 
-    def test_dataset_events(self):
+    def test_simple_flags(self) -> None:
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, teams=[team])
+
+        self.login_as(user=user)
+
+        project = self.create_project(organization=org, teams=[team])
+        self.store_event(
+            data={
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {"flag": "abc", "result": True},
+                            {"flag": "def", "result": False},
+                        ]
+                    }
+                },
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "contexts": {
+                    "flags": {
+                        "values": [
+                            {"flag": "abc", "result": False},
+                        ]
+                    }
+                },
+                "timestamp": before_now(minutes=1).isoformat(),
+            },
+            project_id=project.id,
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
+        )
+
+        response = self.client.get(
+            url,
+            {"statsPeriod": "14d", "useFlagsBackend": "1", "dataset": "events"},
+            format="json",
+        )
+        assert response.status_code == 200, response.content
+        data = response.data
+        data.sort(key=lambda val: val["totalValues"], reverse=True)
+        assert data == [
+            {"key": "abc", "name": "Abc", "totalValues": 2},
+            {"key": "def", "name": "Def", "totalValues": 1},
+        ]
+
+    def test_dataset_events(self) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -87,7 +142,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             {"name": "Level", "key": "level", "totalValues": 1},
         ]
 
-    def test_dataset_discover(self):
+    def test_dataset_discover(self) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -123,7 +178,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
         # Other tags are added by default, just check that the one we added exists
         assert {"name": "Apple", "key": "apple", "totalValues": 1} in discoverResponse.data
 
-    def test_dataset_issue_platform(self):
+    def test_dataset_issue_platform(self) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -166,7 +221,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             {"name": "Stone Fruit", "key": "stone_fruit", "totalValues": 1},
         ]
 
-    def test_dataset_combination(self):
+    def test_dataset_combination(self) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -237,7 +292,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             {"name": "Stone Fruit", "key": "stone_fruit", "totalValues": 1},
         ]
 
-    def test_invalid_dataset(self):
+    def test_invalid_dataset(self) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -262,7 +317,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             "detail": ErrorDetail(string="Invalid dataset parameter", code="parse_error")
         }
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         self.login_as(user=user)
@@ -276,7 +331,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
         assert response.data == []
 
     @mock.patch("sentry.utils.snuba.query", return_value={})
-    def test_tag_caching(self, mock_snuba_query):
+    def test_tag_caching(self, mock_snuba_query: mock.MagicMock) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -298,7 +353,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             assert mock_snuba_query.call_count == 1
 
     @mock.patch("sentry.utils.snuba.query", return_value={})
-    def test_different_statsperiod_caching(self, mock_snuba_query):
+    def test_different_statsperiod_caching(self, mock_snuba_query: mock.MagicMock) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -321,7 +376,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             assert mock_snuba_query.call_count == 2
 
     @mock.patch("sentry.utils.snuba.query", return_value={})
-    def test_different_times_caching(self, mock_snuba_query):
+    def test_different_times_caching(self, mock_snuba_query: mock.MagicMock) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -330,8 +385,8 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
         self.login_as(user=user)
 
         with self.options({"snuba.tagstore.cache-tagkeys-rate": 1.0}):
-            start = iso_format(before_now(minutes=10))
-            end = iso_format(before_now(minutes=5))
+            start = before_now(minutes=10).isoformat()
+            end = before_now(minutes=5).isoformat()
             url = reverse(
                 "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
             )
@@ -342,15 +397,15 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             assert mock_snuba_query.call_count == 1
 
             # 5 minutes later, cache_key should be different
-            start = iso_format(before_now(minutes=5))
-            end = iso_format(before_now(minutes=0))
+            start = before_now(minutes=5).isoformat()
+            end = before_now(minutes=0).isoformat()
             response = self.client.get(
                 url, {"use_cache": "1", "start": start, "end": end}, format="json"
             )
             assert response.status_code == 200, response.content
             assert mock_snuba_query.call_count == 2
 
-    def test_different_times_retrieves_cache(self):
+    def test_different_times_retrieves_cache(self) -> None:
         user = self.create_user()
         org = self.create_organization()
         team = self.create_team(organization=org)
@@ -358,9 +413,9 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
         project = self.create_project(organization=org, teams=[team])
 
         with self.options({"snuba.tagstore.cache-tagkeys-rate": 1.0}):
-            start = iso_format(before_now(minutes=10))
-            middle = iso_format(before_now(minutes=5))
-            end = iso_format(before_now(minutes=0))
+            start = before_now(minutes=10).isoformat()
+            middle = before_now(minutes=5).isoformat()
+            end = before_now(minutes=0).isoformat()
             # Throw an event in the middle of the time window, since end might get rounded down a bit
             self.store_event(
                 data={"event_id": "a" * 32, "tags": {"fruit": "apple"}, "timestamp": middle},
@@ -385,3 +440,64 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             cached_data = response.data
 
             assert original_data == cached_data
+
+
+class ReplayOrganizationTagsTest(APITestCase, ReplaysSnubaTestCase):
+    def test_dataset_replays(self) -> None:
+        self.login_as(user=self.user)
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+        replay3_id = uuid.uuid4().hex
+        self.r1_seq0_timestamp = before_now(seconds=22)
+        self.r1_seq1_timestamp = before_now(seconds=15)
+        self.r2_seq0_timestamp = before_now(seconds=10)
+        self.r3_seq0_timestamp = before_now(seconds=10)
+        self.store_replays(
+            mock_replay(
+                self.r1_seq0_timestamp,
+                self.project.id,
+                replay1_id,
+                tags={"fruit": "orange"},
+                segment_id=0,
+            ),
+        )
+        self.store_replays(
+            mock_replay(
+                self.r1_seq1_timestamp,
+                self.project.id,
+                replay1_id,
+                tags={"fruit": "orange"},
+                segment_id=1,
+            ),
+        )
+
+        self.store_replays(
+            mock_replay(
+                self.r2_seq0_timestamp,
+                self.project.id,
+                replay2_id,
+                tags={"fruit": "orange"},
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                self.r3_seq0_timestamp,
+                self.project.id,
+                replay3_id,
+                tags={"fruit": "apple", "drink": "water"},
+            )
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-tags",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        response = self.client.get(url, {"statsPeriod": "14d", "dataset": "replays"}, format="json")
+
+        assert response.status_code == 200, response.content
+        data = response.data
+        data.sort(key=lambda val: val["name"])
+        assert data == [
+            {"key": "drink", "name": "Drink", "totalValues": 1},
+            {"key": "fruit", "name": "Fruit", "totalValues": 4},
+        ]

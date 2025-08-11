@@ -1,12 +1,11 @@
 .PHONY: all
 all: develop
 
-PIP := python -m pip --disable-pip-version-check
-WEBPACK := yarn build-acceptance
-POSTGRES_CONTAINER := sentry_postgres
+WEBPACK := pnpm run build-acceptance
 
 freeze-requirements:
 	@python3 -S -m tools.freeze_requirements
+	@uv lock
 
 bootstrap:
 	@echo "devenv bootstrap is typically run on new machines."
@@ -20,8 +19,7 @@ run-dependent-services \
 drop-db \
 create-db \
 apply-migrations \
-reset-db \
-node-version-check :
+reset-db :
 	@./scripts/do.sh $@
 
 develop \
@@ -35,10 +33,9 @@ install-py-dev :
 devenv-sync:
 	devenv sync
 
-build-js-po: node-version-check
+build-js-po:
 	mkdir -p build
-	rm -rf node_modules/.cache/babel-loader
-	SENTRY_EXTRACT_TRANSLATIONS=1 $(WEBPACK)
+	pnpm run build-js-po
 
 build-spectacular-docs:
 	@echo "--> Building drf-spectacular openapi spec (combines with deprecated docs)"
@@ -46,34 +43,34 @@ build-spectacular-docs:
 
 build-deprecated-docs:
 	@echo "--> Building deprecated openapi spec from json files"
-	yarn build-deprecated-docs
+	pnpm run build-deprecated-docs
 
 build-api-docs: build-deprecated-docs build-spectacular-docs
 	@echo "--> Dereference the json schema for ease of use"
-	yarn deref-api-docs
+	pnpm run deref-api-docs
 
 watch-api-docs:
-	@cd api-docs/ && yarn install
-	@cd api-docs/ && ts-node ./watch.ts
+	@cd api-docs/ && pnpm install --frozen-lockfile
+	@cd api-docs/ && node --experimental-transform-types ./watch.ts
 
 diff-api-docs:
 	@echo "--> diffing local api docs against sentry-api-schema/openapi-derefed.json"
-	yarn diff-docs
+	pnpm run diff-docs
 
 build: locale
 
 merge-locale-catalogs: build-js-po
-	$(PIP) install Babel
+	uv pip install Babel
 	cd src/sentry && sentry django makemessages -i static -l en
 	./bin/merge-catalogs en
 
 compile-locale:
-	$(PIP) install Babel
+	uv pip install Babel
 	./bin/find-good-catalogs src/sentry/locale/catalogs.json
 	cd src/sentry && sentry django compilemessages
 
 install-transifex:
-	$(PIP) install transifex-client
+	uv pip install transifex-client
 
 push-transifex: merge-locale-catalogs install-transifex
 	tx push -s
@@ -89,7 +86,7 @@ update-local-locales: pull-transifex compile-locale
 
 build-chartcuterie-config:
 	@echo "--> Building chartcuterie config module"
-	yarn build-chartcuterie-config
+	pnpm run build-chartcuterie-config
 
 run-acceptance:
 	@echo "--> Running acceptance tests"
@@ -103,24 +100,24 @@ test-cli: create-db
 	cd test_cli && sentry init test_conf
 	cd test_cli && sentry --config=test_conf help
 	cd test_cli && sentry --config=test_conf upgrade --traceback --noinput
-	cd test_cli && sentry --config=test_conf export
+	cd test_cli && sentry --config=test_conf export --help
 	rm -r test_cli
 	@echo ""
 
-test-js-build: node-version-check
+test-js-build:
 	@echo "--> Running type check"
-	@yarn run tsc -p config/tsconfig.build.json
+	@pnpm run tsc -p config/tsconfig.build.json
 	@echo "--> Building static assets"
-	@NODE_ENV=production yarn webpack-profile > .artifacts/webpack-stats.json
+	@NODE_ENV=production pnpm run build-profile > .artifacts/webpack-stats.json
 
-test-js: node-version-check
+test-js:
 	@echo "--> Running JavaScript tests"
-	@yarn run test
+	@pnpm run test
 	@echo ""
 
-test-js-ci: node-version-check
+test-js-ci:
 	@echo "--> Running CI JavaScript tests"
-	@yarn run test-ci
+	@pnpm run test-ci
 	@echo ""
 
 # COV_ARGS controls extra args passed to pytest to generate covereage
@@ -159,7 +156,6 @@ test-monolith-dbs:
 	  tests/sentry/backup/test_exhaustive.py \
 	  tests/sentry/backup/test_exports.py \
 	  tests/sentry/backup/test_imports.py \
-	  tests/sentry/backup/test_releases.py \
 	  tests/sentry/runner/commands/test_backup.py \
 	  --cov . \
 	  --cov-report="xml:.artifacts/python.monolith-dbs.coverage.xml" \
@@ -186,7 +182,7 @@ test-symbolicator:
 	python3 -b -m pytest tests/relay_integration/lang/java/ -vv -m symbolicator
 	@echo ""
 
-test-acceptance: node-version-check
+test-acceptance:
 	@echo "--> Building static assets"
 	@$(WEBPACK)
 	make run-acceptance
@@ -201,7 +197,7 @@ test-relay-integration:
 	@echo ""
 
 test-api-docs: build-api-docs
-	yarn run validate-api-examples
+	pnpm run validate-api-examples
 	python3 -b -m pytest tests/apidocs
 	@echo ""
 

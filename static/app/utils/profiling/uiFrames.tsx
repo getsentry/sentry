@@ -28,8 +28,8 @@ function sortFramesByStartedTime(a: UIFrameMeasurement, b: UIFrameMeasurement) {
 }
 
 class UIFrames {
-  frames: ReadonlyArray<UIFrameNode> = [];
-  toUnit: string = 'nanoseconds';
+  frames: readonly UIFrameNode[] = [];
+  toUnit = 'nanoseconds';
   minFrameDuration: number = Number.MAX_SAFE_INTEGER;
   configSpace: Rect = Rect.Empty();
 
@@ -72,7 +72,7 @@ class UIFrames {
   buildFramesIntervalTree(
     slowFrames: NonNullable<UIFrameMeasurements>,
     frozenFrames: NonNullable<UIFrameMeasurements>
-  ): ReadonlyArray<UIFrameNode> {
+  ): readonly UIFrameNode[] {
     const frames: UIFrameNode[] = [];
 
     const toSlowFinalUnit = makeFormatTo(slowFrames.unit, this.toUnit);
@@ -82,14 +82,14 @@ class UIFrames {
     const frozenFramesQueue = [...frozenFrames.values].sort(sortFramesByStartedTime);
 
     while (slowFramesQueue.length > 0 || frozenFramesQueue.length > 0) {
-      const nextType = !slowFramesQueue.length
-        ? 'frozen'
-        : !frozenFramesQueue.length
-          ? 'slow'
-          : slowFramesQueue[0].elapsed - slowFramesQueue[0].value <
-              frozenFramesQueue[0].elapsed - frozenFramesQueue[0].value
+      const nextType = slowFramesQueue.length
+        ? frozenFramesQueue.length
+          ? slowFramesQueue[0]!.elapsed - slowFramesQueue[0]!.value <
+            frozenFramesQueue[0]!.elapsed - frozenFramesQueue[0]!.value
             ? 'slow'
-            : 'frozen';
+            : 'frozen'
+          : 'slow'
+        : 'frozen';
 
       // Being lazy, but we could reverse and pop to avoid shift which is O(n)
       const frame =

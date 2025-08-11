@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
+import {SentryAppAvatar} from 'sentry/components/core/avatar/sentryAppAvatar';
 import ConfigStore from 'sentry/stores/configStore';
 import type {SentryAppComponent} from 'sentry/types/integrations';
 
@@ -18,7 +18,8 @@ function SentryAppComponentIcon({sentryAppComponent, size = 20}: Props) {
     ({color}) => color === false
   );
   const isDefault = selectedAvatar?.avatarType !== 'upload';
-  const isDisabled = sentryAppComponent.error;
+  const isDisabled = Boolean(sentryAppComponent.error);
+
   return (
     <SentryAppAvatarWrapper
       isDark={ConfigStore.get('theme') === 'dark'}

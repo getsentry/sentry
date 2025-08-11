@@ -1,18 +1,17 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportGenericInstallStep,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {csharpFeedbackOnboarding} from 'sentry/gettingStartedDocs/dotnet/dotnet';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -42,14 +41,14 @@ public class LambdaEntryPoint : Amazon.Lambda.AspNetCoreServer.APIGatewayProxyFu
             // Add Sentry
             .UseSentry(o =>
             {
-              o.Dsn = "${params.dsn}";
+              o.Dsn = "${params.dsn.public}";
               // When configuring for the first time, to see what the SDK is doing:
               o.Debug = true;
               // Required in Serverless environments
               o.FlushOnCompletedRequest = true;${
                 params.isPerformanceSelected
                   ? `
-              // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+              // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
               // We recommend adjusting this value in production.
               o.TracesSampleRate = 1.0;`
                   : ''
@@ -184,7 +183,6 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: csharpFeedbackOnboarding,
-  customMetricsOnboarding: getDotnetMetricsOnboarding({packageName: 'Sentry.AspNetCore'}),
   crashReportOnboarding,
 };
 

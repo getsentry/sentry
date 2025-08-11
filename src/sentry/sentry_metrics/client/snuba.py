@@ -33,7 +33,6 @@ def get_retention_from_org_id(org_id: int) -> int:
 
 
 class SnubaMetricsBackend(GenericMetricsBackend):
-
     """
     This backend is meant for use in dev/testing
     environments. It allows for producing metrics
@@ -52,7 +51,6 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         tags: dict[str, str],
         unit: str | None,
     ) -> None:
-
         """
         Emit a counter metric for internal use cases only.
         """
@@ -76,7 +74,6 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         tags: dict[str, str],
         unit: str | None,
     ) -> None:
-
         """
         Emit a set metric for internal use cases only. Can support
         a sequence of values.
@@ -102,7 +99,6 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         tags: dict[str, str],
         unit: str | None,
     ) -> None:
-
         """
         Emit a distribution metric for internal use cases only. Can
         support a sequence of values.

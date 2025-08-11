@@ -1,5 +1,6 @@
-import {createRef, memo, useEffect, useState} from 'react';
-import {Observer} from 'mobx-react';
+import {memo, useEffect, useRef, useState} from 'react';
+import {useTheme} from '@emotion/react';
+import {Observer} from 'mobx-react-lite';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {t} from 'sentry/locale';
@@ -26,10 +27,11 @@ type Props = {
 };
 
 function TraceView(props: Props) {
-  const traceViewRef = createRef<HTMLDivElement>();
-  const traceViewHeaderRef = createRef<HTMLDivElement>();
-  const virtualScrollBarContainerRef = createRef<HTMLDivElement>();
-  const minimapInteractiveRef = createRef<HTMLDivElement>();
+  const traceViewRef = useRef<HTMLDivElement>(null);
+  const traceViewHeaderRef = useRef<HTMLDivElement>(null);
+  const virtualScrollBarContainerRef = useRef<HTMLDivElement>(null);
+  const minimapInteractiveRef = useRef<HTMLDivElement>(null);
+  const theme = useTheme();
 
   const [isMounted, setIsMounted] = useState(false);
 
@@ -50,6 +52,7 @@ function TraceView(props: Props) {
 
         return (
           <TraceViewHeader
+            theme={theme}
             traceViewHeaderRef={traceViewHeaderRef}
             organization={props.organization}
             minimapInteractiveRef={minimapInteractiveRef}
@@ -67,6 +70,7 @@ function TraceView(props: Props) {
               viewStart: 0,
               viewEnd: 1,
             })}
+            isEmbedded={!!props.isEmbedded}
           />
         );
       }}
@@ -82,10 +86,7 @@ function TraceView(props: Props) {
       </EmptyStateWarning>
     );
   }
-  if (
-    (!waterfallModel.affectedSpanIds || !waterfallModel.affectedSpanIds.length) &&
-    performanceIssues
-  ) {
+  if (!waterfallModel.affectedSpanIds?.length && performanceIssues) {
     const suspectSpans = performanceIssues.flatMap(issue => issue.suspect_spans);
     if (suspectSpans.length) {
       waterfallModel.affectedSpanIds = performanceIssues.flatMap(issue => [
@@ -126,6 +127,7 @@ function TraceView(props: Props) {
                                 <Observer>
                                   {() => (
                                     <SpanTree
+                                      theme={theme}
                                       traceViewRef={traceViewRef}
                                       traceViewHeaderRef={traceViewHeaderRef}
                                       dragProps={dragProps}
@@ -141,6 +143,7 @@ function TraceView(props: Props) {
                                       operationNameFilters={
                                         waterfallModel.operationNameFilters
                                       }
+                                      isEmbedded={!!isEmbedded}
                                     />
                                   )}
                                 </Observer>

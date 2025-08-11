@@ -3,7 +3,7 @@ from sentry.integrations.repository.metric_alert import (
     MetricAlertNotificationMessageRepository,
     NewMetricAlertNotificationMessage,
 )
-from sentry.models.notificationmessage import NotificationMessage
+from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.testutils.cases import TestCase
 
 
@@ -62,7 +62,7 @@ class TestGetParentNotificationMessage(TestCase):
 
 
 class TestCreateNotificationMessage(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.incident = self.create_incident()
         self.trigger_action = self.create_alert_rule_trigger_action()
         self.repository = MetricAlertNotificationMessageRepository.default()

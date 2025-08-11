@@ -7,22 +7,25 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 
 import {TableCell} from 'sentry/components/charts/simpleTableChart';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters, SelectValue} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
+import {IndexedEventsSelectionAlert} from 'sentry/views/dashboards/indexedEventsSelectionAlert';
 import type {DashboardFilters, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
-
-import {getDashboardFiltersFromURL} from '../../utils';
-import WidgetCard, {WidgetCardPanel} from '../../widgetCard';
-import {displayTypes} from '../utils';
+import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
+import {displayTypes} from 'sentry/views/dashboards/widgetBuilder/utils';
+import WidgetCard from 'sentry/views/dashboards/widgetCard';
+import {WidgetCardPanel} from 'sentry/views/dashboards/widgetCard/widgetCardPanel';
+import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 import {BuildStep} from './buildStep';
 
@@ -31,30 +34,29 @@ interface Props {
   isWidgetInvalid: boolean;
   location: Location;
   onChange: (displayType: DisplayType) => void;
-  organization: Organization;
   pageFilters: PageFilters;
   widget: Widget;
+  widgetLegendState: WidgetLegendSelectionState;
   dashboardFilters?: DashboardFilters;
   error?: string;
-  noDashboardsMEPProvider?: boolean;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
 }
 
 export function VisualizationStep({
-  organization,
   pageFilters,
   displayType,
   error,
   onChange,
   widget,
   onDataFetched,
-  noDashboardsMEPProvider,
   dashboardFilters,
   location,
   isWidgetInvalid,
   onWidgetSplitDecision,
+  widgetLegendState,
 }: Props) {
+  const organization = useOrganization();
   const [debouncedWidget, setDebouncedWidget] = useState(widget);
 
   const previousWidget = usePrevious(widget);
@@ -86,9 +88,17 @@ export function VisualizationStep({
   }, [widget, previousWidget, debounceWidget]);
 
   const displayOptions = Object.keys(displayTypes).map(value => ({
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     label: displayTypes[value],
     value,
   }));
+
+  const unselectedReleasesForCharts = {
+    [WidgetLegendNameEncoderDecoder.encodeSeriesNameForLegend(
+      'Releases',
+      debouncedWidget.id
+    )]: false,
+  };
 
   return (
     <StyledBuildStep
@@ -98,7 +108,7 @@ export function VisualizationStep({
       )}
     >
       <FieldGroup error={error} inline={false} flexibleControlStateSize stacked>
-        <SelectControl
+        <Select
           name="displayType"
           options={displayOptions}
           value={displayType}
@@ -126,13 +136,21 @@ export function VisualizationStep({
               <PanelAlert type="error">{errorMessage}</PanelAlert>
             )
           }
-          noLazyLoad
-          showStoredAlert
-          noDashboardsMEPProvider={noDashboardsMEPProvider}
           isWidgetInvalid={isWidgetInvalid}
           onDataFetched={onDataFetched}
           onWidgetSplitDecision={onWidgetSplitDecision}
+          shouldResize={false}
+          onLegendSelectChanged={() => {}}
+          legendOptions={
+            widgetLegendState.widgetRequiresLegendUnselection(widget)
+              ? {selected: unselectedReleasesForCharts}
+              : undefined
+          }
+          widgetLegendState={widgetLegendState}
+          disableFullscreen
         />
+
+        <IndexedEventsSelectionAlert widget={widget} />
       </VisualizationWrapper>
     </StyledBuildStep>
   );
@@ -153,6 +171,7 @@ const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
   padding-right: ${space(2)};
   ${WidgetCardPanel} {
     height: initial;
+    min-height: 120px;
   }
   ${p =>
     p.displayType === DisplayType.TABLE &&

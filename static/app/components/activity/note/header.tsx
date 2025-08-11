@@ -5,19 +5,20 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {User} from 'sentry/types/user';
+import {useUser} from 'sentry/utils/useUser';
 
 type Props = {
   authorName: string;
   onDelete: () => void;
   onEdit: () => void;
+  // Naming is not great here, but this seems to be the author, aka user who wrote the note.
   user?: User;
 };
 
 function NoteHeader({authorName, user, onEdit, onDelete}: Props) {
-  const activeUser = ConfigStore.get('user');
+  const activeUser = useUser();
   const canEdit = activeUser && (activeUser.isSuperuser || user?.id === activeUser.id);
 
   return (

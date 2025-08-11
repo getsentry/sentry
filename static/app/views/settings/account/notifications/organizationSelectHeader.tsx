@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import OrganizationBadge from 'sentry/components/idBadge/organizationBadge';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,6 +21,7 @@ export function OrganizationSelectHeader({
     <OrgControlWrapper>
       {t('Settings for Organization')}
       <StyledSelectControl
+        allowEmpty
         options={organizations.map(org => {
           return {
             label: org.name,
@@ -35,7 +36,7 @@ export function OrganizationSelectHeader({
             ),
           };
         })}
-        onChange={option => handleOrgChange(option.value)}
+        onChange={(option: any) => handleOrgChange(option.value)}
         value={organizationId}
         styles={{
           container: (provided: Record<string, string>) => ({
@@ -49,9 +50,9 @@ export function OrganizationSelectHeader({
 }
 
 // Resetting styles because its in a panel header
-const StyledSelectControl = styled(SelectControl)`
+const StyledSelectControl = styled(Select)`
   text-transform: initial;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const OrgControlWrapper = styled('div')`

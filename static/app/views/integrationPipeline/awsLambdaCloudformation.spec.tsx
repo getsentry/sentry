@@ -4,14 +4,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import AwsLambdaCloudformation from 'sentry/views/integrationPipeline/awsLambdaCloudformation';
 
 describe('AwsLambdaCloudformation', () => {
-  let windowAssignMock;
-
   beforeEach(() => {
-    windowAssignMock = jest.fn();
-    window.location.assign = windowAssignMock;
     window.localStorage.setItem('AWS_EXTERNAL_ID', 'my-id');
   });
 
@@ -51,7 +48,7 @@ describe('AwsLambdaCloudformation', () => {
       awsExternalId: 'my-id',
     });
 
-    expect(windowAssignMock).toHaveBeenCalledWith(
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       `${window.location.origin}/extensions/aws_lambda/setup/?${query}`
     );
   });

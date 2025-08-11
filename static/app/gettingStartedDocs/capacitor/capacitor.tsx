@@ -1,13 +1,14 @@
+import {buildSdkConfig} from 'sentry/components/onboarding/gettingStartedDoc/buildSdkConfig';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
   PlatformOption,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportJavaScriptInstallStep,
@@ -19,6 +20,7 @@ import {
 import {
   getReplayConfigOptions,
   getReplayConfigureDescription,
+  getReplayVerifyStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {t, tct} from 'sentry/locale';
 
@@ -63,77 +65,6 @@ const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
 type PlatformOptions = typeof platformOptions;
 type Params = DocsParams<PlatformOptions>;
 
-function getIntegrations(params: Params, siblingOption: string) {
-  const integrations: string[] = ['SentrySibling.browserTracingIntegration()'];
-
-  if (params.isPerformanceSelected) {
-    integrations.push(`
-          new ${getSiblingImportName(siblingOption)}.BrowserTracing({
-            // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-            tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
-          ${
-            params.isPerformanceSelected ? getPerformanceIntegration(siblingOption) : ''
-          }})`);
-  }
-
-  if (params.isFeedbackSelected) {
-    const feedbackIntegration: string[] = [
-      `// Additional SDK configuration goes in here, for example:
-        colorScheme: "system"`,
-    ];
-    const feedbackConfigOptions = getFeedbackConfigOptions(params.feedbackOptions);
-
-    if (feedbackConfigOptions) {
-      feedbackIntegration.push(feedbackConfigOptions);
-    }
-
-    integrations.push(
-      `
-        Sentry.feedbackIntegration({
-          ${feedbackIntegration.join(',')}
-        }),`
-    );
-  }
-
-  if (params.isReplaySelected) {
-    integrations.push(
-      `
-        new ${getSiblingImportName(siblingOption)}.Replay(${getReplayConfigOptions(
-          params.replayOptions
-        )}),`
-    );
-  }
-
-  return integrations.join(',');
-}
-
-const getSentryInitLayout = (params: Params, siblingOption: string): string => {
-  return `${
-    siblingOption === SiblingOption.VUE2
-      ? `Vue,`
-      : siblingOption === SiblingOption.VUE3
-        ? 'app,'
-        : ''
-  }dsn: "${params.dsn}",
-   integrations: [
-    ${getIntegrations(params, siblingOption)}
-   ],
-  ${
-    params.isPerformanceSelected
-      ? `
-        // Performance Monitoring
-        tracesSampleRate: 1.0, //  Capture 100% of the transactions`
-      : ''
-  }${
-    params.isReplaySelected
-      ? `
-        // Session Replay
-        replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
-        replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`
-      : ''
-  }`;
-};
-
 const isAngular = (siblingOption: string): boolean =>
   siblingOption === SiblingOption.ANGULARV10 ||
   siblingOption === SiblingOption.ANGULARV12;
@@ -170,10 +101,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       description: (
         <p>
           {tct(
-            `Install the Sentry Capacitor SDK as a dependency using [codeNpm:npm] or [codeYarn:yarn], alongside the Sentry [siblingName:] SDK:`,
+            `Install the Sentry Capacitor SDK as a dependency using [code:npm] or [code:yarn], alongside the Sentry [siblingName:] SDK:`,
             {
-              codeYarn: <code />,
-              codeNpm: <code />,
+              code: <code />,
               siblingName: getSiblingName(params.platformOptions.siblingOption),
             }
           )}
@@ -242,7 +172,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ],
     },
   ],
-  nextSteps: params => [
+  nextSteps: () => [
     {
       id: 'capacitor-android-setup',
       name: t('Capacitor 2 Setup'),
@@ -251,26 +181,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       ),
       link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/?#capacitor-2---android-specifics',
     },
-    params.isPerformanceSelected
-      ? null
-      : {
-          id: 'performance-monitoring',
-          name: t('Performance Monitoring'),
-          description: t(
-            'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
-          ),
-          link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/tracing/',
-        },
-    params.isReplaySelected
-      ? null
-      : {
-          id: 'session-replay',
-          name: t('Session Replay'),
-          description: t(
-            'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
-          ),
-          link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/session-replay/',
-        },
   ],
 };
 
@@ -311,6 +221,68 @@ function getVueConstSetup(siblingOption: string): string {
   }
 }
 
+const getIntegrations = (params: Params): string[] => {
+  const integrations: string[] = ['Sentry.browserTracingIntegration()'];
+
+  if (params.isPerformanceSelected) {
+    integrations.push(`
+          new ${getSiblingImportName(params.platformOptions.siblingOption)}.BrowserTracing({
+            // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+            tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
+          ${getPerformanceIntegration(params.platformOptions.siblingOption)}
+          })`);
+  }
+
+  if (params.isReplaySelected) {
+    integrations.push(
+      `new ${getSiblingImportName(params.platformOptions.siblingOption)}.Replay(${getReplayConfigOptions(
+        params.replayOptions
+      )})`
+    );
+  }
+
+  if (params.isFeedbackSelected) {
+    integrations.push(`
+      Sentry.feedbackIntegration({
+        colorScheme: "system",
+        ${getFeedbackConfigOptions(params.feedbackOptions)}
+      })`);
+  }
+
+  return integrations;
+};
+
+const getDynamicParts = (params: Params): string[] => {
+  const dynamicParts: string[] = [];
+
+  if (params.isPerformanceSelected) {
+    dynamicParts.push(`
+      // Tracing
+      tracesSampleRate: 1.0 //  Capture 100% of the transactions`);
+  }
+
+  if (params.isReplaySelected) {
+    dynamicParts.push(`
+      // Session Replay
+      replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
+      replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
+  }
+
+  return dynamicParts;
+};
+
+const getStaticParts = (params: Params): string[] => {
+  const staticParts = [`dsn: "${params.dsn.public}"`];
+
+  if (params.platformOptions.siblingOption === SiblingOption.VUE2) {
+    staticParts.unshift(`Vue`);
+  } else if (params.platformOptions.siblingOption === SiblingOption.VUE3) {
+    staticParts.unshift(`app`);
+  }
+
+  return staticParts;
+};
+
 function getSetupConfiguration({
   params,
   showExtraStep,
@@ -321,7 +293,13 @@ function getSetupConfiguration({
   showDescription?: boolean;
 }) {
   const siblingOption = params.platformOptions.siblingOption;
-  const sentryInitLayout = getSentryInitLayout(params, siblingOption);
+
+  const config = buildSdkConfig({
+    params,
+    staticParts: getStaticParts(params),
+    getIntegrations,
+    getDynamicParts,
+  });
 
   const configuration = [
     {
@@ -342,7 +320,7 @@ function getSetupConfiguration({
           )}';
           ${getVueConstSetup(siblingOption)}
           Sentry.init({
-            ${sentryInitLayout}
+            ${config}
 },
 // Forward the init method from ${getNpmPackage(params.platformOptions.siblingOption)}
 ${getSiblingImportName(siblingOption)}.init
@@ -385,11 +363,11 @@ function getNpmPackage(siblingOption: string): string {
     [SiblingOption.VUE3]: '@sentry/vue',
     [SiblingOption.VUE2]: '@sentry/vue',
   };
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   return packages[siblingOption];
 }
 
 function getSiblingName(siblingOption: string): string {
-  siblingOption;
   switch (siblingOption) {
     case SiblingOption.ANGULARV10:
     case SiblingOption.ANGULARV12:
@@ -405,7 +383,6 @@ function getSiblingName(siblingOption: string): string {
 }
 
 function getSiblingImportName(siblingOption: string): string {
-  siblingOption;
   switch (siblingOption) {
     case SiblingOption.ANGULARV10:
     case SiblingOption.ANGULARV12:
@@ -436,7 +413,7 @@ const replayOnboarding: OnboardingConfig<PlatformOptions> = {
       additionalInfo: <TracePropagationMessage />,
     },
   ],
-  verify: () => [],
+  verify: getReplayVerifyStep(),
   nextSteps: () => [],
 };
 
@@ -487,7 +464,7 @@ const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
   feedbackOnboardingNpm: feedbackOnboarding,
-  replayOnboardingNpm: replayOnboarding,
+  replayOnboarding,
   crashReportOnboarding,
 };
 

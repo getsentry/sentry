@@ -1,39 +1,54 @@
-import type {ForwardedRef} from 'react';
-import {forwardRef, useEffect} from 'react';
+import {useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
+import {type AnimationProps, motion} from 'framer-motion';
 
 import {space} from 'sentry/styles/space';
 
 const PANEL_WIDTH = '50vw';
+const LEFT_SIDE_PANEL_WIDTH = '40vw';
 const PANEL_HEIGHT = '50vh';
 
 const OPEN_STYLES = {
   bottom: {opacity: 1, x: 0, y: 0},
   right: {opacity: 1, x: 0, y: 0},
+  left: {opacity: 1, x: 0, y: 0},
 };
 
 const COLLAPSED_STYLES = {
   bottom: {opacity: 0, x: 0, y: PANEL_HEIGHT},
   right: {opacity: 0, x: PANEL_WIDTH, y: 0},
+  left: {opacity: 0, x: '-100%', y: 0},
 };
 
 type SlideOverPanelProps = {
   children: React.ReactNode;
   collapsed: boolean;
   ariaLabel?: string;
+  className?: string;
+  'data-test-id'?: string;
   onOpen?: () => void;
-  slidePosition?: 'right' | 'bottom';
+  panelWidth?: string;
+  ref?: React.Ref<HTMLDivElement>;
+  slidePosition?: 'right' | 'bottom' | 'left';
+  transitionProps?: AnimationProps['transition'];
 };
 
-export default forwardRef(SlideOverPanel);
+export default SlideOverPanel;
 
-function SlideOverPanel(
-  {ariaLabel, collapsed, children, onOpen, slidePosition}: SlideOverPanelProps,
-  ref: ForwardedRef<HTMLDivElement>
-) {
+function SlideOverPanel({
+  'data-test-id': testId,
+  ariaLabel,
+  collapsed,
+  children,
+  className,
+  onOpen,
+  slidePosition,
+  transitionProps = {},
+  panelWidth,
+  ref,
+}: SlideOverPanelProps) {
   useEffect(() => {
     if (!collapsed && onOpen) {
       onOpen();
@@ -55,12 +70,16 @@ function SlideOverPanel(
       slidePosition={slidePosition}
       transition={{
         type: 'spring',
-        stiffness: 500,
+        stiffness: 1000,
         damping: 50,
+        ...transitionProps,
       }}
       role="complementary"
       aria-hidden={collapsed}
       aria-label={ariaLabel ?? 'slide out drawer'}
+      className={className}
+      data-test-id={testId}
+      panelWidth={panelWidth}
     >
       {children}
     </_SlideOverPanel>
@@ -72,14 +91,15 @@ const _SlideOverPanel = styled(motion.div, {
     ['initial', 'animate', 'exit', 'transition'].includes(prop) ||
     (prop !== 'collapsed' && isPropValid(prop)),
 })<{
-  slidePosition?: 'right' | 'bottom';
+  panelWidth?: string;
+  slidePosition?: 'right' | 'bottom' | 'left';
 }>`
   position: fixed;
 
-  top: ${space(2)};
-  right: 0;
+  top: ${p => (p.slidePosition === 'left' ? '54px' : space(2))};
+  right: ${p => (p.slidePosition === 'left' ? space(2) : 0)};
   bottom: ${space(2)};
-  left: ${space(2)};
+  left: ${p => (p.slidePosition === 'left' ? 0 : space(2))};
 
   overflow: auto;
   pointer-events: auto;
@@ -87,13 +107,13 @@ const _SlideOverPanel = styled(motion.div, {
 
   z-index: ${p => p.theme.zIndex.modal - 1};
 
-  box-shadow: ${p => p.theme.dropShadowHeavy};
+  box-shadow: ${p => (p.theme.isChonk ? undefined : p.theme.dropShadowHeavy)};
   background: ${p => p.theme.background};
   color: ${p => p.theme.textColor};
 
   text-align: left;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     ${p =>
       p.slidePosition === 'bottom'
         ? css`
@@ -106,16 +126,29 @@ const _SlideOverPanel = styled(motion.div, {
             bottom: 0;
             left: 0;
           `
-        : css`
-            position: fixed;
+        : p.slidePosition === 'right'
+          ? css`
+              position: fixed;
 
-            width: ${PANEL_WIDTH};
-            height: 100%;
+              width: ${p.panelWidth ?? PANEL_WIDTH};
+              height: 100%;
 
-            top: 0;
-            right: 0;
-            bottom: 0;
-            left: auto;
-          `}
+              top: 0;
+              right: 0;
+              bottom: 0;
+              left: auto;
+            `
+          : css`
+              position: relative;
+
+              width: ${p.panelWidth ?? LEFT_SIDE_PANEL_WIDTH};
+              min-width: 450px;
+              height: 100%;
+
+              top: 0;
+              right: auto;
+              bottom: 0;
+              left: auto;
+            `}
   }
 `;

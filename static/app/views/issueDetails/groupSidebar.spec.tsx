@@ -1,3 +1,4 @@
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {TagsFixture} from 'sentry-fixture/tags';
@@ -14,7 +15,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
-import type {TeamParticipant, UserParticipant} from 'sentry/types';
+import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
 
 import GroupSidebar from './groupSidebar';
 
@@ -83,6 +84,17 @@ describe('GroupSidebar', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
       method: 'GET',
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+        integration: {ok: true, reason: null},
+        githubWriteIntegration: {ok: true, repos: []},
+      }),
     });
   });
 
@@ -238,7 +250,7 @@ describe('GroupSidebar', function () {
     expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
 
     await userEvent.click(
-      screen.getAllByRole('button', {name: 'Expand Participants'})[0]
+      screen.getAllByRole('button', {name: 'Expand Participants'})[0]!
     );
 
     await waitFor(() => expect(screen.getByText('#team-slug')).toBeVisible());

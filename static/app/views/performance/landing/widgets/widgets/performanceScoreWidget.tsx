@@ -2,34 +2,36 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
-import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-
-import {GenericPerformanceWidget} from '../components/performanceWidget';
-import {Subtitle, WidgetEmptyStateWarning} from '../components/selectableList';
-import type {PerformanceWidgetProps} from '../types';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
+import {
+  Subtitle,
+  WidgetEmptyStateWarning,
+} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import type {PerformanceWidgetProps} from 'sentry/views/performance/landing/widgets/types';
 
 export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
+  const theme = useTheme();
   const location = useLocation();
   const {InteractiveTitle} = props;
-  const theme = useTheme();
-  const {data: projectData, isLoading} = useProjectRawWebVitalsQuery();
-  const {data: projectScores, isLoading: isProjectScoresLoading} =
+  const {data: projectData, isPending} = useProjectRawWebVitalsQuery();
+  const {data: projectScores, isPending: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery();
 
   const projectScore =
-    isProjectScoresLoading || isLoading
+    isProjectScoresLoading || isPending
       ? undefined
-      : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
-  const ringSegmentColors = theme.charts.getColorPalette(3);
+      : getWebVitalScoresFromTableDataRow(projectScores?.[0]);
+  const ringSegmentColors = theme.chart.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   const moduleURL = useModuleURL('vital');
@@ -60,7 +62,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
                 {provided.children({
                   data,
                   isLoading: loading,
-                  hasData: !loading && (data?.data?.[0]?.['count()'] as number) > 0,
+                  hasData: !loading && (data?.[0]?.['count()'] as number) > 0,
                 })}
               </Fragment>
             );
@@ -93,7 +95,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
                   radiusPadding={10}
                   labelHeightPadding={0}
                 />
-              ) : isLoading ? (
+              ) : isPending ? (
                 <StyledLoadingIndicator size={40} />
               ) : (
                 <WidgetEmptyStateWarning />

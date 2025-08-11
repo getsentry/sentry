@@ -1,24 +1,21 @@
 import {Fragment} from 'react';
-import type {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import AlertLink from 'sentry/components/alertLink';
-import {Button} from 'sentry/components/button';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
-import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
+import Confirm from 'sentry/components/confirm';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
+import {Button} from 'sentry/components/core/button';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import recreateRoute from 'sentry/utils/recreateRoute';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import type {DeprecatedApiKey} from './types';
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = {
   /**
    * Busy differs from loading in that busy is a result of an action like removing
    */
@@ -30,17 +27,14 @@ type Props = RouteComponentProps<{}, {}> & {
    */
   loading: boolean;
 
-  onAddApiKey: () => {};
+  onAddApiKey: () => void;
 
-  onRemove: (id: DeprecatedApiKey['id']) => {};
+  onRemove: (id: DeprecatedApiKey['id']) => void;
   organization: Organization;
-  routes: PlainRoute[];
 };
 
 function OrganizationApiKeysList({
   organization,
-  params,
-  routes,
   keys,
   busy,
   loading,
@@ -77,15 +71,16 @@ function OrganizationApiKeysList({
         )}
       </TextBlock>
 
-      <AlertLink to="/settings/account/api/auth-tokens/" priority="info">
-        {tct(
-          'Until Sentry supports OAuth, you might want to switch to using [tokens:User Auth Tokens] instead.',
-          {
-            tokens: <u />,
-          }
-        )}
-      </AlertLink>
-
+      <AlertLink.Container>
+        <AlertLink to="/settings/account/api/auth-tokens/" type="info">
+          {tct(
+            'Until Sentry supports OAuth, you might want to switch to using [tokens:Personal Tokens] instead.',
+            {
+              tokens: <u />,
+            }
+          )}
+        </AlertLink>
+      </AlertLink.Container>
       <PanelTable
         isLoading={loading}
         isEmpty={!hasKeys}
@@ -93,31 +88,25 @@ function OrganizationApiKeysList({
         headers={[t('Name'), t('Key'), t('Actions')]}
       >
         {keys?.map(({id, key, label}) => {
-          const apiDetailsUrl = recreateRoute(`${id}/`, {
-            params: {...params, orgId: organization.slug},
-            routes,
-          });
-
           return (
             <Fragment key={key}>
               <Cell>
-                <Link to={apiDetailsUrl}>{label}</Link>
+                <Link to={`/settings/${organization.slug}/api-keys/${id}/`}>{label}</Link>
               </Cell>
 
-              <TextCopyInput size="sm" monospace>
+              <TextCopyInput size="md" monospace>
                 {key}
               </TextCopyInput>
 
               <Cell>
-                <LinkWithConfirmation
-                  aria-label={t('Remove API Key')}
-                  className="btn btn-default btn-sm"
+                <Confirm
                   onConfirm={() => onRemove(id)}
                   message={t('Are you sure you want to remove this API key?')}
-                  title={t('Remove API Key?')}
                 >
-                  <IconDelete size="xs" css={{position: 'relative', top: '2px'}} />
-                </LinkWithConfirmation>
+                  <Button priority="danger" size="sm" icon={<IconDelete />}>
+                    {t('Remove API Key')}
+                  </Button>
+                </Confirm>
               </Cell>
             </Fragment>
           );

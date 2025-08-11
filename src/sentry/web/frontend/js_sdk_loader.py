@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import time
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from django.conf import settings
 from django.http import HttpResponse
+from django.views.generic import View
 from packaging.version import Version
 from rest_framework.request import Request
 
@@ -12,7 +15,8 @@ from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynami
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.utils import metrics
-from sentry.web.frontend.base import BaseView, region_silo_view
+from sentry.web.frontend.analytics import JsSdkLoaderRendered
+from sentry.web.frontend.base import region_silo_view
 from sentry.web.helpers import render_to_response
 
 CACHE_CONTROL = (
@@ -22,10 +26,10 @@ CACHE_CONTROL = (
 
 class SdkConfig(TypedDict):
     dsn: str
-    tracesSampleRate: float | None
-    replaysSessionSampleRate: float | None
-    replaysOnErrorSampleRate: float | None
-    debug: bool | None
+    tracesSampleRate: NotRequired[float]
+    replaysSessionSampleRate: NotRequired[float]
+    replaysOnErrorSampleRate: NotRequired[float]
+    debug: NotRequired[bool]
 
 
 class LoaderInternalConfig(TypedDict):
@@ -37,24 +41,16 @@ class LoaderInternalConfig(TypedDict):
 
 
 class LoaderContext(TypedDict):
-    config: SdkConfig
-    jsSdkUrl: str | None
-    publicKey: str | None
     isLazy: bool
+    config: NotRequired[SdkConfig]
+    jsSdkUrl: NotRequired[str]
+    publicKey: NotRequired[str | None]
 
 
 @region_silo_view
-class JavaScriptSdkLoader(BaseView):
-    auth_required = False
-
-    # Do not let an organization load trigger session, breaking Vary header.
-    # TODO: This view should probably not be a subclass of BaseView if it doesn't actually use the
-    # large amount of organization related support utilities, but that ends up being a large refactor.
-    def determine_active_organization(self, request: Request, organization_slug=None) -> None:
-        pass
-
+class JavaScriptSdkLoader(View):
     def _get_loader_config(
-        self, key: ProjectKey | None, sdk_version: str | None
+        self, key: ProjectKey | None, sdk_version: Version | None
     ) -> LoaderInternalConfig:
         """Returns a string that is used to modify the bundle name"""
 
@@ -112,7 +108,7 @@ class JavaScriptSdkLoader(BaseView):
     def _get_context(
         self,
         key: ProjectKey | None,
-        sdk_version: str | None,
+        sdk_version: Version | None,
         loader_config: LoaderInternalConfig,
     ) -> tuple[LoaderContext, str | None]:
         """Sets context information needed to render the loader"""
@@ -195,15 +191,16 @@ class JavaScriptSdkLoader(BaseView):
 
         (
             analytics.record(
-                "js_sdk_loader.rendered",
-                organization_id=key.project.organization_id,
-                project_id=key.project_id,
-                is_lazy=loader_config["isLazy"],
-                has_performance=loader_config["hasPerformance"],
-                has_replay=loader_config["hasReplay"],
-                has_debug=loader_config["hasDebug"],
-                sdk_version=sdk_version,
-                tmpl=tmpl,
+                JsSdkLoaderRendered(
+                    organization_id=key.project.organization_id,
+                    project_id=key.project_id,
+                    is_lazy=loader_config["isLazy"],
+                    has_performance=loader_config["hasPerformance"],
+                    has_replay=loader_config["hasReplay"],
+                    has_debug=loader_config["hasDebug"],
+                    sdk_version=str(sdk_version) if sdk_version else None,
+                    tmpl=tmpl,
+                )
             )
             if key
             else None

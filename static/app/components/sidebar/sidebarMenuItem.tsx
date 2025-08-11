@@ -24,9 +24,11 @@ const menuItemStyles = (
   color: ${p.theme.textColor};
   cursor: pointer;
   display: flex;
-  font-size: ${p.theme.fontSizeMedium};
+  font-size: ${p.theme.fontSize.md};
   line-height: 32px;
-  padding: 0 ${p.theme.sidebar.menuSpacing};
+
+  /* @TODO(jonasbadalic): the 15px is non standard spacing. Should it be space(2) which is 16px? */
+  padding: 0 15px;
   position: relative;
   transition: 0.1s all linear;
   ${(!!p.to || !!p.href) && 'overflow: hidden'};
@@ -50,8 +52,9 @@ const MenuItemLabel = styled('span')<{hasMenu?: boolean}>`
   ${p =>
     p.hasMenu
       ? css`
-          margin: 0 -${p.theme.sidebar.menuSpacing};
-          padding: 0 ${p.theme.sidebar.menuSpacing};
+          /* @TODO(jonasbadalic): the 15px is non standard spacing. Should it be space(2) which is 16px? */
+          margin: 0 -15px;
+          padding: 0 15px;
         `
       : css`
           overflow: hidden;

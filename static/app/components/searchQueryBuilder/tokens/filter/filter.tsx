@@ -1,21 +1,29 @@
-import {Fragment, useLayoutEffect, useRef, useState} from 'react';
+import {Fragment, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {DateTime} from 'sentry/components/dateTime';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
-import {FilterKeyOperator} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKeyOperator';
+import {AggregateKey} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
+import {FilterKey} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKey';
+import {FilterOperator} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
-import {formatFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {
+  areWildcardOperatorsAllowed,
+  formatFilterValue,
+  isAggregateFilterToken,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
 import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {
+  FilterType,
   type ParseResultToken,
   Token,
   type TokenResult,
@@ -25,6 +33,8 @@ import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface SearchQueryTokenProps {
   item: Node<ParseResultToken>;
@@ -33,55 +43,99 @@ interface SearchQueryTokenProps {
 }
 
 interface FilterValueProps extends SearchQueryTokenProps {
-  filterRef: React.RefObject<HTMLDivElement>;
+  filterRef: React.RefObject<HTMLDivElement | null>;
   onActiveChange: (active: boolean) => void;
 }
 
-function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
+export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   const {size} = useSearchQueryBuilder();
+  const hasWildcardOperators = useOrganization().features.includes(
+    'search-query-builder-wildcard-operators'
+  );
+  const fieldDefinition = useMemo(
+    () => getFieldDefinition(token.key.text),
+    [token.key.text]
+  );
+
+  if (token.filter === FilterType.HAS) {
+    return (
+      <FilterValueSingleTruncatedValue>
+        {prettifyTagKey(token.value.text)}
+      </FilterValueSingleTruncatedValue>
+    );
+  }
 
   switch (token.value.type) {
     case Token.VALUE_TEXT_LIST:
-    case Token.VALUE_NUMBER_LIST:
+    case Token.VALUE_NUMBER_LIST: {
       const items = token.value.items;
 
-      if (items.length === 1 && items[0].value) {
+      if (items.length === 1 && items[0]!.value) {
+        const allContains =
+          items[0]!.value.type === Token.VALUE_TEXT && !!items[0]!.value.wildcard;
+
         return (
           <FilterValueSingleTruncatedValue>
-            {formatFilterValue(items[0].value)}
+            {formatFilterValue({
+              token: items[0]!.value,
+              stripWildcards:
+                allContains &&
+                hasWildcardOperators &&
+                areWildcardOperatorsAllowed(fieldDefinition),
+            })}
           </FilterValueSingleTruncatedValue>
         );
       }
 
       const maxItems = size === 'small' ? 1 : 3;
+      const allContains = items.every(
+        item => item?.value?.type === Token.VALUE_TEXT && item.value.wildcard
+      );
 
       return (
         <FilterValueList>
           {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
-                {formatFilterValue(item.value)}
+                {formatFilterValue({
+                  token: item.value!,
+                  stripWildcards:
+                    allContains &&
+                    hasWildcardOperators &&
+                    areWildcardOperatorsAllowed(fieldDefinition),
+                })}
               </FilterMultiValueTruncated>
               {index !== items.length - 1 && index < maxItems - 1 ? (
-                <FilterValueOr>or</FilterValueOr>
+                <FilterValueOr> or </FilterValueOr>
               ) : null}
             </Fragment>
           ))}
           {items.length > maxItems && <span>+{items.length - maxItems}</span>}
         </FilterValueList>
       );
-    case Token.VALUE_ISO_8601_DATE:
+    }
+    case Token.VALUE_ISO_8601_DATE: {
       const isUtc = token.value.tz?.toLowerCase() === 'z' || !token.value.tz;
 
       return (
         <DateTime date={token.value.value} dateOnly={!token.value.time} utc={isUtc} />
       );
-    default:
+    }
+    default: {
+      const allContains = token.value.type === Token.VALUE_TEXT && !!token.value.wildcard;
+
       return (
         <FilterValueSingleTruncatedValue>
-          {formatFilterValue(token.value)}
+          {formatFilterValue({
+            token: token.value,
+            stripWildcards:
+              allContains &&
+              hasWildcardOperators &&
+              areWildcardOperatorsAllowed(fieldDefinition),
+          })}
         </FilterValueSingleTruncatedValue>
       );
+    }
   }
 }
 
@@ -126,6 +180,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
           onCommit={() => {
             setIsEditing(false);
             onActiveChange(false);
+            dispatch({type: 'COMMIT_QUERY'});
             if (state.collection.getKeyAfter(item.key)) {
               state.selectionManager.setFocusedKey(
                 state.collection.getKeyAfter(item.key)
@@ -160,7 +215,9 @@ function FilterDelete({token, state, item}: SearchQueryTokenProps) {
   return (
     <DeleteButton
       aria-label={t('Remove filter: %s', getKeyName(token.key))}
-      onClick={() => dispatch({type: 'DELETE_TOKEN', token})}
+      onClick={() => {
+        dispatch({type: 'DELETE_TOKEN', token});
+      }}
       disabled={disabled}
       {...filterButtonProps}
     >
@@ -199,11 +256,13 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   });
 
   const tokenHasError = 'invalid' in token && defined(token.invalid);
+  const tokenHasWarning = 'warning' in token && defined(token.warning);
 
   return (
     <FilterWrapper
       aria-label={token.text}
       aria-invalid={tokenHasError}
+      state={tokenHasWarning ? 'warning' : tokenHasError ? 'invalid' : 'valid'}
       ref={ref}
       {...modifiedRowProps}
     >
@@ -214,14 +273,34 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
         containerDisplayMode="grid"
         forceVisible={filterMenuOpen ? false : undefined}
       >
-        <FilterKeyOperator
-          token={token}
-          state={state}
-          item={item}
-          onOpenChange={setFilterMenuOpen}
-          filterRef={ref}
-          gridCellProps={gridCellProps}
-        />
+        {token.filter === FilterType.IS || token.filter === FilterType.HAS ? null : (
+          <BaseGridCell {...gridCellProps}>
+            {isAggregateFilterToken(token) ? (
+              <AggregateKey
+                filterRef={ref}
+                item={item}
+                token={token}
+                state={state}
+                onActiveChange={setFilterMenuOpen}
+              />
+            ) : (
+              <FilterKey
+                token={token}
+                state={state}
+                item={item}
+                onActiveChange={setFilterMenuOpen}
+              />
+            )}
+          </BaseGridCell>
+        )}
+        <BaseGridCell {...gridCellProps}>
+          <FilterOperator
+            token={token}
+            state={state}
+            item={item}
+            onOpenChange={setFilterMenuOpen}
+          />
+        </BaseGridCell>
         <FilterValueGridCell {...gridCellProps}>
           <FilterValue
             token={token}
@@ -239,7 +318,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   );
 }
 
-const FilterWrapper = styled('div')`
+const FilterWrapper = styled('div')<{state: 'invalid' | 'warning' | 'valid'}>`
   position: relative;
   border: 1px solid ${p => p.theme.innerBorder};
   border-radius: ${p => p.theme.borderRadius};
@@ -252,10 +331,18 @@ const FilterWrapper = styled('div')`
     outline: none;
   }
 
-  &[aria-invalid='true'] {
-    border-color: ${p => p.theme.red200};
-    background-color: ${p => p.theme.red100};
-  }
+  ${p =>
+    p.state === 'invalid'
+      ? css`
+          border-color: ${p.theme.red200};
+          background-color: ${p.theme.red100};
+        `
+      : p.state === 'warning'
+        ? css`
+            border-color: ${p.theme.gray300};
+            background-color: ${p.theme.gray100};
+          `
+        : ''}
 
   &[aria-selected='true'] {
     background-color: ${p => p.theme.gray100};

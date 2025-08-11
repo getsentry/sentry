@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import TextArea from 'sentry/components/forms/controls/textarea';
+import {TextArea} from 'sentry/components/core/textarea';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -125,6 +125,6 @@ const StyledTextArea = styled(TextArea)`
 `;
 
 const SyncDate = styled('div')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   text-transform: none;
 `;

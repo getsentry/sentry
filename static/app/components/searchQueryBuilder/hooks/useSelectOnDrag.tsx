@@ -22,7 +22,7 @@ type TokenCoordinateCache = Record<Key, TokenCoordinate>;
 // While dragging, we disable pointer events on all non-text tokens to avoid
 // hover effects and other unwanted interactions.
 function setTokenPointerEvents(
-  wrapperRef: React.RefObject<HTMLDivElement>,
+  wrapperRef: React.RefObject<HTMLDivElement | null>,
   enabled: boolean
 ) {
   wrapperRef.current?.querySelectorAll<HTMLElement>('[role="row"]').forEach(row => {
@@ -42,7 +42,7 @@ function setTokenPointerEvents(
  * makes the mesurements only once.
  */
 function measureTokens(
-  wrapperRef: React.RefObject<HTMLDivElement>,
+  wrapperRef: React.RefObject<HTMLDivElement | null>,
   cachedTokenCoordinates: React.MutableRefObject<TokenCoordinateCache | null>
 ) {
   if (cachedTokenCoordinates.current) {
@@ -86,9 +86,9 @@ function getItemIndexAtPosition(
   x: number,
   y: number
 ) {
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i];
+  for (const [i, key] of keys.entries()) {
     const coords = coordinates[key];
+    if (!coords) continue;
 
     // If we are above this item, we must be in between this and the
     // previous item on the row above it.

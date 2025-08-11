@@ -1,7 +1,7 @@
 import type {FlamegraphEvents} from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 
-const handlers: (keyof FlamegraphEvents)[] = [
+const handlers: Array<keyof FlamegraphEvents> = [
   'reset zoom',
   'set config view',
   'highlight frame',
@@ -110,7 +110,7 @@ describe('CanvasScheduler', () => {
 
     jest.runAllTimers();
     expect(drawBeforeFn.mock.invocationCallOrder[0]).toBeLessThan(
-      drawAfterFn.mock.invocationCallOrder[0]
+      drawAfterFn.mock.invocationCallOrder[0]!
     );
   });
   it('drawSync', () => {
@@ -127,7 +127,7 @@ describe('CanvasScheduler', () => {
     scheduler.drawSync();
 
     expect(drawBeforeFn.mock.invocationCallOrder[0]).toBeLessThan(
-      drawAfterFn.mock.invocationCallOrder[0]
+      drawAfterFn.mock.invocationCallOrder[0]!
     );
   });
   it('dispose', () => {

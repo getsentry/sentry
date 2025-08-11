@@ -1,15 +1,94 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import patch
 
-from sentry.issues.status_change import handle_status_update
+from sentry.issues.ignored import IGNORED_CONDITION_FIELDS
+from sentry.issues.status_change import handle_status_update, infer_substatus
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+
+
+class InferSubstatusTest(TestCase):
+    def test_ignore_until_escalating(self) -> None:
+        assert (
+            infer_substatus(
+                new_status=GroupStatus.IGNORED,
+                new_substatus=None,
+                status_details={"untilEscalating": True},
+                group_list=[],
+            )
+            == GroupSubStatus.UNTIL_ESCALATING
+        )
+
+    def test_ignore_condition_met(self) -> None:
+        for condition in IGNORED_CONDITION_FIELDS:
+            assert (
+                infer_substatus(
+                    new_status=GroupStatus.IGNORED,
+                    new_substatus=None,
+                    status_details={condition: 50},
+                    group_list=[],
+                )
+                == GroupSubStatus.UNTIL_CONDITION_MET
+            )
+
+    def test_ignore_forever(self) -> None:
+        assert (
+            infer_substatus(
+                new_status=GroupStatus.IGNORED,
+                new_substatus=None,
+                status_details={"status": "ignored"},
+                group_list=[],
+            )
+            == GroupSubStatus.FOREVER
+        )
+
+    def test_unresolve_new_group(self) -> None:
+        assert (
+            infer_substatus(
+                new_status=GroupStatus.UNRESOLVED,
+                new_substatus=None,
+                status_details={},
+                group_list=[self.create_group(status=GroupStatus.IGNORED)],
+            )
+            == GroupSubStatus.NEW
+        )
+
+    def test_unresolve_ongoing_group(self) -> None:
+        assert (
+            infer_substatus(
+                new_status=GroupStatus.UNRESOLVED,
+                new_substatus=None,
+                status_details={},
+                group_list=[
+                    self.create_group(first_seen=datetime.now(timezone.utc) - timedelta(days=10))
+                ],
+            )
+            == GroupSubStatus.ONGOING
+        )
+
+    def test_unresolve_regressed_group(self) -> None:
+        assert (
+            infer_substatus(
+                new_status=GroupStatus.UNRESOLVED,
+                new_substatus=None,
+                status_details={},
+                group_list=[
+                    self.create_group(
+                        status=GroupStatus.RESOLVED,
+                        first_seen=datetime.now(timezone.utc) - timedelta(days=10),
+                    )
+                ],
+            )
+            == GroupSubStatus.REGRESSED
+        )
 
 
 class HandleStatusChangeTest(TestCase):
@@ -28,7 +107,7 @@ class HandleStatusChangeTest(TestCase):
             self.projects,
             self.project_lookup,
             acting_user=self.user,
-            is_bulk=True,
+            is_bulk=False,
             status_details={},
             new_status=GroupStatus.UNRESOLVED,
             new_substatus=GroupSubStatus.ONGOING,
@@ -43,9 +122,16 @@ class HandleStatusChangeTest(TestCase):
             group=self.group, status=GroupHistoryStatus.UNRESOLVED
         ).exists()
 
+    @with_feature("organizations:issue-open-periods")
     @patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolve_resolved_issue(self, issue_unresolved: Any) -> None:
+        from sentry.models.groupopenperiod import GroupOpenPeriod
+
         self.create_issue(GroupStatus.RESOLVED)
+        open_period = GroupOpenPeriod.objects.filter(group=self.group).first()
+        assert open_period is not None
+        assert open_period.date_ended is not None
+
         handle_status_update(
             self.group_list,
             self.projects,
@@ -53,7 +139,7 @@ class HandleStatusChangeTest(TestCase):
             acting_user=self.user,
             new_status=GroupStatus.UNRESOLVED,
             new_substatus=GroupSubStatus.ONGOING,
-            is_bulk=True,
+            is_bulk=False,
             status_details={},
             sender=self,
         )
@@ -66,6 +152,11 @@ class HandleStatusChangeTest(TestCase):
             group=self.group, status=GroupHistoryStatus.UNRESOLVED
         ).exists()
 
+        open_period.refresh_from_db()
+        assert open_period is not None
+        assert open_period.resolution_activity is None
+        assert open_period.date_ended is None
+
     @patch("sentry.signals.issue_ignored.send_robust")
     def test_ignore_new_issue(self, issue_ignored: Any) -> None:
         self.create_issue(GroupStatus.UNRESOLVED)
@@ -76,7 +167,7 @@ class HandleStatusChangeTest(TestCase):
             acting_user=self.user,
             new_status=GroupStatus.IGNORED,
             new_substatus=None,
-            is_bulk=True,
+            is_bulk=False,
             status_details={"ignoreDuration": 30},
             sender=self,
         )
@@ -99,7 +190,7 @@ class HandleStatusChangeTest(TestCase):
             acting_user=self.user,
             new_status=GroupStatus.IGNORED,
             new_substatus=None,
-            is_bulk=True,
+            is_bulk=False,
             status_details={"ignoreUntilEscalating": True},
             sender=self,
         )

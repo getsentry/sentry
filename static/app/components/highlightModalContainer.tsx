@@ -5,14 +5,20 @@ import BottomLeft from 'sentry-images/pattern/highlight-bottom-left.svg';
 import TopRight from 'sentry-images/pattern/highlight-top-right.svg';
 
 type Props = {
-  bottomWidth: string;
   children: React.ReactNode;
-  topWidth: string;
+  /**
+   * @default '200px'
+   */
+  bottomWidth?: string;
+  /**
+   * @default '400px'
+   */
+  topWidth?: string;
 };
 
 export default function HighlightModalContainer({
-  topWidth,
-  bottomWidth,
+  topWidth = '400px',
+  bottomWidth = '200px',
   children,
 }: Props) {
   return (
@@ -30,7 +36,7 @@ const PositionTopRight = styled('img')<{width: string}>`
   right: 0;
   top: 0;
   pointer-events: none;
-  border-radius: 0 ${p => p.theme.modalBorderRadius} 0 0;
+  border-radius: 0 ${p => p.theme.borderRadius} 0 0;
 `;
 
 const PositionBottomLeft = styled('img')<{width: string}>`
@@ -39,10 +45,5 @@ const PositionBottomLeft = styled('img')<{width: string}>`
   bottom: 0;
   left: 0;
   pointer-events: none;
-  border-radius: 0 0 0 ${p => p.theme.modalBorderRadius};
+  border-radius: 0 0 0 ${p => p.theme.borderRadius};
 `;
-
-HighlightModalContainer.defaultProps = {
-  topWidth: '400px',
-  bottomWidth: '200px',
-};

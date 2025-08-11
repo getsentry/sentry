@@ -1,11 +1,12 @@
 import type {ComponentProps} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   type GridColumnHeader,
-} from 'sentry/components/gridEditable';
+} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -14,41 +15,41 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
-import type {SpanIndexedResponse} from 'sentry/views/insights/types';
-import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import type {SpanResponse} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
 type DataRowKeys =
-  | SpanIndexedField.PROJECT
-  | SpanIndexedField.TRANSACTION_ID
-  | SpanIndexedField.TRACE
-  | SpanIndexedField.TIMESTAMP
-  | SpanIndexedField.ID
-  | SpanIndexedField.SPAN_DESCRIPTION
-  | SpanIndexedField.RESPONSE_CODE;
+  | SpanFields.PROJECT
+  | SpanFields.TRANSACTION_SPAN_ID
+  | SpanFields.TRACE
+  | SpanFields.TIMESTAMP
+  | SpanFields.SPAN_ID
+  | SpanFields.SPAN_DESCRIPTION
+  | SpanFields.SPAN_STATUS_CODE;
 
 type ColumnKeys =
-  | SpanIndexedField.ID
-  | SpanIndexedField.SPAN_DESCRIPTION
-  | SpanIndexedField.RESPONSE_CODE;
+  | SpanFields.SPAN_ID
+  | SpanFields.SPAN_DESCRIPTION
+  | SpanFields.SPAN_STATUS_CODE;
 
-type DataRow = Pick<SpanIndexedResponse, DataRowKeys>;
+type DataRow = Pick<SpanResponse, DataRowKeys>;
 
 type Column = GridColumnHeader<ColumnKeys>;
 
 const COLUMN_ORDER: Column[] = [
   {
-    key: SpanIndexedField.ID,
+    key: SpanFields.SPAN_ID,
     name: t('Span ID'),
     width: 150,
   },
   {
-    key: SpanIndexedField.RESPONSE_CODE,
+    key: SpanFields.SPAN_STATUS_CODE,
     name: t('Status'),
     width: 50,
   },
   {
-    key: SpanIndexedField.SPAN_DESCRIPTION,
+    key: SpanFields.SPAN_DESCRIPTION,
     name: t('URL'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -74,6 +75,7 @@ export function SpanSamplesTable({
   onSampleMouseOut,
   highlightedSpanId,
 }: Props) {
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -92,7 +94,7 @@ export function SpanSamplesTable({
             location,
           }),
         renderBodyCell: (column, row) =>
-          renderBodyCell(column, row, meta, location, organization),
+          renderBodyCell(column, row, meta, location, organization, theme),
       }}
       highlightedRowKey={data.findIndex(row => row.span_id === highlightedSpanId)}
       onRowMouseOver={onSampleMouseOver}
@@ -106,24 +108,24 @@ function renderBodyCell(
   row: DataRow,
   meta: EventsMetaType | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
-  if (column.key === SpanIndexedField.ID) {
+  if (column.key === SpanFields.SPAN_ID) {
     return (
       <SpanIdCell
         moduleName={ModuleName.HTTP}
-        projectSlug={row.project}
         traceId={row.trace}
         timestamp={row.timestamp}
-        transactionId={row[SpanIndexedField.TRANSACTION_ID]}
-        spanId={row[SpanIndexedField.ID]}
+        transactionId={row[SpanFields.TRANSACTION_SPAN_ID]}
+        spanId={row[SpanFields.SPAN_ID]}
         source={TraceViewSources.REQUESTS_MODULE}
         location={location}
       />
     );
   }
 
-  if (column.key === SpanIndexedField.SPAN_DESCRIPTION) {
+  if (column.key === SpanFields.SPAN_DESCRIPTION) {
     return <SpanDescriptionCell>{row[column.key]}</SpanDescriptionCell>;
   }
 
@@ -137,6 +139,7 @@ function renderBodyCell(
     location,
     organization,
     unit: meta.units?.[column.key],
+    theme,
   });
 }
 

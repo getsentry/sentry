@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button, ButtonLabel} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import LoadingError from 'sentry/components/loadingError';
@@ -15,14 +15,16 @@ import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/ed
 import {IconClose, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, SavedSearch} from 'sentry/types';
-import {SavedSearchVisibility} from 'sentry/types';
+import type {SavedSearch} from 'sentry/types/group';
+import {SavedSearchVisibility} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useMedia from 'sentry/utils/useMedia';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useDeleteSavedSearchOptimistic} from 'sentry/views/issueList/mutations/useDeleteSavedSearch';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
+import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 interface SavedIssueSearchesProps {
   onSavedSearchSelect: (savedSearch: SavedSearch) => void;
@@ -75,9 +77,7 @@ function SavedSearchItem({
       key: 'edit',
       label: 'Edit',
       disabled: !canEdit,
-      details: !canEdit
-        ? t('You do not have permission to edit this search.')
-        : undefined,
+      details: canEdit ? undefined : t('You do not have permission to edit this search.'),
       onAction: () => {
         openModal(deps => (
           <EditSavedSearchModal {...deps} {...{organization, savedSearch}} />
@@ -86,9 +86,9 @@ function SavedSearchItem({
     },
     {
       disabled: !canEdit,
-      details: !canEdit
-        ? t('You do not have permission to delete this search.')
-        : undefined,
+      details: canEdit
+        ? undefined
+        : t('You do not have permission to delete this search.'),
       key: 'delete',
       label: t('Delete'),
       onAction: () => {
@@ -170,17 +170,20 @@ function SavedIssueSearches({
   const [showAll, setShowAll] = useState(false);
   const {
     data: savedSearches,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useFetchSavedSearchesForOrg({orgSlug: organization.slug});
-  const isMobile = useMedia(`(max-width: ${theme.breakpoints.small})`);
+  const isMobile = useMedia(`(max-width: ${theme.breakpoints.sm})`);
+  const prefersStackedNav = usePrefersStackedNav();
 
-  if (!isOpen || isMobile) {
+  const shouldShowSavedSearches = !prefersStackedNav;
+
+  if (!isOpen || isMobile || !shouldShowSavedSearches) {
     return null;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <StyledSidebar>
         <LoadingIndicator />
@@ -273,12 +276,12 @@ const StyledSidebar = styled('aside')`
   width: 100%;
   padding: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     border-bottom: 1px solid ${p => p.theme.gray200};
     padding: ${space(2)} 0;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     border-left: 1px solid ${p => p.theme.gray200};
     max-width: 340px;
   }
@@ -298,7 +301,7 @@ const HeadingContainer = styled('div')`
 `;
 
 const Heading = styled('h2')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin: 0;
 `;
 
@@ -317,14 +320,10 @@ const StyledItemButton = styled(Button)`
   width: 100%;
   text-align: left;
   height: auto;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   line-height: ${p => p.theme.text.lineHeightBody};
 
   padding: ${space(1)} ${space(2)};
-
-  ${ButtonLabel} {
-    justify-content: start;
-  }
 `;
 
 const OverflowMenu = styled(DropdownMenu)`
@@ -343,13 +342,13 @@ const SearchListItem = styled('li')<{hasMenu?: boolean}>`
   ${p =>
     p.hasMenu &&
     css`
-      @media (max-width: ${p.theme.breakpoints.small}) {
+      @media (max-width: ${p.theme.breakpoints.sm}) {
         ${StyledItemButton} {
           padding-right: 60px;
         }
       }
 
-      @media (min-width: ${p.theme.breakpoints.small}) {
+      @media (min-width: ${p.theme.breakpoints.sm}) {
         ${OverflowMenu} {
           display: none;
         }
@@ -370,29 +369,35 @@ const SearchListItem = styled('li')<{hasMenu?: boolean}>`
 
 const TitleDescriptionWrapper = styled('div')`
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: start;
+  width: 100%;
 `;
 
 const SavedSearchItemTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  text-align: left;
+  font-size: ${p => p.theme.fontSize.lg};
   ${p => p.theme.overflowEllipsis}
 `;
 
 const SavedSearchItemVisbility = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   ${p => p.theme.overflowEllipsis}
 `;
 
 const SavedSearchItemQuery = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   ${p => p.theme.overflowEllipsis}
 `;
 
 const ShowAllButton = styled(Button)`
   color: ${p => p.theme.linkColor};
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   padding: ${space(0.5)} ${space(2)};
 
   &:hover {

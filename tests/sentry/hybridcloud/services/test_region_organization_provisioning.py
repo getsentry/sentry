@@ -1,11 +1,13 @@
 from django.db import router, transaction
 
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
 from sentry.hybridcloud.services.region_organization_provisioning import (
     region_organization_provisioning_rpc_service,
 )
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -13,9 +15,7 @@ from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
     OrganizationSlugReservationType,
 )
-from sentry.models.outbox import outbox_context
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.services.organization import (
     OrganizationOptions,
     OrganizationProvisioningOptions,
@@ -24,6 +24,7 @@ from sentry.services.organization import (
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, create_test_regions
+from sentry.users.models.user import User
 
 
 @control_silo_test(regions=create_test_regions("us"))
@@ -137,6 +138,19 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
             )
         assert not provisioning_user_memberships.exists()
 
+    def test_truncates_name_when_too_long(self) -> None:
+        user = self.create_user()
+        provision_options = self.get_provisioning_args(user)
+        provision_options.provision_options.name = "a" * 128
+        result = region_organization_provisioning_rpc_service.create_organization_in_region(
+            organization_id=42, provision_payload=provision_options, region_name="us"
+        )
+
+        assert result is True
+        with assume_test_silo_mode(SiloMode.REGION):
+            org: Organization = Organization.objects.get(id=42)
+            assert org.name == "a" * 64
+
     def test_does_not_provision_and_returns_false_when_conflicting_org_with_different_owner(
         self,
     ) -> None:
@@ -196,6 +210,22 @@ class TestRegionOrganizationProvisioningCreateInRegion(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             assert not Organization.objects.filter(id=organization_id).exists()
 
+    def test_streamline_only_is_true(self) -> None:
+        """
+        All new organizations should never see the legacy UI.
+        """
+        user = self.create_user()
+        provision_options = self.get_provisioning_args(user)
+        organization_id = 42
+        region_organization_provisioning_rpc_service.create_organization_in_region(
+            organization_id=organization_id,
+            provision_payload=provision_options,
+            region_name="us",
+        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            org: Organization = Organization.objects.get(id=organization_id)
+            assert OrganizationOption.objects.get_value(org, "sentry:streamline_ui_only")
+
 
 @control_silo_test(regions=create_test_regions("us"))
 class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
@@ -206,8 +236,9 @@ class TestRegionOrganizationProvisioningUpdateOrganizationSlug(TestCase):
         )
 
     def create_temporary_slug_res(self, organization: Organization, slug: str, region: str) -> None:
-        with assume_test_silo_mode(SiloMode.CONTROL), outbox_context(
-            transaction.atomic(router.db_for_write(OrganizationSlugReservation))
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            outbox_context(transaction.atomic(router.db_for_write(OrganizationSlugReservation))),
         ):
             OrganizationSlugReservation(
                 reservation_type=OrganizationSlugReservationType.TEMPORARY_RENAME_ALIAS,

@@ -11,7 +11,8 @@ import urllib3
 from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.eventstore.models import GroupEvent
-from sentry.eventstream.base import EventStream, EventStreamEventType, GroupStates
+from sentry.eventstream.base import EventStream, GroupStates
+from sentry.eventstream.types import EventStreamEventType
 from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
@@ -108,17 +109,9 @@ class SnubaProtocolEventStream(EventStream):
         received_timestamp: float | datetime,
         skip_consume: bool = False,
         group_states: GroupStates | None = None,
+        eventstream_type: str | None = None,
         **kwargs: Any,
     ) -> None:
-        if event.get_tag("sample_event") == "true":
-            logger.info(
-                "insert: attempting to insert event in SnubaProtocolEventStream",
-                extra={
-                    "event.id": event.event_id,
-                    "project_id": event.project_id,
-                    "sample_event": True,
-                },
-            )
         if isinstance(event, GroupEvent) and not event.occurrence:
             logger.error(
                 "`GroupEvent` passed to `EventStream.insert`. `GroupEvent` may only be passed when "
@@ -215,10 +208,10 @@ class SnubaProtocolEventStream(EventStream):
             raise ValueError("expected groups to delete!")
 
         state = {
-            "transaction_id": uuid4().hex,
+            "transaction_id": str(uuid4().hex),
             "project_id": project_id,
             "group_ids": list(group_ids),
-            "datetime": datetime.now(tz=timezone.utc),
+            "datetime": json.datetime_to_str(datetime.now(tz=timezone.utc)),
         }
 
         self._send(project_id, "start_delete_groups", extra_data=(state,), asynchronous=False)
@@ -408,6 +401,13 @@ class SnubaEventStream(SnubaProtocolEventStream):
         if headers is None:
             headers = {}
 
+        if event_type == EventStreamEventType.Error:
+            # error events now have a timestamp_ms field, this does not exist on the nodestore event
+            # but instead should be derived from the datetime field on regular Snuba processing.
+            # Since here we insert it using the eventstream API we need to add it manually
+            if "datetime" in extra_data[0]:
+                extra_data[0]["timestamp_ms"] = extra_data[0]["datetime"]
+
         data = (self.EVENT_PROTOCOL_VERSION, _type) + extra_data
 
         entity = "events"
@@ -455,6 +455,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         received_timestamp: float | datetime,
         skip_consume: bool = False,
         group_states: GroupStates | None = None,
+        eventstream_type: str | None = None,
         **kwargs: Any,
     ) -> None:
         super().insert(
@@ -480,4 +481,5 @@ class SnubaEventStream(SnubaProtocolEventStream):
             skip_consume,
             group_states,
             occurrence_id=event.occurrence_id if isinstance(event, GroupEvent) else None,
+            eventstream_type=eventstream_type,
         )

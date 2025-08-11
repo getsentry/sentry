@@ -1,20 +1,18 @@
 from datetime import datetime
 
-from sentry import features
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.incidents.models.incident import Incident, IncidentStatus
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
+from sentry.integrations.messaging.types import LEVEL_TO_COLOR
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.integrations.slack.message_builder import (
-    INCIDENT_COLOR_MAPPING,
-    LEVEL_TO_COLOR,
-    SlackBody,
-)
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
+from sentry.integrations.slack.message_builder.types import INCIDENT_COLOR_MAPPING, SlackBody
 from sentry.integrations.slack.utils.escape import escape_slack_text
+from sentry.models.organization import Organization
 
 
-def get_started_at(timestamp: datetime) -> str:
-    return "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
+def get_started_at(timestamp: datetime | None) -> str:
+    if timestamp is None:
+        return ""
+    return "<!date^{:.0f}^Started: {} at {} | Sentry Incident>".format(
         timestamp.timestamp(), "{date_pretty}", "{time}"
     )
 
@@ -22,15 +20,15 @@ def get_started_at(timestamp: datetime) -> str:
 class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
     def __init__(
         self,
-        action: AlertRuleTriggerAction,
-        incident: Incident,
-        new_status: IncidentStatus,
-        metric_value: float | None = None,
+        alert_context: AlertContext,
+        metric_issue_context: MetricIssueContext,
+        organization: Organization,
+        date_started: datetime,
         chart_url: str | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         """
-        Builds an incident attachment for slack unfurling.
+        Builds an incident attachment when a metric alert fires or is resolved.
 
         :param incident: The `Incident` for which to build the attachment.
         :param [metric_value]: The value of the metric that triggered this alert to
@@ -38,35 +36,26 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         :param [method]: Either "fire" or "resolve".
         """
         super().__init__()
-        self.incident = incident
-        self.metric_value = metric_value
-        self.new_status = new_status
+        self.alert_context = alert_context
+        self.metric_issue_context = metric_issue_context
+        self.organization = organization
+        self.date_started = date_started
         self.chart_url = chart_url
         self.notification_uuid = notification_uuid
-        self.action = action
 
     def build(self) -> SlackBody:
         data = incident_attachment_info(
-            self.incident,
-            self.new_status,
-            self.metric_value,
-            self.notification_uuid,
+            alert_context=self.alert_context,
+            metric_issue_context=self.metric_issue_context,
+            organization=self.organization,
+            notification_uuid=self.notification_uuid,
             referrer="metric_alert_slack",
         )
-        blocks = [
-            self.get_markdown_block(text=f"{data['text']}\n{get_started_at(data['ts'])}"),
-        ]
-        alert_rule = self.action.alert_rule_trigger.alert_rule
 
-        if (
-            alert_rule.description
-            and features.has(
-                "organizations:slack-metric-alert-description", self.incident.organization
-            )
-            and not self.new_status == IncidentStatus.CLOSED
-        ):
-            description = self.get_markdown_block(text=f"*Notes*: {alert_rule.description}")
-            blocks.append(description)
+        incident_text = f"{data['text']}\n{get_started_at(self.date_started)}"
+        blocks = [
+            self.get_markdown_block(text=incident_text),
+        ]
 
         if self.chart_url:
             blocks.append(self.get_image_block(self.chart_url, alt="Metric Alert Chart"))

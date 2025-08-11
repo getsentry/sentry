@@ -1,17 +1,18 @@
 import {useCallback} from 'react';
 import type {Query} from 'history';
 
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 function useFiltersInLocationQuery<Q extends Query>() {
   const {pathname, query} = useLocation<Q>();
+  const navigate = useNavigate();
 
   const setFilter = useCallback(
     (updatedQuery: Partial<Q>) => {
-      browserHistory.replace({pathname, query: {...query, ...updatedQuery}});
+      navigate({pathname, query: {...query, ...updatedQuery}}, {replace: true});
     },
-    [pathname, query]
+    [pathname, query, navigate]
   );
 
   return {

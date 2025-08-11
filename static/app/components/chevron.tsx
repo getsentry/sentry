@@ -1,10 +1,14 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import theme from 'sentry/utils/theme';
-
 interface ChevronProps extends React.SVGAttributes<SVGSVGElement> {
   direction?: 'up' | 'right' | 'down' | 'left';
+  /**
+   * Whether to lighten (by lowering the opacity) the chevron. Useful if the chevron is
+   * inside a dropdown trigger button.
+   */
+  light?: boolean;
   /**
    * The size of the checkbox. Defaults to 'sm'.
    */
@@ -17,19 +21,13 @@ const rubikWeightFactor: Record<NonNullable<ChevronProps['weight']>, number> = {
   medium: 1.4,
 };
 
-const chevronSizeMap: Record<NonNullable<ChevronProps['size']>, string> = {
-  small: theme.fontSizeSmall,
-  medium: theme.fontSizeMedium,
-  large: theme.fontSizeLarge,
-};
-
 function getPath(direction: NonNullable<ChevronProps['direction']>) {
   // Base values for a downward chevron
   const base = [
     [3.5, 5.5],
     [7, 9],
     [10.5, 5.5],
-  ];
+  ] as const;
 
   switch (direction) {
     case 'right':
@@ -51,13 +49,22 @@ function Chevron({
   size = 'medium',
   weight = 'regular',
   direction = 'down',
+  light = false,
   ...props
 }: ChevronProps) {
+  const theme = useTheme();
   return (
     <VariableWeightIcon
       viewBox="0 0 14 14"
-      size={chevronSizeMap[size]}
+      size={
+        size === 'small'
+          ? theme.fontSize.sm
+          : size === 'medium'
+            ? theme.fontSize.md
+            : theme.fontSize.lg
+      }
       weightFactor={rubikWeightFactor[weight]}
+      strokeOpacity={light ? 0.6 : 1}
       {...props}
     >
       <motion.path

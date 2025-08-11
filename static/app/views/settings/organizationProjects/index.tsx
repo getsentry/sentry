@@ -40,11 +40,11 @@ function OrganizationProjects() {
   const location = useLocation();
   const query = decodeScalar(location.query.query, '');
 
-  const time = useRef(new Date().getTime());
+  const time = useRef(Date.now());
   const {
     data: projectList,
     getResponseHeader,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<Project[]>(
     [
@@ -60,19 +60,22 @@ function OrganizationProjects() {
     {staleTime: 0}
   );
 
-  const {data: projectStats, isLoading: isLoadingStats} = useApiQuery<ProjectStats>(
+  const {data: projectStats, isPending: isLoadingStats} = useApiQuery<ProjectStats>(
     [
       `/organizations/${organization.slug}/stats/`,
       {
         query: {
+          projectID: projectList?.map(p => p.id),
           since: time.current / 1000 - 3600 * 24,
           stat: 'generated',
           group: 'project',
-          per_page: ITEMS_PER_PAGE,
         },
       },
     ],
-    {staleTime: 0}
+    {
+      staleTime: 60_000,
+      enabled: !!projectList,
+    }
   );
 
   const projectListPageLinks = getResponseHeader?.('Link');
@@ -84,7 +87,7 @@ function OrganizationProjects() {
         (searchQuery: string) =>
           browserHistory.replace({
             pathname: location.pathname,
-            query: {...location.query, query: searchQuery},
+            query: {...location.query, query: searchQuery, cursor: undefined},
           }),
         DEFAULT_DEBOUNCE_DURATION
       ),
@@ -107,7 +110,7 @@ function OrganizationProjects() {
       <Panel>
         <PanelHeader>{t('Projects')}</PanelHeader>
         <PanelBody>
-          {isLoading && <LoadingIndicator />}
+          {isPending && <LoadingIndicator />}
           {isError && <LoadingError />}
           {projectList &&
             sortProjects(projectList).map(project => (

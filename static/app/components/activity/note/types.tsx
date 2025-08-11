@@ -3,15 +3,6 @@ import type {OnChangeHandlerFunc} from 'react-mentions';
 import type {DEFAULT_ERROR_JSON} from 'sentry/constants';
 
 /**
- * Represents a mentionable user or team.
- */
-export type Mentionable = {
-  display: string;
-  email: string;
-  id: string;
-};
-
-/**
  * List of id, display name
  */
 export type Mentioned = [id: string, display: string];

@@ -1,7 +1,6 @@
+import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import {Frame} from 'sentry/utils/profiling/frame';
 import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
-
-import {CallTreeNode} from '../callTreeNode';
-import {Frame} from '../frame';
 
 interface ProfileStats {
   discardedSamplesCount: number;
@@ -15,9 +14,9 @@ export class Profile {
   timestamp: number | null;
   // Duration of the profile
   duration: number;
-  // Releative timestamp of the first sample in the timestamp.
+  // Relative timestamp of the first sample in the timestamp.
   startedAt: number;
-  // Releative timestamp of the last sample in the timestamp.
+  // Relative timestamp of the last sample in the timestamp.
   endedAt: number;
   threadId: number;
   type: string;
@@ -46,7 +45,10 @@ export class Profile {
     negativeSamplesCount: 0,
   };
 
-  callTreeNodeProfileIdMap: Map<CallTreeNode, string[]> = new Map();
+  callTreeNodeProfileIdMap: Map<
+    CallTreeNode,
+    Set<Profiling.ProfileReference> | Set<string>
+  > = new Map();
 
   constructor({
     duration,
@@ -134,16 +136,16 @@ export class Profile {
       }
 
       for (let i = toOpen.length - 1; i >= 0; i--) {
-        openFrame(toOpen[i], value);
-        prevStack.push(toOpen[i]);
+        openFrame(toOpen[i]!, value);
+        prevStack.push(toOpen[i]!);
       }
 
-      value += this.weights[sampleIndex++];
+      value += this.weights[sampleIndex++]!;
     }
 
     // Close any remaining frames
     for (let i = prevStack.length - 1; i >= 0; i--) {
-      closeFrame(prevStack[i], value);
+      closeFrame(prevStack[i]!, value);
     }
   }
 

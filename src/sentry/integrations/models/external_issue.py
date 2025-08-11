@@ -7,21 +7,21 @@ from django.db.models import QuerySet
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import GroupEvent
 
 if TYPE_CHECKING:
-    from django.db.models.query import _QuerySet
-
+    from sentry.integrations.models.integration import Integration
     from sentry.integrations.services.integration import RpcIntegration
 
 
 class ExternalIssueManager(BaseManager["ExternalIssue"]):
     def get_for_integration(
-        self, integration: RpcIntegration, external_issue_key: str | None = None
-    ) -> QuerySet:
+        self, integration: Integration | RpcIntegration, external_issue_key: str | None = None
+    ) -> QuerySet[ExternalIssue]:
         from sentry.integrations.services.integration import integration_service
 
         org_integrations = integration_service.get_organization_integrations(
@@ -39,7 +39,7 @@ class ExternalIssueManager(BaseManager["ExternalIssue"]):
         return self.filter(**kwargs)
 
     def get_linked_issues(
-        self, event: Event, integration: RpcIntegration
+        self, event: GroupEvent, integration: RpcIntegration
     ) -> QuerySet[ExternalIssue]:
         from sentry.models.grouplink import GroupLink
 
@@ -53,12 +53,7 @@ class ExternalIssueManager(BaseManager["ExternalIssue"]):
             integration_id=integration.id,
         )
 
-    def get_linked_issue_ids(
-        self, event: Event, integration: RpcIntegration
-    ) -> _QuerySet[ExternalIssue, str]:
-        return self.get_linked_issues(event, integration).values_list("key", flat=True)
-
-    def has_linked_issue(self, event: Event, integration: RpcIntegration) -> bool:
+    def has_linked_issue(self, event: GroupEvent, integration: RpcIntegration) -> bool:
         return self.get_linked_issues(event, integration).exists()
 
 
@@ -89,7 +84,9 @@ class ExternalIssue(Model):
     def get_installation(self) -> Any:
         from sentry.integrations.services.integration import integration_service
 
-        integration = integration_service.get_integration(integration_id=self.integration_id)
+        integration = integration_service.get_integration(
+            integration_id=self.integration_id, status=ObjectStatus.ACTIVE
+        )
 
         assert integration, "Integration is required to get an installation"
         return integration.get_installation(organization_id=self.organization_id)

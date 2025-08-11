@@ -1,12 +1,13 @@
 import type {MouseEvent} from 'react';
-import {Fragment, useContext, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import scrollToElement from 'scroll-to-element';
 
-import Tag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
-import {Chevron} from 'sentry/components/chevron';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {FRAME_TOOLTIP_MAX_WIDTH} from 'sentry/components/events/interfaces/frame/defaultTitle';
 import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
 import {
@@ -18,28 +19,31 @@ import {
   isExpandable,
   trimPackage,
 } from 'sentry/components/events/interfaces/frame/utils';
+import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventDataSection';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import StrictClick from 'sentry/components/strictClick';
-import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
+import {IconChevron} from 'sentry/icons';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
+import type {Event, Frame} from 'sentry/types/event';
 import type {
-  Frame,
-  PlatformKey,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
-} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
+} from 'sentry/types/integrations';
+import type {PlatformKey} from 'sentry/types/project';
+import {type StacktraceType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
+import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
+import {getFoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import type DebugImage from './debugMeta/debugImage';
 import {combineStatus} from './debugMeta/utils';
@@ -47,71 +51,72 @@ import Context from './frame/context';
 import {SymbolicatorStatus} from './types';
 
 type Props = {
-  components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
+  components: Array<SentryAppComponent<SentryAppSchemaStacktraceLink>>;
+  emptySourceNotation: boolean;
   event: Event;
   frame: Frame;
-  isUsedForGrouping: boolean;
-  platform: PlatformKey;
-  registers: Record<string, string>;
-  emptySourceNotation?: boolean;
-  frameMeta?: Record<any, any>;
-  hiddenFrameCount?: number;
-  image?: React.ComponentProps<typeof DebugImage>['image'];
-  includeSystemFrames?: boolean;
-  isExpanded?: boolean;
-  isHoverPreviewed?: boolean;
-  isOnlyFrame?: boolean;
-  isShowFramesToggleExpanded?: boolean;
+  frameMeta: Record<any, any>;
+  hiddenFrameCount: number | undefined;
+  image: React.ComponentProps<typeof DebugImage>['image'];
+  isFirstInAppFrame: boolean;
+  /**
+   * Is the stack trace being previewed in a hovercard?
+   */
+  isHoverPreviewed: boolean | undefined;
+  isShowFramesToggleExpanded: boolean;
   /**
    * Frames that are hidden under the most recent non-InApp frame
    */
-  isSubFrame?: boolean;
-  maxLengthOfRelativeAddress?: number;
-  nextFrame?: Frame;
-  onShowFramesToggle?: (event: React.MouseEvent<HTMLElement>) => void;
-  prevFrame?: Frame;
-  registersMeta?: Record<any, any>;
-  showStackedFrames?: boolean;
+  isSubFrame: boolean;
+  isUsedForGrouping: boolean;
+  maxLengthOfRelativeAddress: number;
+  nextFrame: Frame;
+  onShowFramesToggle: (event: React.MouseEvent<HTMLElement>) => void;
+  platform: PlatformKey;
+  prevFrame: Frame | undefined;
+  registers: StacktraceType['registers'];
+  registersMeta: Record<any, any>;
 };
 
 function NativeFrame({
   frame,
   nextFrame,
   prevFrame,
-  includeSystemFrames,
   isUsedForGrouping,
   maxLengthOfRelativeAddress,
   image,
   registers,
-  isOnlyFrame,
   event,
   components,
   hiddenFrameCount,
+  isFirstInAppFrame,
   isShowFramesToggleExpanded,
   isSubFrame,
   onShowFramesToggle,
-  isExpanded,
   platform,
   registersMeta,
   frameMeta,
-  emptySourceNotation = false,
-  /**
-   * Is the stack trace being previewed in a hovercard?
-   */
+  emptySourceNotation,
   isHoverPreviewed = false,
 }: Props) {
-  const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
+  const isDartAsyncSuspensionFrame =
+    frame.filename === '<asynchronous suspension>' ||
+    frame.absPath === '<asynchronous suspension>';
+  const {displayOptions, stackView} = useStacktraceContext();
 
-  const absolute = traceEventDataSectionContext?.display.includes('absolute-addresses');
-
-  const fullStackTrace = traceEventDataSectionContext?.fullStackTrace;
-
-  const fullFunctionName = traceEventDataSectionContext?.display.includes(
-    'verbose-function-names'
+  const {sectionData} = useIssueDetails();
+  const debugSectionConfig = sectionData[SectionKey.DEBUGMETA];
+  const [_isCollapsed, setIsCollapsed] = useSyncedLocalStorageState(
+    getFoldSectionKey(SectionKey.DEBUGMETA),
+    debugSectionConfig?.initialCollapse ?? false
   );
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
-  const absoluteFilePaths =
-    traceEventDataSectionContext?.display.includes('absolute-file-paths');
+  const fullStackTrace = stackView === StackView.FULL;
+
+  const absolute = displayOptions.includes('absolute-addresses');
+  const fullFunctionName = displayOptions.includes('verbose-function-names');
+  const absoluteFilePaths = displayOptions.includes('absolute-file-paths');
 
   const tooltipDelay = isHoverPreviewed ? SLOW_TOOLTIP_DELAY : undefined;
   const foundByStackScanning = frame.trust === 'scan' || frame.trust === 'cfi-scan';
@@ -119,19 +124,17 @@ function NativeFrame({
   const packageClickable =
     !!frame.symbolicatorStatus &&
     frame.symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE &&
-    !isHoverPreviewed;
+    !isHoverPreviewed &&
+    // We know the debug section is rendered (only once streamline ui is enabled)
+    (hasStreamlinedUI ? !!debugSectionConfig : true);
 
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
-  const expandable =
-    !leadsToApp || includeSystemFrames
-      ? isExpandable({
-          frame,
-          registers,
-          platform,
-          emptySourceNotation,
-          isOnlyFrame,
-        })
-      : false;
+  const expandable = isExpandable({
+    frame,
+    registers,
+    platform,
+    emptySourceNotation,
+  });
 
   const inlineFrame =
     prevFrame &&
@@ -143,7 +146,7 @@ function NativeFrame({
     defined(frame.function) &&
     frame.function !== frame.rawFunction;
 
-  const [expanded, setExpanded] = useState(expandable ? isExpanded ?? false : false);
+  const [expanded, setExpanded] = useState(() => isFirstInAppFrame);
   const [isHovering, setHovering] = useState(false);
 
   const contextLine = (frame?.context || []).find(l => l[0] === frame.lineNo);
@@ -203,6 +206,11 @@ function NativeFrame({
 
   // this is the status of image that belongs to this frame
   function getStatus() {
+    // Treat Dart asynchronous suspension frames as symbolicated - these are synthetic markers set by Dart
+    if (isDartAsyncSuspensionFrame) {
+      return 'success';
+    }
+
     // If a matching debug image doesn't exist, fall back to symbolicator_status
     if (!image) {
       switch (frame.symbolicatorStatus) {
@@ -211,8 +219,9 @@ function NativeFrame({
         case SymbolicatorStatus.MISSING:
         case SymbolicatorStatus.MALFORMED:
           return 'error';
-        case SymbolicatorStatus.MISSING_SYMBOL:
         case SymbolicatorStatus.UNKNOWN_IMAGE:
+          return frame.instructionAddr === '0x0' ? 'success' : 'error';
+        case SymbolicatorStatus.MISSING_SYMBOL:
         default:
           return undefined;
       }
@@ -230,6 +239,7 @@ function NativeFrame({
     }
   }
 
+  // This isn't possible when the page doesn't have the images loaded section
   function handleGoToImagesLoaded(e: MouseEvent) {
     e.stopPropagation(); // to prevent collapsing if collapsible
 
@@ -242,7 +252,15 @@ function NativeFrame({
       DebugMetaStore.updateFilter(searchTerm);
     }
 
-    scrollToElement('#images-loaded');
+    if (hasStreamlinedUI) {
+      // Expand the section
+      setIsCollapsed(false);
+    }
+
+    // Scroll to the section
+    document
+      .getElementById(SectionKey.DEBUGMETA)
+      ?.scrollIntoView({block: 'start', behavior: 'smooth'});
   }
 
   function handleToggleContext(e: MouseEvent) {
@@ -263,7 +281,6 @@ function NativeFrame({
       <StrictClick onClick={handleToggleContext}>
         <RowHeader
           expandable={expandable}
-          expanded={expanded}
           isInAppFrame={frame.inApp}
           isSubFrame={!!isSubFrame}
           onMouseEnter={handleMouseEnter}
@@ -306,13 +323,23 @@ function NativeFrame({
               </Fragment>
             )}
             <Tooltip
-              title={frame.package ?? t('Go to images loaded')}
-              position="bottom"
+              title={
+                frame.package ??
+                (isDartAsyncSuspensionFrame
+                  ? t('Dart async operation')
+                  : t('Go to images loaded'))
+              }
               containerDisplayMode="inline-flex"
               delay={tooltipDelay}
+              maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
+              position="auto-start"
             >
               <Package>
-                {frame.package ? trimPackage(frame.package) : `<${t('unknown')}>`}
+                {frame.package
+                  ? trimPackage(frame.package)
+                  : isDartAsyncSuspensionFrame
+                    ? t('Dart async')
+                    : `<${t('unknown')}>`}
               </Package>
             </Tooltip>
           </div>
@@ -322,6 +349,7 @@ function NativeFrame({
                 title={addressTooltip}
                 disabled={!(foundByStackScanning || inlineFrame)}
                 delay={tooltipDelay}
+                maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
               >
                 {!relativeAddress || absolute ? frame.instructionAddr : relativeAddress}
               </Tooltip>
@@ -332,6 +360,8 @@ function NativeFrame({
               <Tooltip title={frame?.rawFunction ?? frame?.symbol} delay={tooltipDelay}>
                 <AnnotatedText value={functionName.value} meta={functionName.meta} />
               </Tooltip>
+            ) : isDartAsyncSuspensionFrame ? (
+              `${t('Dart')}`
             ) : (
               `<${t('unknown')}>`
             )}{' '}
@@ -341,6 +371,7 @@ function NativeFrame({
                 disabled={!(defined(frame.absPath) && frame.absPath !== frame.filename)}
                 delay={tooltipDelay}
                 isHoverable
+                maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
               >
                 <FileName>
                   {'('}
@@ -366,7 +397,7 @@ function NativeFrame({
                 frame_count: hiddenFrameCount,
                 is_frame_expanded: isShowFramesToggleExpanded,
               }}
-              size="xs"
+              size="zero"
               borderless
               onClick={e => {
                 onShowFramesToggle?.(e);
@@ -384,6 +415,7 @@ function NativeFrame({
                   frame={frame}
                   line={contextLine ? contextLine[1] : ''}
                   event={event}
+                  disableSetup={isHoverPreviewed}
                 />
               </ErrorBoundary>
             )}
@@ -403,11 +435,11 @@ function NativeFrame({
           <ExpandCell>
             {expandable && (
               <ToggleButton
+                type="button"
                 size="zero"
                 borderless
-                aria-label={t('Toggle Context')}
-                tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
-                icon={<Chevron size="medium" direction={expanded ? 'up' : 'down'} />}
+                aria-label={expanded ? t('Collapse Context') : t('Expand Context')}
+                icon={<IconChevron size="sm" direction={expanded ? 'up' : 'down'} />}
               />
             )}
           </ExpandCell>
@@ -449,26 +481,26 @@ const AddressCell = styled('div')`
 const FunctionNameCell = styled('div')`
   word-break: break-all;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-column: 2/6;
   }
 `;
 
 const GroupingCell = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-row: 2/3;
   }
 `;
 
 const TypeCell = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-column: 5/6;
     grid-row: 1/2;
   }
 `;
 
 const ExpandCell = styled('div')`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-column: 6/7;
     grid-row: 1/2;
   }
@@ -487,7 +519,7 @@ const Registers = styled(Context)`
 
 const PackageNote = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
 `;
 
 const Package = styled('span')`
@@ -505,14 +537,13 @@ const FileName = styled('span')`
 
 const RowHeader = styled('span')<{
   expandable: boolean;
-  expanded: boolean;
   isInAppFrame: boolean;
   isSubFrame: boolean;
 }>`
   position: relative;
   display: grid;
-  grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) ${space(2)};
-  grid-template-rows: repeat(2, auto);
+  grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${space(2)}; /* Adjusted to account for the extra element */
+  grid-template-rows: 1fr; /* Ensures a single row */
   align-items: center;
   align-content: center;
   column-gap: ${space(1)};
@@ -520,14 +551,14 @@ const RowHeader = styled('span')<{
     !p.isInAppFrame && p.isSubFrame
       ? `${p.theme.surface100}`
       : `${p.theme.bodyBackground}`};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   padding: ${space(1)};
-  color: ${p => (!p.isInAppFrame ? p.theme.subText : '')};
-  font-style: ${p => (!p.isInAppFrame ? 'italic' : '')};
+  color: ${p => (p.isInAppFrame ? '' : p.theme.subText)};
+  font-style: ${p => (p.isInAppFrame ? '' : 'italic')};
   ${p => p.expandable && `cursor: pointer;`};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: auto 150px 120px 4fr repeat(2, auto) ${space(2)};
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    grid-template-columns: auto 150px 120px 4fr repeat(3, auto) ${space(2)}; /* Matches the updated desktop layout */
     padding: ${space(0.5)} ${space(1.5)};
     min-height: 32px;
   }
@@ -547,8 +578,9 @@ const SymbolicatorIcon = styled('div')`
 
 const ShowHideButton = styled(Button)`
   color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.sm};
   font-style: italic;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   padding: ${space(0.25)} ${space(0.5)};
   &:hover {
     color: ${p => p.theme.subText};

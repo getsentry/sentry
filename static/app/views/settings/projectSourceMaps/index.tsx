@@ -1,14 +1,15 @@
-import type {RouteComponentProps} from 'react-router';
-
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 
-import {ProjectSourceMaps} from './projectSourceMaps';
-import {ProjectSourceMapsArtifacts} from './projectSourceMapsArtifacts';
+import {SourceMapsDetails} from './sourceMapsDetails';
+import {SourceMapsList} from './sourceMapsList';
 
-type Props = RouteComponentProps<
-  {orgId: string; projectId: string; bundleId?: string; name?: string},
-  {}
-> & {
+type Props = RouteComponentProps<{
+  orgId: string;
+  projectId: string;
+  bundleId?: string;
+  name?: string;
+}> & {
   children: React.ReactNode;
   project: Project;
 };
@@ -16,7 +17,7 @@ type Props = RouteComponentProps<
 export default function ProjectSourceMapsContainer({params, location, ...props}: Props) {
   if (params.bundleId) {
     return (
-      <ProjectSourceMapsArtifacts
+      <SourceMapsDetails
         {...props}
         location={location}
         params={{...params, bundleId: params.bundleId}}
@@ -24,5 +25,11 @@ export default function ProjectSourceMapsContainer({params, location, ...props}:
     );
   }
 
-  return <ProjectSourceMaps {...props} location={location} params={params} />;
+  return (
+    <SourceMapsList
+      {...props}
+      location={location}
+      params={{...params, bundleId: params.bundleId}}
+    />
+  );
 }

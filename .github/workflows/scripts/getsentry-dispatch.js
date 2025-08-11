@@ -1,5 +1,3 @@
-/* eslint-env node */
-
 /**
  * List of workflows to dispatch to `getsentry`
  *
@@ -9,10 +7,6 @@
  *              deleted/renamed in `getsentry`, this will fail
  */
 const DISPATCHES = [
-  {
-    workflow: 'js-build-and-lint.yml',
-    pathFilterName: 'frontend_all',
-  },
   {
     workflow: 'backend.yml',
     pathFilterName: 'backend_all',

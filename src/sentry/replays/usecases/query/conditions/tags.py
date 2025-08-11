@@ -4,11 +4,47 @@ from snuba_sdk import Column, Condition, Function, Identifier, Lambda, Op
 from snuba_sdk.expressions import Expression
 
 from sentry.replays.lib.new_query.conditions import GenericBase
-from sentry.replays.lib.new_query.utils import contains, does_not_contain
+from sentry.replays.lib.new_query.utils import (
+    contains,
+    does_not_contain,
+    translate_condition_to_function,
+)
+from sentry.replays.usecases.query.errors import RetryAggregated
 
 
 class TagScalar(GenericBase):
-    """Tag scalar condition class."""
+    @staticmethod
+    def visit_eq(expression_name: str, value: str) -> Condition:
+        hashed_needle = Function("cityHash64", parameters=[f"{expression_name}={value}"])
+        expression = Function("has", parameters=[Column("_tags_hash_map"), hashed_needle])
+        return Condition(expression, Op.EQ, 1)
+
+    @staticmethod
+    def visit_in(expression_name: str, value: list[str]) -> Condition:
+        expressions = [
+            translate_condition_to_function(TagScalar.visit_eq(expression_name, v)) for v in value
+        ]
+        return Condition(Function("or", parameters=expressions), Op.EQ, 1)
+
+    @staticmethod
+    def visit_neq(expression_name: str, value: str) -> Condition:
+        raise RetryAggregated
+
+    @staticmethod
+    def visit_not_in(expression_name: str, value: list[str]) -> Condition:
+        raise RetryAggregated
+
+    @staticmethod
+    def visit_match(expression_name: str, value: str) -> Condition:
+        raise RetryAggregated
+
+    @staticmethod
+    def visit_not_match(expression_name: str, value: str) -> Condition:
+        raise RetryAggregated
+
+
+class TagAggregate(GenericBase):
+    """Tag aggregate condition class."""
 
     @staticmethod
     def visit_eq(expression_name: str, value: str) -> Condition:
@@ -35,30 +71,30 @@ class TagScalar(GenericBase):
         return Condition(_match_key_value_wildcard(expression_name, value), Op.EQ, 0)
 
 
-class SumOfTagScalar(GenericBase):
+class SumOfTagAggregate(GenericBase):
     @staticmethod
     def visit_eq(expression: Expression, value: str) -> Condition:
-        return contains(TagScalar.visit_eq(expression, value))
+        return contains(TagAggregate.visit_eq(expression, value))
 
     @staticmethod
     def visit_neq(expression: Expression, value: str) -> Condition:
-        return does_not_contain(TagScalar.visit_eq(expression, value))
+        return does_not_contain(TagAggregate.visit_eq(expression, value))
 
     @staticmethod
     def visit_match(expression: Expression, value: str) -> Condition:
-        return contains(TagScalar.visit_match(expression, value))
+        return contains(TagAggregate.visit_match(expression, value))
 
     @staticmethod
     def visit_not_match(expression: Expression, value: str) -> Condition:
-        return does_not_contain(TagScalar.visit_match(expression, value))
+        return does_not_contain(TagAggregate.visit_match(expression, value))
 
     @staticmethod
     def visit_in(expression: Expression, value: list[str]) -> Condition:
-        return contains(TagScalar.visit_in(expression, value))
+        return contains(TagAggregate.visit_in(expression, value))
 
     @staticmethod
     def visit_not_in(expression: Expression, value: list[str]) -> Condition:
-        return does_not_contain(TagScalar.visit_in(expression, value))
+        return does_not_contain(TagAggregate.visit_in(expression, value))
 
 
 def _match_key_value_exact(key: str, value: str) -> Function:

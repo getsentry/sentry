@@ -2,7 +2,7 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 
 import docs from './aspnetcore';
 
@@ -20,9 +20,7 @@ describe('aspnetcore onboarding docs', function () {
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('heading', {name: 'Performance Monitoring'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Tracing'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Samples'})).toBeInTheDocument();
 
     // Renders SDK version from registry
@@ -40,19 +38,6 @@ describe('aspnetcore onboarding docs', function () {
 
     expect(
       await screen.findByText(textWithMarkupMatcher(/o.TracesSampleRate/))
-    ).toBeInTheDocument();
-  });
-
-  it('renders profiling onboarding docs correctly', async function () {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [
-        ProductSolution.PERFORMANCE_MONITORING,
-        ProductSolution.PROFILING,
-      ],
-    });
-
-    expect(
-      await screen.findByText(textWithMarkupMatcher(/o.ProfilesSampleRate/))
     ).toBeInTheDocument();
   });
 });

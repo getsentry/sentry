@@ -1,6 +1,7 @@
-from collections.abc import Callable, Mapping
-from typing import Any, Optional, Union
+from collections.abc import Callable
+from typing import Optional, Union
 
+from sentry.conf.types.service_options import ServiceOptions
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.services import build_instance_from_options_of_type, resolve_callable
 
@@ -53,8 +54,8 @@ class MigrationLockBackend(LockBackend):
 
     def __init__(
         self,
-        backend_new_config: Mapping[str, Any],
-        backend_old_config: Mapping[str, Any],
+        backend_new_config: ServiceOptions,
+        backend_old_config: ServiceOptions,
         selector_func_path: str | SelectorFncType | None = None,
     ):
         self.backend_new = build_instance_from_options_of_type(LockBackend, backend_new_config)

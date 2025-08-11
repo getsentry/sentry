@@ -4,10 +4,12 @@ import * as qs from 'query-string';
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import {FILTER_MASK} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Frame, PlatformKey, StacktraceType} from 'sentry/types';
 import type {Image} from 'sentry/types/debugImage';
-import type {EntryRequest, EntryThreads, Event, Thread} from 'sentry/types/event';
+import type {EntryRequest, EntryThreads, Event, Frame, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/project';
+import type {StacktraceType} from 'sentry/types/stacktrace';
+import {type AvatarUser, StacktraceOrder} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 
@@ -25,8 +27,8 @@ interface ImageForAddressProps {
 
 interface HiddenFrameIndicesProps {
   data: StacktraceType;
-  frameCountMap: {[frameIndex: number]: number};
-  toggleFrameMap: {[frameIndex: number]: boolean};
+  frameCountMap: Record<number, number>;
+  toggleFrameMap: Record<number, boolean>;
 }
 
 export function findImageForAddress({event, addrMode, address}: ImageForAddressProps) {
@@ -36,7 +38,7 @@ export function findImageForAddress({event, addrMode, address}: ImageForAddressP
     return null;
   }
 
-  const image = images.find((img, idx) => {
+  const image = images.find((img: any, idx: any) => {
     if (!addrMode || addrMode === 'abs') {
       const [startAddress, endAddress] = getImageRange(img);
       return address >= (startAddress as any) && address < (endAddress as any);
@@ -61,7 +63,7 @@ export function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {
   );
 }
 
-export function getRepeatedFrameIndices(data: StacktraceType) {
+function getRepeatedFrameIndices(data: StacktraceType) {
   const repeats: number[] = [];
   (data.frames ?? []).forEach((frame, frameIdx) => {
     const nextFrame = (data.frames ?? [])[frameIdx + 1];
@@ -82,12 +84,13 @@ export function getHiddenFrameIndices({
   const repeatedIndeces = getRepeatedFrameIndices(data);
   let hiddenFrameIndices: number[] = [];
   Object.keys(toggleFrameMap)
+    // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
     .filter(frameIndex => toggleFrameMap[frameIndex] === true)
     .forEach(indexString => {
       const index = parseInt(indexString, 10);
       const indicesToBeAdded: number[] = [];
       let i = 1;
-      let numHidden = frameCountMap[index];
+      let numHidden = frameCountMap[index]!;
       while (numHidden > 0) {
         if (!repeatedIndeces.includes(index - i)) {
           indicesToBeAdded.push(index - i);
@@ -110,9 +113,9 @@ export function getLastFrameIndex(frames: Frame[]) {
     })
     .filter(frame => frame !== undefined);
 
-  return !inAppFrameIndexes.length
-    ? frames.length - 1
-    : inAppFrameIndexes[inAppFrameIndexes.length - 1];
+  return inAppFrameIndexes.length
+    ? inAppFrameIndexes[inAppFrameIndexes.length - 1]
+    : frames.length - 1;
 }
 
 // TODO(dcramer): support cookies
@@ -123,21 +126,21 @@ export function getCurlCommand(data: EntryRequest['data']) {
     result += ' \\\n -X ' + data.method;
   }
 
-  data.headers = data.headers?.filter(defined);
+  const headers =
+    data.headers
+      ?.filter(defined)
+      // sort headers
+      .sort(function (a, b) {
+        return a[0] === b[0] ? 0 : a[0] < b[0] ? -1 : 1;
+      }) ?? [];
 
   // TODO(benvinegar): just gzip? what about deflate?
-  const compressed = data.headers?.find(
+  const compressed = headers?.find(
     h => h[0] === 'Accept-Encoding' && h[1].includes('gzip')
   );
   if (compressed) {
     result += ' \\\n --compressed';
   }
-
-  // sort headers
-  const headers =
-    data.headers?.sort(function (a, b) {
-      return a[0] === b[0] ? 0 : a[0] < b[0] ? -1 : 1;
-    }) ?? [];
 
   for (const header of headers) {
     result += ' \\\n -H "' + header[0] + ': ' + escapeBashString(header[1] + '') + '"';
@@ -151,7 +154,7 @@ export function getCurlCommand(data: EntryRequest['data']) {
       case 'application/x-www-form-urlencoded':
         result +=
           ' \\\n --data "' +
-          escapeBashString(qs.stringify(data.data as {[key: string]: any})) +
+          escapeBashString(qs.stringify(data.data as Record<string, any>)) +
           '"';
         break;
 
@@ -170,7 +173,9 @@ export function getCurlCommand(data: EntryRequest['data']) {
   return result;
 }
 
-export function stringifyQueryList(query: string | [key: string, value: string][]) {
+export function stringifyQueryList(
+  query: string | Array<[key: string, value: string] | null>
+) {
   if (typeof query === 'string') {
     return query;
   }
@@ -220,12 +225,12 @@ export function getFullUrl(data: EntryRequest['data']): string | undefined {
  */
 export function objectToSortedTupleArray(obj: Record<string, string | string[]>) {
   return Object.keys(obj)
-    .reduce<[string, string][]>((out, k) => {
+    .reduce<Array<[string, string]>>((out, k) => {
       const val = obj[k];
       return out.concat(
         Array.isArray(val)
           ? val.map(v => [k, v]) // key has multiple values (array)
-          : ([[k, val]] as [string, string][]) // key has single value
+          : ([[k, val]] as Array<[string, string]>) // key has single value
       );
     }, [])
     .sort(function ([keyA, valA], [keyB, valB]) {
@@ -238,15 +243,25 @@ export function objectToSortedTupleArray(obj: Record<string, string | string[]>)
     });
 }
 
-// for context summaries and avatars
-export function removeFilterMaskedEntries<T extends Record<string, any>>(rawData: T): T {
-  const cleanedData: Record<string, any> = {};
-  for (const key of Object.getOwnPropertyNames(rawData)) {
-    if (rawData[key] !== FILTER_MASK) {
-      cleanedData[key] = rawData[key];
+function isValidContextValue(value: unknown): value is string {
+  return typeof value === 'string' && value !== FILTER_MASK;
+}
+
+const userAvatarKeys = ['id', 'ip', 'username', 'ip_address', 'name', 'email'] as const;
+
+/**
+ * Convert a user context object to an actor object for avatar display
+ */
+export function userContextToActor(rawData: Record<string, unknown>): AvatarUser {
+  const result: Partial<AvatarUser> = {};
+
+  for (const key of userAvatarKeys) {
+    if (isValidContextValue(rawData[key])) {
+      result[key] = rawData[key];
     }
   }
-  return cleanedData as T;
+
+  return result as AvatarUser;
 }
 
 export function formatAddress(address: number, imageAddressLength: number | undefined) {
@@ -291,7 +306,7 @@ export function parseAssembly(assembly: string | null) {
   }
 
   for (let i = 1; i < pieces.length; i++) {
-    const [key, value] = pieces[i].trim().split('=');
+    const [key, value] = pieces[i]!.trim().split('=');
 
     // eslint-disable-next-line default-case
     switch (key) {
@@ -367,11 +382,11 @@ export function isStacktraceNewestFirst() {
   }
 
   switch (user.options.stacktraceOrder) {
-    case 2:
+    case StacktraceOrder.MOST_RECENT_FIRST:
       return true;
-    case 1:
+    case StacktraceOrder.MOST_RECENT_LAST:
       return false;
-    case -1:
+    case StacktraceOrder.DEFAULT:
     default:
       return true;
   }
@@ -424,4 +439,29 @@ export function inferPlatform(event: Event, thread?: Thread): PlatformKey {
   }
 
   return event.platform ?? 'other';
+}
+
+const timestampsFieldCandidates = [
+  'dateCreated',
+  'startTimestamp',
+  'timestamp',
+  'endTimestamp',
+];
+
+export function getEventTimestampInSeconds(event: Event): number | undefined {
+  for (const key of timestampsFieldCandidates) {
+    if (key in event) {
+      const value = event[key as keyof Event];
+
+      if (typeof value === 'number') {
+        return value;
+      }
+
+      if (typeof value === 'string') {
+        return new Date(value).getTime() / 1_000;
+      }
+    }
+  }
+
+  return undefined;
 }

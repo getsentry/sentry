@@ -7,7 +7,7 @@ import TraceLiteQuery from 'sentry/utils/performance/quickTrace/traceLiteQuery';
 const traceId = 'abcdef1234567890';
 const eventId = '0987654321fedcba';
 
-function renderTraceLite({isLoading, error, trace, type}) {
+function renderTraceLite({isLoading, error, trace, type}: any) {
   if (isLoading) {
     return 'loading';
   }
@@ -27,7 +27,7 @@ function renderTraceLite({isLoading, error, trace, type}) {
 }
 
 describe('TraceLiteQuery', function () {
-  let location;
+  let location: any;
   beforeEach(function () {
     location = {
       pathname: '/',

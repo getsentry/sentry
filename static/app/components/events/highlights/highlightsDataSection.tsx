@@ -1,11 +1,12 @@
 import {useCallback, useMemo, useRef} from 'react';
-import {css} from '@emotion/react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {ExternalLink} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
@@ -22,26 +23,25 @@ import {
   getHighlightTagData,
   HIGHLIGHT_DOCS_LINK,
 } from 'sentry/components/events/highlights/util';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconEdit, IconMegaphone} from 'sentry/icons';
+import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import theme from 'sentry/utils/theme';
+import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
-import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 interface HighlightsDataSectionProps {
   event: Event;
   project: Project;
-  viewAllRef?: React.RefObject<HTMLElement>;
+  viewAllRef?: React.RefObject<HTMLElement | null>;
 }
 
 function useOpenEditHighlightsModal({
@@ -51,16 +51,17 @@ function useOpenEditHighlightsModal({
   event: Event;
   detailedProject?: Project;
 }) {
+  const theme = useTheme();
   const organization = useOrganization();
   const isProjectAdmin = hasEveryAccess(['project:admin'], {
-    organization: organization,
+    organization,
     project: detailedProject,
   });
 
   const editProps = useMemo(
     () => ({
       disabled: !isProjectAdmin,
-      title: !isProjectAdmin ? t('Only Project Admins can edit highlights.') : undefined,
+      title: isProjectAdmin ? undefined : t('Only Project Admins can edit highlights.'),
     }),
     [isProjectAdmin]
   );
@@ -78,16 +79,16 @@ function useOpenEditHighlightsModal({
           {...deps}
         />
       ),
-      {modalCss: highlightModalCss}
+      {modalCss: highlightModalCss(theme)}
     );
-  }, [organization, detailedProject, event]);
+  }, [organization, detailedProject, event, theme]);
 
   return {openEditHighlightsModal, editProps};
 }
 
 function EditHighlightsButton({project, event}: {event: Event; project: Project}) {
   const organization = useOrganization();
-  const {isLoading, data: detailedProject} = useDetailedProject({
+  const {isPending, data: detailedProject} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
@@ -101,7 +102,7 @@ function EditHighlightsButton({project, event}: {event: Event; project: Project}
       icon={<IconEdit />}
       onClick={openEditHighlightsModal}
       title={editProps.title}
-      disabled={isLoading || editProps.disabled}
+      disabled={isPending || editProps.disabled}
     >
       {t('Edit')}
     </Button>
@@ -116,7 +117,7 @@ function HighlightsData({
   const location = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
-  const {isLoading, data: detailedProject} = useDetailedProject({
+  const {isPending, data: detailedProject} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug: project.slug,
   });
@@ -146,6 +147,39 @@ function HighlightsData({
     highlightContext,
     location,
   });
+  const highlightTagItems = getHighlightTagData({event, highlightTags});
+
+  // find the replayId from either context or tags, if it exists
+  const contextReplayItem = highlightContextDataItems.find(
+    e => e.data.length && e.data[0]!.key === 'replay_id'
+  );
+  const contextReplayId = contextReplayItem?.value ?? EMPTY_HIGHLIGHT_DEFAULT;
+
+  const tagReplayItem = highlightTagItems.find(e => e.originalTag.key === 'replayId');
+  const tagReplayId = tagReplayItem?.value ?? EMPTY_HIGHLIGHT_DEFAULT;
+
+  // if the id doesn't exist for either tag or context, it's rendered as '--'
+  const replayId: string | undefined =
+    contextReplayId === EMPTY_HIGHLIGHT_DEFAULT
+      ? tagReplayId === EMPTY_HIGHLIGHT_DEFAULT
+        ? undefined
+        : tagReplayId
+      : contextReplayId;
+
+  const {fetchError: replayFetchError} = useReplayData({
+    orgSlug: organization.slug,
+    replayId,
+  });
+
+  // if fetchError, replace the replayId so we don't link to an invalid replay
+  if (contextReplayItem && replayFetchError) {
+    contextReplayItem.value = EMPTY_HIGHLIGHT_DEFAULT;
+  }
+  if (tagReplayItem && replayFetchError) {
+    tagReplayItem.value = EMPTY_HIGHLIGHT_DEFAULT;
+    tagReplayItem.originalTag.value = EMPTY_HIGHLIGHT_DEFAULT;
+  }
+
   const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
     (rowList, {alias, data}, i) => {
       const meta = getContextMeta(event, alias);
@@ -164,7 +198,6 @@ function HighlightsData({
     []
   );
 
-  const highlightTagItems = getHighlightTagData({event, highlightTags});
   const highlightTagRows = highlightTagItems.map((content, i) => (
     <EventTagsTreeRow
       key={`highlight-tag-${i}`}
@@ -193,9 +226,9 @@ function HighlightsData({
 
   return (
     <HighlightContainer columnCount={columnCount} ref={containerRef}>
-      {isLoading ? (
+      {isPending ? (
         <EmptyHighlights>
-          <HighlightsLoadingIndicator hideMessage size={50} />
+          <HighlightsLoadingIndicator size={50} />
         </EmptyHighlights>
       ) : hasDisabledHighlights ? (
         <EmptyHighlights>
@@ -223,25 +256,26 @@ export default function HighlightsDataSection({
   project,
 }: HighlightsDataSectionProps) {
   const organization = useOrganization();
-  const openForm = useFeedbackForm();
+  const hasStreamlinedUI = useHasStreamlinedUI();
 
-  const viewAllButton = viewAllRef ? (
-    <Button
-      onClick={() => {
-        trackAnalytics('highlights.issue_details.view_all_clicked', {organization});
-        viewAllRef?.current?.scrollIntoView({behavior: 'smooth'});
-      }}
-      size="xs"
-    >
-      {t('View All')}
-    </Button>
-  ) : null;
+  const viewAllButton =
+    !hasStreamlinedUI && viewAllRef ? (
+      <Button
+        onClick={() => {
+          trackAnalytics('highlights.issue_details.view_all_clicked', {organization});
+          viewAllRef?.current?.scrollIntoView({behavior: 'smooth'});
+        }}
+        size="xs"
+      >
+        {t('View All')}
+      </Button>
+    ) : null;
 
   return (
     <InterimSection
       key="event-highlights"
-      type={FoldSectionKey.HIGHLIGHTS}
-      title={t('Event Highlights')}
+      type={SectionKey.HIGHLIGHTS}
+      title={hasStreamlinedUI ? t('Highlights') : t('Event Highlights')}
       help={tct(
         'Promoted tags and context items saved for this project. [link:Learn more]',
         {
@@ -252,27 +286,7 @@ export default function HighlightsDataSection({
       data-test-id="event-highlights"
       actions={
         <ErrorBoundary mini>
-          <ButtonBar gap={1}>
-            {openForm && (
-              <Button
-                aria-label={t('Give Feedback')}
-                icon={<IconMegaphone />}
-                size={'xs'}
-                onClick={() =>
-                  openForm({
-                    messagePlaceholder: t(
-                      'How can we make tags, context or highlights more useful to you?'
-                    ),
-                    tags: {
-                      ['feedback.source']: 'issue_details_highlights',
-                      ['feedback.owner']: 'issues',
-                    },
-                  })
-                }
-              >
-                {t('Feedback')}
-              </Button>
-            )}
+          <ButtonBar>
             {viewAllButton}
             <EditHighlightsButton project={project} event={event} />
           </ButtonBar>
@@ -322,15 +336,15 @@ const HighlightColumn = styled(TreeColumn)`
 `;
 
 const HighlightContextContent = styled(ContextCardContent)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
-export const highlightModalCss = css`
+const highlightModalCss = (theme: Theme) => css`
   width: 850px;
   padding: 0 ${space(2)};
   margin: ${space(2)} 0;
   /* Disable overriding margins with breakpoint on default modal */
-  @media (min-width: ${theme.breakpoints.medium}) {
+  @media (min-width: ${theme.breakpoints.md}) {
     margin: ${space(2)} 0;
     padding: 0 ${space(2)};
   }

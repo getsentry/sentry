@@ -2,11 +2,12 @@ import {useEffect, useState} from 'react';
 
 import type {Client, ResponseMeta} from 'sentry/api';
 import MemberListStore from 'sentry/stores/memberListStore';
-import type {Group, Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import getDynamicText from 'sentry/utils/getDynamicText';
-
-import {IssuesConfig} from '../datasetConfig/issues';
-import type {DashboardFilters, Widget} from '../types';
+import {IssuesConfig} from 'sentry/views/dashboards/datasetConfig/issues';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 
 import type {
   GenericWidgetQueriesChildrenProps,
@@ -16,13 +17,14 @@ import GenericWidgetQueries from './genericWidgetQueries';
 
 type Props = {
   api: Client;
-  children: (props: GenericWidgetQueriesChildrenProps) => JSX.Element;
+  children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
   dashboardFilters?: DashboardFilters;
   limit?: number;
+  onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
 };
 
@@ -36,6 +38,7 @@ function IssueWidgetQueries({
   limit,
   dashboardFilters,
   onDataFetched,
+  onDataFetchStart,
 }: Props) {
   const [memberListStoreLoaded, setMemberListStoreLoaded] = useState(false);
 
@@ -65,6 +68,7 @@ function IssueWidgetQueries({
         limit={limit}
         dashboardFilters={dashboardFilters}
         onDataFetched={onDataFetched}
+        onDataFetchStart={onDataFetchStart}
         afterFetchTableData={afterFetchTableData}
         skipDashboardFilterParens // Issue widgets do not support parens in search
       >

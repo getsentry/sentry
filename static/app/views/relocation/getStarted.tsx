@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Input from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
+import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
@@ -80,7 +80,6 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
             onChange={evt => {
               onUpdateRelocationState({orgSlugs: evt.target.value});
             }}
-            required
             minLength={3}
             placeholder="org-slug-1, org-slug-2, ..."
             value={orgSlugs}
@@ -92,7 +91,7 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
             aria-label={t('region')}
             placeholder="Select Location"
             options={regions.map(r => ({label: prettyRegionName(r.name), value: r.url}))}
-            onChange={opt => {
+            onChange={(opt: any) => {
               onUpdateRelocationState({regionUrl: opt.value});
             }}
           />
@@ -144,30 +143,6 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
 
 export default GetStarted;
 
-const AnimatedContentWrapper = styled(motion.div)`
-  overflow: hidden;
-`;
-
-AnimatedContentWrapper.defaultProps = {
-  initial: {
-    height: 0,
-  },
-  animate: {
-    height: 'auto',
-  },
-  exit: {
-    height: 0,
-  },
-};
-
-const DocsWrapper = styled(motion.div)``;
-
-DocsWrapper.defaultProps = {
-  initial: {opacity: 0, y: 40},
-  animate: {opacity: 1, y: 0},
-  exit: {opacity: 0},
-};
-
 const Wrapper = styled('div')`
   margin-left: auto;
   margin-right: auto;
@@ -178,7 +153,7 @@ const Wrapper = styled('div')`
   border-radius: 10px;
   max-width: 769px;
   max-height: 525px;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   h2 {
     color: ${p => p.theme.gray500};
   }
@@ -207,7 +182,7 @@ const RequiredLabel = styled('label')`
   }
 `;
 
-const RegionSelect = styled(SelectControl)`
+const RegionSelect = styled(Select)`
   button {
     width: 709px;
   }

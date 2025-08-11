@@ -13,6 +13,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.models.organization import Organization
+from sentry.performance_issues.detectors.utils import escape_transaction
 from sentry.search.events.constants import METRICS_GRANULARITIES
 from sentry.seer.breakpoints import detect_breakpoints
 from sentry.snuba import metrics_performance
@@ -21,7 +23,6 @@ from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.iterators import chunked
-from sentry.utils.performance_issues.detectors.utils import escape_transaction
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
@@ -36,20 +37,17 @@ DEFAULT_TOP_EVENTS_LIMIT = 45
 MAX_TOP_EVENTS_LIMIT = 1000
 EVENTS_PER_QUERY = 15
 DAY_GRANULARITY_IN_SECONDS = METRICS_GRANULARITIES[0]
-ONE_DAY_IN_SECONDS = 24 * 60 * 60  # 86,400 seconds
 
 DEFAULT_RATE_LIMIT = 15
 DEFAULT_RATE_LIMIT_WINDOW = 1
 DEFAULT_CONCURRENT_RATE_LIMIT = 15
 ORGANIZATION_RATE_LIMIT = 30
 
-_query_thread_pool = ThreadPoolExecutor()
-
 
 @region_silo_endpoint
 class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     enforce_rate_limit = True
     rate_limits = {
@@ -65,19 +63,18 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             ),
         }
     }
-    snuba_methods = ["GET"]
 
     def has_feature(self, organization, request):
         return features.has(
             "organizations:performance-new-trends", organization, actor=request.user
         )
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
 
         try:
-            snuba_params, _ = self.get_snuba_dataclass(request, organization)
+            snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
 
@@ -90,8 +87,9 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         selected_columns = ["project_id", "transaction"]
 
         query = request.GET.get("query")
+        query_source = self.get_request_source(request)
 
-        def get_top_events(user_query, params, event_limit, referrer):
+        def get_top_events(user_query, snuba_params, event_limit, referrer):
             top_event_columns = selected_columns[:]
             top_event_columns.append("count()")
 
@@ -101,13 +99,14 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             return metrics_query(
                 top_event_columns,
                 query=user_query,
-                params=params,
+                snuba_params=snuba_params,
                 orderby=["-count()"],
                 limit=event_limit,
                 referrer=referrer,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
                 granularity=DAY_GRANULARITY_IN_SECONDS,
+                query_source=query_source,
             )
 
         def generate_top_transaction_query(events):
@@ -136,7 +135,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             used_project_ids = set({event["project_id"] for event in data})
 
             # Get new params with pruned projects
-            pruned_snuba_params, _ = self.get_snuba_dataclass(request, organization)
+            pruned_snuba_params = self.get_snuba_params(request, organization)
             pruned_snuba_params.projects = [
                 project
                 for project in pruned_snuba_params.projects
@@ -146,13 +145,13 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             result = metrics_performance.bulk_timeseries_query(
                 timeseries_columns,
                 queries,
-                params={},
                 snuba_params=pruned_snuba_params,
                 rollup=rollup,
                 zerofill_results=zerofill_results,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TIMESERIES.value,
                 groupby=[Column("project_id"), Column("transaction")],
                 apply_formatting=False,
+                query_source=query_source,
             )
 
             # Parse results
@@ -175,7 +174,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     results[result_key]["data"].append(row)
                 else:
                     discarded += 1
-                    # TODO filter out entries that don't have transaction or trend_function
+                    # TODO: filter out entries that don't have transaction or trend_function
                     logger.warning(
                         "trends.top-events.timeseries.key-mismatch",
                         extra={
@@ -223,7 +222,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 )
             return formatted_results
 
-        def get_event_stats_metrics(_, user_query, params, rollup, zerofill_results, __):
+        def get_event_stats_metrics(_, user_query, snuba_params, rollup, zerofill_results, __):
             top_event_limit = min(
                 int(request.GET.get("topEvents", DEFAULT_TOP_EVENTS_LIMIT)),
                 MAX_TOP_EVENTS_LIMIT,
@@ -232,7 +231,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             # Fetch transactions names with the highest event count
             top_trending_transactions = get_top_events(
                 user_query=user_query,
-                params=params,
+                snuba_params=snuba_params,
                 event_limit=top_event_limit,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS.value,
             )
@@ -278,7 +277,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             ]
 
             # send the data to microservice
-            results = list(_query_thread_pool.map(detect_breakpoints, trends_requests))
+            with ThreadPoolExecutor(thread_name_prefix=__name__) as query_thread_pool:
+                results = list(query_thread_pool.map(detect_breakpoints, trends_requests))
             trend_results = []
 
             # append all the results
@@ -348,7 +348,6 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 get_event_stats_metrics,
                 top_events=EVENTS_PER_QUERY,
                 query_column=trend_function,
-                params={},
                 snuba_params=snuba_params,
                 query=query,
             )

@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Alert} from 'sentry/components/alert';
-import Link from 'sentry/components/links/link';
+import {Alert} from 'sentry/components/core/alert';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NotAvailable from 'sentry/components/notAvailable';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -33,7 +33,7 @@ type PerformanceCardTableProps = {
   isLoading: boolean;
   location: Location;
   organization: Organization;
-  performanceType: string;
+  performanceType: ProjectPerformanceType;
   project: ReleaseProject;
   releaseEventView: EventView;
   thisReleaseTableData: TableData | null;
@@ -49,6 +49,7 @@ function PerformanceCardTable({
   performanceType,
   isLoading,
 }: PerformanceCardTableProps) {
+  const theme = useTheme();
   const miseryRenderer =
     allReleasesTableData?.meta &&
     getFieldRenderer('user_misery()', allReleasesTableData.meta, false);
@@ -122,7 +123,7 @@ function PerformanceCardTable({
         <SubTitle key={idx}>
           <Link
             to={newView.getResultsViewUrlTarget(
-              organization.slug,
+              organization,
               false,
               hasDatasetSelector(organization)
                 ? SavedQueryDatasets.TRANSACTIONS
@@ -144,7 +145,7 @@ function PerformanceCardTable({
         <SubTitle key={idx}>
           <Link
             to={newView.getResultsViewUrlTarget(
-              organization.slug,
+              organization,
               false,
               hasDatasetSelector(organization)
                 ? SavedQueryDatasets.TRANSACTIONS
@@ -202,6 +203,7 @@ function PerformanceCardTable({
         <StyledPanelItem>
           <TitleSpace />
           {webVitals.map((vital, index) => (
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             <MultipleEmptySubText key={vital[index]}>
               <StyledNotAvailable tooltip={t('No results found')} />
             </MultipleEmptySubText>
@@ -210,6 +212,7 @@ function PerformanceCardTable({
         <StyledPanelItem>
           <TitleSpace />
           {spans.map((span, index) => (
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             <MultipleEmptySubText key={span[index]}>
               <StyledNotAvailable tooltip={t('No results found')} />
             </MultipleEmptySubText>
@@ -237,12 +240,13 @@ function PerformanceCardTable({
               const allReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
                 location,
+                theme,
               });
               const allReleasesWebVitals = webVitalsRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location, theme})
               );
               const allReleasesSpans = spansRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location, theme})
               );
 
               return (
@@ -265,12 +269,13 @@ function PerformanceCardTable({
               const thisReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
                 location,
+                theme,
               });
               const thisReleasesWebVitals = webVitalsRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location, theme})
               );
               const thisReleasesSpans = spansRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location, theme})
               );
 
               return (
@@ -330,7 +335,7 @@ function PerformanceCardTable({
         <SubTitle key={idx}>
           <Link
             to={newView.getResultsViewUrlTarget(
-              organization.slug,
+              organization,
               false,
               hasDatasetSelector(organization)
                 ? SavedQueryDatasets.TRANSACTIONS
@@ -391,6 +396,7 @@ function PerformanceCardTable({
         <StyledPanelItem>
           <TitleSpace />
           {spans.map((span, index) => (
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
             <MultipleEmptySubText key={span[index]}>
               <StyledNotAvailable tooltip={t('No results found')} />
             </MultipleEmptySubText>
@@ -416,10 +422,15 @@ function PerformanceCardTable({
               const allReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
                 location,
+                theme,
               });
-              const allReleasesApdex = apdexRenderer?.(dataRow, {organization, location});
+              const allReleasesApdex = apdexRenderer?.(dataRow, {
+                organization,
+                location,
+                theme,
+              });
               const allReleasesSpans = spansRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location, theme})
               );
 
               return (
@@ -439,13 +450,15 @@ function PerformanceCardTable({
               const thisReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
                 location,
+                theme,
               });
               const thisReleasesApdex = apdexRenderer?.(dataRow, {
                 organization,
                 location,
+                theme,
               });
               const thisReleasesSpans = spansRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location, theme})
               );
 
               return (
@@ -540,9 +553,10 @@ function PerformanceCardTable({
               const allReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
                 location,
+                theme,
               });
               const allReleasesMobile = mobileVitalsRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location, theme})
               );
 
               return (
@@ -560,9 +574,10 @@ function PerformanceCardTable({
               const thisReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
                 location,
+                theme,
               });
               const thisReleasesMobile = mobileVitalsRenderer?.map(renderer =>
-                renderer?.(dataRow, {organization, location})
+                renderer?.(dataRow, {organization, location, theme})
               );
 
               return (
@@ -610,6 +625,7 @@ function PerformanceCardTable({
               const allReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
                 location,
+                theme,
               });
 
               return (
@@ -624,6 +640,7 @@ function PerformanceCardTable({
               const thisReleasesMisery = miseryRenderer?.(dataRow, {
                 organization,
                 location,
+                theme,
               });
 
               return (
@@ -639,7 +656,9 @@ function PerformanceCardTable({
 
   const loader = <StyledLoadingIndicator />;
 
-  const platformPerformanceRender = {
+  const platformPerformanceRender: Partial<
+    Record<ProjectPerformanceType, {section: React.ReactNode; title: string}>
+  > = {
     [ProjectPerformanceType.FRONTEND]: {
       title: t('Frontend Performance'),
       section: renderFrontendPerformance(),
@@ -663,10 +682,10 @@ function PerformanceCardTable({
   return (
     <Fragment>
       <HeadCellContainer>
-        {platformPerformanceRender[performanceType].title}
+        {platformPerformanceRender[performanceType]?.title}
       </HeadCellContainer>
       {isUnknownPlatform && (
-        <StyledAlert type="warning" showIcon system>
+        <StyledAlert type="warning" system>
           {tct(
             'For more performance metrics, specify which platform this project is using in [link]',
             {
@@ -699,7 +718,7 @@ function PerformanceCardTable({
         loader={loader}
         disableTopBorder={isUnknownPlatform}
       >
-        {platformPerformanceRender[performanceType].section}
+        {platformPerformanceRender[performanceType]?.section}
       </StyledPanelTable>
     </Fragment>
   );
@@ -709,7 +728,7 @@ interface Props {
   allReleasesEventView: EventView;
   location: Location;
   organization: Organization;
-  performanceType: string;
+  performanceType: ProjectPerformanceType;
   project: ReleaseProject;
   releaseEventView: EventView;
 }
@@ -755,7 +774,7 @@ function PerformanceCardTableWrapper({
 
 export default PerformanceCardTableWrapper;
 
-const emptyFieldCss = p => css`
+const emptyFieldCss = (p: any) => css`
   color: ${p.theme.chartOther};
   text-align: right;
 `;
@@ -765,7 +784,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const HeadCellContainer = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   padding: ${space(2)};
   border-top: 1px solid ${p => p.theme.border};
   border-left: 1px solid ${p => p.theme.border};
@@ -778,7 +797,7 @@ const StyledPanelTable = styled(PanelTable)<{disableTopBorder: boolean}>`
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   border-top: ${p => (p.disableTopBorder ? 'none' : `1px solid ${p.theme.border}`)};
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: min-content 1fr 1fr 1fr;
   }
 `;
@@ -825,7 +844,6 @@ const StyledAlert = styled(Alert)`
   border-top: 1px solid ${p => p.theme.border};
   border-right: 1px solid ${p => p.theme.border};
   border-left: 1px solid ${p => p.theme.border};
-  margin-bottom: 0;
 `;
 
 const StyledNotAvailable = styled(NotAvailable)`
@@ -837,12 +855,12 @@ const SubText = styled('div')`
   text-align: right;
 `;
 
-const TrendText = styled('div')<{color: string}>`
+const TrendText = styled('div')<{color: 'success' | 'error'}>`
   color: ${p => p.theme[p.color]};
   text-align: right;
 `;
 
-const StyledIconArrow = styled(IconArrow)<{color: string}>`
+const StyledIconArrow = styled(IconArrow)<{color: 'success' | 'error'}>`
   color: ${p => p.theme[p.color]};
   margin-left: ${space(0.5)};
 `;

@@ -147,7 +147,7 @@ describe('SelectedGroupStore', function () {
 
       expect(ids.has('1')).toBe(true);
       expect(ids.has('3')).toBe(true);
-      expect(ids.size).toEqual(2);
+      expect(ids.size).toBe(2);
     });
 
     it('returns empty set with no selected ids', function () {
@@ -155,7 +155,7 @@ describe('SelectedGroupStore', function () {
       const ids = SelectedGroupStore.getSelectedIds();
 
       expect(ids.has('1')).toBe(false);
-      expect(ids.size).toEqual(0);
+      expect(ids.size).toBe(0);
     });
   });
 

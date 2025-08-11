@@ -7,6 +7,9 @@ body {
     &.collapsed {
       padding-left: @sidebar-collapsed-width;
     }
+    &.hasNewNav {
+      padding-left: @sidebar-semi-collapsed-width;
+    }
   }
 
   &.scroll-lock {
@@ -39,6 +42,9 @@ body.narrow {
     &.collapsed {
       padding-left: @sidebar-collapsed-width;
     }
+    &.hasNewNav {
+      padding-left: @sidebar-semi-collapsed-width;
+    }
   }
 
   &.dialog {
@@ -68,20 +74,6 @@ body.narrow {
         &:hover {
           color: @gray-dark;
         }
-      }
-
-      .back-to,
-      .pull-right a {
-        font-size: 16px;
-      }
-
-      .back-to {
-        border-left: 1px solid @trim;
-        padding: 2px 10px;
-        display: inline-block;
-        margin-left: 7px;
-        position: relative;
-        top: -3px;
       }
     }
 
@@ -320,7 +312,7 @@ body.auth {
 */
 
 .pattern-bg {
-  background: #f2f1f3 url(../images/pattern/sentry-pattern.png);
+  background: #f2f1f3 url(sentry-images/pattern/sentry-pattern.png);
   background-size: 340px;
   position: fixed;
   top: 0;

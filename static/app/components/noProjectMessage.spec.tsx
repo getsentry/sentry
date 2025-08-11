@@ -15,6 +15,11 @@ describe('NoProjectMessage', function () {
   });
 
   const org = OrganizationFixture();
+  const noAccessOrg = OrganizationFixture({
+    access: [],
+    features: ['team-roles'],
+    allowMemberProjectCreation: false,
+  });
 
   it('renders', function () {
     const organization = OrganizationFixture({slug: 'org-slug'});
@@ -42,12 +47,43 @@ describe('NoProjectMessage', function () {
     expect(screen.getByRole('button', {name: 'Create project'})).toBeEnabled();
   });
 
-  it('disable "Create Project" when user has no org-level access', function () {
+  it('enable "Create Project" when user is team admin', function () {
     ProjectsStore.loadInitialData([]);
+    TeamStore.loadInitialData([
+      TeamFixture({
+        id: '1',
+        slug: 'team1',
+        name: 'Team 1',
+        isMember: true,
+        teamRole: 'admin',
+        access: ['team:admin', 'team:write', 'team:read'],
+      }),
+    ]);
 
-    render(<NoProjectMessage organization={OrganizationFixture({access: []})} />);
+    render(<NoProjectMessage organization={noAccessOrg} />, {organization: noAccessOrg});
 
-    expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Create project'})).toBeEnabled();
+  });
+
+  it('disable "Create Project" when user is not team admin', function () {
+    ProjectsStore.loadInitialData([]);
+    TeamStore.loadInitialData([
+      TeamFixture({
+        id: '1',
+        slug: 'team1',
+        name: 'Team 1',
+        isMember: true,
+        teamRole: 'admin',
+        access: ['team:write', 'team:read'],
+      }),
+    ]);
+
+    render(<NoProjectMessage organization={noAccessOrg} />, {organization: noAccessOrg});
+
+    expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('shows "Create Project" button when user has team-level access', function () {
@@ -92,7 +128,10 @@ describe('NoProjectMessage', function () {
 
     render(<NoProjectMessage organization={{...org, access: []}} />);
 
-    expect(screen.getByRole('button', {name: 'Join a Team'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Join a Team'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('shows empty message to superusers that are not members', function () {

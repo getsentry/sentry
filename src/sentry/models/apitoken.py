@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import secrets
-from collections.abc import Collection
+from collections.abc import Collection, Mapping
 from datetime import timedelta
 from typing import Any, ClassVar
 
@@ -10,16 +10,18 @@ from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.encoding import force_str
 
-from sentry import options
 from sentry.backup.dependencies import ImportKind, NormalizedModelName, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import SentryAppStatus
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.hybridcloud.outbox.base import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.models.apigrant import ApiGrant
+from sentry.locks import locks
+from sentry.models.apiapplication import ApiApplicationStatus
+from sentry.models.apigrant import ApiGrant, ExpiredGrantError, InvalidGrantError
 from sentry.models.apiscopes import HasApiScopes
 from sentry.types.region import find_all_region_names
 from sentry.types.token import AuthTokenType
@@ -32,7 +34,9 @@ def default_expiration():
     return timezone.now() + DEFAULT_EXPIRATION
 
 
-def generate_token(token_type: AuthTokenType | str | None = AuthTokenType.__empty__) -> str:
+def generate_token(
+    token_type: AuthTokenType | str | None = AuthTokenType.__empty__,
+) -> str:
     if token_type:
         return f"{token_type}{secrets.token_hex(nbytes=32)}"
 
@@ -81,13 +85,12 @@ class ApiTokenManager(ControlOutboxProducingManager["ApiToken"]):
             else:
                 plaintext_token = generate_token()
 
-        if options.get("apitoken.save-hash-on-create"):
-            kwargs["hashed_token"] = hashlib.sha256(plaintext_token.encode()).hexdigest()
+        kwargs["hashed_token"] = hashlib.sha256(plaintext_token.encode()).hexdigest()
 
-            if plaintext_refresh_token:
-                kwargs["hashed_refresh_token"] = hashlib.sha256(
-                    plaintext_refresh_token.encode()
-                ).hexdigest()
+        if plaintext_refresh_token:
+            kwargs["hashed_refresh_token"] = hashlib.sha256(
+                plaintext_refresh_token.encode()
+            ).hexdigest()
 
         kwargs["token"] = plaintext_token
         kwargs["refresh_token"] = plaintext_refresh_token
@@ -109,10 +112,18 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
     user = FlexibleForeignKey("sentry.User")
+    # Tokens can be scoped to only access a single organization.
+    #
+    # Failure to restrict access by the scoping organization id could enable
+    # cross-organization access for untrusted third-party clients. The scoping
+    # organization key should only be unset for trusted clients.
+    scoping_organization_id = HybridCloudForeignKey(
+        "sentry.Organization", null=True, on_delete="CASCADE"
+    )
     name = models.CharField(max_length=255, null=True)
     token = models.CharField(max_length=71, unique=True, default=generate_token)
     hashed_token = models.CharField(max_length=128, unique=True, null=True)
-    token_type = models.CharField(max_length=7, choices=AuthTokenType, null=True)
+    token_type = models.CharField(max_length=7, choices=AuthTokenType.choices(), null=True)
     token_last_characters = models.CharField(max_length=4, null=True)
     refresh_token = models.CharField(max_length=71, unique=True, null=True, default=generate_token)
     hashed_refresh_token = models.CharField(max_length=128, unique=True, null=True)
@@ -127,8 +138,8 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     __repr__ = sane_repr("user_id", "token", "application_id")
 
-    def __str__(self):
-        return force_str(self.token)
+    def __str__(self) -> str:
+        return f"token_id={force_str(self.id)}"
 
     def _set_plaintext_token(self, token: str) -> None:
         """Set the plaintext token for one-time reading
@@ -207,38 +218,34 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         return token
 
     def save(self, *args: Any, **kwargs: Any) -> None:
-        if options.get("apitoken.save-hash-on-create"):
-            self.hashed_token = hashlib.sha256(self.token.encode()).hexdigest()
+        self.hashed_token = hashlib.sha256(self.token.encode()).hexdigest()
 
-            if self.refresh_token:
-                self.hashed_refresh_token = hashlib.sha256(self.refresh_token.encode()).hexdigest()
-            else:
-                # The backup tests create a token with a refresh_token and then clear it out.
-                # So if the refresh_token is None, wipe out any hashed value that may exist too.
-                # https://github.com/getsentry/sentry/blob/1fc699564e79c62bff6cc3c168a49bfceadcac52/tests/sentry/backup/test_imports.py#L1306
-                self.hashed_refresh_token = None
+        if self.refresh_token:
+            self.hashed_refresh_token = hashlib.sha256(self.refresh_token.encode()).hexdigest()
+        else:
+            # The backup tests create a token with a refresh_token and then clear it out.
+            # So if the refresh_token is None, wipe out any hashed value that may exist too.
+            # https://github.com/getsentry/sentry/blob/1fc699564e79c62bff6cc3c168a49bfceadcac52/tests/sentry/backup/test_imports.py#L1306
+            self.hashed_refresh_token = None
 
-        if options.get("apitoken.auto-add-last-chars"):
-            token_last_characters = self.token[-4:]
-            self.token_last_characters = token_last_characters
+        token_last_characters = self.token[-4:]
+        self.token_last_characters = token_last_characters
 
         return super().save(*args, **kwargs)
 
     def update(self, *args: Any, **kwargs: Any) -> int:
         # if the token or refresh_token was updated, we need to
         # re-calculate the hashed values
-        if options.get("apitoken.save-hash-on-create"):
-            if "token" in kwargs:
-                kwargs["hashed_token"] = hashlib.sha256(kwargs["token"].encode()).hexdigest()
+        if "token" in kwargs:
+            kwargs["hashed_token"] = hashlib.sha256(kwargs["token"].encode()).hexdigest()
 
-            if "refresh_token" in kwargs:
-                kwargs["hashed_refresh_token"] = hashlib.sha256(
-                    kwargs["refresh_token"].encode()
-                ).hexdigest()
+        if "refresh_token" in kwargs:
+            kwargs["hashed_refresh_token"] = hashlib.sha256(
+                kwargs["refresh_token"].encode()
+            ).hexdigest()
 
-        if options.get("apitoken.auto-add-last-chars"):
-            if "token" in kwargs:
-                kwargs["token_last_characters"] = kwargs["token"][-4:]
+        if "token" in kwargs:
+            kwargs["token_last_characters"] = kwargs["token"][-4:]
 
         return super().update(*args, **kwargs)
 
@@ -255,15 +262,49 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         )
 
     @classmethod
-    def from_grant(cls, grant: ApiGrant):
-        with transaction.atomic(router.db_for_write(cls)):
-            api_token = cls.objects.create(
-                application=grant.application, user=grant.user, scope_list=grant.get_scopes()
-            )
+    def handle_async_deletion(
+        cls,
+        identifier: int,
+        region_name: str,
+        shard_identifier: int,
+        payload: Mapping[str, Any] | None,
+    ) -> None:
+        from sentry.hybridcloud.services.replica import region_replica_service
 
-            # remove the ApiGrant from the database to prevent reuse of the same
-            # authorization code
-            grant.delete()
+        region_replica_service.delete_replicated_api_token(
+            apitoken_id=identifier,
+            region_name=region_name,
+        )
+
+    @classmethod
+    def from_grant(cls, grant: ApiGrant):
+        if grant.application.status != ApiApplicationStatus.active:
+            raise InvalidGrantError()
+
+        if grant.is_expired():
+            raise ExpiredGrantError()
+
+        lock = locks.get(
+            ApiGrant.get_lock_key(grant.id),
+            duration=10,
+            name="api_grant",
+        )
+
+        # we use a lock to prevent race conditions when creating the ApiToken
+        # an attacker could send two requests to create an access/refresh token pair
+        # at the same time, using the same grant, and get two different tokens
+        with lock.acquire():
+            with transaction.atomic(router.db_for_write(cls)):
+                api_token = cls.objects.create(
+                    application=grant.application,
+                    user=grant.user,
+                    scope_list=grant.get_scopes(),
+                    scoping_organization_id=grant.organization_id,
+                )
+
+                # remove the ApiGrant from the database to prevent reuse of the same
+                # authorization code
+                grant.delete()
 
             return api_token
 
@@ -276,10 +317,10 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     def get_audit_log_data(self):
         return {"scopes": self.get_scopes()}
 
-    def get_allowed_origins(self):
+    def get_allowed_origins(self) -> list[str]:
         if self.application:
             return self.application.get_allowed_origins()
-        return ()
+        return []
 
     def refresh(self, expires_at=None):
         if self.token_type == AuthTokenType.USER:
@@ -319,7 +360,10 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     @classmethod
     def sanitize_relocation_json(
-        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+        cls,
+        json: Any,
+        sanitizer: Sanitizer,
+        model_name: NormalizedModelName | None = None,
     ) -> None:
         model_name = get_model_name(cls) if model_name is None else model_name
         super().sanitize_relocation_json(json, sanitizer, model_name)
@@ -350,11 +394,13 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     @property
     def organization_id(self) -> int | None:
-        from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-        from sentry.models.integrations.sentry_app_installation_token import (
+        from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+        from sentry.sentry_apps.models.sentry_app_installation_token import (
             SentryAppInstallationToken,
         )
 
+        if self.scoping_organization_id:
+            return self.scoping_organization_id
         try:
             installation = SentryAppInstallation.objects.get_by_api_token(self.id).get()
         except SentryAppInstallation.DoesNotExist:

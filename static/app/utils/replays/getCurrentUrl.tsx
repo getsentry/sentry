@@ -10,7 +10,7 @@ import type {ReplayRecord} from 'sentry/views/replays/types';
 
 function getCurrentUrl(
   replayRecord: undefined | ReplayRecord,
-  frames: undefined | (BreadcrumbFrame | SpanFrame)[],
+  frames: undefined | Array<BreadcrumbFrame | SpanFrame>,
   currentOffsetMS: number
 ) {
   const framesBeforeCurrentOffset = frames?.filter(

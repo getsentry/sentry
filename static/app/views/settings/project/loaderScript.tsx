@@ -1,9 +1,8 @@
 import {Fragment, useCallback, useState} from 'react';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -11,21 +10,22 @@ import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
-import type {Organization, Project, ProjectKey} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project, ProjectKey} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
 
-export function ProjectLoaderScript({project}: {project: Project}) {
+function ProjectLoaderScript({project}: {project: Project}) {
   const organization = useOrganization();
   const apiEndpoint = `/projects/${organization.slug}/${project.slug}/keys/`;
   const [updatedProjectKeys, setUpdatedProjectKeys] = useState<ProjectKey[]>([]);
 
   const {
     data: projectKeys,
-    isLoading,
+    isPending,
     error,
     refetch: refetchProjectKeys,
   } = useApiQuery<ProjectKey[]>([apiEndpoint], {
@@ -69,14 +69,14 @@ export function ProjectLoaderScript({project}: {project: Project}) {
         )}
       </TextBlock>
 
-      {isLoading && <LoadingIndicator />}
+      {isPending && <LoadingIndicator />}
       {!!error && (
         <LoadingError
           message={t('Failed to load project keys.')}
           onRetry={refetchProjectKeys}
         />
       )}
-      {!isLoading && !error && !projectKeys?.length && (
+      {!isPending && !error && !projectKeys?.length && (
         <EmptyMessage title={t('There are no keys active for this project.')} />
       )}
 
@@ -121,7 +121,7 @@ function LoaderItem({
         </LinkButton>
       </PanelHeader>
       <PanelBody>
-        <PanelAlert type="info" showIcon>
+        <PanelAlert type="info">
           {t('Note that it can take a few minutes until changed options are live.')}
         </PanelAlert>
 

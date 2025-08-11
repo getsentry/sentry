@@ -11,7 +11,6 @@ from sentry.search.events.fields import get_function_alias
 from sentry.snuba import metrics_performance
 
 COUNT_UNPARAM = "count_unparameterized_transactions()"
-COUNT_HAS_TXN = "count_has_transaction_name()"
 COUNT_NULL = "count_null_transactions()"
 
 
@@ -27,15 +26,13 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
     """
 
     def get(self, request: Request, organization: Organization) -> Response:
-        data = {
+        data: dict[str, list[int]] = {
             "incompatible_projects": [],
             "compatible_projects": [],
         }
         try:
             # This will be used on the perf homepage and contains preset queries, allow global views
-            snuba_params, _ = self.get_snuba_dataclass(
-                request, organization, check_global_views=False
-            )
+            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
         except NoProjects:
             return Response(data)
         original_project_ids = snuba_params.project_ids[:]
@@ -49,7 +46,6 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
                     count_null,
                     count_has_txn,
                 ],
-                params={},
                 snuba_params=snuba_params,
                 query=f"{count_null}:0 AND {count_has_txn}:>0",
                 referrer="api.organization-events-metrics-compatibility.compatible",
@@ -61,7 +57,7 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
             )
             data["incompatible_projects"] = sorted(
                 list(set(original_project_ids) - set(data["compatible_projects"]))[
-                    : request.GET.get("per_page", 50)
+                    : int(request.GET.get("per_page", 50))
                 ]
             )
 
@@ -89,16 +85,13 @@ class OrganizationMetricsCompatibilitySums(OrganizationEventsEndpointBase):
         }
         try:
             # This will be used on the perf homepage and contains preset queries, allow global views
-            snuba_params, _ = self.get_snuba_dataclass(
-                request, organization, check_global_views=False
-            )
+            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
         except NoProjects:
             return Response(data)
 
         with handle_query_errors():
             sum_metrics = metrics_performance.query(
                 selected_columns=[COUNT_UNPARAM, COUNT_NULL, "count()"],
-                params={},
                 snuba_params=snuba_params,
                 query="",
                 referrer="api.organization-events-metrics-compatibility.sum_metrics",

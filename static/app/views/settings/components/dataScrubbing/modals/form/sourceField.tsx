@@ -6,10 +6,12 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-
-import type {SourceSuggestion} from '../../types';
-import {SourceSuggestionType} from '../../types';
-import {binarySuggestions, unarySuggestions} from '../../utils';
+import type {SourceSuggestion} from 'sentry/views/settings/components/dataScrubbing/types';
+import {SourceSuggestionType} from 'sentry/views/settings/components/dataScrubbing/types';
+import {
+  binarySuggestions,
+  unarySuggestions,
+} from 'sentry/views/settings/components/dataScrubbing/utils';
 
 import SourceSuggestionExamples from './sourceSuggestionExamples';
 
@@ -20,7 +22,7 @@ const defaultHelp = t(
 type Props = {
   isRegExMatchesSelected: boolean;
   onChange: (value: string) => void;
-  suggestions: Array<SourceSuggestion>;
+  suggestions: SourceSuggestion[];
   value: string;
   error?: string;
   onBlur?: (value: string, event: React.FocusEvent<HTMLInputElement>) => void;
@@ -28,11 +30,11 @@ type Props = {
 
 type State = {
   activeSuggestion: number;
-  fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>>;
+  fieldValues: Array<SourceSuggestion | SourceSuggestion[]>;
   help: string;
   hideCaret: boolean;
   showSuggestions: boolean;
-  suggestions: Array<SourceSuggestion>;
+  suggestions: SourceSuggestion[];
 };
 
 class SourceField extends Component<Props, State> {
@@ -76,7 +78,7 @@ class SourceField extends Component<Props, State> {
   }
 
   getFilteredSuggestions(value: string, type: SourceSuggestionType) {
-    let valuesToBeFiltered: Array<SourceSuggestion> = [];
+    let valuesToBeFiltered: SourceSuggestion[] = [];
 
     switch (type) {
       case SourceSuggestionType.BINARY: {
@@ -103,9 +105,10 @@ class SourceField extends Component<Props, State> {
     return filteredSuggestions;
   }
 
-  getNewSuggestions(fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>>) {
-    const lastFieldValue = fieldValues[fieldValues.length - 1];
-    const penultimateFieldValue = fieldValues[fieldValues.length - 2];
+  // @ts-expect-error TS(7023): 'getNewSuggestions' implicitly has return type 'an... Remove this comment to see the full error message
+  getNewSuggestions(fieldValues: Array<SourceSuggestion | SourceSuggestion[]>) {
+    const lastFieldValue = fieldValues[fieldValues.length - 1]!;
+    const penultimateFieldValue = fieldValues[fieldValues.length - 2]!;
 
     if (Array.isArray(lastFieldValue)) {
       // recursion
@@ -167,13 +170,12 @@ class SourceField extends Component<Props, State> {
   }
 
   loadFieldValues(newValue: string) {
-    const fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>> = [];
+    const fieldValues: Array<SourceSuggestion | SourceSuggestion[]> = [];
 
     const splittedValue = newValue.split(' ');
 
-    for (const splittedValueIndex in splittedValue) {
-      const value = splittedValue[splittedValueIndex];
-      const lastFieldValue = fieldValues[fieldValues.length - 1];
+    for (const value of splittedValue) {
+      const lastFieldValue = fieldValues[fieldValues.length - 1]!;
 
       if (
         lastFieldValue &&
@@ -185,18 +187,18 @@ class SourceField extends Component<Props, State> {
       }
 
       if (value.includes('!') && !!value.split('!')[1]) {
-        const valueAfterUnaryOperator = value.split('!')[1];
+        const valueAfterUnaryOperator = value.split('!')[1]!;
         const selector = this.getAllSuggestions().find(
           s => s.value === valueAfterUnaryOperator
         );
         if (!selector) {
           fieldValues.push([
-            unarySuggestions[0],
+            unarySuggestions[0]!,
             {type: SourceSuggestionType.STRING, value: valueAfterUnaryOperator},
           ]);
           continue;
         }
-        fieldValues.push([unarySuggestions[0], selector]);
+        fieldValues.push([unarySuggestions[0]!, selector]);
         continue;
       }
 
@@ -221,7 +223,7 @@ class SourceField extends Component<Props, State> {
   scrollToSuggestion() {
     const {activeSuggestion, hideCaret} = this.state;
 
-    this.suggestionList?.current?.children[activeSuggestion].scrollIntoView({
+    this.suggestionList?.current?.children[activeSuggestion]!.scrollIntoView({
       behavior: 'smooth',
       block: 'nearest',
       inline: 'start',
@@ -237,10 +239,9 @@ class SourceField extends Component<Props, State> {
   changeParentValue() {
     const {onChange} = this.props;
     const {fieldValues} = this.state;
-    const newValue: Array<string> = [];
+    const newValue: string[] = [];
 
-    for (const index in fieldValues) {
-      const fieldValue = fieldValues[index];
+    for (const fieldValue of fieldValues) {
       if (Array.isArray(fieldValue)) {
         if (fieldValue[0]?.value || fieldValue[1]?.value) {
           newValue.push(`${fieldValue[0]?.value ?? ''}${fieldValue[1]?.value ?? ''}`);
@@ -255,16 +256,16 @@ class SourceField extends Component<Props, State> {
 
   getNewFieldValues(
     suggestion: SourceSuggestion
-  ): Array<SourceSuggestion | Array<SourceSuggestion>> {
+  ): Array<SourceSuggestion | SourceSuggestion[]> {
     const fieldValues = [...this.state.fieldValues];
-    const lastFieldValue = fieldValues[fieldValues.length - 1];
+    const lastFieldValue = fieldValues[fieldValues.length - 1]!;
 
     if (!defined(lastFieldValue)) {
       return [suggestion];
     }
 
     if (Array.isArray(lastFieldValue)) {
-      fieldValues[fieldValues.length - 1] = [lastFieldValue[0], suggestion];
+      fieldValues[fieldValues.length - 1] = [lastFieldValue[0]!, suggestion];
       return fieldValues;
     }
 
@@ -295,7 +296,7 @@ class SourceField extends Component<Props, State> {
       return;
     }
 
-    const isMaybeRegExp = RegExp('^/.*/g?$').test(value);
+    const isMaybeRegExp = new RegExp('^/.*/g?$').test(value);
 
     if (help) {
       if (!isMaybeRegExp) {
@@ -354,7 +355,7 @@ class SourceField extends Component<Props, State> {
     }
 
     if (key === 'Enter') {
-      this.handleClickSuggestionItem(suggestions[activeSuggestion]);
+      this.handleClickSuggestionItem(suggestions[activeSuggestion]!);
       return;
     }
 
@@ -487,7 +488,7 @@ const Suggestion = styled('li')<{active: boolean}>`
   gap: ${space(1)};
   border-bottom: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   cursor: pointer;
   background: ${p => (p.active ? p.theme.backgroundSecondary : p.theme.background)};
   :hover {
@@ -499,7 +500,7 @@ const Suggestion = styled('li')<{active: boolean}>`
 const SuggestionDescription = styled('div')`
   display: flex;
   overflow: hidden;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   line-height: 1.2;
 `;
 

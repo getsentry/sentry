@@ -1,10 +1,9 @@
-import {useCallback, useRef} from 'react';
-import {findDOMNode} from 'react-dom';
+import {useCallback, useId} from 'react';
 import styled from '@emotion/styled';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import type {InputProps} from 'sentry/components/inputGroup';
-import {InputGroup} from 'sentry/components/inputGroup';
+import type {InputProps} from 'sentry/components/core/input/inputGroup';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {space} from 'sentry/styles/space';
 import {selectText} from 'sentry/utils/selectText';
 
@@ -33,27 +32,21 @@ function TextCopyInput({
   children,
   ...inputProps
 }: Props) {
-  const textRef = useRef<HTMLInputElement>(null);
+  const textNodeId = useId();
 
   const handleSelectText = useCallback(() => {
-    if (!textRef.current) {
+    const node = document.getElementById(textNodeId) as HTMLInputElement | null;
+    if (!node) {
       return;
     }
 
-    // We use findDOMNode here because `this.textRef` is not a dom node,
-    // it's a ref to AutoSelectText
-    const node = findDOMNode(textRef.current); // eslint-disable-line react/no-find-dom-node
-    if (!node || !(node instanceof HTMLElement)) {
-      return;
-    }
-
-    if (rtl && node instanceof HTMLInputElement) {
+    if (rtl) {
       // we don't want to select the first character - \u202A, nor the last - \u202C
       node.setSelectionRange(1, node.value.length - 1);
     } else {
       selectText(node);
     }
-  }, [rtl]);
+  }, [rtl, textNodeId]);
 
   /**
    * We are using direction: rtl; to always show the ending of a long overflowing text in input.
@@ -68,9 +61,9 @@ function TextCopyInput({
   return (
     <InputGroup className={className}>
       <StyledInput
+        id={textNodeId}
         readOnly
         disabled={disabled}
-        ref={textRef}
         style={style}
         value={inputValue}
         onClick={handleSelectText}

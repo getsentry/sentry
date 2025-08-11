@@ -17,7 +17,6 @@ class GenericMetricsBackend(Service):
         tags: dict[str, str],
         unit: str | None,
     ) -> None:
-
         """
         Used for emitting a counter metric for internal use cases only.
         Ensure that the use_case_id passed in has been registered
@@ -36,7 +35,6 @@ class GenericMetricsBackend(Service):
         tags: dict[str, str],
         unit: str | None,
     ) -> None:
-
         """
         Used for emitting a set metric for internal use cases only. Can support
         a sequence of values. Ensure that the use_case_id passed in has
@@ -54,7 +52,6 @@ class GenericMetricsBackend(Service):
         tags: dict[str, str],
         unit: str | None,
     ) -> None:
-
         """
         Used for emitting a distribution metric for internal use cases only. Can
         support a sequence of values. Ensure that the use_case_id passed in

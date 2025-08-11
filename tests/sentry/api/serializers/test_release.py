@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from rest_framework.exceptions import ErrorDetail
@@ -19,16 +19,15 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.models.user import User
-from sentry.models.useremail import UserEmail
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.useremail import UserEmail
 
 
 class ReleaseSerializerTest(TestCase, SnubaTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user()
         project = self.create_project()
         project2 = self.create_project(organization=project.organization)
@@ -45,7 +44,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "release": release_version,
                 "environment": "prod",
             },
@@ -76,12 +75,8 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["version"] == release.version
         # should be sum of all projects
         assert result["newGroups"] == 2
-        tagvalue1 = tagstore.backend.get_tag_value(
-            project.id,
-            None,
-            "sentry:release",
-            release_version,
-            tenant_ids={"organization_id": 1, "referrer": "r"},
+        (tagvalue1,) = tagstore.backend.get_release_tags(
+            1, [project.id], environment_id=None, versions=[release_version]
         )
         assert result["lastEvent"] == tagvalue1.last_seen
         assert result["commitCount"] == 1
@@ -135,7 +130,15 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             == current_project_meta["last_release_version"]
         )
 
-    def test_mobile_version(self):
+    def test_authors_is_none(self) -> None:
+        release = Release.objects.create(
+            organization_id=self.organization.id, version="1", authors=None
+        )
+        release.add_project(self.project)
+        result = serialize(release, self.user)
+        assert result["authors"] == []
+
+    def test_mobile_version(self) -> None:
         user = self.create_user()
         project = self.create_project()
         release_version = "foo.bar.BazApp@1.0a+20200101100"
@@ -149,7 +152,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "release": release_version,
                 "environment": "prod",
             },
@@ -171,7 +174,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["versionInfo"]["description"] == "1.0a (20200101100)"
         assert result["versionInfo"]["version"]["components"] == 2
 
-    def test_no_tag_data(self):
+    def test_no_tag_data(self) -> None:
         user = self.create_user()
         project = self.create_project()
         release = Release.objects.create(
@@ -201,13 +204,13 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert not result["firstEvent"]
         assert not result["lastEvent"]
 
-    def test_get_user_from_email(self):
+    def test_get_user_from_email(self) -> None:
         # upper case so we can test case sensitivity
         user = self.create_user(email="Stebe@sentry.io")
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
         release = Release.objects.create(
-            organization_id=project.organization_id, version=uuid4().hex, new_groups=1
+            organization_id=project.organization_id, version=uuid4().hex
         )
         release.add_project(project)
         commit_author = CommitAuthor.objects.create(
@@ -235,7 +238,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result_author["email"] == user.email
         assert result_author["username"] == user.username
 
-    def test_get_single_user_from_email(self):
+    def test_get_single_user_from_email(self) -> None:
         """
         Tests that the first useremail will be used to
         associate a user with a commit author email
@@ -247,7 +250,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         self.create_member(user=user, organization=project.organization)
         self.create_member(user=otheruser, organization=project.organization)
         release = Release.objects.create(
-            organization_id=project.organization_id, version=uuid4().hex, new_groups=1
+            organization_id=project.organization_id, version=uuid4().hex
         )
         release.add_project(project)
         commit_author = CommitAuthor.objects.create(
@@ -277,7 +280,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result_author["email"] == user.email
         assert result_author["username"] == user.username
 
-    def test_select_user_from_appropriate_org(self):
+    def test_select_user_from_appropriate_org(self) -> None:
         """
         Tests that a user not belonging to the organization
         is not returned as the author
@@ -290,7 +293,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         project = self.create_project()
         self.create_member(user=otheruser, organization=project.organization)
         release = Release.objects.create(
-            organization_id=project.organization_id, version=uuid4().hex, new_groups=1
+            organization_id=project.organization_id, version=uuid4().hex
         )
         release.add_project(project)
         commit_author = CommitAuthor.objects.create(
@@ -321,13 +324,13 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result_author["email"] == otheruser.email
         assert result_author["username"] == otheruser.username
 
-    def test_no_commit_author(self):
+    def test_no_commit_author(self) -> None:
         user = self.create_user(email="stebe@sentry.io")
         otheruser = self.create_user(email="adifferentstebe@sentry.io")
         project = self.create_project()
         self.create_member(user=otheruser, organization=project.organization)
         release = Release.objects.create(
-            organization_id=project.organization_id, version=uuid4().hex, new_groups=1
+            organization_id=project.organization_id, version=uuid4().hex
         )
         release.add_project(project)
         commit = Commit.objects.create(
@@ -344,7 +347,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         result = serialize(release, user)
         assert result["authors"] == []
 
-    def test_deduplicate_users(self):
+    def test_deduplicate_users(self) -> None:
         """
         Tests that the same user is not returned more than once
         if there are commits associated with multiple of their
@@ -356,7 +359,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
         release = Release.objects.create(
-            organization_id=project.organization_id, version=uuid4().hex, new_groups=1
+            organization_id=project.organization_id, version=uuid4().hex
         )
         release.add_project(project)
         commit_author1 = CommitAuthor.objects.create(
@@ -402,8 +405,9 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         result = serialize(release, user)
         assert len(result["authors"]) == 1
         assert result["authors"][0]["email"] == "stebe@sentry.io"
+        assert result["newGroups"] == 1
 
-    def test_with_deploy(self):
+    def test_with_deploy(self) -> None:
         user = self.create_user()
         project = self.create_project()
         release = Release.objects.create(
@@ -426,7 +430,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["deployCount"] == 1
         assert result["lastDeploy"]["id"] == str(deploy.id)
 
-    def test_release_no_users(self):
+    def test_release_no_users(self) -> None:
         """
         Testing when a repo gets deleted leaving dangling last commit id and author_ids
         Made the decision that the Serializer must handle the data even in the case that the
@@ -446,23 +450,26 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         release.add_project(project)
         serialize(release)
 
-    def test_get_user_for_authors_simple(self):
+    def test_get_user_for_authors_simple(self) -> None:
         user = self.create_user(email="chrib@sentry.io")
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
-        users = get_users_for_authors(organization_id=project.organization_id, authors=[user])
+        author = CommitAuthor(
+            email="chrib@sentry.io", name="Chrib", organization_id=project.organization_id
+        )
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
         assert len(users) == 1
-        assert users[str(user.id)]["email"] == user.email
+        assert users[str(author.id)]["email"] == author.email
 
-    def test_get_user_for_authors_no_user(self):
-        user = User(email="notactuallyauser@sentry.io")
+    def test_get_user_for_authors_no_user(self) -> None:
+        author = CommitAuthor(email="notactuallyauser@sentry.io")
         project = self.create_project()
-        users = get_users_for_authors(organization_id=project.organization_id, authors=[user])
+        users = get_users_for_authors(organization_id=project.organization_id, authors=[author])
         assert len(users) == 1
-        assert users[str(user.id)]["email"] == user.email
+        assert users[str(author.id)]["email"] == author.email
 
     @patch("sentry.api.serializers.models.release.serialize")
-    def test_get_user_for_authors_caching(self, patched_serialize_base):
+    def test_get_user_for_authors_caching(self, patched_serialize_base: MagicMock) -> None:
         # Ensure the fetched/miss caching logic works.
         user = self.create_user(email="chrib@sentry.io")
         user2 = self.create_user(email="alsochrib@sentry.io")
@@ -503,7 +510,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert users[str(commit_author2.id)]["email"] == user2.email
         patched_serialize_base.call_count = 2
 
-    def test_adoption_stages(self):
+    def test_adoption_stages(self) -> None:
         user = self.create_user()
         project = self.create_project()
         release = Release.objects.create(
@@ -571,7 +578,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
 
 
 class ReleaseRefsSerializerTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         # test bad refs
         data: dict[str, Any] = {"version": "a" * 40, "projects": ["earth"], "refs": [None]}
 
@@ -595,7 +602,7 @@ class ReleaseRefsSerializerTest(TestCase):
 
 
 class GroupEventReleaseSerializerTest(TestCase, SnubaTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         user = self.create_user()
         project = self.create_project()
         project2 = self.create_project(organization=project.organization)
@@ -612,7 +619,7 @@ class GroupEventReleaseSerializerTest(TestCase, SnubaTestCase):
 
         self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "release": release_version,
                 "environment": "prod",
             },

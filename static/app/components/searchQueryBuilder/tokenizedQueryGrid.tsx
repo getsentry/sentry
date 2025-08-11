@@ -1,4 +1,4 @@
-import {useLayoutEffect, useRef} from 'react';
+import {useEffect, useLayoutEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {Item} from '@react-stately/collections';
@@ -7,6 +7,7 @@ import {useListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {KeyboardSelection} from 'sentry/components/searchQueryBuilder/hooks/useKeyboardSelection';
 import {useQueryBuilderGrid} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGrid';
 import {useSelectOnDrag} from 'sentry/components/searchQueryBuilder/hooks/useSelectOnDrag';
 import {useUndoStack} from 'sentry/components/searchQueryBuilder/hooks/useUndoStack';
@@ -21,12 +22,31 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface TokenizedQueryGridProps {
+  actionBarWidth: number;
+  autoFocus: boolean;
   label?: string;
 }
 
 interface GridProps extends AriaGridListOptions<ParseResultToken> {
+  actionBarWidth: number;
+  autoFocus: boolean;
   children: CollectionChildren<ParseResultToken>;
   items: ParseResultToken[];
+}
+
+function useAutoFocus(autoFocus: boolean, state: ListState<ParseResultToken>) {
+  const {dispatch} = useSearchQueryBuilder();
+  const autoFocused = useRef(!autoFocus);
+
+  useEffect(() => {
+    if (autoFocused.current) {
+      return; // already focused
+    }
+
+    state.selectionManager.setFocused(true);
+    state.selectionManager.setFocusedKey(state.collection.getLastKey());
+    autoFocused.current = true;
+  }, [dispatch, state.collection, state.selectionManager]);
 }
 
 function useApplyFocusOverride(state: ListState<ParseResultToken>) {
@@ -35,16 +55,21 @@ function useApplyFocusOverride(state: ListState<ParseResultToken>) {
   useLayoutEffect(() => {
     if (focusOverride && !focusOverride.part) {
       state.selectionManager.setFocused(true);
-      state.selectionManager.setFocusedKey(focusOverride.itemKey);
+
+      if (focusOverride.itemKey === 'end') {
+        state.selectionManager.setFocusedKey(state.collection.getLastKey());
+      } else {
+        state.selectionManager.setFocusedKey(focusOverride.itemKey);
+      }
       dispatch({type: 'RESET_FOCUS_OVERRIDE'});
     }
-  }, [dispatch, focusOverride, state.selectionManager]);
+  }, [dispatch, focusOverride, state.collection, state.selectionManager]);
 }
 
 function Grid(props: GridProps) {
   const ref = useRef<HTMLDivElement>(null);
   const selectionKeyHandlerRef = useRef<HTMLInputElement>(null);
-  const {size} = useSearchQueryBuilder();
+  const {size, dispatch} = useSearchQueryBuilder();
   const state = useListState<ParseResultToken>({
     ...props,
     selectionBehavior: 'replace',
@@ -66,12 +91,29 @@ function Grid(props: GridProps) {
     selectionKeyHandlerRef,
     undo,
   });
+  useAutoFocus(props.autoFocus, state);
   useApplyFocusOverride(state);
   useSelectOnDrag(state);
 
   return (
-    <SearchQueryGridWrapper {...gridProps} ref={ref} size={size}>
-      <SelectionKeyHandler ref={selectionKeyHandlerRef} state={state} undo={undo} />
+    <SearchQueryGridWrapper
+      {...gridProps}
+      ref={ref}
+      style={size === 'small' ? undefined : {paddingRight: props.actionBarWidth + 12}}
+      onBlur={e => {
+        if (ref.current?.contains(e.relatedTarget as Node)) {
+          return;
+        }
+
+        dispatch({type: 'COMMIT_QUERY'});
+      }}
+    >
+      <SelectionKeyHandler
+        ref={selectionKeyHandlerRef}
+        state={state}
+        undo={undo}
+        gridRef={ref}
+      />
       {[...state.collection].map(item => {
         const token = item.value;
 
@@ -122,7 +164,11 @@ function Grid(props: GridProps) {
   );
 }
 
-export function TokenizedQueryGrid({label}: TokenizedQueryGridProps) {
+export function TokenizedQueryGrid({
+  autoFocus,
+  label,
+  actionBarWidth,
+}: TokenizedQueryGridProps) {
   const {parsedQuery} = useSearchQueryBuilder();
 
   // Shouldn't ever get here since we will render the plain text input instead
@@ -131,23 +177,30 @@ export function TokenizedQueryGrid({label}: TokenizedQueryGridProps) {
   }
 
   return (
-    <Grid
-      aria-label={label ?? t('Create a search query')}
-      items={parsedQuery}
-      selectionMode="multiple"
-    >
-      {item => (
-        <Item key={makeTokenKey(item, parsedQuery)}>
-          {item.text.trim() ? item.text : t('Space')}
-        </Item>
-      )}
-    </Grid>
+    <KeyboardSelection>
+      <Grid
+        autoFocus={autoFocus}
+        aria-label={label ?? t('Create a search query')}
+        items={parsedQuery}
+        selectionMode="multiple"
+        actionBarWidth={actionBarWidth}
+      >
+        {item => (
+          <Item key={makeTokenKey(item, parsedQuery)}>
+            {item.text.trim() ? item.text : t('Space')}
+          </Item>
+        )}
+      </Grid>
+    </KeyboardSelection>
   );
 }
 
-const SearchQueryGridWrapper = styled('div')<{size: 'small' | 'normal'}>`
-  padding: ${p =>
-    p.size === 'small' ? space(0.75) : `${space(0.75)} 34px ${space(0.75)} 32px`};
+const SearchQueryGridWrapper = styled('div')`
+  /* calc + 1px to account for the border */
+  padding-top: ${p => (p.theme.isChonk ? `calc(${space(0.5)} + 1px);` : space(0.75))};
+  padding-bottom: ${p => (p.theme.isChonk ? `calc(${space(0.5)} + 1px);` : space(0.75))};
+  padding-left: 32px;
+  padding-right: ${space(0.75)};
   display: flex;
   align-items: stretch;
   row-gap: ${space(0.5)};

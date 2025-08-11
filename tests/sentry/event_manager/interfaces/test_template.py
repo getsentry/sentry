@@ -9,7 +9,7 @@ def make_template_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"template": data})
         mgr.normalize()
-        evt = eventstore.backend.create_event(data=mgr.get_data())
+        evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
 
         interface = evt.interfaces.get("template")
         insta_snapshot(
@@ -24,7 +24,7 @@ def make_template_snapshot(insta_snapshot):
     return inner
 
 
-def test_basic(make_template_snapshot):
+def test_basic(make_template_snapshot) -> None:
     make_template_snapshot(dict(filename="foo.html", context_line="hello world", lineno=1))
 
 
@@ -38,5 +38,5 @@ def test_basic(make_template_snapshot):
         {"lineno": 1, "context_line": 42},
     ],
 )
-def test_required_attributes(make_template_snapshot, input):
+def test_required_attributes(make_template_snapshot, input) -> None:
     make_template_snapshot(input)

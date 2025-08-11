@@ -22,6 +22,7 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
 
@@ -35,8 +36,6 @@ FILTERED_EMAILS = {
     "%%@localhost",
     "action@github.com",
 }
-
-FILTERED_CHARACTERS = {"+"}
 
 
 class MissingOrgMemberSerializer(Serializer):
@@ -184,7 +183,7 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
 
         for integration_provider, integration_ids in integration_provider_to_ids.items():
             # TODO(cathy): allow other integration providers
-            if integration_provider != "github":
+            if integration_provider != IntegrationProviderSlug.GITHUB.value:
                 continue
 
             queryset = _get_missing_organization_members(

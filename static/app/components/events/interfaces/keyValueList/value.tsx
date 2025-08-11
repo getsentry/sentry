@@ -2,7 +2,7 @@ import {Fragment, isValidElement} from 'react';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import StructuredEventData from 'sentry/components/structuredEventData';
-import type {KeyValueListData} from 'sentry/types';
+import type {KeyValueListData} from 'sentry/types/group';
 
 export interface ValueProps
   extends Pick<KeyValueListData[0], 'subjectIcon' | 'meta' | 'value'> {
@@ -14,7 +14,7 @@ export function Value({subjectIcon, meta, raw, isContextData, value = null}: Val
   if (isContextData) {
     return (
       <StructuredEventData
-        data={!raw ? value : JSON.stringify(value)}
+        data={raw ? JSON.stringify(value) : value}
         meta={meta}
         withAnnotatedText
       >

@@ -6,17 +6,16 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime
 from enum import IntEnum
 from functools import cached_property
-from typing import Any
+from typing import Any, TypedDict
 
 from django.dispatch import Signal
 from django.utils import timezone
 from pydantic import Field, PrivateAttr
-from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.hybridcloud.rpc import RpcModel
 from sentry.organizations.absolute_url import has_customer_domain, organization_absolute_url
-from sentry.projects.services.project import RpcProject
+from sentry.projects.services.project import RpcProject, RpcProjectFlags
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.signals import sso_enabled
@@ -142,8 +141,9 @@ class RpcOrganizationMember(RpcOrganizationMemberSummary):
     token_expired: bool = False
     legacy_token: str = ""
     email: str = ""
+    invitation_link: str | None = None
 
-    def get_audit_log_metadata(self, user_email: str | None = None) -> Mapping[str, Any]:
+    def get_audit_log_metadata(self, user_email: str | None = None) -> dict[str, Any]:
         from sentry.models.organizationmember import invite_status_names
 
         team_ids = [mt.team_id for mt in self.member_teams]
@@ -176,6 +176,7 @@ class RpcOrganizationMappingFlags(RpcModel):
     codecov_access: bool = False
     disable_member_project_creation: bool = False
     prevent_superuser_access: bool = False
+    disable_member_invite: bool = False
 
 
 class RpcOrganizationFlags(RpcOrganizationMappingFlags):
@@ -192,6 +193,7 @@ class RpcOrganizationFlags(RpcOrganizationMappingFlags):
             self.codecov_access,
             self.disable_member_project_creation,
             self.prevent_superuser_access,
+            self.disable_member_invite,
         )
 
 
@@ -319,6 +321,11 @@ class RpcOrganization(RpcOrganizationSummary):
                 return None
             self._default_owner_id = owners[0].id
         return self._default_owner_id
+
+    def get_aggregated_project_flags(self, organization_id: int) -> RpcProjectFlags:
+        from sentry.organizations.services.organization import organization_service
+
+        return organization_service.get_aggregate_project_flags(organization_id=organization_id)
 
 
 class RpcUserOrganizationContext(RpcModel):

@@ -1,13 +1,12 @@
 import styled from '@emotion/styled';
 
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
+import {FieldDescription} from 'sentry/components/forms/fieldGroup/fieldDescription';
+import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
+import {FieldLabel} from 'sentry/components/forms/fieldGroup/fieldLabel';
+import {FieldRequiredBadge} from 'sentry/components/forms/fieldGroup/fieldRequiredBadge';
+import FormField from 'sentry/components/forms/formField';
 import {space} from 'sentry/styles/space';
-
-import FieldDescription from '../fieldGroup/fieldDescription';
-import FieldHelp from '../fieldGroup/fieldHelp';
-import FieldLabel from '../fieldGroup/fieldLabel';
-import FieldRequiredBadge from '../fieldGroup/fieldRequiredBadge';
-import FormField from '../formField';
 
 type FormFieldProps = Omit<
   React.ComponentProps<typeof FormField>,
@@ -44,8 +43,8 @@ function CheckboxField(props: Props) {
   const ariaLabel = typeof label === 'string' ? label : undefined;
 
   return (
-    <FormField name={name} inline={false} stacked={stacked}>
-      {({onChange, value, id}) => {
+    <FormField name={name} inline={false} stacked={stacked} required={required}>
+      {({onChange, value, id}: any) => {
         function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
           const newValue = e.target.checked;
           onChange?.(newValue, e);

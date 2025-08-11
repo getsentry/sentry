@@ -1,14 +1,15 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import SizingWindow from 'sentry/components/stories/sizingWindow';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
-import storyBook from 'sentry/stories/storyBook';
+import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
 
-const toCamelCase = function camalize(str) {
-  return str.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (_m, chr) => chr.toUpperCase());
+const toCamelCase = function camalize(str: any) {
+  return str
+    .toLowerCase()
+    .replace(/[^a-zA-Z0-9]+(.)/g, (_m: any, chr: any) => chr.toUpperCase());
 };
 const nameOfFile = (file: string) => {
   return file.split('/').at(-1)?.split('.').at(0);
@@ -17,7 +18,8 @@ const nameOfFile = (file: string) => {
 function imagesContext() {
   const context = require.context('sentry-images', true, /\.(svg|gif|png)$/, 'lazy');
   return {
-    files: () => context.keys().map(file => file.replace(/^\.\//, 'sentry-images/')),
+    files: () =>
+      context.keys().map((file: any) => file.replace(/^\.\//, 'sentry-images/')),
     importImage: (filename: string) =>
       context(filename.replace(/^sentry-images\//, './')),
   };
@@ -33,13 +35,13 @@ function LazyImage({file, module}: {file: string; module: Promise<string>}) {
   }, [module]);
 
   return (
-    <SizingWindow>
+    <Storybook.SizingWindow>
       <img alt={file} src={imgSrc ?? ''} />
-    </SizingWindow>
+    </Storybook.SizingWindow>
   );
 }
 
-export default storyBook('sentry-image/*', story => {
+export default Storybook.story('sentry-image/*', story => {
   const context = imagesContext();
 
   const allFiles = context.files();
@@ -47,7 +49,7 @@ export default storyBook('sentry-image/*', story => {
   const patternImages: string[] = [];
   const otherImages: string[] = [];
 
-  allFiles.forEach(file => {
+  allFiles.forEach((file: any) => {
     if (file.startsWith('sentry-images/spot/')) {
       spotImages.push(file);
     } else if (file.startsWith('sentry-images/pattern/')) {

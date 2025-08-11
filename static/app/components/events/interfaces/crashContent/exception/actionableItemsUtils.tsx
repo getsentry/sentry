@@ -1,7 +1,7 @@
-import type {EventErrorData} from 'sentry/components/events/errorItem';
+import {ExternalLink} from 'sentry/components/core/link';
 import findBestThread from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
-import ExternalLink from 'sentry/components/links/externalLink';
+import type {EventErrorData} from 'sentry/components/events/interfaces/types';
 import type {HttpProcessingErrors} from 'sentry/constants/eventErrors';
 import {
   CocoaProcessingErrors,
@@ -35,6 +35,8 @@ export type ActionableItemTypes =
 export const ActionableItemWarning = [
   ProguardProcessingErrors.PROGUARD_MISSING_LINENO,
   NativeProcessingErrors.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
+  NativeProcessingErrors.NATIVE_SYMBOLICATOR_FAILED,
+  NativeProcessingErrors.NATIVE_INTERNAL_FAILURE,
   GenericSchemaErrors.FUTURE_TIMESTAMP,
   GenericSchemaErrors.CLOCK_DRIFT,
   GenericSchemaErrors.PAST_TIMESTAMP,
@@ -64,6 +66,14 @@ interface NativeMissingDSYMError extends BaseActionableItem {
 }
 interface NativeBadDSYMError extends BaseActionableItem {
   type: NativeProcessingErrors.NATIVE_BAD_DSYM;
+}
+
+interface NativeSymbolicatorFailedError extends BaseActionableItem {
+  type: NativeProcessingErrors.NATIVE_SYMBOLICATOR_FAILED;
+}
+
+interface NativeInternalFailureError extends BaseActionableItem {
+  type: NativeProcessingErrors.NATIVE_INTERNAL_FAILURE;
 }
 
 interface JSMissingSourcesContentError extends BaseActionableItem {
@@ -109,6 +119,8 @@ export type ActionableItemErrors =
   | NativeMissingOptionalBundledDSYMError
   | NativeMissingDSYMError
   | NativeBadDSYMError
+  | NativeSymbolicatorFailedError
+  | NativeInternalFailureError
   | JSMissingSourcesContentError
   | FetchGenericError
   | RestrictedIpError
@@ -139,7 +151,7 @@ export function shouldErrorBeShown(error: EventErrorData, event: Event) {
     const source: string | undefined = error.data?.source;
     if (
       source &&
-      (source.includes('org-dartlang-sdk:///dart-sdk/lib/_internal') ||
+      (source.includes('org-dartlang-sdk:///dart-sdk/lib/') ||
         source.includes('flutter/packages/flutter/lib'))
     ) {
       return false;
@@ -161,7 +173,7 @@ const hasThreadOrExceptionMinifiedFrameData = (
   bestThread?: Thread
 ) => {
   if (!bestThread) {
-    const exceptionValues: Array<ExceptionValue> =
+    const exceptionValues: ExceptionValue[] =
       definedEvent.entries?.find(e => e.type === EntryType.EXCEPTION)?.data?.values ?? [];
 
     return exceptionValues.some(exceptionValue =>
@@ -195,7 +207,7 @@ export const useFetchProguardMappingFiles = ({
   );
 
   const debugImages = event.entries?.find(e => e.type === EntryType.DEBUGMETA)?.data
-    .images as undefined | Array<Image>;
+    .images as undefined | Image[];
 
   // When debugImages contains a 'proguard' entry, it must always be only one entry
   const proGuardImage = debugImages?.find(debugImage => debugImage?.type === 'proguard');
@@ -211,7 +223,7 @@ export const useFetchProguardMappingFiles = ({
   const {
     data: proguardMappingFiles,
     isSuccess,
-    isLoading,
+    isPending,
   } = useApiQuery<DebugFile[]>(
     [
       `/projects/${organization.slug}/${project.slug}/files/dsyms/`,
@@ -248,7 +260,7 @@ export const useFetchProguardMappingFiles = ({
       ];
     }
 
-    const threads: Array<Thread> =
+    const threads: Thread[] =
       event.entries?.find(e => e.type === EntryType.THREADS)?.data?.values ?? [];
 
     const bestThread = findBestThread(threads);
@@ -287,7 +299,7 @@ export const useFetchProguardMappingFiles = ({
   }
 
   return {
-    proguardErrorsLoading: shouldFetch && isLoading,
+    proguardErrorsLoading: shouldFetch && isPending,
     proguardErrors: getProguardErrorsFromMappingFiles(),
   };
 };

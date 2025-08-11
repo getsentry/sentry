@@ -1,8 +1,9 @@
+'use strict';
 import '@testing-library/jest-dom';
 
-/* eslint-env node */
 import type {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+import {enableFetchMocks} from 'jest-fetch-mock';
 import {webcrypto} from 'node:crypto';
 import {TextDecoder, TextEncoder} from 'node:util';
 import {ConfigFixture} from 'sentry-fixture/config';
@@ -11,8 +12,10 @@ import {resetMockDate} from 'sentry-test/utils';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
+// eslint-disable-next-line no-restricted-imports
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
 import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
 /**
@@ -21,12 +24,13 @@ import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 setLocale(DEFAULT_LOCALE_DATA);
 
 /**
- * XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
- * framer-motion SVG components fail
- *
- * See https://github.com/jsdom/jsdom/issues/1330
+ * Setup fetch mocks (needed to define the `Request` global)
  */
-// @ts-expect-error
+enableFetchMocks();
+
+// @ts-expect-error XXX(epurkhiser): Gross hack to fix a bug in jsdom which makes testing of
+// framer-motion SVG components fail
+// See https://github.com/jsdom/jsdom/issues/1330
 SVGElement.prototype.getTotalLength ??= () => 1;
 
 /**
@@ -61,27 +65,44 @@ jest
   .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
   .mockImplementation(props => props.children as ReactElement);
 jest.mock('scroll-to-element', () => jest.fn());
-jest.mock('react-router', function reactRouterMockFactory() {
-  const ReactRouter = jest.requireActual('react-router');
-  return {
-    ...ReactRouter,
-    browserHistory: {
-      goBack: jest.fn(),
-      push: jest.fn(),
-      replace: jest.fn(),
-      listen: jest.fn(() => {}),
-      listenBefore: jest.fn(),
-      getCurrentLocation: jest.fn(() => ({pathname: '', query: {}})),
-    },
-  };
+
+jest.mock('getsentry/utils/stripe');
+jest.mock('getsentry/utils/trackMarketingEvent');
+jest.mock('getsentry/utils/trackAmplitudeEvent');
+jest.mock('getsentry/utils/trackReloadEvent');
+jest.mock('getsentry/utils/trackMetric');
+
+jest.mock('sentry/utils/testableWindowLocation', () => ({
+  /**
+   * Prefer using {@link import('sentry-test/utils').setWindowLocation} to change test location
+   * instead of mocking properties on the testableLocation object.
+   * Use this mock for checking if window.location.assign was called.
+   */
+  testableWindowLocation: {
+    assign: jest.fn(),
+    replace: jest.fn(),
+    reload: jest.fn(),
+  },
+}));
+
+DANGEROUS_SET_TEST_HISTORY({
+  goBack: jest.fn(),
+  push: jest.fn(),
+  replace: jest.fn(),
+  listen: jest.fn(() => {}),
+  listenBefore: jest.fn(),
+  getCurrentLocation: jest.fn(() => ({pathname: '', query: {}})),
 });
-jest.mock('sentry/utils/search/searchBoxTextArea');
 
 jest.mock('react-virtualized', function reactVirtualizedMockFactory() {
   const ActualReactVirtualized = jest.requireActual('react-virtualized');
   return {
     ...ActualReactVirtualized,
-    AutoSizer: ({children}) => children({width: 100, height: 100}),
+    AutoSizer: ({
+      children,
+    }: {
+      children: (props: {height: number; width: number}) => React.ReactNode;
+    }) => children({width: 100, height: 100}),
   };
 });
 
@@ -127,7 +148,7 @@ jest.mock('@sentry/react', function sentryReact() {
       set: jest.fn(),
       distribution: jest.fn(),
     },
-    reactRouterV3BrowserTracingIntegration: jest.fn().mockReturnValue({}),
+    reactRouterV6BrowserTracingIntegration: jest.fn().mockReturnValue({}),
     browserTracingIntegration: jest.fn().mockReturnValue({}),
     browserProfilingIntegration: jest.fn().mockReturnValue({}),
     addEventProcessor: jest.fn(),
@@ -146,6 +167,15 @@ jest.mock('@sentry/react', function sentryReact() {
 
 ConfigStore.loadInitialData(ConfigFixture());
 
+// Default browser timezone to UTC
+jest.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockImplementation(() => ({
+  locale: 'en-US',
+  calendar: 'gregory',
+  numberingSystem: 'latn',
+  timeZone: 'UTC',
+  timeZoneName: 'short',
+}));
+
 /**
  * Test Globals
  */
@@ -161,7 +191,7 @@ declare global {
 }
 
 // needed by cbor-web for webauthn
-window.TextEncoder = TextEncoder;
+window.TextEncoder = TextEncoder as typeof window.TextEncoder;
 window.TextDecoder = TextDecoder as typeof window.TextDecoder;
 
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.
@@ -171,13 +201,7 @@ window.MockApiClient = jest.requireMock('sentry/api').Client;
 
 window.scrollTo = jest.fn();
 
-// We need to re-define `window.location`, otherwise we can't spyOn certain
-// methods as `window.location` is read-only
-Object.defineProperty(window, 'location', {
-  value: {...window.location, assign: jest.fn(), reload: jest.fn(), replace: jest.fn()},
-  configurable: true,
-  writable: true,
-});
+window.ra = {event: jest.fn()};
 
 // The JSDOM implementation is too slow
 // Especially for dropdowns that try to position themselves
@@ -214,6 +238,12 @@ window.IntersectionObserver = class IntersectionObserver {
   thresholds = [];
   takeRecords = jest.fn();
 
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
+window.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}
   disconnect() {}

@@ -1,16 +1,20 @@
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import {DataSection} from 'sentry/components/events/styles';
 import {t} from 'sentry/locale';
-import type {Event, Group, KeyValueListData, Organization} from 'sentry/types';
-import {IssueType} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group, KeyValueListData} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {getFormattedDate} from 'sentry/utils/dates';
+import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
@@ -34,9 +38,9 @@ export function EventRegressionSummary({event, group}: EventRegressionSummaryPro
   }
 
   return (
-    <DataSection>
-      <KeyValueList data={data} shouldSort={false} />
-    </DataSection>
+    <InterimSection type={SectionKey.REGRESSION_SUMMARY} title={t('Regression Summary')}>
+      <StyledKeyValueList data={data} shouldSort={false} />
+    </InterimSection>
   );
 }
 
@@ -51,10 +55,9 @@ export function getKeyValueListData(
   }
 
   switch (issueType) {
-    case IssueType.PERFORMANCE_DURATION_REGRESSION:
     case IssueType.PERFORMANCE_ENDPOINT_REGRESSION: {
       const target = transactionSummaryRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         transaction: evidenceData.transaction,
         query: {},
         trendFunction: 'p95',
@@ -67,9 +70,9 @@ export function getKeyValueListData(
           subject: t('Endpoint Name'),
           value: evidenceData.transaction,
           actionButton: (
-            <Button size="xs" to={target}>
+            <LinkButton size="xs" to={target}>
               {t('View Transaction')}
-            </Button>
+            </LinkButton>
           ),
         },
         {
@@ -89,7 +92,6 @@ export function getKeyValueListData(
         },
       ];
     }
-    case IssueType.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL:
     case IssueType.PROFILE_FUNCTION_REGRESSION: {
       return [
         {
@@ -145,7 +147,13 @@ function formatDurationChange(
 }
 
 function formatBreakpoint(breakpoint: number) {
-  return getFormattedDate(breakpoint * 1000, 'MMM D, YYYY hh:mm:ss A z', {
-    local: true,
-  });
+  return getFormattedDate(
+    breakpoint * 1000,
+    getFormat({year: true, seconds: true, timeZone: true}),
+    {local: true}
+  );
 }
+
+const StyledKeyValueList = styled(KeyValueList)`
+  margin-bottom: 0 !important;
+`;

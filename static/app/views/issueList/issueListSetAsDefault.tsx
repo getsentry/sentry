@@ -1,8 +1,8 @@
-import {Button} from 'sentry/components/button';
-import {removeSpace} from 'sentry/components/smartSearchBar/utils';
+import {Button} from 'sentry/components/core/button';
+import {removeSpace} from 'sentry/components/deprecatedSmartSearchBar/utils';
 import {IconBookmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {SavedSearchType} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -40,19 +40,19 @@ function IssueListSetAsDefault({organization, sort, query}: IssueListSetAsDefaul
     ? pinnedSearch?.id === selectedSavedSearch?.id
     : false;
 
-  const {mutate: pinSearch, isLoading: isPinning} = usePinSearch({
+  const {mutate: pinSearch, isPending: isPinning} = usePinSearch({
     onSuccess: response => {
       const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
       browserHistory.replace(
         normalizeUrl({
           ...location,
           pathname: `/organizations/${organization.slug}/issues/searches/${response.id}/`,
-          query: {referrer: 'search-bar', ...currentQuery},
+          query: {...currentQuery, referrer: 'search-bar'},
         })
       );
     },
   });
-  const {mutate: unpinSearch, isLoading: isUnpinning} = useUnpinSearch({
+  const {mutate: unpinSearch, isPending: isUnpinning} = useUnpinSearch({
     onSuccess: () => {
       const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
       browserHistory.replace(
@@ -60,10 +60,10 @@ function IssueListSetAsDefault({organization, sort, query}: IssueListSetAsDefaul
           ...location,
           pathname: `/organizations/${organization.slug}/issues/`,
           query: {
-            referrer: 'search-bar',
             query,
             sort,
             ...currentQuery,
+            referrer: 'search-bar',
           },
         })
       );

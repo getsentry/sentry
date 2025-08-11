@@ -1,16 +1,16 @@
+import {ExternalLink} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
-import type {AuthProvider, Organization} from 'sentry/types';
+import type {AuthProvider} from 'sentry/types/auth';
 import {descopeFeatureName} from 'sentry/utils';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 import ProviderItem from './providerItem';
 
@@ -27,12 +27,12 @@ const PROVIDER_POPULARITY: Record<string, number> = {
 };
 
 type Props = {
-  organization: Organization;
   providerList: AuthProvider[];
   activeProvider?: AuthProvider;
 };
 
-function OrganizationAuthList({organization, providerList, activeProvider}: Props) {
+function OrganizationAuthList({providerList, activeProvider}: Props) {
+  const organization = useOrganization();
   const features = organization.features;
 
   // Sort provider list twice: first, by popularity,
@@ -47,7 +47,7 @@ function OrganizationAuthList({organization, providerList, activeProvider}: Prop
     if (PROVIDER_POPULARITY[a.key] === PROVIDER_POPULARITY[b.key]) {
       return 0;
     }
-    return PROVIDER_POPULARITY[a.key] > PROVIDER_POPULARITY[b.key] ? 1 : -1;
+    return PROVIDER_POPULARITY[a.key]! > PROVIDER_POPULARITY[b.key]! ? 1 : -1;
   });
 
   const list = sortedByPopularity.sort((a, b) => {
@@ -68,7 +68,7 @@ function OrganizationAuthList({organization, providerList, activeProvider}: Prop
   return (
     <div className="sso">
       <SettingsPageHeader title="Authentication" />
-      <PermissionAlert />
+      <OrganizationPermissionAlert />
       <Panel>
         <PanelHeader>{t('Choose a provider')}</PanelHeader>
         <PanelBody>
@@ -117,7 +117,7 @@ function OrganizationAuthList({organization, providerList, activeProvider}: Prop
   );
 }
 
-export default withOrganization(OrganizationAuthList);
+export default OrganizationAuthList;
 
 // For tests
 export {OrganizationAuthList};

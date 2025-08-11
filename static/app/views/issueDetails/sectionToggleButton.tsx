@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 
 interface SectionToggleButtonProps {
@@ -26,7 +26,7 @@ const ToggleButton = styled(Button)`
   :focus {
     color: ${p => p.theme.textColor};
   }
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 export default SectionToggleButton;

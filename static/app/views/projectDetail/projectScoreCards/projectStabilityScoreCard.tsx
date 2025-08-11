@@ -1,30 +1,25 @@
-import round from 'lodash/round';
-
-import {
-  getDiffInMinutes,
-  shouldFetchPreviousPeriod,
-} from 'sentry/components/charts/utils';
-import LoadingError from 'sentry/components/loadingError';
+import {getInterval, shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
+import {Button} from 'sentry/components/core/button';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import ScoreCard from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {PageFilters, SessionApiResponse} from 'sentry/types';
-import {SessionFieldWithOperation} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {SessionApiResponse} from 'sentry/types/organization';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {displayCrashFreePercent} from 'sentry/views/releases/utils';
+import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import MissingReleasesButtons from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 import {
   getSessionTermDescription,
   SessionTerm,
 } from 'sentry/views/releases/utils/sessionTerm';
 
-import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
+import {ActionWrapper} from './actionWrapper';
 
 type Props = {
   field:
@@ -53,7 +48,7 @@ const useCrashFreeRate = (props: Props) => {
   const commonQuery = {
     environment,
     project: projects[0],
-    interval: getDiffInMinutes(datetime) > 24 * 60 ? '1d' : '1h',
+    interval: getInterval(selection.datetime),
     query,
     field,
   };
@@ -71,7 +66,7 @@ const useCrashFreeRate = (props: Props) => {
         },
       },
     ],
-    {staleTime: 0, enabled: isEnabled}
+    {staleTime: Infinity, enabled: isEnabled}
   );
 
   const isPreviousPeriodEnabled = shouldFetchPreviousPeriod({
@@ -92,7 +87,7 @@ const useCrashFreeRate = (props: Props) => {
       },
     ],
     {
-      staleTime: 0,
+      staleTime: Infinity,
       enabled: isEnabled && isPreviousPeriodEnabled,
     }
   );
@@ -101,7 +96,7 @@ const useCrashFreeRate = (props: Props) => {
     crashFreeRate: currentQuery.data,
     previousCrashFreeRate: previousQuery.data,
     isLoading:
-      currentQuery.isLoading || (previousQuery.isLoading && isPreviousPeriodEnabled),
+      currentQuery.isPending || (previousQuery.isPending && isPreviousPeriodEnabled),
     error: currentQuery.error || previousQuery.error,
     refetch: () => {
       currentQuery.refetch();
@@ -109,8 +104,6 @@ const useCrashFreeRate = (props: Props) => {
     },
   };
 };
-
-// shouldRenderBadRequests = true;
 
 function ProjectStabilityScoreCard(props: Props) {
   const {hasSessions} = props;
@@ -128,70 +121,84 @@ function ProjectStabilityScoreCard(props: Props) {
     null
   );
 
+  const Title = <Widget.WidgetTitle title={cardTitle} />;
+
   const {crashFreeRate, previousCrashFreeRate, isLoading, error, refetch} =
     useCrashFreeRate(props);
 
-  const score = !crashFreeRate
-    ? undefined
-    : crashFreeRate?.groups[0]?.totals[props.field] * 100;
+  const score = crashFreeRate
+    ? crashFreeRate?.groups[0]?.totals[props.field]! * 100
+    : undefined;
 
-  const previousScore = !previousCrashFreeRate
-    ? undefined
-    : previousCrashFreeRate?.groups[0]?.totals[props.field] * 100;
-
-  const trend =
-    defined(score) && defined(previousScore)
-      ? round(score - previousScore, 3)
-      : undefined;
-
-  const shouldRenderTrend = !isLoading && defined(score) && defined(trend);
+  const previousScore = previousCrashFreeRate
+    ? previousCrashFreeRate?.groups[0]?.totals[props.field]! * 100
+    : undefined;
 
   if (hasSessions === false) {
     return (
-      <ScoreCard
-        title={cardTitle}
-        help={cardHelp}
-        score={
-          <MissingReleasesButtons
-            organization={organization}
-            health
-            platform={props.project?.platform}
-          />
+      <Widget
+        Title={Title}
+        Actions={
+          <Widget.WidgetToolbar>
+            <Widget.WidgetDescription description={cardHelp} />
+          </Widget.WidgetToolbar>
         }
+        Visualization={
+          <ActionWrapper>
+            <MissingReleasesButtons
+              organization={organization}
+              health
+              platform={props.project?.platform}
+            />
+          </ActionWrapper>
+        }
+      />
+    );
+  }
+
+  if (isLoading || !defined(score)) {
+    return (
+      <Widget
+        Title={Title}
+        Visualization={<BigNumberWidgetVisualization.LoadingPlaceholder />}
       />
     );
   }
 
   if (error) {
     return (
-      <LoadingError
-        message={
-          (error.responseJSON?.detail as React.ReactNode) ||
-          t('There was an error loading data.')
+      <Widget
+        Title={Title}
+        Actions={
+          <Widget.WidgetToolbar>
+            <Button size="xs" onClick={refetch}>
+              {t('Retry')}
+            </Button>
+          </Widget.WidgetToolbar>
         }
-        onRetry={refetch}
+        Visualization={<Widget.WidgetError error={error} />}
       />
     );
   }
 
   return (
-    <ScoreCard
-      title={cardTitle}
-      help={cardHelp}
-      score={isLoading || !defined(score) ? '\u2014' : displayCrashFreePercent(score)}
-      trend={
-        shouldRenderTrend ? (
-          <div>
-            {trend >= 0 ? (
-              <IconArrow direction="up" size="xs" />
-            ) : (
-              <IconArrow direction="down" size="xs" />
-            )}
-            {`${formatAbbreviatedNumber(Math.abs(trend))}\u0025`}
-          </div>
-        ) : null
+    <Widget
+      Title={Title}
+      Actions={
+        <Widget.WidgetToolbar>
+          <Widget.WidgetDescription description={cardHelp} />
+        </Widget.WidgetToolbar>
       }
-      trendStatus={!trend ? undefined : trend > 0 ? 'good' : 'bad'}
+      Visualization={
+        <BigNumberWidgetVisualization
+          value={score / 100}
+          previousPeriodValue={previousScore ? previousScore / 100 : undefined}
+          field={`${props.field}()`}
+          type="percentage"
+          unit={null}
+          preferredPolarity="+"
+        />
+      }
     />
   );
 }

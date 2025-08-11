@@ -1,5 +1,5 @@
-import {forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -25,6 +25,12 @@ type PanelTableProps = {
    */
   disableHeaderBorderBottom?: boolean;
   /**
+   * If true, disables the headers.
+   * Pass in headers as an array of `undefined` so that the
+   * columns still display appropriately.
+   */
+  disableHeaders?: boolean;
+  /**
    * Renders without predefined padding on the header and body cells
    */
   disablePadding?: boolean;
@@ -48,6 +54,7 @@ type PanelTableProps = {
    * A custom loading indicator.
    */
   loader?: React.ReactNode;
+  ref?: React.Ref<HTMLDivElement>;
   /**
    * If true, scrolling headers out of view will pin to the top of container.
    */
@@ -69,23 +76,22 @@ type PanelTableProps = {
  * - [ ] Allow customization of wrappers (Header and body cells if added)
  */
 
-const PanelTable = forwardRef<HTMLDivElement, PanelTableProps>(function PanelTable(
-  {
-    headers,
-    children,
-    isLoading,
-    isEmpty,
-    disablePadding,
-    className,
-    emptyMessage = t('There are no items to display'),
-    emptyAction,
-    loader,
-    stickyHeaders = false,
-    disableHeaderBorderBottom = false,
-    ...props
-  }: PanelTableProps,
-  ref: React.Ref<HTMLDivElement>
-) {
+function PanelTable({
+  ref,
+  headers,
+  children,
+  isLoading,
+  isEmpty,
+  disablePadding,
+  className,
+  emptyMessage = t('There are no items to display'),
+  emptyAction,
+  loader,
+  stickyHeaders = false,
+  disableHeaderBorderBottom = false,
+  disableHeaders,
+  ...props
+}: PanelTableProps) {
   const shouldShowLoading = isLoading === true;
   const shouldShowEmptyMessage = !shouldShowLoading && isEmpty;
   const shouldShowContent = !shouldShowLoading && !shouldShowEmptyMessage;
@@ -100,11 +106,12 @@ const PanelTable = forwardRef<HTMLDivElement, PanelTableProps>(function PanelTab
       disableHeaderBorderBottom={disableHeaderBorderBottom}
       {...props}
     >
-      {headers.map((header, i) => (
-        <PanelTableHeader key={i} sticky={stickyHeaders} data-test-id="table-header">
-          {header}
-        </PanelTableHeader>
-      ))}
+      {!disableHeaders &&
+        headers.map((header, i) => (
+          <PanelTableHeader key={i} sticky={stickyHeaders} data-test-id="table-header">
+            {header}
+          </PanelTableHeader>
+        ))}
 
       {shouldShowLoading && (
         <LoadingWrapper>{loader || <LoadingIndicator />}</LoadingWrapper>
@@ -120,7 +127,7 @@ const PanelTable = forwardRef<HTMLDivElement, PanelTableProps>(function PanelTab
       {shouldShowContent && getContent(children)}
     </Wrapper>
   );
-});
+}
 
 function getContent(children: PanelTableProps['children']) {
   if (typeof children === 'function') {
@@ -172,8 +179,8 @@ const Wrapper = styled(Panel, {
 
 const PanelTableHeader = styled('div')<{sticky: boolean}>`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   background: ${p => p.theme.backgroundSecondary};
@@ -185,11 +192,11 @@ const PanelTableHeader = styled('div')<{sticky: boolean}>`
 
   ${p =>
     p.sticky &&
-    `
-    position: sticky;
-    top: 0;
-    z-index: ${p.theme.zIndex.initial};
-  `}
+    css`
+      position: sticky;
+      top: 0;
+      z-index: ${p.theme.zIndex.initial};
+    `}
 `;
 
 export {PanelTable, type PanelTableProps, PanelTableHeader};

@@ -1,17 +1,20 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
   getCrashReportSDKInstallFirstStepRails,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getRubyMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {getRubyProfilingOnboarding} from 'sentry/gettingStartedDocs/ruby/ruby';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -25,13 +28,26 @@ const generatorSnippet = 'bin/rails generate sentry';
 
 const getConfigureSnippet = (params: Params) => `
 Sentry.init do |config|
-  config.dsn = '${params.dsn}'
-  config.breadcrumbs_logger = [:active_support_logger, :http_logger]${
+  config.dsn = '${params.dsn.public}'
+  config.breadcrumbs_logger = [:active_support_logger, :http_logger]
+
+  # Add data like request headers and IP for users,
+  # see https://docs.sentry.io/platforms/ruby/data-management/data-collected/ for more info
+  config.send_default_pii = true${
+    params.isLogsSelected
+      ? `
+
+  # Enable sending logs to Sentry
+  config.enable_logs = true
+  # Patch Ruby logger to forward logs
+  config.enabled_patches = [:logger]`
+      : ''
+  }${
     params.isPerformanceSelected
       ? `
 
   # Set traces_sample_rate to 1.0 to capture 100%
-  # of transactions for performance monitoring.
+  # of transactions for tracing.
   # We recommend adjusting this value in production.
   config.traces_sample_rate = 1.0
   # or
@@ -75,20 +91,19 @@ const onboarding: OnboardingConfig = {
       ),
       configurations: [
         {
-          description: params.isProfilingSelected
+          language: 'ruby',
+          code: getInstallSnippet(params),
+          additionalInfo: params.isProfilingSelected
             ? tct(
-                'Ruby Profiling beta is available since SDK version 5.9.0. We use the [stackprofLink:stackprof gem] to collect profiles for Ruby. Make sure [stackprofCode:stackprof] is loaded before [sentryRubyCode:sentry-ruby].',
+                'Ruby Profiling beta is available since SDK version 5.9.0. We use the [stackprofLink:stackprof gem] to collect profiles for Ruby. Make sure [code:stackprof] is loaded before [code:sentry-ruby].',
                 {
                   stackprofLink: (
                     <ExternalLink href="https://github.com/tmm1/stackprof" />
                   ),
-                  stackprofCode: <code />,
-                  sentryRubyCode: <code />,
+                  code: <code />,
                 }
               )
             : undefined,
-          language: 'ruby',
-          code: getInstallSnippet(params),
         },
         {
           description: t('After adding the gems, run the following to install the SDK:'),
@@ -173,7 +188,7 @@ const crashReportOnboarding: OnboardingConfig = {
               code: `<% sentry_id = request.env["sentry.error_event_id"] %>
 <% if sentry_id.present? %>
 <script>
-  Sentry.init({ dsn: "${params.dsn}" });
+  Sentry.init({ dsn: "${params.dsn.public}" });
   Sentry.showReportDialog({ eventId: "<%= sentry_id %>" });
 </script>
 <% end %>`,
@@ -197,9 +212,10 @@ const crashReportOnboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  customMetricsOnboarding: getRubyMetricsOnboarding(),
   replayOnboardingJsLoader,
   crashReportOnboarding,
+  feedbackOnboardingJsLoader,
+  profilingOnboarding: getRubyProfilingOnboarding({frameworkPackage: 'sentry-rails'}),
 };
 
 export default docs;

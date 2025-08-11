@@ -1,5 +1,6 @@
+import type {ISSUE_TYPE_TO_ISSUE_TITLE} from 'sentry/types/group';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export type Row = {
   'count()': number;
@@ -13,10 +14,10 @@ export type Row = {
   transaction: string;
 };
 
-export type TransactionSampleRow = {
+type TransactionSampleRow = {
   id: string;
   'profile.id': string;
-  projectSlug: string;
+  project: string;
   replayId: string;
   timestamp: string;
   trace: string;
@@ -31,7 +32,7 @@ export type TransactionSampleRow = {
 
 export type TransactionSampleRowWithScore = TransactionSampleRow & Score;
 
-type Score = {
+export type Score = {
   clsScore: number;
   fcpScore: number;
   inpScore: number;
@@ -40,46 +41,40 @@ type Score = {
   ttfbScore: number;
 };
 
-export type ScoreWithWeightsAndOpportunity = Score & Weight & Opportunity;
-
-export type InteractionSpanSampleRow = {
-  [SpanIndexedField.INP]: number;
+type SpanSampleRow = {
+  id: string;
   'profile.id': string;
-  projectSlug: string;
+  project: string;
   replayId: string;
-  [SpanIndexedField.SPAN_DESCRIPTION]: string;
-  [SpanIndexedField.SPAN_SELF_TIME]: number;
-  [SpanIndexedField.TIMESTAMP]: string;
-  'user.display': string;
+  [SpanFields.SPAN_DESCRIPTION]: string;
+  [SpanFields.SPAN_SELF_TIME]: number;
+  [SpanFields.TIMESTAMP]: string;
+  [SpanFields.TRACE]: string;
+  'user.display'?: string;
+  [SpanFields.INP]?: number;
+  [SpanFields.CLS]?: number;
+  [SpanFields.LCP]?: number;
+  [SpanFields.FCP]?: number;
+  [SpanFields.TTFB]?: number;
+  [SpanFields.LCP_ELEMENT]?: string;
+  [SpanFields.SPAN_OP]?: string;
+  [SpanFields.CLS_SOURCE]?: string;
 };
 
-export type InteractionSpanSampleRowWithScore = InteractionSpanSampleRow & {
-  inpScore: number;
-  totalScore: number;
-};
-
-export type Weight = {
-  clsWeight: number;
-  fcpWeight: number;
-  inpWeight: number;
-  lcpWeight: number;
-  ttfbWeight: number;
-};
+export type SpanSampleRowWithScore = SpanSampleRow & Score;
 
 export type Opportunity = {
   opportunity: number;
 };
 
-export type ProjectScore = Partial<Score> & Weight;
+export type ProjectScore = Partial<Score>;
 
 export type RowWithScoreAndOpportunity = Row & Score & Opportunity;
-
-export type RowWithScore = Row & Score;
 
 export type WebVitals = 'lcp' | 'fcp' | 'cls' | 'ttfb' | 'inp';
 
 // TODO: Refactor once stored scores are GA'd
-export const SORTABLE_SCORE_FIELDS = [
+const SORTABLE_SCORE_FIELDS = [
   'totalScore',
   'opportunity',
   'avg(measurements.score.total)',
@@ -96,7 +91,7 @@ export const SORTABLE_FIELDS = [
   ...SORTABLE_SCORE_FIELDS,
 ] as const;
 
-export const SORTABLE_INDEXED_SCORE_FIELDS = [
+const SORTABLE_INDEXED_SCORE_FIELDS = [
   'totalScore',
   'measurements.score.total',
   'inpScore',
@@ -123,23 +118,56 @@ export const DEFAULT_INDEXED_SORT: Sort = {
 };
 
 export const SORTABLE_INDEXED_INTERACTION_FIELDS = [
-  SpanIndexedField.INP,
-  SpanIndexedField.INP_SCORE,
-  SpanIndexedField.INP_SCORE_WEIGHT,
-  SpanIndexedField.TOTAL_SCORE,
-  SpanIndexedField.ID,
-  SpanIndexedField.TIMESTAMP,
-  SpanIndexedField.PROFILE_ID,
-  SpanIndexedField.REPLAY_ID,
-  SpanIndexedField.USER,
-  SpanIndexedField.ORIGIN_TRANSACTION,
-  SpanIndexedField.PROJECT,
-  SpanIndexedField.BROWSER_NAME,
-  SpanIndexedField.SPAN_SELF_TIME,
-  SpanIndexedField.SPAN_DESCRIPTION,
+  SpanFields.INP,
+  SpanFields.INP_SCORE,
+  SpanFields.INP_SCORE_WEIGHT,
+  SpanFields.TOTAL_SCORE,
+  SpanFields.SPAN_ID,
+  SpanFields.TIMESTAMP,
+  SpanFields.PROFILE_ID,
+  SpanFields.REPLAY_ID,
+  SpanFields.USER,
+  SpanFields.ORIGIN_TRANSACTION,
+  SpanFields.PROJECT,
+  SpanFields.BROWSER_NAME,
+  SpanFields.SPAN_SELF_TIME,
+  SpanFields.SPAN_DESCRIPTION,
 ] as const;
 
-export const DEFAULT_INDEXED_INTERACTION_SORT: Sort = {
+export const DEFAULT_INDEXED_SPANS_SORT: Sort = {
   kind: 'desc',
-  field: 'replay.id',
+  field: 'timestamp',
 };
+
+export const WEB_VITAL_PERFORMANCE_ISSUES: Record<
+  WebVitals,
+  Array<keyof typeof ISSUE_TYPE_TO_ISSUE_TITLE>
+> = {
+  lcp: [
+    'performance_render_blocking_asset_span',
+    'performance_uncompressed_assets',
+    'performance_http_overhead',
+    'performance_consecutive_http',
+    'performance_n_plus_one_api_calls',
+    'performance_large_http_payload',
+    'performance_p95_endpoint_regression',
+  ],
+  fcp: [
+    'performance_render_blocking_asset_span',
+    'performance_uncompressed_assets',
+    'performance_http_overhead',
+    'performance_consecutive_http',
+    'performance_n_plus_one_api_calls',
+    'performance_large_http_payload',
+    'performance_p95_endpoint_regression',
+  ],
+  inp: [
+    'performance_http_overhead',
+    'performance_consecutive_http',
+    'performance_n_plus_one_api_calls',
+    'performance_large_http_payload',
+    'performance_p95_endpoint_regression',
+  ],
+  cls: [],
+  ttfb: ['performance_http_overhead'],
+} as const;

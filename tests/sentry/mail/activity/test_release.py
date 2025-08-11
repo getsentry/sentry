@@ -3,10 +3,10 @@ from django.core import mail
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
-from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.release import Release
 from sentry.models.repository import Repository
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
 from sentry.notifications.types import (
     GroupSubscriptionReason,
@@ -23,7 +23,7 @@ from sentry.users.services.user.service import user_service
 
 
 class ReleaseTestCase(ActivityTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.user5_alt_email = "privateEmail@gmail.com"
@@ -109,7 +109,7 @@ class ReleaseTestCase(ActivityTestCase):
                 value=NotificationSettingsOptionEnum.ALWAYS.value,
             )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         mail.outbox.clear()
         email = ReleaseActivityNotification(
             Activity(
@@ -166,7 +166,26 @@ class ReleaseTestCase(ActivityTestCase):
             self.user5.email,
         }
 
-    def test_does_not_generate_on_no_release(self):
+    def test_prevent_duplicate_projects(self) -> None:
+        email = ReleaseActivityNotification(
+            Activity(
+                project=self.project,
+                user_id=self.user1.id,
+                type=ActivityType.RELEASE.value,
+                data={"version": self.release.version, "deploy_id": self.deploy.id},
+            )
+        )
+        self.team3 = self.create_team(organization=self.org)
+        self.project.add_team(self.team3)
+        self.create_team_membership(user=self.user1, team=self.team3)
+
+        user_context = email.get_recipient_context(Actor.from_orm_user(self.user1), {})
+        # This project exists in multiple teams. Make sure we correctly de-dupe these and don't show
+        # the same project twice
+        assert len(user_context["projects"]) == 1
+        assert user_context["projects"][0][0] == self.project
+
+    def test_does_not_generate_on_no_release(self) -> None:
         email = ReleaseActivityNotification(
             Activity(
                 project=self.project,
@@ -178,7 +197,7 @@ class ReleaseTestCase(ActivityTestCase):
 
         assert email.release is None
 
-    def test_no_committers(self):
+    def test_no_committers(self) -> None:
         mail.outbox.clear()
         Release.objects.all().delete()
         release, deploy = self.another_release("b")
@@ -220,7 +239,7 @@ class ReleaseTestCase(ActivityTestCase):
 
         assert sent_email_addresses == {self.user3.email}
 
-    def test_uses_default(self):
+    def test_uses_default(self) -> None:
         user6 = self.create_user()
         self.create_member(user=user6, organization=self.org, teams=[self.team])
 

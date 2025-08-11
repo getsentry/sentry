@@ -3,10 +3,9 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import CommitLink from 'sentry/components/commitLink';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import PullRequestLink from 'sentry/components/pullRequestLink';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
@@ -16,11 +15,11 @@ import type {
   GroupActivityAssigned,
   GroupActivitySetEscalating,
   GroupActivitySetIgnored,
-  Organization,
-  Project,
-  User,
-} from 'sentry/types';
+} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 
@@ -273,7 +272,7 @@ function GroupActivityItem({
         return tct('[author] marked this issue as resolved due to inactivity', {
           author,
         });
-      case GroupActivityType.SET_RESOLVED_IN_RELEASE:
+      case GroupActivityType.SET_RESOLVED_IN_RELEASE: {
         // Resolved in the next release
         if ('current_release_version' in activity.data) {
           const currentVersion = activity.data.current_release_version;
@@ -305,7 +304,8 @@ function GroupActivityItem({
           : tct('[author] marked this issue as resolved in the upcoming release', {
               author,
             });
-      case GroupActivityType.SET_RESOLVED_IN_COMMIT:
+      }
+      case GroupActivityType.SET_RESOLVED_IN_COMMIT: {
         const deployedReleases = (activity.data.commit?.releases || [])
           .filter(r => r.dateReleased !== null)
           .sort(
@@ -326,7 +326,7 @@ function GroupActivityItem({
               break: <br />,
               release: (
                 <Version
-                  version={deployedReleases[0].version}
+                  version={deployedReleases[0]!.version}
                   projectId={projectId}
                   tooltipRawVersion
                 />
@@ -350,7 +350,7 @@ function GroupActivityItem({
               break: <br />,
               release: (
                 <Version
-                  version={deployedReleases[0].version}
+                  version={deployedReleases[0]!.version}
                   projectId={projectId}
                   tooltipRawVersion
                 />
@@ -371,6 +371,7 @@ function GroupActivityItem({
           });
         }
         return tct('[author] marked this issue as resolved in a commit', {author});
+      }
       case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
         const {data} = activity;
         const {pullRequest} = data;
@@ -474,6 +475,13 @@ function GroupActivityItem({
       }
       case GroupActivityType.CREATE_ISSUE: {
         const {data} = activity;
+        if (data.new === true) {
+          return tct('[author] linked this issue to [issue] on [provider]', {
+            author,
+            issue: <ExternalLink href={data.location}>{data.title}</ExternalLink>,
+            provider: data.provider,
+          });
+        }
         return tct('[author] created an issue on [provider] titled [title]', {
           author,
           provider: data.provider,
@@ -607,12 +615,12 @@ function GroupActivityItem({
 export default GroupActivityItem;
 
 const Subtext = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const CodeWrapper = styled('div')`
   overflow-wrap: anywhere;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const StyledRuleSpan = styled('span')`

@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import type {RelayActivity} from 'sentry/types/relay';
 
 type Props = {
-  activities: Array<RelayActivity>;
+  activities: RelayActivity[];
 };
 
 function ActivityList({activities}: Props) {
@@ -31,7 +31,7 @@ export default ActivityList;
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: repeat(3, 2fr);
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     grid-template-columns: 2fr repeat(2, 1fr);
   }
 `;

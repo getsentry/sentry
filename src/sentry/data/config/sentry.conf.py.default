@@ -4,8 +4,6 @@ from sentry.conf.server import *
 
 import os.path
 
-CONF_ROOT = os.path.dirname(__file__)
-
 DATABASES = {
     'default': {
         'ENGINE': 'sentry.db.postgres',
@@ -18,10 +16,6 @@ DATABASES = {
         'ATOMIC_REQUESTS': False,
     }
 }
-
-# You should not change this setting after your database has been created
-# unless you have altered all schemas first
-SENTRY_USE_BIG_INTS = True
 
 # If you're expecting any kind of real traffic on Sentry, we highly recommend
 # configuring the CACHES and Redis settings
@@ -127,3 +121,11 @@ SENTRY_WEB_OPTIONS = {
     # 'workers': 1,  # the number of web workers
     # 'protocol': 'uwsgi',  # Enable uwsgi protocol instead of http
 }
+
+##############
+# Devserver #
+##############
+
+# Exclude logs caused by Relay polling every 100ms.
+# Makes it rather hard to use Python debugger
+DEVSERVER_REQUEST_LOG_EXCLUDES = ["/api/0/relays/projectconfigs/"]

@@ -2,6 +2,7 @@ from functools import cached_property
 
 from sentry.api.endpoints.organization_pinned_searches import PINNED_SEARCH_NAME
 from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
 from sentry.testutils.cases import APITestCase
@@ -20,7 +21,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
     def get_response(self, *args, **params):
         return super().get_response(*((self.organization.slug,) + args), **params)
 
-    def test(self):
+    def test(self) -> None:
         self.login_as(self.member)
         query = "test"
         search_type = SearchType.ISSUE.value
@@ -36,22 +37,19 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             visibility=Visibility.OWNER_PINNED,
         ).exists()
 
-        assert GroupSearchView.objects.filter(
+        # Errors out if no default view is found, inherently verifying existence.
+        default_view = GroupSearchView.objects.get(
             organization=self.organization,
             name="Default Search",
             user_id=self.member.id,
             query=query,
             query_sort=sort,
-            position=0,
-        ).exists()
-
-        assert GroupSearchView.objects.filter(
+        )
+        assert GroupSearchViewStarred.objects.filter(
             organization=self.organization,
             user_id=self.member.id,
-            position=1,
-            name="Prioritized",
-            query="is:unresolved issue.priority:[high, medium]",
-            query_sort="date",
+            group_search_view=default_view,
+            position=0,
         ).exists()
 
         query = "test_2"
@@ -102,7 +100,7 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             visibility=Visibility.OWNER_PINNED,
         ).exists()
 
-    def test_pin_sort_mismatch(self):
+    def test_pin_sort_mismatch(self) -> None:
         saved_search = SavedSearch.objects.create(
             organization=self.organization,
             owner_id=self.member.id,
@@ -118,13 +116,13 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
         assert resp.data["isPinned"]
         assert resp.data["id"] != str(saved_search.id)
 
-    def test_invalid_type(self):
+    def test_invalid_type(self) -> None:
         self.login_as(self.member)
         resp = self.get_response(type=55, query="test", status_code=201)
         assert resp.status_code == 400
         assert "not a valid SearchType" in resp.data["type"][0]
 
-    def test_empty_query(self):
+    def test_empty_query(self) -> None:
         self.login_as(self.member)
         query = ""
         search_type = SearchType.ISSUE.value
@@ -154,7 +152,7 @@ class DeleteOrganizationPinnedSearchTest(APITestCase):
     def get_response(self, *args, **params):
         return super().get_response(*((self.organization.slug,) + args), **params)
 
-    def test(self):
+    def test(self) -> None:
         saved_search = SavedSearch.objects.create(
             organization=self.organization,
             owner_id=self.member.id,
@@ -180,7 +178,7 @@ class DeleteOrganizationPinnedSearchTest(APITestCase):
         self.get_success_response(type=saved_search.type, status_code=204)
         assert SavedSearch.objects.filter(id=other_saved_search.id).exists()
 
-    def test_views_deleted(self):
+    def test_views_deleted(self) -> None:
         self.login_as(self.member)
 
         saved_search = SavedSearch.objects.create(
@@ -197,7 +195,7 @@ class DeleteOrganizationPinnedSearchTest(APITestCase):
             organization=self.organization, user_id=self.member.id
         ).exists()
 
-    def test_invalid_type(self):
+    def test_invalid_type(self) -> None:
         self.login_as(self.member)
         resp = self.get_response(type=55)
         assert resp.status_code == 400

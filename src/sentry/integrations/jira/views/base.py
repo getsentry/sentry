@@ -12,6 +12,8 @@ class JiraSentryUIBaseView(View):
     Base class for the UI of the Sentry integration in Jira.
     """
 
+    html_file: str  # abstract
+
     def get_response(self, context):
         """
         Wrap the HTML rendered using the template at `self.html_file` in a Response and

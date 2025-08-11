@@ -1,7 +1,7 @@
 import type {CSSProperties, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -111,14 +111,14 @@ const TextContainer = styled('div')`
 
 const SubText = styled('div')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: ${p => p.theme.text.lineHeightBody};
 `;
 
 const TypeText = styled(SubText)`
   align-items: center;
   display: flex;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   gap: ${space(0.5)};
   text-transform: uppercase;
 `;

@@ -9,8 +9,10 @@ import difflib
 import os
 import re
 import sys
+from collections.abc import Callable, Generator
 from concurrent.futures import ThreadPoolExecutor
 from string import Template
+from typing import Any, Protocol, overload
 
 import pytest
 import requests
@@ -30,7 +32,22 @@ UNSAFE_PATH_CHARS = ("<", ">", ":", '"', " | ", "?", "*")
 DIRECTORY_GROUPING_CHARS = ("::", "-", "[", "]", "\\")
 
 
-def django_db_all(func=None, *, transaction=None, reset_sequences=None, **kwargs):
+@overload
+def django_db_all[R, **P](func: Callable[P, R]) -> Callable[P, R]: ...
+
+
+@overload
+def django_db_all[R, **P](
+    *, transaction: bool | None = None, reset_sequences: bool | None = None
+) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
+
+
+def django_db_all[R, **P](
+    func: Callable[P, R] | None = None,
+    *,
+    transaction: bool | None = None,
+    reset_sequences: bool | None = None,
+) -> Callable[P, R] | Callable[[Callable[P, R]], Callable[P, R]]:
     """Pytest decorator for resetting all databases"""
 
     if func is not None:
@@ -38,7 +55,7 @@ def django_db_all(func=None, *, transaction=None, reset_sequences=None, **kwargs
             transaction=transaction, reset_sequences=reset_sequences, databases="__all__"
         )(func)
 
-    def decorator(function):
+    def decorator(function: Callable[P, R]) -> Callable[P, R]:
         return pytest.mark.django_db(
             transaction=transaction, reset_sequences=reset_sequences, databases="__all__"
         )(function)
@@ -70,7 +87,7 @@ def task_runner():
 def default_user(factories):
     """A default (super)user with email ``admin@localhost`` and password ``admin``.
 
-    :returns: A :class:`sentry.models.user.User` instance.
+    :returns: A :class:`sentry.users.models.user.User` instance.
     """
     return factories.create_user(email="admin@localhost", is_superuser=True)
 
@@ -193,14 +210,28 @@ def read_snapshot_file(reference_file: str) -> tuple[str, str]:
         return (header, refval)
 
 
+InequalityComparator = Callable[[str, str], bool | str]
+default_comparator = lambda refval, output: refval != output
+
+
+class InstaSnapshotter(Protocol):
+    def __call__(
+        self,
+        output: str | Any,
+        reference_file: str | None = None,
+        subname: str | None = None,
+        inequality_comparator: InequalityComparator = default_comparator,
+    ) -> None: ...
+
+
 @pytest.fixture
-def insta_snapshot(request, log):
+def insta_snapshot(request: pytest.FixtureRequest) -> Generator[InstaSnapshotter]:
     def inner(
-        output,
-        reference_file=None,
-        subname=None,
-        inequality_comparator=lambda refval, output: refval != output,
-    ):
+        output: str | Any,
+        reference_file: str | None = None,
+        subname: str | None = None,
+        inequality_comparator: InequalityComparator = default_comparator,
+    ) -> None:
         from sentry.testutils.silo import strip_silo_mode_test_suffix
 
         if reference_file is None:
@@ -319,6 +350,7 @@ def call_snuba(settings):
 @pytest.fixture
 def reset_snuba(call_snuba):
     init_endpoints = [
+        "/tests/events_analytics_platform/drop",
         "/tests/spans/drop",
         "/tests/events/drop",
         "/tests/functions/drop",
@@ -328,7 +360,6 @@ def reset_snuba(call_snuba):
         "/tests/generic_metrics/drop",
         "/tests/search_issues/drop",
         "/tests/group_attributes/drop",
-        "/tests/spans/drop",
     ]
 
     assert all(

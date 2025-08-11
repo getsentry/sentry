@@ -5,15 +5,19 @@ from collections.abc import Mapping
 
 from django.utils import timezone
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.utils.users import SlackUserData, get_slack_data_by_user
-from sentry.integrations.utils import get_identities_by_user
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.user import User
-from sentry.models.useremail import UserEmail
+from sentry.integrations.utils.identities import get_identities_by_user
 from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_control_tasks
+from sentry.taskworker.retry import Retry
+from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
 
@@ -23,18 +27,29 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
     queue="integrations.control",
     silo_mode=SiloMode.CONTROL,
     max_retries=3,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_control_tasks,
+        retry=Retry(times=3),
+    ),
 )
 def link_slack_user_identities(
     integration_id: int,
     organization_id: int,
 ) -> None:
-    integration = integration_service.get_integration(integration_id=integration_id)
+    integration = integration_service.get_integration(
+        integration_id=integration_id, status=ObjectStatus.ACTIVE
+    )
     organization_context = organization_service.get_organization_by_id(id=organization_id)
     organization = organization_context.organization if organization_context else None
     if organization is None or integration is None:
         logger.error(
             "slack.post_install.link_identities.invalid_params",
-            extra={"organization": organization_id, "integration": integration_id},
+            extra={
+                "organization_id": organization_id,
+                "integration_id": integration_id,
+                "integration": bool(integration),
+                "organization": bool(organization),
+            },
         )
         return None
 

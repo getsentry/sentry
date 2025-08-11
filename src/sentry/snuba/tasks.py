@@ -6,8 +6,11 @@ from datetime import timedelta
 import orjson
 import sentry_sdk
 from django.utils import timezone
+from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import CreateSubscriptionRequest
+from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 
 from sentry import features
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
     get_entity_key_from_query_builder,
@@ -19,7 +22,10 @@ from sentry.snuba.entity_subscription import (
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.utils import build_query_strings
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import alerts_tasks
+from sentry.taskworker.retry import Retry
+from sentry.utils import metrics, snuba_rpc
 from sentry.utils.snuba import SNUBA_INFO, SnubaError, _snuba_pool
 
 logger = logging.getLogger(__name__)
@@ -28,11 +34,22 @@ logger = logging.getLogger(__name__)
 SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
 
 
+class SubscriptionError(Exception):
+    pass
+
+
 @instrumented_task(
     name="sentry.snuba.tasks.create_subscription_in_snuba",
     queue="subscriptions",
     default_retry_delay=5,
     max_retries=5,
+    taskworker_config=TaskworkerConfig(
+        namespace=alerts_tasks,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 def create_subscription_in_snuba(query_subscription_id, **kwargs):
     """
@@ -55,9 +72,14 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
         # into this state. Just attempt to delete the existing subscription and then
         # create a new one.
         query_dataset = Dataset(subscription.snuba_query.dataset)
-        entity_key = get_entity_key_from_snuba_query(
-            subscription.snuba_query, subscription.project.organization_id, subscription.project_id
-        )
+        try:
+            entity_key = get_entity_key_from_snuba_query(
+                subscription.snuba_query,
+                subscription.project.organization_id,
+                subscription.project_id,
+            )
+        except (InvalidSearchQuery, IncompatibleMetricsQuery) as e:
+            raise SubscriptionError(e)
         try:
             _delete_from_snuba(
                 query_dataset,
@@ -78,6 +100,13 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
     queue="subscriptions",
     default_retry_delay=5,
     max_retries=5,
+    taskworker_config=TaskworkerConfig(
+        namespace=alerts_tasks,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 def update_subscription_in_snuba(
     query_subscription_id,
@@ -123,13 +152,17 @@ def update_subscription_in_snuba(
                 "event_types": subscription.snuba_query.event_types,
             },
         )
-        old_entity_key = get_entity_key_from_query_builder(
-            old_entity_subscription.build_query_builder(
-                query,
-                [subscription.project_id],
-                None,
-                {"organization_id": subscription.project.organization_id},
-            ),
+        old_entity_key = (
+            EntityKey.EAPItems
+            if dataset == Dataset.EventsAnalyticsPlatform
+            else get_entity_key_from_query_builder(
+                old_entity_subscription.build_query_builder(
+                    query,
+                    [subscription.project_id],
+                    None,
+                    {"organization_id": subscription.project.organization_id},
+                ),
+            )
         )
         _delete_from_snuba(
             Dataset(dataset),
@@ -148,6 +181,13 @@ def update_subscription_in_snuba(
     queue="subscriptions",
     default_retry_delay=5,
     max_retries=5,
+    taskworker_config=TaskworkerConfig(
+        namespace=alerts_tasks,
+        retry=Retry(
+            times=5,
+            delay=5,
+        ),
+    ),
 )
 def delete_subscription_from_snuba(query_subscription_id, **kwargs):
     """
@@ -156,6 +196,8 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
     If the local subscription is marked for deletion (as opposed to disabled),
     then we delete the local subscription once we've successfully removed from Snuba.
     """
+    from sentry.incidents.models.alert_rule import AlertRule
+
     try:
         subscription = QuerySubscription.objects.get(id=query_subscription_id)
     except QuerySubscription.DoesNotExist:
@@ -171,12 +213,15 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
 
     if subscription.subscription_id is not None and subscription.snuba_query is not None:
         query_dataset = Dataset(subscription.snuba_query.dataset)
-        entity_key = get_entity_key_from_snuba_query(
-            subscription.snuba_query,
-            subscription.project.organization_id,
-            subscription.project_id,
-            skip_field_validation_for_entity_subscription_deletion=True,
-        )
+        try:
+            entity_key = get_entity_key_from_snuba_query(
+                subscription.snuba_query,
+                subscription.project.organization_id,
+                subscription.project_id,
+                skip_field_validation_for_entity_subscription_deletion=True,
+            )
+        except (InvalidSearchQuery, IncompatibleMetricsQuery) as e:
+            raise SubscriptionError(e)
         _delete_from_snuba(
             query_dataset,
             subscription.subscription_id,
@@ -184,15 +229,22 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         )
 
     if subscription.status == QuerySubscription.Status.DELETING.value:
+        snuba_query = subscription.snuba_query
         subscription.delete()
+        # check that there are no subscriptions left related to the SnubaQuery before deleting
+        # add a check for the alert rule - in the snapshot case we could fall in here but the alert rule isn't deleted
+        if (
+            snuba_query
+            and not QuerySubscription.objects.filter(snuba_query=snuba_query.id).exists()
+            and not AlertRule.objects_with_snapshots.filter(snuba_query=snuba_query.id).exists()
+        ):
+            snuba_query.delete()
     else:
         subscription.update(subscription_id=None)
 
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
-    assert subscription.snuba_query is not None
-
-    with sentry_sdk.start_span(op="snuba.tasks", description="create_in_snuba") as span:
+    with sentry_sdk.start_span(op="snuba.tasks", name="create_in_snuba") as span:
         span.set_tag(
             "uses_metrics_layer",
             features.has("organizations:use-metrics-layer", subscription.project.organization),
@@ -205,17 +257,37 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             subscription.project.organization_id,
         )
         query_string = build_query_strings(subscription, snuba_query).query_string
-        snql_query = entity_subscription.build_query_builder(
-            query=query_string,
-            project_ids=[subscription.project_id],
-            environment=snuba_query.environment,
-            params={
-                "organization_id": subscription.project.organization_id,
-                "project_id": [subscription.project_id],
-            },
-        ).get_snql_query()
+        if entity_subscription.dataset == Dataset.EventsAnalyticsPlatform:
+            try:
+                rpc_time_series_request = entity_subscription.build_rpc_request(
+                    query=query_string,
+                    project_ids=[subscription.project_id],
+                    environment=snuba_query.environment,
+                    params={
+                        "organization_id": subscription.project.organization_id,
+                        "project_id": [subscription.project_id],
+                    },
+                )
+            except (InvalidSearchQuery, IncompatibleMetricsQuery) as e:
+                raise SubscriptionError(e)
+            return _create_rpc_in_snuba(
+                subscription, snuba_query, rpc_time_series_request, entity_subscription
+            )
+        else:
+            try:
+                snql_query = entity_subscription.build_query_builder(
+                    query=query_string,
+                    project_ids=[subscription.project_id],
+                    environment=snuba_query.environment,
+                    params={
+                        "organization_id": subscription.project.organization_id,
+                        "project_id": [subscription.project_id],
+                    },
+                ).get_snql_query()
+            except (InvalidSearchQuery, IncompatibleMetricsQuery) as e:
+                raise SubscriptionError(e)
 
-        return _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription)
+            return _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription)
 
 
 # This indirection function only exists such that snql queries can be rewritten
@@ -250,6 +322,27 @@ def _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscrip
     return orjson.loads(response.data)["subscription_id"]
 
 
+def _create_rpc_in_snuba(
+    subscription,
+    snuba_query,
+    rpc_time_series_request: TimeSeriesRequest,
+    entity_subscription,
+):
+    subscription_request = CreateSubscriptionRequest(
+        time_series_request=rpc_time_series_request,
+        time_window_secs=snuba_query.time_window,
+        resolution_secs=snuba_query.resolution,
+    )
+
+    try:
+        response = snuba_rpc.create_subscription(subscription_request)
+    except snuba_rpc.SnubaRPCError:
+        metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
+        raise
+
+    return response.subscription_id
+
+
 def _delete_from_snuba(dataset: Dataset, subscription_id: str, entity_key: EntityKey) -> None:
     response = _snuba_pool.urlopen(
         "DELETE", f"/{dataset.value}/{entity_key.value}/subscriptions/{subscription_id}"
@@ -261,6 +354,7 @@ def _delete_from_snuba(dataset: Dataset, subscription_id: str, entity_key: Entit
 @instrumented_task(
     name="sentry.snuba.tasks.subscription_checker",
     queue="subscriptions",
+    taskworker_config=TaskworkerConfig(namespace=alerts_tasks),
 )
 def subscription_checker(**kwargs):
     """

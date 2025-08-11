@@ -8,7 +8,7 @@ from sentry.data_export.processors.issues_by_tag import IssuesByTagProcessor
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.eventuser import EventUser
 
 
@@ -25,7 +25,7 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
         "first_seen",
     ]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)
@@ -35,7 +35,7 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
         self.event = self.store_event(
             data={
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(before_now(seconds=3)),
+                "timestamp": before_now(seconds=3).isoformat(),
                 "user": {"email": self.user.email},
             },
             project_id=self.project.id,
@@ -51,30 +51,29 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
             id=None,
         )
 
-    def test_get_project(self):
+    def test_get_project(self) -> None:
         project = IssuesByTagProcessor.get_project(project_id=self.project.id)
         assert isinstance(project, Project)
         assert project == self.project
         with pytest.raises(ExportError):
             IssuesByTagProcessor.get_project(project_id=-1)
 
-    def test_get_group(self):
+    def test_get_group(self) -> None:
         group = IssuesByTagProcessor.get_group(group_id=self.group.id, project=self.project)
         assert isinstance(group, Group)
         assert group == self.group
         with pytest.raises(ExportError):
             IssuesByTagProcessor.get_group(group_id=-1, project=self.project)
 
-    def test_get_header_fields(self):
+    def test_get_header_fields(self) -> None:
         assert IssuesByTagProcessor.get_header_fields("generic") == self.generic_header_fields
         assert IssuesByTagProcessor.get_header_fields("user") == self.user_header_fields
 
-    def test_get_lookup_key(self):
+    def test_get_lookup_key(self) -> None:
         assert IssuesByTagProcessor.get_lookup_key("generic") == "generic"
         assert IssuesByTagProcessor.get_lookup_key("user") == "sentry:user"
 
-    def test_get_eventuser_callback(self):
-        user_callback = IssuesByTagProcessor.get_eventuser_callback(self.project.id)
+    def test_get_eventuser_callback(self) -> None:
         processor = IssuesByTagProcessor(
             project_id=self.project.id,
             group_id=self.group.id,
@@ -83,18 +82,9 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
             tenant_ids={"organization_id": 123, "referrer": "issues_by_tag"},
         )
         sample = processor.get_raw_data()[0]
-        user_callback([sample])
-        assert sample._eventuser == self.euser
+        assert sample.eventuser == self.euser
 
-    def test_get_callbacks(self):
-        generic_callbacks = IssuesByTagProcessor.get_callbacks("generic", self.project.id)
-        assert isinstance(generic_callbacks, list)
-        assert len(generic_callbacks) == 0
-        user_callbacks = IssuesByTagProcessor.get_callbacks("user", self.project.id)
-        assert isinstance(user_callbacks, list)
-        assert len(user_callbacks) == 1
-
-    def test_serialize_row(self):
+    def test_serialize_row(self) -> None:
         processor = IssuesByTagProcessor(
             project_id=self.project.id,
             group_id=self.group.id,

@@ -1,10 +1,10 @@
-import 'intersection-observer'; // this is a polyfill
-
 import {Component, createRef, Fragment} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import type {Location} from 'history';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
 import {
   FREQUENCY_BOX_WIDTH,
@@ -23,7 +23,6 @@ import {
   DividerLine,
   DividerLineGhostContainer,
   ErrorBadge,
-  MetricsBadge,
   ProfileBadge,
 } from 'sentry/components/performance/waterfall/rowDivider';
 import {
@@ -44,7 +43,6 @@ import {
   getHumanDuration,
   lightenBarColor,
 } from 'sentry/components/performance/waterfall/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -54,7 +52,6 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import {hasMetricsExperimentalFeature} from 'sentry/utils/metrics/features';
 import toPercent from 'sentry/utils/number/toPercent';
 import type {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import type {
@@ -74,7 +71,7 @@ import {withScrollbarManager} from './scrollbarManager';
 import type {SpanBarProps} from './spanBar';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import {MeasurementMarker} from './styles';
-import type {AggregateSpanType, GapSpanType, ProcessedSpanType} from './types';
+import type {AggregateSpanType, GapSpanType} from './types';
 import {GroupType} from './types';
 import type {SpanGeneratedBoundsType, SpanViewBoundsType, VerticalMark} from './utils';
 import {
@@ -96,12 +93,13 @@ import {
   unwrapTreeDepth,
 } from './utils';
 
-export const MARGIN_LEFT = 0;
+const MARGIN_LEFT = 0;
 const SPAN_BAR_HEIGHT = 24;
 
-export type NewTraceDetailsSpanBarProps = SpanBarProps & {
+type NewTraceDetailsSpanBarProps = SpanBarProps & {
   location: Location;
   quickTrace: QuickTraceContextChildrenProps;
+  theme: Theme;
   measurements?: Map<number, VerticalMark>;
   onRowClick?: (detailKey: SpanDetailProps | undefined) => void;
 };
@@ -206,10 +204,10 @@ export class NewTraceDetailsSpanBar extends Component<
 
   spanContentRef: HTMLDivElement | null = null;
   intersectionObserver?: IntersectionObserver = void 0;
-  zoomLevel: number = 1; // assume initial zoomLevel is 100%
-  _mounted: boolean = false;
+  zoomLevel = 1; // assume initial zoomLevel is 100%
+  _mounted = false;
   hashSpanId: string | undefined = undefined;
-  isHighlighted: boolean = false;
+  isHighlighted = false;
 
   updateHighlightedState = () => {
     const hashValues = parseTraceDetailsURLHash(this.props.location.hash);
@@ -331,7 +329,7 @@ export class NewTraceDetailsSpanBar extends Component<
     return (
       <Fragment>
         {Array.from(spanMeasurements.values()).map(verticalMark => {
-          const mark = Object.values(verticalMark.marks)[0];
+          const mark = Object.values(verticalMark.marks)[0]!;
           const {timestamp} = mark;
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
@@ -381,7 +379,7 @@ export class NewTraceDetailsSpanBar extends Component<
       return null;
     }
 
-    const connectorBars: Array<React.ReactNode> = continuingTreeDepths.map(treeDepth => {
+    const connectorBars: React.ReactNode[] = continuingTreeDepths.map(treeDepth => {
       const depth: number = unwrapTreeDepth(treeDepth);
 
       if (depth === 0) {
@@ -442,7 +440,7 @@ export class NewTraceDetailsSpanBar extends Component<
       );
     }
 
-    const chevronElement = !isRoot ? <div>{chevron}</div> : null;
+    const chevronElement = isRoot ? null : <div>{chevron}</div>;
 
     return (
       <TreeToggleContainer style={{left: `${left}px`}} hasToggler>
@@ -575,7 +573,7 @@ export class NewTraceDetailsSpanBar extends Component<
 
   connectObservers() {
     const observer = new IntersectionObserver(([entry]) =>
-      this.setState({isIntersecting: entry.isIntersecting}, () => {
+      this.setState({isIntersecting: entry!.isIntersecting}, () => {
         // Scrolls the next(invisible) bar from the virtualized list,
         // by its height. Allows us to look for anchored span bars occuring
         // at the bottom of the span tree.
@@ -663,8 +661,7 @@ export class NewTraceDetailsSpanBar extends Component<
 
     const performanceIssues = currentEvent.performance_issues.filter(
       issue =>
-        issue.span.some(id => id === span.span_id) ||
-        issue.suspect_spans.some(suspectSpanId => suspectSpanId === span.span_id)
+        issue.span.includes(span.span_id) || issue.suspect_spans.includes(span.span_id)
     );
 
     return [
@@ -692,15 +689,6 @@ export class NewTraceDetailsSpanBar extends Component<
 
   renderErrorBadge(errors: TraceErrorOrIssue[] | null): React.ReactNode {
     return errors?.length ? <ErrorBadge /> : null;
-  }
-
-  renderMetricsBadge(span: NewTraceDetailsSpanBarProps['span']): React.ReactNode {
-    const hasMetrics =
-      '_metrics_summary' in span && Object.keys(span._metrics_summary ?? {}).length > 0;
-
-    return hasMetrics && hasMetricsExperimentalFeature(this.props.organization) ? (
-      <MetricsBadge />
-    ) : null;
   }
 
   renderEmbeddedTransactionsBadge(
@@ -810,7 +798,7 @@ export class NewTraceDetailsSpanBar extends Component<
     const transactions = this.getChildTransactions(quickTrace);
 
     return {
-      span: span as ProcessedSpanType,
+      span,
       organization,
       event: event as EventTransaction,
       isRoot: !!isRoot,
@@ -868,7 +856,6 @@ export class NewTraceDetailsSpanBar extends Component<
         </RowCell>
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
-          {this.renderMetricsBadge(this.props.span)}
           {this.renderErrorBadge(errors)}
           {this.renderEmbeddedTransactionsBadge(transactions)}
           {this.renderMissingInstrumentationProfileBadge()}
@@ -913,7 +900,7 @@ export class NewTraceDetailsSpanBar extends Component<
   }
 
   renderSpanBarRectangles() {
-    const {span, spanBarColor, spanBarType, generateBounds} = this.props;
+    const {span, spanBarColor, spanBarType, generateBounds, theme} = this.props;
     const startTimestamp: number = span.start_timestamp;
     const endTimestamp: number = span.timestamp;
     const duration = Math.abs(endTimestamp - startTimestamp);
@@ -924,7 +911,7 @@ export class NewTraceDetailsSpanBar extends Component<
       return null;
     }
 
-    const subTimings = getSpanSubTimings(span);
+    const subTimings = getSpanSubTimings(span, theme);
     const hasSubTimings = !!subTimings;
 
     const subSpans = hasSubTimings
@@ -939,7 +926,8 @@ export class NewTraceDetailsSpanBar extends Component<
               style={{
                 backgroundColor: lightenBarColor(
                   getSpanOperation(span),
-                  timing.colorLighten
+                  timing.colorLighten,
+                  theme
                 ),
                 left: `min(${toPercent(timingBounds.left || 0)}, calc(100% - 1px))`,
                 width: toPercent(timingBounds.width || 0),

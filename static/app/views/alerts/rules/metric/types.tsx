@@ -1,17 +1,12 @@
 import {t} from 'sentry/locale';
-import type {
-  ActivationConditionType,
-  AlertRuleActivation,
-  MonitorType,
-} from 'sentry/types/alerts';
+import type {Incident} from 'sentry/views/alerts/types';
 import type {MEPAlertsQueryType} from 'sentry/views/alerts/wizard/options';
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
-
-import type {Incident} from '../../types';
 
 export enum AlertRuleThresholdType {
   ABOVE = 0,
   BELOW = 1,
+  ABOVE_AND_BELOW = 2,
 }
 
 export enum AlertRuleTriggerType {
@@ -24,6 +19,8 @@ export enum AlertRuleComparisonType {
   COUNT = 'count',
   CHANGE = 'change',
   PERCENT = 'percent',
+  DYNAMIC = 'dynamic',
+  STATIC = 'static',
 }
 
 export enum Dataset {
@@ -38,6 +35,8 @@ export enum Dataset {
   /** Also used for crash free alerts */
   METRICS = 'metrics',
   ISSUE_PLATFORM = 'search_issues',
+  REPLAYS = 'replays',
+  EVENTS_ANALYTICS_PLATFORM = 'events_analytics_platform',
 }
 
 export enum EventTypes {
@@ -46,6 +45,8 @@ export enum EventTypes {
   TRANSACTION = 'transaction',
   USER = 'user',
   SESSION = 'session',
+  TRACE_ITEM_SPAN = 'trace_item_span',
+  TRACE_ITEM_LOG = 'trace_item_log',
 }
 
 export enum Datasource {
@@ -53,6 +54,16 @@ export enum Datasource {
   DEFAULT = 'default',
   ERROR = 'error',
   TRANSACTION = 'transaction',
+}
+
+export enum AlertRuleSensitivity {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+}
+
+export enum AlertRuleSeasonality {
+  AUTO = 'auto',
 }
 
 /**
@@ -94,6 +105,7 @@ export type Trigger = Partial<SavedTrigger> & UnsavedTrigger;
 export type UnsavedMetricRule = {
   aggregate: string;
   dataset: Dataset;
+  detectionType: string;
   environment: string | null;
   projects: string[];
   query: string;
@@ -102,18 +114,17 @@ export type UnsavedMetricRule = {
   thresholdType: AlertRuleThresholdType;
   timeWindow: TimeWindow;
   triggers: Trigger[];
-  activationCondition?: ActivationConditionType;
   comparisonDelta?: number | null;
   eventTypes?: EventTypes[];
-  monitorType?: MonitorType;
   monitorWindow?: number | null;
   owner?: string | null;
   queryType?: MEPAlertsQueryType | null;
+  seasonality?: AlertRuleSeasonality | null;
+  sensitivity?: AlertRuleSensitivity | null;
 };
 
 // Form values for updating a metric alert rule
 export interface SavedMetricRule extends UnsavedMetricRule {
-  activations: AlertRuleActivation[];
   dateCreated: string;
   dateModified: string;
   id: string;
@@ -121,7 +132,7 @@ export interface SavedMetricRule extends UnsavedMetricRule {
   snooze: boolean;
   status: number;
   createdBy?: {email: string; id: number; name: string} | null;
-  errors?: {detail: string}[];
+  errors?: Array<{detail: string}>;
   /**
    * Returned with the expand=latestIncident query parameter
    */
@@ -142,6 +153,7 @@ export enum TimePeriod {
   // limitations.
   SEVEN_DAYS = '9998m',
   FOURTEEN_DAYS = '14d',
+  TWENTY_EIGHT_DAYS = '28d',
 }
 
 export enum TimeWindow {

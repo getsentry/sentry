@@ -1,12 +1,15 @@
 from datetime import UTC, datetime, timedelta
+from time import time
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.http import QueryDict
 
+from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
 from sentry.api.helpers.group_index import update_groups, validate_search_filter_permissions
-from sentry.api.helpers.group_index.delete import delete_groups
+from sentry.api.helpers.group_index.delete import schedule_tasks_to_delete_groups
 from sentry.api.helpers.group_index.update import (
+    get_group_list,
     handle_assigned_to,
     handle_has_seen,
     handle_is_bookmarked,
@@ -15,18 +18,23 @@ from sentry.api.helpers.group_index.update import (
 )
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.issue_search import parse_search_query
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.group import GroupSerializer
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
+from sentry.models.grouplink import GroupLink
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -51,8 +59,9 @@ class ValidateSearchFilterPermissionsTest(TestCase):
     @patch("sentry.analytics.record")
     def test_negative(self, mock_record: Mock) -> None:
         query = "!has:user"
-        with self.feature({"organizations:advanced-search": False}), pytest.raises(
-            ValidationError, match=".*negative search.*"
+        with (
+            self.feature({"organizations:advanced-search": False}),
+            pytest.raises(ValidationError, match=".*negative search.*"),
         ):
             self.run_test(query)
 
@@ -60,8 +69,9 @@ class ValidateSearchFilterPermissionsTest(TestCase):
         self.assert_analytics_recorded(mock_record)
 
         query = "!something:123"
-        with self.feature({"organizations:advanced-search": False}), pytest.raises(
-            ValidationError, match=".*negative search.*"
+        with (
+            self.feature({"organizations:advanced-search": False}),
+            pytest.raises(ValidationError, match=".*negative search.*"),
         ):
             self.run_test(query)
 
@@ -71,8 +81,9 @@ class ValidateSearchFilterPermissionsTest(TestCase):
     @patch("sentry.analytics.record")
     def test_wildcard(self, mock_record: Mock) -> None:
         query = "abc:hello*"
-        with self.feature({"organizations:advanced-search": False}), pytest.raises(
-            ValidationError, match=".*wildcard search.*"
+        with (
+            self.feature({"organizations:advanced-search": False}),
+            pytest.raises(ValidationError, match=".*wildcard search.*"),
         ):
             self.run_test(query)
 
@@ -80,8 +91,9 @@ class ValidateSearchFilterPermissionsTest(TestCase):
         self.assert_analytics_recorded(mock_record)
 
         query = "raw * search"
-        with self.feature({"organizations:advanced-search": False}), pytest.raises(
-            ValidationError, match=".*wildcard search.*"
+        with (
+            self.feature({"organizations:advanced-search": False}),
+            pytest.raises(ValidationError, match=".*wildcard search.*"),
         ):
             self.run_test(query)
 
@@ -101,10 +113,8 @@ class UpdateGroupsTest(TestCase):
         request.data = {"status": "unresolved", "substatus": "ongoing"}
         request.GET = QueryDict(query_string=f"id={resolved_group.id}")
 
-        search_fn = Mock()
-        update_groups(
-            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
-        )
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
 
         resolved_group.refresh_from_db()
 
@@ -114,26 +124,55 @@ class UpdateGroupsTest(TestCase):
         assert send_unresolved.called
 
     @patch("sentry.signals.issue_resolved.send_robust")
+    @with_feature("organizations:issue-open-periods")
     def test_resolving_unresolved_group(self, send_robust: Mock) -> None:
         unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
         add_group_to_inbox(unresolved_group, GroupInboxReason.NEW)
         assert unresolved_group.status == GroupStatus.UNRESOLVED
+        open_period = GroupOpenPeriod.objects.filter(
+            group=unresolved_group, date_ended__isnull=True
+        ).first()
+        assert open_period is not None
+        assert open_period.date_ended is None
 
         request = self.make_request(user=self.user, method="GET")
         request.user = self.user
         request.data = {"status": "resolved", "substatus": None}
         request.GET = QueryDict(query_string=f"id={unresolved_group.id}")
 
-        search_fn = Mock()
-        update_groups(
-            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
-        )
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
 
         unresolved_group.refresh_from_db()
 
         assert unresolved_group.status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=unresolved_group).exists()
         assert send_robust.called
+        open_period.refresh_from_db()
+        assert open_period.date_ended is not None
+
+    @patch("sentry.signals.issue_resolved.send_robust")
+    @with_feature("organizations:issue-open-periods")
+    def test_resolving_unresolved_group_without_open_period(self, send_robust: Mock) -> None:
+        unresolved_group = self.create_group(status=GroupStatus.UNRESOLVED)
+        add_group_to_inbox(unresolved_group, GroupInboxReason.NEW)
+        assert unresolved_group.status == GroupStatus.UNRESOLVED
+        GroupOpenPeriod.objects.all().delete()
+
+        request = self.make_request(user=self.user, method="GET")
+        request.user = self.user
+        request.data = {"status": "resolved", "substatus": None}
+        request.GET = QueryDict(query_string=f"id={unresolved_group.id}")
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
+
+        unresolved_group.refresh_from_db()
+
+        assert unresolved_group.status == GroupStatus.RESOLVED
+        assert not GroupInbox.objects.filter(group=unresolved_group).exists()
+        assert send_robust.called
+        assert GroupOpenPeriod.objects.filter(group=unresolved_group).count() == 0
 
     @patch("sentry.signals.issue_ignored.send_robust")
     @patch("sentry.issues.status_change.post_save")
@@ -146,17 +185,15 @@ class UpdateGroupsTest(TestCase):
         request.data = {"status": "ignored", "substatus": "archived_forever"}
         request.GET = QueryDict(query_string=f"id={group.id}")
 
-        search_fn = Mock()
-        update_groups(
-            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
-        )
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
 
         group.refresh_from_db()
 
         assert group.status == GroupStatus.IGNORED
         assert group.substatus == GroupSubStatus.FOREVER
         assert send_robust.called
-        post_save.send.assert_called_with(
+        post_save.send_robust.assert_called_with(
             sender=Group,
             instance=group,
             created=False,
@@ -178,10 +215,8 @@ class UpdateGroupsTest(TestCase):
         }
         request.GET = QueryDict(query_string=f"id={group.id}")
 
-        search_fn = Mock()
-        update_groups(
-            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
-        )
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
 
         group.refresh_from_db()
 
@@ -222,9 +257,10 @@ class UpdateGroupsTest(TestCase):
             request.data = data["request_data"]
             request.GET = QueryDict(query_string=f"id={group.id}")
 
-            update_groups(
-                request, request.GET.getlist("id"), [self.project], self.organization.id, Mock()
+            group_list = get_group_list(
+                self.organization.id, [self.project], request.GET.getlist("id")
             )
+            update_groups(request, group_list)
 
             group.refresh_from_db()
 
@@ -242,10 +278,8 @@ class UpdateGroupsTest(TestCase):
         request.data = {"inbox": False}
         request.GET = QueryDict(query_string=f"id={group.id}")
 
-        search_fn = Mock()
-        update_groups(
-            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
-        )
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
 
         group.refresh_from_db()
 
@@ -262,10 +296,8 @@ class UpdateGroupsTest(TestCase):
         request.data = {"status": "ignored", "substatus": "archived_until_escalating"}
         request.GET = QueryDict(query_string=f"id={group.id}")
 
-        search_fn = Mock()
-        update_groups(
-            request, request.GET.getlist("id"), [self.project], self.organization.id, search_fn
-        )
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
 
         group.refresh_from_db()
 
@@ -274,10 +306,97 @@ class UpdateGroupsTest(TestCase):
         assert send_robust.called
         assert not GroupInbox.objects.filter(group=group).exists()
 
+    @patch("sentry.signals.issue_resolved.send_robust")
+    def test_resolving_group_with_short_id(self, send_robust: Mock) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        assert GroupOpenPeriod.objects.filter(group=group, date_ended__isnull=True).exists()
+
+        request = self.make_request(
+            user=self.user,
+            method="GET",
+            # The UI calls the endpoint with the short ID, not the group ID
+            GET={"id": group.qualified_short_id},
+        )
+        request.data = {"status": "resolved", "substatus": None}
+
+        assert request.GET.getlist("id")[0] == group.qualified_short_id
+        assert request.GET.getlist("id")[0].isdigit() is False
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        assert group_list == [group]
+        update_groups(request, group_list)
+
+        group.refresh_from_db()
+
+        assert group.status == GroupStatus.RESOLVED
+        assert send_robust.called
+
+    def test_unresolve_clears_commit_resolution_links(self) -> None:
+        """
+        Test that when an issue is unresolved, commit resolution links are deleted
+
+        Steps:
+        1. Resolve issue via commit (no release association)
+        2. Mark as unresolved
+        3. Manually resolve again
+        4. Should not return inCommit in statusDetails
+        """
+        group = self.create_group()
+        repo = self.create_repo(project=group.project)
+        commit = self.create_commit(project=group.project, repo=repo)
+
+        # Step 1: Simulate resolving via commit by creating GroupLink
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=commit.id,
+        )
+        group.update(status=GroupStatus.RESOLVED)
+
+        # GroupLink is created
+        assert GroupLink.objects.filter(
+            group_id=group.id, relationship=GroupLink.Relationship.resolves
+        ).exists()
+        serialized = serialize(group, self.user, GroupSerializer())
+        assert serialized["status"] == "resolved"
+        assert "inCommit" in serialized["statusDetails"]
+        assert serialized["statusDetails"]["inCommit"] is not None
+
+        # Step 2: Mark as unresolved
+        request = self.make_request(user=self.user, method="GET")
+        request.user = self.user
+        request.data = {"status": "unresolved"}
+        request.GET = QueryDict(query_string=f"id={group.id}")
+
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+        update_groups(request, group_list)
+
+        # Step 3: GroupLink is deleted
+        assert not GroupLink.objects.filter(
+            group_id=group.id, relationship=GroupLink.Relationship.resolves
+        ).exists()
+
+        # Step 4: Manually resolve again
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+
+        request.data = {"status": "resolved"}
+        update_groups(request, group_list)
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
+        # statusDetails should NOT contain inCommit anymore
+        serialized = serialize(group, self.user, GroupSerializer())
+        assert serialized["status"] == "resolved"
+        assert "inCommit" not in serialized["statusDetails"]
+        assert serialized["statusDetails"] == {}
+
 
 class MergeGroupsTest(TestCase):
     @patch("sentry.api.helpers.group_index.update.handle_merge")
-    def test_simple(self, mock_handle_merge: MagicMock):
+    def test_simple(self, mock_handle_merge: MagicMock) -> None:
         group_ids = [self.create_group().id, self.create_group().id]
         project = self.project
 
@@ -286,7 +405,8 @@ class MergeGroupsTest(TestCase):
         request.data = {"merge": 1}
         request.GET = {"id": group_ids, "project": [project.id]}
 
-        update_groups(request, group_ids, [project], self.organization.id, search_fn=Mock())
+        group_list = get_group_list(self.organization.id, [project], group_ids)
+        update_groups(request, group_list)
 
         call_args = mock_handle_merge.call_args.args
 
@@ -297,7 +417,7 @@ class MergeGroupsTest(TestCase):
         assert call_args[2] == self.user
 
     @patch("sentry.api.helpers.group_index.update.handle_merge")
-    def test_multiple_projects(self, mock_handle_merge: MagicMock):
+    def test_multiple_projects(self, mock_handle_merge: MagicMock) -> None:
         project1 = self.create_project()
         project2 = self.create_project()
         projects = [project1, project2]
@@ -313,14 +433,64 @@ class MergeGroupsTest(TestCase):
         request.data = {"merge": 1}
         request.GET = {"id": group_ids, "project": project_ids}
 
-        response = update_groups(
-            request, group_ids, projects, self.organization.id, search_fn=Mock()
-        )
+        group_list = get_group_list(self.organization.id, projects, group_ids)
+        response = update_groups(request, group_list)
 
         assert response.data == {"detail": "Merging across multiple projects is not supported"}
+        assert response.status_code == 400
         assert mock_handle_merge.call_count == 0
 
-    def test_metrics(self):
+    @patch("sentry.api.helpers.group_index.update.handle_merge")
+    def test_multiple_groups_same_project(self, mock_handle_merge: MagicMock) -> None:
+        """Even if the UI calls with multiple projects, if the groups belong to the same project, we should merge them."""
+        projects = [self.create_project(), self.create_project()]
+        proj1 = projects[0]
+        groups = [self.create_group(proj1), self.create_group(proj1)]
+        group_ids = [g.id for g in groups]
+        project_ids = [p.id for p in projects]
+
+        request = self.make_request(method="PUT")
+        request.user = self.user
+        request.data = {"merge": 1}
+        # The two groups belong to the same project, so we should be able to merge them, even though
+        # we're passing multiple project ids
+        request.GET = {"id": group_ids, "project": project_ids}
+
+        group_list = get_group_list(self.organization.id, projects, group_ids)
+        update_groups(request, group_list)
+
+        call_args = mock_handle_merge.call_args.args
+
+        assert len(call_args) == 3
+        # Have to convert to ids because first argument is a queryset
+        assert [group.id for group in call_args[0]] == group_ids
+        assert call_args[1] == {proj1.id: proj1}
+        assert call_args[2] == self.user
+
+    @patch("sentry.api.helpers.group_index.update.handle_merge")
+    def test_no_project_ids_passed(self, mock_handle_merge: MagicMock) -> None:
+        """If 'All Projects' is selected in the issue stream, the UI doesn't send project ids, but
+        we should be able to derive them from the given group ids."""
+        group_ids = [self.create_group().id, self.create_group().id]
+        project = self.project
+
+        request = self.make_request(method="PUT")
+        request.user = self.user
+        request.data = {"merge": 1}
+        request.GET = {"id": group_ids}
+
+        group_list = get_group_list(self.organization.id, [project], group_ids)
+        update_groups(request, group_list)
+
+        call_args = mock_handle_merge.call_args.args
+
+        assert len(call_args) == 3
+        # Have to convert to ids because first argument is a queryset
+        assert [group.id for group in call_args[0]] == group_ids
+        assert call_args[1] == {project.id: project}
+        assert call_args[2] == self.user
+
+    def test_metrics(self) -> None:
         for referer, expected_referer_tag in [
             ("https://sentry.io/organizations/dogsaregreat/issues/", "issue stream"),
             ("https://dogsaregreat.sentry.io/issues/", "issue stream"),
@@ -361,7 +531,8 @@ class MergeGroupsTest(TestCase):
             request.META = {"HTTP_REFERER": referer}
 
             with patch("sentry.api.helpers.group_index.update.metrics.incr") as mock_metrics_incr:
-                update_groups(request, group_ids, [project], self.organization.id, search_fn=Mock())
+                group_list = get_group_list(self.organization.id, [project], group_ids)
+                update_groups(request, group_list)
 
                 mock_metrics_incr.assert_any_call(
                     "grouping.merge_issues",
@@ -407,7 +578,7 @@ class TestHandleIsBookmarked(TestCase):
         self.project_lookup = {self.group.project_id: self.group.project}
 
     def test_is_bookmarked(self) -> None:
-        handle_is_bookmarked(True, self.group_list, self.group_ids, self.project_lookup, self.user)
+        handle_is_bookmarked(True, self.group_list, self.project_lookup, self.user)
 
         assert GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
         assert GroupSubscription.objects.filter(
@@ -424,7 +595,7 @@ class TestHandleIsBookmarked(TestCase):
             user_id=self.user.id,
             reason=GroupSubscriptionReason.bookmark,
         )
-        handle_is_bookmarked(False, self.group_list, self.group_ids, self.project_lookup, self.user)
+        handle_is_bookmarked(False, self.group_list, self.project_lookup, self.user)
 
         assert not GroupBookmark.objects.filter(group=self.group, user_id=self.user.id).exists()
         assert not GroupSubscription.objects.filter(group=self.group, user_id=self.user.id).exists()
@@ -434,13 +605,10 @@ class TestHandleHasSeen(TestCase):
     def setUp(self) -> None:
         self.group = self.create_group()
         self.group_list = [self.group]
-        self.group_ids = [self.group]
         self.project_lookup = {self.group.project_id: self.group.project}
 
     def test_has_seen(self) -> None:
-        handle_has_seen(
-            True, self.group_list, self.group_ids, self.project_lookup, [self.project], self.user
-        )
+        handle_has_seen(True, self.group_list, self.project_lookup, [self.project], self.user)
 
         assert GroupSeen.objects.filter(group=self.group, user_id=self.user.id).exists()
 
@@ -449,9 +617,7 @@ class TestHandleHasSeen(TestCase):
             group=self.group, user_id=self.user.id, project_id=self.group.project_id
         )
 
-        handle_has_seen(
-            False, self.group_list, self.group_ids, self.project_lookup, [self.project], self.user
-        )
+        handle_has_seen(False, self.group_list, self.project_lookup, [self.project], self.user)
 
         assert not GroupSeen.objects.filter(group=self.group, user_id=self.user.id).exists()
 
@@ -469,6 +635,10 @@ class TestHandleIsPublic(TestCase):
         assert Activity.objects.filter(
             group=self.group, type=ActivityType.SET_PUBLIC.value
         ).exists()
+        assert not Activity.objects.filter(
+            group=self.group, type=ActivityType.SET_PRIVATE.value
+        ).exists()
+
         assert share_id == new_share.uuid
 
     def test_is_public_existing_shares(self) -> None:
@@ -531,13 +701,15 @@ class TestHandleAssignedTo(TestCase):
             "name": self.user.username,
             "type": "user",
         }
-        mock_record.assert_called_with(
-            "manual.issue_assignment",
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            assigned_by=None,
-            had_to_deassign=False,
+        assert_last_analytics_event(
+            mock_record,
+            ManualIssueAssignment(
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                assigned_by=None,
+                had_to_deassign=False,
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -573,13 +745,15 @@ class TestHandleAssignedTo(TestCase):
         ).exists()
 
         assert assigned_to is None
-        mock_record.assert_called_with(
-            "manual.issue_assignment",
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            assigned_by=None,
-            had_to_deassign=True,
+        assert_last_analytics_event(
+            mock_record,
+            ManualIssueAssignment(
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                assigned_by=None,
+                had_to_deassign=True,
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -636,13 +810,15 @@ class TestHandleAssignedTo(TestCase):
         ).exists()
 
         assert assigned_to is None
-        mock_record.assert_called_with(
-            "manual.issue_assignment",
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            assigned_by=None,
-            had_to_deassign=True,
+        assert_last_analytics_event(
+            mock_record,
+            ManualIssueAssignment(
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                assigned_by=None,
+                had_to_deassign=True,
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -688,13 +864,15 @@ class TestHandleAssignedTo(TestCase):
         ).exists()
 
         assert assigned_to is None
-        mock_record.assert_called_with(
-            "manual.issue_assignment",
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            assigned_by=None,
-            had_to_deassign=True,
+        assert_last_analytics_event(
+            mock_record,
+            ManualIssueAssignment(
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                assigned_by=None,
+                had_to_deassign=True,
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -750,13 +928,15 @@ class TestHandleAssignedTo(TestCase):
             "name": user2.username,
             "type": "user",
         }
-        mock_record.assert_called_with(
-            "manual.issue_assignment",
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            assigned_by=None,
-            had_to_deassign=True,
+        assert_last_analytics_event(
+            mock_record,
+            ManualIssueAssignment(
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                assigned_by=None,
+                had_to_deassign=True,
+            ),
         )
         # pass assignedTo but it's the same as the existing assignee
         assigned_to = handle_assigned_to(
@@ -789,13 +969,15 @@ class TestHandleAssignedTo(TestCase):
             "name": user2.username,
             "type": "user",
         }
-        mock_record.assert_called_with(
-            "manual.issue_assignment",
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            assigned_by=None,
-            had_to_deassign=False,
+        assert_last_analytics_event(
+            mock_record,
+            ManualIssueAssignment(
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                assigned_by=None,
+                had_to_deassign=False,
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -883,13 +1065,15 @@ class TestHandleAssignedTo(TestCase):
             "name": team2.slug,
             "type": "team",
         }
-        mock_record.assert_called_with(
-            "manual.issue_assignment",
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            assigned_by=None,
-            had_to_deassign=True,
+        assert_last_analytics_event(
+            mock_record,
+            ManualIssueAssignment(
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                assigned_by=None,
+                had_to_deassign=True,
+            ),
         )
 
     @patch("sentry.analytics.record")
@@ -960,16 +1144,18 @@ class TestHandleAssignedTo(TestCase):
             "name": team2.slug,
             "type": "team",
         }
-        mock_record.assert_called_with(
-            "manual.issue_assignment",
-            group_id=self.group.id,
-            organization_id=self.group.project.organization_id,
-            project_id=self.group.project_id,
-            assigned_by=None,
-            had_to_deassign=True,
+        assert_last_analytics_event(
+            mock_record,
+            ManualIssueAssignment(
+                group_id=self.group.id,
+                organization_id=self.group.project.organization_id,
+                project_id=self.group.project_id,
+                assigned_by=None,
+                had_to_deassign=True,
+            ),
         )
 
-    def test_user_in_reassigned_team(self):
+    def test_user_in_reassigned_team(self) -> None:
         """Test that the correct participants are present when re-assigning from user to team and vice versa"""
         user1 = self.create_user("foo@example.com")
         user2 = self.create_user("bar@example.com")
@@ -1061,7 +1247,7 @@ class TestHandleAssignedTo(TestCase):
 
 class DeleteGroupsTest(TestCase):
     @patch("sentry.signals.issue_deleted.send_robust")
-    def test_delete_groups_simple(self, send_robust: Mock):
+    def test_delete_groups_simple(self, send_robust: Mock) -> None:
         groups = [self.create_group(), self.create_group()]
         group_ids = [group.id for group in groups]
         request = self.make_request(user=self.user, method="GET")
@@ -1072,8 +1258,7 @@ class DeleteGroupsTest(TestCase):
             GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
             add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        search_fn = Mock()
-        delete_groups(request, [self.project], self.organization.id, search_fn)
+        schedule_tasks_to_delete_groups(request, [self.project], self.organization.id)
 
         assert (
             len(GroupHash.objects.filter(project_id=self.project.id, group_id__in=group_ids).all())
@@ -1085,15 +1270,15 @@ class DeleteGroupsTest(TestCase):
         )
         assert send_robust.called
 
-    @with_feature("projects:similarity-embeddings-grouping")
     @patch(
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
-    @patch("sentry.tasks.delete_seer_grouping_records.logger")
     @patch("sentry.signals.issue_deleted.send_robust")
     def test_delete_groups_deletes_seer_records_by_hash(
-        self, send_robust: Mock, mock_logger: Mock, mock_delete_seer_grouping_records_by_hash
+        self, send_robust: Mock, mock_delete_seer_grouping_records_by_hash: MagicMock
     ):
+        self.project.update_option("sentry:similarity_backfill_completed", int(time()))
+
         groups = [self.create_group(), self.create_group()]
         group_ids = [group.id for group in groups]
         request = self.make_request(user=self.user, method="GET")
@@ -1104,8 +1289,7 @@ class DeleteGroupsTest(TestCase):
             GroupHash.objects.create(project=self.project, group=group, hash=hashes[i])
             add_group_to_inbox(group, GroupInboxReason.NEW)
 
-        search_fn = Mock()
-        delete_groups(request, [self.project], self.organization.id, search_fn)
+        schedule_tasks_to_delete_groups(request, [self.project], self.organization.id)
 
         assert (
             len(GroupHash.objects.filter(project_id=self.project.id, group_id__in=group_ids).all())
@@ -1116,10 +1300,6 @@ class DeleteGroupsTest(TestCase):
             == 0
         )
         assert send_robust.called
-        mock_logger.info.assert_called_with(
-            "calling seer record deletion by hash",
-            extra={"project_id": self.project.id, "hashes": hashes},
-        )
         mock_delete_seer_grouping_records_by_hash.assert_called_with(
             args=[self.project.id, hashes, 0]
         )

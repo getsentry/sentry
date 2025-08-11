@@ -1,61 +1,62 @@
 ---
-created: '2023-01-11T11:41:27.870955Z'
+created: '2025-04-25T21:22:09.621261+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
+        stacktrace (ignored because it contains no in-app frames)
+          frame (marked out of app by the client)
             filename*
               "test.html"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function*
               "testMethod"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function*
               "aha"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename (native code indicated by filename)
               "[native code]"
             function*
               "eval"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function*
               "test"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename (native code indicated by filename)
               "[native code]"
             function*
               "map"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function*
               "callback"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function*
               "callAnotherThing"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename (native code indicated by filename)
               "[native code]"
             function*
               "aha"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "test.html"
             function*
@@ -67,6 +68,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "c63e8727af1a8fe75872b6a762797113"
+  contributing component: exception
   component:
     system*
       exception*

@@ -15,6 +15,7 @@ DEFAULT_DISALLOWED_SOURCES = (
     "ms-browser-extension",
     "chrome://*",
     "chrome-extension://*",
+    "chrome-extension",
     "chromeinvokeimmediate://*",
     "chromenull://*",
     "data:text/html,chromewebdata",
@@ -150,7 +151,7 @@ class Csp(SecurityReport):
     """
     A CSP violation report.
 
-    See also: http://www.w3.org/TR/CSP/#violation-reports
+    See also: https://www.w3.org/TR/CSP/#violation-events
 
     >>> {
     >>>     "document_uri": "http://example.com/",

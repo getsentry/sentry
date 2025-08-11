@@ -2,7 +2,7 @@ from rest_framework import status
 
 from sentry import tagstore
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
-from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
+from sentry.integrations.messaging.types import LEVEL_TO_COLOR
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases import notify
 from sentry.shared_integrations.exceptions import ApiError
@@ -23,6 +23,8 @@ IGNORABLE_SLACK_ERROR_CODES = [
     status.HTTP_404_NOT_FOUND,
     status.HTTP_429_TOO_MANY_REQUESTS,
 ]
+
+SLACK_PLUGIN_TITLE_LENGTH_LIMIT = 256
 
 
 class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
@@ -166,7 +168,7 @@ class SlackPlugin(CorePluginMixin, notify.NotificationPlugin):
         if not self.is_configured(project):
             return
 
-        title = event.title.encode("utf-8")
+        title = event.title[:SLACK_PLUGIN_TITLE_LENGTH_LIMIT].encode("utf-8")
         # TODO(dcramer): we'd like this to be the event culprit, but Sentry
         # does not currently retain it
         if group.culprit:

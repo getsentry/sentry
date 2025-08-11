@@ -7,7 +7,7 @@ from django.conf import settings
 from sentry.metrics.base import MetricsBackend, MutableTags, Tags, TagValue
 
 _BAD_TAGS = frozenset(["event", "project", "group"])
-_NOT_BAD_TAGS = frozenset(["use_case_id"])
+_NOT_BAD_TAGS = frozenset(["use_case_id", "consumer_member_id", "broker_id", "kafka_slice_id"])
 _METRICS_THAT_CAN_HAVE_BAD_TAGS = frozenset(
     [
         # snuba related tags
@@ -81,7 +81,7 @@ def add_global_tags(_all_threads: bool = False, **tags: TagValue) -> None:
 
 
 @contextmanager
-def global_tags(_all_threads: bool = False, **tags: TagValue) -> Generator[None, None, None]:
+def global_tags(_all_threads: bool = False, **tags: TagValue) -> Generator[None]:
     """
     The context manager version of `add_global_tags` that reverts all tag
     changes upon exit.
@@ -180,6 +180,7 @@ class MiddlewareWrapper(MetricsBackend):
         sample_rate: float = 1,
         unit: str | None = None,
         stacklevel: int = 0,
+        precise: bool = False,
     ) -> None:
         current_tags = get_current_global_tags()
         if tags is not None:
@@ -187,7 +188,7 @@ class MiddlewareWrapper(MetricsBackend):
         current_tags = _filter_tags(key, current_tags)
 
         return self.inner.distribution(
-            key, value, instance, current_tags, sample_rate, unit, stacklevel + 1
+            key, value, instance, current_tags, sample_rate, unit, stacklevel + 1, precise
         )
 
     def event(

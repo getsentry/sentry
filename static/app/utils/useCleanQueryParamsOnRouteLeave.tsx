@@ -9,7 +9,7 @@ type Opts<Q> = {
   shouldClean?: (newLocation: Location<Q>) => boolean;
 };
 
-export function handleRouteLeave<Q extends object>({
+export function handleRouteLeave<Q extends Record<PropertyKey, unknown>>({
   fieldsToClean,
   newLocation,
   oldPathname,
@@ -30,6 +30,7 @@ export function handleRouteLeave<Q extends object>({
   // not interfere with other pages
   const query = fieldsToClean.reduce(
     (newQuery, field) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       newQuery[field] = undefined;
       return newQuery;
     },
@@ -46,7 +47,7 @@ function useCleanQueryParamsOnRouteLeave<Q>({fieldsToClean, shouldClean}: Opts<Q
   const location = useLocation();
 
   const onRouteLeave = useCallback(
-    newLocation => {
+    (newLocation: any) => {
       if (!shouldClean || shouldClean(newLocation)) {
         handleRouteLeave({
           fieldsToClean,

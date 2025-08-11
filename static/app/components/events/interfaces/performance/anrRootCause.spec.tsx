@@ -3,8 +3,27 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
-import type {Event, Thread} from 'sentry/types';
-import {EntryType, EventOrGroupType, LockType} from 'sentry/types';
+import type {Event, Thread} from 'sentry/types/event';
+import {EntryType, EventOrGroupType, LockType} from 'sentry/types/event';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+
+jest.mock('sentry/views/performance/newTraceDetails/traceApi/useTrace', () => {
+  return {
+    useTrace: jest.fn(() => ({
+      data: {
+        transactions: [],
+        orphan_errors: [],
+      },
+    })),
+  };
+});
+
+const wrapper = ({children}: {children: React.ReactNode}) => (
+  <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
+    {children}
+  </TraceStateProvider>
+);
 
 const makeEventWithThreads = (threads: Thread[]): Event => {
   const event: Event = {
@@ -13,6 +32,7 @@ const makeEventWithThreads = (threads: Thread[]): Event => {
     eventID: '020eb33f6ce64ed6adc60f8993535816',
     projectID: '2',
     size: 3481,
+
     entries: [
       {
         data: {
@@ -124,12 +144,7 @@ const makeEventWithThreads = (threads: Thread[]): Event => {
     packages: {},
     type: EventOrGroupType.ERROR,
     metadata: {
-      display_title_with_tree_label: false,
       filename: 'sentry/controllers/welcome_controller.rb',
-      finest_tree_label: [
-        {filebase: 'welcome_controller.rb', function: '/'},
-        {filebase: 'welcome_controller.rb', function: 'index'},
-      ],
       function: '/',
       type: 'ZeroDivisionError',
       value: 'divided by 0',
@@ -144,7 +159,7 @@ const makeEventWithThreads = (threads: Thread[]): Event => {
     fingerprints: ['58f1f47bea5239ea25397888dc9253d1'],
     groupingConfig: {
       enhancements: 'eJybzDRxY25-UmZOqpWRgZGhroGJroHRBABbUQb_',
-      id: 'mobile:2021-02-12',
+      id: 'newstyle:2023-01-11',
     },
     release: null,
     userReport: null,
@@ -220,7 +235,7 @@ describe('anrRootCause', function () {
     ]);
     const {organization} = initializeOrg();
     const org = {...organization, features: ['anr-analyze-frames']};
-    render(<AnrRootCause event={event} organization={org} />);
+    render(<AnrRootCause event={event} organization={org} />, {wrapper});
 
     expect(
       screen.getByText(

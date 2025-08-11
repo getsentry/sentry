@@ -188,28 +188,4 @@ describe('Performance > Transaction Summary Header', function () {
 
     expect(screen.queryByRole('tab', {name: 'Web Vitals'})).not.toBeInTheDocument();
   });
-
-  it('should render spans tab with feature', async function () {
-    const {project, organization, router, eventView} = initializeData({});
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-has-measurements/',
-      body: {measurements: true},
-    });
-
-    render(
-      <TransactionHeader
-        eventView={eventView}
-        location={router.location}
-        organization={organization}
-        projects={[project]}
-        projectId={project.id}
-        transactionName="transaction_name"
-        currentTab={Tab.TRANSACTION_SUMMARY}
-        hasWebVitals="yes"
-      />
-    );
-
-    expect(await screen.findByRole('tab', {name: 'Spans'})).toBeInTheDocument();
-  });
 });

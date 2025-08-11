@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {
   Breadcrumbs,
   SearchAndSortWrapper,
@@ -9,18 +8,13 @@ import {
   BreadcrumbRow,
   StyledBreadcrumbPanelTable,
 } from 'sentry/components/events/interfaces/breadcrumbs/breadcrumbs';
-import {LazyRender} from 'sentry/components/lazyRender';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {PanelTableHeader} from 'sentry/components/panels/panelTable';
-import {t, tct} from 'sentry/locale';
 import {
   type EntryBreadcrumbs,
   EntryType,
   type EventTransaction,
-  type Organization,
-} from 'sentry/types';
-
-import {TraceDrawerComponents} from '../../styles';
+} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 
 export function BreadCrumbs({
   event,
@@ -38,35 +32,14 @@ export function BreadCrumbs({
   }
 
   return (
-    <LazyRender {...TraceDrawerComponents.LAZY_RENDER_PROPS} containerHeight={200}>
-      <EventDataSection
-        showPermalink={false}
-        key={'breadcrumbs'}
-        type={'breadcrumbs'}
-        title={t('Breadcrumbs')}
-        help={tct(
-          'The trail of events that happened prior to an event. [link:Learn more]',
-          {
-            link: (
-              <ExternalLink
-                openInNewTab
-                href={'https://docs.sentry.io/product/issues/issue-details/breadcrumbs/'}
-              />
-            ),
-          }
-        )}
-        isHelpHoverable
-      >
-        <ResponsiveBreadcrumbWrapper>
-          <Breadcrumbs
-            hideTitle
-            data={matchingEntry.data}
-            event={event}
-            organization={organization}
-          />
-        </ResponsiveBreadcrumbWrapper>
-      </EventDataSection>
-    </LazyRender>
+    <ResponsiveBreadcrumbWrapper>
+      <Breadcrumbs
+        data={matchingEntry.data}
+        event={event}
+        organization={organization}
+        disableCollapsePersistence
+      />
+    </ResponsiveBreadcrumbWrapper>
   );
 }
 
@@ -74,6 +47,10 @@ const ResponsiveBreadcrumbWrapper = styled('div')`
   container: breadcrumbs / inline-size;
 
   ${SearchAndSortWrapper} {
+    @container breadcrumbs (width < 600px) {
+      display: none;
+    }
+
     > div {
       width: auto !important;
     }

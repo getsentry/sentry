@@ -9,7 +9,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 
 import AlertRuleDetails from './ruleDetails';
 
@@ -36,12 +35,15 @@ describe('AlertRuleDetails', () => {
         router={router}
         {...props}
       />,
-      {router, organization: org}
+      {
+        router,
+        organization: org,
+        deprecatedRouterMocks: true,
+      }
     );
   };
 
   beforeEach(() => {
-    browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
       body: rule,
@@ -90,13 +92,13 @@ describe('AlertRuleDetails', () => {
 
   it('displays alert rule with list of issues', async () => {
     createWrapper();
-    expect(await screen.findAllByText('My alert rule')).toHaveLength(2);
+    expect(await screen.findByText('My alert rule')).toBeInTheDocument();
     expect(await screen.findByText('RequestError:')).toBeInTheDocument();
     expect(screen.getByText('Apr 11, 2019 1:08:59 AM UTC')).toBeInTheDocument();
     expect(screen.getByText('RequestError:')).toHaveAttribute(
       'href',
       expect.stringMatching(
-        RegExp(
+        new RegExp(
           `/organizations/${organization.slug}/issues/${
             GroupFixture().id
           }/events/eventId.*`
@@ -111,7 +113,7 @@ describe('AlertRuleDetails', () => {
     expect(await screen.findByLabelText('Next')).toBeEnabled();
     await userEvent.click(screen.getByLabelText('Next'));
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(context.router.push).toHaveBeenCalledWith({
       pathname: '/mock-pathname/',
       query: {
         cursor: '0:100:0',
@@ -183,7 +185,7 @@ describe('AlertRuleDetails', () => {
 
   it('incompatible rule banner hidden for good rule', async () => {
     createWrapper();
-    expect(await screen.findAllByText('My alert rule')).toHaveLength(2);
+    expect(await screen.findByText('My alert rule')).toBeInTheDocument();
     expect(
       screen.queryByText(
         'The conditions in this alert rule conflict and might not be working properly.'
@@ -207,8 +209,14 @@ describe('AlertRuleDetails', () => {
       )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Edit to enable'})).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Duplicate'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Mute for me'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Duplicate'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Mute for me'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('rule disabled banner generic', async () => {

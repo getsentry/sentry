@@ -1,11 +1,14 @@
 import {escapeDoubleQuotes} from 'sentry/utils';
 
-export const ALLOWED_WILDCARD_FIELDS = [
+const ALLOWED_WILDCARD_FIELDS = [
   'span.description',
   'span.domain',
   'span.status_code',
+  'log.body',
+  'sentry.normalized_description',
+  'transaction',
 ];
-export const EMPTY_OPTION_VALUE = '(empty)' as const;
+export const EMPTY_OPTION_VALUE = '(empty)';
 
 export enum TokenType {
   OPERATOR = 0,
@@ -13,7 +16,7 @@ export enum TokenType {
   FREE_TEXT = 2,
 }
 
-export type Token = {
+type Token = {
   type: TokenType;
   value: string;
   key?: string;
@@ -50,9 +53,9 @@ export class MutableSearch {
    * @param params
    * @returns {MutableSearch}
    */
-  static fromQueryObject(params: {
-    [key: string]: string[] | string | number | undefined;
-  }): MutableSearch {
+  static fromQueryObject(
+    params: Record<string, string[] | string | number | undefined>
+  ): MutableSearch {
     const query = new MutableSearch('');
 
     Object.entries(params).forEach(([key, value]) => {
@@ -155,7 +158,17 @@ export class MutableSearch {
         case TokenType.FILTER:
           if (token.value === '' || token.value === null) {
             formattedTokens.push(`${token.key}:""`);
-          } else if (/[\s\(\)\\"]/g.test(token.value)) {
+          } else if (
+            // Don't quote if it's already a properly formatted bracket expression
+            /^\[.*\]$/.test(token.value) ||
+            // Don't quote if it's already properly quoted
+            /^".*"$/.test(token.value)
+          ) {
+            formattedTokens.push(`${token.key}:${token.value}`);
+          } else if (
+            // Quote if contains spaces, parens, or quotes
+            /[\s\(\)\\"]/g.test(token.value)
+          ) {
             formattedTokens.push(`${token.key}:"${escapeDoubleQuotes(token.value)}"`);
           } else {
             formattedTokens.push(`${token.key}:${token.value}`);
@@ -192,7 +205,7 @@ export class MutableSearch {
    */
   addStringFilter(filter: string, shouldEscape = true) {
     const [key, value] = parseFilter(filter);
-    this.addFilterValues(key, [value], shouldEscape);
+    this.addFilterValues(key!, [value!], shouldEscape);
     return this;
   }
 
@@ -217,7 +230,7 @@ export class MutableSearch {
       if (i > 0) {
         this.addOp('OR');
       }
-      this.addFilterValue(key, values[i], shouldEscape);
+      this.addFilterValue(key, values[i]!, shouldEscape);
     }
     this.addOp(')');
     return this;
@@ -258,6 +271,10 @@ export class MutableSearch {
     return Object.keys(this.filters);
   }
 
+  getTokenKeys() {
+    return this.tokens.map(t => t.key);
+  }
+
   hasFilter(key: string): boolean {
     return this.getFilterValues(key).length > 0;
   }
@@ -272,7 +289,7 @@ export class MutableSearch {
         }
 
         for (let i = 0; i < this.tokens.length; i++) {
-          const token = this.tokens[i];
+          const token = this.tokens[i]!;
           const prev = this.tokens[i - 1];
           const next = this.tokens[i + 1];
           if (isOp(token) && isBooleanOp(token.value)) {
@@ -305,7 +322,7 @@ export class MutableSearch {
     // to see if that open paren corresponds to a closed paren with one or fewer items inside.
     // If it does, delete those parens, and loop again until there are no more parens to delete.
     let parensToDelete: number[] = [];
-    const cleanParens = (_, idx: number) => !parensToDelete.includes(idx);
+    const cleanParens = (_: any, idx: number) => !parensToDelete.includes(idx);
     do {
       if (parensToDelete.length) {
         this.tokens = this.tokens.filter(cleanParens);
@@ -313,14 +330,14 @@ export class MutableSearch {
       parensToDelete = [];
 
       for (let i = 0; i < this.tokens.length; i++) {
-        const token = this.tokens[i];
+        const token = this.tokens[i]!;
         if (!isOp(token) || token.value !== '(') {
           continue;
         }
 
         let alreadySeen = false;
         for (let j = i + 1; j < this.tokens.length; j++) {
-          const nextToken = this.tokens[j];
+          const nextToken = this.tokens[j]!;
           if (isOp(nextToken) && nextToken.value === '(') {
             // Continue down to the nested parens. We can skip i forward since we know
             // everything between i and j is NOT an open paren.
@@ -415,8 +432,8 @@ function splitSearchIntoTokens(query: string) {
   let quoteEnclosed = false;
 
   for (let idx = 0; idx < queryChars.length; idx++) {
-    const char = queryChars[idx];
-    const nextChar = queryChars.length - 1 > idx ? queryChars[idx + 1] : null;
+    const char = queryChars[idx]!;
+    const nextChar = queryChars.length - 1 > idx ? queryChars[idx + 1]! : null;
     token += char;
 
     if (nextChar !== null && !isSpace(char) && isSpace(nextChar)) {
@@ -461,9 +478,40 @@ function isSpace(s: string) {
  * both sides of the split as strings.
  */
 function parseFilter(filter: string) {
-  const idx = filter.indexOf(':');
+  let idx = 0;
+  let quoted = false;
+
+  // look for the first `:` that is not in quotes
+  for (; idx < filter.length; idx++) {
+    const c = filter[idx];
+
+    if (c === '"') {
+      quoted = !quoted;
+      continue;
+    }
+
+    if (c === ':' && !quoted) {
+      const key = removeSurroundingQuotes(filter.slice(0, idx));
+      const foundValue = filter.slice(idx + 1);
+
+      // This snippet here handles the case where we have a single value that uses quotes
+      // to escape the brackets e.g. message:"[foo]" whereas before it was removing them.
+      const isEscapingBrackets = foundValue.startsWith('"[') && foundValue.endsWith(']"');
+      const value = isEscapingBrackets ? foundValue : removeSurroundingQuotes(foundValue);
+
+      return [key, value];
+    }
+  }
+
+  // something went wrong, fallback to the naive approach of spliting the filter
+  idx = filter.indexOf(':');
   const key = removeSurroundingQuotes(filter.slice(0, idx));
-  const value = removeSurroundingQuotes(filter.slice(idx + 1));
+  const foundValue = filter.slice(idx + 1);
+
+  // This snippet here handles the case where we have a single value that uses quotes
+  // to escape the brackets e.g. message:"[foo]" whereas before it was removing them.
+  const isEscapingBrackets = foundValue.startsWith('"[') && foundValue.endsWith(']"');
+  const value = isEscapingBrackets ? foundValue : removeSurroundingQuotes(foundValue);
 
   return [key, value];
 }

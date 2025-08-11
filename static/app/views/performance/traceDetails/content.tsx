@@ -1,17 +1,17 @@
 import {Component, createRef, Fragment, useEffect} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
-import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import DiscoverButton from 'sentry/components/discoverButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
@@ -21,6 +21,7 @@ import {IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -49,14 +50,14 @@ import {TraceDetailHeader, TraceSearchBar, TraceSearchContainer} from './styles'
 import TraceNotFound from './traceNotFound';
 import TraceView from './traceView';
 import type {TraceInfo} from './types';
-import {getTraceInfo, hasTraceData, isRootTransaction} from './utils';
+import {getTraceInfo, hasTraceData, isRootEvent} from './utils';
 
 type IndexedFusedTransaction = {
   event: TraceFullDetailed | TraceError;
   indexed: string[];
 };
 
-type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'location'> & {
+type Props = Pick<RouteComponentProps<{traceSlug: string}>, 'params' | 'location'> & {
   dateSelected: boolean;
   error: QueryError | null;
   isLoading: boolean;
@@ -276,7 +277,7 @@ class TraceDetailsContent extends Component<Props, State> {
 
     const {roots, orphans} = (traces ?? []).reduce(
       (counts, trace) => {
-        if (isRootTransaction(trace)) {
+        if (isRootEvent(trace)) {
           counts.roots++;
         } else {
           counts.orphans++;
@@ -290,31 +291,37 @@ class TraceDetailsContent extends Component<Props, State> {
 
     if (roots === 0 && orphans > 0) {
       warning = (
-        <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
-            {t(
-              'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
-            )}
-          </ExternalLink>
-        </Alert>
+        <Alert.Container>
+          <Alert type="info">
+            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
+              {t(
+                'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
+              )}
+            </ExternalLink>
+          </Alert>
+        </Alert.Container>
       );
     } else if (roots === 1 && orphans > 0) {
       warning = (
-        <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
-            {t(
-              'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
-            )}
-          </ExternalLink>
-        </Alert>
+        <Alert.Container>
+          <Alert type="info">
+            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
+              {t(
+                'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
+              )}
+            </ExternalLink>
+          </Alert>
+        </Alert.Container>
       );
     } else if (roots > 1) {
       warning = (
-        <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#multiple-roots">
-            {t('Multiple root transactions have been found with this trace ID.')}
-          </ExternalLink>
-        </Alert>
+        <Alert.Container>
+          <Alert type="info">
+            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#multiple-roots">
+              {t('Multiple root transactions have been found with this trace ID.')}
+            </ExternalLink>
+          </Alert>
+        </Alert.Container>
       );
     } else if (orphanErrors && orphanErrors.length > 0) {
       warning = <OnlyOrphanErrorWarnings orphanErrors={orphanErrors} />;
@@ -401,11 +408,11 @@ class TraceDetailsContent extends Component<Props, State> {
             </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
-            <ButtonBar gap={1}>
+            <ButtonBar>
               <DiscoverButton
                 size="sm"
                 to={traceEventView.getResultsViewUrlTarget(
-                  organization.slug,
+                  organization,
                   false,
                   hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
                 )}
@@ -463,11 +470,13 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
 
   if (!hasPerformanceOnboarding) {
     return (
-      <Alert type="info" showIcon>
-        {t(
-          "The good news is we know these errors are related to each other in the same trace. The bad news is that we can't tell you more than that due to limited sampling."
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="info">
+          {t(
+            "The good news is we know these errors are related to each other in the same trace. The bad news is that we can't tell you more than that due to limited sampling."
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -480,8 +489,13 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
       <ActionsWrapper>
         <BannerTitle>{t('Connect the Dots')}</BannerTitle>
         <BannerDescription>
-          {t(
-            "If you haven't already, configure performance monitoring to learn more about how your services are interacting with each other. This will provide more clarity about how your errors are linked."
+          {tct(
+            "If you haven't already, [tracingLink:set up tracing] to get a connected view of errors and transactions coming from interactions between all your software systems and services.",
+            {
+              tracingLink: (
+                <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/" />
+              ),
+            }
           )}
         </BannerDescription>
         <ButtonsWrapper>
@@ -498,9 +512,9 @@ function OnlyOrphanErrorWarnings({orphanErrors}: OnlyOrphanErrorWarningsProps) {
             </Button>
           </ActionButton>
           <ActionButton>
-            <Button href="https://docs.sentry.io/product/performance/" external>
+            <LinkButton href="https://docs.sentry.io/product/performance/" external>
               {t('Learn More')}
-            </Button>
+            </LinkButton>
           </ActionButton>
         </ButtonsWrapper>
       </ActionsWrapper>
@@ -560,9 +574,9 @@ const ButtonsWrapper = styled('div')`
 `;
 
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const BannerDescription = styled('div')`
@@ -603,7 +617,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const LoadingContainer = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.subText};
   text-align: center;
 `;

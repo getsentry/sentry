@@ -1,8 +1,9 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
+import {StoreCrashReportsConfig} from 'sentry/components/onboarding/gettingStartedDoc/storeCrashReportsConfig';
 import type {
   Docs,
   DocsParams,
@@ -15,7 +16,7 @@ type Params = DocsParams;
 
 const getCurlSnippet = (params: Params) => `
 curl -X POST \
-'${params.dsn}' \
+'${params.dsn.minidump}' \
 -F upload_file_minidump=@mini.dmp`;
 
 const onboarding: OnboardingConfig = {
@@ -49,12 +50,10 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           description: tct(
-            'If you have already integrated a library that generates minidumps and would just like to upload them to Sentry, you need to configure the [minidumpEndpointUrlItalic:Minidump Endpoint URL], which can be found at [projectSettingsItalic:Project Settings > Client Keys (DSN)]. This endpoint expects a [postCode:POST] request with the minidump in the [uploadFileMinidumpCode:upload_file_minidump] field:',
+            'If you have already integrated a library that generates minidumps and would just like to upload them to Sentry, you need to configure the [italic:Minidump Endpoint URL], which can be found at [italic:Project Settings > Client Keys (DSN)]. This endpoint expects a [code:POST] request with the minidump in the [code:upload_file_minidump] field:',
             {
-              postCode: <code />,
-              uploadFileMinidumpCode: <code />,
-              minidumpEndpointUrlItalic: <i />,
-              projectSettingsItalic: <i />,
+              code: <code />,
+              italic: <i />,
             }
           ),
           language: 'bash',
@@ -72,7 +71,17 @@ const onboarding: OnboardingConfig = {
     },
   ],
   configure: () => [],
-  verify: () => [],
+  verify: params => [
+    {
+      title: t('Further Settings'),
+      description: (
+        <StoreCrashReportsConfig
+          organization={params.organization}
+          projectSlug={params.project.slug}
+        />
+      ),
+    },
+  ],
 };
 
 const docs: Docs = {

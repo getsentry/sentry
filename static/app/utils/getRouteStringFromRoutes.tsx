@@ -1,4 +1,4 @@
-import type {PlainRoute} from 'react-router';
+import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 
 type RouteWithPath = Omit<PlainRoute, 'path'> & Required<Pick<PlainRoute, 'path'>>;
 
@@ -18,7 +18,7 @@ export default function getRouteStringFromRoutes(routes?: PlainRoute[]): string 
 
   const routesWithPaths = routes.filter((route): route is RouteWithPath => !!route.path);
 
-  const lastAbsolutePathIndex = routesWithPaths.findLastIndex(({path}) =>
+  const lastAbsolutePathIndex = routesWithPaths.findLastIndex(({path}: any) =>
     path.startsWith('/')
   );
 

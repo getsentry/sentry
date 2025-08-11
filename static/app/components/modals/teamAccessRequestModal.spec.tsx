@@ -1,3 +1,4 @@
+import type {PropsWithChildren} from 'react';
 import styled from '@emotion/styled';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -10,14 +11,14 @@ import type {CreateTeamAccessRequestModalProps} from 'sentry/components/modals/t
 import TeamAccessRequestModal from 'sentry/components/modals/teamAccessRequestModal';
 
 describe('TeamAccessRequestModal', function () {
-  let createMock;
+  let createMock: any;
 
   const closeModal = jest.fn();
   const orgId = OrganizationFixture().slug;
   const memberId = MemberFixture().id;
   const teamId = TeamFixture().slug;
 
-  const styledWrapper = styled(c => c.children);
+  const styledWrapper = styled((c: PropsWithChildren) => c.children);
   const modalRenderProps: CreateTeamAccessRequestModalProps = {
     Body: styledWrapper(),
     Footer: styledWrapper(),

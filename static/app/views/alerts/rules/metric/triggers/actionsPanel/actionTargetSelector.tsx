@@ -1,8 +1,10 @@
-import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Input from 'sentry/components/input';
+import {Input} from 'sentry/components/core/input';
+import {Select} from 'sentry/components/core/select';
 import SelectMembers from 'sentry/components/selectMembers';
 import TeamSelector from 'sentry/components/teamSelector';
-import type {Organization, Project, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import type {Action, MetricActionTemplate} from 'sentry/views/alerts/rules/metric/types';
 import {ActionType, TargetType} from 'sentry/views/alerts/rules/metric/types';
 
@@ -20,7 +22,7 @@ const getPlaceholderForType = (type: ActionType) => {
     case ActionType.OPSGENIE:
       return 'team';
     default:
-      throw Error('Not implemented');
+      throw new Error('Not implemented');
   }
 };
 
@@ -50,7 +52,7 @@ export default function ActionTargetSelector(props: Props) {
 
   switch (action.targetType) {
     case TargetType.TEAM:
-    case TargetType.USER:
+    case TargetType.USER: {
       const isTeam = action.targetType === TargetType.TEAM;
 
       return isTeam ? (
@@ -71,10 +73,10 @@ export default function ActionTargetSelector(props: Props) {
           onChange={handleChangeTargetIdentifier}
         />
       );
-
+    }
     case TargetType.SPECIFIC:
       return availableAction?.options ? (
-        <SelectControl
+        <Select
           isDisabled={disabled || loading}
           value={action.targetIdentifier}
           options={availableAction.options}
@@ -85,11 +87,12 @@ export default function ActionTargetSelector(props: Props) {
           type="text"
           autoComplete="off"
           disabled={disabled}
-          required={action.type === 'discord'} // Only required for discord channel ID
           key={action.type}
           value={action.targetIdentifier || ''}
           onChange={handleChangeSpecificTargetIdentifier}
           placeholder={getPlaceholderForType(action.type)}
+          // Disable 1Password autocomplete
+          data-1p-ignore
         />
       );
 

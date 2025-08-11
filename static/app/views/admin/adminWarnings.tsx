@@ -5,16 +5,16 @@ import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Data = {
-  groups: [groupName: string, grouppedWarnings: string[]][];
+  groups: Array<[groupName: string, grouppedWarnings: string[]]>;
   warnings: string[];
 };
 
 function AdminWarnings() {
-  const {data, isLoading, isError} = useApiQuery<Data>(['/internal/warnings/'], {
+  const {data, isPending, isError} = useApiQuery<Data>(['/internal/warnings/'], {
     staleTime: 0,
   });
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

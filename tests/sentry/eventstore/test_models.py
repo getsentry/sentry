@@ -4,11 +4,11 @@ from unittest import mock
 import pytest
 
 from sentry import eventstore, nodestore
+from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.grouping.api import GroupingConfig, get_grouping_variants_for_event
 from sentry.grouping.enhancer import Enhancements
-from sentry.grouping.result import CalculatedHashes
 from sentry.grouping.utils import hash_from_values
 from sentry.grouping.variants import ComponentVariant
 from sentry.interfaces.user import User
@@ -16,7 +16,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.environment import Environment
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import snuba
@@ -24,11 +24,9 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
 
-NEWSTYLE_GROUPING_CONFIG = "newstyle:2023-01-11"
-
 
 class EventTest(TestCase, PerformanceIssueTestCase):
-    def test_pickling_compat(self):
+    def test_pickling_compat(self) -> None:
         event = self.store_event(
             data={
                 "message": "Hello World!",
@@ -60,13 +58,13 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         event2 = pickle.loads(data)
         assert event2.data == event.data
 
-    def test_event_as_dict(self):
+    def test_event_as_dict(self) -> None:
         event = self.store_event(data={"message": "Hello World!"}, project_id=self.project.id)
 
         d = event.as_dict()
         assert d["logentry"] == {"formatted": "Hello World!", "message": None, "params": None}
 
-    def test_email_subject(self):
+    def test_email_subject(self) -> None:
         event1 = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -94,7 +92,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert event1.get_email_subject() == "BAR-1 - Foo bar"
         assert event2.get_email_subject() == "BAR-1 - Foo bar"
 
-    def test_email_subject_with_template(self):
+    def test_email_subject_with_template(self) -> None:
         self.project.update_option(
             "mail:subject_template",
             "$shortID - ${tag:environment}@${tag:release} $$ $title ${tag:invalid} $invalid",
@@ -113,7 +111,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
 
         assert event1.get_email_subject() == "BAR-1 - production@0 $ baz ${tag:invalid} $invalid"
 
-    def test_transaction_email_subject(self):
+    def test_transaction_email_subject(self) -> None:
         self.project.update_option(
             "mail:subject_template",
             "$shortID - ${tag:environment}@${tag:release} $title",
@@ -122,7 +120,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         event = self.create_performance_issue()
         assert event.get_email_subject() == "BAR-1 - production@0.1 N+1 Query"
 
-    def test_as_dict_hides_client_ip(self):
+    def test_as_dict_hides_client_ip(self) -> None:
         event = self.store_event(
             data={"sdk": {"name": "foo", "version": "1.0", "client_ip": "127.0.0.1"}},
             project_id=self.project.id,
@@ -135,7 +133,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
             "packages": None,
         }
 
-    def test_get_environment(self):
+    def test_get_environment(self) -> None:
         environment = Environment.get_or_create(self.project, "production")
         event = self.store_event(data={"environment": "production"}, project_id=self.project.id)
 
@@ -144,7 +142,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         with self.assertNumQueries(0):
             assert event.get_environment() == environment
 
-    def test_ip_address(self):
+    def test_ip_address(self) -> None:
         event = self.store_event(
             data={
                 "user": {"ip_address": "127.0.0.1"},
@@ -187,8 +185,8 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.ip_address is None
 
-    def test_issueless_event(self):
-        min_ago = iso_format(before_now(minutes=1))
+    def test_issueless_event(self) -> None:
+        min_ago = before_now(minutes=1).isoformat()
 
         event = self.store_event(
             data={
@@ -206,14 +204,15 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert event.group is None
         assert event.culprit == "app/components/events/eventEntries in map"
 
-    def test_snuba_data(self):
+    def test_snuba_data(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
                 "message": "Hello World!",
                 "tags": {"logger": "foobar", "site": "foo", "server_name": "bar"},
                 "user": {"id": "test", "email": "test@test.com"},
-                "timestamp": iso_format(before_now(seconds=1)),
+                # snuba does not store subsecond data
+                "timestamp": before_now(seconds=1).replace(microsecond=0).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -279,7 +278,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert not event_from_nodestore.group_id
         assert not event_from_nodestore.group
 
-    def test_snuba_data_transaction(self):
+    def test_snuba_data_transaction(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -287,8 +286,9 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                 "message": "Foo bar",
                 "culprit": "app/components/events/eventEntries in map",
                 "type": "transaction",
-                "timestamp": iso_format(before_now(minutes=1)),
-                "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
+                # snuba does not store sub-second data
+                "timestamp": before_now(minutes=1).replace(microsecond=0).isoformat(),
+                "start_timestamp": before_now(minutes=1, seconds=5).isoformat(),
                 "contexts": {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
             },
             project_id=self.project.id,
@@ -344,7 +344,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert not event_from_nodestore.groups
         assert not event_from_nodestore.group
 
-    def test_grouping_reset(self):
+    def test_grouping_reset(self) -> None:
         """
         Regression test against a specific mutability bug involving grouping,
         stacktrace normalization and memoized interfaces
@@ -369,15 +369,15 @@ class EventTest(TestCase, PerformanceIssueTestCase):
             },
         }
 
-        enhancement = Enhancements.from_config_string(
+        enhancements = Enhancements.from_rules_text(
             """
             function:foo category=foo_like
             category:foo_like -group
             """,
         )
         grouping_config: GroupingConfig = {
-            "enhancements": enhancement.dumps(),
-            "id": "mobile:2021-02-12",
+            "enhancements": enhancements.base64_string,
+            "id": DEFAULT_GROUPING_CONFIG,
         }
 
         event1 = Event(
@@ -395,11 +395,11 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         event2.interfaces  # Populate cache
         variants2 = event2.get_grouping_variants(grouping_config, normalize_stacktraces=True)
 
-        assert sorted(v.as_dict()["hash"] for v in variants1.values()) == sorted(
-            v.as_dict()["hash"] for v in variants2.values()
-        )
+        assert variants1["app"].as_dict()["hash"] is None
+        assert variants2["app"].as_dict()["hash"] is None
+        assert variants1["system"].as_dict()["hash"] == variants2["system"].as_dict()["hash"]
 
-    def test_get_hashes_pulls_existing_hashes(self):
+    def test_get_hashes_pulls_existing_hashes(self) -> None:
         hashes = ["04e89719410791836f0a0bbf03bf0d2e"]
         event = Event(
             event_id="11212012123120120415201309082013",
@@ -410,29 +410,31 @@ class EventTest(TestCase, PerformanceIssueTestCase):
             project_id=self.project.id,
         )
 
-        assert event.get_hashes() == CalculatedHashes(hashes)
+        assert event.get_hashes() == hashes
 
-    def test_get_hashes_gets_hashes_and_variants_if_none_on_event(self):
-        self.project.update_option("sentry:grouping_config", NEWSTYLE_GROUPING_CONFIG)
+    def test_get_hashes_gets_hashes_and_variants_if_none_on_event(self) -> None:
+        self.project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
         event = Event(
             event_id="11212012123120120415201309082013",
             data={"message": "Dogs are great!"},
             project_id=self.project.id,
         )
 
-        calculated_hashes = event.get_hashes()
+        hashes = event.get_hashes()
         expected_hash_values = [hash_from_values(["Dogs are great!"])]
         expected_variants = get_grouping_variants_for_event(event)
 
-        assert calculated_hashes.hashes == expected_hash_values
-        assert calculated_hashes.variants == expected_variants
+        variants = event.get_grouping_variants()
+
+        assert hashes == expected_hash_values
+        assert variants == expected_variants
 
         # Since the `variants` dictionaries are equal, it suffices to only check the values in one
-        assert "default" in calculated_hashes.variants
-        default_variant = calculated_hashes.variants["default"]
+        assert "default" in variants
+        default_variant = variants["default"]
 
         assert isinstance(default_variant, ComponentVariant)
-        assert default_variant.config.id == NEWSTYLE_GROUPING_CONFIG
+        assert default_variant.config.id == DEFAULT_GROUPING_CONFIG
         assert default_variant.component.id == "default"
         assert len(default_variant.component.values) == 1
         assert default_variant.component.values[0].id == "message"
@@ -440,7 +442,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
 
 
 class EventGroupsTest(TestCase):
-    def test_none(self):
+    def test_none(self) -> None:
         event = Event(
             event_id="a" * 32,
             data={
@@ -454,7 +456,7 @@ class EventGroupsTest(TestCase):
         )
         assert event.groups == []
 
-    def test_snuba(self):
+    def test_snuba(self) -> None:
         event = Event(
             event_id="a" * 32,
             data={
@@ -469,7 +471,7 @@ class EventGroupsTest(TestCase):
         )
         assert event.groups == [self.group]
 
-    def test_passed_explicitly(self):
+    def test_passed_explicitly(self) -> None:
         event = Event(
             event_id="a" * 32,
             data={
@@ -484,7 +486,7 @@ class EventGroupsTest(TestCase):
         )
         assert event.groups == [self.group]
 
-    def test_from_group(self):
+    def test_from_group(self) -> None:
         event = Event(
             event_id="a" * 32,
             data={
@@ -499,7 +501,7 @@ class EventGroupsTest(TestCase):
         )
         assert event.groups == [self.group]
 
-    def test_from_group_snuba(self):
+    def test_from_group_snuba(self) -> None:
         event = Event(
             event_id="a" * 32,
             data={
@@ -516,7 +518,7 @@ class EventGroupsTest(TestCase):
 
 
 class EventForGroupTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         event = Event(
             event_id="a" * 32,
             data={
@@ -534,7 +536,7 @@ class EventForGroupTest(TestCase):
 
 
 class GroupEventFromEventTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         event = Event(
             event_id="a" * 32,
             data={
@@ -552,7 +554,7 @@ class GroupEventFromEventTest(TestCase):
         with self.assertNumQueries(1):
             group_event.project
 
-    def test_project_cache(self):
+    def test_project_cache(self) -> None:
         event = Event(
             event_id="a" * 32,
             data={
@@ -573,7 +575,7 @@ class GroupEventFromEventTest(TestCase):
 
 
 class GroupEventOccurrenceTest(TestCase, OccurrenceTestMixin):
-    def test(self):
+    def test(self) -> None:
         occurrence, group_info = self.process_occurrence(
             project_id=self.project.id,
             event_data={"level": "info"},
@@ -596,13 +598,13 @@ class GroupEventOccurrenceTest(TestCase, OccurrenceTestMixin):
             group_event.occurrence
             assert fetch_mock.call_count == 1
             # Call count should increase if we do it a second time
-            group_event.occurrence = None
+            group_event._occurrence = None
             assert group_event.occurrence == occurrence
             assert fetch_mock.call_count == 2
 
 
 @django_db_all
-def test_renormalization(monkeypatch, factories, task_runner, default_project):
+def test_renormalization(factories, task_runner, default_project) -> None:
     from sentry_relay.processing import StoreNormalizer
 
     old_normalize = StoreNormalizer.normalize_event
@@ -612,9 +614,10 @@ def test_renormalization(monkeypatch, factories, task_runner, default_project):
         normalize_mock_calls.append(1)
         return old_normalize(*args, **kwargs)
 
-    monkeypatch.setattr("sentry_relay.processing.StoreNormalizer.normalize_event", normalize)
-
-    with task_runner():
+    with (
+        mock.patch("sentry_relay.processing.StoreNormalizer.normalize_event", normalize),
+        task_runner(),
+    ):
         factories.store_event(
             data={"event_id": "a" * 32, "environment": "production"}, project_id=default_project.id
         )
@@ -626,7 +629,7 @@ def test_renormalization(monkeypatch, factories, task_runner, default_project):
 
 
 class EventNodeStoreTest(TestCase):
-    def test_event_node_id(self):
+    def test_event_node_id(self) -> None:
         # Create an event without specifying node_id. A node_id should be generated
         e1 = Event(project_id=1, event_id="abc", data={"foo": "bar"})
         assert e1.data.id is not None, "We should have generated a node_id for this event"
@@ -649,13 +652,13 @@ class EventNodeStoreTest(TestCase):
         e2_body = nodestore.backend.get(e2_node_id)
         assert e2_body is None
 
-    def test_screams_bloody_murder_when_ref_fails(self):
+    def test_screams_bloody_murder_when_ref_fails(self) -> None:
         project1 = self.create_project()
         project2 = self.create_project()
         invalid_event = self.store_event(
             data={
                 "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=project1.id,
@@ -663,7 +666,7 @@ class EventNodeStoreTest(TestCase):
         event = self.store_event(
             data={
                 "event_id": "b" * 32,
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": before_now(minutes=1).isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=project2.id,
@@ -679,12 +682,12 @@ class EventNodeStoreTest(TestCase):
         with pytest.raises(NodeIntegrityFailure):
             eventstore.backend.bind_nodes([event])
 
-    def test_accepts_valid_ref(self):
+    def test_accepts_valid_ref(self) -> None:
         self.store_event(data={"event_id": "a" * 32}, project_id=self.project.id)
         event = Event(project_id=self.project.id, event_id="a" * 32)
         event.data.bind_ref(event)
         assert event.data.ref == event.project.id
 
-    def test_basic_ref_binding(self):
+    def test_basic_ref_binding(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.data.get_ref(event) == event.project.id

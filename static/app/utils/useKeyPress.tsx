@@ -5,8 +5,8 @@ import {useEffect, useState} from 'react';
  */
 const useKeyPress = (
   targetKey: string,
-  target?: HTMLElement,
-  captureAndStop: boolean = false
+  target?: HTMLElement | null,
+  captureAndStop = false
 ) => {
   const [keyPressed, setKeyPressed] = useState(false);
   const current = target ?? document.body;

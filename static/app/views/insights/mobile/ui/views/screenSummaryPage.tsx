@@ -1,25 +1,19 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
-import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
-import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
+import {useSamplesDrawer} from 'sentry/views/insights/common/utils/useSamplesDrawer';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import {SamplesTables} from 'sentry/views/insights/mobile/common/components/tables/samplesTables';
 import {SpanOperationTable} from 'sentry/views/insights/mobile/ui/components/tables/spanOperationTable';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName} from 'sentry/views/insights/types';
 
 type Query = {
   'device.class': string;
@@ -32,103 +26,53 @@ type Query = {
   transaction: string;
 };
 
-function ScreenSummary() {
-  const location = useLocation<Query>();
+export function ScreenSummaryContent() {
   const router = useRouter();
+  const location = useLocation<Query>();
 
-  const {
-    transaction: transactionName,
-    spanGroup,
-    spanDescription,
-    spanOp,
-    'device.class': deviceClass,
-  } = location.query;
+  const {transaction: transactionName, spanGroup} = location.query;
 
-  const crumbs = useModuleBreadcrumbs('mobile-ui');
+  useSamplesDrawer({
+    Component: <SpanSamplesPanel groupId={spanGroup} moduleName={ModuleName.OTHER} />,
+    moduleName: ModuleName.OTHER,
+    requiredParams: ['spanGroup', 'spanOp'],
+    onClose: () => {
+      router.replace({
+        pathname: router.location.pathname,
+        query: omit(
+          router.location.query,
+          'spanGroup',
+          'transactionMethod',
+          'spanDescription',
+          'spanOp'
+        ),
+      });
+    },
+  });
 
   return (
-    <Layout.Page>
-      <PageAlertProvider>
-        <Layout.Header>
-          <Layout.HeaderContent>
-            <Breadcrumbs
-              crumbs={[
-                ...crumbs,
-                {
-                  label: t('Screen Summary'),
-                },
-              ]}
-            />
-            <Layout.Title>{transactionName}</Layout.Title>
-          </Layout.HeaderContent>
-        </Layout.Header>
+    <Fragment>
+      <HeaderContainer>
+        <ToolRibbon>
+          <ModulePageFilterBar
+            moduleName={ModuleName.SCREEN_RENDERING}
+            disableProjectFilter
+          />
+          <ReleaseComparisonSelector />
+        </ToolRibbon>
+      </HeaderContainer>
 
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <PageAlert />
-            <HeaderContainer>
-              <ToolRibbon>
-                <PageFilterBar condensed>
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </PageFilterBar>
-                <ReleaseComparisonSelector />
-              </ToolRibbon>
-            </HeaderContainer>
-
-            <SamplesContainer>
-              <SamplesTables
-                transactionName={transactionName}
-                SpanOperationTable={SpanOperationTable}
-                // TODO(nar): Add event samples component specific to ui module
-                EventSamples={_props => <div />}
-              />
-            </SamplesContainer>
-
-            {spanGroup && spanOp && (
-              <SpanSamplesPanel
-                additionalFilters={{
-                  ...(deviceClass ? {[SpanMetricsField.DEVICE_CLASS]: deviceClass} : {}),
-                }}
-                groupId={spanGroup}
-                moduleName={ModuleName.OTHER}
-                transactionName={transactionName}
-                spanDescription={spanDescription}
-                spanOp={spanOp}
-                onClose={() => {
-                  router.replace({
-                    pathname: router.location.pathname,
-                    query: omit(
-                      router.location.query,
-                      'spanGroup',
-                      'transactionMethod',
-                      'spanDescription',
-                      'spanOp'
-                    ),
-                  });
-                }}
-              />
-            )}
-          </Layout.Main>
-        </Layout.Body>
-      </PageAlertProvider>
-    </Layout.Page>
+      <SamplesContainer>
+        <SamplesTables
+          transactionName={transactionName}
+          SpanOperationTable={SpanOperationTable}
+          // for now, let's only show the span ops table
+          EventSamples={undefined}
+        />
+      </SamplesContainer>
+    </Fragment>
   );
 }
-
-function PageWithProviders() {
-  return (
-    <ModulePageProviders
-      moduleName="mobile-ui"
-      pageTitle={t('Screen Summary')}
-      features={['insights-addon-modules', 'starfish-mobile-ui-module']}
-    >
-      <ScreenSummary />
-    </ModulePageProviders>
-  );
-}
-
-export default PageWithProviders;
 
 const SamplesContainer = styled('div')`
   margin-top: ${space(2)};

@@ -27,7 +27,11 @@ This is modeled as two data structures:
 -- greater. This is wrapped in `pcall` so that we can continue to support older
 -- Redis versions while using this feature if it's available.
 if not pcall(redis.replicate_commands) then
-    redis.log(redis.LOG_DEBUG, 'Could not enable script effects replication.')
+    if redis.log == nil then
+        print('Could not enable script effects replication.')
+    else
+        redis.log(redis.LOG_DEBUG, 'Could not enable script effects replication.')
+    end
 end
 
 

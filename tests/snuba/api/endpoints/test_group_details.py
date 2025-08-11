@@ -1,23 +1,26 @@
+from typing import Any
 from unittest import mock
+from unittest.mock import patch
 
 from rest_framework.exceptions import ErrorDetail
 
 from sentry import tsdb
-from sentry.issues.forecasts import generate_and_save_forecasts
+from sentry.issues.escalating.forecasts import generate_and_save_forecasts
+from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox, remove_group_from_inbox
 from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
 from sentry.models.release import Release
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 
 
 class GroupDetailsTest(APITestCase, SnubaTestCase):
-    def test_multiple_environments(self):
+    def test_multiple_environments(self) -> None:
         group = self.create_group()
         self.login_as(user=self.user)
 
@@ -27,7 +30,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         url = f"/api/0/issues/{group.id}/"
 
         with mock.patch(
-            "sentry.api.endpoints.group_details.tsdb.backend.get_range",
+            "sentry.issues.endpoints.group_details.tsdb.backend.get_range",
             side_effect=tsdb.backend.get_range,
         ) as get_range:
             response = self.client.get(
@@ -41,7 +44,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(f"{url}?environment=invalid", format="json")
         assert response.status_code == 404
 
-    def test_with_first_last_release(self):
+    def test_with_first_last_release(self) -> None:
         self.login_as(user=self.user)
         first_release = {
             "firstEvent": before_now(minutes=3),
@@ -54,16 +57,16 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         for timestamp in first_release.values():
             self.store_event(
-                data={"release": "1.0", "timestamp": iso_format(timestamp)},
+                data={"release": "1.0", "timestamp": timestamp.isoformat()},
                 project_id=self.project.id,
             )
         self.store_event(
-            data={"release": "1.1", "timestamp": iso_format(before_now(minutes=2))},
+            data={"release": "1.1", "timestamp": before_now(minutes=2).isoformat()},
             project_id=self.project.id,
         )
         event = [
             self.store_event(
-                data={"release": "1.0a", "timestamp": iso_format(timestamp)},
+                data={"release": "1.0a", "timestamp": timestamp.isoformat()},
                 project_id=self.project.id,
             )
             for timestamp in last_release.values()
@@ -84,15 +87,15 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         for event, timestamp in last_release.items():
             assert release[event].ctime() == timestamp.ctime()
 
-    def test_first_last_only_one_tagstore(self):
+    def test_first_last_only_one_tagstore(self) -> None:
         self.login_as(user=self.user)
 
         event = self.store_event(
-            data={"release": "1.0", "timestamp": iso_format(before_now(days=3))},
+            data={"release": "1.0", "timestamp": before_now(days=3).isoformat()},
             project_id=self.project.id,
         )
         self.store_event(
-            data={"release": "1.1", "timestamp": iso_format(before_now(minutes=3))},
+            data={"release": "1.1", "timestamp": before_now(minutes=3).isoformat()},
             project_id=self.project.id,
         )
 
@@ -105,17 +108,17 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             assert response.status_code == 200
             assert get_release_tags.call_count == 1
 
-    def test_first_release_only(self):
+    def test_first_release_only(self) -> None:
         self.login_as(user=self.user)
 
         first_event = before_now(days=3)
 
         self.store_event(
-            data={"release": "1.0", "timestamp": iso_format(first_event)},
+            data={"release": "1.0", "timestamp": first_event.isoformat()},
             project_id=self.project.id,
         )
         event = self.store_event(
-            data={"release": "1.1", "timestamp": iso_format(before_now(days=1))},
+            data={"release": "1.1", "timestamp": before_now(days=1).isoformat()},
             project_id=self.project.id,
         )
         # Forcibly remove one of the releases
@@ -136,11 +139,11 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["firstRelease"]["firstEvent"].ctime() == first_event.ctime()
         assert response.data["lastRelease"] is None
 
-    def test_group_expand_inbox(self):
+    def test_group_expand_inbox(self) -> None:
         self.login_as(user=self.user)
 
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=3))},
+            data={"timestamp": before_now(minutes=3).isoformat()},
             project_id=self.project.id,
         )
         group = event.group
@@ -158,10 +161,10 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data["inbox"] is None
 
-    def test_group_expand_owners(self):
+    def test_group_expand_owners(self) -> None:
         self.login_as(user=self.user)
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         group = event.group
@@ -188,10 +191,10 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["owners"][0]["owner"] == f"user:{self.user.id}"
         assert response.data["owners"][0]["type"] == GROUP_OWNER_TYPE[GroupOwnerType.SUSPECT_COMMIT]
 
-    def test_group_expand_forecasts(self):
+    def test_group_expand_forecasts(self) -> None:
         self.login_as(user=self.user)
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         group = event.group
@@ -205,7 +208,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["forecast"]["data"] is not None
         assert response.data["forecast"]["date_added"] is not None
 
-    def test_group_get_priority(self):
+    def test_group_get_priority(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group(
             project=self.project,
@@ -219,7 +222,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["priority"] == "low"
         assert response.data["priorityLockedAt"] is None
 
-    def test_group_post_priority(self):
+    def test_group_post_priority(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group(
             project=self.project,
@@ -248,10 +251,10 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert get_response_after.data["priority"] == "high"
         assert get_response_after.data["priorityLockedAt"] is not None
 
-    def test_assigned_to_unknown(self):
+    def test_assigned_to_unknown(self) -> None:
         self.login_as(user=self.user)
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=3))},
+            data={"timestamp": before_now(minutes=3).isoformat()},
             project_id=self.project.id,
         )
         group = event.group
@@ -273,7 +276,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             ]
         }
 
-    def test_collapse_stats_does_not_work(self):
+    def test_collapse_stats_does_not_work(self) -> None:
         """
         'collapse' param should hide the stats data and not return anything in the response, but the impl
         doesn't seem to respect this param.
@@ -283,7 +286,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=3))},
+            data={"timestamp": before_now(minutes=3).isoformat()},
             project_id=self.project.id,
         )
         group = event.group
@@ -299,13 +302,13 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["firstSeen"] is not None  # key shouldn't be present
         assert response.data["lastSeen"] is not None  # key shouldn't be present
 
-    def test_issue_type_category(self):
+    def test_issue_type_category(self) -> None:
         """Test that the issue's type and category is returned in the results"""
 
         self.login_as(user=self.user)
 
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=3))},
+            data={"timestamp": before_now(minutes=3).isoformat()},
             project_id=self.project.id,
         )
 
@@ -315,3 +318,53 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert int(response.data["id"]) == event.group.id
         assert response.data["issueType"] == "error"
         assert response.data["issueCategory"] == "error"
+
+    def test_delete_error_issue(self) -> Any:
+        """Test that a user cannot delete a error issue"""
+        self.login_as(user=self.user)
+        group = self.create_group(status=GroupStatus.RESOLVED, project=self.project)
+        url = f"/api/0/issues/{group.id}/"
+
+        with patch(
+            "sentry.api.helpers.group_index.delete.delete_groups_for_project.apply_async"
+        ) as mock_apply_async:
+            response = self.client.delete(url, format="json")
+            mock_apply_async.assert_called_once()
+            assert response.status_code == 202
+            # Since the task has not executed yet the group is pending deletion
+            assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
+
+        # Undo some of what the previous endpoint call did
+        group.update(status=GroupStatus.RESOLVED)
+        with self.tasks():
+            response = self.client.delete(url, format="json")
+            assert response.status_code == 202
+            assert not Group.objects.filter(id=group.id).exists()
+
+    def test_delete_issue_platform_issue(self) -> Any:
+        """Test that a user cannot delete an issue if issue platform deletion is not allowed"""
+        self.login_as(user=self.user)
+
+        group = self.create_group(
+            status=GroupStatus.RESOLVED,
+            project=self.project,
+            type=PerformanceSlowDBQueryGroupType.type_id,
+        )
+        url = f"/api/0/issues/{group.id}/"
+
+        with patch(
+            "sentry.api.helpers.group_index.delete.delete_groups_for_project.apply_async"
+        ) as mock_apply_async:
+            response = self.client.delete(url, format="json")
+            assert response.status_code == 202
+            # Since the task has not executed yet the group is pending deletion
+            assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
+            mock_apply_async.assert_called_once()
+
+        # Undo some of what the previous endpoint call did
+        group.update(status=GroupStatus.RESOLVED)
+        with self.tasks():
+            response = self.client.delete(url, format="json")
+            assert response.status_code == 202
+            # Now check that the group doesn't exist
+            assert not Group.objects.filter(id=group.id).exists()

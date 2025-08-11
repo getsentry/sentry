@@ -2,12 +2,12 @@ from typing import Any
 
 from django.db import router, transaction
 
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
     OrganizationSlugReservationType,
 )
 from sentry.models.organizationslugreservationreplica import OrganizationSlugReservationReplica
-from sentry.models.outbox import outbox_context
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
@@ -44,9 +44,9 @@ class TestOrganizationSlugReservationReplication(TestCase):
             slug_res = org_slug_reservations.get(slug)
             assert slug_res is not None
 
-            org_slug_reservation_replica: None | (
-                OrganizationSlugReservationReplica
-            ) = org_slug_replicas.pop(slug, None)
+            org_slug_reservation_replica: None | (OrganizationSlugReservationReplica) = (
+                org_slug_replicas.pop(slug, None)
+            )
 
             if org_slug_reservation_replica is None:
                 slug_reservations_missing_replicas.append(slug_res)
@@ -69,7 +69,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             or len(slug_reservations_missing_replicas) > 0
             or len(extraneous_replicas) > 0
         ):
-            raise Exception(
+            raise AssertionError(
                 "One or more org slug replicas did not match\n"
                 + f"mismatched replicas: {mismatched_slug_res_replicas}\n"
                 + f"extraneous replicas: {extraneous_replicas}\n"
@@ -87,7 +87,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
 
         return org_slug_reservation
 
-    def test_standard_replica(self):
+    def test_standard_replica(self) -> None:
         self.create_org_slug_reservation(
             slug="santry",
             user_id=self.user.id,
@@ -96,7 +96,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
             reservation_type=OrganizationSlugReservationType.PRIMARY,
         )
 
-    def test_replica_deletion(self):
+    def test_replica_deletion(self) -> None:
         org_slug_reservation = self.create_org_slug_reservation(
             slug="santry",
             user_id=self.user.id,
@@ -112,7 +112,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
 
         self.assert_all_replicas_match_slug_reservations()
 
-    def test_replica_deletion_with_pending_changes(self):
+    def test_replica_deletion_with_pending_changes(self) -> None:
         org_slug_reservation = self.create_org_slug_reservation(
             slug="santry",
             user_id=self.user.id,
@@ -132,7 +132,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
 
         self.assert_all_replicas_match_slug_reservations()
 
-    def test_replica_update(self):
+    def test_replica_update(self) -> None:
         org_slug_reservation = self.create_org_slug_reservation(
             slug="santry",
             user_id=self.user.id,
@@ -151,7 +151,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
 
         self.assert_all_replicas_match_slug_reservations()
 
-    def test_slug_update_only(self):
+    def test_slug_update_only(self) -> None:
         org_slug_reservation = self.create_org_slug_reservation(
             slug="santry",
             user_id=self.user.id,
@@ -168,7 +168,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
 
         self.assert_all_replicas_match_slug_reservations()
 
-    def test_delete_and_slug_change(self):
+    def test_delete_and_slug_change(self) -> None:
         org_slug_res_a = self.create_org_slug_reservation(
             slug="santry",
             user_id=self.user.id,
@@ -194,7 +194,7 @@ class TestOrganizationSlugReservationReplication(TestCase):
 
         self.assert_all_replicas_match_slug_reservations()
 
-    def test_multi_rename_collision(self):
+    def test_multi_rename_collision(self) -> None:
         org_slug_res_a = self.create_org_slug_reservation(
             slug="santry",
             user_id=self.user.id,

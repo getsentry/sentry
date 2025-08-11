@@ -1,29 +1,91 @@
-import {forwardRef, useMemo} from 'react';
+import {useId} from 'react';
 import type {PopperProps} from 'react-popper';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import domId from 'sentry/utils/domId';
 import type {ColorOrAlias} from 'sentry/utils/theme';
+import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
+import {withChonk} from 'sentry/utils/theme/withChonk';
 
-interface OverlayArrowProps extends React.ComponentPropsWithRef<'div'> {
+export interface OverlayArrowProps extends React.ComponentPropsWithRef<'div'> {
   background?: ColorOrAlias;
   border?: ColorOrAlias;
   placement?: PopperProps<any>['placement'];
+  ref?: React.Ref<HTMLDivElement>;
   size?: number;
   strokeWidth?: number;
 }
 
-function BaseOverlayArrow(
-  {
-    size = 16,
-    strokeWidth = 1,
-    placement,
-    background = 'backgroundElevated',
-    border = 'translucentBorder',
-    ...props
-  }: OverlayArrowProps,
-  ref: React.Ref<HTMLDivElement>
-) {
+export const OverlayArrow = withChonk(LegacyOverlayArrow, ChonkOverlayArrow);
+
+const sizeRatio = 0.5;
+const heightRatio = 0.3;
+
+function ChonkOverlayArrow({
+  placement,
+  ref,
+  size = 16,
+  background,
+  border,
+  ...props
+}: OverlayArrowProps) {
+  const theme = useTheme();
+
+  const offset = placement?.startsWith('top') ? 3 : 1.5;
+  const topOffset = placement?.startsWith('top') ? 3 : 1;
+
+  return (
+    <ChonkWrap dimensions={size} ref={ref} placement={placement} {...props}>
+      <svg
+        viewBox={`0 0 ${size} ${size * sizeRatio}`}
+        fill="none"
+        style={{display: 'block'}}
+      >
+        {placement?.startsWith('left') || placement?.startsWith('right') ? (
+          <polygon
+            transform={`translate(${placement?.startsWith('right') ? 2 : 0}, 0)`}
+            points={`
+              -2,0
+              ${size},0
+              ${size / 2},${size * heightRatio + topOffset}
+              ${size / 2 - 2},${size * heightRatio + topOffset}`}
+            fill={border ? (theme[border] as string) : theme.tokens.border.primary}
+          />
+        ) : null}
+        <polygon
+          points={`0,0 ${size},0 ${size / 2},${size * heightRatio + topOffset}`}
+          fill={border ? (theme[border] as string) : theme.tokens.border.primary}
+        />
+        <polygon
+          points={`${offset},0 ${size - offset}, 0 ${size / 2},${size * heightRatio}`}
+          fill={
+            background ? (theme[background] as string) : theme.tokens.background.primary
+          }
+        />
+      </svg>
+    </ChonkWrap>
+  );
+}
+
+const ChonkWrap = chonkStyled('div')<{
+  dimensions: number;
+  placement?: PopperProps<any>['placement'];
+}>`
+  width: ${p => p.dimensions}px;
+  height: ${p => (p.placement?.startsWith('left') || p.placement?.startsWith('right') ? p.dimensions : p.dimensions * sizeRatio)}px;
+  position: absolute;
+  transform-origin: center;
+
+  ${p =>
+    p.placement?.startsWith('top') && `top: 100%; left: 50%; transform: rotate(0deg);`}
+  ${p => p.placement?.startsWith('bottom') && `bottom: 100%; left: 50%; transform: rotate(180deg);`}
+  ${p => p.placement?.startsWith('left') && `left: 100%; top: 50%; transform: rotate(-90deg);`}
+  ${p =>
+    p.placement?.startsWith('right') &&
+    `right: 100%; top: 50%; transform: rotate(90deg);`}
+`;
+
+function LegacyOverlayArrow({size = 16, placement, ref, ...props}: OverlayArrowProps) {
   /**
    * SVG height
    */
@@ -35,15 +97,15 @@ function BaseOverlayArrow(
   /**
    * SVG stroke width
    */
-  const s = strokeWidth;
+  const s = 1;
   const arrowPath = [
     `M 0 ${h - s / 2}`,
     `C ${w * 0.25} ${h - s / 2} ${w * 0.45} ${s / 2} ${w / 2} ${s / 2}`,
     `C ${w * 0.55} ${s / 2} ${w * 0.75} ${h - s / 2} ${w} ${h - s / 2}`,
   ].join('');
 
-  const strokeMaskId = useMemo(() => domId('stroke-mask'), []);
-  const fillMaskId = useMemo(() => domId('fill-mask'), []);
+  const strokeMaskId = useId();
+  const fillMaskId = useId();
 
   return (
     <Wrap ref={ref} placement={placement} size={size} {...props}>
@@ -52,12 +114,12 @@ function BaseOverlayArrow(
         width={w}
         height={h}
         viewBox={`0 0 ${w} ${h}`}
-        background={background}
-        border={border}
+        background="backgroundElevated"
+        border="translucentBorder"
       >
         <defs>
           <mask id={strokeMaskId}>
-            <rect x="0" y={-strokeWidth} width="100%" height="100%" fill="white" />
+            <rect x="0" y={-1} width="100%" height={h + 1 + 4} fill="white" />
           </mask>
           <mask id={fillMaskId}>
             <rect x="0" y="0" width="100%" height="100%" fill="white" />
@@ -75,8 +137,6 @@ function BaseOverlayArrow(
     </Wrap>
   );
 }
-
-const OverlayArrow = forwardRef(BaseOverlayArrow);
 
 const Wrap = styled('div')<{size: number; placement?: PopperProps<any>['placement']}>`
   position: relative;
@@ -109,6 +169,3 @@ const SVG = styled('svg')<{background: ColorOrAlias; border: ColorOrAlias}>`
     fill: ${p => p.theme[p.background]};
   }
 `;
-
-export type {OverlayArrowProps};
-export {OverlayArrow};

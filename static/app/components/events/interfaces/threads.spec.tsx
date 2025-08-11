@@ -1,18 +1,21 @@
 import merge from 'lodash/merge';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {Threads} from 'sentry/components/events/interfaces/threads';
-import {displayOptions} from 'sentry/components/events/traceEventDataSection';
+import {stackTraceDisplayOptionLabels} from 'sentry/components/events/traceEventDataSection';
+import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {EventOrGroupType} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import localStorage from 'sentry/utils/localStorage';
 
 describe('Threads', function () {
   const organization = OrganizationFixture();
@@ -36,6 +39,12 @@ describe('Threads', function () {
       body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
     });
     ProjectsStore.loadInitialData([project]);
+    ConfigStore.set('user', UserFixture());
+
+    localStorage.setItem(
+      `issue-details-stracktrace-display-${organization.slug}-${project.slug}`,
+      JSON.stringify([])
+    );
   });
 
   describe('non native platform', function () {
@@ -189,12 +198,7 @@ describe('Threads', function () {
         packages: {},
         type: EventOrGroupType.ERROR,
         metadata: {
-          display_title_with_tree_label: false,
           filename: 'sentry/controllers/welcome_controller.rb',
-          finest_tree_label: [
-            {filebase: 'welcome_controller.rb', function: '/'},
-            {filebase: 'welcome_controller.rb', function: 'index'},
-          ],
           function: '/',
           type: 'ZeroDivisionError',
           value: 'divided by 0',
@@ -209,7 +213,7 @@ describe('Threads', function () {
         fingerprints: ['58f1f47bea5239ea25397888dc9253d1'],
         groupingConfig: {
           enhancements: 'eJybzDRxY25-UmZOqpWRgZGhroGJroHRBABbUQb_',
-          id: 'mobile:2021-02-12',
+          id: 'newstyle:2023-01-11',
         },
         release: null,
         userReport: null,
@@ -220,11 +224,11 @@ describe('Threads', function () {
       };
 
       const props: React.ComponentProps<typeof Threads> = {
-        data: event.entries[1].data as React.ComponentProps<typeof Threads>['data'],
+        data: event.entries[1]!.data as React.ComponentProps<typeof Threads>['data'],
         event,
         groupingCurrentLevel: 0,
-        hasHierarchicalGrouping: true,
         projectSlug: project.slug,
+        group: undefined,
       };
 
       it('renders', async function () {
@@ -234,7 +238,7 @@ describe('Threads', function () {
 
         // Title
         expect(
-          await screen.findByRole('heading', {name: 'Stack Trace'})
+          await screen.findByRole('region', {name: 'Stack Trace'})
         ).toBeInTheDocument();
 
         // Actions
@@ -248,14 +252,14 @@ describe('Threads', function () {
         ).toBeInTheDocument();
         expect(screen.getByText('divided by 0')).toBeInTheDocument();
 
-        expect(screen.getByTestId('stack-trace-content-v2')).toBeInTheDocument();
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
+        expect(screen.getByTestId('stack-trace-content')).toBeInTheDocument();
+        expect(screen.queryAllByTestId('line')).toHaveLength(3);
       });
 
       it('toggle full stack trace button', async function () {
         render(<Threads {...props} />, {organization});
 
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
+        expect(screen.queryAllByTestId('line')).toHaveLength(3);
 
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
 
@@ -263,14 +267,14 @@ describe('Threads', function () {
 
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeChecked();
 
-        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
+        expect(screen.queryAllByTestId('line')).toHaveLength(4);
       });
 
       it('toggle sort by display option', async function () {
         render(<Threads {...props} />, {organization});
 
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
+          within(screen.getAllByTestId('line')[0]!).getByText(
             'sentry/controllers/welcome_controller.rb'
           )
         ).toBeInTheDocument();
@@ -289,7 +293,7 @@ describe('Threads', function () {
 
         // Last frame is the first on the list
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
+          within(screen.getAllByTestId('line')[0]!).getByText(
             'puma (3.12.6) lib/puma/server.rb'
           )
         ).toBeInTheDocument();
@@ -300,7 +304,7 @@ describe('Threads', function () {
 
         // First frame is the first on the list
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
+          within(screen.getAllByTestId('line')[0]!).getByText(
             'sentry/controllers/welcome_controller.rb'
           )
         ).toBeInTheDocument();
@@ -313,7 +317,7 @@ describe('Threads', function () {
 
         expect(await screen.findByText('Display')).toBeInTheDocument();
 
-        Object.entries(displayOptions).forEach(([key, value]) => {
+        Object.entries(stackTraceDisplayOptionLabels).forEach(([key, value]) => {
           if (key === 'minified' || key === 'raw-stack-trace') {
             expect(screen.getByText(value)).toBeInTheDocument();
             return;
@@ -323,12 +327,47 @@ describe('Threads', function () {
         });
 
         // Hover over the Minified option
-        await userEvent.hover(screen.getByText(displayOptions.minified));
+        await userEvent.hover(screen.getByText(stackTraceDisplayOptionLabels.minified));
 
         // Minified option is disabled
         expect(
           await screen.findByText('Minified version not available')
         ).toBeInTheDocument();
+      });
+
+      it('renders suspect commits', async function () {
+        const user = UserFixture();
+        user.options.prefersIssueDetailsStreamlinedUI = true;
+        ConfigStore.set('user', user);
+        const group = GroupFixture();
+        const committers = [
+          {
+            author: {name: 'Max Bittker', id: '1'},
+            commits: [
+              {
+                message: 'feat: xyz',
+                score: 4,
+                id: 'ab2709293d0c9000829084ac7b1c9221fb18437c',
+                repository: RepositoryFixture(),
+                dateCreated: '2018-03-02T18:30:26Z',
+              },
+            ],
+          },
+        ];
+        MockApiClient.addMockResponse({
+          method: 'GET',
+          url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
+          body: {
+            committers,
+          },
+        });
+        render(<Threads {...props} group={group} />, {
+          organization,
+        });
+        expect(await screen.findByText('Stack Trace')).toBeInTheDocument();
+
+        // Suspect commits
+        expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
       });
     });
   });
@@ -829,15 +868,6 @@ describe('Threads', function () {
         },
         type: EventOrGroupType.ERROR,
         metadata: {
-          display_title_with_tree_label: true,
-          finest_tree_label: [
-            {
-              function: 'ViewController.causeCrash',
-            },
-            {
-              function: 'main',
-            },
-          ],
           function: 'ViewController.causeCrash',
           value:
             'Attempted to dereference null pointer.\nOriginated at or in a subcall of ViewController.causeCrash(Any) -> ()',
@@ -860,7 +890,7 @@ describe('Threads', function () {
         fingerprints: ['852f6cf1ed76d284b95e7d62275088ca'],
         groupingConfig: {
           enhancements: 'eJybzDRxY25-UmZOqpWRgZGhroGJroHRBABbUQb_',
-          id: 'mobile:2021-02-12',
+          id: 'newstyle:2023-01-11',
         },
         tags: [],
         contexts: {},
@@ -872,11 +902,11 @@ describe('Threads', function () {
       };
 
       const props: React.ComponentProps<typeof Threads> = {
-        data: event.entries[1].data as React.ComponentProps<typeof Threads>['data'],
+        data: event.entries[1]!.data as React.ComponentProps<typeof Threads>['data'],
         event,
         groupingCurrentLevel: 0,
-        hasHierarchicalGrouping: true,
         projectSlug: project.slug,
+        group: undefined,
       };
 
       it('renders', async function () {
@@ -891,9 +921,9 @@ describe('Threads', function () {
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
         expect(screen.getByRole('button', {name: 'Options'})).toBeInTheDocument();
 
-        expect(screen.queryByText('Threads')).toBeInTheDocument();
-        expect(screen.queryByText('Thread State')).toBeInTheDocument();
-        expect(screen.queryByText('Thread Tags')).toBeInTheDocument();
+        expect(screen.getByText('Threads')).toBeInTheDocument();
+        expect(screen.getByText('Thread State')).toBeInTheDocument();
+        expect(screen.getByText('Thread Tags')).toBeInTheDocument();
 
         // Stack Trace
         expect(screen.getByRole('heading', {name: 'EXC_BAD_ACCESS'})).toBeInTheDocument();
@@ -983,13 +1013,15 @@ describe('Threads', function () {
           },
         };
         render(<Threads {...newProps} />, {organization});
-        expect(await screen.findByTestId('event-section-threads')).toBeInTheDocument();
+        expect(
+          await screen.findByRole('region', {name: 'Stack Trace'})
+        ).toBeInTheDocument();
         expect(screen.queryByText('Thread Tags')).not.toBeInTheDocument();
       });
 
       it('maps android vm states to java vm states', async function () {
         const newEvent = {...event};
-        const threadsEntry = newEvent.entries[1].data as React.ComponentProps<
+        const threadsEntry = newEvent.entries[1]!.data as React.ComponentProps<
           typeof Threads
         >['data'];
         const thread = {
@@ -1065,7 +1097,7 @@ describe('Threads', function () {
         render(<Threads {...props} />, {organization});
 
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[0]!).getByText(
             '-[SentryClient crash]'
           )
         ).toBeInTheDocument();
@@ -1091,7 +1123,7 @@ describe('Threads', function () {
 
         // Last frame is the first on the list
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText('UIKit')
+          within(screen.getAllByTestId('stack-trace-frame')[0]!).getByText('UIKit')
         ).toBeInTheDocument();
 
         // Switch back to recent first
@@ -1100,7 +1132,7 @@ describe('Threads', function () {
 
         // First frame is the first on the list
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[0]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[0]!).getByText(
             '-[SentryClient crash]'
           )
         ).toBeInTheDocument();
@@ -1113,12 +1145,14 @@ describe('Threads', function () {
 
         expect(await screen.findByText('Display')).toBeInTheDocument();
 
-        Object.values(displayOptions).forEach(value => {
+        Object.values(stackTraceDisplayOptionLabels).forEach(value => {
           expect(screen.getByText(value)).toBeInTheDocument();
         });
 
         // Hover over absolute file paths option
-        await userEvent.hover(screen.getByText(displayOptions['absolute-file-paths']));
+        await userEvent.hover(
+          screen.getByText(stackTraceDisplayOptionLabels['absolute-file-paths'])
+        );
 
         // Absolute file paths option is disabled
         expect(
@@ -1126,7 +1160,7 @@ describe('Threads', function () {
         ).toBeInTheDocument();
 
         // Hover over Minified option
-        await userEvent.hover(screen.getByText(displayOptions.minified));
+        await userEvent.hover(screen.getByText(stackTraceDisplayOptionLabels.minified));
 
         // Minified option is disabled
         expect(
@@ -1135,41 +1169,48 @@ describe('Threads', function () {
 
         // Function name is not verbose
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[1]!).getByText(
             'ViewController.causeCrash'
           )
         ).toBeInTheDocument();
 
         // Click on verbose function name option
-        await userEvent.click(screen.getByText(displayOptions['verbose-function-names']));
+        await userEvent.click(
+          screen.getByText(stackTraceDisplayOptionLabels['verbose-function-names'])
+        );
 
         // Function name is now verbose
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText(
+          within(screen.getAllByTestId('stack-trace-frame')[1]!).getByText(
             'ViewController.causeCrash(Any) -> ()'
           )
         ).toBeInTheDocument();
 
         // Address is not absolute
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText('+0x085ac')
+          within(screen.getAllByTestId('stack-trace-frame')[1]!).getByText('+0x085ac')
         ).toBeInTheDocument();
 
         // Click on absolute file paths option
-        await userEvent.click(screen.getByText(displayOptions['absolute-addresses']));
+        await userEvent.click(
+          screen.getByText(stackTraceDisplayOptionLabels['absolute-addresses'])
+        );
 
         // Address is now absolute
         expect(
-          within(screen.getAllByTestId('stack-trace-frame')[1]).getByText('0x10008c5ac')
+          within(screen.getAllByTestId('stack-trace-frame')[1]!).getByText('0x10008c5ac')
         ).toBeInTheDocument();
 
         MockApiClient.addMockResponse({
-          url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=false`,
+          url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report`,
+          match: [MockApiClient.matchQuery({minified: 'false'})],
           body: '',
         });
 
         // Click on raw stack trace option
-        await userEvent.click(screen.getByText(displayOptions['raw-stack-trace']));
+        await userEvent.click(
+          screen.getByText(stackTraceDisplayOptionLabels['raw-stack-trace'])
+        );
 
         // Download button is displayed
         expect(screen.getByRole('button', {name: 'Download'})).toBeInTheDocument();
@@ -1191,7 +1232,7 @@ describe('Threads', function () {
 
       it('uses thread label in selector if name not available', async function () {
         const newEvent = {...event};
-        const threadsEntry = newEvent.entries[1].data as React.ComponentProps<
+        const threadsEntry = newEvent.entries[1]!.data as React.ComponentProps<
           typeof Threads
         >['data'];
         const thread = {
@@ -1243,13 +1284,27 @@ describe('Threads', function () {
         within(threadSelector).getByText('ViewController.causeCrash');
       });
 
+      it('can navigate to next/previous thread', async function () {
+        render(<Threads {...props} />, {organization});
+        const threadSelector = await screen.findByTestId('thread-selector');
+        expect(threadSelector).toHaveTextContent('Thread #0');
+        await userEvent.click(await screen.findByRole('button', {name: 'Next Thread'}));
+        expect(threadSelector).toHaveTextContent('Thread #1');
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Previous Thread'})
+        );
+        expect(threadSelector).toHaveTextContent('Thread #0');
+      });
+
       it('renders raw stack trace', async function () {
         MockApiClient.addMockResponse({
-          url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=false`,
+          url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report`,
+          match: [MockApiClient.matchQuery({minified: 'false'})],
           body: 'crash report content',
         });
         MockApiClient.addMockResponse({
-          url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=true`,
+          url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report`,
+          match: [MockApiClient.matchQuery({minified: 'true'})],
           body: 'crash report content (minified)',
         });
 
@@ -1263,7 +1318,9 @@ describe('Threads', function () {
         expect(await screen.findByText('Display')).toBeInTheDocument();
 
         // Click on raw stack trace option
-        await userEvent.click(screen.getByText(displayOptions['raw-stack-trace']));
+        await userEvent.click(
+          await screen.findByText(stackTraceDisplayOptionLabels['raw-stack-trace'])
+        );
 
         // Raw crash report content should be displayed
         await screen.findByText('crash report content');
@@ -1275,7 +1332,7 @@ describe('Threads', function () {
         );
 
         // Click on minified option
-        await userEvent.click(screen.getByText(displayOptions.minified));
+        await userEvent.click(screen.getByText(stackTraceDisplayOptionLabels.minified));
 
         // Raw crash report content should be displayed (now with minified response)
         await screen.findByText('crash report content (minified)');

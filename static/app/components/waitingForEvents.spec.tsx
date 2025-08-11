@@ -8,7 +8,7 @@ import WaitingForEvents from 'sentry/components/waitingForEvents';
 
 describe('WaitingForEvents', function () {
   let getIssues: jest.Func;
-  let router;
+  let router: any;
 
   beforeEach(function () {
     router = RouterFixture();
@@ -30,6 +30,7 @@ describe('WaitingForEvents', function () {
         <WaitingForEvents org={OrganizationFixture()} project={ProjectFixture()} />,
         {
           router,
+          deprecatedRouterMocks: true,
         }
       );
     }
@@ -52,6 +53,7 @@ describe('WaitingForEvents', function () {
     function createWrapper() {
       return render(<WaitingForEvents org={OrganizationFixture()} />, {
         router,
+        deprecatedRouterMocks: true,
       });
     }
 

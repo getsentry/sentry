@@ -96,21 +96,8 @@ class IssueConstants:
 
     UNRESOLVE = "Unresolve"
 
-    IGNORE = "Ignore"
-    IGNORE_INPUT_TITLE = "Ignore until this happens again..."
-    IGNORE_INPUT_ID = "ignoreInput"
-    IGNORE_INPUT_CHOICES = [
-        ("Ignore indefinitely", -1),
-        ("1 time", 1),
-        ("10 times", 10),
-        ("100 times", 100),
-        ("1,000 times", 1000),
-        ("10,000 times", 10000),
-    ]
-
-    STOP_IGNORING = "Stop Ignoring"
-
     ARCHIVE = "Archive"
+    ARCHIVE_INPUT_ID = "archiveInput"
     ARCHIVE_INPUT_TITLE = "Archive until this happens again..."
     ARCHIVE_INPUT_CHOICES = [
         ("Archive forever", -1),
@@ -120,7 +107,7 @@ class IssueConstants:
         ("1,000 times", 1000),
         ("10,000 times", 10000),
     ]
-    STOP_ARCHIVE = "Unarchive"
+    UNARCHIVE = "Unarchive"
 
     ASSIGN = "Assign"
     ASSIGN_INPUT_TITLE = "Assign to..."

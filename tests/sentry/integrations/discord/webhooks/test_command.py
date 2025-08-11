@@ -4,6 +4,9 @@ from sentry.integrations.discord.message_builder.base.flags import EPHEMERAL_FLA
 from sentry.integrations.discord.requests.base import DiscordRequestTypes
 from sentry.integrations.discord.webhooks.command import HELP_MESSAGE, NOT_LINKED_MESSAGE
 from sentry.integrations.discord.webhooks.types import DiscordResponseTypes
+from sentry.integrations.messaging.metrics import MessageCommandFailureReason
+from sentry.integrations.types import EventLifecycleOutcome
+from sentry.testutils.asserts import assert_failure_metric, assert_slo_metric
 from sentry.testutils.cases import APITestCase
 
 WEBHOOK_URL = "/extensions/discord/interactions/"
@@ -11,7 +14,7 @@ WEBHOOK_URL = "/extensions/discord/interactions/"
 
 class DiscordCommandInteractionTest(APITestCase):
     @mock.patch("sentry.integrations.discord.requests.base.verify_signature")
-    def test_command_interaction(self, mock_verify_signature):
+    def test_command_interaction(self, mock_verify_signature: mock.MagicMock) -> None:
         mock_verify_signature.return_value = True
         response = self.client.post(
             path=WEBHOOK_URL,
@@ -26,7 +29,8 @@ class DiscordCommandInteractionTest(APITestCase):
         assert data["data"]["flags"] == EPHEMERAL_FLAG
         assert response.status_code == 200
 
-    def test_link_no_integration(self):
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_link_no_integration(self, mock_record: mock.MagicMock) -> None:
         with mock.patch(
             "sentry.integrations.discord.requests.base.verify_signature", return_value=True
         ):
@@ -44,7 +48,11 @@ class DiscordCommandInteractionTest(APITestCase):
             )
         assert resp.status_code == 200
 
-    def test_link_no_user_id(self):
+        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
+        assert_failure_metric(mock_record, MessageCommandFailureReason.MISSING_DATA.value)
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_link_no_user_id(self, mock_record: mock.MagicMock) -> None:
         guild_id = "guild-id"
         self.create_integration(
             provider="discord",
@@ -69,7 +77,11 @@ class DiscordCommandInteractionTest(APITestCase):
             )
         assert resp.status_code == 200
 
-    def test_link_guild(self):
+        assert_slo_metric(mock_record, EventLifecycleOutcome.FAILURE)
+        assert_failure_metric(mock_record, MessageCommandFailureReason.MISSING_DATA.value)
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_link_guild(self, mock_record: mock.MagicMock) -> None:
         guild_id = "guild-id"
         self.create_integration(
             provider="discord",
@@ -102,7 +114,10 @@ class DiscordCommandInteractionTest(APITestCase):
             assert data["data"]["flags"] == EPHEMERAL_FLAG
             assert response.status_code == 200
 
-    def test_link_dm(self):
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_link_dm(self, mock_record: mock.MagicMock) -> None:
         guild_id = "guild-id"
         self.create_integration(
             provider="discord",
@@ -135,7 +150,10 @@ class DiscordCommandInteractionTest(APITestCase):
             assert data["data"]["flags"] == EPHEMERAL_FLAG
             assert response.status_code == 200
 
-    def test_link_already_linked(self):
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_link_already_linked(self, mock_record: mock.MagicMock) -> None:
         guild_id = "guild-id"
         discord_user_id = "user1234"
         integration = self.create_integration(
@@ -179,7 +197,10 @@ class DiscordCommandInteractionTest(APITestCase):
             assert data["data"]["flags"] == EPHEMERAL_FLAG
             assert response.status_code == 200
 
-    def test_unlink_no_identity(self):
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_unlink_no_identity(self, mock_record: mock.MagicMock) -> None:
         with mock.patch(
             "sentry.integrations.discord.requests.base.verify_signature", return_value=True
         ):
@@ -201,7 +222,10 @@ class DiscordCommandInteractionTest(APITestCase):
             assert data["data"]["flags"] == EPHEMERAL_FLAG
             assert response.status_code == 200
 
-    def test_unlink(self):
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_unlink(self, mock_record: mock.MagicMock) -> None:
         guild_id = "guild-id"
         discord_user_id = "user1234"
         integration = self.create_integration(
@@ -246,7 +270,10 @@ class DiscordCommandInteractionTest(APITestCase):
             assert data["data"]["flags"] == EPHEMERAL_FLAG
             assert response.status_code == 200
 
-    def test_help(self):
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_help(self, mock_record: mock.MagicMock) -> None:
         with mock.patch(
             "sentry.integrations.discord.requests.base.verify_signature", return_value=True
         ):
@@ -267,3 +294,5 @@ class DiscordCommandInteractionTest(APITestCase):
             assert HELP_MESSAGE in data["data"]["content"]
             assert data["data"]["flags"] == EPHEMERAL_FLAG
             assert response.status_code == 200
+
+        assert_slo_metric(mock_record, EventLifecycleOutcome.SUCCESS)

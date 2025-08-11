@@ -2,9 +2,10 @@ import {useContext} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import PluginIcon from 'sentry/plugins/components/pluginIcon';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import IntegrationButton from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
@@ -15,6 +16,7 @@ type Props = {
 
 function AddIntegrationRow({onClick}: Props) {
   const organization = useOrganization();
+  const {isSelfHosted} = ConfigStore.getState();
   const integration = useContext(IntegrationContext);
   if (!integration) {
     return null;
@@ -22,13 +24,6 @@ function AddIntegrationRow({onClick}: Props) {
   const provider = integration.provider;
   const onAddIntegration = () => {
     integration.onAddIntegration?.();
-    onClick();
-  };
-  const onExternalClick = () => {
-    trackAnalytics('onboarding.messaging_integration_external_install_clicked', {
-      provider_key: provider.key,
-      organization,
-    });
     onClick();
   };
 
@@ -46,12 +41,20 @@ function AddIntegrationRow({onClick}: Props) {
       </IconTextWrapper>
       <Access access={['org:integrations']} organization={organization}>
         {({hasAccess}) => {
-          return (
+          return isSelfHosted ? (
+            <LinkButton
+              href={`https://develop.sentry.dev/integrations/${provider.slug}`}
+              priority="primary"
+              external
+            >
+              Add {provider.metadata.noun}
+            </LinkButton>
+          ) : (
             <StyledButton
               userHasAccess={hasAccess}
               onAddIntegration={onAddIntegration}
-              onExternalClick={onExternalClick}
-              externalInstallText="Add Installation"
+              onExternalClick={onClick}
+              externalInstallText={`Add ${provider.metadata.noun}`}
               buttonProps={buttonProps}
             />
           );
@@ -64,7 +67,7 @@ function AddIntegrationRow({onClick}: Props) {
 const RowWrapper = styled('div')`
   display: flex;
   border-radius: 4px;
-  border: 1px solid ${p => p.theme.gray200};
+  border: 1px solid ${p => p.theme.border};
   justify-content: space-between;
   align-items: center;
   padding: ${space(3)} ${space(4)};

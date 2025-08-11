@@ -8,7 +8,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from sentry.auth.services.auth import AuthenticationContext
-from sentry.hybridcloud.rpc.caching.service import back_with_silo_cache
+from sentry.hybridcloud.rpc.caching.service import back_with_silo_cache, back_with_silo_cache_list
 from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.sentry_apps.services.app import (
@@ -60,12 +60,20 @@ class AppService(RpcService):
     ) -> RpcSentryAppInstallation | None:
         pass
 
+    def installations_for_organization(
+        self, *, organization_id: int
+    ) -> list[RpcSentryAppInstallation]:
+        """
+        Get a list of installations for an organization_id
+
+        This is a cached wrapper around get_installations_for_organization
+        """
+        return get_installations_for_organization(organization_id)
+
     @rpc_method
     @abc.abstractmethod
-    def get_installed_for_organization(
-        self,
-        *,
-        organization_id: int,
+    def get_installations_for_organization(
+        self, *, organization_id: int
     ) -> list[RpcSentryAppInstallation]:
         pass
 
@@ -81,6 +89,11 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
+    def get_sentry_apps_by_proxy_users(self, *, proxy_user_ids: list[int]) -> list[RpcSentryApp]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
     def get_installation_by_id(self, *, id: int) -> RpcSentryAppInstallation | None:
         pass
 
@@ -91,6 +104,16 @@ class AppService(RpcService):
         This method is a cached wrapper around get_installation_by_id()
         """
         return get_installation(id)
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_installation_org_id_by_token_id(self, token_id: int) -> int | None:
+        """
+        Get the organization id for an installation by installation token_id
+
+        This is a specialized RPC call used by ratelimit middleware
+        """
+        pass
 
     @rpc_method
     @abc.abstractmethod
@@ -146,6 +169,17 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
+    def get_installation_component_contexts(
+        self,
+        *,
+        filter: SentryAppInstallationFilterArgs,
+        component_type: str,
+        include_contexts_without_component: bool,
+    ) -> list[RpcSentryAppComponentContext]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
     def trigger_sentry_app_action_creators(
         self, *, fields: list[Mapping[str, Any]], install_uuid: str | None
     ) -> RpcAlertRuleActionResult:
@@ -156,6 +190,27 @@ class AppService(RpcService):
     def get_published_sentry_apps_for_organization(
         self, *, organization_id: int
     ) -> list[RpcSentryApp]:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_internal_integrations(
+        self, *, organization_id: int, integration_name: str
+    ) -> list[RpcSentryApp]:
+        """
+        Get all internal integrations for an organization matching a specific name.
+
+        Internal integrations are Sentry Apps that are created for use within a single
+        organization and are not available to be installed by users.
+
+        Args:
+            organization_id (int): The ID of the organization to search within
+            integration_name (str): The name of the internal integration to find
+
+        Returns:
+            list[RpcSentryApp]: A list of serialized internal Sentry Apps matching the criteria.
+                               Returns an empty list if no matches are found.
+        """
         pass
 
     @rpc_method
@@ -187,6 +242,13 @@ class AppService(RpcService):
 @back_with_silo_cache("app_service.get_installation", SiloMode.REGION, RpcSentryAppInstallation)
 def get_installation(id: int) -> RpcSentryAppInstallation | None:
     return app_service.get_installation_by_id(id=id)
+
+
+@back_with_silo_cache_list(
+    "app_service.get_installed_for_organization", SiloMode.REGION, RpcSentryAppInstallation
+)
+def get_installations_for_organization(organization_id: int) -> list[RpcSentryAppInstallation]:
+    return app_service.get_installations_for_organization(organization_id=organization_id)
 
 
 @back_with_silo_cache("app_service.get_by_application_id", SiloMode.REGION, RpcSentryApp)

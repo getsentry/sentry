@@ -8,8 +8,8 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {t} from 'sentry/locale';
-import type {Organization, Project, ProjectKey} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project, ProjectKey} from 'sentry/types/project';
 import LoaderScript from 'sentry/views/settings/project/loaderScript';
 
 function mockApi({
@@ -64,7 +64,7 @@ describe('LoaderScript', function () {
 
   it('renders for single project', async function () {
     const {organization, project} = initializeOrg();
-    const projectKey = ProjectKeysFixture()[0];
+    const projectKey = ProjectKeysFixture()[0]!;
     const projectKeys = [projectKey];
 
     mockApi({organization, project, projectKeys});
@@ -75,11 +75,11 @@ describe('LoaderScript', function () {
 
     // Loader Script is rendered
     expect(screen.getByText(`Client Key: ${projectKey.name}`)).toBeInTheDocument();
-    const loaderScript = screen.getByRole('textbox', {
+    const loaderScript = screen.getByRole<HTMLInputElement>('textbox', {
       name: 'Loader Script',
-    }) as HTMLInputElement;
+    });
     const loaderScriptValue = loaderScript.value;
-    expect(loaderScriptValue).toEqual(expect.stringContaining(projectKeys[0].dsn.cdn));
+    expect(loaderScriptValue).toEqual(expect.stringContaining(projectKeys[0]!.dsn.cdn));
   });
 
   it('renders multiple keys', async function () {
@@ -98,6 +98,9 @@ describe('LoaderScript', function () {
             'http://dev.getsentry.net:8000/api/1/security-report/?sentry_key=188ee45a58094d939428d8585aa6f662',
           unreal: '',
           crons: '',
+          playstation:
+            'http://dev.getsentry.net:8000/api/1/playstation?sentry_key=188ee45a58094d939428d8585aa6f662',
+          otlp_traces: 'http://dev.getsentry.net:8000/api/1/otlp/v1/traces',
         },
         public: '188ee45a58094d939428d8585aa6f662',
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2c',
@@ -132,19 +135,19 @@ describe('LoaderScript', function () {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    expect(screen.getByText(`Client Key: ${projectKeys[0].name}`)).toBeInTheDocument();
-    expect(screen.getByText(`Client Key: ${projectKeys[1].name}`)).toBeInTheDocument();
+    expect(screen.getByText(`Client Key: ${projectKeys[0]!.name}`)).toBeInTheDocument();
+    expect(screen.getByText(`Client Key: ${projectKeys[1]!.name}`)).toBeInTheDocument();
 
     const allLoaderScripts = screen.getAllByRole('textbox', {
       name: 'Loader Script',
-    }) as HTMLInputElement[];
+    });
 
     expect(allLoaderScripts).toHaveLength(2);
   });
 
   it('allows to update key settings', async function () {
     const {organization, project} = initializeOrg();
-    const baseKey = ProjectKeysFixture()[0];
+    const baseKey = ProjectKeysFixture()[0]!;
     const projectKey = {
       ...baseKey,
       dynamicSdkLoaderOptions: {
@@ -171,24 +174,24 @@ describe('LoaderScript', function () {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    expect(screen.getByText(t('Enable Performance Monitoring'))).toBeInTheDocument();
-    expect(screen.getByText(t('Enable Session Replay'))).toBeInTheDocument();
-    expect(screen.getByText(t('Enable Debug Bundles & Logging'))).toBeInTheDocument();
+    expect(screen.getByText('Enable Performance Monitoring')).toBeInTheDocument();
+    expect(screen.getByText('Enable Session Replay')).toBeInTheDocument();
+    expect(screen.getByText('Enable Debug Bundles & Logging')).toBeInTheDocument();
 
     let performanceCheckbox = screen.getByRole('checkbox', {
-      name: t('Enable Performance Monitoring'),
+      name: 'Enable Performance Monitoring',
     });
     expect(performanceCheckbox).toBeEnabled();
     expect(performanceCheckbox).not.toBeChecked();
 
     const replayCheckbox = screen.getByRole('checkbox', {
-      name: t('Enable Session Replay'),
+      name: 'Enable Session Replay',
     });
     expect(replayCheckbox).toBeEnabled();
     expect(replayCheckbox).toBeChecked();
 
     const debugCheckbox = screen.getByRole('checkbox', {
-      name: t('Enable Debug Bundles & Logging'),
+      name: 'Enable Debug Bundles & Logging',
     });
     expect(debugCheckbox).toBeEnabled();
     expect(debugCheckbox).not.toBeChecked();
@@ -196,12 +199,12 @@ describe('LoaderScript', function () {
     // Toggle performance option
     await userEvent.click(
       screen.getByRole('checkbox', {
-        name: t('Enable Performance Monitoring'),
+        name: 'Enable Performance Monitoring',
       })
     );
 
     performanceCheckbox = await screen.findByRole('checkbox', {
-      name: t('Enable Performance Monitoring'),
+      name: 'Enable Performance Monitoring',
       checked: true,
     });
     expect(performanceCheckbox).toBeEnabled();
@@ -236,6 +239,9 @@ describe('LoaderScript', function () {
             'http://dev.getsentry.net:8000/api/1/security-report/?sentry_key=188ee45a58094d939428d8585aa6f662',
           unreal: '',
           crons: '',
+          playstation:
+            'http://dev.getsentry.net:8000/api/1/playstation?sentry_key=188ee45a58094d939428d8585aa6f662',
+          otlp_traces: 'http://dev.getsentry.net:8000/api/1/otlp/v1/traces',
         },
         public: '188ee45a58094d939428d8585aa6f662',
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2c',
@@ -267,12 +273,12 @@ describe('LoaderScript', function () {
 
     mockApi({organization, project, projectKeys});
     const mockPut = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/keys/${projectKey.id}/`,
+      url: `/projects/${organization.slug}/${project.slug}/keys/${projectKey!.id}/`,
       method: 'PUT',
       body: {
         ...projectKey,
         dynamicSdkLoaderOptions: {
-          ...projectKey.dynamicSdkLoaderOptions,
+          ...projectKey!.dynamicSdkLoaderOptions,
           hasPerformance: true,
         },
       },
@@ -284,19 +290,19 @@ describe('LoaderScript', function () {
 
     expect(
       screen.getAllByRole('checkbox', {
-        name: t('Enable Performance Monitoring'),
+        name: 'Enable Performance Monitoring',
         checked: false,
       })
     ).toHaveLength(2);
     expect(
       screen.getAllByRole('checkbox', {
-        name: t('Enable Session Replay'),
+        name: 'Enable Session Replay',
         checked: false,
       })
     ).toHaveLength(2);
     expect(
       screen.getAllByRole('checkbox', {
-        name: t('Enable Debug Bundles & Logging'),
+        name: 'Enable Debug Bundles & Logging',
         checked: false,
       })
     ).toHaveLength(2);
@@ -304,42 +310,42 @@ describe('LoaderScript', function () {
     // Toggle performance option
     await userEvent.click(
       screen.getAllByRole('checkbox', {
-        name: t('Enable Performance Monitoring'),
-      })[1]
+        name: 'Enable Performance Monitoring',
+      })[1]!
     );
 
     expect(
       await screen.findByRole('checkbox', {
-        name: t('Enable Performance Monitoring'),
+        name: 'Enable Performance Monitoring',
         checked: true,
       })
     ).toBeInTheDocument();
 
     expect(
       screen.getByRole('checkbox', {
-        name: t('Enable Performance Monitoring'),
+        name: 'Enable Performance Monitoring',
         checked: false,
       })
     ).toBeInTheDocument();
     expect(
       screen.getAllByRole('checkbox', {
-        name: t('Enable Session Replay'),
+        name: 'Enable Session Replay',
         checked: false,
       })
     ).toHaveLength(2);
     expect(
       screen.getAllByRole('checkbox', {
-        name: t('Enable Debug Bundles & Logging'),
+        name: 'Enable Debug Bundles & Logging',
         checked: false,
       })
     ).toHaveLength(2);
 
     expect(mockPut).toHaveBeenCalledWith(
-      `/projects/${organization.slug}/${project.slug}/keys/${projectKey.id}/`,
+      `/projects/${organization.slug}/${project.slug}/keys/${projectKey!.id}/`,
       expect.objectContaining({
         data: expect.objectContaining({
           dynamicSdkLoaderOptions: {
-            ...projectKey.dynamicSdkLoaderOptions,
+            ...projectKey!.dynamicSdkLoaderOptions,
             hasPerformance: true,
           },
         }),

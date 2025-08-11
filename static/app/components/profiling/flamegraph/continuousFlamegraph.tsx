@@ -49,8 +49,8 @@ import {
   initializeFlamegraphRenderer,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
-import type {ContinuousProfile} from 'sentry/utils/profiling/profile/continuousProfile';
-import type {ContinuousProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {Profile} from 'sentry/utils/profiling/profile/profile';
 import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import type {SpanChartNode} from 'sentry/utils/profiling/spanChart';
@@ -66,11 +66,11 @@ import {
 import {formatTo} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
+import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {
-  useContinuousProfile,
-  useContinuousProfileSegment,
-} from 'sentry/views/profiling/continuousProfileProvider';
-import {useContinuousProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+  useProfiles,
+  useProfileTransaction,
+} from 'sentry/views/profiling/profilesProvider';
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
@@ -101,11 +101,14 @@ function collectAllSpanEntriesFromTransaction(
 }
 
 function getMaxConfigSpace(
-  profileGroup: ContinuousProfileGroup,
+  profileGroup: ProfileGroup,
   transaction: EventTransaction | null,
-  unit: ProfilingFormatterUnit | string
+  unit: ProfilingFormatterUnit | string,
+  [start, end]: [number, number] | [null, null]
 ): Rect {
   const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
+  const spaceDuration = start !== null && end !== null ? end - start : 0;
+
   if (transaction) {
     // TODO: Adjust the alignment based on the profile's timestamp if it does
     // not match the transaction's start timestamp
@@ -116,40 +119,47 @@ function getMaxConfigSpace(
     // and profile are fully visible to the user.
     const duration = Math.max(
       formatTo(transactionDuration, 'seconds', unit),
-      maxProfileDuration
+      maxProfileDuration,
+      spaceDuration
     );
     return new Rect(0, 0, duration, 0);
   }
 
   // No transaction was found, so best we can do is align it to the starting
   // position of the profiles - find the max of profile durations
-  return new Rect(0, 0, maxProfileDuration, 0);
+  return new Rect(0, 0, Math.max(maxProfileDuration, spaceDuration), 0);
 }
 
 function getProfileOffset(
-  profile: ContinuousProfile | undefined,
+  profile: Profile | undefined,
   startedAtMs: number | null
 ): Rect {
   if (!profile || !startedAtMs) {
     return Rect.Empty();
   }
 
-  return new Rect(profile.startedAt * 1e3 - startedAtMs, 0, 0, 0);
+  return new Rect(profile.startedAt - startedAtMs, 0, 0, 0);
 }
 
 function getTransactionOffset(
   transaction: EventTransaction | null,
+  profileTimestamp: number,
   startedAtMs: number | null
 ): Rect {
   if (!transaction || !startedAtMs) {
     return Rect.Empty();
   }
 
-  return new Rect(transaction.startTimestamp * 1e3 - startedAtMs, 0, 0, 0);
+  return new Rect(
+    transaction.startTimestamp * 1e3 - profileTimestamp - startedAtMs,
+    0,
+    0,
+    0
+  );
 }
 
 function convertContinuousProfileMeasurementsToUIFrames(
-  measurement: ContinuousProfileGroup['measurements']['slow_frame_renders']
+  measurement: ProfileGroup['measurements']['slow_frame_renders']
 ): UIFrameMeasurements | undefined {
   if (!measurement) {
     return undefined;
@@ -161,11 +171,13 @@ function convertContinuousProfileMeasurementsToUIFrames(
   };
 
   for (let i = 0; i < measurement.values.length; i++) {
-    const value = measurement.values[i];
+    const value = measurement.values[i]!;
     const next = measurement.values[i + 1] ?? value;
 
+    const elapsedNanoseconds = next.elapsed_since_start_ns - value.elapsed_since_start_ns;
+
     measurements.values.push({
-      elapsed: next.timestamp - value.timestamp,
+      elapsed: elapsedNanoseconds / 1e9,
       value: value.value,
     });
   }
@@ -202,12 +214,29 @@ function findLongestMatchingFrame(
       longestFrame = frame;
     }
 
-    for (let i = 0; i < frame.children.length; i++) {
-      frames.push(frame.children[i]);
+    for (const child of frame.children) {
+      frames.push(child);
     }
   }
 
   return longestFrame;
+}
+
+function decodeConfigSpace(): [number, number] {
+  const qs = new URLSearchParams(window.location.search);
+  const startedAt = qs.get('start');
+  const endedAt = qs.get('end');
+  if (!startedAt || !endedAt) {
+    return [0, 0];
+  }
+
+  const startedAtMs = new Date(startedAt).getTime();
+  const endedAtMs = new Date(endedAt).getTime();
+  if (isNaN(startedAtMs) || isNaN(endedAtMs)) {
+    return [0, 0];
+  }
+
+  return [startedAtMs, endedAtMs];
 }
 
 const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
@@ -223,24 +252,26 @@ export function ContinuousFlamegraph(): ReactElement {
   const devicePixelRatio = useDevicePixelRatio();
   const dispatch = useDispatchFlamegraphState();
 
-  const profiles = useContinuousProfile();
-  const profileGroup = useContinuousProfileGroup();
-  const segment = useContinuousProfileSegment();
+  const profiles = useProfiles();
+  const profileGroup = useProfileGroup();
+  const segment = useProfileTransaction();
+
+  const profileTimestamp = useMemo(() => {
+    return (
+      Math.min(...profileGroup.profiles.map(p => p.timestamp).filter(defined)) * 1000
+    );
+  }, [profileGroup]);
+
+  const configSpaceQueryParam: [number, number] = useMemo(() => {
+    const [startedAtMs, endedAtMs] = decodeConfigSpace();
+    return [startedAtMs - profileTimestamp, endedAtMs - profileTimestamp];
+  }, [profileTimestamp]);
 
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
   const {colorCoding, sorting, view} = useFlamegraphPreferences();
   const {highlightFrames} = useFlamegraphSearch();
   const flamegraphProfiles = useFlamegraphProfiles();
-
-  const start: number | null = useMemo(() => {
-    const qs = new URLSearchParams(window.location.search);
-    const startedAt = qs.get('start');
-    if (!startedAt) return null;
-
-    const sinceEpoch = new Date(startedAt).getTime();
-    return isNaN(sinceEpoch) ? null : sinceEpoch;
-  }, []);
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -322,10 +353,11 @@ export function ContinuousFlamegraph(): ReactElement {
       configSpace: getMaxConfigSpace(
         profileGroup,
         segment.type === 'resolved' ? segment.data : null,
-        profile.unit
+        profile.unit,
+        configSpaceQueryParam
       ),
     });
-  }, [spanTree, profile, profileGroup, segment]);
+  }, [spanTree, profile, profileGroup, segment, configSpaceQueryParam]);
 
   const flamegraph = useMemo(() => {
     if (typeof flamegraphProfiles.threadId !== 'number') {
@@ -355,14 +387,23 @@ export function ContinuousFlamegraph(): ReactElement {
       configSpace: getMaxConfigSpace(
         profileGroup,
         segment.type === 'resolved' ? segment.data : null,
-        profile.unit
+        profile.unit,
+        configSpaceQueryParam
       ),
     });
 
     span?.end();
 
     return newFlamegraph;
-  }, [profile, profileGroup, sorting, flamegraphProfiles.threadId, view, segment]);
+  }, [
+    profile,
+    profileGroup,
+    sorting,
+    flamegraphProfiles.threadId,
+    view,
+    segment,
+    configSpaceQueryParam,
+  ]);
 
   const uiFrames = useMemo(() => {
     if (!hasUIFrames) {
@@ -388,7 +429,7 @@ export function ContinuousFlamegraph(): ReactElement {
   ]);
 
   const batteryChart = useMemo(() => {
-    if (!hasCPUChart) {
+    if (!hasBatteryChart) {
       return LOADING_OR_FALLBACK_BATTERY_CHART;
     }
 
@@ -396,23 +437,15 @@ export function ContinuousFlamegraph(): ReactElement {
 
     for (const key in profileGroup.measurements) {
       if (key === 'cpu_energy_usage') {
-        const measurements = profileGroup.measurements[key]!;
-        const values: ProfileSeriesMeasurement['values'] = [];
-
-        let offset = 0;
-        for (let i = 0; i < measurements.values.length; i++) {
-          const value = measurements.values[i];
-          const next = measurements.values[i + 1] ?? value;
-          offset += (next.timestamp - value.timestamp) * 1e3;
-
-          values.push({
-            value: fromNanoJoulesToWatts(value.value, 0.1),
-            elapsed: offset,
-          });
-        }
-
         // some versions of cocoa send byte so we need to correct it to watt
-        measures.push({name: 'CPU energy usage', unit: 'watt', values});
+        measures.push(
+          formatProfileSeriesMeasurement({
+            name: 'CPU energy usage',
+            unit: 'watt',
+            measurement: profileGroup.measurements[key]!,
+            valueFormatter: value => fromNanoJoulesToWatts(value, 0.1),
+          })
+        );
       }
     }
 
@@ -422,7 +455,12 @@ export function ContinuousFlamegraph(): ReactElement {
       flamegraphTheme.COLORS.BATTERY_CHART_COLORS,
       {timelineUnit: 'milliseconds'}
     );
-  }, [profileGroup.measurements, flamegraph.configSpace, flamegraphTheme, hasCPUChart]);
+  }, [
+    profileGroup.measurements,
+    flamegraph.configSpace,
+    flamegraphTheme,
+    hasBatteryChart,
+  ]);
 
   const CPUChart = useMemo(() => {
     if (!hasCPUChart) {
@@ -437,23 +475,12 @@ export function ContinuousFlamegraph(): ReactElement {
           key === 'cpu_usage'
             ? 'Average CPU usage'
             : `CPU Core ${key.replace('cpu_usage_', '')}`;
-
-        const measurements = profileGroup.measurements[key]!;
-        const values: ProfileSeriesMeasurement['values'] = [];
-
-        let offset = 0;
-        for (let i = 0; i < measurements.values.length; i++) {
-          const value = measurements.values[i];
-          const next = measurements.values[i + 1] ?? value;
-          offset += (next.timestamp - value.timestamp) * 1e3;
-
-          values.push({
-            value: value.value,
-            elapsed: offset,
-          });
-        }
-
-        cpuMeasurements.push({name, unit: measurements?.unit, values});
+        cpuMeasurements.push(
+          formatProfileSeriesMeasurement({
+            name,
+            measurement: profileGroup.measurements[key]!,
+          })
+        );
       }
     }
 
@@ -474,48 +501,22 @@ export function ContinuousFlamegraph(): ReactElement {
 
     const memory_footprint = profileGroup.measurements?.memory_footprint;
     if (memory_footprint) {
-      const values: ProfileSeriesMeasurement['values'] = [];
-
-      let offset = 0;
-      for (let i = 0; i < memory_footprint.values.length; i++) {
-        const value = memory_footprint.values[i];
-        const next = memory_footprint.values[i + 1] ?? value;
-        offset += (next.timestamp - value.timestamp) * 1e3;
-
-        values.push({
-          value: value.value,
-          elapsed: offset,
-        });
-      }
-
-      measures.push({
-        unit: memory_footprint.unit,
-        name: 'Heap Usage',
-        values,
-      });
+      measures.push(
+        formatProfileSeriesMeasurement({
+          name: 'Heap Usage',
+          measurement: memory_footprint,
+        })
+      );
     }
 
     const native_memory_footprint = profileGroup.measurements?.memory_native_footprint;
     if (native_memory_footprint) {
-      const values: ProfileSeriesMeasurement['values'] = [];
-
-      let offset = 0;
-      for (let i = 0; i < native_memory_footprint.values.length; i++) {
-        const value = native_memory_footprint.values[i];
-        const next = native_memory_footprint.values[i + 1] ?? value;
-        offset += (next.timestamp - value.timestamp) * 1e3;
-
-        values.push({
-          value: value.value,
-          elapsed: offset,
-        });
-      }
-
-      measures.push({
-        unit: native_memory_footprint.unit,
-        name: 'Native Heap Usage',
-        values,
-      });
+      measures.push(
+        formatProfileSeriesMeasurement({
+          name: 'Native Heap Usage',
+          measurement: native_memory_footprint,
+        })
+      );
     }
 
     return new FlamegraphChartModel(
@@ -597,7 +598,7 @@ export function ContinuousFlamegraph(): ReactElement {
           minWidth: flamegraph.profile.minFrameDuration,
           barHeight: flamegraphTheme.SIZES.BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
-          configSpaceTransform: getProfileOffset(profile, start),
+          configSpaceTransform: getProfileOffset(profile, configSpaceQueryParam[0]),
         },
       });
 
@@ -673,7 +674,14 @@ export function ContinuousFlamegraph(): ReactElement {
 
     // We skip position.view dependency because it will go into an infinite loop
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [flamegraph, flamegraphCanvas, flamegraphTheme, profile, segment, start]
+    [
+      flamegraph,
+      flamegraphCanvas,
+      flamegraphTheme,
+      profile,
+      segment,
+      configSpaceQueryParam,
+    ]
   );
 
   const uiFramesView = useMemoWithPrevious<CanvasView<UIFrames> | null>(
@@ -691,7 +699,7 @@ export function ContinuousFlamegraph(): ReactElement {
           minWidth: uiFrames.minFrameDuration,
           barHeight: 10,
           depthOffset: 0,
-          configSpaceTransform: getProfileOffset(profile, start),
+          configSpaceTransform: getProfileOffset(profile, configSpaceQueryParam[0]),
         },
       });
 
@@ -703,7 +711,14 @@ export function ContinuousFlamegraph(): ReactElement {
 
       return newView;
     },
-    [flamegraphView, flamegraphCanvas, flamegraph, uiFrames, profile, start]
+    [
+      flamegraphView,
+      flamegraphCanvas,
+      flamegraph,
+      uiFrames,
+      profile,
+      configSpaceQueryParam,
+    ]
   );
 
   const batteryChartView = useMemoWithPrevious<CanvasView<FlamegraphChartModel> | null>(
@@ -725,7 +740,7 @@ export function ContinuousFlamegraph(): ReactElement {
           depthOffset: 0,
           maxHeight: batteryChart.configSpace.height,
           minHeight: batteryChart.configSpace.height,
-          configSpaceTransform: getProfileOffset(profile, start),
+          configSpaceTransform: getProfileOffset(profile, configSpaceQueryParam[0]),
         },
       });
 
@@ -747,7 +762,7 @@ export function ContinuousFlamegraph(): ReactElement {
       uiFrames.minFrameDuration,
       batteryChartCanvas,
       profile,
-      start,
+      configSpaceQueryParam,
     ]
   );
 
@@ -770,7 +785,7 @@ export function ContinuousFlamegraph(): ReactElement {
           depthOffset: 0,
           maxHeight: CPUChart.configSpace.height,
           minHeight: CPUChart.configSpace.height,
-          configSpaceTransform: getProfileOffset(profile, start),
+          configSpaceTransform: getProfileOffset(profile, configSpaceQueryParam[0]),
         },
       });
 
@@ -792,7 +807,7 @@ export function ContinuousFlamegraph(): ReactElement {
       uiFrames.minFrameDuration,
       cpuChartCanvas,
       profile,
-      start,
+      configSpaceQueryParam,
     ]
   );
 
@@ -815,7 +830,7 @@ export function ContinuousFlamegraph(): ReactElement {
           depthOffset: 0,
           maxHeight: memoryChart.configSpace.height,
           minHeight: memoryChart.configSpace.height,
-          configSpaceTransform: getProfileOffset(profile, start),
+          configSpaceTransform: getProfileOffset(profile, configSpaceQueryParam[0]),
         },
       });
 
@@ -837,7 +852,7 @@ export function ContinuousFlamegraph(): ReactElement {
       uiFrames.minFrameDuration,
       memoryChartCanvas,
       profile,
-      start,
+      configSpaceQueryParam,
     ]
   );
 
@@ -857,7 +872,8 @@ export function ContinuousFlamegraph(): ReactElement {
           depthOffset: flamegraphTheme.SIZES.SPANS_DEPTH_OFFSET,
           configSpaceTransform: getTransactionOffset(
             segment.type === 'resolved' ? segment.data : null,
-            start
+            profileTimestamp,
+            configSpaceQueryParam[0]
           ),
         },
       });
@@ -870,7 +886,15 @@ export function ContinuousFlamegraph(): ReactElement {
 
       return newView;
     },
-    [spanChart, spansCanvas, flamegraphView, flamegraphTheme.SIZES, start, segment]
+    [
+      spanChart,
+      spansCanvas,
+      flamegraphView,
+      flamegraphTheme.SIZES,
+      profileTimestamp,
+      configSpaceQueryParam,
+      segment,
+    ]
   );
 
   // We want to make sure that the views have the same min zoom levels so that
@@ -1170,18 +1194,13 @@ export function ContinuousFlamegraph(): ReactElement {
     return [spansCanvasRef];
   }, [spansCanvasRef]);
 
-  const spansCanvasBounds = useResizeCanvasObserver(
-    spansCanvases,
-    canvasPoolManager,
-    spansCanvas,
-    spansView
-  );
+  useResizeCanvasObserver(spansCanvases, canvasPoolManager, spansCanvas, spansView);
 
   const uiFramesCanvases = useMemo(() => {
     return [uiFramesCanvasRef];
   }, [uiFramesCanvasRef]);
 
-  const uiFramesCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     uiFramesCanvases,
     canvasPoolManager,
     uiFramesCanvas,
@@ -1192,7 +1211,7 @@ export function ContinuousFlamegraph(): ReactElement {
     return [batteryChartCanvasRef];
   }, [batteryChartCanvasRef]);
 
-  const batteryChartCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     batteryChartCanvases,
     canvasPoolManager,
     batteryChartCanvas,
@@ -1203,7 +1222,7 @@ export function ContinuousFlamegraph(): ReactElement {
     return [cpuChartCanvasRef];
   }, [cpuChartCanvasRef]);
 
-  const cpuChartCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     cpuChartCanvases,
     canvasPoolManager,
     cpuChartCanvas,
@@ -1213,7 +1232,8 @@ export function ContinuousFlamegraph(): ReactElement {
   const memoryChartCanvases = useMemo(() => {
     return [memoryChartCanvasRef];
   }, [memoryChartCanvasRef]);
-  const memoryChartCanvasBounds = useResizeCanvasObserver(
+
+  useResizeCanvasObserver(
     memoryChartCanvases,
     canvasPoolManager,
     memoryChartCanvas,
@@ -1224,7 +1244,7 @@ export function ContinuousFlamegraph(): ReactElement {
     return [flamegraphCanvasRef, flamegraphOverlayCanvasRef];
   }, [flamegraphCanvasRef, flamegraphOverlayCanvasRef]);
 
-  const flamegraphCanvasBounds = useResizeCanvasObserver(
+  useResizeCanvasObserver(
     flamegraphCanvases,
     canvasPoolManager,
     flamegraphCanvas,
@@ -1427,7 +1447,6 @@ export function ContinuousFlamegraph(): ReactElement {
           hasUIFrames ? (
             <FlamegraphUIFrames
               status={profiles.type}
-              canvasBounds={uiFramesCanvasBounds}
               canvasPoolManager={canvasPoolManager}
               setUIFramesCanvasRef={setUIFramesCanvasRef}
               uiFramesCanvasRef={uiFramesCanvasRef}
@@ -1440,12 +1459,11 @@ export function ContinuousFlamegraph(): ReactElement {
         batteryChart={
           hasBatteryChart ? (
             <FlamegraphChart
-              configViewUnit={flamegraph.profile.unit as ProfilingFormatterUnit}
+              configViewUnit={flamegraph.profile.unit}
               status={profiles.type}
               chartCanvasRef={batteryChartCanvasRef}
               chartCanvas={batteryChartCanvas}
               setChartCanvasRef={setBatteryChartCanvasRef}
-              canvasBounds={batteryChartCanvasBounds}
               chartView={batteryChartView}
               canvasPoolManager={canvasPoolManager}
               chart={batteryChart}
@@ -1462,12 +1480,11 @@ export function ContinuousFlamegraph(): ReactElement {
         memoryChart={
           hasMemoryChart ? (
             <FlamegraphChart
-              configViewUnit={flamegraph.profile.unit as ProfilingFormatterUnit}
+              configViewUnit={flamegraph.profile.unit}
               status={profiles.type}
               chartCanvasRef={memoryChartCanvasRef}
               chartCanvas={memoryChartCanvas}
               setChartCanvasRef={setMemoryChartCanvasRef}
-              canvasBounds={memoryChartCanvasBounds}
               chartView={memoryChartView}
               canvasPoolManager={canvasPoolManager}
               chart={memoryChart}
@@ -1488,12 +1505,11 @@ export function ContinuousFlamegraph(): ReactElement {
         cpuChart={
           hasCPUChart ? (
             <FlamegraphChart
-              configViewUnit={flamegraph.profile.unit as ProfilingFormatterUnit}
+              configViewUnit={flamegraph.profile.unit}
               status={profiles.type}
               chartCanvasRef={cpuChartCanvasRef}
               chartCanvas={cpuChartCanvas}
               setChartCanvasRef={setCpuChartCanvasRef}
-              canvasBounds={cpuChartCanvasBounds}
               chartView={cpuChartView}
               canvasPoolManager={canvasPoolManager}
               chart={CPUChart}
@@ -1515,7 +1531,6 @@ export function ContinuousFlamegraph(): ReactElement {
         spans={
           spanChart ? (
             <FlamegraphSpans
-              canvasBounds={spansCanvasBounds}
               spanChart={spanChart}
               spansCanvas={spansCanvas}
               spansCanvasRef={spansCanvasRef}
@@ -1540,10 +1555,14 @@ export function ContinuousFlamegraph(): ReactElement {
         }
         flamegraph={
           <Fragment>
-            <FlamegraphWarnings flamegraph={flamegraph} requestState={profiles} />
+            <FlamegraphWarnings
+              flamegraph={flamegraph}
+              requestState={profiles}
+              filter={null}
+            />
             <FlamegraphZoomView
+              scheduler={scheduler}
               profileGroup={profileGroup}
-              canvasBounds={flamegraphCanvasBounds}
               canvasPoolManager={canvasPoolManager}
               flamegraph={flamegraph}
               flamegraphRenderer={flamegraphRenderer}
@@ -1573,4 +1592,35 @@ export function ContinuousFlamegraph(): ReactElement {
       />
     </Fragment>
   );
+}
+
+function formatProfileSeriesMeasurement({
+  measurement,
+  name,
+  unit,
+  valueFormatter,
+}: {
+  measurement: Profiling.Measurement;
+  name: string;
+  unit?: string;
+  valueFormatter?: (value: number) => number;
+}): ProfileSeriesMeasurement {
+  const values: ProfileSeriesMeasurement['values'] = [];
+  let offset = 0;
+  for (let i = 0; i < measurement.values.length; i++) {
+    const value = measurement.values[i]!;
+    const next = measurement.values[i + 1] ?? value;
+    const offsetNanoseconds = next.elapsed_since_start_ns - value.elapsed_since_start_ns;
+    offset += offsetNanoseconds / 1e6;
+
+    values.push({
+      value: valueFormatter ? valueFormatter(value.value) : value.value,
+      elapsed: offset,
+    });
+  }
+  return {
+    name,
+    unit: unit ?? measurement?.unit,
+    values,
+  };
 }

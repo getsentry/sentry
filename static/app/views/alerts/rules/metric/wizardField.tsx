@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
@@ -10,26 +10,28 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
-import {
-  hasCustomMetrics,
-  hasCustomMetricsExtractionRules,
-} from 'sentry/utils/metrics/features';
-import MriField from 'sentry/views/alerts/rules/metric/mriField';
-import SpanMetricField from 'sentry/views/alerts/rules/metric/spanMetricsField';
-import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import EAPField from 'sentry/views/alerts/rules/metric/eapField';
+import type {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {isEapAlertType} from 'sentry/views/alerts/rules/utils';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {
   AlertWizardAlertNames,
   AlertWizardRuleTemplates,
+  DEPRECATED_TRANSACTION_ALERTS,
 } from 'sentry/views/alerts/wizard/options';
+import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+import {
+  deprecateTransactionAlerts,
+  hasEAPAlerts,
+} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import {getFieldOptionConfig} from './metricField';
 
-type MenuOption = {label: string; value: AlertType};
-type GroupedMenuOption = {label: string; options: Array<MenuOption>};
+type MenuOption = {label: React.ReactNode; value: AlertType};
+type GroupedMenuOption = {label: string; options: MenuOption[]};
 
 type Props = Omit<FormFieldProps, 'children'> & {
   organization: Organization;
@@ -39,7 +41,9 @@ type Props = Omit<FormFieldProps, 'children'> & {
    * Optionally set a width for each column of selector
    */
   columnWidth?: number;
+  eventTypes?: EventTypes[];
   inFieldLabels?: boolean;
+  isEditing?: boolean;
 };
 
 export default function WizardField({
@@ -47,9 +51,65 @@ export default function WizardField({
   columnWidth,
   inFieldLabels,
   alertType,
-  project,
+  eventTypes,
   ...fieldProps
 }: Props) {
+  const isDeprecatedTransactionAlertType =
+    alertType &&
+    deprecateTransactionAlerts(organization) &&
+    DEPRECATED_TRANSACTION_ALERTS.includes(alertType) &&
+    hasEAPAlerts(organization);
+
+  const deprecatedTransactionAggregationOptions: MenuOption[] = [
+    {
+      label: AlertWizardAlertNames.throughput,
+      value: 'throughput',
+    },
+    {
+      label: AlertWizardAlertNames.trans_duration,
+      value: 'trans_duration',
+    },
+    {
+      label: AlertWizardAlertNames.apdex,
+      value: 'apdex',
+    },
+    {
+      label: AlertWizardAlertNames.failure_rate,
+      value: 'failure_rate',
+    },
+    {
+      label: AlertWizardAlertNames.lcp,
+      value: 'lcp',
+    },
+    {
+      label: AlertWizardAlertNames.fid,
+      value: 'fid',
+    },
+    {
+      label: AlertWizardAlertNames.cls,
+      value: 'cls',
+    },
+  ];
+
+  const traceItemAggregationOptions: MenuOption[] = [
+    {
+      label: AlertWizardAlertNames.trace_item_throughput,
+      value: 'trace_item_throughput',
+    },
+    {
+      label: AlertWizardAlertNames.trace_item_duration,
+      value: 'trace_item_duration',
+    },
+    {
+      label: AlertWizardAlertNames.trace_item_failure_rate,
+      value: 'trace_item_failure_rate',
+    },
+    {
+      label: AlertWizardAlertNames.trace_item_lcp,
+      value: 'trace_item_lcp',
+    },
+  ];
+
   const menuOptions: GroupedMenuOption[] = [
     {
       label: t('ERRORS'),
@@ -84,81 +144,69 @@ export default function WizardField({
     {
       label: t('PERFORMANCE'),
       options: [
-        {
-          label: AlertWizardAlertNames.throughput,
-          value: 'throughput',
-        },
-        {
-          label: AlertWizardAlertNames.trans_duration,
-          value: 'trans_duration',
-        },
-        {
-          label: AlertWizardAlertNames.apdex,
-          value: 'apdex',
-        },
-        {
-          label: AlertWizardAlertNames.failure_rate,
-          value: 'failure_rate',
-        },
-        {
-          label: AlertWizardAlertNames.lcp,
-          value: 'lcp',
-        },
-        {
-          label: AlertWizardAlertNames.fid,
-          value: 'fid',
-        },
-        {
-          label: AlertWizardAlertNames.cls,
-          value: 'cls',
-        },
-        ...(hasCustomMetrics(organization)
+        ...(deprecateTransactionAlerts(organization)
+          ? traceItemAggregationOptions
+          : deprecatedTransactionAggregationOptions),
+
+        ...(hasEAPAlerts(organization)
           ? [
               {
-                label: AlertWizardAlertNames.custom_transactions,
-                value: 'custom_transactions' as const,
+                label: AlertWizardAlertNames.eap_metrics,
+                value: 'eap_metrics' as const,
+              },
+            ]
+          : []),
+
+        ...(fieldProps.isEditing && isDeprecatedTransactionAlertType
+          ? [
+              {
+                label: AlertWizardAlertNames[alertType],
+                value: alertType,
               },
             ]
           : []),
       ],
     },
-    {
-      label: hasCustomMetrics(organization) ? t('METRICS') : t('CUSTOM'),
-      options: [
-        hasCustomMetrics(organization)
-          ? {
-              label: AlertWizardAlertNames.custom_metrics,
-              value: 'custom_metrics',
-            }
-          : {
-              label: AlertWizardAlertNames.custom_transactions,
-              value: 'custom_transactions',
-            },
-        ...(hasCustomMetricsExtractionRules(organization)
-          ? [
+    ...(hasLogAlerts(organization)
+      ? [
+          {
+            label: t('LOGS'),
+            options: [
               {
-                label: AlertWizardAlertNames.span_metrics,
-                value: 'span_metrics' as const,
+                label: AlertWizardAlertNames.trace_item_logs,
+                value: 'trace_item_logs' as const,
               },
-            ]
-          : []),
+            ],
+          },
+        ]
+      : []),
+    {
+      label: t('CUSTOM'),
+      options: [
+        {
+          label: AlertWizardAlertNames.custom_transactions,
+          value: 'custom_transactions',
+        },
       ],
     },
   ];
 
   return (
-    <StyledFormField alertType={alertType} {...fieldProps}>
-      {({onChange, model, disabled}) => {
+    <FormField {...fieldProps}>
+      {({onChange, model, disabled, isEditing, disabledReason}: any) => {
         const aggregate = model.getValue('aggregate');
         const dataset: Dataset = model.getValue('dataset');
-        const selectedTemplate: AlertType = alertType || 'custom_metrics';
+        const selectedTemplate: AlertType = alertType || 'eap_metrics';
 
         const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
           getFieldOptionConfig({
-            dataset: dataset as Dataset,
+            dataset,
             alertType,
           });
-        const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
+        const fieldOptions = generateFieldOptions({
+          organization,
+          ...fieldOptionsConfig,
+        });
         const fieldValue = getFieldValue(aggregate ?? '', model);
 
         const fieldKey =
@@ -180,11 +228,13 @@ export default function WizardField({
 
         return (
           <Container alertType={alertType} hideGap={gridColumns < 1}>
-            <SelectControl
+            <Select
               value={selectedTemplate}
               options={menuOptions}
-              disabled={disabled}
+              disabled={disabled || (isEditing && isDeprecatedTransactionAlertType)}
+              disabledReason={disabledReason}
               onChange={(option: MenuOption) => {
+                // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                 const template = AlertWizardRuleTemplates[option.value];
 
                 model.setValue('aggregate', template.aggregate);
@@ -194,17 +244,13 @@ export default function WizardField({
                 model.setValue('alertType', option.value);
               }}
             />
-            {alertType === 'custom_metrics' ? (
-              <MriField
-                project={project}
+            {isEapAlertType(alertType) ? (
+              <EAPField
                 aggregate={aggregate}
-                onChange={newAggregate => onChange(newAggregate, {})}
-              />
-            ) : alertType === 'span_metrics' ? (
-              <SpanMetricField
-                project={project}
-                field={aggregate}
-                onChange={newAggregate => onChange(newAggregate, {})}
+                eventTypes={eventTypes ?? []}
+                onChange={newAggregate => {
+                  return onChange(newAggregate, {});
+                }}
               />
             ) : (
               <StyledQueryField
@@ -218,7 +264,7 @@ export default function WizardField({
                 gridColumns={gridColumns}
                 inFieldLabels={inFieldLabels}
                 shouldRenderTag={false}
-                disabled={disabled}
+                disabled={disabled || (isEditing && isDeprecatedTransactionAlertType)}
                 hideParameterSelector={hideParameterSelector}
                 hidePrimarySelector={hidePrimarySelector}
               />
@@ -226,13 +272,13 @@ export default function WizardField({
           </Container>
         );
       }}
-    </StyledFormField>
+    </FormField>
   );
 }
 
 // swaps out custom percentile values for known percentiles, used while we fade out custom percentiles in metric alerts
 // TODO(telemetry-experience): remove once we migrate all custom percentile alerts
-const getFieldValue = (aggregate: string | undefined, model) => {
+const getFieldValue = (aggregate: string | undefined, model: any) => {
   const fieldValue = explodeFieldString(aggregate ?? '');
 
   if (fieldValue?.kind !== FieldValueKind.FUNCTION) {
@@ -280,27 +326,10 @@ const getApproximateKnownPercentile = (customPercentile: string) => {
   return 'p100';
 };
 
-// Need to overwrite some styles with important as they are applied via inline styles from the parent
-const StyledFormField = styled(FormField)<{alertType?: AlertType}>`
-  ${p =>
-    p.alertType === 'span_metrics' &&
-    `flex-basis: 100% !important;
-  flex-grow: 0 !important;
-  min-width: 0px;
-  max-width: fit-content;
-  `}
-`;
-
 const Container = styled('div')<{hideGap: boolean; alertType?: AlertType}>`
   display: grid;
   gap: ${p => (p.hideGap ? 0 : space(1))};
   grid-template-columns: 1fr auto;
-
-  ${p =>
-    p.alertType === 'span_metrics' &&
-    `grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-    max-width: 790px;
-    `}
 `;
 
 const StyledQueryField = styled(QueryField)<{gridColumns: number; columnWidth?: number}>`

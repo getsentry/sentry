@@ -4,7 +4,7 @@ import zoneinfo
 from datetime import datetime
 from typing import cast
 
-from croniter import croniter
+from cronsim import CronSim
 from dateutil import rrule
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -55,9 +55,8 @@ class OrganizationMonitorScheduleSampleDataEndpoint(OrganizationEndpoint):
         reference_ts = datetime.now(tz=tz).replace(minute=0, second=0, microsecond=0)
         ticks: list[datetime] = []
         if schedule_type == ScheduleType.CRONTAB:
-            iterator = croniter(schedule, reference_ts)
-            while len(ticks) < num_ticks:
-                ticks.append(iterator.get_next(datetime))
+            schedule_iter = CronSim(schedule, reference_ts)
+            ticks = [next(schedule_iter) for _ in range(num_ticks)]
 
         elif schedule_type == ScheduleType.INTERVAL:
             rule = rrule.rrule(

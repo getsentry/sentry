@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -30,7 +30,7 @@ function ProjectSecurityHeaders() {
 
   const {
     data: keyList,
-    isLoading,
+    isPending,
     isError,
     refetch,
   } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectId}/keys/`], {
@@ -55,7 +55,7 @@ function ProjectSecurityHeaders() {
     [routes, params]
   );
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -66,11 +66,11 @@ function ProjectSecurityHeaders() {
   return (
     <div>
       <SentryDocumentTitle
-        title={routeTitleGen(t('Security Headers'), projectId, false)}
+        title={routeTitleGen(t('Security Headers'), projectId!, false)}
       />
       <SettingsPageHeader title={t('Security Header Reports')} />
 
-      <ReportUri keyList={keyList} projectId={projectId} orgId={organization.slug} />
+      <ReportUri keyList={keyList} projectId={projectId!} orgId={organization.slug} />
 
       <Panel>
         <PanelHeader>{t('Additional Configuration')}</PanelHeader>

@@ -5,7 +5,7 @@ from django.urls import reverse
 
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
-from sentry.testutils.helpers.datetime import freeze_time, iso_format
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.samples import load_data
 
 pytestmark = [pytest.mark.sentry_metrics]
@@ -13,7 +13,7 @@ pytestmark = [pytest.mark.sentry_metrics]
 
 @freeze_time(MetricsAPIBaseTestCase.MOCK_DATETIME)
 class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.org = self.create_organization(owner=self.user)
@@ -44,7 +44,6 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
         project_id,
         start_timestamp,
         duration,
-        transaction_id=None,
     ):
         timestamp = start_timestamp + timedelta(milliseconds=duration)
 
@@ -56,13 +55,11 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
             start_timestamp=start_timestamp,
             timestamp=timestamp,
         )
-        if transaction_id is not None:
-            data["event_id"] = transaction_id
         data["transaction"] = transaction
         data["contexts"]["trace"]["parent_span_id"] = parent_span_id
         return self.store_event(data, project_id=project_id)
 
-    def test_transaction_name_required(self):
+    def test_transaction_name_required(self) -> None:
         response = self.client.get(
             self.url,
             format="json",
@@ -74,7 +71,7 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
 
         assert response.status_code == 400, response.content
 
-    def test_project_id_required(self):
+    def test_project_id_required(self) -> None:
         response = self.client.get(
             self.url,
             format="json",
@@ -85,7 +82,7 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
 
         assert response.status_code == 400, response.content
 
-    def test_breakpoint_required(self):
+    def test_breakpoint_required(self) -> None:
         response = self.client.get(
             self.url,
             format="json",
@@ -94,7 +91,7 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
 
         assert response.status_code == 400, response.content
 
-    def test_transaction_must_exist(self):
+    def test_transaction_must_exist(self) -> None:
         response = self.client.get(
             self.url,
             format="json",
@@ -124,7 +121,7 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
         assert response.status_code == 400, response.content
 
     # TODO: Enable this test when adding a serializer to handle validation
-    # def test_breakpoint_must_be_in_the_past(self):
+    # def test_breakpoint_must_be_in_the_past(self) -> None:
     #     response = self.client.get(
     #         self.url,
     #         format="json",
@@ -137,13 +134,13 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
 
     #     assert response.status_code == 400, response.content
 
-    def test_returns_change_data_for_regressed_spans(self):
+    def test_returns_change_data_for_regressed_spans(self) -> None:
         before_timestamp = self.now - timedelta(days=2)
         before_span = {
             "parent_span_id": "a" * 16,
             "span_id": "e" * 16,
-            "start_timestamp": iso_format(before_timestamp),
-            "timestamp": iso_format(before_timestamp),
+            "start_timestamp": before_timestamp.isoformat(),
+            "timestamp": before_timestamp.isoformat(),
             "op": "django.middleware",
             "description": "middleware span",
             "exclusive_time": 60.0,
@@ -182,8 +179,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 {
                     "parent_span_id": "e" * 16,
                     "span_id": "f" * 16,
-                    "start_timestamp": iso_format(after_timestamp),
-                    "timestamp": iso_format(after_timestamp),
+                    "start_timestamp": after_timestamp.isoformat(),
+                    "timestamp": after_timestamp.isoformat(),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "exclusive_time": 40.0,
@@ -191,8 +188,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 {
                     "parent_span_id": "1" * 16,
                     "span_id": "2" * 16,
-                    "start_timestamp": iso_format(after_timestamp),
-                    "timestamp": iso_format(after_timestamp),
+                    "start_timestamp": after_timestamp.isoformat(),
+                    "timestamp": after_timestamp.isoformat(),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "exclusive_time": 600.0,
@@ -200,8 +197,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 {
                     "parent_span_id": "1" * 16,
                     "span_id": "3" * 16,
-                    "start_timestamp": iso_format(after_timestamp),
-                    "timestamp": iso_format(after_timestamp),
+                    "start_timestamp": after_timestamp.isoformat(),
+                    "timestamp": after_timestamp.isoformat(),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "exclusive_time": 60.0,
@@ -251,7 +248,7 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
             },
         ]
 
-    def test_results_are_limited(self):
+    def test_results_are_limited(self) -> None:
         # Before
         self.create_transaction(
             transaction="foo",
@@ -262,8 +259,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 {
                     "parent_span_id": "a" * 16,
                     "span_id": "e" * 16,
-                    "start_timestamp": iso_format(self.now - timedelta(days=2)),
-                    "timestamp": iso_format(self.now - timedelta(days=2)),
+                    "start_timestamp": (self.now - timedelta(days=2)).isoformat(),
+                    "timestamp": (self.now - timedelta(days=2)).isoformat(),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "exclusive_time": 60.0,
@@ -284,8 +281,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 {
                     "parent_span_id": "a" * 16,
                     "span_id": "e" * 16,
-                    "start_timestamp": iso_format(self.now - timedelta(hours=1)),
-                    "timestamp": iso_format(self.now - timedelta(hours=1)),
+                    "start_timestamp": (self.now - timedelta(hours=1)).isoformat(),
+                    "timestamp": (self.now - timedelta(hours=1)).isoformat(),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "exclusive_time": 100.0,
@@ -293,8 +290,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 {
                     "parent_span_id": "a" * 16,
                     "span_id": "f" * 16,
-                    "start_timestamp": iso_format(self.now - timedelta(hours=1)),
-                    "timestamp": iso_format(self.now - timedelta(hours=1)),
+                    "start_timestamp": (self.now - timedelta(hours=1)).isoformat(),
+                    "timestamp": (self.now - timedelta(hours=1)).isoformat(),
                     "op": "db",
                     "description": "db",
                     "exclusive_time": 10000.0,
@@ -333,7 +330,7 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
             }
         ]
 
-    def test_analysis_leaves_a_buffer_around_breakpoint_to_ignore_mixed_transactions(self):
+    def test_analysis_leaves_a_buffer_around_breakpoint_to_ignore_mixed_transactions(self) -> None:
         breakpoint_timestamp = self.now - timedelta(days=1)
         before_timestamp = breakpoint_timestamp - timedelta(hours=1)
         after_timestamp = breakpoint_timestamp + timedelta(hours=1)
@@ -348,8 +345,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 {
                     "parent_span_id": "a" * 16,
                     "span_id": "e" * 16,
-                    "start_timestamp": iso_format(before_timestamp),
-                    "timestamp": iso_format(before_timestamp),
+                    "start_timestamp": before_timestamp.isoformat(),
+                    "timestamp": before_timestamp.isoformat(),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "exclusive_time": 60.0,
@@ -370,8 +367,8 @@ class OrganizationRootCauseAnalysisTest(MetricsAPIBaseTestCase):
                 {
                     "parent_span_id": "a" * 16,
                     "span_id": "e" * 16,
-                    "start_timestamp": iso_format(after_timestamp),
-                    "timestamp": iso_format(after_timestamp),
+                    "start_timestamp": after_timestamp.isoformat(),
+                    "timestamp": after_timestamp.isoformat(),
                     "op": "django.middleware",
                     "description": "middleware span",
                     "exclusive_time": 100.0,

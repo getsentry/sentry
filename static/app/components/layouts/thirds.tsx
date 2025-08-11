@@ -1,6 +1,7 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import NavTabs from 'sentry/components/navTabs';
+import {Tabs} from 'sentry/components/core/tabs';
 import {space} from 'sentry/styles/space';
 
 /**
@@ -22,16 +23,35 @@ export const Page = styled('main')<{withPadding?: boolean}>`
  *
  * Use `noActionWrap` to disable wrapping if there are minimal actions.
  */
-export const Header = styled('header')<{noActionWrap?: boolean}>`
+export const Header = styled('header')<{
+  borderStyle?: 'dashed' | 'solid';
+  noActionWrap?: boolean;
+  /**
+   * Whether to use the unified header variant. Unified headers have the
+   * same background color as the main content area and no border, thus
+   * "unifying" the two areas.
+   */
+  unified?: boolean;
+}>`
   display: grid;
   grid-template-columns: ${p =>
-    !p.noActionWrap ? 'minmax(0, 1fr)' : 'minmax(0, 1fr) auto'};
+    p.noActionWrap ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'};
 
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  background-color: transparent;
-  border-bottom: 1px solid ${p => p.theme.border};
+  background-color: ${p =>
+    p.theme.isChonk
+      ? p.theme.background
+      : p.unified
+        ? p.theme.background
+        : 'transparent'};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  ${p =>
+    !p.unified &&
+    css`
+      border-bottom: 1px ${p.borderStyle ?? 'solid'} ${p.theme.border};
+    `}
+
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(2)} ${space(4)} 0 ${space(4)};
     grid-template-columns: minmax(0, 1fr) auto;
   }
@@ -41,17 +61,18 @@ export const Header = styled('header')<{noActionWrap?: boolean}>`
  * Use HeaderContent to create horizontal regions in the header
  * that contain a heading/breadcrumbs and a button group.
  */
-export const HeaderContent = styled('div')`
+export const HeaderContent = styled('div')<{unified?: boolean}>`
   display: flex;
   flex-direction: column;
   justify-content: normal;
-  margin-bottom: ${space(2)};
-  overflow: hidden;
+  margin-bottom: ${space(1)};
   max-width: 100%;
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    margin-bottom: ${space(1)};
-  }
+  ${p =>
+    p.unified &&
+    css`
+      margin-bottom: 0;
+    `}
 `;
 
 /**
@@ -65,7 +86,7 @@ export const HeaderActions = styled('div')`
   min-width: max-content;
   margin-top: ${space(0.25)};
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     width: max-content;
     margin-bottom: ${space(2)};
   }
@@ -79,9 +100,11 @@ export const HeaderActions = styled('div')`
  */
 export const Title = styled('h1')<{withMargins?: boolean}>`
   ${p => p.theme.overflowEllipsis};
-  ${p => p.theme.text.pageTitle};
-  color: ${p => p.theme.headingColor};
+  font-size: 1.625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   margin: 0;
+  color: ${p => p.theme.headingColor};
   margin-bottom: ${p => p.withMargins && space(3)};
   margin-top: ${p => p.withMargins && space(1)};
   line-height: 40px;
@@ -92,27 +115,11 @@ export const Title = styled('h1')<{withMargins?: boolean}>`
 `;
 
 /**
- * Styled Nav Tabs for use inside a Layout.Header component
+ * Styled Tabs for use inside a Layout.Header component
  */
-export const HeaderNavTabs = styled(NavTabs)`
-  margin: 0;
-  border-bottom: 0 !important;
-
-  & > li {
-    margin-right: ${space(3)};
-  }
-  & > li > a {
-    display: flex;
-    align-items: center;
-    height: 1.25rem;
-    padding: ${space(1)} 0;
-    margin-bottom: 4px;
-    box-sizing: content-box;
-  }
-  & > li.active > a {
-    margin-bottom: 0;
-  }
-`;
+export const HeaderTabs = styled(Tabs)`
+  grid-column: 1 / -1;
+` as typeof Tabs;
 
 /**
  * Base container for 66/33 containers.
@@ -123,16 +130,15 @@ export const Body = styled('div')<{noRowGap?: boolean}>`
   background-color: ${p => p.theme.background};
   flex-grow: 1;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${p =>
-      !p.noRowGap ? `${space(3)} ${space(4)}` : `${space(2)} ${space(4)}`};
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    padding: ${p => (p.noRowGap ? `${space(2)} ${space(4)}` : `${space(3)} ${space(4)}`)};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: grid;
     grid-template-columns: minmax(100px, auto) 325px;
     align-content: start;
-    gap: ${p => (!p.noRowGap ? `${space(3)}` : `0 ${space(3)}`)};
+    gap: ${p => (p.noRowGap ? `0 ${space(3)}` : `${space(3)}`)};
   }
 `;
 

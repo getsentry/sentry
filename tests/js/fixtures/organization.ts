@@ -2,9 +2,7 @@ import {OrgRoleListFixture, TeamRoleListFixture} from 'sentry-fixture/roleList';
 
 import type {Organization} from 'sentry/types/organization';
 
-export function OrganizationFixture( params: Partial<Organization> = {}): Organization {
-
-
+export function OrganizationFixture(params: Partial<Organization> = {}): Organization {
   const slug = params.slug ?? 'org-slug';
   return {
     id: '3',
@@ -33,16 +31,16 @@ export function OrganizationFixture( params: Partial<Organization> = {}): Organi
       id: 'active',
       name: 'active',
     },
-    experiments: {},
     scrapeJavaScript: true,
     features: [],
     onboardingTasks: [],
-    aiSuggestedSolution: false,
     alertsMemberWrite: false,
     allowJoinRequests: false,
+    allowMemberInvite: true,
     allowMemberProjectCreation: false,
+    allowSuperuserAccess: false,
     allowSharedIssues: false,
-    attachmentsRole: '',
+    attachmentsRole: 'member',
     availableRoles: [],
     avatar: {
       avatarType: 'default',
@@ -57,17 +55,19 @@ export function OrganizationFixture( params: Partial<Organization> = {}): Organi
     defaultRole: '',
     enhancedPrivacy: false,
     eventsMemberAdmin: false,
+    githubNudgeInvite: false,
     githubOpenPRBot: false,
     githubPRBot: false,
-    githubNudgeInvite: false,
-    issueAlertsThreadFlag: false,
-    metricAlertsThreadFlag: false,
+    gitlabPRBot: false,
+    hideAiFeatures: false,
     isDefault: false,
     isDynamicallySampled: true,
     isEarlyAdopter: false,
-    genAIConsent: false,
+    issueAlertsThreadFlag: false,
+    metricAlertsThreadFlag: false,
     openMembership: false,
     pendingAccessRequests: 0,
+    targetSampleRate: 1.0,
     quota: {
       accountLimit: null,
       maxRate: null,
@@ -77,12 +77,16 @@ export function OrganizationFixture( params: Partial<Organization> = {}): Organi
     relayPiiConfig: null,
     require2FA: false,
     requiresSso: false,
+    streamlineOnly: true,
     safeFields: [],
+    samplingMode: 'organization',
     scrubIPAddresses: false,
     sensitiveFields: [],
     aggregatedDataConsent: false,
+    enableSeerCoding: true,
     storeCrashReports: 0,
     trustedRelays: [],
+    defaultAutofixAutomationTuning: 'off',
     ...params,
 
     orgRoleList: OrgRoleListFixture(),

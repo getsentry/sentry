@@ -1,6 +1,8 @@
 from uuid import uuid4
 
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
+from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleStatus
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.commit import Commit
@@ -17,6 +19,7 @@ from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
@@ -24,16 +27,17 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import SnubaQuery
-from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
+from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Detector, Workflow
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
-    def test_simple(self):
+class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWorkflowTest):
+    def test_simple(self) -> None:
         org_owner = self.create_user()
         org = self.create_organization(name="test", owner=org_owner)
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -129,7 +133,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
             id__in=[widget_1_data.id, widget_2_data_1.id, widget_2_data_2.id]
         ).exists()
 
-    def test_no_delete_visible(self):
+    def test_no_delete_visible(self) -> None:
         org = self.create_organization(name="test")
         release = Release.objects.create(version="a" * 32, organization_id=org.id)
 
@@ -143,7 +147,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         assert Release.objects.filter(id=release.id).exists()
         assert not self.ScheduledDeletion.objects.filter(id=deletion.id).exists()
 
-    def test_large_child_relation_deletion(self):
+    def test_large_child_relation_deletion(self) -> None:
         org = self.create_organization(name="test")
         self.create_team(organization=org, name="test1")
         repo = Repository.objects.create(organization_id=org.id, name=org.name, provider="dummy")
@@ -170,7 +174,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         assert not Commit.objects.filter(organization_id=org.id).exists()
         assert not CommitAuthor.objects.filter(organization_id=org.id).exists()
 
-    def test_group_first_release(self):
+    def test_group_first_release(self) -> None:
         org = self.create_organization(name="test")
         project = self.create_project(organization=org)
         release = self.create_release(project=project, user=self.user, version="1.2.3")
@@ -188,7 +192,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         assert not Group.objects.filter(id=group.id).exists()
         assert not Organization.objects.filter(id=org.id).exists()
 
-    def test_orphan_commits(self):
+    def test_orphan_commits(self) -> None:
         # We have had a few orgs get into a state where they have commits
         # but no repositories. Ensure that we can proceed.
         org = self.create_organization(name="test")
@@ -214,7 +218,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         assert not Commit.objects.filter(id=commit.id).exists()
         assert not CommitAuthor.objects.filter(id=author.id).exists()
 
-    def test_alert_rule(self):
+    def test_alert_rule(self) -> None:
         org = self.create_organization(name="test", owner=self.user)
         self.create_team(organization=org, name="test1")
 
@@ -247,7 +251,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()
         assert not SnubaQuery.objects.filter(id=snuba_query.id).exists()
 
-    def test_discover_query_cleanup(self):
+    def test_discover_query_cleanup(self) -> None:
         org = self.create_organization(name="test", owner=self.user)
         self.create_team(organization=org, name="test1")
 
@@ -271,7 +275,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         assert not DiscoverSavedQuery.objects.filter(id=query.id).exists()
         assert not DiscoverSavedQueryProject.objects.filter(id=query_project.id).exists()
 
-    def test_delete_org_simple(self):
+    def test_delete_org_simple(self) -> None:
         name_filter = {"name": "test_delete_org_simple"}
         org = self.create_organization(**name_filter)
 
@@ -286,7 +290,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
 
         assert Organization.objects.filter(**name_filter).count() == 0
 
-    def test_delete_org_after_project_transfer(self):
+    def test_delete_org_after_project_transfer(self) -> None:
         from_org = self.create_organization(name="from_org")
         from_user = self.create_user()
         self.create_member(user=from_user, role="member", organization=from_org)
@@ -316,6 +320,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
 
         alert_rule.refresh_from_db()
         assert AlertRule.objects.fetch_for_project(project).count() == 1
+        assert alert_rule.snuba_query.environment is not None
         assert alert_rule.snuba_query.environment.id != environment.id
         assert (
             alert_rule.snuba_query.environment.name
@@ -362,3 +367,30 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
             .exclude(environment=None)
             .exists()
         )
+
+    def test_workflow_engine_cleanup(self) -> None:
+        org = self.create_organization(name="test")
+        project = self.create_project(organization=org)
+
+        dcg = self.create_data_condition_group(organization=org)
+        dc = self.create_data_condition(condition_group=dcg)
+
+        detector = self.create_detector(
+            project_id=project.id,
+            name="Test Detector",
+            type=MetricIssue.slug,
+            workflow_condition_group=dcg,
+        )
+        workflow = self.create_workflow(organization=org, name="Test Workflow")
+
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+        self.ScheduledDeletion.schedule(instance=org, days=0)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert not Project.objects.filter(id=project.id).exists()
+        assert not Detector.objects.filter(id=detector.id).exists()
+        assert not DataConditionGroup.objects.filter(id=dcg.id).exists()
+        assert not DataCondition.objects.filter(id=dc.id).exists()
+        assert not Workflow.objects.filter(id=workflow.id).exists()

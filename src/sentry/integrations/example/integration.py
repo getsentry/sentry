@@ -4,29 +4,35 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from django.http import HttpResponse
-from rest_framework.request import Request
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
-    IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.mixins import IssueSyncMixin, RepositoryMixin, ResolveSyncAction
+from sentry.integrations.mixins import ResolveSyncAction
+from sentry.integrations.mixins.issues import IssueSyncIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration.serial import serialize_integration
-from sentry.mediators.plugins.migrator import Migrator
+from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
+from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.repository import Repository
-from sentry.organizations.services.organization import RpcOrganizationSummary
-from sentry.pipeline import PipelineView
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.pipeline.views.base import PipelineView
+from sentry.plugins.migrator import Migrator
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
 
-class ExampleSetupView(PipelineView):
+class ExampleSetupView:
     TEMPLATE = """
         <form method="POST">
             <p>This is an example integration configuration page.</p>
@@ -36,7 +42,7 @@ class ExampleSetupView(PipelineView):
         </form>
     """
 
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if "name" in request.POST:
             pipeline.bind_state("name", request.POST["name"])
             return pipeline.next_step()
@@ -65,29 +71,36 @@ metadata = IntegrationMetadata(
 )
 
 
-class ExampleIntegration(IntegrationInstallation, IssueSyncMixin, RepositoryMixin):
+class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, IssueSyncIntegration):
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_outbound"
     inbound_status_key = "sync_status_inbound"
     outbound_assignee_key = "sync_assignee_outbound"
     inbound_assignee_key = "sync_assignee_inbound"
 
-    def get_issue_url(self, key: str) -> str:
+    @property
+    def integration_name(self) -> str:
+        return "example"
+
+    def get_client(self):
+        pass
+
+    def get_issue_url(self, key):
         return f"https://example/issues/{key}"
 
     def create_comment(self, issue_id, user_id, group_note):
         user = user_service.get_user(user_id)
+        assert user is not None
         attribution = f"{user.name} wrote:\n\n"
-        comment = {
+        return {
             "id": "123456789",
             "text": "{}<blockquote>{}</blockquote>".format(attribution, group_note.data["text"]),
         }
-        return comment
 
-    def get_persisted_default_config_fields(self) -> Sequence[str]:
+    def get_persisted_default_config_fields(self) -> list[str]:
         return ["project", "issueType"]
 
-    def get_persisted_user_default_config_fields(self):
+    def get_persisted_user_default_config_fields(self) -> list[str]:
         return ["assignedTo", "reportedBy"]
 
     def get_create_issue_config(self, group, user, **kwargs):
@@ -133,7 +146,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin, RepositoryMixi
             "description": "This is a test external issue description",
         }
 
-    def get_repositories(self, query=None):
+    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
         return [{"name": "repo", "identifier": "user/repo"}]
 
     def get_unmigratable_repositories(self):
@@ -148,7 +161,9 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin, RepositoryMixi
     ) -> None:
         pass
 
-    def sync_status_outbound(self, external_issue, is_resolved, project_id):
+    def sync_status_outbound(
+        self, external_issue: ExternalIssue, is_resolved: bool, project_id: int
+    ) -> None:
         pass
 
     def get_resolve_sync_action(self, data: Mapping[str, Any]) -> ResolveSyncAction:
@@ -162,12 +177,27 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin, RepositoryMixi
         return f"display name: {external_issue.key}"
 
     def get_stacktrace_link(
-        self, repo: Repository, filepath: str, default: str, version: str
+        self, repo: Repository, filepath: str, default: str, version: str | None
     ) -> str | None:
         pass
 
-    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+    def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         return f"https://example.com/{repo.name}/blob/{branch}/{filepath}"
+
+    def source_url_matches(self, url: str) -> bool:
+        return True
+
+    def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
+        return ""
+
+    def extract_source_path_from_source_url(self, repo: Repository, url: str) -> str:
+        return ""
+
+    def has_repo_access(self, repo: RpcRepository) -> bool:
+        return False
+
+    def search_issues(self, query: str | None, **kwargs):
+        return []
 
 
 class ExampleIntegrationProvider(IntegrationProvider):
@@ -189,7 +219,7 @@ class ExampleIntegrationProvider(IntegrationProvider):
         ]
     )
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         return [ExampleSetupView()]
 
     def get_config(self):
@@ -198,12 +228,13 @@ class ExampleIntegrationProvider(IntegrationProvider):
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
-        Migrator.run(integration=serialize_integration(integration), organization=organization)
+        Migrator(integration=serialize_integration(integration), organization=organization).run()
 
-    def build_integration(self, state):
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         return {"external_id": state["name"]}
 
     def setup(self):

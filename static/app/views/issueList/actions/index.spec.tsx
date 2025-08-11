@@ -3,15 +3,21 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
-import {DEFAULT_QUERY} from 'sentry/constants';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';
+import {DEFAULT_QUERY} from 'sentry/views/issueList/utils';
 
 const organization = OrganizationFixture();
 
@@ -32,11 +38,9 @@ const defaultProps = {
   statsPeriod: '24h',
   onDelete: jest.fn(),
   displayReprocessingActions: false,
-  onSortChange: jest.fn(),
-  sort: '',
 };
 
-function WrappedComponent(props) {
+function WrappedComponent(props: any) {
   return (
     <Fragment>
       <GlobalModal />
@@ -69,13 +73,6 @@ describe('IssueListActions', function () {
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
       });
 
-      it('can bulk select', async function () {
-        render(<WrappedComponent queryCount={1500} />);
-
-        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
-      });
-
       it('bulk resolves', async function () {
         const apiMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
@@ -85,7 +82,9 @@ describe('IssueListActions', function () {
         render(<WrappedComponent queryCount={1500} />);
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(
+          screen.getByText(/Select the first 1,000 issues that match this search query/)
+        );
 
         await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
@@ -113,7 +112,9 @@ describe('IssueListActions', function () {
         render(<WrappedComponent queryCount={1500} />);
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(
+          screen.getByText(/Select the first 1,000 issues that match this search query/)
+        );
         await userEvent.click(await screen.findByRole('button', {name: 'Set Priority'}));
         await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
 
@@ -146,7 +147,9 @@ describe('IssueListActions', function () {
         const checkbox = screen.getByRole('checkbox', {name: 'Select all'});
         await userEvent.click(checkbox);
         expect(checkbox).toBeChecked();
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(
+          screen.getByText(/Select all 15 issues that match this search query/)
+        );
       });
 
       it('bulk resolves', async function () {
@@ -159,7 +162,9 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(
+          screen.getByText(/Select all 15 issues that match this search query/)
+        );
 
         await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
@@ -308,11 +313,49 @@ describe('IssueListActions', function () {
 
     // Can resolve but not merge issues from multiple projects
     expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
-    await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-    expect(screen.getByRole('menuitemradio', {name: 'Merge'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
+    expect(screen.getByRole('button', {name: 'Merge'})).toBeDisabled();
+  });
+
+  it('sets the project ID when My Projects is selected', async function () {
+    jest
+      .spyOn(SelectedGroupStore, 'getSelectedIds')
+      .mockImplementation(() => new Set(['1']));
+    jest
+      .spyOn(GroupStore, 'get')
+      .mockImplementation(id =>
+        GroupFixture({id, project: ProjectFixture({id: '123', slug: 'project-1'})})
+      );
+
+    const apiMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      method: 'PUT',
+    });
+
+    render(
+      <WrappedComponent
+        selection={{
+          // No selected projects => My Projects
+          projects: [],
+          environments: [],
+          datetime: {start: null, end: null, period: null, utc: true},
+        }}
+      />
     );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
+
+    // API request should have project ID set to 123
+    await waitFor(() => {
+      expect(apiMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: {
+            id: ['1'],
+            project: ['123'],
+          },
+        })
+      );
+    });
   });
 
   describe('mark reviewed', function () {
@@ -360,19 +403,6 @@ describe('IssueListActions', function () {
     });
   });
 
-  describe('sort', function () {
-    it('calls onSortChange with new sort value', async function () {
-      const mockOnSortChange = jest.fn();
-      render(<WrappedComponent onSortChange={mockOnSortChange} />);
-
-      await userEvent.click(screen.getByRole('button', {name: 'Last Seen'}));
-
-      await userEvent.click(screen.getByText(/Number of events/));
-
-      expect(mockOnSortChange).toHaveBeenCalledWith('freq');
-    });
-  });
-
   describe('performance issues', function () {
     it('disables options that are not supported for performance issues', async () => {
       jest
@@ -397,14 +427,11 @@ describe('IssueListActions', function () {
       expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
       expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
 
+      // Merge is not supported and should be disabled
+      expect(screen.getByRole('button', {name: 'Merge'})).toBeDisabled();
+
       // Open overflow menu
       await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-
-      // Merge is not supported and should be disabled
-      expect(screen.getByRole('menuitemradio', {name: 'Merge'})).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
 
       // 'Add to Bookmarks' is supported
       expect(
@@ -418,9 +445,30 @@ describe('IssueListActions', function () {
       );
     });
 
+    it('disables delete if user does not have permission to delete issues', async () => {
+      jest
+        .spyOn(SelectedGroupStore, 'getSelectedIds')
+        .mockImplementation(() => new Set(['1', '2']));
+      jest.spyOn(GroupStore, 'get').mockImplementation(id => {
+        return GroupFixture({id});
+      });
+
+      render(<WrappedComponent />);
+
+      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+      expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toHaveTextContent(
+        'You do not have permission to delete issues'
+      );
+    });
+
     describe('bulk action performance issues', function () {
       const orgWithPerformanceIssues = OrganizationFixture({
         features: ['performance-issues'],
+        access: ['event:admin'],
       });
 
       it('silently filters out performance issues when bulk deleting', async function () {
@@ -439,7 +487,9 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(
+          screen.getByText(/Select all 100 issues that match this search query/)
+        );
 
         await userEvent.click(
           await screen.findByRole('button', {name: 'More issue actions'})
@@ -487,13 +537,11 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
-        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
-
         await userEvent.click(
-          await screen.findByRole('button', {name: 'More issue actions'})
+          screen.getByText(/Select all 100 issues that match this search query/)
         );
 
-        await userEvent.click(screen.getByRole('menuitemradio', {name: 'Merge'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Merge'}));
 
         const modal = screen.getByRole('dialog');
 
@@ -513,6 +561,29 @@ describe('IssueListActions', function () {
             }),
           })
         );
+      });
+
+      it('shows merge button when multiple issues are selected', async function () {
+        // Ensure that all issues have the same project so we can merge
+        jest
+          .spyOn(GroupStore, 'get')
+          .mockReturnValue(GroupFixture({project: ProjectFixture({slug: 'project-1'})}));
+
+        render(
+          <Fragment>
+            <GlobalModal />
+            <IssueListActions {...defaultProps} queryCount={100} />
+          </Fragment>
+        );
+
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
+
+        await userEvent.click(
+          screen.getByText(/Select all 100 issues that match this search query/)
+        );
+
+        // Should show merge button directly when multiple issues are selected
+        expect(screen.getByRole('button', {name: 'Merge'})).toBeInTheDocument();
       });
     });
   });

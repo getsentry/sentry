@@ -18,45 +18,44 @@ export enum AutofixStepType {
   DEFAULT = 'default',
   ROOT_CAUSE_ANALYSIS = 'root_cause_analysis',
   CHANGES = 'changes',
-  USER_RESPONSE = 'user_response',
+  SOLUTION = 'solution',
 }
 
-export enum AutofixCodebaseIndexingStatus {
-  UP_TO_DATE = 'up_to_date',
-  INDEXING = 'indexing',
-  NOT_INDEXED = 'not_indexed',
-  OUT_OF_DATE = 'out_of_date',
-  ERRORED = 'errored',
+export enum AutofixStatus {
+  COMPLETED = 'COMPLETED',
+  ERROR = 'ERROR',
+  PROCESSING = 'PROCESSING',
+  NEED_MORE_INFORMATION = 'NEED_MORE_INFORMATION',
+  CANCELLED = 'CANCELLED',
+  WAITING_FOR_USER_RESPONSE = 'WAITING_FOR_USER_RESPONSE',
 }
 
-export type AutofixPullRequestDetails = {
+type AutofixPullRequestDetails = {
   pr_number: number;
   pr_url: string;
 };
 
-export type AutofixOptions = {
+type AutofixOptions = {
   iterative_feedback?: boolean;
 };
 
-export type AutofixRepository = {
-  default_branch: string;
-  external_id: string;
-  name: string;
-  provider: string;
-  url: string;
+type CodebaseState = {
+  is_readable: boolean | null;
+  is_writeable: boolean | null;
+  repo_external_id: string | null;
 };
 
 export type AutofixData = {
-  created_at: string;
-  repositories: AutofixRepository[];
+  codebases: Record<string, CodebaseState>;
+  last_triggered_at: string;
+  request: {
+    repos: SeerRepoDefinition[];
+    options?: {
+      auto_run_source?: string | null;
+    };
+  };
   run_id: string;
-  status:
-    | 'PENDING'
-    | 'PROCESSING'
-    | 'COMPLETED'
-    | 'NOFIX'
-    | 'ERROR'
-    | 'NEED_MORE_INFORMATION';
+  status: AutofixStatus;
   actor_ids?: number[];
   codebase_indexing?: {
     status: 'COMPLETED';
@@ -71,27 +70,66 @@ export type AutofixData = {
 export type AutofixProgressItem = {
   message: string;
   timestamp: string;
-  type: 'INFO' | 'WARNING' | 'ERROR' | 'NEED_MORE_INFORMATION' | 'USER_RESPONSE';
+  type: 'INFO' | 'WARNING' | 'ERROR' | 'NEED_MORE_INFORMATION';
   data?: any;
 };
 
 export type AutofixStep =
   | AutofixDefaultStep
   | AutofixRootCauseStep
-  | AutofixChangesStep
-  | AutofixUserResponseStep;
+  | AutofixSolutionStep
+  | AutofixChangesStep;
 
 interface BaseStep {
   id: string;
   index: number;
   progress: AutofixProgressItem[];
-  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'ERROR' | 'CANCELLED';
+  status: AutofixStatus;
   title: string;
   type: AutofixStepType;
+  active_comment_thread?: CommentThread | null;
+  agent_comment_thread?: CommentThread | null;
   completedMessage?: string;
+  key?: string;
+  output_stream?: string | null;
 }
 
+export type CommentThread = {
+  id: string;
+  is_completed: boolean;
+  messages: CommentThreadMessage[];
+};
+
+export interface CommentThreadMessage {
+  content: string;
+  role: 'user' | 'assistant';
+  isLoading?: boolean;
+}
+
+export type AutofixInsight = {
+  insight: string;
+  justification: string;
+  change_diff?: FilePatch[];
+  markdown_snippets?: string;
+  sources?: InsightSources;
+  type?: 'insight' | 'file_change';
+};
+
+export type InsightSources = {
+  breadcrumbs_used: boolean;
+  code_used_urls: string[];
+  connected_error_ids_used: string[];
+  diff_urls: string[];
+  http_request_used: boolean;
+  profile_ids_used: string[];
+  stacktrace_used: boolean;
+  thoughts: string;
+  trace_event_ids_used: string[];
+  event_trace_id?: string;
+};
+
 export interface AutofixDefaultStep extends BaseStep {
+  insights: AutofixInsight[];
   type: AutofixStepType.DEFAULT;
 }
 
@@ -102,10 +140,19 @@ export type AutofixRootCauseSelection =
   | {custom_root_cause: string}
   | null;
 
-export interface AutofixRootCauseStep extends BaseStep {
+interface AutofixRootCauseStep extends BaseStep {
   causes: AutofixRootCauseData[];
   selection: AutofixRootCauseSelection;
   type: AutofixStepType.ROOT_CAUSE_ANALYSIS;
+  termination_reason?: string;
+}
+
+interface AutofixSolutionStep extends BaseStep {
+  solution: AutofixSolutionTimelineEvent[];
+  solution_selected: boolean;
+  type: AutofixStepType.SOLUTION;
+  custom_solution?: string;
+  description?: string;
 }
 
 export type AutofixCodebaseChange = {
@@ -113,6 +160,7 @@ export type AutofixCodebaseChange = {
   diff: FilePatch[];
   repo_name: string;
   title: string;
+  branch_name?: string;
   diff_str?: string;
   pull_request?: AutofixPullRequestDetails;
   repo_external_id?: string;
@@ -122,37 +170,43 @@ export type AutofixCodebaseChange = {
 export interface AutofixChangesStep extends BaseStep {
   changes: AutofixCodebaseChange[];
   type: AutofixStepType.CHANGES;
+  termination_reason?: string;
 }
 
-export interface AutofixUserResponseStep extends BaseStep {
-  text: string;
-  type: AutofixStepType.USER_RESPONSE;
-  user_id: number;
-}
-
-export type AutofixRootCauseCodeContextSnippet = {
+type AutofixRelevantCodeFile = {
   file_path: string;
   repo_name: string;
-  snippet: string;
 };
 
-export type AutofixRootCauseCodeContext = {
-  description: string;
-  id: string;
+type AutofixRelevantCodeFileWithUrl = AutofixRelevantCodeFile & {
+  url?: string;
+};
+
+export type AutofixTimelineEvent = {
+  code_snippet_and_analysis: string;
+  relevant_code_file: AutofixRelevantCodeFile;
+  timeline_item_type: 'internal_code' | 'external_system' | 'human_action';
   title: string;
-  snippet?: AutofixRootCauseCodeContextSnippet;
+  is_most_important_event?: boolean;
+};
+
+export type AutofixSolutionTimelineEvent = {
+  timeline_item_type: 'internal_code' | 'human_instruction';
+  title: string;
+  code_snippet_and_analysis?: string;
+  is_active?: boolean;
+  is_most_important_event?: boolean;
+  relevant_code_file?: AutofixRelevantCodeFileWithUrl;
 };
 
 export type AutofixRootCauseData = {
-  actionability: number;
-  code_context: AutofixRootCauseCodeContext[];
-  description: string;
   id: string;
-  likelihood: number;
-  title: string;
+  description?: string;
+  reproduction_urls?: Array<string | null>;
+  root_cause_reproduction?: AutofixTimelineEvent[];
 };
 
-export type EventMetadataWithAutofix = EventMetadata & {
+type EventMetadataWithAutofix = EventMetadata & {
   autofix?: AutofixData;
 };
 
@@ -192,3 +246,34 @@ export interface AutofixRepoDefinition {
   owner: string;
   provider: string;
 }
+
+export interface BranchOverride {
+  branch_name: string;
+  tag_name: string;
+  tag_value: string;
+}
+
+export interface RepoSettings {
+  branch: string;
+  branch_overrides: BranchOverride[];
+  instructions: string;
+}
+
+export interface SeerRepoDefinition {
+  external_id: string;
+  name: string;
+  owner: string;
+  provider: string;
+  base_commit_sha?: string;
+  branch_name?: string;
+  branch_overrides?: BranchOverride[];
+  instructions?: string;
+  provider_raw?: string;
+}
+
+export interface ProjectSeerPreferences {
+  repositories: SeerRepoDefinition[];
+  automated_run_stopping_point?: 'solution' | 'code_changes' | 'open_pr';
+}
+
+export const AUTOFIX_TTL_IN_DAYS = 30;

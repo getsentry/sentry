@@ -5,7 +5,6 @@ import type {FeatureDisabledHooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Config} from 'sentry/types/system';
-import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProject from 'sentry/utils/withProject';
@@ -90,7 +89,7 @@ interface RenderDisabledProps extends FeatureRenderProps {
   renderDisabled?: (props: FeatureRenderProps) => React.ReactNode;
 }
 
-export type RenderDisabledFn = (props: RenderDisabledProps) => React.ReactNode;
+type RenderDisabledFn = (props: RenderDisabledProps) => React.ReactNode;
 
 interface ChildRenderProps extends FeatureRenderProps {
   renderDisabled?: boolean | ((props: any) => React.ReactNode);
@@ -100,9 +99,9 @@ interface ChildRenderProps extends FeatureRenderProps {
 export type ChildrenRenderFn = (props: ChildRenderProps) => React.ReactNode;
 
 type AllFeatures = {
-  configFeatures: ReadonlyArray<string>;
-  organization: ReadonlyArray<string>;
-  project: ReadonlyArray<string>;
+  configFeatures: readonly string[];
+  organization: readonly string[];
+  project: readonly string[];
 };
 
 /**
@@ -136,12 +135,12 @@ class Feature extends Component<Props> {
 
     const shouldMatchOnlyProject = feature.match(/^projects:(.+)/);
     if (shouldMatchOnlyProject) {
-      return project.includes(shouldMatchOnlyProject[1]);
+      return project.includes(shouldMatchOnlyProject[1]!);
     }
 
     const shouldMatchOnlyOrg = feature.match(/^organizations:(.+)/);
     if (shouldMatchOnlyOrg) {
-      return organization.includes(shouldMatchOnlyOrg[1]);
+      return organization.includes(shouldMatchOnlyOrg[1]!);
     }
 
     // default, check all feature arrays
@@ -181,7 +180,7 @@ class Feature extends Component<Props> {
       const hooks = HookStore.get(hookName);
 
       if (hooks.length > 0) {
-        customDisabledRender = hooks[0];
+        customDisabledRender = hooks[0]!;
       }
     }
     const renderProps = {
@@ -195,7 +194,7 @@ class Feature extends Component<Props> {
       return customDisabledRender({children, ...renderProps});
     }
 
-    if (isRenderFunc<ChildrenRenderFn>(children)) {
+    if (typeof children === 'function') {
       return children({renderDisabled, ...renderProps});
     }
 

@@ -12,20 +12,20 @@ def make_spans_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"spans": data})
         mgr.normalize()
-        evt = eventstore.backend.create_event(data=mgr.get_data())
+        evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
 
         interface = evt.interfaces.get("spans")
-
+        assert interface is not None
         insta_snapshot({"errors": evt.data.get("errors"), "to_json": interface.to_json()})
 
     return inner
 
 
-def test_empty(make_spans_snapshot):
+def test_empty(make_spans_snapshot) -> None:
     make_spans_snapshot([])
 
 
-def test_single_invalid(make_spans_snapshot):
+def test_single_invalid(make_spans_snapshot) -> None:
     make_spans_snapshot(
         [
             {
@@ -38,7 +38,7 @@ def test_single_invalid(make_spans_snapshot):
     )
 
 
-def test_single_incomplete(make_spans_snapshot):
+def test_single_incomplete(make_spans_snapshot) -> None:
     make_spans_snapshot(
         [
             {
@@ -51,7 +51,7 @@ def test_single_incomplete(make_spans_snapshot):
     )
 
 
-def test_single_full(make_spans_snapshot):
+def test_single_full(make_spans_snapshot) -> None:
     make_spans_snapshot(
         [
             {
@@ -68,7 +68,7 @@ def test_single_full(make_spans_snapshot):
     )
 
 
-def test_multiple_full(make_spans_snapshot):
+def test_multiple_full(make_spans_snapshot) -> None:
     make_spans_snapshot(
         [
             {

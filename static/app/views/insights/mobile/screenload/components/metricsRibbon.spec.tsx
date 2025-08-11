@@ -1,10 +1,10 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DurationUnit} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 
@@ -14,22 +14,20 @@ describe('MetricsRibbon', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
-  jest.mocked(usePageFilters).mockReturnValue({
-    isReady: true,
-    desyncedFilters: new Set(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    selection: {
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
+  jest.mocked(usePageFilters).mockReturnValue(
+    PageFilterStateFixture({
+      selection: {
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
+        },
+        environments: [],
+        projects: [parseInt(project.id, 10)],
       },
-      environments: [],
-      projects: [parseInt(project.id, 10)],
-    },
-  });
+    })
+  );
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/releases/`,
@@ -57,7 +55,6 @@ describe('MetricsRibbon', function () {
 
     render(
       <MobileMetricsRibbon
-        dataset={DiscoverDatasets.SPANS_METRICS}
         filters={[
           'duration:>0',
           'transaction.op:ui.load',
@@ -71,7 +68,7 @@ describe('MetricsRibbon', function () {
             unit: DurationUnit.MILLISECOND,
           },
         ]}
-        fields={['count()', 'avg(duration)']}
+        fields={['count()', 'avg(span.duration)']}
         referrer="test-referrer"
       />
     );
@@ -88,8 +85,8 @@ describe('MetricsRibbon', function () {
         query: expect.objectContaining({
           query: 'duration:>0 transaction.op:ui.load transaction:test-transaction',
           referrer: 'test-referrer',
-          dataset: 'spansMetrics',
-          field: ['count()', 'avg(duration)'],
+          dataset: 'spans',
+          field: ['count()', 'avg(span.duration)'],
         }),
       })
     );

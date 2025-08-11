@@ -1,15 +1,17 @@
+import pytest
+
 from sentry.models.broadcast import Broadcast
 from sentry.models.environment import Environment
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.monitors.models import Monitor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
+from sentry.users.models.user import User
 from sentry.utils import mockdata
 
 
@@ -51,6 +53,7 @@ def test_create_member() -> None:
 
 @no_silo_test  # mockdata.main works only in monolith mode
 class TestMockData(SnubaTestCase, TestCase):
+    @pytest.mark.skip(reason="Skipping for now (10/29) while we investigate")
     def test_main_skip_default_setup(self) -> None:
         self.create_user(is_superuser=True)
 

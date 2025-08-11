@@ -37,6 +37,7 @@ DASHBOARD_OBJECT = {
             "interval": "5m",
             "dateCreated": "2024-07-16T15:36:46.048343Z",
             "dashboardId": "1",
+            "datasetSource": "user",
             "queries": [
                 {
                     "id": "1",
@@ -56,16 +57,23 @@ DASHBOARD_OBJECT = {
                         }
                     ],
                     "isHidden": False,
+                    "selectedAggregate": None,
                 }
             ],
             "limit": None,
-            "widgetType": "discover",
+            "widgetType": "transaction-like",
             "layout": {"w": 2, "y": 0, "h": 2, "minH": 2, "x": 0},
         }
     ],
     "projects": [1],
     "filters": {},
+    "environment": ["alpha"],
     "period": "7d",
+    "permissions": {
+        "isEditableByEveryone": True,
+        "teamsWithEditAccess": [],
+    },
+    "isFavorited": False,
 }
 
 DASHBOARDS_OBJECT = [
@@ -73,6 +81,15 @@ DASHBOARDS_OBJECT = [
         "id": "1",
         "title": "Dashboard",
         "dateCreated": "2024-06-20T14:38:03.498574Z",
+        "lastVisited": "2024-06-20T14:38:03.498574Z",
+        "projects": [1],
+        "environment": ["alpha"],
+        "filters": {
+            "release": [
+                "frontend@a02311a400636ff9640b3e4ca2991ee153dbbdcc",
+                "frontend@36934c05140c16df93aa8ebf671f9386e916b501",
+            ]
+        },
         "createdBy": {
             "id": "1",
             "name": "Admin",
@@ -98,11 +115,22 @@ DASHBOARDS_OBJECT = [
         },
         "widgetDisplay": [],
         "widgetPreview": [],
+        "permissions": {"isEditableByEveryone": True, "teamsWithEditAccess": []},
+        "isFavorited": False,
     },
     {
         "id": "2",
         "title": "Dashboard",
         "dateCreated": "2024-06-20T14:38:03.498574Z",
+        "lastVisited": "2024-06-20T14:38:03.498574Z",
+        "projects": [],
+        "environment": ["alpha"],
+        "filters": {
+            "release": [
+                "frontend@a02311a400636ff9640b3e4ca2991ee153dbbdcc",
+                "frontend@36934c05140c16df93aa8ebf671f9386e916b501",
+            ]
+        },
         "createdBy": {
             "id": "1",
             "name": "Admin",
@@ -128,6 +156,8 @@ DASHBOARDS_OBJECT = [
         },
         "widgetDisplay": [],
         "widgetPreview": [],
+        "permissions": None,
+        "isFavorited": False,
     },
 ]
 

@@ -119,14 +119,15 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
             **self.get_group_context(),
         }
 
-    def get_context(self) -> MutableMapping[str, Any]:
+    def get_context(self, provider: ExternalProviders | None = None) -> MutableMapping[str, Any]:
         """
         Context shared by every recipient of this notification. This may contain
         expensive computation so it should only be called once. Override this
         method if the notification does not need HTML/text descriptions.
         """
         text_template, html_template, params = self.get_description()
-        text_description = self.description_as_text(text_template, params)
+        should_add_url = provider is not None
+        text_description = self.description_as_text(text_template, params, should_add_url, provider)
         html_description = self.description_as_html(html_template or text_template, params)
         return {
             **self.get_base_context(),
@@ -170,7 +171,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
             name = "Sentry"
 
         issue_name = self.group.qualified_short_id or "an issue"
-        if url and self.group.qualified_short_id:
+        if provider and url and self.group.qualified_short_id:
             group_url = self.group.get_absolute_url(
                 params={
                     "referrer": "activity_notification",
@@ -203,12 +204,12 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         return format_html(description, **context)
 
     def get_title_link(self, recipient: Actor, provider: ExternalProviders) -> str | None:
-        from sentry.integrations.message_builder import get_title_link
+        from sentry.integrations.messaging.message_builder import get_title_link
 
         return get_title_link(self.group, None, False, True, self, provider)
 
     def build_attachment_title(self, recipient: Actor) -> str:
-        from sentry.integrations.message_builder import build_attachment_title
+        from sentry.integrations.messaging.message_builder import build_attachment_title
 
         return build_attachment_title(self.group)
 

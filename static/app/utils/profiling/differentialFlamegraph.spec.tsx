@@ -171,7 +171,7 @@ describe('differentialFlamegraph', () => {
     );
 
     expect(flamegraph.removedFrames?.length).toBe(1);
-    expect(flamegraph.removedFrames?.[0].frame.name).toBe('removed function');
+    expect(flamegraph.removedFrames?.[0]!.frame.name).toBe('removed function');
     expect([...flamegraph.colors.values()][0]).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_DECREASE,
       1 * DifferentialFlamegraph.ALPHA_SCALING,
@@ -211,7 +211,7 @@ describe('differentialFlamegraph', () => {
     );
 
     expect(flamegraph.removedFrames?.length).toBe(1);
-    expect(flamegraph.removedFrames?.[0].frame.name).toBe('removed function');
+    expect(flamegraph.removedFrames?.[0]!.frame.name).toBe('removed function');
     expect([...flamegraph.colors.values()][0]).toEqual([
       ...THEME.COLORS.DIFFERENTIAL_DECREASE,
       1 * DifferentialFlamegraph.ALPHA_SCALING,

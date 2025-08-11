@@ -12,12 +12,8 @@ from django.http.response import HttpResponseBase
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.msteams.webhook import (
-    MsTeamsEvents,
-    MsTeamsWebhookEndpoint,
-    MsTeamsWebhookMixin,
-)
+from sentry.integrations.msteams import parsing
+from sentry.integrations.msteams.webhook import MsTeamsEvents, MsTeamsWebhookEndpoint
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.silo.base import control_silo_function
 from sentry.types.region import Region, RegionResolutionError
@@ -25,7 +21,7 @@ from sentry.types.region import Region, RegionResolutionError
 logger = logging.getLogger(__name__)
 
 
-class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
+class MsTeamsRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.MSTEAMS]
     webhook_identifier = WebhookProviderIdentifier.MSTEAMS
 
@@ -44,11 +40,11 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
 
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
-        integration = self.get_integration_from_card_action(data=self.request_data)
+        integration = parsing.get_integration_from_card_action(data=self.request_data)
         if integration is None:
-            integration = self.get_integration_from_channel_data(data=self.request_data)
+            integration = parsing.get_integration_from_channel_data(data=self.request_data)
         if integration is None:
-            integration = self.get_integration_for_tenant(data=self.request_data)
+            integration = parsing.get_integration_for_tenant(data=self.request_data)
         if integration:
             return Integration.objects.filter(id=integration.id).first()
         return None
@@ -73,14 +69,14 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
             )
             return self.get_response_from_control_silo()
 
-        if not self.can_infer_integration(data=self.request_data):
+        if not parsing.can_infer_integration(data=self.request_data):
             logger.info(
                 "Could not infer integration, sending to webhook handler",
                 extra={"request_data": self.request_data},
             )
             return self.get_response_from_control_silo()
 
-        if self.is_new_integration_installation_event(data=self.request_data):
+        if parsing.is_new_integration_installation_event(data=self.request_data):
             logger.info(
                 "New installation event detected, sending to webhook handler",
                 extra={"request_data": self.request_data},
@@ -98,7 +94,7 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
                 return self.get_default_missing_integration_response()
 
             regions = self.get_regions_from_organizations()
-        except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist) as err:
+        except Integration.DoesNotExist as err:
             logger.info(
                 "Error in handling",
                 exc_info=err,
@@ -119,7 +115,7 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
                     )
                 )
             logger.info("%s.no_regions", self.provider, extra={"path": self.request.path})
-            return self.get_response_from_control_silo()
+            return self.get_default_missing_integration_response()
 
         if self._check_if_event_should_be_sync(data=self.request_data):
             logger.info(

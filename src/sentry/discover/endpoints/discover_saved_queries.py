@@ -29,6 +29,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.models.organization import Organization
 from sentry.search.utils import tokenize_query
 
 
@@ -39,7 +40,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.VISIBILITY
     permission_classes = (DiscoverSavedQueryPermission,)
 
     def has_feature(self, organization, request):
@@ -67,7 +68,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         },
         examples=DiscoverExamples.DISCOVER_SAVED_QUERIES_QUERY_RESPONSE,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Retrieve a list of saved queries that are associated with the given organization.
         """
@@ -175,21 +176,14 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
 
         serializer = DiscoverSavedQuerySerializer(
             data=request.data,
-            context={"params": params},
+            context={"params": params, "organization": organization, "user": request.user},
         )
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         data = serializer.validated_data
-        user_selected_dataset = (
-            features.has(
-                "organizations:performance-discover-dataset-selector",
-                organization,
-                actor=request.user,
-            )
-            and data["query_dataset"] != DiscoverSavedQueryTypes.DISCOVER
-        )
+        user_selected_dataset = data["query_dataset"] != DiscoverSavedQueryTypes.DISCOVER
 
         model = DiscoverSavedQuery.objects.create(
             organization=organization,

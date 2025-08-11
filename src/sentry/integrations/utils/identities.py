@@ -1,16 +1,17 @@
 import logging
 from collections.abc import Iterable, Mapping
 
+from django.contrib.auth.models import AnonymousUser
 from django.http import Http404
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.user import User
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.silo.base import control_silo_function
+from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 
 _logger = logging.getLogger(__name__)
@@ -19,17 +20,17 @@ _logger = logging.getLogger(__name__)
 @control_silo_function
 def get_identity_or_404(
     provider: ExternalProviders,
-    user: User,
+    user: User | AnonymousUser,
     integration_id: int,
     organization_id: int | None = None,
 ) -> tuple[RpcOrganization, Integration, IdentityProvider]:
+    """For endpoints, short-circuit with a 404 if we cannot find everything we need."""
     logger_metadata = {
         "integration_provider": provider,
         "integration_id": integration_id,
         "organization_id": organization_id,
         "user_id": user.id,
     }
-    """For endpoints, short-circuit with a 404 if we cannot find everything we need."""
     if provider not in EXTERNAL_PROVIDERS:
         _logger.info("provider is not part of supported external providers", extra=logger_metadata)
         raise Http404

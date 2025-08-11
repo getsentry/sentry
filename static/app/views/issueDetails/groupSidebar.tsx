@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import AvatarList from 'sentry/components/avatar/avatarList';
+import AvatarList from 'sentry/components/core/avatar/avatarList';
 import {DateTime} from 'sentry/components/dateTime';
-import type {OnAssignCallback} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
 import AssignedTo from 'sentry/components/group/assignedTo';
+import type {OnAssignCallback} from 'sentry/components/group/assigneeSelector';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
 import GroupReleaseStats from 'sentry/components/group/releaseStats';
 import TagFacets, {
@@ -20,21 +20,14 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {backend, frontend} from 'sentry/data/platformCategories';
 import {t, tn} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
-import type {
-  AvatarUser,
-  CurrentRelease,
-  Group,
-  Organization,
-  OrganizationSummary,
-  Project,
-  TeamParticipant,
-  UserParticipant,
-} from 'sentry/types';
-import {IssueType} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {CurrentRelease} from 'sentry/types/release';
+import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
@@ -44,11 +37,11 @@ import {isMobilePlatform} from 'sentry/utils/platform';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useUser} from 'sentry/utils/useUser';
 import {ParticipantList} from 'sentry/views/issueDetails/participantList';
-import {
-  getGroupDetailsQueryData,
-  useHasStreamlinedUI,
-} from 'sentry/views/issueDetails/utils';
+import {useAiConfig} from 'sentry/views/issueDetails/streamline/hooks/useAiConfig';
+import SeerSection from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
+import {makeFetchGroupQueryKey} from 'sentry/views/issueDetails/useGroup';
 
 type Props = {
   environments: string[];
@@ -58,26 +51,24 @@ type Props = {
   event?: Event;
 };
 
-function useFetchAllEnvsGroupData(organization: OrganizationSummary, group: Group) {
+export function useFetchAllEnvsGroupData(
+  organization: OrganizationSummary,
+  group: Group
+) {
   return useApiQuery<Group>(
-    [
-      `/organizations/${organization.slug}/issues/${group.id}/`,
-      {query: getGroupDetailsQueryData()},
-    ],
-    {
-      staleTime: 30000,
-      cacheTime: 30000,
-    }
+    makeFetchGroupQueryKey({
+      organizationSlug: organization.slug,
+      groupId: group.id,
+      environments: [],
+    }),
+    {staleTime: 30000, gcTime: 30000}
   );
 }
 
 function useFetchCurrentRelease(organization: OrganizationSummary, group: Group) {
   return useApiQuery<CurrentRelease>(
     [`/organizations/${organization.slug}/issues/${group.id}/current-release/`],
-    {
-      staleTime: 30000,
-      cacheTime: 30000,
-    }
+    {staleTime: 30000, gcTime: 30000}
   );
 }
 
@@ -88,11 +79,13 @@ export default function GroupSidebar({
   organization,
   environments,
 }: Props) {
+  const activeUser = useUser();
   const {data: allEnvironmentsGroupData} = useFetchAllEnvsGroupData(organization, group);
   const {data: currentRelease} = useFetchCurrentRelease(organization, group);
-  const hasStreamlinedUI = useHasStreamlinedUI();
 
   const location = useLocation();
+
+  const {areAiFeaturesAllowed} = useAiConfig(group, project);
 
   const onAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
     const {alert_date, alert_rule_id, alert_type} = location.query;
@@ -105,6 +98,7 @@ export default function GroupSidebar({
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
       alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
       alert_type: typeof alert_type === 'string' ? alert_type : undefined,
+      org_streamline_only: organization.streamlineOnly ?? undefined,
       ...getAnalyticsDataForGroup(group),
       ...getAnalyicsDataForProject(project),
     });
@@ -215,7 +209,6 @@ export default function GroupSidebar({
 
   const renderSeenByList = () => {
     const {seenBy} = group;
-    const activeUser = ConfigStore.get('user');
     const displayUsers = seenBy.filter(user => activeUser.id !== user.id);
 
     if (!displayUsers.length) {
@@ -261,9 +254,13 @@ export default function GroupSidebar({
 
   return (
     <Container>
-      {!hasStreamlinedUI && (
-        <AssignedTo group={group} event={event} project={project} onAssign={onAssign} />
+      {((areAiFeaturesAllowed && issueTypeConfig.issueSummary.enabled) ||
+        issueTypeConfig.resources) && (
+        <ErrorBoundary mini>
+          <SeerSection group={group} project={project} event={event} />
+        </ErrorBoundary>
       )}
+      <AssignedTo group={group} event={event} project={project} onAssign={onAssign} />
       {issueTypeConfig.stats.enabled && (
         <GroupReleaseStats
           organization={organization}
@@ -280,39 +277,34 @@ export default function GroupSidebar({
         </ErrorBoundary>
       )}
       {renderPluginIssue()}
-      {issueTypeConfig.tags.enabled && (
+      {issueTypeConfig.pages.tagsTab.enabled && (
         <TagFacets
           environments={environments}
           groupId={group.id}
           tagKeys={
-            isMobilePlatform(project?.platform)
+            isMobilePlatform(project.platform)
               ? MOBILE_TAGS
-              : frontend.some(val => val === project?.platform)
+              : frontend.includes(project.platform ?? 'other')
                 ? FRONTEND_TAGS
-                : backend.some(val => val === project?.platform)
+                : backend.includes(project.platform ?? 'other')
                   ? BACKEND_TAGS
                   : DEFAULT_TAGS
           }
-          event={event}
           tagFormatter={TAGS_FORMATTER}
           project={project}
-          isStatisticalDetector={
-            group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
-            group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION
-          }
         />
       )}
       {issueTypeConfig.regression.enabled && event && (
         <EventThroughput event={event} group={group} />
       )}
-      {!hasStreamlinedUI && renderParticipantData()}
-      {!hasStreamlinedUI && renderSeenByList()}
+      {renderParticipantData()}
+      {renderSeenByList()}
     </Container>
   );
 }
 
 const Container = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const ExternalIssues = styled('div')`
@@ -327,7 +319,7 @@ const StyledAvatarList = styled(AvatarList)`
 `;
 
 const TitleNumber = styled('span')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 // Using 22px + space(1) = space(4)

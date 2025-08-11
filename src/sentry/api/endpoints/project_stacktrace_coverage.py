@@ -1,17 +1,17 @@
 from __future__ import annotations
 
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import Scope, start_span
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.integrations.utils.codecov import codecov_enabled, fetch_codecov_data
 from sentry.integrations.utils.stacktrace_link import get_stacktrace_config
+from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.issues.endpoints.project_stacktrace_link import generate_context
 from sentry.models.project import Project
 from sentry.utils import metrics
@@ -58,14 +58,14 @@ class ProjectStacktraceCoverageEndpoint(ProjectEndpoint):
 
         # Post-processing before exiting scope context
         if result["current_config"]:
-            scope = Scope.get_isolation_scope()
+            scope = sentry_sdk.get_isolation_scope()
 
             serialized_config = serialize(result["current_config"]["config"], request.user)
             provider = serialized_config["provider"]["key"]
             # Use the provider key to split up stacktrace-link metrics by integration type
             scope.set_tag("integration_provider", provider)  # e.g. github
 
-            with start_span(op="fetch_codecov_data"):
+            with sentry_sdk.start_span(op="fetch_codecov_data"):
                 with metrics.timer("issues.stacktrace.fetch_codecov_data"):
                     codecov_data = fetch_codecov_data(
                         config={

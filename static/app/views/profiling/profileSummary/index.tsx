@@ -1,34 +1,34 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Button, LinkButton} from 'sentry/components/button';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import type {SelectOption} from 'sentry/components/compactSelect/types';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect/types';
+import {Link} from 'sentry/components/core/link';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {TabList, Tabs} from 'sentry/components/core/tabs';
 import Count from 'sentry/components/count';
 import {DateTime} from 'sentry/components/dateTime';
+import type {SmartSearchBarProps} from 'sentry/components/deprecatedSmartSearchBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import SearchBar from 'sentry/components/events/searchBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
 import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
 import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
-import {TabList, Tabs} from 'sentry/components/tabs';
-import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -58,6 +58,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
@@ -127,7 +128,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
     props.project &&
     props.transaction &&
     transactionSummaryRouteWithQuery({
-      orgSlug: props.organization.slug,
+      organization: props.organization,
       transaction: props.transaction,
       projectID: props.project.id,
       query: {query: props.query},
@@ -158,7 +159,7 @@ function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
         <StyledHeaderActions>
           <FeedbackWidgetButton />
           <LinkButton to={transactionSummaryTarget} size="sm">
-            {t('View Transaction Summary')}
+            {t('View Summary')}
           </LinkButton>
         </StyledHeaderActions>
       )}
@@ -194,7 +195,7 @@ const ProfilingTitleContainer = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 interface ProfileFiltersProps {
@@ -221,19 +222,19 @@ function ProfileFilters(props: ProfileFiltersProps) {
     [props.location]
   );
 
+  const projectIds = useMemo(() => props.projectIds.slice(), [props.projectIds]);
+
   return (
     <ActionBar>
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
         <DatePageFilter />
       </PageFilterBar>
-      <SearchBar
-        searchSource="profile_summary"
-        organization={props.organization}
-        projectIds={props.projectIds}
-        query={props.query}
+      <TransactionSearchQueryBuilder
+        projects={projectIds}
+        initialQuery={props.query}
         onSearch={handleSearch}
-        maxQueryLength={MAX_QUERY_LENGTH}
+        searchSource="transaction_profiles"
       />
     </ActionBar>
   );
@@ -304,7 +305,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     return search.formatString();
   }, [rawQuery, transaction]);
 
-  const {data, isLoading, isError} = useAggregateFlamegraphQuery({
+  const {data, status} = useAggregateFlamegraphQuery({
     query,
   });
 
@@ -334,35 +335,33 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     [setFrameFilter]
   );
 
-  const flamegraphFrameFilter: ((frame: Frame) => boolean) | undefined = useMemo(() => {
+  const flamegraphFrameFilter = useMemo((): ((frame: Frame) => boolean) => {
     if (frameFilter === 'all') {
       return () => true;
     }
     if (frameFilter === 'application') {
-      return frame => frame.is_application;
+      return (frame: Frame) => frame.is_application;
     }
-    return frame => !frame.is_application;
+    return (frame: Frame) => !frame.is_application;
   }, [frameFilter]);
+
+  const onResetFrameFilter = useCallback(() => {
+    setFrameFilter('all');
+  }, [setFrameFilter]);
 
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
   const scheduler = useCanvasScheduler(canvasPoolManager);
 
   const location = useLocation();
-  const [view, setView] = useState<'flamegraph' | 'profiles'>(
-    decodeViewOrDefault(location.query.view, 'flamegraph')
-  );
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const newView = decodeViewOrDefault(location.query.view, 'flamegraph');
-    if (newView !== view) {
-      setView(decodeViewOrDefault(location.query.view, 'flamegraph'));
-    }
-  }, [location.query.view, view]);
+  const view = useMemo(() => {
+    return decodeViewOrDefault(location.query.view, 'flamegraph');
+  }, [location.query.view]);
 
-  const onSetView = useCallback(
+  const setView = useCallback(
     (newView: 'flamegraph' | 'profiles') => {
-      setView(newView);
-      browserHistory.push({
+      navigate({
         ...location,
         query: {
           ...location.query,
@@ -370,7 +369,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
         },
       });
     },
-    [location]
+    [location, navigate]
   );
 
   const onHideRegressionsClick = useCallback(() => {
@@ -391,7 +390,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
         >
           <ProfileSummaryHeader
             view={view}
-            onViewChange={onSetView}
+            onViewChange={setView}
             organization={organization}
             location={props.location}
             project={project}
@@ -437,19 +436,22 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                             setHideSystemFrames={noop}
                             onHideRegressionsClick={onHideRegressionsClick}
                           />
-                          {isLoading ? (
+                          {status === 'pending' ? (
                             <RequestStateMessageContainer>
                               <LoadingIndicator />
                             </RequestStateMessageContainer>
-                          ) : isError ? (
+                          ) : status === 'error' ? (
                             <RequestStateMessageContainer>
                               {t('There was an error loading the flamegraph.')}
                             </RequestStateMessageContainer>
                           ) : null}
                           {visualization === 'flamegraph' ? (
                             <AggregateFlamegraph
+                              filter={frameFilter}
                               canvasPoolManager={canvasPoolManager}
                               scheduler={scheduler}
+                              status={status}
+                              onResetFilter={onResetFrameFilter}
                             />
                           ) : (
                             <AggregateFlamegraphTreeTable
@@ -468,7 +470,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
               {hideRegressions ? null : (
                 <ProfileDigestContainer>
                   <ProfileDigestScrollContainer>
-                    <ProfileDigest onViewChange={onSetView} transaction={transaction} />
+                    <ProfileDigest onViewChange={setView} transaction={transaction} />
                     <MostRegressedProfileFunctions transaction={transaction} />
                     <SlowestProfileFunctions transaction={transaction} />
                   </ProfileDigestScrollContainer>
@@ -500,7 +502,6 @@ const AggregateFlamegraphContainer = styled('div')`
   flex: 1 1 100%;
   height: 100%;
   width: 100%;
-  overflow: hidden;
   position: absolute;
   left: 0px;
   top: 0px;
@@ -523,7 +524,7 @@ function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
   const flamegraphs = useMemo(() => [flamegraph], [flamegraph]);
   const spans = useMemo(() => [], []);
 
-  const frameSelectOptions: SelectOption<'system' | 'application' | 'all'>[] =
+  const frameSelectOptions: Array<SelectOption<'system' | 'application' | 'all'>> =
     useMemo(() => {
       return [
         {value: 'system', label: t('System Frames')},
@@ -592,7 +593,6 @@ const AggregateFlamegraphToolbarContainer = styled('div')`
   justify-content: space-between;
   gap: ${space(1)};
   padding: ${space(1)} ${space(0.5)};
-  background-color: ${p => p.theme.background};
   /*
     force height to be the same as profile digest header,
     but subtract 1px for the border that doesnt exist on the header
@@ -631,6 +631,7 @@ const ProfileDigestScrollContainer = styled('div')`
   flex-direction: column;
 `;
 
+// @ts-expect-error TS(7008): Member 'hideRegressions' implicitly has an 'any' t... Remove this comment to see the full error message
 const ProfileVisualizationContainer = styled('div')<{hideRegressions}>`
   display: grid;
   /* false positive for grid layout */
@@ -709,7 +710,7 @@ function ProfileDigest(props: ProfileDigestProps) {
   const flamegraphTarget =
     project && profile
       ? generateProfileFlamechartRoute({
-          orgSlug: organization.slug,
+          organization,
           projectSlug: project.slug,
           profileId: profile?.['profile.id'] as string,
         })
@@ -720,7 +721,7 @@ function ProfileDigest(props: ProfileDigestProps) {
       <div>
         <ProfileDigestLabel>{t('Last Seen')}</ProfileDigestLabel>
         <div>
-          {profiles.isLoading ? (
+          {profiles.isPending ? (
             ''
           ) : profiles.isError ? (
             ''
@@ -739,7 +740,7 @@ function ProfileDigest(props: ProfileDigestProps) {
           <ProfileDigestColumn key={p}>
             <ProfileDigestLabel>{p}</ProfileDigestLabel>
             <div>
-              {profiles.isLoading ? (
+              {profiles.isPending ? (
                 ''
               ) : profiles.isError ? (
                 ''
@@ -753,14 +754,12 @@ function ProfileDigest(props: ProfileDigestProps) {
       <ProfileDigestColumn>
         <ProfileDigestLabel>{t('profiles')}</ProfileDigestLabel>
         <div>
-          {profiles.isLoading ? (
+          {profiles.isPending ? (
             ''
           ) : profiles.isError ? (
             ''
           ) : (
-            <Link onClick={() => props.onViewChange('profiles')} to="">
-              <Count value={data?.['count()'] as number} />
-            </Link>
+            <Count value={data?.['count()'] as number} />
           )}
         </div>
       </ProfileDigestColumn>
@@ -785,8 +784,8 @@ const ProfileDigestHeader = styled('div')`
 
 const ProfileDigestLabel = styled('span')`
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.sm};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: uppercase;
 `;
 

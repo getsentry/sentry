@@ -1,68 +1,22 @@
 import * as Sentry from '@sentry/react';
 
-import type {Tag} from 'sentry/actionCreators/events';
 import type {RequestCallbacks, RequestOptions} from 'sentry/api';
 import {Client} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
 import type {Actor} from 'sentry/types/core';
-import type {Group, Note, Tag as GroupTag, TagValue} from 'sentry/types/group';
-import type {Member} from 'sentry/types/organization';
-import type {User} from 'sentry/types/user';
-import {buildTeamId, buildUserId, defined} from 'sentry/utils';
+import type {Group, Tag as GroupTag, TagValue} from 'sentry/types/group';
+import {buildTeamId, buildUserId} from 'sentry/utils';
 import {uniqueId} from 'sentry/utils/guid';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type AssignedBy = 'suggested_assignee' | 'assignee_selector';
-type AssignToUserParams = {
-  assignedBy: AssignedBy;
-  /**
-   * Issue id
-   */
-  id: string;
-  orgSlug: string;
-  user: User | Actor;
-  member?: Member;
-};
-
-export function assignToUser(params: AssignToUserParams) {
-  const api = new Client();
-
-  const endpoint = `/organizations/${params.orgSlug}/issues/${params.id}/`;
-
-  const id = uniqueId();
-
-  GroupStore.onAssignTo(id, params.id, {
-    email: params.member?.email ?? '',
-  });
-
-  const request = api.requestPromise(endpoint, {
-    method: 'PUT',
-    // Sending an empty value to assignedTo is the same as "clear",
-    // so if no member exists, that implies that we want to clear the
-    // current assignee.
-    data: {
-      assignedTo: params.user ? buildUserId(params.user.id) : '',
-      assignedBy: params.assignedBy,
-    },
-  });
-
-  request
-    .then(data => {
-      GroupStore.onAssignToSuccess(id, params.id, data);
-    })
-    .catch(data => {
-      GroupStore.onAssignToError(id, params.id, data);
-    });
-
-  return request;
-}
 
 export function clearAssignment(
   groupId: string,
   orgSlug: string,
   assignedBy: AssignedBy
-) {
+): Promise<Group> {
   const api = new Client();
 
   const endpoint = `/organizations/${orgSlug}/issues/${groupId}/`;
@@ -85,9 +39,11 @@ export function clearAssignment(
   request
     .then(data => {
       GroupStore.onAssignToSuccess(id, groupId, data);
+      return data;
     })
     .catch(data => {
       GroupStore.onAssignToError(id, groupId, data);
+      throw data;
     });
 
   return request;
@@ -103,7 +59,12 @@ type AssignToActorParams = {
   orgSlug: string;
 };
 
-export function assignToActor({id, actor, assignedBy, orgSlug}: AssignToActorParams) {
+export function assignToActor({
+  id,
+  actor,
+  assignedBy,
+  orgSlug,
+}: AssignToActorParams): Promise<Group> {
   const api = new Client();
 
   const endpoint = `/organizations/${orgSlug}/issues/${id}/`;
@@ -136,74 +97,12 @@ export function assignToActor({id, actor, assignedBy, orgSlug}: AssignToActorPar
     })
     .then(data => {
       GroupStore.onAssignToSuccess(guid, id, data);
+      return data;
     })
     .catch(data => {
       GroupStore.onAssignToSuccess(guid, id, data);
+      throw data;
     });
-}
-
-export function deleteNote(
-  api: Client,
-  orgSlug: string,
-  group: Group,
-  id: string,
-  _oldText: string
-) {
-  const restore = group.activity.find(activity => activity.id === id);
-  const index = GroupStore.removeActivity(group.id, id);
-
-  if (index === -1 || restore === undefined) {
-    // I dunno, the id wasn't found in the GroupStore
-    return Promise.reject(new Error('Group was not found in store'));
-  }
-
-  const promise = api.requestPromise(
-    `/organizations/${orgSlug}/issues/${group.id}/comments/${id}/`,
-    {
-      method: 'DELETE',
-    }
-  );
-
-  promise.catch(() => GroupStore.addActivity(group.id, restore, index));
-
-  return promise;
-}
-
-export function createNote(api: Client, orgSlug: string, group: Group, note: Note) {
-  const promise = api.requestPromise(
-    `/organizations/${orgSlug}/issues/${group.id}/comments/`,
-    {
-      method: 'POST',
-      data: note,
-    }
-  );
-
-  promise.then(data => GroupStore.addActivity(group.id, data));
-
-  return promise;
-}
-
-export function updateNote(
-  api: Client,
-  orgSlug: string,
-  group: Group,
-  note: Note,
-  id: string,
-  oldText: string
-) {
-  GroupStore.updateActivity(group.id, id, {text: note.text});
-
-  const promise = api.requestPromise(
-    `/organizations/${orgSlug}/issues/${group.id}/comments/${id}/`,
-    {
-      method: 'PUT',
-      data: note,
-    }
-  );
-
-  promise.catch(() => GroupStore.updateActivity(group.id, id, {text: oldText}));
-
-  return promise;
 }
 
 type ParamsType = {
@@ -221,16 +120,16 @@ type UpdateParams = ParamsType & {
 type QueryArgs =
   | {
       query: string;
-      environment?: string | Array<string>;
+      environment?: string | string[];
       project?: Array<number | string>;
     }
   | {
-      id: Array<number> | Array<string>;
-      environment?: string | Array<string>;
+      id: number[] | string[];
+      environment?: string | string[];
       project?: Array<number | string>;
     }
   | {
-      environment?: string | Array<string>;
+      environment?: string | string[];
       project?: Array<number | string>;
     };
 
@@ -257,8 +156,12 @@ export function paramsToQueryArgs(params: ParamsType): QueryArgs {
   // only include date filters if they are not null/undefined
   if (params.query) {
     ['start', 'end', 'period', 'utc'].forEach(prop => {
-      if (params[prop] !== null && params[prop] !== undefined) {
-        p[prop === 'period' ? 'statsPeriod' : prop] = params[prop];
+      if (
+        params[prop as keyof typeof params] !== null &&
+        params[prop as keyof typeof params] !== undefined
+      ) {
+        (p as any)[prop === 'period' ? 'statsPeriod' : prop] =
+          params[prop as keyof typeof params];
       }
     });
   }
@@ -398,62 +301,6 @@ export function mergeGroups(
   );
 }
 
-export type GroupTagResponseItem = {
-  key: string;
-  name: string;
-  topValues: Array<{
-    count: number;
-    firstSeen: string;
-    lastSeen: string;
-    name: string;
-    value: string;
-    readable?: boolean;
-  }>;
-  totalValues: number;
-};
-
-export type GroupTagsResponse = GroupTagResponseItem[];
-
-type FetchIssueTagsParameters = {
-  environment: string[];
-  orgSlug: string;
-  groupId?: string;
-  isStatisticalDetector?: boolean;
-  limit?: number;
-  readable?: boolean;
-  statisticalDetectorParameters?: {
-    durationBaseline: number;
-    end: string;
-    start: string;
-    transaction: string;
-  };
-};
-
-export const makeFetchIssueTagsQueryKey = ({
-  groupId,
-  orgSlug,
-  environment,
-  readable,
-  limit,
-}: FetchIssueTagsParameters): ApiQueryKey => [
-  `/organizations/${orgSlug}/issues/${groupId}/tags/`,
-  {query: {environment, readable, limit}},
-];
-
-export const useFetchIssueTags = (
-  parameters: FetchIssueTagsParameters,
-  {
-    enabled = true,
-    ...options
-  }: Partial<UseApiQueryOptions<GroupTagsResponse | Tag[]>> = {}
-) => {
-  return useApiQuery<GroupTagsResponse | Tag[]>(makeFetchIssueTagsQueryKey(parameters), {
-    staleTime: 30000,
-    enabled: defined(parameters.groupId) && enabled,
-    ...options,
-  });
-};
-
 type FetchIssueTagValuesParameters = {
   groupId: string;
   orgSlug: string;
@@ -463,7 +310,7 @@ type FetchIssueTagValuesParameters = {
   sort?: string | string[];
 };
 
-export const makeFetchIssueTagValuesQueryKey = ({
+const makeFetchIssueTagValuesQueryKey = ({
   orgSlug,
   groupId,
   tagKey,
@@ -492,7 +339,7 @@ type FetchIssueTagParameters = {
   tagKey: string;
 };
 
-export const makeFetchIssueTagQueryKey = ({
+const makeFetchIssueTagQueryKey = ({
   orgSlug,
   groupId,
   tagKey,

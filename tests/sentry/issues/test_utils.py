@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
-from sentry.issues.escalating import GroupsCountResponse
+from sentry.issues.escalating.escalating import GroupsCountResponse
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ingest import process_occurrence_data, save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence, IssueOccurrenceData
@@ -17,7 +17,6 @@ from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.issues.status_change_message import StatusChangeMessage, StatusChangeMessageData
 from sentry.models.group import Group
 from sentry.snuba.dataset import Dataset
-from sentry.testutils.helpers.datetime import iso_format
 
 
 class OccurrenceTestMixin:
@@ -36,7 +35,7 @@ class OccurrenceTestMixin:
         assert o1.evidence_display == o2.evidence_display
         assert o1.type == o2.type
         assert o1.detection_time == o2.detection_time
-        assert o1.initial_issue_priority == o2.initial_issue_priority
+        assert o1.priority == o2.priority
 
     def build_occurrence_data(self, **overrides: Any) -> IssueOccurrenceData:
         kwargs: IssueOccurrenceData = {
@@ -73,7 +72,7 @@ class OccurrenceTestMixin:
         return IssueOccurrence.from_dict(self.build_occurrence_data(**overrides))
 
     def process_occurrence(
-        self, event_data: dict[str, Any], **overrides
+        self, event_data: dict[str, Any], **overrides: Any
     ) -> tuple[IssueOccurrence, GroupInfo | None]:
         """
         Testutil to build and process occurrence data instead of going through Kafka.
@@ -95,6 +94,8 @@ class StatusChangeTestMixin:
             "fingerprint": ["some-fingerprint"],
             "new_status": 1,
             "new_substatus": 1,
+            "detector_id": None,
+            "activity_data": {"test": "test"},
         }
         kwargs.update(overrides)  # type: ignore[typeddict-item]
 
@@ -127,7 +128,7 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
 
         event_data = {
             "tags": [("sentry:user", user_id_val)],
-            "timestamp": iso_format(insert_timestamp),
+            "timestamp": insert_timestamp.isoformat(),
             **(event_data or {}),
         }
         if tags:

@@ -1,21 +1,23 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
   getCrashReportSDKInstallFirstStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -25,27 +27,13 @@ const getInstallSnippetPackageManager = (params: Params) => `
 Install-Package Sentry.AspNetCore -Version ${getPackageVersion(
   params,
   'sentry.dotnet.aspnetcore',
-  params.isProfilingSelected ? '4.3.0' : '3.34.0'
+  '4.3.0'
 )}`;
 
 const getInstallSnippetCoreCli = (params: Params) => `
 dotnet add package Sentry.AspNetCore -v ${getPackageVersion(
   params,
   'sentry.dotnet.aspnetcore',
-  params.isProfilingSelected ? '4.3.0' : '3.34.0'
-)}`;
-
-const getInstallProfilingSnippetPackageManager = (params: Params) => `
-Install-Package Sentry.Profiling -Version ${getPackageVersion(
-  params,
-  'sentry.dotnet.profiling',
-  '4.3.0'
-)}`;
-
-const getInstallProfilingSnippetCoreCli = (params: Params) => `
-dotnet add package Sentry.Profiling -v ${getPackageVersion(
-  params,
-  'sentry.dotnet.profiling',
   '4.3.0'
 )}`;
 
@@ -57,32 +45,15 @@ public static IHostBuilder CreateHostBuilder(string[] args) =>
           // Add the following line:
           webBuilder.UseSentry(o =>
           {
-              o.Dsn = "${params.dsn}";
+              o.Dsn = "${params.dsn.public}";
               // When configuring for the first time, to see what the SDK is doing:
               o.Debug = true;${
                 params.isPerformanceSelected
                   ? `
               // Set TracesSampleRate to 1.0 to capture 100%
-              // of transactions for performance monitoring.
+              // of transactions for tracing.
               // We recommend adjusting this value in production
               o.TracesSampleRate = 1.0;`
-                  : ''
-              }${
-                params.isProfilingSelected
-                  ? `
-              // Sample rate for profiling, applied on top of othe TracesSampleRate,
-              // e.g. 0.2 means we want to profile 20 % of the captured transactions.
-              // We recommend adjusting this value in production.
-              o.ProfilesSampleRate = 1.0;
-              // Requires NuGet package: Sentry.Profiling
-              // Note: By default, the profiler is initialized asynchronously. This can
-              // be tuned by passing a desired initialization timeout to the constructor.
-              o.AddIntegration(new ProfilingIntegration(
-                  // During startup, wait up to 500ms to profile the app startup code.
-                  // This could make launching the app a bit slower so comment it out if you
-                  // prefer profiling to start asynchronously.
-                  TimeSpan.FromMilliseconds(500)
-              ));`
                   : ''
               }
           });
@@ -142,26 +113,6 @@ const onboarding: OnboardingConfig = {
             },
           ],
         },
-        ...(params.isProfilingSelected
-          ? [
-              {
-                code: [
-                  {
-                    language: 'shell',
-                    label: 'Package Manager',
-                    value: 'packageManager',
-                    code: getInstallProfilingSnippetPackageManager(params),
-                  },
-                  {
-                    language: 'shell',
-                    label: '.NET Core CLI',
-                    value: 'coreCli',
-                    code: getInstallProfilingSnippetCoreCli(params),
-                  },
-                ],
-              },
-            ]
-          : []),
       ],
     },
   ],
@@ -169,10 +120,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Add Sentry to [programCode:Program.cs] through the [webHostCode:WebHostBuilder]:',
+        'Add Sentry to [code:Program.cs] through the [code:WebHostBuilder]:',
         {
-          webHostCode: <code />,
-          programCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -206,7 +156,7 @@ const onboarding: OnboardingConfig = {
     ...(params.isPerformanceSelected
       ? [
           {
-            title: t('Performance Monitoring'),
+            title: t('Tracing'),
             description: tct(
               'You can measure the performance of your endpoints by adding a middleware to [code:Startup.cs]:',
               {
@@ -312,8 +262,8 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  customMetricsOnboarding: getDotnetMetricsOnboarding({packageName: 'Sentry.AspNetCore'}),
   crashReportOnboarding,
+  feedbackOnboardingJsLoader,
 };
 
 export default docs;

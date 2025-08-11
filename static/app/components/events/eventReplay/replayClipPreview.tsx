@@ -2,28 +2,32 @@ import {useMemo} from 'react';
 
 import ReplayClipPreviewPlayer from 'sentry/components/events/eventReplay/replayClipPreviewPlayer';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import useLoadReplayReader from 'sentry/utils/replays/hooks/useLoadReplayReader';
 
-type Props = {
+interface ReplayClipPreviewProps
+  extends Omit<
+    React.ComponentProps<typeof ReplayClipPreviewPlayer>,
+    'replayReaderResult'
+  > {
   clipOffsets: {
     durationAfterMs: number;
     durationBeforeMs: number;
   };
   eventTimestampMs: number;
+  orgSlug: string;
   replaySlug: string;
-} & Omit<
-  React.ComponentProps<typeof ReplayClipPreviewPlayer>,
-  keyof ReturnType<typeof useReplayReader>
->;
+  overlayContent?: React.ReactNode;
+}
 
-function ReplayClipPreview({
+export default function ReplayClipPreview({
   analyticsContext,
   clipOffsets,
   eventTimestampMs,
+  fullReplayButtonProps,
   orgSlug,
   replaySlug,
-  ...props
-}: Props) {
+  overlayContent,
+}: ReplayClipPreviewProps) {
   const clipWindow = useMemo(
     () => ({
       startTimestampMs: eventTimestampMs - clipOffsets.durationBeforeMs,
@@ -32,27 +36,27 @@ function ReplayClipPreview({
     [clipOffsets.durationBeforeMs, clipOffsets.durationAfterMs, eventTimestampMs]
   );
 
-  const replayContext = useReplayReader({
+  const readerResult = useLoadReplayReader({
     orgSlug,
     replaySlug,
     clipWindow,
+    eventTimestampMs,
   });
 
-  const {fetching, replay} = replayContext;
+  const {status, replay} = readerResult;
 
   return (
     <ReplayContextProvider
       analyticsContext={analyticsContext}
-      isFetching={fetching}
+      isFetching={status === 'pending'}
       replay={replay}
     >
       <ReplayClipPreviewPlayer
+        replayReaderResult={readerResult}
         analyticsContext={analyticsContext}
-        orgSlug={orgSlug}
-        {...props}
-        {...replayContext}
+        overlayContent={overlayContent}
+        fullReplayButtonProps={fullReplayButtonProps}
       />
     </ReplayContextProvider>
   );
 }
-export default ReplayClipPreview;

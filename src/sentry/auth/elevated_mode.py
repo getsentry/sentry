@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from enum import Enum
 
-from rest_framework.request import Request
+from django.http.request import HttpRequest
 
 
 class InactiveReason(str, Enum):
@@ -10,7 +10,7 @@ class InactiveReason(str, Enum):
     # Indicates the request should be allowed
     NONE = None
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self.value is not None
 
     def __str__(self) -> str:
@@ -49,7 +49,7 @@ class ElevatedMode(ABC):
 
 
 # TODO(schew2381): Delete this method after the option is removed
-def has_elevated_mode(request: Request) -> bool:
+def has_elevated_mode(request: HttpRequest) -> bool:
     """
     This is a temporary helper method that checks if the user on the request has
     the staff option enabled. If so, it checks is_active_staff and otherwise

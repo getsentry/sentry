@@ -1,15 +1,20 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import type {NewQuery} from 'sentry/types/organization';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
 
 describe('EventSamplesTable', function () {
-  let mockLocation, mockQuery: NewQuery, mockEventView;
+  let mockRouter: InjectedRouter;
+  let mockLocation: ReturnType<typeof LocationFixture>;
+  let mockQuery: NewQuery;
+  let mockEventView: EventView;
   beforeEach(function () {
+    mockRouter = RouterFixture();
     mockLocation = LocationFixture({
       query: {
         statsPeriod: '99d',
@@ -24,6 +29,25 @@ describe('EventSamplesTable', function () {
     };
 
     mockEventView = EventView.fromNewQueryWithLocation(mockQuery, mockLocation);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.insights.user-geo-subregion-selector',
+        }),
+      ],
+      body: {
+        data: [
+          {'user.geo.subregion': '21', 'count()': 123},
+          {'user.geo.subregion': '155', 'count()': 123},
+        ],
+        meta: {
+          fields: {'user.geo.subregion': 'string', 'count()': 'integer'},
+        },
+      },
+    });
   });
 
   it('uses a column name map to render column names', function () {
@@ -50,7 +74,8 @@ describe('EventSamplesTable', function () {
           kind: 'desc',
         }}
         sortKey=""
-      />
+      />,
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
 
     expect(screen.getByText('Readable Column Name')).toBeInTheDocument();
@@ -80,7 +105,8 @@ describe('EventSamplesTable', function () {
         }}
         sortKey=""
         data={{data: [{id: '1', 'transaction.id': 'abc'}], meta: {}}}
-      />
+      />,
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
 
     // Test only one column to isolate event ID
@@ -93,7 +119,7 @@ describe('EventSamplesTable', function () {
   it('uses the profile ID key to get the profile ID from the data payload and display an icon button', async function () {
     mockQuery = {
       name: '',
-      fields: ['profile.id', 'project.name'], // Project name is required to form the profile target
+      fields: ['profile.id', 'project'], // Project name is required to form the profile target
       query: '',
       version: 2,
     };
@@ -113,10 +139,11 @@ describe('EventSamplesTable', function () {
         }}
         sortKey=""
         data={{
-          data: [{id: '1', 'profile.id': 'abc', 'project.name': 'project'}],
-          meta: {fields: {'profile.id': 'string', 'project.name': 'string'}},
+          data: [{id: '1', 'profile.id': 'abc', project: 'project'}],
+          meta: {fields: {'profile.id': 'string', project: 'string'}},
         }}
-      />
+      />,
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
 
     // Test only one column to isolate profile column
@@ -149,13 +176,14 @@ describe('EventSamplesTable', function () {
         }}
         sortKey=""
         data={{data: [{id: '1', 'transaction.id': 'abc'}], meta: {}}}
-      />
+      />,
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
 
     expect(screen.getByRole('button', {name: /device class all/i})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: /device class all/i}));
     await userEvent.click(screen.getByText('Medium'));
-    expect(browserHistory.push).toHaveBeenCalledWith(
+    expect(mockRouter.push).toHaveBeenCalledWith(
       expect.objectContaining({
         pathname: '/mock-pathname/',
         query: expect.objectContaining({
@@ -185,11 +213,12 @@ describe('EventSamplesTable', function () {
         sortKey=""
         data={{data: [{id: '1', 'transaction.id': 'abc'}], meta: {}}}
         pageLinks={pageLinks}
-      />
+      />,
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
     expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-    expect(browserHistory.push).toHaveBeenCalledWith(
+    expect(mockRouter.push).toHaveBeenCalledWith(
       expect.objectContaining({
         pathname: '/mock-pathname/',
         query: expect.objectContaining({
@@ -223,7 +252,8 @@ describe('EventSamplesTable', function () {
         }}
         sortKey="customSortKey"
         data={{data: [{id: '1', 'transaction.id': 'abc', duration: 'def'}], meta: {}}}
-      />
+      />,
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
 
     // Ascending sort in transaction ID because the default is descending
@@ -260,7 +290,8 @@ describe('EventSamplesTable', function () {
         }}
         sortKey="customSortKey"
         data={{data: [{id: '1', 'transaction.id': 'abc', duration: 'def'}], meta: {}}}
-      />
+      />,
+      {router: mockRouter, deprecatedRouterMocks: true}
     );
 
     // Although ID is queried for, because it's not defined in the map

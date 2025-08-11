@@ -4,7 +4,7 @@ import {
   revertToPinnedFilters,
   saveDesyncedFilters,
 } from 'sentry/actionCreators/pageFilters';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -36,14 +36,14 @@ export function DesyncedFilterMessage() {
 }
 
 export const DesyncedFilterIndicator = styled('div')`
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: ${p => p.theme.active};
   border: solid 1px ${p => p.theme.background};
   position: absolute;
-  top: -${space(0.5)};
-  right: -${space(0.5)};
+  top: -${space(0.25)};
+  right: -${space(0.75)};
 `;
 
 const DesyncedFilterMessageWrap = styled('div')`
@@ -53,11 +53,11 @@ const DesyncedFilterMessageWrap = styled('div')`
   margin: ${space(0.25)} ${space(0.5)} ${space(0.5)};
   padding: ${space(0.75)};
 
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   strong {
     display: block;
-    font-weight: ${p => p.theme.fontWeightBold};
+    font-weight: ${p => p.theme.fontWeight.bold};
     color: ${p => p.theme.headingColor};
   }
 `;

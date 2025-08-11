@@ -1,4 +1,4 @@
-from sentry.models.servicehook import ServiceHook
+from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -17,7 +17,7 @@ class ProjectServiceHooksTest(AcceptanceTestCase):
         self.list_hooks_path = f"/settings/{self.org.slug}/projects/{self.project.slug}/hooks/"
         self.new_hook_path = f"/settings/{self.org.slug}/projects/{self.project.slug}/hooks/new/"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with self.feature("projects:servicehooks"):
             self.browser.get(self.list_hooks_path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')

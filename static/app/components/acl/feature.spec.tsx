@@ -19,9 +19,9 @@ describe('Feature', function () {
 
   function WrappedFeature(props: React.ComponentProps<typeof Feature>) {
     return (
-      <ProjectContext.Provider value={project}>
+      <ProjectContext value={project}>
         <Feature {...props} />
-      </ProjectContext.Provider>
+      </ProjectContext>
     );
   }
 
@@ -285,7 +285,7 @@ describe('Feature', function () {
   });
 
   describe('using HookStore for renderDisabled', function () {
-    let hookFn;
+    let hookFn: jest.Mock;
 
     beforeEach(function () {
       hookFn = jest.fn(() => null);

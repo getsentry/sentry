@@ -1,17 +1,17 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
+import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import SecretField from 'sentry/components/forms/fields/secretField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
-import Link from 'sentry/components/links/link';
 import {IconGithub, IconGoogle, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {AuthConfig} from 'sentry/types';
+import type {AuthConfig} from 'sentry/types/auth';
 import {browserHistory} from 'sentry/utils/browserHistory';
 
 type LoginProvidersProps = Partial<
@@ -29,19 +29,19 @@ function LoginProviders({
     <ProviderWrapper>
       <ProviderHeading>{t('External Account Login')}</ProviderHeading>
       {googleLoginLink && (
-        <Button size="sm" icon={<IconGoogle />} href={googleLoginLink}>
+        <LinkButton size="sm" icon={<IconGoogle />} href={googleLoginLink}>
           {t('Sign in with Google')}
-        </Button>
+        </LinkButton>
       )}
       {githubLoginLink && (
-        <Button size="sm" icon={<IconGithub />} href={githubLoginLink}>
+        <LinkButton size="sm" icon={<IconGithub />} href={githubLoginLink}>
           {t('Sign in with GitHub')}
-        </Button>
+        </LinkButton>
       )}
       {vstsLoginLink && (
-        <Button size="sm" icon={<IconVsts />} href={vstsLoginLink}>
+        <LinkButton size="sm" icon={<IconVsts />} href={vstsLoginLink}>
           {t('Sign in with Azure DevOps')}
-        </Button>
+        </LinkButton>
       )}
     </ProviderWrapper>
   );
@@ -90,7 +90,13 @@ function LoginForm({authConfig}: Props) {
           </LostPasswordLink>
         }
       >
-        {error && <Alert type="error">{error}</Alert>}
+        {error && (
+          <Alert.Container>
+            <Alert type="error" showIcon={false}>
+              {error}
+            </Alert>
+          </Alert.Container>
+        )}
         <TextField
           name="username"
           placeholder={t('username or email')}
@@ -124,7 +130,7 @@ const FormWrapper = styled('div')<{hasLoginProvider: boolean}>`
 const ProviderHeading = styled('div')`
   margin: 0;
   font-size: 15px;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 24px;
 `;
 
@@ -146,8 +152,8 @@ const ProviderWrapper = styled('div')`
 `;
 
 const LostPasswordLink = styled(Link)`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.md};
 
   &:hover {
     color: ${p => p.theme.textColor};

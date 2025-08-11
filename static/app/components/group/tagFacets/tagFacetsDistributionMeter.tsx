@@ -1,13 +1,13 @@
 import {useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
-import {motion} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
 
 import type {TagSegment} from 'sentry/actionCreators/events';
-import {Button} from 'sentry/components/button';
-import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -67,9 +67,9 @@ function TagFacetsDistributionMeter({
         <Tooltip
           skipWrapper
           delay={TOOLTIP_DELAY}
-          title={topSegments[0].name || t('n/a')}
+          title={topSegments[0]!.name || t('n/a')}
         >
-          <TitleDescription>{topSegments[0].name || t('n/a')}</TitleDescription>
+          <TitleDescription>{topSegments[0]!.name || t('n/a')}</TitleDescription>
         </Tooltip>
         <ExpandToggleButton
           borderless
@@ -124,12 +124,12 @@ function TagFacetsDistributionMeter({
               {value.isOther ? (
                 <OtherSegment
                   aria-label={t('Other segment')}
-                  color={colors[colors.length - 1]}
+                  color={colors[colors.length - 1]!}
                 />
               ) : (
                 <Segment
                   aria-label={`${value.value} ${t('segment')}`}
-                  color={colors[index]}
+                  color={colors[index]!}
                   {...segmentProps}
                 >
                   {/* if the first segment is 6% or less, the label won't fit cleanly into the segment, so don't show the label */}
@@ -145,66 +145,77 @@ function TagFacetsDistributionMeter({
 
   function renderLegend() {
     return (
-      <LegendAnimateContainer
-        expanded={expanded}
-        animate={expanded ? {height: '100%', opacity: 1} : {height: '0', opacity: 0}}
-      >
-        <LegendContainer>
-          {topSegments.map((segment, index) => {
-            const pctLabel = Math.floor(percent(segment.count, totalValues));
-            const unfocus = !!hoveredValue && hoveredValue.value !== segment.value;
-            const focus = hoveredValue?.value === segment.value;
-            const linkLabel = segment.isOther
-              ? t(
-                  'Other %s tag values, %s of all events. View other tags.',
-                  title,
-                  `${pctLabel}%`
-                )
-              : t(
-                  '%s, %s, %s of all events. View events with this tag value.',
-                  title,
-                  segment.value,
-                  `${pctLabel}%`
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            variants={{
+              open: {height: ['100%', 'auto'], opacity: 1},
+              closed: {height: '0', opacity: 0, overflow: 'hidden'},
+            }}
+            initial="closed"
+            animate="open"
+            exit="closed"
+          >
+            <LegendContainer>
+              {topSegments.map((segment, index) => {
+                const pctLabel = Math.floor(percent(segment.count, totalValues));
+                const unfocus = !!hoveredValue && hoveredValue.value !== segment.value;
+                const focus = hoveredValue?.value === segment.value;
+                const linkLabel = segment.isOther
+                  ? t(
+                      'Other %s tag values, %s of all events. View other tags.',
+                      title,
+                      `${pctLabel}%`
+                    )
+                  : t(
+                      '%s, %s, %s of all events. View events with this tag value.',
+                      title,
+                      segment.value,
+                      `${pctLabel}%`
+                    );
+
+                const legend = (
+                  <LegendRow
+                    onMouseOver={() => setHoveredValue(segment)}
+                    onMouseLeave={() => setHoveredValue(null)}
+                  >
+                    <LegendDot
+                      color={colors[segment.isOther ? colors.length - 1 : index]!}
+                      focus={focus}
+                    />
+                    <Tooltip skipWrapper delay={TOOLTIP_DELAY} title={segment.name}>
+                      <LegendText unfocus={unfocus}>
+                        {segment.name ?? (
+                          <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>
+                        )}
+                      </LegendText>
+                    </Tooltip>
+                    <LegendPercent>{`${pctLabel}%`}</LegendPercent>
+                  </LegendRow>
                 );
 
-            const legend = (
-              <LegendRow
-                onMouseOver={() => setHoveredValue(segment)}
-                onMouseLeave={() => setHoveredValue(null)}
-              >
-                <LegendDot
-                  color={colors[segment.isOther ? colors.length - 1 : index]}
-                  focus={focus}
-                />
-                <Tooltip skipWrapper delay={TOOLTIP_DELAY} title={segment.name}>
-                  <LegendText unfocus={unfocus}>
-                    {segment.name ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
-                  </LegendText>
-                </Tooltip>
-                <LegendPercent>{`${pctLabel}%`}</LegendPercent>
-              </LegendRow>
-            );
-
-            return (
-              <li key={`segment-${segment.name}-${index}`}>
-                {onTagValueClick ? (
-                  <StyledButton
-                    aria-label={linkLabel}
-                    onClick={() => onTagValueClick?.(title, segment)}
-                    priority="link"
-                  >
-                    {legend}
-                  </StyledButton>
-                ) : (
-                  <Link to={segment.url} aria-label={linkLabel}>
-                    {legend}
-                  </Link>
-                )}
-              </li>
-            );
-          })}
-        </LegendContainer>
-      </LegendAnimateContainer>
+                return (
+                  <li key={`segment-${segment.name}-${index}`}>
+                    {onTagValueClick ? (
+                      <StyledButton
+                        aria-label={linkLabel}
+                        onClick={() => onTagValueClick?.(title, segment)}
+                        priority="link"
+                      >
+                        {legend}
+                      </StyledButton>
+                    ) : (
+                      <Link to={segment.url} aria-label={linkLabel}>
+                        {legend}
+                      </Link>
+                    )}
+                  </li>
+                );
+              })}
+            </LegendContainer>
+          </motion.div>
+        )}
+      </AnimatePresence>
     );
   }
 
@@ -235,7 +246,7 @@ function TagFacetsDistributionMeter({
     <TagSummary>
       <details open aria-expanded={expanded} onClick={e => e.preventDefault()}>
         <StyledSummary>
-          <TagHeader clickable onClick={() => setExpanded(!expanded)}>
+          <TagHeader onClick={() => setExpanded(!expanded)}>
             {renderTitle()}
             {renderSegments()}
           </TagHeader>
@@ -252,8 +263,8 @@ const TagSummary = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const TagHeader = styled('span')<{clickable?: boolean}>`
-  ${p => (p.clickable ? 'cursor: pointer' : null)};
+const TagHeader = styled('span')`
+  cursor: pointer;
 `;
 
 const SegmentBar = styled('div')`
@@ -263,7 +274,7 @@ const SegmentBar = styled('div')`
 
 const Title = styled('div')`
   display: flex;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   justify-content: space-between;
   margin-bottom: ${space(0.25)};
   line-height: 1.1;
@@ -272,8 +283,8 @@ const Title = styled('div')`
 const TitleType = styled('div')`
   flex: none;
   color: ${p => p.theme.textColor};
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.md};
   margin-right: ${space(1)};
   align-self: center;
 `;
@@ -281,9 +292,9 @@ const TitleType = styled('div')`
 const TitleDescription = styled('div')`
   ${p => p.theme.overflowEllipsis};
   display: flex;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-align: right;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   ${p => p.theme.overflowEllipsis};
   align-self: center;
 `;
@@ -308,18 +319,9 @@ const Segment = styled('span', {shouldForwardProp: isPropValid})<{color: string}
   outline: none;
   background-color: ${p => p.color};
   text-align: right;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   padding: 1px ${space(0.5)} 0 0;
   user-select: none;
-`;
-
-const LegendAnimateContainer = styled(motion.div, {
-  shouldForwardProp: prop =>
-    prop === 'animate' || (prop !== 'expanded' && isPropValid(prop)),
-})<{expanded: boolean}>`
-  height: 0;
-  opacity: 0;
-  ${p => (!p.expanded ? 'overflow: hidden;' : '')}
 `;
 
 const LegendContainer = styled('ol')`
@@ -360,7 +362,7 @@ const LegendDot = styled('span')<{color: string; focus: boolean}>`
 `;
 
 const LegendText = styled('span')<{unfocus: boolean}>`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-left: ${space(1)};
   overflow: hidden;
   white-space: nowrap;
@@ -370,20 +372,20 @@ const LegendText = styled('span')<{unfocus: boolean}>`
 `;
 
 const LegendPercent = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-left: ${space(1)};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   text-align: right;
   flex-grow: 1;
 `;
 
 const ExpandToggleButton = styled(Button)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   margin-left: ${space(0.5)};
 `;
 
 const NotApplicableLabel = styled('span')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const StyledSummary = styled('summary')`

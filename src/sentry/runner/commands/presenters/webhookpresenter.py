@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import time
 from typing import Any
 
 import requests
@@ -19,8 +20,9 @@ class WebhookPresenter(OptionsPresenter):
 
     MAX_OPTION_VALUE_LENGTH = 30
 
-    def __init__(self, source: str) -> None:
+    def __init__(self, source: str, timestamp: float | None = None) -> None:
         self.source = source
+        self.timestamp: float | None = timestamp
         self.drifted_options: list[tuple[str, Any]] = []
         self.channel_updated_options: list[str] = []
         self.updated_options: list[tuple[str, Any, Any]] = []
@@ -53,12 +55,10 @@ class WebhookPresenter(OptionsPresenter):
         region: str | None = (
             settings.SENTRY_REGION
             if settings.SENTRY_REGION
-            else settings.CUSTOMER_ID
-            if settings.CUSTOMER_ID
-            else settings.SILO_MODE
+            else settings.CUSTOMER_ID if settings.CUSTOMER_ID else settings.SILO_MODE
         )
 
-        json_data = {
+        json_data: dict[str, Any] = {
             "region": region,
             "source": self.source,
             "drifted_options": [
@@ -87,6 +87,12 @@ class WebhookPresenter(OptionsPresenter):
                 for key, got_type, expected_type in self.invalid_type_options
             ],
         }
+
+        if self.timestamp is not None:
+            start_time = self.timestamp
+            latency_seconds = time.time() - start_time
+            json_data["latency_seconds"] = latency_seconds
+
         self._send_to_webhook(json_data)
 
     def truncate_value(self, value: str) -> str:

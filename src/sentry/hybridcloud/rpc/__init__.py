@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import contextlib
 import datetime
 import logging
 import threading
-from collections.abc import Callable, Generator, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from enum import Enum
-from typing import Any, Generic, Protocol, Self, TypeVar, cast
+from typing import Any, Generic, Self, TypeVar, cast
 
 import pydantic
 from django.db import router, transaction
@@ -100,10 +99,6 @@ class RpcModel(pydantic.BaseModel):
         return cls(**fields)
 
 
-class RpcModelProtocolMeta(type(RpcModel), type(Protocol)):  # type: ignore[misc]
-    """A unifying metaclass for RpcModel classes that also implement a Protocol."""
-
-
 ServiceInterface = TypeVar("ServiceInterface")
 
 
@@ -118,39 +113,27 @@ class DelegatedBySiloMode(Generic[ServiceInterface]):
     service is closed, or when the backing service implementation changes.
     """
 
-    _constructors: Mapping[SiloMode, Callable[[], ServiceInterface]]
-    _singleton: dict[SiloMode, ServiceInterface | None]
-    _lock: threading.RLock
-
     def __init__(self, mapping: Mapping[SiloMode, Callable[[], ServiceInterface]]):
         self._constructors = mapping
-        self._singleton = {}
+        self._singleton: dict[SiloMode, ServiceInterface] = {}
         self._lock = threading.RLock()
-
-    @contextlib.contextmanager
-    def with_replacement(
-        self, service: ServiceInterface | None, silo_mode: SiloMode
-    ) -> Generator[None]:
-        with self._lock:
-            prev = self._singleton.get(silo_mode, None)
-            self._singleton[silo_mode] = service
-        try:
-            yield
-        finally:
-            with self._lock:
-                self._singleton[silo_mode] = prev
 
     def __getattr__(self, item: str) -> Any:
         cur_mode = SiloMode.get_current_mode()
 
-        with self._lock:
-            if impl := self._singleton.get(cur_mode, None):
-                return getattr(impl, item)
-            if con := self._constructors.get(cur_mode, None):
-                self._singleton[cur_mode] = inst = con()
-                return getattr(inst, item)
+        try:
+            # fast path: object already built
+            impl = self._singleton[cur_mode]
+        except KeyError:
+            # slow path: only lock when building the object
+            with self._lock:
+                # another thread may have won the race to build the object
+                try:
+                    impl = self._singleton[cur_mode]
+                except KeyError:
+                    impl = self._singleton[cur_mode] = self._constructors[cur_mode]()
 
-        raise KeyError(f"No implementation found for {cur_mode}.")
+        return getattr(impl, item)
 
 
 class DelegatedByOpenTransaction(Generic[ServiceInterface]):
@@ -197,7 +180,7 @@ class DelegatedByOpenTransaction(Generic[ServiceInterface]):
 
 
 def silo_mode_delegation(
-    mapping: Mapping[SiloMode, Callable[[], ServiceInterface]]
+    mapping: Mapping[SiloMode, Callable[[], ServiceInterface]],
 ) -> ServiceInterface:
     """
     Simply creates a DelegatedBySiloMode from a mapping object, but casts it as a ServiceInterface matching
@@ -210,7 +193,7 @@ def silo_mode_delegation(
 
 
 def get_delegated_constructors(
-    mapping: Mapping[SiloMode, Callable[[], ServiceInterface]]
+    mapping: Mapping[SiloMode, Callable[[], ServiceInterface]],
 ) -> Mapping[SiloMode, Callable[[], ServiceInterface]]:
     """
     Creates a new constructor mapping by replacing the monolith constructor with a DelegatedByOpenTransaction
@@ -219,7 +202,7 @@ def get_delegated_constructors(
 
     def delegator() -> ServiceInterface:
         from sentry.models.organization import Organization
-        from sentry.models.user import User
+        from sentry.users.models.user import User
 
         return cast(
             ServiceInterface,

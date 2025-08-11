@@ -3,7 +3,8 @@ import {useMemo} from 'react';
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
-import type {Event, Frame, StacktraceType} from 'sentry/types';
+import type {Event, Frame} from 'sentry/types/event';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,11 +22,9 @@ interface StacktraceBannersProps {
 export function StacktraceBanners({stacktrace, event}: StacktraceBannersProps) {
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
-  const expectedDefaultFrame: Frame | undefined = (stacktrace.frames ?? [])
-    .filter(
-      frame => frame?.inApp && hasFileExtension(frame.absPath || frame.filename || '')
-    )
-    .at(-1);
+  const expectedDefaultFrame: Frame | undefined = (stacktrace.frames ?? []).findLast(
+    frame => frame?.inApp && hasFileExtension(frame.absPath || frame.filename || '')
+  );
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
     [projects, event]

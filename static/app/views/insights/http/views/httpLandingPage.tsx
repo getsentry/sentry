@@ -1,69 +1,66 @@
 import React from 'react';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import ButtonBar from 'sentry/components/buttonBar';
-import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/modulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
+import {ModuleBodyUpsellHook} from 'sentry/views/insights/common/components/moduleUpsellHookWrapper';
+import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
+import {useHttpLandingChartFilter} from 'sentry/views/insights/common/components/widgets/hooks/useHttpLandingChartFilter';
+import HttpDurationChartWidget from 'sentry/views/insights/common/components/widgets/httpDurationChartWidget';
+import HttpResponseCodesChartWidget from 'sentry/views/insights/common/components/widgets/httpResponseCodesChartWidget';
+import HttpThroughputChartWidget from 'sentry/views/insights/common/components/widgets/httpThroughputChartWidget';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
-import {ResponseRateChart} from 'sentry/views/insights/http/components/charts/responseRateChart';
-import {ThroughputChart} from 'sentry/views/insights/http/components/charts/throughputChart';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {
   DomainsTable,
   isAValidSort,
 } from 'sentry/views/insights/http/components/tables/domainsTable';
 import {Referrer} from 'sentry/views/insights/http/referrers';
-import {
-  BASE_FILTERS,
-  MODULE_DESCRIPTION,
-  MODULE_DOC_LINK,
-  MODULE_TITLE,
-} from 'sentry/views/insights/http/settings';
+import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
+import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
+import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
+import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
+import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export function HTTPLandingPage() {
   const organization = useOrganization();
+  const navigate = useNavigate();
   const location = useLocation();
-
-  const sortField = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_SORT]);
-
-  // TODO: Pull this using `useLocationQuery` below
-  const sort = decodeSorts(sortField).filter(isAValidSort).at(0) ?? DEFAULT_SORT;
+  const {view} = useDomainViewFilters();
 
   const query = useLocationQuery({
     fields: {
       'span.domain': decodeScalar,
+      [QueryParameterNames.DOMAINS_SORT]: decodeScalar,
     },
   });
 
-  const chartFilters = {
-    ...BASE_FILTERS,
-  };
+  const sort =
+    decodeSorts(query?.[QueryParameterNames.DOMAINS_SORT]).find(isAValidSort) ??
+    DEFAULT_SORT;
+  const cursor = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_CURSOR]);
+
+  const chartFilters = useHttpLandingChartFilter();
 
   const tableFilters = {
-    ...BASE_FILTERS,
+    ...chartFilters,
     'span.domain': query['span.domain'] ? `*${query['span.domain']}*` : undefined,
   };
-
-  const cursor = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_CURSOR]);
 
   const handleSearch = (newDomain: string) => {
     trackAnalytics('insight.general.search', {
@@ -71,7 +68,7 @@ export function HTTPLandingPage() {
       query: newDomain,
       source: ModuleName.HTTP,
     });
-    browserHistory.push({
+    navigate({
       ...location,
       query: {
         ...location.query,
@@ -81,56 +78,19 @@ export function HTTPLandingPage() {
     });
   };
 
-  const {
-    isLoading: isThroughputDataLoading,
-    data: throughputData,
-    error: throughputError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: ['spm()'],
-    },
-    Referrer.LANDING_THROUGHPUT_CHART
-  );
-
-  const {
-    isLoading: isDurationDataLoading,
-    data: durationData,
-    error: durationError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: [`avg(span.self_time)`],
-    },
-    Referrer.LANDING_DURATION_CHART
-  );
-
-  const {
-    isLoading: isResponseCodeDataLoading,
-    data: responseCodeData,
-    error: responseCodeError,
-  } = useSpanMetricsSeries(
-    {
-      search: MutableSearch.fromQueryObject(chartFilters),
-      yAxis: ['http_response_rate(3)', 'http_response_rate(4)', 'http_response_rate(5)'],
-    },
-    Referrer.LANDING_RESPONSE_CODE_CHART
-  );
-
-  const domainsListResponse = useSpanMetrics(
+  const domainsListResponse = useSpans(
     {
       search: MutableSearch.fromQueryObject(tableFilters),
       fields: [
         'project',
         'project.id',
         'span.domain',
-        'spm()',
+        'epm()',
         'http_response_rate(3)',
         'http_response_rate(4)',
         'http_response_rate(5)',
         'avg(span.self_time)',
         'sum(span.self_time)',
-        'time_spent_percentage()',
       ],
       sorts: [sort],
       limit: DOMAIN_TABLE_ROW_COUNT,
@@ -139,97 +99,64 @@ export function HTTPLandingPage() {
     Referrer.LANDING_DOMAINS_LIST
   );
 
-  useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
-
-  const crumbs = useModuleBreadcrumbs('http');
+  const headerProps = {
+    module: ModuleName.HTTP,
+  };
 
   return (
     <React.Fragment>
-      <Layout.Header>
-        <Layout.HeaderContent>
-          <Breadcrumbs crumbs={crumbs} />
+      {view === FRONTEND_LANDING_SUB_PATH && <FrontendHeader {...headerProps} />}
+      {view === BACKEND_LANDING_SUB_PATH && <BackendHeader {...headerProps} />}
+      {view === MOBILE_LANDING_SUB_PATH && <MobileHeader {...headerProps} />}
 
-          <Layout.Title>
-            {MODULE_TITLE}
-            <PageHeadingQuestionTooltip
-              docsUrl={MODULE_DOC_LINK}
-              title={MODULE_DESCRIPTION}
-            />
-          </Layout.Title>
-        </Layout.HeaderContent>
-        <Layout.HeaderActions>
-          <ButtonBar gap={1}>
-            <FeedbackWidgetButton />
-          </ButtonBar>
-        </Layout.HeaderActions>
-      </Layout.Header>
-
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <ModulePageFilterBar moduleName={ModuleName.HTTP} />
-            </ModuleLayout.Full>
-
-            <ModulesOnboarding moduleName={ModuleName.HTTP}>
-              <ModuleLayout.Third>
-                <ThroughputChart
-                  series={throughputData['spm()']}
-                  isLoading={isThroughputDataLoading}
-                  error={throughputError}
-                />
-              </ModuleLayout.Third>
-
-              <ModuleLayout.Third>
-                <DurationChart
-                  series={[durationData[`avg(span.self_time)`]]}
-                  isLoading={isDurationDataLoading}
-                  error={durationError}
-                />
-              </ModuleLayout.Third>
-
-              <ModuleLayout.Third>
-                <ResponseRateChart
-                  series={[
-                    {
-                      ...responseCodeData[`http_response_rate(3)`],
-                      seriesName: t('3XX'),
-                    },
-                    {
-                      ...responseCodeData[`http_response_rate(4)`],
-                      seriesName: t('4XX'),
-                    },
-                    {
-                      ...responseCodeData[`http_response_rate(5)`],
-                      seriesName: t('5XX'),
-                    },
-                  ]}
-                  isLoading={isResponseCodeDataLoading}
-                  error={responseCodeError}
-                />
-              </ModuleLayout.Third>
-
+      <ModuleBodyUpsellHook moduleName={ModuleName.HTTP}>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <ModuleLayout.Layout>
               <ModuleLayout.Full>
-                <SearchBar
-                  query={query['span.domain']}
-                  placeholder={t('Search for more domains')}
-                  onSearch={handleSearch}
-                />
+                <ToolRibbon>
+                  <ModulePageFilterBar
+                    moduleName={ModuleName.HTTP}
+                    extraFilters={<SubregionSelector />}
+                  />
+                </ToolRibbon>
               </ModuleLayout.Full>
 
-              <ModuleLayout.Full>
-                <DomainsTable response={domainsListResponse} sort={sort} />
-              </ModuleLayout.Full>
-            </ModulesOnboarding>
-          </ModuleLayout.Layout>
-        </Layout.Main>
-      </Layout.Body>
+              <ModulesOnboarding moduleName={ModuleName.HTTP}>
+                <ModuleLayout.Third>
+                  <HttpThroughputChartWidget />
+                </ModuleLayout.Third>
+
+                <ModuleLayout.Third>
+                  <HttpDurationChartWidget />
+                </ModuleLayout.Third>
+
+                <ModuleLayout.Third>
+                  <HttpResponseCodesChartWidget />
+                </ModuleLayout.Third>
+
+                <ModuleLayout.Full>
+                  <SearchBar
+                    query={query['span.domain']}
+                    placeholder={t('Search for more domains')}
+                    onSearch={handleSearch}
+                  />
+                </ModuleLayout.Full>
+
+                <ModuleLayout.Full>
+                  <DomainsTable response={domainsListResponse} sort={sort} />
+                </ModuleLayout.Full>
+              </ModulesOnboarding>
+            </ModuleLayout.Layout>
+          </Layout.Main>
+        </Layout.Body>
+      </ModuleBodyUpsellHook>
     </React.Fragment>
   );
 }
 
 const DEFAULT_SORT = {
-  field: 'time_spent_percentage()' as const,
+  field: 'sum(span.self_time)' as const,
   kind: 'desc' as const,
 };
 
@@ -237,11 +164,7 @@ const DOMAIN_TABLE_ROW_COUNT = 10;
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="http"
-      features="insights-initial-modules"
-      analyticEventName="insight.page_loads.http"
-    >
+    <ModulePageProviders moduleName="http" analyticEventName="insight.page_loads.http">
       <HTTPLandingPage />
     </ModulePageProviders>
   );

@@ -5,9 +5,8 @@ import sortBy from 'lodash/sortBy';
 
 import {ValueLink} from 'sentry/components/keyValueData';
 import {space} from 'sentry/styles/space';
-import type {KeyValueListData} from 'sentry/types';
+import type {KeyValueListData} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
-import theme from 'sentry/utils/theme';
 
 import type {ValueProps} from './value';
 import {Value} from './value';
@@ -106,7 +105,7 @@ function KeyValueList({
   );
 }
 
-function MultiValueContainer({values}: {values: string[]}): JSX.Element {
+function MultiValueContainer({values}: {values: string[]}): React.JSX.Element {
   return (
     <Fragment>
       {values.map((val, idx) => (
@@ -119,7 +118,7 @@ function MultiValueContainer({values}: {values: string[]}): JSX.Element {
 export default KeyValueList;
 
 const TableSubject = styled('td')<{wide?: boolean}>`
-  @media (min-width: ${theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     max-width: ${p => (p.wide ? '620px !important' : 'none')};
   }
 `;
@@ -138,7 +137,7 @@ const ValueWithButtonContainer = styled('div')`
   display: grid;
   align-items: center;
   gap: ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   background: ${p => p.theme.bodyBackground};
   padding: ${space(1)} 10px;
   margin: ${space(0.25)} 0;
@@ -148,7 +147,7 @@ const ValueWithButtonContainer = styled('div')`
     margin: 0 !important;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr max-content;
   }
 `;

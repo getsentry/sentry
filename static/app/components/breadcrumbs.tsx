@@ -2,12 +2,11 @@ import {Fragment} from 'react';
 import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {LocationDescriptor} from 'history';
 
 import {Chevron} from 'sentry/components/chevron';
+import type {LinkProps} from 'sentry/components/core/link';
+import {Link} from 'sentry/components/core/link';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import type {LinkProps} from 'sentry/components/links/link';
-import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
 import type {BreadcrumbDropdownProps} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 import BreadcrumbDropdown from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
@@ -63,7 +62,7 @@ interface Props extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * Array of crumbs that will be rendered
    */
-  crumbs: (Crumb | CrumbDropdown)[];
+  crumbs: Array<Crumb | CrumbDropdown>;
 
   /**
    * As a general rule of thumb we don't want the last item to be link as it most likely
@@ -87,14 +86,14 @@ export function Breadcrumbs({crumbs, linkLastItem = false, ...props}: Props) {
   }
 
   if (!linkLastItem) {
-    const lastCrumb = crumbs[crumbs.length - 1];
+    const lastCrumb = crumbs[crumbs.length - 1]!;
     if (!isCrumbDropdown(lastCrumb)) {
       lastCrumb.to = null;
     }
   }
 
   return (
-    <BreadcrumbList {...props}>
+    <BreadcrumbList {...props} data-test-id="breadcrumb-list">
       {crumbs.map((crumb, index) => {
         if (isCrumbDropdown(crumb)) {
           const {label, ...crumbProps} = crumb;
@@ -111,7 +110,7 @@ export function Breadcrumbs({crumbs, linkLastItem = false, ...props}: Props) {
         const {label, to, preservePageFilters, key} = crumb;
         const labelKey = typeof label === 'string' ? label : '';
         const mapKey =
-          key ?? typeof to === 'string' ? `${labelKey}${to}` : `${labelKey}${index}`;
+          key ?? (typeof to === 'string' ? `${labelKey}${to}` : `${labelKey}${index}`);
 
         return (
           <Fragment key={mapKey}>
@@ -124,7 +123,7 @@ export function Breadcrumbs({crumbs, linkLastItem = false, ...props}: Props) {
                 {label}
               </BreadcrumbLink>
             ) : (
-              <BreadcrumbItem>{label}</BreadcrumbItem>
+              <BreadcrumbItem data-test-id="breadcrumb-item">{label}</BreadcrumbItem>
             )}
 
             {index < crumbs.length - 1 && <BreadcrumbDividerIcon direction="right" />}
@@ -154,12 +153,13 @@ interface BreadcrumbLinkProps {
 const BreadcrumbLink = styled(
   ({preservePageFilters, to, ...props}: BreadcrumbLinkProps) =>
     preservePageFilters ? (
-      <GlobalSelectionLink to={to as LocationDescriptor} {...props} />
+      <GlobalSelectionLink to={to} {...props} />
     ) : (
       <Link to={to} {...props} />
     )
 )`
   ${getBreadcrumbListItemStyles}
+  max-width: 400px;
 
   &:hover,
   &:active {

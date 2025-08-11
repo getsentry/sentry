@@ -1,11 +1,12 @@
 import {useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import type {GridColumn} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import type {Alignments} from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
+import type {GridColumn} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
+import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -37,6 +38,7 @@ function RelatedTransactions({
   filter,
   location,
 }: RelatedTransactionsProps) {
+  const theme = useTheme();
   const [widths, setWidths] = useState<number[]>([]);
   const eventView = getMetricRuleDiscoverQuery({
     rule,
@@ -50,14 +52,14 @@ function RelatedTransactions({
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    if (!tableData || !tableData.meta) {
+    if (!tableData?.meta) {
       return dataRow[column.key];
     }
     const tableMeta = tableData.meta;
 
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta, false);
-    const rendered = fieldRenderer(dataRow, {organization, location});
+    const rendered = fieldRenderer(dataRow, {organization, location, theme});
 
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
@@ -65,7 +67,7 @@ function RelatedTransactions({
       summaryView.query = summaryConditions;
 
       const target = transactionSummaryRouteWithQuery({
-        orgSlug: organization.slug,
+        organization,
         transaction: String(dataRow.transaction) || '',
         query: summaryView.generateQueryStringObject(),
         projectID,
@@ -116,7 +118,7 @@ function RelatedTransactions({
 
   const columnOrder = eventView
     .getColumns()
-    .map((col: TableColumn<React.ReactText>, i: number) => {
+    .map((col: TableColumn<string | number>, i: number) => {
       if (typeof widths[i] === 'number') {
         return {...col, width: widths[i]};
       }

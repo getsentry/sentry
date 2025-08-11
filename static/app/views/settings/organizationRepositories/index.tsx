@@ -7,7 +7,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
-import routeTitleGen from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -20,7 +19,7 @@ function OrganizationRepositoriesContainer() {
 
   const {
     data: itemList,
-    isLoading,
+    isPending,
     isError,
     getResponseHeader,
   } = useApiQuery<Repository[]>(
@@ -29,7 +28,7 @@ function OrganizationRepositoriesContainer() {
   );
   const itemListPageLinks = getResponseHeader?.('Link');
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -43,7 +42,7 @@ function OrganizationRepositoriesContainer() {
       queryClient,
       [`/organizations/${organization.slug}/repos/`, {query: location.query}],
       oldItemList =>
-        oldItemList.map(item =>
+        oldItemList?.map(item =>
           item.id === data.id ? {...item, status: data.status} : item
         )
     );
@@ -51,12 +50,10 @@ function OrganizationRepositoriesContainer() {
 
   return (
     <Fragment>
-      <SentryDocumentTitle
-        title={routeTitleGen(t('Repositories'), organization.slug, false)}
-      />
+      <SentryDocumentTitle title={t('Repositories')} orgSlug={organization.slug} />
       <OrganizationRepositories
         organization={organization}
-        itemList={itemList!}
+        itemList={itemList}
         onRepositoryChange={onRepositoryChange}
       />
       {itemListPageLinks && <Pagination pageLinks={itemListPageLinks} />}

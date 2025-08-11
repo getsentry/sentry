@@ -1,15 +1,16 @@
 import {Component, createRef} from 'react';
-import type {SingleValueProps} from 'react-select';
-import {components} from 'react-select';
+import {type Theme, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import Tag from 'sentry/components/badge/tag';
-import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
-import type {InputProps} from 'sentry/components/input';
-import Input from 'sentry/components/input';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tag} from 'sentry/components/core/badge/tag';
+import type {InputProps} from 'sentry/components/core/input';
+import {Input} from 'sentry/components/core/input';
+import type {ControlProps} from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import type {SingleValueProps} from 'sentry/components/forms/controls/reactSelectWrapper';
+import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
@@ -36,7 +37,7 @@ type FieldOptions = Record<string, FieldValueOption>;
 
 // Intermediate type that combines the current column
 // data with the AggregateParameter type.
-type ParameterDescription =
+export type ParameterDescription =
   | {
       dataType: ColumnType;
       kind: 'value';
@@ -53,7 +54,7 @@ type ParameterDescription =
   | {
       dataType: string;
       kind: 'dropdown';
-      options: SelectValue<string>[];
+      options: Array<SelectValue<string>>;
       required: boolean;
       value: string;
       placeholder?: string;
@@ -64,6 +65,7 @@ type Props = {
   fieldValue: QueryFieldValue;
   onChange: (fieldValue: QueryFieldValue) => void;
   className?: string;
+  disableParameterSelector?: boolean;
   disabled?: boolean;
   error?: string;
   /**
@@ -105,6 +107,12 @@ type Props = {
   shouldRenderTag?: boolean;
   skipParameterPlaceholder?: boolean;
   takeFocus?: boolean;
+  theme?: Theme;
+  /**
+   * Whether or not to mount the popover menu in the document.body.
+   * Useful for rendering query fields in scroll containers.
+   */
+  useMenuPortal?: boolean;
 };
 
 // Type for completing generics in react-select
@@ -113,7 +121,7 @@ type OptionType = {
   value: FieldValue;
 };
 
-class QueryField extends Component<Props> {
+class _QueryField extends Component<Props> {
   FieldSelectComponents = {
     SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => {
       return (
@@ -246,7 +254,7 @@ class QueryField extends Component<Props> {
     this.triggerChange(newColumn);
   };
 
-  handleFieldParameterChange = ({value}) => {
+  handleFieldParameterChange = ({value}: any) => {
     const newColumn = cloneDeep(this.props.fieldValue);
     if (newColumn.kind === 'function') {
       newColumn.function[1] = value.meta.name;
@@ -358,7 +366,7 @@ class QueryField extends Component<Props> {
 
     if (fieldValue?.kind === 'field' || fieldValue?.kind === 'calculatedField') {
       field = this.getFieldOrTagOrMeasurementValue(fieldValue.field);
-      fieldOptions = this.appendFieldIfUnknown(fieldOptions, field);
+      fieldOptions = appendFieldIfUnknown(fieldOptions, field);
     }
 
     let parameterDescriptions: ParameterDescription[] = [];
@@ -376,7 +384,7 @@ class QueryField extends Component<Props> {
               fieldValue.function[1],
               [fieldValue.function[0]]
             );
-            fieldOptions = this.appendFieldIfUnknown(fieldOptions, fieldParameter);
+            fieldOptions = appendFieldIfUnknown(fieldOptions, fieldParameter);
             return {
               kind: 'column',
               value: fieldParameter,
@@ -422,29 +430,6 @@ class QueryField extends Component<Props> {
     return {field, fieldOptions, parameterDescriptions};
   }
 
-  appendFieldIfUnknown(
-    fieldOptions: FieldOptions,
-    field: FieldValue | null
-  ): FieldOptions {
-    if (!field) {
-      return fieldOptions;
-    }
-
-    if (field && field.kind === FieldValueKind.TAG && field.meta.unknown) {
-      // Clone the options so we don't mutate other rows.
-      fieldOptions = Object.assign({}, fieldOptions);
-      fieldOptions[field.meta.name] = {label: field.meta.name, value: field};
-    } else if (field && field.kind === FieldValueKind.CUSTOM_MEASUREMENT) {
-      fieldOptions = Object.assign({}, fieldOptions);
-      fieldOptions[`measurement:${field.meta.name}`] = {
-        label: field.meta.name,
-        value: field,
-      };
-    }
-
-    return fieldOptions;
-  }
-
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
     const {
       disabled,
@@ -453,6 +438,9 @@ class QueryField extends Component<Props> {
       hideParameterSelector,
       skipParameterPlaceholder,
       fieldValue,
+      useMenuPortal,
+      theme,
+      disableParameterSelector,
     } = this.props;
 
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
@@ -467,11 +455,28 @@ class QueryField extends Component<Props> {
           : descriptor.options;
 
         aggregateParameters.forEach(opt => {
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
           opt.trailingItems = this.renderTag(opt.value.kind, String(opt.label));
         });
 
+        const portalProps = useMenuPortal
+          ? {
+              menuPortalTarget: document.body,
+              styles: {
+                menuPortal: (provided: any) => ({
+                  ...provided,
+                  // This ensures that the dropdown appears above the widget builder
+                  // because the default dropdown z-index is too low
+                  zIndex: theme?.zIndex.widgetBuilderDrawer
+                    ? theme.zIndex.widgetBuilderDrawer + 1
+                    : undefined,
+                }),
+              },
+            }
+          : {};
+
         return (
-          <SelectControl
+          <Select
             key="select"
             name="parameter"
             menuPlacement="auto"
@@ -481,8 +486,12 @@ class QueryField extends Component<Props> {
             required={descriptor.required}
             onChange={this.handleFieldParameterChange}
             inFieldLabel={inFieldLabels ? t('Parameter: ') : undefined}
-            disabled={disabled}
-            styles={!inFieldLabels ? this.FieldSelectStyles : undefined}
+            disabled={disabled || disableParameterSelector}
+            menuPortalTarget={portalProps.menuPortalTarget}
+            styles={{
+              ...portalProps.styles,
+              ...(inFieldLabels ? undefined : this.FieldSelectStyles),
+            }}
             components={this.FieldSelectComponents}
           />
         );
@@ -531,7 +540,7 @@ class QueryField extends Component<Props> {
       }
       if (descriptor.kind === 'dropdown') {
         return (
-          <SelectControl
+          <Select
             key="dropdown"
             name="dropdown"
             menuPlacement="auto"
@@ -545,7 +554,9 @@ class QueryField extends Component<Props> {
           />
         );
       }
-      throw new Error(`Unknown parameter type encountered for ${this.props.fieldValue}`);
+      throw new Error(
+        `Unknown parameter type encountered for ${JSON.stringify(this.props.fieldValue)}`
+      );
     });
 
     if (skipParameterPlaceholder) {
@@ -570,7 +581,8 @@ class QueryField extends Component<Props> {
     if (shouldRenderTag === false) {
       return null;
     }
-    let text, tagType;
+    let text: string;
+    let tagType: 'success' | 'highlight' | 'warning' | undefined = undefined;
     switch (kind) {
       case FieldValueKind.FUNCTION:
         text = 'f(x)';
@@ -626,6 +638,7 @@ class QueryField extends Component<Props> {
       : Object.values(fieldOptions);
 
     allFieldOptions.forEach(opt => {
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
       opt.trailingItems = this.renderTag(opt.value.kind, String(opt.label));
     });
 
@@ -659,7 +672,6 @@ class QueryField extends Component<Props> {
             name="arithmetic"
             key="parameter:text"
             type="text"
-            required
             value={fieldValue.field}
             onUpdate={this.handleEquationChange}
             options={otherColumns}
@@ -683,11 +695,11 @@ class QueryField extends Component<Props> {
     if (skipParameterPlaceholder) {
       // if the selected field is a function and has parameters, we would like to display each value in separate columns.
       // Otherwise the field should be displayed in a column, taking up all available space and not displaying the "no parameter" field
-      if (fieldValue.kind !== 'function') {
-        gridColumnsQuantity = 1;
-      } else {
+      if (fieldValue.kind === 'function') {
         const operation =
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           AGGREGATIONS[fieldValue.function[0]] ??
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           SESSIONS_OPERATIONS[fieldValue.function[0]];
         if (operation?.parameters.length > 0) {
           if (containerColumns === 3 && operation.parameters.length === 1) {
@@ -698,6 +710,8 @@ class QueryField extends Component<Props> {
         } else {
           gridColumnsQuantity = 1;
         }
+      } else {
+        gridColumnsQuantity = 1;
       }
     }
 
@@ -709,9 +723,9 @@ class QueryField extends Component<Props> {
         data-test-id="queryField"
       >
         {!hidePrimarySelector && (
-          <SelectControl
+          <Select
             {...selectProps}
-            styles={!inFieldLabels ? this.FieldSelectStyles : undefined}
+            styles={inFieldLabels ? undefined : this.FieldSelectStyles}
             components={this.FieldSelectComponents}
           />
         )}
@@ -721,7 +735,7 @@ class QueryField extends Component<Props> {
   }
 }
 
-function validateColumnTypes(
+export function validateColumnTypes(
   columnTypes: ValidateColumnTypes,
   input: FieldValueColumns
 ): boolean {
@@ -762,7 +776,7 @@ type InputState = {value: string};
  * Using a buffered input lets us throttle rendering and enforce data
  * constraints better.
  */
-class BufferedInput extends Component<BufferedInputProps, InputState> {
+export class BufferedInput extends Component<BufferedInputProps, InputState> {
   constructor(props: BufferedInputProps) {
     super(props);
     this.input = createRef();
@@ -772,7 +786,7 @@ class BufferedInput extends Component<BufferedInputProps, InputState> {
     value: this.props.value,
   };
 
-  private input: React.RefObject<HTMLInputElement>;
+  private input: React.RefObject<HTMLInputElement | null>;
 
   get isValid() {
     if (!this.input.current) {
@@ -821,7 +835,7 @@ const StyledInput = styled(Input)`
 
 const BlankSpace = styled('div')`
   /* Match the height of the select boxes */
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
   min-width: 50px;
   background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
@@ -830,7 +844,7 @@ const BlankSpace = styled('div')`
   justify-content: center;
 
   &:after {
-    font-size: ${p => p.theme.fontSizeMedium};
+    font-size: ${p => p.theme.fontSize.md};
     content: '${t('No parameter')}';
     color: ${p => p.theme.subText};
   }
@@ -842,4 +856,29 @@ const ArithmeticError = styled(Tooltip)`
   display: flex;
 `;
 
+const QueryField = withTheme(_QueryField);
+
 export {QueryField};
+
+export function appendFieldIfUnknown(
+  fieldOptions: FieldOptions,
+  field: FieldValue | null
+): FieldOptions {
+  if (!field) {
+    return fieldOptions;
+  }
+
+  if (field && field.kind === FieldValueKind.TAG && field.meta.unknown) {
+    // Clone the options so we don't mutate other rows.
+    fieldOptions = Object.assign({}, fieldOptions);
+    fieldOptions[field.meta.name] = {label: field.meta.name, value: field};
+  } else if (field && field.kind === FieldValueKind.CUSTOM_MEASUREMENT) {
+    fieldOptions = Object.assign({}, fieldOptions);
+    fieldOptions[`measurement:${field.meta.name}`] = {
+      label: field.meta.name,
+      value: field,
+    };
+  }
+
+  return fieldOptions;
+}

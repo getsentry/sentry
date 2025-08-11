@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import logging
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from sentry.models.activity import Activity
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.project import Project
-from sentry.models.user import User
 from sentry.signals import issue_update_priority
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
+from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 if TYPE_CHECKING:
@@ -19,19 +19,16 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-class PriorityChangeReason(Enum):
+class PriorityChangeReason(StrEnum):
     ESCALATING = "escalating"
     ONGOING = "ongoing"
+    ISSUE_PLATFORM = "issue_platform"
 
 
 PRIORITY_TO_GROUP_HISTORY_STATUS = {
     PriorityLevel.HIGH: GroupHistoryStatus.PRIORITY_HIGH,
     PriorityLevel.MEDIUM: GroupHistoryStatus.PRIORITY_MEDIUM,
     PriorityLevel.LOW: GroupHistoryStatus.PRIORITY_LOW,
-}
-
-GROUP_HISTORY_STATUS_TO_PRIORITY = {
-    value: key for key, value in PRIORITY_TO_GROUP_HISTORY_STATUS.items()
 }
 
 

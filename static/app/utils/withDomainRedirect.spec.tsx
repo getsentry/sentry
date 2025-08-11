@@ -1,17 +1,17 @@
-import type {RouteComponentProps} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Config} from 'sentry/types/system';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.unmock('sentry/utils/recreateRoute');
-
-const originalLocation = window.location;
 
 // /settings/:orgId/:projectId/(searches/:searchId/)alerts/
 const projectRoutes = [
@@ -19,12 +19,12 @@ const projectRoutes = [
   {childRoutes: []},
   {path: '/settings/', name: 'Settings', indexRoute: {}, childRoutes: []},
   {name: 'Organizations', path: ':orgId/', childRoutes: []},
-  {name: 'Projects', path: ':projectId/(searches/:searchId/)', childRoutes: []},
+  {name: 'Projects', path: ':projectId/', childRoutes: []},
   {name: 'Alerts', path: 'alerts/'},
 ];
 
 describe('withDomainRedirect', function () {
-  type Props = RouteComponentProps<{orgId: string}, {}>;
+  type Props = RouteComponentProps<{orgId: string}>;
   function MyComponent(props: Props) {
     const {params} = props;
     return <div>Org slug: {params.orgId ?? 'no org slug'}</div>;
@@ -32,9 +32,9 @@ describe('withDomainRedirect', function () {
   let configState: Config;
 
   beforeEach(function () {
-    window.location.pathname = '/organizations/albertos-apples/issues/';
-    window.location.search = '?q=123';
-    window.location.hash = '#hash';
+    setWindowLocation(
+      'http://localhost:3000/organizations/albertos-apples/issues/?q=123#hash'
+    );
 
     configState = ConfigStore.getState();
     ConfigStore.loadInitialData({
@@ -55,7 +55,6 @@ describe('withDomainRedirect', function () {
 
   afterEach(function () {
     jest.resetAllMocks();
-    window.location = originalLocation;
     ConfigStore.loadInitialData(configState);
   });
 
@@ -87,8 +86,7 @@ describe('withDomainRedirect', function () {
         routes={router.routes}
         routeParams={router.params}
         route={{}}
-      />,
-      {router}
+      />
     );
 
     expect(screen.getByText('Org slug: albertos-apples')).toBeInTheDocument();
@@ -111,7 +109,7 @@ describe('withDomainRedirect', function () {
 
     const WrappedComponent = withDomainRedirect(MyComponent);
     const {container} = render(
-      <OrganizationContext.Provider value={organization}>
+      <OrganizationContext value={organization}>
         <WrappedComponent
           router={router}
           location={router.location}
@@ -120,13 +118,12 @@ describe('withDomainRedirect', function () {
           routeParams={router.params}
           route={{}}
         />
-      </OrganizationContext.Provider>,
-      {router}
+      </OrganizationContext>
     );
 
     expect(container).toBeEmptyDOMElement();
-    expect(window.location.replace).toHaveBeenCalledTimes(1);
-    expect(window.location.replace).toHaveBeenCalledWith(
+    expect(testableWindowLocation.replace).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.replace).toHaveBeenCalledWith(
       'https://sentry.io/organizations/albertos-apples/issues/?q=123#hash'
     );
   });
@@ -146,7 +143,7 @@ describe('withDomainRedirect', function () {
 
     const WrappedComponent = withDomainRedirect(MyComponent);
     const {container} = render(
-      <OrganizationContext.Provider value={organization}>
+      <OrganizationContext value={organization}>
         <WrappedComponent
           router={router}
           location={router.location}
@@ -155,13 +152,12 @@ describe('withDomainRedirect', function () {
           routeParams={router.params}
           route={{}}
         />
-      </OrganizationContext.Provider>,
-      {router}
+      </OrganizationContext>
     );
 
     expect(container).toBeEmptyDOMElement();
-    expect(window.location.replace).toHaveBeenCalledTimes(1);
-    expect(window.location.replace).toHaveBeenCalledWith(
+    expect(testableWindowLocation.replace).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.replace).toHaveBeenCalledWith(
       'https://sentry.io/organizations/albertos-apples/issues/?q=123#hash'
     );
   });
@@ -186,7 +182,7 @@ describe('withDomainRedirect', function () {
 
     const WrappedComponent = withDomainRedirect(MyComponent);
     const {container} = render(
-      <OrganizationContext.Provider value={organization}>
+      <OrganizationContext value={organization}>
         <WrappedComponent
           router={router}
           location={router.location}
@@ -195,8 +191,7 @@ describe('withDomainRedirect', function () {
           routeParams={router.params}
           route={{}}
         />
-      </OrganizationContext.Provider>,
-      {router}
+      </OrganizationContext>
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -230,7 +225,7 @@ describe('withDomainRedirect', function () {
 
     const WrappedComponent = withDomainRedirect(MyComponent);
     render(
-      <OrganizationContext.Provider value={organization}>
+      <OrganizationContext value={organization}>
         <WrappedComponent
           router={router}
           location={router.location}
@@ -239,8 +234,7 @@ describe('withDomainRedirect', function () {
           routeParams={router.params}
           route={{}}
         />
-      </OrganizationContext.Provider>,
-      {router}
+      </OrganizationContext>
     );
 
     expect(screen.getByText('Org slug: no org slug')).toBeInTheDocument();
@@ -271,7 +265,7 @@ describe('withDomainRedirect', function () {
 
     const WrappedComponent = withDomainRedirect(MyComponent);
     render(
-      <OrganizationContext.Provider value={organization}>
+      <OrganizationContext value={organization}>
         <WrappedComponent
           router={router}
           location={router.location}
@@ -280,8 +274,7 @@ describe('withDomainRedirect', function () {
           routeParams={router.params}
           route={{}}
         />
-      </OrganizationContext.Provider>,
-      {router}
+      </OrganizationContext>
     );
 
     expect(router.replace).toHaveBeenCalledTimes(1);

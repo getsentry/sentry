@@ -3,33 +3,31 @@ import type {Location} from 'history';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
+import type {PageFilters} from 'sentry/types/core';
 import type {
   NewQuery,
   Organization,
   OrganizationSummary,
-  PageFilters,
-  Project,
-  ReleaseProject,
-} from 'sentry/types';
-import {trackAnalytics} from 'sentry/utils/analytics';
+} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {ReleaseProject} from 'sentry/types/release';
 import toArray from 'sentry/utils/array/toArray';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import getCurrentSentryReactRootSpan from 'sentry/utils/getCurrentSentryReactRootSpan';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-
-import {DEFAULT_MAX_DURATION} from '../trends/utils';
+import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
+import type {DomainView} from 'sentry/views/insights/pages/useFilters';
+import {DEFAULT_MAX_DURATION} from 'sentry/views/performance/trends/utils';
 
 export const QUERY_KEYS = [
   'environment',
@@ -41,8 +39,6 @@ export const QUERY_KEYS = [
 ] as const;
 
 export const UNPARAMETERIZED_TRANSACTION = '<< unparameterized >>'; // Represents 'other' transactions with high cardinality names that were dropped on the metrics dataset.
-const UNPARAMETRIZED_TRANSACTION = '<< unparametrized >>'; // Old spelling. Can be deleted in the future when all data for this transaction name is gone.
-export const EXCLUDE_METRICS_UNPARAM_CONDITIONS = `(!transaction:"${UNPARAMETERIZED_TRANSACTION}" AND !transaction:"${UNPARAMETRIZED_TRANSACTION}")`;
 const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
 
 export enum DiscoverQueryPageSource {
@@ -77,7 +73,7 @@ export function createUnnamedTransactionsDiscoverTarget(props: {
     props.location
   ).withSorts([{field: 'epm', kind: 'desc'}]);
   const target = discoverEventView.getResultsViewUrlTarget(
-    props.organization.slug,
+    props.organization,
     false,
     hasDatasetSelector(props.organization) ? SavedQueryDatasets.TRANSACTIONS : undefined
   );
@@ -104,13 +100,11 @@ const FRONTEND_PLATFORMS: string[] = frontend.filter(
     // Next, Remix and Sveltekit have both, frontend and backend transactions.
     !['javascript-nextjs', 'javascript-remix', 'javascript-sveltekit'].includes(platform)
 );
-const BACKEND_PLATFORMS: string[] = backend.filter(
-  platform => platform !== 'native' && platform !== 'nintendo-switch'
-);
+const BACKEND_PLATFORMS: string[] = backend.filter(platform => platform !== 'native');
 const MOBILE_PLATFORMS: string[] = [...mobile];
 
 export function platformToPerformanceType(
-  projects: (Project | ReleaseProject)[],
+  projects: Array<Project | ReleaseProject>,
   projectIds: readonly number[]
 ) {
   if (projectIds.length === 0 || projectIds[0] === ALL_ACCESS_PROJECTS) {
@@ -148,6 +142,22 @@ export function platformToPerformanceType(
   return PlatformKey;
 }
 
+export function platformToDomainView(
+  projects: Array<Project | ReleaseProject>,
+  projectIds: readonly number[]
+): DomainView | undefined {
+  const performanceType = platformToPerformanceType(projects, projectIds);
+  switch (performanceType) {
+    case ProjectPerformanceType.FRONTEND:
+      return 'frontend';
+    case ProjectPerformanceType.BACKEND:
+      return 'backend';
+    case ProjectPerformanceType.MOBILE:
+      return 'mobile';
+    default:
+      return undefined;
+  }
+}
 /**
  * Used for transaction summary to determine appropriate columns on a page, since there is no display field set for the page.
  */
@@ -159,7 +169,7 @@ export function platformAndConditionsToPerformanceType(
   if (performanceType === ProjectPerformanceType.FRONTEND) {
     const conditions = new MutableSearch(eventView.query);
     const ops = conditions.getFilterValues('!transaction.op');
-    if (ops.some(op => op === 'pageload')) {
+    if (ops.includes('pageload')) {
       return ProjectPerformanceType.FRONTEND_OTHER;
     }
   }
@@ -186,36 +196,15 @@ export function isSummaryViewFrontend(eventView: EventView, projects: Project[])
   );
 }
 
-export function getPerformanceLandingUrl(organization: OrganizationSummary): string {
-  return `/organizations/${organization.slug}/performance/`;
+function getPerformanceTrendsUrl(
+  organization: OrganizationSummary,
+  view?: DomainView
+): string {
+  return `${getPerformanceBaseUrl(organization.slug, view)}/trends/`;
 }
 
-export function getPerformanceTrendsUrl(organization: OrganizationSummary): string {
-  return `/organizations/${organization.slug}/performance/trends/`;
-}
-
-export function getTransactionSearchQuery(location: Location, query: string = '') {
+export function getTransactionSearchQuery(location: Location, query = '') {
   return decodeScalar(location.query.query, query).trim();
-}
-
-export function handleTrendsClick({
-  location,
-  organization,
-  projectPlatforms,
-}: {
-  location: Location;
-  organization: Organization;
-  projectPlatforms: string;
-}) {
-  trackAnalytics('performance_views.change_view', {
-    organization,
-    view_name: 'TRENDS',
-    project_platforms: projectPlatforms,
-  });
-
-  const target = trendsTargetRoute({location, organization});
-
-  browserHistory.push(normalizeUrl(target));
 }
 
 export function trendsTargetRoute({
@@ -223,11 +212,13 @@ export function trendsTargetRoute({
   organization,
   initialConditions,
   additionalQuery,
+  view,
 }: {
   location: Location;
   organization: Organization;
-  additionalQuery?: {[x: string]: string};
+  additionalQuery?: Record<string, string>;
   initialConditions?: MutableSearch;
+  view?: DomainView;
 }) {
   const newQuery = {
     ...location.query,
@@ -262,7 +253,7 @@ export function trendsTargetRoute({
   }
   newQuery.query = modifiedConditions.formatString();
 
-  return {pathname: getPerformanceTrendsUrl(organization), query: {...newQuery}};
+  return {pathname: getPerformanceTrendsUrl(organization, view), query: {...newQuery}};
 }
 
 export function removeTracingKeysFromSearch(
@@ -362,11 +353,7 @@ export function getProject(
   eventData: EventData,
   projects: Project[]
 ): Project | undefined {
-  const projectSlug = (eventData?.project as string) || undefined;
-
-  if (typeof projectSlug === undefined) {
-    return undefined;
-  }
+  const projectSlug = eventData.project as string | undefined;
 
   return projects.find(currentProject => currentProject.slug === projectSlug);
 }
@@ -379,17 +366,26 @@ export function getProjectID(
 }
 
 export function usePerformanceGeneralProjectSettings(projectId?: number) {
-  const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
   const stringProjectId = projectId?.toString();
   const project = projects.find(p => p.id === stringProjectId);
 
-  return useQuery(['settings', 'general', projectId], {
-    enabled: Boolean(project),
-    queryFn: () =>
-      api.requestPromise(
-        `/api/0/projects/${organization.slug}/${project?.slug}/performance/configure/`
-      ) as Promise<{enable_images: boolean}>,
-  });
+  return useApiQuery<{enable_images: boolean}>(
+    [`/projects/${organization.slug}/${project?.slug}/performance/configure/`],
+    {
+      staleTime: 0,
+      enabled: Boolean(project),
+    }
+  );
+}
+
+export function getPerformanceBaseUrl(
+  orgSlug: string,
+  view: DomainView = 'backend',
+  bare = false
+) {
+  const url = `${DOMAIN_VIEW_BASE_URL}/${view}`;
+
+  return bare ? url : normalizeUrl(`/organizations/${orgSlug}/${url}`);
 }

@@ -1,10 +1,10 @@
-import {Fragment} from 'react';
-import type {WithRouterProps} from 'react-router';
+import {Fragment, useState} from 'react';
 
-import {Alert} from 'sentry/components/alert';
-import {LinkButton} from 'sentry/components/button';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import {Alert} from 'sentry/components/core/alert';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -13,47 +13,63 @@ import RepositoryRow from 'sentry/components/repositoryRow';
 import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import RepositoryStore from 'sentry/stores/repositoryStore';
-import type {Integration, Organization, Repository} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
-import withSentryRouter from 'sentry/utils/withSentryRouter';
+import type {Integration, Repository} from 'sentry/types/integrations';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {IntegrationReposAddRepository} from './integrationReposAddRepository';
 
-type Props = DeprecatedAsyncComponent['props'] &
-  WithRouterProps & {
-    integration: Integration;
-    organization: Organization;
-  };
-
-type State = DeprecatedAsyncComponent['state'] & {
-  integrationReposErrorStatus: number | null | undefined;
-  itemList: Repository[];
+type Props = {
+  integration: Integration;
 };
 
-class IntegrationRepos extends DeprecatedAsyncComponent<Props, State> {
-  getDefaultState(): State {
-    return {
-      ...super.getDefaultState(),
-      itemList: [],
-      integrationReposErrorStatus: null,
-    };
+function IntegrationRepos(props: Props) {
+  const [integrationReposErrorStatus, setIntegrationReposeErrorStatus] = useState<
+    number | null | undefined
+  >(null);
+
+  const {integration} = props;
+  const organization = useOrganization();
+  const location = useLocation();
+  const ENDPOINT = `/organizations/${organization.slug}/repos/`;
+
+  const {
+    data: fetchedItemList,
+    isPending,
+    isError,
+    refetch,
+    getResponseHeader,
+  } = useApiQuery<Repository[]>(
+    [
+      ENDPOINT,
+      {
+        query: {
+          status: 'active',
+          integration_id: integration.id,
+          cursor: location.query.cursor,
+        },
+      },
+    ],
+    {
+      staleTime: 0,
+    }
+  );
+  const [itemListState, setItemList] = useState<Repository[]>([]);
+
+  if (isPending) {
+    return <LoadingIndicator />;
   }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {organization, integration} = this.props;
-    return [
-      [
-        'itemList',
-        `/organizations/${organization.slug}/repos/`,
-        {query: {status: 'active', integration_id: integration.id}},
-      ],
-    ];
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
   }
+
+  const itemList = itemListState.length ? itemListState : fetchedItemList;
 
   // Called by row to signal repository change.
-  onRepositoryChange = (data: Repository) => {
-    const itemList = this.state.itemList;
-    itemList.forEach(item => {
+  const onRepositoryChange = (data: Repository) => {
+    const newItemList = itemList.map(item => {
       if (item.id === data.id) {
         item.status = data.status;
         // allow for custom scm repositories to be updated, and
@@ -61,74 +77,68 @@ class IntegrationRepos extends DeprecatedAsyncComponent<Props, State> {
         item.url = data.url === undefined ? item.url : data.url;
         item.name = data.name || item.name;
       }
+      return item;
     });
-    this.setState({itemList});
+    setItemList(newItemList);
     RepositoryStore.resetRepositories();
   };
 
-  handleSearchError = (errorStatus: number | null | undefined) => {
-    this.setState({integrationReposErrorStatus: errorStatus});
+  const handleAddRepository = (repo: Repository) => {
+    setItemList([...itemList, repo]);
   };
 
-  handleAddRepository = (repo: Repository) => {
-    this.setState(state => ({
-      itemList: [...state.itemList, repo],
-    }));
-  };
+  const itemListPageLinks = getResponseHeader?.('Link') ?? undefined;
 
-  renderBody() {
-    const {integration} = this.props;
-    const {itemListPageLinks, integrationReposErrorStatus, itemList} = this.state;
-    return (
-      <Fragment>
-        {integrationReposErrorStatus === 400 && (
-          <Alert type="error" showIcon>
+  return (
+    <Fragment>
+      {integrationReposErrorStatus === 400 && (
+        <Alert.Container>
+          <Alert type="error">
             {t(
               'We were unable to fetch repositories for this integration. Try again later. If this error continues, please reconnect this integration by uninstalling and then reinstalling.'
             )}
           </Alert>
-        )}
+        </Alert.Container>
+      )}
 
-        <Panel>
-          <PanelHeader hasButtons>
-            <div>{t('Repositories')}</div>
-            <IntegrationReposAddRepository
-              integration={integration}
-              currentRepositories={itemList}
-              onSearchError={this.handleSearchError}
-              onAddRepository={this.handleAddRepository}
+      <Panel>
+        <PanelHeader hasButtons>
+          <div>{t('Repositories')}</div>
+          <IntegrationReposAddRepository
+            integration={integration}
+            currentRepositories={itemList}
+            onSearchError={setIntegrationReposeErrorStatus}
+            onAddRepository={handleAddRepository}
+          />
+        </PanelHeader>
+        <PanelBody>
+          {itemList.length === 0 && (
+            <EmptyMessage
+              icon={<IconCommit />}
+              title={t('Sentry is better with commit data')}
+              description={t(
+                'Add a repository to begin tracking its commit data. Then, set up release tracking to unlock features like suspect commits, suggested issue owners, and deploy emails.'
+              )}
+              action={
+                <LinkButton href="https://docs.sentry.io/product/releases/" external>
+                  {t('Learn More')}
+                </LinkButton>
+              }
             />
-          </PanelHeader>
-          <PanelBody>
-            {itemList.length === 0 && (
-              <EmptyMessage
-                icon={<IconCommit />}
-                title={t('Sentry is better with commit data')}
-                description={t(
-                  'Add a repository to begin tracking its commit data. Then, set up release tracking to unlock features like suspect commits, suggested issue owners, and deploy emails.'
-                )}
-                action={
-                  <LinkButton href="https://docs.sentry.io/product/releases/" external>
-                    {t('Learn More')}
-                  </LinkButton>
-                }
-              />
-            )}
-            {itemList.map(repo => (
-              <RepositoryRow
-                api={this.api}
-                key={repo.id}
-                repository={repo}
-                orgSlug={this.props.organization.slug}
-                onRepositoryChange={this.onRepositoryChange}
-              />
-            ))}
-          </PanelBody>
-        </Panel>
-        <Pagination pageLinks={itemListPageLinks} />
-      </Fragment>
-    );
-  }
+          )}
+          {itemList.map(repo => (
+            <RepositoryRow
+              key={repo.id}
+              repository={repo}
+              orgSlug={organization.slug}
+              onRepositoryChange={onRepositoryChange}
+            />
+          ))}
+        </PanelBody>
+      </Panel>
+      <Pagination pageLinks={itemListPageLinks} />
+    </Fragment>
+  );
 }
 
-export default withOrganization(withSentryRouter(IntegrationRepos));
+export default IntegrationRepos;

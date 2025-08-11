@@ -1,17 +1,16 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import altCrashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/altCrashReportCallout';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportApiIntroduction,
   getCrashReportGenericInstallStep,
@@ -19,8 +18,8 @@ import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
+import {getDotnetProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/dotnet';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 type Params = DocsParams;
@@ -66,7 +65,7 @@ SentrySdk.Init(options =>
     // A Sentry Data Source Name (DSN) is required.
     // See https://docs.sentry.io/product/sentry-basics/dsn-explainer/
     // You can set it in the SENTRY_DSN environment variable, or you can set it in code here.
-    options.Dsn = "${params.dsn}";
+    options.Dsn = "${params.dsn.public}";
 
     // When debug is enabled, the Sentry client will emit detailed debugging information to the console.
     // This might be helpful, or might interfere with the normal operation of your application.
@@ -80,7 +79,7 @@ SentrySdk.Init(options =>
         ? `
 
     // Set TracesSampleRate to 1.0 to capture 100%
-    // of transactions for performance monitoring.
+    // of transactions for tracing.
     // We recommend adjusting this value in production.
     options.TracesSampleRate = 1.0;`
         : ''
@@ -92,8 +91,9 @@ SentrySdk.Init(options =>
     // e.g. 0.2 means we want to profile 20 % of the captured transactions.
     // We recommend adjusting this value in production.
     options.ProfilesSampleRate = 1.0;${
-      platform !== DotNetPlatform.IOS_MACCATALYST
-        ? `
+      platform === DotNetPlatform.IOS_MACCATALYST
+        ? ''
+        : `
     // Requires NuGet package: Sentry.Profiling
     // Note: By default, the profiler is initialized asynchronously. This can
     // be tuned by passing a desired initialization timeout to the constructor.
@@ -103,7 +103,6 @@ SentrySdk.Init(options =>
         // prefer profiling to start asynchronously
         TimeSpan.FromMilliseconds(500)
     ));`
-        : ''
     }`
         : ''
     }
@@ -185,11 +184,11 @@ const onboarding: OnboardingConfig = {
               },
               {
                 description: (
-                  <AlertWithoutMarginBottom type="info">
+                  <Alert type="info" showIcon={false}>
                     {t(
                       'Profiling for .NET Framework and .NET on Android are not supported.'
                     )}
-                  </AlertWithoutMarginBottom>
+                  </Alert>
                 ),
               },
             ]
@@ -201,10 +200,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Initialize the SDK as early as possible. For example, call [sentrySdkCode:SentrySdk.Init] in your [programCode:Program.cs] file:',
+        'Initialize the SDK as early as possible. For example, call [code:SentrySdk.Init] in your [code:Program.cs] file:',
         {
-          sentrySdkCode: <code />,
-          programCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -246,7 +244,7 @@ const onboarding: OnboardingConfig = {
     ...(params.isPerformanceSelected
       ? [
           {
-            title: t('Performance Monitoring'),
+            title: t('Tracing'),
             description: t(
               'You can measure the performance of your code by capturing transactions and spans.'
             ),
@@ -371,15 +369,16 @@ const crashReportOnboarding: OnboardingConfig = {
   nextSteps: () => [],
 };
 
+const profilingOnboarding = getDotnetProfilingOnboarding({
+  getInstallSnippetPackageManager,
+  getInstallSnippetCoreCli,
+});
+
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: csharpFeedbackOnboarding,
-  customMetricsOnboarding: getDotnetMetricsOnboarding({packageName: 'Sentry'}),
   crashReportOnboarding,
+  profilingOnboarding,
 };
 
 export default docs;
-
-const AlertWithoutMarginBottom = styled(Alert)`
-  margin-bottom: 0;
-`;

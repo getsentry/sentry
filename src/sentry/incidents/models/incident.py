@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from enum import Enum
 from typing import ClassVar
 from uuid import uuid4
@@ -11,18 +12,10 @@ from django.db import IntegrityError, models, router, transaction
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
-from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
+from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import (
-    ArrayField,
-    FlexibleForeignKey,
-    Model,
-    OneToOneCascadeDeletes,
-    UUIDField,
-    region_silo_model,
-    sane_repr,
-)
+from sentry.db.models import FlexibleForeignKey, Model, UUIDField, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.organization import Organization
@@ -42,20 +35,6 @@ class IncidentProject(Model):
         app_label = "sentry"
         db_table = "sentry_incidentproject"
         unique_together = (("project", "incident"),)
-
-
-@region_silo_model
-class IncidentSeen(Model):
-    __relocation_scope__ = RelocationScope.Excluded
-
-    incident = FlexibleForeignKey("sentry.Incident")
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", db_index=False)
-    last_seen = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_incidentseen"
-        unique_together = (("user_id", "incident"),)
 
 
 class IncidentManager(BaseManager["Incident"]):
@@ -147,7 +126,6 @@ class IncidentManager(BaseManager["Incident"]):
 
 
 class IncidentType(Enum):
-    DETECTED = 0
     ALERT_TRIGGERED = 2
 
 
@@ -159,8 +137,8 @@ class IncidentStatus(Enum):
 
 
 class IncidentStatusMethod(Enum):
-    MANUAL = 1
-    RULE_UPDATED = 2
+    MANUAL = 1  # not in use
+    RULE_UPDATED = 2  # always corresponds with IncidentStatus.CLOSED
     RULE_TRIGGERED = 3
 
 
@@ -184,7 +162,7 @@ class Incident(Model):
     - UI should be able to handle multiple active incidents
     """
 
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Global
 
     objects: ClassVar[IncidentManager] = IncidentManager()
 
@@ -209,9 +187,6 @@ class Incident(Model):
     date_detected = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
     date_closed = models.DateTimeField(null=True)
-    activation = FlexibleForeignKey(
-        "sentry.AlertRuleActivations", on_delete=models.SET_NULL, null=True
-    )
     subscription = FlexibleForeignKey(
         "sentry.QuerySubscription", on_delete=models.SET_NULL, null=True
     )
@@ -223,7 +198,7 @@ class Incident(Model):
         indexes = (models.Index(fields=("alert_rule", "type", "status")),)
 
     @property
-    def current_end_date(self):
+    def current_end_date(self) -> datetime:
         """
         Returns the current end of the incident. Either the date it was closed,
         or the current time if it's still open.
@@ -247,62 +222,9 @@ class Incident(Model):
         return old_pk
 
 
-@region_silo_model
-class PendingIncidentSnapshot(Model):
-    __relocation_scope__ = RelocationScope.Organization
-
-    incident = OneToOneCascadeDeletes("sentry.Incident", db_constraint=False)
-    target_run_date = models.DateTimeField(db_index=True, default=timezone.now)
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_pendingincidentsnapshot"
-
-
-@region_silo_model
-class IncidentSnapshot(Model):
-    __relocation_scope__ = RelocationScope.Organization
-
-    incident = OneToOneCascadeDeletes("sentry.Incident", db_constraint=False)
-    event_stats_snapshot = FlexibleForeignKey("sentry.TimeSeriesSnapshot", db_constraint=False)
-    unique_users = models.IntegerField()
-    total_events = models.IntegerField()
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_incidentsnapshot"
-
-
-@region_silo_model
-class TimeSeriesSnapshot(Model):
-    __relocation_scope__ = RelocationScope.Organization
-    __relocation_dependencies__ = {"sentry.Incident"}
-
-    start = models.DateTimeField()
-    end = models.DateTimeField()
-    values = ArrayField(of=ArrayField(models.FloatField()))
-    period = models.IntegerField()
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_timeseriessnapshot"
-
-    @classmethod
-    def query_for_relocation_export(cls, q: models.Q, pk_map: PrimaryKeyMap) -> models.Q:
-        pks = IncidentSnapshot.objects.filter(
-            incident__in=pk_map.get_pks(get_model_name(Incident))
-        ).values_list("event_stats_snapshot_id", flat=True)
-
-        return q & models.Q(pk__in=pks)
-
-
 class IncidentActivityType(Enum):
     CREATED = 1
     STATUS_CHANGE = 2
-    COMMENT = 3
     DETECTED = 4
 
 
@@ -312,7 +234,7 @@ class IncidentActivity(Model):
     An IncidentActivity is a record of a change that occurred in an Incident. This could be a status change,
     """
 
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Global
 
     incident = FlexibleForeignKey("sentry.Incident")
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
@@ -338,27 +260,6 @@ class IncidentActivity(Model):
         if self.notification_uuid:
             self.notification_uuid = uuid4()
         return old_pk
-
-
-@region_silo_model
-class IncidentSubscription(Model):
-    """
-    IncidentSubscription is a record of a user being subscribed to an incident.
-    Not to be confused with a snuba QuerySubscription
-    """
-
-    __relocation_scope__ = RelocationScope.Organization
-
-    incident = FlexibleForeignKey("sentry.Incident", db_index=False)
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_incidentsubscription"
-        unique_together = (("incident", "user_id"),)
-
-    __repr__ = sane_repr("incident_id", "user_id")
 
 
 class TriggerStatus(Enum):
@@ -404,7 +305,7 @@ class IncidentTrigger(Model):
     NOTE: dissimilar to an AlertRuleTrigger which represents the trigger threshold required to initialize an Incident
     """
 
-    __relocation_scope__ = RelocationScope.Organization
+    __relocation_scope__ = RelocationScope.Global
 
     objects: ClassVar[IncidentTriggerManager] = IncidentTriggerManager()
 

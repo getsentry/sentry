@@ -2,7 +2,7 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -27,7 +27,7 @@ class SentryAppDocsTest(APIDocsTestCase):
 
         self.login_as(user=self.user)
 
-    def test_post(self):
+    def test_post(self) -> None:
         data = {
             "issueId": self.group.id,
             "webUrl": "https://somerandom.io/project/issue-id",

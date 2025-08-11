@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 from django.db.models import Q
 
-from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.providers import get_provider_enum_from_string
@@ -24,7 +23,6 @@ from sentry.models.release import Release
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.notifications.services import notifications_service
 from sentry.notifications.types import (
     ActionTargetType,
@@ -34,6 +32,7 @@ from sentry.notifications.types import (
     NotificationSettingsOptionEnum,
 )
 from sentry.types.actor import Actor, ActorType
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import get_option_from_list, user_option_service
@@ -207,32 +206,23 @@ def get_owners(
     Given a project and an event, decide which users and teams are the owners.
 
     If when checking owners, there is a rule match we only notify the last owner
-    (would-be auto-assignee) unless the organization passes the feature-flag
+    (would-be auto-assignee)
     """
 
     if event:
         owners, _ = ProjectOwnership.get_owners(project.id, event.data)
+        if not owners:
+            outcome = "empty"
+            recipients = []
+        else:
+            outcome = "match"
+            recipients = owners[-1:]
     else:
-        owners = ProjectOwnership.Everyone
-
-    if not owners:
-        outcome = "empty"
-        recipients: list[Actor] = list()
-
-    elif owners == ProjectOwnership.Everyone:
         outcome = "everyone"
         users = user_service.get_many_by_id(
             ids=list(project.member_set.values_list("user_id", flat=True))
         )
         recipients = Actor.many_from_object(users)
-
-    else:
-        outcome = "match"
-        recipients = owners
-        # Used to suppress extra notifications to all matched owners, only notify the would-be auto-assignee
-        if not features.has("organizations:notification-all-recipients", project.organization):
-            recipients = recipients[-1:]
-
     return (recipients, outcome)
 
 
@@ -528,23 +518,6 @@ def get_notification_recipients(
         key = get_provider_enum_from_string(provider)
         out[key] = actors
     return out
-
-
-# TODO(Steve): Remove once reference is gone from getsentry
-def get_notification_recipients_v2(
-    recipients: Iterable[Actor],
-    type: NotificationSettingEnum,
-    organization_id: int | None = None,
-    project_ids: list[int] | None = None,
-    actor_type: ActorType | None = None,
-) -> Mapping[ExternalProviders, set[Actor]]:
-    return get_notification_recipients(
-        recipients=recipients,
-        type=type,
-        organization_id=organization_id,
-        project_ids=project_ids,
-        actor_type=actor_type,
-    )
 
 
 def _get_recipients_by_provider(

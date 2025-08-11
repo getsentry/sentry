@@ -1,5 +1,7 @@
 import {cloneElement, Fragment, isValidElement} from 'react';
+// @ts-expect-error TS(7016): Could not find a declaration file for module 'jed'... Remove this comment to see the full error message
 import Jed from 'jed';
+// @ts-expect-error TS(7016): Could not find a declaration file for module 'spri... Remove this comment to see the full error message
 import {sprintf} from 'sprintf-js';
 
 import toArray from 'sentry/utils/array/toArray';
@@ -20,7 +22,7 @@ export const DEFAULT_LOCALE_DATA = {
   },
 };
 
-export function setLocaleDebug(value: boolean) {
+function setLocaleDebug(value: boolean) {
   localStorage.setItem('localeDebug', value ? '1' : '0');
   // eslint-disable-next-line no-console
   console.log(`Locale debug is: ${value ? 'on' : 'off'}. Reload page to apply changes!`);
@@ -149,12 +151,12 @@ function argsInvolveReact(args: FormatArg[]): boolean {
  * this represents either a portion of the string, or a object with the group
  * key indicating the group to lookup the group value in.
  */
-type TemplateSubvalue = string | {group: string};
+type TemplateSubvalue = string | {group: string; id: string};
 
 /**
  * ParsedTemplate is a mapping of group names to Template Subvalue arrays.
  */
-type ParsedTemplate = {[group: string]: TemplateSubvalue[]};
+type ParsedTemplate = Record<string, TemplateSubvalue[]>;
 
 /**
  * ComponentMap maps template group keys to react node instances.
@@ -166,7 +168,7 @@ type ParsedTemplate = {[group: string]: TemplateSubvalue[]};
  * In the above example the component map of {groupName: <strong>text</strong>}
  * will be translated to `<strong>this string is the sub value</strong>`.
  */
-type ComponentMap = {[group: string]: React.ReactNode};
+type ComponentMap = Record<string, React.ReactNode>;
 
 /**
  * Parses a template string into groups.
@@ -174,8 +176,9 @@ type ComponentMap = {[group: string]: React.ReactNode};
  * The top level group will be keyed as `root`. All other group names will have
  * been extracted from the template string.
  */
-export function parseComponentTemplate(template: string): ParsedTemplate {
+function parseComponentTemplate(template: string): ParsedTemplate {
   const parsed: ParsedTemplate = {};
+  let groupId = 1;
 
   function process(startPos: number, group: string, inGroup: boolean) {
     const regex = /\[(.*?)(:|\])|\]/g;
@@ -205,12 +208,15 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
         }
       }
 
+      const currentGroupId = groupId.toString();
+      groupId++;
+
       if (closeBraceOrValueSeparator === ']') {
         pos = regex.lastIndex;
       } else {
-        pos = regex.lastIndex = process(regex.lastIndex, groupName, true);
+        pos = regex.lastIndex = process(regex.lastIndex, currentGroupId, true);
       }
-      buf.push({group: groupName});
+      buf.push({group: groupName!, id: currentGroupId});
     }
 
     let endPos = regex.lastIndex;
@@ -235,27 +241,27 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
  * Renders a parsed template into a React tree given a ComponentMap to use for
  * the parsed groups.
  */
-export function renderTemplate(
+function renderTemplate(
   template: ParsedTemplate,
   components: ComponentMap
-): React.ReactNode {
+): React.JSX.Element {
   let idx = 0;
 
-  function renderGroup(groupKey: string) {
+  function renderGroup(name: string, id: string) {
     const children: React.ReactNode[] = [];
-    const group = template[groupKey] || [];
+    const group = template[id] || [];
 
     for (const item of group) {
       if (typeof item === 'string') {
         children.push(<Fragment key={idx++}>{item}</Fragment>);
       } else {
-        children.push(renderGroup(item.group));
+        children.push(renderGroup(item.group, item.id));
       }
     }
 
     // In case we cannot find our component, we call back to an empty
     // span so that stuff shows up at least.
-    let reference = components[groupKey] ?? <Fragment key={idx++} />;
+    let reference = components[name] ?? <Fragment key={idx++} />;
 
     if (!isValidElement(reference)) {
       reference = <Fragment key={idx++}>{reference}</Fragment>;
@@ -268,7 +274,7 @@ export function renderTemplate(
       : cloneElement(element, {key: idx++}, children);
   }
 
-  return <Fragment>{renderGroup('root')}</Fragment>;
+  return <Fragment>{renderGroup('root', 'root')}</Fragment>;
 }
 
 /**
@@ -298,6 +304,7 @@ function mark<T extends React.ReactNode>(node: T): T {
     _store: {},
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
   proxy.toString = () => '✅' + node + '✅';
   // TODO(TS): Should proxy be created using `React.createElement`?
   return proxy as any as T;
@@ -311,7 +318,7 @@ function mark<T extends React.ReactNode>(node: T): T {
  *
  * [0]: https://github.com/alexei/sprintf.js
  */
-export function format(formatString: string, args: FormatArg[]): React.ReactNode {
+function format(formatString: string, args: FormatArg[]): React.ReactNode {
   if (argsInvolveReact(args)) {
     return formatForReact(formatString, args);
   }
@@ -327,7 +334,7 @@ export function format(formatString: string, args: FormatArg[]): React.ReactNode
  *
  * [0]: https://github.com/alexei/sprintf.js
  */
-export function gettext(string: string, ...args: FormatArg[]): string {
+function gettext(string: string, ...args: FormatArg[]): string {
   const val: string = getClient().gettext(string);
 
   if (args.length === 0) {
@@ -351,7 +358,7 @@ export function gettext(string: string, ...args: FormatArg[]): string {
  *
  * [0]: https://github.com/alexei/sprintf.js
  */
-export function ngettext(singular: string, plural: string, ...args: FormatArg[]): string {
+function ngettext(singular: string, plural: string, ...args: FormatArg[]): string {
   let countArg = 0;
 
   if (args.length > 0) {
@@ -395,12 +402,20 @@ export function ngettext(singular: string, plural: string, ...args: FormatArg[])
  *
  * You may recursively nest additional groups within the grouped string values.
  */
-export function gettextComponentTemplate(
+function gettextComponentTemplate(
   template: string,
   components: ComponentMap
-): JSX.Element {
+): React.JSX.Element {
   const parsedTemplate = parseComponentTemplate(getClient().gettext(template));
-  return mark(renderTemplate(parsedTemplate, components) as JSX.Element);
+  return mark(renderTemplate(parsedTemplate, components));
+}
+
+/**
+ * Helper over `gettextComponentTemplate` with a pre-populated `<code />` component that
+ * is commonly used.
+ */
+export function tctCode(template: string, components: ComponentMap = {}) {
+  return gettextComponentTemplate(template, {code: <code />, ...components});
 }
 
 /**

@@ -1,21 +1,21 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {cancelDeleteRepository, hideRepository} from 'sentry/actionCreators/integrations';
-import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Repository} from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
+import useApi from 'sentry/utils/useApi';
 
 type Props = {
-  api: Client;
   orgSlug: string;
   repository: Repository;
   onRepositoryChange?: (data: Repository) => void;
@@ -38,13 +38,13 @@ function getStatusLabel(repo: Repository) {
 }
 
 function RepositoryRow({
-  api,
   repository,
   onRepositoryChange,
   orgSlug,
   showProvider = false,
 }: Props) {
   const isActive = repository.status === RepositoryStatus.ACTIVE;
+  const api = useApi();
 
   const cancelDelete = () =>
     cancelDeleteRepository(api, orgSlug, repository.id).then(
@@ -139,10 +139,10 @@ const StyledPanelItem = styled(PanelItem)<{status: RepositoryStatus}>`
 
   ${p =>
     p.status === RepositoryStatus.DISABLED &&
-    `
-    filter: grayscale(1);
-    opacity: 0.4;
-  `};
+    css`
+      filter: grayscale(1);
+      opacity: 0.4;
+    `};
 
   &:last-child {
     border-bottom: none;

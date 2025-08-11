@@ -7,19 +7,17 @@ from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.segment.plugin import SegmentPlugin
 
 
+def test_conf_key() -> None:
+    assert SegmentPlugin().conf_key == "segment"
+
+
 class SegmentPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
         return SegmentPlugin()
 
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "segment"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("segment", self.plugin)
-
     @responses.activate
-    def test_simple_notification(self):
+    def test_simple_notification(self) -> None:
         responses.add(responses.POST, "https://api.segment.io/v1/track")
 
         self.plugin.set_option("write_key", "secret-api-key", self.project)
@@ -36,7 +34,7 @@ class SegmentPluginTest(PluginTestCase):
         )
 
         with self.options({"system.url-prefix": "http://example.com"}):
-            self.plugin.post_process(event)
+            self.plugin.post_process(event=event)
 
         request = responses.calls[0].request
         payload = orjson.loads(request.body)

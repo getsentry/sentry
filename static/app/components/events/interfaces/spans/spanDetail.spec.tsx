@@ -6,7 +6,6 @@ import {SpanFixture} from 'sentry-fixture/span';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import SpanDetail from 'sentry/components/events/interfaces/spans/spanDetail';
-import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import type {EventTransaction} from 'sentry/types/event';
 
 describe('SpanDetail', function () {
@@ -36,33 +35,20 @@ describe('SpanDetail', function () {
     description: 'SELECT * FROM users;',
   });
 
-  beforeEach(function () {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      method: 'GET',
-    });
-  });
-
   function renderSpanDetail(props: Partial<React.ComponentProps<typeof SpanDetail>>) {
     return (
-      <TransactionProfileIdProvider
-        projectId={project.id}
-        transactionId={event.id}
-        timestamp={event.dateReceived}
-      >
-        <SpanDetail
-          organization={organization}
-          event={event}
-          resetCellMeasureCache={jest.fn()}
-          scrollToHash={jest.fn()}
-          isRoot={false}
-          relatedErrors={[]}
-          trace={trace}
-          childTransactions={[]}
-          span={span}
-          {...props}
-        />
-      </TransactionProfileIdProvider>
+      <SpanDetail
+        organization={organization}
+        event={event}
+        resetCellMeasureCache={jest.fn()}
+        scrollToHash={jest.fn()}
+        isRoot={false}
+        relatedErrors={[]}
+        trace={trace}
+        childTransactions={[]}
+        span={span}
+        {...props}
+      />
     );
   }
 
@@ -132,7 +118,7 @@ describe('SpanDetail', function () {
       ).toBeInTheDocument();
 
       expect(
-        screen.queryByRole('button', {name: 'View Query Summary'})
+        screen.queryByRole('button', {name: 'View Summary'})
       ).not.toBeInTheDocument();
     });
 
@@ -159,12 +145,10 @@ describe('SpanDetail', function () {
       expect(
         screen.getByRole('button', {name: 'View Similar Spans'})
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: 'View Query Summary'})
-      ).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'View Query Summary'})).toHaveAttribute(
+      expect(screen.getByRole('button', {name: 'View Summary'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'View Summary'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/insights/database/spans/span/a7ebd21614897/?project=2'
+        '/organizations/org-slug/insights/backend/database/spans/span/a7ebd21614897/?project=2'
       );
     });
   });

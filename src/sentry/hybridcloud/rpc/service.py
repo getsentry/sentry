@@ -586,7 +586,7 @@ class _RemoteSiloCall:
         timer = metrics.timer("hybrid_cloud.dispatch_rpc.duration", tags=self._metrics_tags())
         span = sentry_sdk.start_span(
             op="hybrid_cloud.dispatch_rpc",
-            description=f"rpc to {self.service_name}.{self.method_name}",
+            name=f"rpc to {self.service_name}.{self.method_name}",
         )
         with span, timer:
             yield
@@ -596,7 +596,7 @@ class _RemoteSiloCall:
 
     def _raise_from_response_status_error(self, response: requests.Response) -> NoReturn:
         rpc_method = f"{self.service_name}.{self.method_name}"
-        scope = sentry_sdk.Scope.get_isolation_scope()
+        scope = sentry_sdk.get_isolation_scope()
         scope.set_tag("rpc_method", rpc_method)
         scope.set_tag("rpc_status_code", response.status_code)
 
@@ -667,10 +667,22 @@ class _RemoteSiloCall:
         try:
             return http.post(url, headers=headers, data=data, timeout=timeout)
         except requests.exceptions.ConnectionError as e:
+            metrics.incr(
+                "hybrid_cloud.dispatch_rpc.failure",
+                tags=self._metrics_tags(kind="connectionerror"),
+            )
             raise self._remote_exception("RPC Connection failed") from e
         except requests.exceptions.RetryError as e:
+            metrics.incr(
+                "hybrid_cloud.dispatch_rpc.failure",
+                tags=self._metrics_tags(kind="retryerror"),
+            )
             raise self._remote_exception("RPC failed, max retries reached.") from e
         except requests.exceptions.Timeout as e:
+            metrics.incr(
+                "hybrid_cloud.dispatch_rpc.failure",
+                tags=self._metrics_tags(kind="timeout"),
+            )
             raise self._remote_exception(f"Timeout of {settings.RPC_TIMEOUT} exceeded") from e
 
     def _check_disabled(self) -> None:

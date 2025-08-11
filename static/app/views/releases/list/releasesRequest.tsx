@@ -17,24 +17,19 @@ import {
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
-import {HealthStatsPeriodOption, SessionFieldWithOperation} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization, SessionApiResponse} from 'sentry/types/organization';
+import {SessionFieldWithOperation} from 'sentry/types/organization';
+import {HealthStatsPeriodOption} from 'sentry/types/release';
 import {defined, percent} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
-
-import {getCrashFreePercent} from '../utils';
+import {getCrashFreePercent} from 'sentry/views/releases/utils';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 
 function omitIgnoredProps(props: Props) {
-  return omit(props, [
-    'api',
-    'organization',
-    'children',
-    'selection.datetime.utc',
-    'location',
-  ]);
+  return omit(props, ['api', 'organization', 'children', 'selection.datetime.utc']);
 }
 
 function getInterval(datetimeObj: DateTimeObject) {
@@ -54,7 +49,7 @@ function getInterval(datetimeObj: DateTimeObject) {
   // TODO(sessions): sub-hour session resolution is still not possible
   return '1h';
 }
-export function reduceTimeSeriesGroups(
+function reduceTimeSeriesGroups(
   acc: number[],
   group: SessionApiResponse['groups'][number],
   field: 'count_unique(user)' | 'sum(session)'
@@ -200,12 +195,12 @@ class ReleasesRequest extends Component<Props, State> {
 
       this.setState({
         loading: false,
-        statusCountByReleaseInPeriod,
-        totalCountByReleaseIn24h,
-        totalCountByProjectIn24h,
-        statusCountByProjectInPeriod,
-        totalCountByReleaseInPeriod,
-        totalCountByProjectInPeriod,
+        statusCountByReleaseInPeriod: statusCountByReleaseInPeriod!,
+        totalCountByReleaseIn24h: totalCountByReleaseIn24h!,
+        totalCountByProjectIn24h: totalCountByProjectIn24h!,
+        statusCountByProjectInPeriod: statusCountByProjectInPeriod!,
+        totalCountByReleaseInPeriod: totalCountByReleaseInPeriod!,
+        totalCountByProjectInPeriod: totalCountByProjectInPeriod!,
       });
     } catch (error) {
       addErrorMessage(error.responseJSON?.detail ?? t('Error loading health data'));
@@ -357,7 +352,7 @@ class ReleasesRequest extends Component<Props, State> {
 
     const totalCount = statusCountByReleaseInPeriod?.groups
       .filter(({by}) => by.release === version && by.project === project)
-      ?.reduce((acc, group) => acc + group.totals[field], 0);
+      ?.reduce((acc, group) => acc + group.totals[field]!, 0);
 
     const crashedCount = this.getCrashCount(version, project, display);
 
@@ -376,7 +371,7 @@ class ReleasesRequest extends Component<Props, State> {
 
     return totalCountByReleaseIn24h?.groups
       .filter(({by}) => by.release === version && by.project === project)
-      ?.reduce((acc, group) => acc + group.totals[field], 0);
+      ?.reduce((acc, group) => acc + group.totals[field]!, 0);
   };
 
   getPeriodCountByRelease = (
@@ -389,7 +384,7 @@ class ReleasesRequest extends Component<Props, State> {
 
     return totalCountByReleaseInPeriod?.groups
       .filter(({by}) => by.release === version && by.project === project)
-      ?.reduce((acc, group) => acc + group.totals[field], 0);
+      ?.reduce((acc, group) => acc + group.totals[field]!, 0);
   };
 
   get24hCountByProject = (project: number, display: ReleasesDisplayOption) => {
@@ -398,7 +393,7 @@ class ReleasesRequest extends Component<Props, State> {
 
     return totalCountByProjectIn24h?.groups
       .filter(({by}) => by.project === project)
-      ?.reduce((acc, group) => acc + group.totals[field], 0);
+      ?.reduce((acc, group) => acc + group.totals[field]!, 0);
   };
 
   getPeriodCountByProject = (project: number, display: ReleasesDisplayOption) => {
@@ -407,7 +402,7 @@ class ReleasesRequest extends Component<Props, State> {
 
     return totalCountByProjectInPeriod?.groups
       .filter(({by}) => by.project === project)
-      ?.reduce((acc, group) => acc + group.totals[field], 0);
+      ?.reduce((acc, group) => acc + group.totals[field]!, 0);
   };
 
   getTimeSeries = (version: string, project: number, display: ReleasesDisplayOption) => {

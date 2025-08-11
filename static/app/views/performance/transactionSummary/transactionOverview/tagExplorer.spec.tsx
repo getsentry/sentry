@@ -5,24 +5,23 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {TagExplorer} from 'sentry/views/performance/transactionSummary/transactionOverview/tagExplorer';
 
-function WrapperComponent(props) {
+function WrapperComponent(props: React.ComponentProps<typeof TagExplorer>) {
   return (
-    <OrganizationContext.Provider value={props.organization}>
+    <OrganizationContext value={props.organization}>
       <MEPSettingProvider>
         <TagExplorer {...props} />
       </MEPSettingProvider>
-    </OrganizationContext.Provider>
+    </OrganizationContext>
   );
 }
 
-function initialize(query, additionalFeatures = []) {
+function initialize(query: Record<string, string>, additionalFeatures = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
   const organization = OrganizationFixture({
     features,
@@ -48,15 +47,13 @@ function initialize(query, additionalFeatures = []) {
     transactionName,
     location: initialData.router.location,
     eventView,
-    api: MockApiClient,
   };
 }
 
 describe('WrapperComponent', function () {
   const facetUrl = '/organizations/org-slug/events-facets-performance/';
-  let facetApiMock;
+  let facetApiMock: jest.Mock;
   beforeEach(function () {
-    browserHistory.push = jest.fn();
     facetApiMock = MockApiClient.addMockResponse({
       url: facetUrl,
       body: {
@@ -104,14 +101,12 @@ describe('WrapperComponent', function () {
       organization,
       location,
       eventView,
-      api,
       spanOperationBreakdownFilter,
       transactionName,
     } = initialize({});
 
     render(
       <WrapperComponent
-        api={api}
         location={location}
         organization={organization}
         eventView={eventView}
@@ -133,7 +128,6 @@ describe('WrapperComponent', function () {
       organization,
       location,
       eventView,
-      api,
       spanOperationBreakdownFilter,
       transactionName,
     } = initialize({
@@ -142,7 +136,6 @@ describe('WrapperComponent', function () {
 
     render(
       <WrapperComponent
-        api={api}
         location={location}
         organization={organization}
         eventView={eventView}
@@ -172,10 +165,8 @@ describe('WrapperComponent', function () {
       organization,
       location,
       eventView,
-      api,
       spanOperationBreakdownFilter,
       transactionName,
-      router,
     } = initialize(
       {
         project: '123',
@@ -185,32 +176,29 @@ describe('WrapperComponent', function () {
 
     render(
       <WrapperComponent
-        api={api}
         location={location}
         organization={organization}
         eventView={eventView}
         projects={projects}
         transactionName={transactionName}
         currentFilter={spanOperationBreakdownFilter}
-      />,
-      {router}
+      />
     );
 
     const button = await screen.findByTestId('tags-explorer-open-tags');
     expect(button).toBeInTheDocument();
     expect(button).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/summary/tags/?project=123&transaction=example-transaction'
+      '/organizations/org-slug/insights/summary/tags/?project=123&transaction=example-transaction'
     );
   });
 
   it('Tag explorer uses the operation breakdown as a column', async function () {
     const projects = [ProjectFixture({platform: 'javascript-react'})];
-    const {organization, location, eventView, api, transactionName} = initialize({});
+    const {organization, location, eventView, transactionName} = initialize({});
 
     render(
       <WrapperComponent
-        api={api}
         location={location}
         organization={organization}
         eventView={eventView}
@@ -240,23 +228,19 @@ describe('WrapperComponent', function () {
       organization,
       location,
       eventView,
-      api,
       spanOperationBreakdownFilter,
       transactionName,
-      router,
     } = initialize({});
 
     render(
       <WrapperComponent
-        api={api}
         location={location}
         organization={organization}
         eventView={eventView}
         projects={projects}
         transactionName={transactionName}
         currentFilter={spanOperationBreakdownFilter}
-      />,
-      {router}
+      />
     );
 
     await waitFor(() => expect(facetApiMock).toHaveBeenCalled());

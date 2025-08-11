@@ -6,13 +6,15 @@ import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLi
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import TableView from 'sentry/views/discover/table/tableView';
 
 describe('TableView > CellActions', function () {
-  let initialData, rows, onChangeShowTags;
+  let initialData: ReturnType<typeof initializeOrg>;
+  let rows: any;
+  let onChangeShowTags: jest.Mock;
 
   const location = LocationFixture({
     pathname: '/organizations/org-slug/discover/results/',
@@ -37,7 +39,11 @@ describe('TableView > CellActions', function () {
   });
   const eventView = EventView.fromLocation(location);
 
-  function renderComponent(context, tableData, view) {
+  function renderComponent(
+    context: ReturnType<typeof initializeOrg>,
+    tableData: TableData,
+    view: EventView
+  ) {
     return render(
       <TableView
         organization={context.organization}
@@ -53,21 +59,21 @@ describe('TableView > CellActions', function () {
         title=""
         queryDataset={SavedQueryDatasets.TRANSACTIONS}
       />,
-      {router: context.router}
+      {
+        router: context.router,
+        deprecatedRouterMocks: true,
+      }
     );
   }
 
-  async function openContextMenu(cellIndex) {
-    const firstRow = screen.getAllByRole('row')[1];
-    const emptyValueCell = within(firstRow).getAllByRole('cell')[cellIndex];
+  async function openContextMenu(cellIndex: number) {
+    const firstRow = screen.getAllByRole('row')[1]!;
+    const emptyValueCell = within(firstRow).getAllByRole('cell')[cellIndex]!;
 
     await userEvent.click(within(emptyValueCell).getByRole('button', {name: 'Actions'}));
   }
 
   beforeEach(function () {
-    jest.mocked(browserHistory.push).mockReset();
-    jest.mocked(browserHistory.replace).mockReset();
-
     const organization = OrganizationFixture({
       features: ['discover-basic'],
     });
@@ -130,7 +136,7 @@ describe('TableView > CellActions', function () {
 
     expect(sortLink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&sort=-equation%7Ccount%28%29%20%2B%20100&statsPeriod=14d&yAxis=p95'
+      '/organizations/org-slug/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&queryDataset=transaction-like&sort=-equation%7Ccount%28%29%20%2B%20100&statsPeriod=14d&yAxis=p95'
     );
   });
 
@@ -143,7 +149,7 @@ describe('TableView > CellActions', function () {
 
     expect(sortLink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&sort=-transaction&statsPeriod=14d&yAxis=p95'
+      '/organizations/org-slug/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&queryDataset=transaction-like&sort=-transaction&statsPeriod=14d&yAxis=p95'
     );
   });
 
@@ -154,7 +160,7 @@ describe('TableView > CellActions', function () {
     await openContextMenu(1);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: '!has:title',
@@ -171,7 +177,7 @@ describe('TableView > CellActions', function () {
     await openContextMenu(1);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: 'tag:value !has:title',
@@ -187,7 +193,7 @@ describe('TableView > CellActions', function () {
     await openContextMenu(1);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: 'tag:value title:"some title"',
@@ -202,7 +208,7 @@ describe('TableView > CellActions', function () {
     await openContextMenu(1);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: 'title:"some title"',
@@ -218,7 +224,7 @@ describe('TableView > CellActions', function () {
       screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
     );
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: '!title:"some title"',
@@ -236,10 +242,10 @@ describe('TableView > CellActions', function () {
       screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
     );
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
-        query: 'tag:value !title:"some title"',
+        query: 'tag:value title:nope !title:"some title"',
       }),
     });
   });
@@ -253,7 +259,7 @@ describe('TableView > CellActions', function () {
       screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
     );
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: 'has:title',
@@ -272,7 +278,7 @@ describe('TableView > CellActions', function () {
       screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
     );
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: 'tag:value has:title',
@@ -287,7 +293,7 @@ describe('TableView > CellActions', function () {
       screen.getByRole('menuitemradio', {name: 'Show values greater than'})
     );
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: 'count():>9',
@@ -302,7 +308,7 @@ describe('TableView > CellActions', function () {
       screen.getByRole('menuitemradio', {name: 'Show values less than'})
     );
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: 'count():<9',
@@ -315,14 +321,14 @@ describe('TableView > CellActions', function () {
 
     renderComponent(initialData, rows, eventView);
 
-    const firstRow = screen.getAllByRole('row')[1];
+    const firstRow = screen.getAllByRole('row')[1]!;
     const link = within(firstRow).getByTestId('tableView-transaction-link');
 
     expect(link).toHaveAttribute(
       'href',
       expect.stringMatching(
-        RegExp(
-          '/organizations/org-slug/performance/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
+        new RegExp(
+          '/organizations/org-slug/insights/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
         )
       )
     );
@@ -330,11 +336,7 @@ describe('TableView > CellActions', function () {
 
   it('renders trace view link', function () {
     const org = OrganizationFixture({
-      features: [
-        'discover-basic',
-        'performance-discover-dataset-selector',
-        'trace-view-v1',
-      ],
+      features: ['discover-basic'],
     });
 
     rows = {
@@ -344,7 +346,6 @@ describe('TableView > CellActions', function () {
         transaction: 'string',
         timestamp: 'date',
         project: 'string',
-        'event.type': 'string',
       },
       data: [
         {
@@ -353,7 +354,6 @@ describe('TableView > CellActions', function () {
           transaction: '/organizations/',
           timestamp: '2019-05-23T22:12:48+00:00',
           project: 'project-slug',
-          'event.type': '',
         },
       ],
     };
@@ -381,14 +381,14 @@ describe('TableView > CellActions', function () {
 
     renderComponent(initialData, rows, EventView.fromLocation(loc));
 
-    const firstRow = screen.getAllByRole('row')[1];
+    const firstRow = screen.getAllByRole('row')[1]!;
     const link = within(firstRow).getByTestId('view-event');
 
     expect(link).toHaveAttribute(
       'href',
       expect.stringMatching(
-        RegExp(
-          '/organizations/org-slug/performance/trace/7fdf8efed85a4f9092507063ced1995b/?.*'
+        new RegExp(
+          '/organizations/org-slug/discover/trace/7fdf8efed85a4f9092507063ced1995b/?.*'
         )
       )
     );
@@ -399,7 +399,7 @@ describe('TableView > CellActions', function () {
     await openContextMenu(5);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Go to release'}));
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/releases/v1.0.2/',
       query: expect.objectContaining({
         environment: eventView.environment,
@@ -411,8 +411,8 @@ describe('TableView > CellActions', function () {
     rows.data[0]['count()'] = 1000;
     renderComponent(initialData, rows, eventView);
 
-    const firstRow = screen.getAllByRole('row')[1];
-    const emptyValueCell = within(firstRow).getAllByRole('cell')[3];
+    const firstRow = screen.getAllByRole('row')[1]!;
+    const emptyValueCell = within(firstRow).getAllByRole('cell')[3]!;
 
     expect(within(emptyValueCell).getByText('1k')).toHaveAttribute('title', '1,000');
   });
@@ -461,7 +461,10 @@ describe('TableView > CellActions', function () {
         measurementKeys={null}
         showTags={false}
         title=""
-      />
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
     expect(screen.getByText('222.3 KiB')).toBeInTheDocument();
     expect(screen.getByText('444.3 KB')).toBeInTheDocument();
@@ -502,13 +505,17 @@ describe('TableView > CellActions', function () {
         measurementKeys={null}
         showTags={false}
         title=""
-      />
+      />,
+      {
+        router: initialData.router,
+        deprecatedRouterMocks: true,
+      }
     );
     await userEvent.hover(screen.getByText('444.3 KB'));
     const buttons = screen.getAllByRole('button');
-    await userEvent.click(buttons[buttons.length - 1]);
+    await userEvent.click(buttons[buttons.length - 1]!);
     await userEvent.click(screen.getByText('Show values less than'));
-    expect(browserHistory.push).toHaveBeenCalledWith({
+    expect(initialData.router.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: 'p99(measurements.custom.kilobyte):<444300',

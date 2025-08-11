@@ -1,18 +1,17 @@
 import type {CSSProperties} from 'react';
 import {Fragment} from 'react';
 
-import Button from 'sentry/components/actions/button';
-import {Flex} from 'sentry/components/container/flex';
+import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
 import useFeedbackActions from 'sentry/components/feedback/feedbackItem/useFeedbackActions';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 
 interface Props {
@@ -30,13 +29,16 @@ export default function FeedbackActions({
   size,
   style,
 }: Props) {
+  if (!eventData) {
+    return null;
+  }
+
   return (
-    <Flex gap={space(1)} align="center" className={className} style={style}>
+    <Flex gap="md" align="center" className={className} style={style}>
       <ErrorBoundary mini>
         <FeedbackAssignedTo
           feedbackIssue={feedbackItem as any as Group}
           feedbackEvent={eventData}
-          showActorName={['medium', 'large'].includes(size)}
         />
       </ErrorBoundary>
 
@@ -48,31 +50,70 @@ export default function FeedbackActions({
 }
 
 function LargeWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
-  const {isResolved, onResolveClick, isSpam, onSpamClick, hasSeen, onMarkAsReadClick} =
-    useFeedbackActions({feedbackItem});
+  const {
+    enableDelete,
+    onDelete,
+    isResolved,
+    onResolveClick,
+    isSpam,
+    onSpamClick,
+    hasSeen,
+    enableMarkAsRead,
+    onMarkAsReadClick,
+  } = useFeedbackActions({feedbackItem});
 
   return (
     <Fragment>
-      <Button priority={isResolved ? 'danger' : 'primary'} onClick={onResolveClick}>
+      <Button
+        size="xs"
+        priority={isResolved ? 'danger' : 'primary'}
+        onClick={onResolveClick}
+      >
         {isResolved ? t('Unresolve') : t('Resolve')}
       </Button>
-      <Button priority="default" onClick={onSpamClick}>
+      <Button size="xs" priority="default" onClick={onSpamClick}>
         {isSpam ? t('Move to Inbox') : t('Mark as Spam')}
       </Button>
-      <Button onClick={onMarkAsReadClick}>
-        {hasSeen ? t('Mark Unread') : t('Mark Read')}
-      </Button>
+      <Tooltip
+        disabled={enableMarkAsRead}
+        title={t('You must be a member of the project')}
+      >
+        <Button size="xs" onClick={onMarkAsReadClick} disabled={!enableMarkAsRead}>
+          {hasSeen ? t('Mark Unread') : t('Mark Read')}
+        </Button>
+      </Tooltip>
+      <Tooltip
+        disabled={enableDelete}
+        title={t('You must be an admin to delete feedback')}
+      >
+        <Button size="xs" onClick={onDelete} disabled={!enableDelete}>
+          {t('Delete')}
+        </Button>
+      </Tooltip>
     </Fragment>
   );
 }
 
 function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
-  const {isResolved, onResolveClick, isSpam, onSpamClick, hasSeen, onMarkAsReadClick} =
-    useFeedbackActions({feedbackItem});
+  const {
+    enableDelete,
+    onDelete,
+    isResolved,
+    onResolveClick,
+    isSpam,
+    onSpamClick,
+    hasSeen,
+    enableMarkAsRead,
+    onMarkAsReadClick,
+  } = useFeedbackActions({feedbackItem});
 
   return (
     <Fragment>
-      <Button priority={isResolved ? 'danger' : 'primary'} onClick={onResolveClick}>
+      <Button
+        size="xs"
+        priority={isResolved ? 'danger' : 'primary'}
+        onClick={onResolveClick}
+      >
         {isResolved ? t('Unresolve') : t('Resolve')}
       </Button>
 
@@ -93,17 +134,40 @@ function MediumWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
           {
             key: 'read',
             label: hasSeen ? t('Mark Unread') : t('Mark Read'),
+            disabled: !enableMarkAsRead,
             onAction: onMarkAsReadClick,
+            tooltip: enableMarkAsRead
+              ? undefined
+              : t('You must be a member of the project'),
           },
-        ].filter(defined)}
+          {
+            key: 'delete',
+            priority: 'danger' as const,
+            label: t('Delete'),
+            disabled: !enableDelete,
+            onAction: onDelete,
+            tooltip: enableDelete
+              ? undefined
+              : t('You must be an admin to delete feedback'),
+          },
+        ]}
       />
     </Fragment>
   );
 }
 
 function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
-  const {isResolved, onResolveClick, isSpam, onSpamClick, hasSeen, onMarkAsReadClick} =
-    useFeedbackActions({feedbackItem});
+  const {
+    enableDelete,
+    onDelete,
+    isResolved,
+    onResolveClick,
+    isSpam,
+    onSpamClick,
+    hasSeen,
+    enableMarkAsRead,
+    onMarkAsReadClick,
+  } = useFeedbackActions({feedbackItem});
 
   return (
     <DropdownMenu
@@ -128,9 +192,23 @@ function SmallWidth({feedbackItem}: {feedbackItem: FeedbackIssue}) {
         {
           key: 'read',
           label: hasSeen ? t('Mark Unread') : t('Mark Read'),
+          disabled: !enableMarkAsRead,
           onAction: onMarkAsReadClick,
+          tooltip: enableMarkAsRead
+            ? undefined
+            : t('You must be a member of the project'),
         },
-      ].filter(defined)}
+        {
+          key: 'delete',
+          priority: 'danger' as const,
+          label: t('Delete'),
+          disabled: !enableDelete,
+          onAction: onDelete,
+          tooltip: enableDelete
+            ? undefined
+            : t('You must be an admin to delete feedback'),
+        },
+      ]}
     />
   );
 }

@@ -1,33 +1,34 @@
 ---
-created: '2023-12-12T13:53:14.096424Z'
+created: '2025-04-25T21:22:11.550057+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
+        stacktrace (ignored because it contains no in-app frames)
+          frame (marked out of app by the client)
             function*
               "CUseCountedObject<T>::UCDestroy"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "destructor'"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "CD3D11LayeredChild<T>::LUCBeginLayerDestruction"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "CContext::LUCBeginLayerDestruction"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "NDXGI::CDevice::DestroyDriverInstance"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "OpenAdapter10"
-          frame (non app frame)
+          frame (marked out of app by the client)
         type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_READ"
         value*
@@ -35,6 +36,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "2e0d26cae5986fcda5edf66612a78268"
+  contributing component: exception
   component:
     system*
       exception*

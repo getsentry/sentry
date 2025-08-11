@@ -1,24 +1,30 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from enum import Enum
 from typing import Any
 from urllib.parse import urlencode
 
+from django.http import HttpResponseRedirect
+from django.http.request import HttpRequest
+from django.http.response import HttpResponseBase
 from django.utils.translation import gettext_lazy as _
 
 from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
+    IntegrationData,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
 from sentry.integrations.discord.client import DiscordClient
+from sentry.integrations.discord.types import DiscordPermissions
 from sentry.integrations.models.integration import Integration
-from sentry.organizations.services.organization.model import RpcOrganizationSummary
+from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
@@ -81,7 +87,7 @@ class DiscordIntegration(IntegrationInstallation):
 
         installations = integration_service.get_organization_integrations(
             integration_id=self.model.id,
-            providers=["discord"],
+            providers=[IntegrationProviderSlug.DISCORD.value],
         )
 
         # Remove any installations pending deletion
@@ -111,28 +117,16 @@ class DiscordIntegration(IntegrationInstallation):
             return
 
 
-class DiscordPermissions(Enum):
-    # https://discord.com/developers/docs/topics/permissions#permissions
-    VIEW_CHANNEL = 1 << 10
-    SEND_MESSAGES = 1 << 11
-    SEND_TTS_MESSAGES = 1 << 12
-    EMBED_LINKS = 1 << 14
-    ATTACH_FILES = 1 << 15
-    MANAGE_THREADS = 1 << 34
-    CREATE_PUBLIC_THREADS = 1 << 35
-    CREATE_PRIVATE_THREADS = 1 << 36
-    SEND_MESSAGES_IN_THREADS = 1 << 38
-
-
 class DiscordIntegrationProvider(IntegrationProvider):
-    key = "discord"
+    key = IntegrationProviderSlug.DISCORD.value
     name = "Discord"
     metadata = metadata
     integration_cls = DiscordIntegration
     features = frozenset([IntegrationFeatures.CHAT_UNFURL, IntegrationFeatures.ALERT_RULE])
 
     # https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes
-    oauth_scopes = frozenset(["applications.commands", "bot", "identify"])
+    oauth_scopes = frozenset(["applications.commands", "bot", "identify", "guilds.members.read"])
+    access_token = ""
 
     bot_permissions = (
         DiscordPermissions.VIEW_CHANNEL.value
@@ -155,17 +149,23 @@ class DiscordIntegrationProvider(IntegrationProvider):
         self.configure_url = absolute_uri("extensions/discord/configure/")
         super().__init__()
 
-    def get_pipeline_views(self) -> Sequence[PipelineView]:
+    def get_pipeline_views(self) -> Sequence[PipelineView[IntegrationPipeline]]:
         return [DiscordInstallPipeline(self.get_params_for_oauth())]
 
-    def build_integration(self, state: Mapping[str, object]) -> Mapping[str, object]:
+    def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         guild_id = str(state.get("guild_id"))
+
+        if not guild_id.isdigit():
+            raise IntegrationError(
+                "Invalid guild ID. The Discord guild ID must be entirely numeric."
+            )
+
         try:
             guild_name = self.client.get_guild_name(guild_id=guild_id)
         except (ApiError, AttributeError):
             guild_name = guild_id
 
-        discord_config = state.get("discord", {})
+        discord_config = state.get(IntegrationProviderSlug.DISCORD.value, {})
         if isinstance(discord_config, dict):
             use_configure = discord_config.get("use_configure") == "1"
         else:
@@ -175,6 +175,10 @@ class DiscordIntegrationProvider(IntegrationProvider):
         auth_code = str(state.get("code"))
         if auth_code:
             discord_user_id = self._get_discord_user_id(auth_code, url)
+            if not self.client.check_user_bot_installation_permission(
+                access_token=self.access_token, guild_id=guild_id
+            ):
+                raise IntegrationError("User does not have permissions to install bot.")
         else:
             raise IntegrationError("Missing code from state.")
 
@@ -182,7 +186,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
             "name": guild_name,
             "external_id": guild_id,
             "user_identity": {
-                "type": "discord",
+                "type": IntegrationProviderSlug.DISCORD.value,
                 "external_id": discord_user_id,
                 "scopes": [],
                 "data": {},
@@ -206,8 +210,9 @@ class DiscordIntegrationProvider(IntegrationProvider):
     def post_install(
         self,
         integration: Integration,
-        organization: RpcOrganizationSummary,
-        extra: Any | None = None,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
     ) -> None:
         if self._credentials_exist() and not self._has_application_commands():
             try:
@@ -238,13 +243,13 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
         """
         try:
-            access_token = self.client.get_access_token(auth_code, url)
+            self.access_token = self.client.get_access_token(auth_code, url)
         except ApiError:
             raise IntegrationError("Failed to get Discord access token from API.")
         except KeyError:
             raise IntegrationError("Failed to get Discord access token from key.")
         try:
-            user_id = self.client.get_user_id(access_token)
+            user_id = self.client.get_user_id(self.access_token)
         except ApiError:
             raise IntegrationError("Failed to get Discord user ID from API.")
         except KeyError:
@@ -278,14 +283,14 @@ class DiscordIntegrationProvider(IntegrationProvider):
         return has_credentials
 
 
-class DiscordInstallPipeline(PipelineView):
+class DiscordInstallPipeline:
     def __init__(self, params):
         self.params = params
         super().__init__()
 
-    def dispatch(self, request, pipeline):
+    def dispatch(self, request: HttpRequest, pipeline: IntegrationPipeline) -> HttpResponseBase:
         if "guild_id" not in request.GET or "code" not in request.GET:
-            state = pipeline.fetch_state(key="discord") or {}
+            state = pipeline.fetch_state(key=IntegrationProviderSlug.DISCORD.value) or {}
             redirect_uri = (
                 absolute_uri("extensions/discord/configure/")
                 if state.get("use_configure") == "1"
@@ -298,7 +303,7 @@ class DiscordInstallPipeline(PipelineView):
                 }
             )
             redirect_uri = f"https://discord.com/api/oauth2/authorize?{params}"
-            return self.redirect(redirect_uri)
+            return HttpResponseRedirect(redirect_uri)
 
         pipeline.bind_state("guild_id", request.GET["guild_id"])
         pipeline.bind_state("code", request.GET["code"])

@@ -1,3 +1,5 @@
+import type {TooltipProps} from 'sentry/components/core/tooltip';
+
 /**
  * Props that control UI elements that are part of a Form Group
  */
@@ -7,18 +9,13 @@ export interface FieldGroupProps {
    */
   alignRight?: boolean;
   /**
-   * The control to render. May be given a function to render with resolved
-   * props.
+   * The control to render
    */
-  children?: React.ReactNode | ((props: ChildRenderProps) => React.ReactNode);
+  children?: React.ReactNode;
   /**
    * The classname of the field
    */
   className?: string;
-  /**
-   * The classname of the field control
-   */
-  controlClassName?: string;
   /**
    * Loading / Saving / Error states of the form. See the ControlState
    */
@@ -26,11 +23,11 @@ export interface FieldGroupProps {
   /**
    * Should field be disabled?
    */
-  disabled?: boolean | ((props: FieldGroupProps) => boolean);
+  disabled?: boolean;
   /**
    * Produces a question tooltip on the field, explaining why it is disabled
    */
-  disabledReason?: React.ReactNode | ((props: FieldGroupProps) => React.ReactNode);
+  disabledReason?: React.ReactNode;
   /**
    * Display the  error indicator
    */
@@ -49,7 +46,7 @@ export interface FieldGroupProps {
   /**
    * Help or description of the field
    */
-  help?: React.ReactNode | ((props: FieldGroupProps) => React.ReactNode);
+  help?: React.ReactNode;
   /**
    * Hide the fields control state
    */
@@ -96,9 +93,10 @@ export interface FieldGroupProps {
    */
   required?: boolean;
   /**
-   * Displays the help element in the tooltip
+   * Displays the help element in the tooltip. Tooltip props may be passed to
+   * customize the help tooltip.
    */
-  showHelpInTooltip?: boolean;
+  showHelpInTooltip?: boolean | Omit<TooltipProps, 'title'>;
   /**
    * When stacking forms the bottom border is hidden and padding is adjusted
    * for form elements to be stacked on each other.
@@ -111,24 +109,9 @@ export interface FieldGroupProps {
   /**
    * Should field be visible
    */
-  visible?: boolean | ((props: FieldGroupProps) => boolean);
+  visible?: boolean;
 }
 
 /**
- * The children render props mostly pass down FieldGroupProps, with some slight
- * differences for properities that were resolved.
+ * Proops provided to the FieldGroupProps['controlWrapper']
  */
-interface ChildRenderProps extends Omit<FieldGroupProps, 'className' | 'disabled'> {
-  /**
-   * Same as {@link FieldGroupProps.controlState}, but will always be defined
-   */
-  controlState: React.ReactNode;
-  /**
-   * The rendered help node
-   */
-  help: React.ReactNode;
-  /**
-   * Is the field disabled
-   */
-  disabled?: boolean;
-}

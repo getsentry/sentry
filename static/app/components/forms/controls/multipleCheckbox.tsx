@@ -3,13 +3,14 @@ import {createContext, useCallback, useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 import noop from 'lodash/noop';
 
-import Checkbox from 'sentry/components/checkbox';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import {space} from 'sentry/styles/space';
 
 type Props<T> = {
   children: ReactNode;
   name: string;
   value: T[];
+  className?: string;
   disabled?: boolean;
   onChange?: (value: T[], event: React.ChangeEvent<HTMLInputElement>) => void;
 };
@@ -17,6 +18,7 @@ type Props<T> = {
 type CheckboxItemProps<T> = {
   children: ReactNode;
   value: T;
+  className?: string;
   disabled?: boolean;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 };
@@ -41,6 +43,7 @@ function MultipleCheckbox<T extends string | number>({
   disabled,
   onChange,
   name,
+  className,
 }: Props<T>) {
   const handleChange = useCallback(
     (itemValue: T, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,9 +71,9 @@ function MultipleCheckbox<T extends string | number>({
   );
 
   return (
-    <MultipleCheckboxContext.Provider value={contextValue}>
-      <MultipleCheckboxWrapper>{children}</MultipleCheckboxWrapper>
-    </MultipleCheckboxContext.Provider>
+    <MultipleCheckboxContext value={contextValue}>
+      <MultipleCheckboxWrapper className={className}>{children}</MultipleCheckboxWrapper>
+    </MultipleCheckboxContext>
   );
 }
 
@@ -79,13 +82,14 @@ function Item<T extends string | number>({
   children,
   disabled: itemDisabled,
   onChange,
+  className,
 }: CheckboxItemProps<T>) {
   const {disabled, value, handleChange, name} = useContext<
     MultipleCheckboxContextValue<T>
   >(MultipleCheckboxContext);
 
   return (
-    <LabelContainer>
+    <LabelContainer className={className}>
       <Label>
         <Checkbox
           name={name}
@@ -115,7 +119,7 @@ const MultipleCheckboxWrapper = styled('div')`
 const Label = styled('label')`
   display: inline-flex;
   align-items: center;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   white-space: nowrap;
   margin-right: 10px;
   margin-bottom: 10px;
@@ -129,13 +133,13 @@ const CheckboxLabel = styled('span')`
 const LabelContainer = styled('div')`
   width: 100%;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     width: 50%;
   }
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     width: 33.333%;
   }
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     width: 25%;
   }
 `;

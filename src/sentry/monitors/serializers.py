@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict, cast
 
 from django.db.models import prefetch_related_objects
 
@@ -10,12 +10,14 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.monitors.models import (
+    MONITOR_ENVIRONMENT_ORDERING,
     Monitor,
     MonitorCheckIn,
     MonitorEnvBrokenDetection,
     MonitorEnvironment,
     MonitorIncident,
     MonitorStatus,
+    ScheduleType,
 )
 from sentry.monitors.processing_errors.errors import (
     CheckinProcessingError,
@@ -157,7 +159,7 @@ class MonitorSerializerResponse(MonitorSerializerResponseOptional):
     slug: str
     status: str
     isMuted: bool
-    type: Literal["cron_job", "unknown"]
+    isUpserting: bool
     config: MonitorConfigSerializerResponse
     dateCreated: datetime
     project: ProjectSerializerResponse
@@ -198,7 +200,8 @@ class MonitorSerializer(Serializer):
 
         monitor_environments_qs = (
             MonitorEnvironment.objects.filter(monitor__in=item_list)
-            .order_by("-last_checkin")
+            .annotate(status_ordering=MONITOR_ENVIRONMENT_ORDERING)
+            .order_by("status_ordering", "-last_checkin", "environment_id")
             .exclude(
                 status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]
             )
@@ -243,7 +246,7 @@ class MonitorSerializer(Serializer):
             "id": str(obj.guid),
             "status": obj.get_status_display(),
             "isMuted": obj.is_muted,
-            "type": obj.get_type_display(),
+            "isUpserting": obj.is_upserting,
             "name": obj.name,
             "slug": obj.slug,
             "config": config,
@@ -273,11 +276,14 @@ class MonitorCheckInSerializerResponse(MonitorCheckInSerializerResponseOptional)
     id: str
     environment: str
     status: str
-    duration: int
+    duration: int | None
     dateCreated: datetime
-    attachmentId: str
+    dateAdded: datetime
+    dateUpdated: datetime
+    dateInProgress: datetime | None
+    dateClock: datetime
     expectedTime: datetime
-    monitorConfig: Any
+    monitorConfig: MonitorConfigSerializerResponse
 
 
 @register(MonitorCheckIn)
@@ -331,15 +337,23 @@ class MonitorCheckInSerializer(Serializer):
         return attrs
 
     def serialize(self, obj, attrs, user, **kwargs) -> MonitorCheckInSerializerResponse:
+        config = obj.monitor_config.copy() if obj.monitor_config else {}
+        if "schedule_type" in config:
+            # XXX: We don't use monitor.get_schedule_type_display() in case it differs from the
+            # config saved on the check-in
+            config["schedule_type"] = ScheduleType.get_name(config["schedule_type"])
         result: MonitorCheckInSerializerResponse = {
             "id": str(obj.guid),
             "environment": attrs["environment_name"],
             "status": obj.get_status_display(),
             "duration": obj.duration,
-            "dateCreated": obj.date_added,
-            "attachmentId": obj.attachment_id,
+            "dateCreated": obj.date_created,
+            "dateAdded": obj.date_added,
+            "dateUpdated": obj.date_updated,
+            "dateClock": obj.date_clock,
+            "dateInProgress": obj.date_in_progress,
             "expectedTime": obj.expected_time,
-            "monitorConfig": obj.monitor_config or {},
+            "monitorConfig": cast(MonitorConfigSerializerResponse, config),
         }
 
         if self._expand("groups"):

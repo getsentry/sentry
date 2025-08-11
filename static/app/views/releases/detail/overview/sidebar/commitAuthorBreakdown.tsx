@@ -1,21 +1,23 @@
 import styled from '@emotion/styled';
 
-import UserAvatar from 'sentry/components/avatar/userAvatar';
-import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
+import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Commit, User} from 'sentry/types';
+import type {Commit} from 'sentry/types/integrations';
+import type {User} from 'sentry/types/user';
 import {percent} from 'sentry/utils';
 import {userDisplayName} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-type GroupedAuthorCommits = {
-  [key: string]: {author: User | undefined; commitCount: number};
-};
+type GroupedAuthorCommits = Record<
+  string,
+  {author: User | undefined; commitCount: number}
+>;
 
 type Props = {
   orgId: string;
@@ -30,11 +32,11 @@ function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
 
   const {
     data: commits,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<Commit[]>([commitsEndpoint], {staleTime: 0});
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -57,7 +59,7 @@ function CommitAuthorBreakdown({orgId, projectSlug, version}: Props) {
       const email = commit.author?.email ?? 'unknown';
 
       if (authorCommitsAccumulator.hasOwnProperty(email)) {
-        authorCommitsAccumulator[email].commitCount += 1;
+        authorCommitsAccumulator[email]!.commitCount += 1;
       } else {
         authorCommitsAccumulator[email] = {
           commitCount: 1,
@@ -109,7 +111,7 @@ const AuthorLine = styled('div')`
   grid-template-columns: 30px 2fr 1fr 40px;
   width: 100%;
   margin-bottom: ${space(1)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const AuthorName = styled('div')`

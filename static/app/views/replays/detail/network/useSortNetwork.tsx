@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
 
 import type {SpanFrame} from 'sentry/utils/replays/types';
-import useUrlParams from 'sentry/utils/useUrlParams';
+import useUrlParams from 'sentry/utils/url/useUrlParams';
 
 interface SortConfig {
   asc: boolean;
@@ -9,7 +9,7 @@ interface SortConfig {
   getValue: (row: SpanFrame) => any;
 }
 
-const SortStrategies: Record<string, (row) => any> = {
+const SortStrategies: Record<string, (row: any) => any> = {
   method: row => row.data.method || 'GET',
   status: row => row.data.statusCode,
   description: row => row.description,

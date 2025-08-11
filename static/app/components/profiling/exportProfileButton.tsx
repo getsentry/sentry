@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -9,12 +9,12 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-interface ExportProfileButtonProps extends Omit<ButtonProps, 'onClick' | 'children'> {
+interface ExportProfileButtonProps
+  extends Omit<LinkButtonProps, 'title' | 'onClick' | 'children' | 'external'> {
   eventId: string | undefined;
   orgId: string;
   projectId: string | undefined;
   children?: React.ReactNode;
-  variant?: 'xs' | 'default';
 }
 
 export function ExportProfileButton(props: ExportProfileButtonProps) {
@@ -32,35 +32,37 @@ export function ExportProfileButton(props: ExportProfileButtonProps) {
 
   const title = t('Export Profile');
 
-  return props.variant === 'xs' ? (
-    <StyledButtonSmall size="xs" title={title} href={href} download={download} {...props}>
+  return props.size === 'zero' ? (
+    <DownloadButton href={href} download={download} {...props}>
       {props.children}
       <IconDownload size="xs" />
-    </StyledButtonSmall>
+    </DownloadButton>
   ) : (
-    <Button
+    <LinkButton
       icon={<IconDownload />}
       title={title}
       href={href}
       download={download}
+      size="xs"
       {...props}
     >
       {props.children}
-    </Button>
+    </LinkButton>
   );
 }
 
-const StyledButtonSmall = styled(Button)`
-  border: none;
-  background-color: transparent;
-  box-shadow: none;
-  transition: none !important;
-  opacity: 0.5;
+const DownloadButton = styled('a')`
   padding: ${space(0.5)} ${space(0.5)};
+  color: ${p => p.theme.tokens.content.primary};
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     border: none;
     background-color: transparent;
     box-shadow: none;
+    color: ${p => p.theme.tokens.content.primary};
   }
 `;

@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
@@ -53,13 +54,13 @@ function Banner(props: BannerProps) {
             </Button>
           </ActionButton>
           <ActionButton>
-            <Button
+            <LinkButton
               onClick={props.onSecondaryButtonClick}
               href={props.docsRoute}
               external
             >
               {t('Learn More')}
-            </Button>
+            </LinkButton>
           </ActionButton>
         </ButtonsWrapper>
       </ActionsWrapper>
@@ -115,9 +116,9 @@ const ButtonsWrapper = styled('div')`
 `;
 
 const BannerTitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
   margin-bottom: ${space(1)};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const BannerDescription = styled('div')`
@@ -138,11 +139,11 @@ const BannerBackground = styled('div')<{image: any}>`
   display: flex;
   justify-self: flex-end;
   position: absolute;
-  top: 14px;
-  right: 15px;
-  height: 81%;
+  top: 11px;
+  right: -15px;
+  height: 90%;
   width: 100%;
-  max-width: 413px;
+  max-width: 270px;
   background-image: url(${p => p.image});
   background-repeat: no-repeat;
   background-size: contain;

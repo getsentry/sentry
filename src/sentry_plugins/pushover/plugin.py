@@ -1,7 +1,7 @@
 from sentry.exceptions import PluginError
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.base.structs import Notification
-from sentry.plugins.bases.notify import NotifyPlugin
+from sentry.plugins.bases.notify import NotificationPlugin
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
 
@@ -14,7 +14,7 @@ Pushover makes it easy to get real-time notifications on your Android, iPhone, i
 """
 
 
-class PushoverPlugin(CorePluginMixin, NotifyPlugin):
+class PushoverPlugin(CorePluginMixin, NotificationPlugin):
     description = DESCRIPTION
     slug = "pushover"
     title = "Pushover"

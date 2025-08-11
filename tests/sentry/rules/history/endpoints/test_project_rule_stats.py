@@ -8,7 +8,7 @@ from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.history.base import TimeSeriesValue
 from sentry.rules.history.endpoints.project_rule_stats import TimeSeriesValueSerializer
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import control_silo_test
 from sentry.testutils.skips import requires_snuba
 
@@ -17,7 +17,7 @@ pytestmark = [requires_snuba]
 
 @control_silo_test
 class TimeSeriesValueSerializerTest(TestCase):
-    def test(self):
+    def test(self) -> None:
         time_series_value = TimeSeriesValue(datetime.now(), 30)
         result = serialize([time_series_value], self.user, TimeSeriesValueSerializer())
         assert result == [
@@ -32,7 +32,7 @@ class TimeSeriesValueSerializerTest(TestCase):
 class ProjectRuleStatsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-rule-stats-index"
 
-    def test(self):
+    def test(self) -> None:
         rule = Rule.objects.create(project=self.event.project)
         rule_2 = Rule.objects.create(project=self.event.project)
         history = []
@@ -64,8 +64,8 @@ class ProjectRuleStatsIndexEndpointTest(APITestCase):
             self.organization.slug,
             self.project.slug,
             rule.id,
-            start=iso_format(before_now(days=6)),
-            end=iso_format(before_now(days=0)),
+            start=before_now(days=6),
+            end=before_now(days=0),
         )
         assert len(resp.data) == 144
         now = timezone.now().replace(minute=0, second=0, microsecond=0)

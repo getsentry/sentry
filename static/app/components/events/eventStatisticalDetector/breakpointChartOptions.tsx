@@ -29,28 +29,30 @@ function getBreakpointChartOptionsFromData(
   chartType: ChartType,
   theme: Theme
 ) {
-  const trendFunctionName: Partial<{[key in ChartType]: string}> = {
+  const trendFunctionName: Partial<Record<ChartType, string>> = {
     [ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION]: 'transaction.duration',
     [ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION]: 'function.duration',
   };
 
-  const defaultTransform = stats => stats;
+  const defaultTransform = (stats: any) => stats;
 
   const transformFunctionStats = (stats: any) => {
-    const rawData = stats?.data?.data?.find(({axis}) => axis === 'p95()');
+    const rawData = stats?.data?.data?.find(({axis}: any) => axis === 'p95()');
     const timestamps = stats?.data?.timestamps;
     if (!timestamps) {
       return [];
     }
-    return timestamps.map((timestamp, i) => [timestamp, [{count: rawData.values[i]}]]);
+    return timestamps.map((timestamp: any, i: any) => [
+      timestamp,
+      [{count: rawData.values[i]}],
+    ]);
   };
 
   // Mapping from BreakpointType to transformation functions
-  const transformFunction: Partial<{[key in ChartType]: (arg: any) => EventsStatsData}> =
-    {
-      [ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION]: defaultTransform,
-      [ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION]: transformFunctionStats,
-    };
+  const transformFunction: Partial<Record<ChartType, (arg: any) => EventsStatsData>> = {
+    [ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION]: defaultTransform,
+    [ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION]: transformFunctionStats,
+  };
 
   const transformedSeries = transformEventStats(
     transformFunction[chartType]!(percentileData),

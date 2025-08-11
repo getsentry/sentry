@@ -1,100 +1,132 @@
-import {Fragment, useContext} from 'react';
+import {useCallback, useContext, useEffect} from 'react';
 import type {Theme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import OnboardingSidebar from 'sentry/components/onboardingWizard/sidebar';
-import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {LegacyOnboardingSidebar} from 'sentry/components/onboardingWizard/sidebar';
+import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import ProgressRing, {
   RingBackground,
   RingBar,
   RingText,
 } from 'sentry/components/progressRing';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
-import {isDone} from 'sentry/components/sidebar/utils';
-import {t, tct} from 'sentry/locale';
+import {IconCheckmark} from 'sentry/icons/iconCheckmark';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoWalkthrough} from 'sentry/utils/demoMode';
-import theme from 'sentry/utils/theme';
-import useProjects from 'sentry/utils/useProjects';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 import type {CommonSidebarProps} from './types';
 import {SidebarPanelKey} from './types';
 
-type Props = CommonSidebarProps & {
-  org: Organization;
-};
+type OnboardingStatusProps = CommonSidebarProps;
 
-const progressTextCss = () => css`
-  font-size: ${theme.fontSizeMedium};
-  font-weight: ${theme.fontWeightBold};
-`;
-
-export default function OnboardingStatus({
+export function OnboardingStatus({
   collapsed,
-  org,
   currentPanel,
   orientation,
   hidePanel,
   onShowPanel,
-}: Props) {
-  const handleShowPanel = () => {
-    trackAnalytics('onboarding.wizard_opened', {organization: org});
-    onShowPanel();
-  };
-  const onboardingContext = useContext(OnboardingContext);
-  const {projects} = useProjects();
+}: OnboardingStatusProps) {
+  const theme = useTheme();
+  const organization = useOrganization();
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const {shouldAccordionFloat} = useContext(ExpandedContext);
-
-  if (!org.features?.includes('onboarding')) {
-    return null;
-  }
-
-  const tasks = getMergedTasks({
-    organization: org,
-    projects,
-    onboardingContext,
-  });
-
-  const allDisplayedTasks = tasks
-    .filter(task => task.display)
-    .filter(task => !task.renderCard);
-  const doneTasks = allDisplayedTasks.filter(isDone);
-  const numberRemaining = allDisplayedTasks.length - doneTasks.length;
-
-  const pendingCompletionSeen = doneTasks.some(
-    task =>
-      allDisplayedTasks.some(displayedTask => displayedTask.task === task.task) &&
-      task.status === 'complete' &&
-      !task.completionSeen
+  const [quickStartCompleted, setQuickStartCompleted] = useLocalStorageState(
+    `quick-start:${organization.slug}:completed`,
+    false
   );
 
   const isActive = currentPanel === SidebarPanelKey.ONBOARDING_WIZARD;
+  const demoMode = isDemoModeActive();
 
-  if (doneTasks.length >= allDisplayedTasks.length && !isActive) {
+  const {
+    allTasks,
+    gettingStartedTasks,
+    beyondBasicsTasks,
+    doneTasks,
+    completeTasks,
+    completeOrOverdueTasks,
+    refetch,
+  } = useOnboardingTasks({
+    disabled: !isActive,
+  });
+
+  const label = demoMode ? t('Guided Tours') : t('Onboarding');
+  const pendingCompletionSeen = doneTasks.length !== completeTasks.length;
+  const allTasksCompleted = allTasks.length === completeOrOverdueTasks.length;
+
+  const skipQuickStart =
+    (!demoMode && !organization.features?.includes('onboarding')) ||
+    (allTasksCompleted && !isActive);
+
+  const handleShowPanel = useCallback(() => {
+    if (!demoMode && isActive !== true) {
+      trackAnalytics('quick_start.opened', {
+        organization,
+        user_clicked: true,
+        source: 'onboarding_sidebar',
+      });
+    }
+
+    onShowPanel();
+  }, [onShowPanel, isActive, demoMode, organization]);
+
+  useEffect(() => {
+    if (!allTasksCompleted || skipQuickStart || quickStartCompleted) {
+      return;
+    }
+
+    if (demoMode) {
+      return;
+    }
+
+    trackAnalytics('quick_start.completed', {
+      organization,
+      referrer: 'onboarding_sidebar',
+    });
+
+    setQuickStartCompleted(true);
+  }, [
+    demoMode,
+    organization,
+    skipQuickStart,
+    quickStartCompleted,
+    setQuickStartCompleted,
+    allTasksCompleted,
+  ]);
+
+  if (skipQuickStart) {
     return null;
   }
 
-  const walkthrough = isDemoWalkthrough();
-  const label = walkthrough ? t('Guided Tours') : t('Quick Start');
-  const task = walkthrough ? 'tours' : 'tasks';
-
   return (
-    <Fragment>
+    <GuideAnchor target="onboarding_sidebar" position="right" disabled={hasStreamlinedUI}>
       <Container
         role="button"
         aria-label={label}
         onClick={handleShowPanel}
         isActive={isActive}
+        showText={!shouldAccordionFloat}
+        onMouseEnter={() => {
+          refetch();
+        }}
       >
         <ProgressRing
-          animateText
-          textCss={progressTextCss}
-          text={allDisplayedTasks.length - doneTasks.length}
-          value={(doneTasks.length / allDisplayedTasks.length) * 100}
+          animate
+          textCss={() => css`
+            font-size: ${theme.fontSize.md};
+            font-weight: ${theme.fontWeight.bold};
+          `}
+          text={
+            doneTasks.length === allTasks.length ? <IconCheckmark /> : doneTasks.length
+          }
+          value={(doneTasks.length / allTasks.length) * 100}
           backgroundColor="rgba(255, 255, 255, 0.15)"
           progressEndcaps="round"
           size={38}
@@ -103,35 +135,46 @@ export default function OnboardingStatus({
         {!shouldAccordionFloat && (
           <div>
             <Heading>{label}</Heading>
-            <Remaining>
-              {tct('[numberRemaining] Remaining [task]', {numberRemaining, task})}
-              {pendingCompletionSeen && <PendingSeenIndicator />}
+            <Remaining role="status">
+              {demoMode
+                ? tn(
+                    '%s remaining tour',
+                    '%s remaining tours',
+                    allTasks.length - doneTasks.length
+                  )
+                : tn('%s completed task', '%s completed tasks', doneTasks.length)}
+              {pendingCompletionSeen && (
+                <PendingSeenIndicator data-test-id="pending-seen-indicator" />
+              )}
             </Remaining>
           </div>
         )}
       </Container>
       {isActive && (
-        <OnboardingSidebar
+        <LegacyOnboardingSidebar
           orientation={orientation}
           collapsed={collapsed}
           onClose={hidePanel}
+          gettingStartedTasks={gettingStartedTasks}
+          beyondBasicsTasks={beyondBasicsTasks}
+          title={label}
         />
       )}
-    </Fragment>
+    </GuideAnchor>
   );
 }
 
 const Heading = styled('div')`
   transition: color 100ms;
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.white};
   margin-bottom: ${space(0.25)};
 `;
 
 const Remaining = styled('div')`
   transition: color 100ms;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
   display: grid;
   grid-template-columns: max-content max-content;
   gap: ${space(0.75)};
@@ -166,11 +209,11 @@ const hoverCss = (p: {theme: Theme}) => css`
   }
 `;
 
-const Container = styled('div')<{isActive: boolean}>`
-  padding: 9px 19px 9px 16px;
+const Container = styled('div')<{isActive: boolean; showText: boolean}>`
+  padding: 9px 16px;
   cursor: pointer;
   display: grid;
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: ${p => (p.showText ? 'max-content 1fr' : 'max-content')};
   gap: ${space(1.5)};
   align-items: center;
   transition: background 100ms;

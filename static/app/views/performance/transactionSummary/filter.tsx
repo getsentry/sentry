@@ -1,13 +1,15 @@
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {OrganizationSummary} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {SpanOpBreakdown} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 
@@ -41,8 +43,6 @@ const OPTIONS: SpanOperationBreakdownFilter[] = [
   SpanOperationBreakdownFilter.UI,
 ];
 
-export const spanOperationBreakdownSingleColumns = OPTIONS.map(o => `spans.${o}`);
-
 type Props = {
   currentFilter: SpanOperationBreakdownFilter;
   onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
@@ -50,12 +50,12 @@ type Props = {
 };
 
 function Filter(props: Props) {
+  const theme = useTheme();
   const {currentFilter, onChangeFilter} = props;
-
   const menuOptions = OPTIONS.map(operationName => ({
     value: operationName,
     label: operationName,
-    leadingItems: <OperationDot backgroundColor={pickBarColor(operationName)} />,
+    leadingItems: <OperationDot backgroundColor={pickBarColor(operationName, theme)} />,
   }));
 
   return (
@@ -127,12 +127,12 @@ export function filterToSearchConditions(
   }
 }
 
-export function filterToColor(option: SpanOperationBreakdownFilter) {
+export function filterToColor(option: SpanOperationBreakdownFilter, theme: Theme) {
   switch (option) {
     case SpanOperationBreakdownFilter.NONE:
-      return pickBarColor('');
+      return pickBarColor('', theme);
     default: {
-      return pickBarColor(option);
+      return pickBarColor(option, theme);
     }
   }
 }

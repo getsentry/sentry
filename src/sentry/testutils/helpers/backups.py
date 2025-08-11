@@ -7,7 +7,6 @@ from datetime import UTC, datetime, timedelta
 from functools import cached_property, cmp_to_key
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock
 from uuid import uuid4
 
 from cryptography.hazmat.backends import default_backend
@@ -16,14 +15,12 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from django.apps import apps
 from django.db import connections, router
 from django.utils import timezone
+from fido2.ctap2 import AuthenticatorData
+from fido2.utils import sha256
 from sentry_relay.auth import generate_key_pair
 
-from sentry.backup.crypto import (
-    KeyManagementServiceClient,
-    LocalFileDecryptor,
-    LocalFileEncryptor,
-    decrypt_encrypted_tarball,
-)
+from sentry.auth.authenticators.u2f import create_credential_object
+from sentry.backup.crypto import LocalFileDecryptor, LocalFileEncryptor, decrypt_encrypted_tarball
 from sentry.backup.dependencies import (
     NormalizedModelName,
     get_model,
@@ -31,6 +28,7 @@ from sentry.backup.dependencies import (
     sorted_dependencies,
 )
 from sentry.backup.exports import (
+    ExportCheckpointer,
     export_in_config_scope,
     export_in_global_scope,
     export_in_organization_scope,
@@ -41,80 +39,86 @@ from sentry.backup.helpers import Printer
 from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
-from sentry.data_secrecy.models import DataSecrecyWaiver
 from sentry.db.models.paranoia import ParanoidModel
-from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
-from sentry.incidents.models.incident import (
-    IncidentActivity,
-    IncidentSnapshot,
-    IncidentSubscription,
-    IncidentTrigger,
-    PendingIncidentSnapshot,
-    TimeSeriesSnapshot,
+from sentry.explore.models import (
+    ExploreSavedQuery,
+    ExploreSavedQueryLastVisited,
+    ExploreSavedQueryProject,
+    ExploreSavedQueryStarred,
 )
-from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.incidents.models.incident import IncidentActivity, IncidentTrigger
+from sentry.insights.models import InsightsStarredSegment
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.models.project_integration import ProjectIntegration
 from sentry.models.activity import Activity
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
-from sentry.models.authenticator import Authenticator
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.counter import Counter
-from sentry.models.dashboard import Dashboard, DashboardTombstone
+from sentry.models.dashboard import (
+    Dashboard,
+    DashboardFavoriteUser,
+    DashboardLastVisited,
+    DashboardTombstone,
+)
+from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetQuery,
     DashboardWidgetQueryOnDemand,
+    DashboardWidgetSnapshot,
     DashboardWidgetTypes,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
-from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewProject
+from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
+from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_template_option import ProjectTemplateOption
-from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectredirect import ProjectRedirect
+from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
-from sentry.models.user import User
-from sentry.models.userip import UserIP
-from sentry.models.userrole import UserRole, UserRoleUser
-from sentry.monitors.models import Monitor, MonitorType, ScheduleType
+from sentry.monitors.models import Monitor, ScheduleType
 from sentry.nodestore.django.models import Node
-from sentry.sentry_apps.apps import SentryAppUpdater
-from sentry.sentry_metrics.models import (
-    SpanAttributeExtractionRuleCondition,
-    SpanAttributeExtractionRuleConfig,
-)
+from sentry.sentry_apps.logic import SentryAppUpdater
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
+from sentry.tempest.models import TempestCredentials
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.token import AuthTokenType
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.userip import UserIP
+from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
+from sentry.workflow_engine.models import Action, DataConditionAlertRuleTrigger, DataConditionGroup
+from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
 
 __all__ = [
     "export_to_file",
@@ -124,28 +128,18 @@ __all__ = [
 NOOP_PRINTER = Printer()
 
 
-class FakeKeyManagementServiceClient:
-    """
-    Fake version of `KeyManagementServiceClient` that removes the two network calls we rely on: the
-    `Transport` setup on class construction, and the call to the hosted `asymmetric_decrypt`
-    endpoint.
-    """
-
-    asymmetric_decrypt = MagicMock()
-    get_public_key = MagicMock()
-
-    @staticmethod
-    def crypto_key_version_path(**kwargs) -> str:
-        return KeyManagementServiceClient.crypto_key_version_path(**kwargs)
-
-
 class ValidationError(Exception):
     def __init__(self, info: ComparatorFindings):
         super().__init__(info.pretty())
         self.info = info
 
 
-def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = None) -> Any:
+def export_to_file(
+    path: Path,
+    scope: ExportScope,
+    filter_by: set[str] | None = None,
+    checkpointer: ExportCheckpointer | None = None,
+) -> Any:
     """
     Helper function that exports the current state of the database to the specified file.
     """
@@ -155,13 +149,31 @@ def export_to_file(path: Path, scope: ExportScope, filter_by: set[str] | None = 
         # These functions are just thin wrappers, but its best to exercise them directly anyway in
         # case that ever changes.
         if scope == ExportScope.Global:
-            export_in_global_scope(tmp_file, printer=NOOP_PRINTER)
+            export_in_global_scope(
+                tmp_file,
+                printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
+            )
         elif scope == ExportScope.Config:
-            export_in_config_scope(tmp_file, printer=NOOP_PRINTER)
+            export_in_config_scope(
+                tmp_file,
+                printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
+            )
         elif scope == ExportScope.Organization:
-            export_in_organization_scope(tmp_file, org_filter=filter_by, printer=NOOP_PRINTER)
+            export_in_organization_scope(
+                tmp_file,
+                org_filter=filter_by,
+                printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
+            )
         elif scope == ExportScope.User:
-            export_in_user_scope(tmp_file, user_filter=filter_by, printer=NOOP_PRINTER)
+            export_in_user_scope(
+                tmp_file,
+                user_filter=filter_by,
+                printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
+            )
         else:
             raise AssertionError(f"Unknown `ExportScope`: `{scope.name}`")
 
@@ -191,7 +203,9 @@ def export_to_encrypted_tarball(
     path: Path,
     scope: ExportScope,
     *,
+    rsa_key_pair: tuple[bytes, bytes],
     filter_by: set[str] | None = None,
+    checkpointer: ExportCheckpointer | None = None,
 ) -> Any:
     """
     Helper function that exports the current state of the database to the specified encrypted
@@ -199,7 +213,7 @@ def export_to_encrypted_tarball(
     """
 
     # Generate a public-private key pair.
-    (private_key_pem, public_key_pem) = generate_rsa_key_pair()
+    (private_key_pem, public_key_pem) = rsa_key_pair
     public_key_fp = io.BytesIO(public_key_pem)
 
     # Run the appropriate `export_in_...` command with encryption enabled.
@@ -209,11 +223,17 @@ def export_to_encrypted_tarball(
         # case that ever changes.
         if scope == ExportScope.Global:
             export_in_global_scope(
-                tmp_file, encryptor=LocalFileEncryptor(public_key_fp), printer=NOOP_PRINTER
+                tmp_file,
+                encryptor=LocalFileEncryptor(public_key_fp),
+                printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
             )
         elif scope == ExportScope.Config:
             export_in_config_scope(
-                tmp_file, encryptor=LocalFileEncryptor(public_key_fp), printer=NOOP_PRINTER
+                tmp_file,
+                encryptor=LocalFileEncryptor(public_key_fp),
+                printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
             )
         elif scope == ExportScope.Organization:
             export_in_organization_scope(
@@ -221,6 +241,7 @@ def export_to_encrypted_tarball(
                 encryptor=LocalFileEncryptor(public_key_fp),
                 org_filter=filter_by,
                 printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
             )
         elif scope == ExportScope.User:
             export_in_user_scope(
@@ -228,6 +249,7 @@ def export_to_encrypted_tarball(
                 encryptor=LocalFileEncryptor(public_key_fp),
                 user_filter=filter_by,
                 printer=NOOP_PRINTER,
+                checkpointer=checkpointer,
             )
         else:
             raise AssertionError(f"Unknown `ExportScope`: `{scope.name}`")
@@ -358,7 +380,38 @@ class ExhaustiveFixtures(Fixtures):
             first_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
             last_seen=datetime(2012, 4, 5, 3, 29, 45, tzinfo=UTC),
         )
-        Authenticator.objects.create(user=user, type=1)
+        Authenticator.objects.create(
+            user=user,
+            type=1,
+            config={
+                "devices": [
+                    {
+                        "binding": {
+                            "publicKey": "publickey",
+                            "keyHandle": "aowerkoweraowerkkro",
+                            "appId": "https://dev.getsentry.net:8000/auth/2fa/u2fappid.json",
+                        },
+                        "name": "Sentry",
+                        "ts": 1512505334,
+                    },
+                    {
+                        "name": "Alert Escargot",
+                        "ts": 1512505334,
+                        "binding": AuthenticatorData.create(
+                            sha256(b"test"),
+                            0x41,
+                            1,
+                            create_credential_object(
+                                {
+                                    "publicKey": "webauthn",
+                                    "keyHandle": "webauthn",
+                                }
+                            ),
+                        ),
+                    },
+                ]
+            },
+        )
 
         if is_admin:
             self.add_user_permission(user, "users.admin")
@@ -388,6 +441,16 @@ class ExhaustiveFixtures(Fixtures):
             for inviter, email in pending_invites.items():
                 OrganizationMember.objects.create(
                     organization_id=org.id,
+                    role="member",
+                    email=email,
+                    inviter_id=inviter.id,
+                    invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+                )
+                # OrganizationMemberInvite + placeholder OrganizationMember
+                om = OrganizationMember.objects.create(organization_id=org.id)
+                OrganizationMemberInvite.objects.create(
+                    organization_id=org.id,
+                    organization_member_id=om.id,
                     role="member",
                     email=email,
                     inviter_id=inviter.id,
@@ -423,6 +486,12 @@ class ExhaustiveFixtures(Fixtures):
             project=project, raw='{"hello":"hello"}', schema={"hello": "hello"}
         )
         ProjectRedirect.record(project, f"project_slug_in_{slug}")
+        ProjectSDK.objects.create(
+            project=project,
+            event_type=EventType.PROFILE_CHUNK.value,
+            sdk_name="sentry.python",
+            sdk_version="2.41.0",
+        )
         self.create_notification_action(organization=org, projects=[project])
 
         # Auth*
@@ -431,12 +500,6 @@ class ExhaustiveFixtures(Fixtures):
         # Integration*
         org_integration = self.create_exhaustive_organization_integration(org)
         integration_id = org_integration.integration.id
-        # Note: this model is deprecated, and can safely be removed from this test when it is
-        # finally removed. Until then, it is included for completeness.
-        ProjectIntegration.objects.create(
-            project=project, integration_id=integration_id, config='{"hello":"hello"}'
-        )
-
         # Rule*
         rule = self.create_project_rule(project=project, owner_user_id=owner_id)
         RuleActivity.objects.create(
@@ -461,19 +524,6 @@ class ExhaustiveFixtures(Fixtures):
             sample_rate=0.5,
             query="environment:prod event.type:transaction",
         )
-        span_attribute_extraction_rule_config = SpanAttributeExtractionRuleConfig.objects.create(
-            project=project,
-            span_attribute="my_attribute",
-            created_by_id=owner.id,
-            unit="none",
-            tags=["tag1", "tag2"],
-            aggregates=["count", "sum", "avg", "min", "max", "p50", "p75", "p90", "p95", "p99"],
-        )
-        SpanAttributeExtractionRuleCondition.objects.create(
-            created_by_id=owner.id,
-            value="key:value",
-            config=span_attribute_extraction_rule_config,
-        )
 
         # Environment*
         self.create_environment(project=project)
@@ -482,39 +532,20 @@ class ExhaustiveFixtures(Fixtures):
         Monitor.objects.create(
             organization_id=project.organization.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
             owner_user_id=owner_id,
         )
 
         # AlertRule*
-        other_project = self.create_project(name=f"other-project-{slug}", teams=[team])
         alert = self.create_alert_rule(
             organization=org,
             projects=[project],
-            include_all_projects=True,
-            excluded_projects=[other_project],
             user=owner,
         )
         alert.user_id = owner_id
         alert.save()
-        trigger = self.create_alert_rule_trigger(alert_rule=alert, excluded_projects=[project])
+        trigger = self.create_alert_rule_trigger(alert_rule=alert)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
-        activated_alert = self.create_alert_rule(
-            organization=org,
-            projects=[project],
-            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
-            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-        )
-        self.create_alert_rule_activation(
-            alert_rule=activated_alert,
-            project=project,
-            metric_value=100,
-            activator="testing exhaustive",
-            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
-        )
-        activated_trigger = self.create_alert_rule_trigger(alert_rule=activated_alert)
-        self.create_alert_rule_trigger_action(alert_rule_trigger=activated_trigger)
 
         # Incident*
         incident = self.create_incident(org, [project])
@@ -524,33 +555,32 @@ class ExhaustiveFixtures(Fixtures):
             comment=f"hello {slug}",
             user_id=owner_id,
         )
-        IncidentSnapshot.objects.create(
-            incident=incident,
-            event_stats_snapshot=TimeSeriesSnapshot.objects.create(
-                start=timezone.now() - timedelta(hours=24),
-                end=timezone.now(),
-                values=[[1.0, 2.0, 3.0], [1.5, 2.5, 3.5]],
-                period=1,
-            ),
-            unique_users=1,
-            total_events=1,
-        )
-        IncidentSubscription.objects.create(incident=incident, user_id=owner_id)
         IncidentTrigger.objects.create(
             incident=incident,
             alert_rule_trigger=trigger,
             status=1,
         )
 
-        # *Snapshot
-        PendingIncidentSnapshot.objects.create(
-            incident=incident, target_run_date=timezone.now() + timedelta(hours=4)
-        )
-
         # Dashboard
         dashboard = Dashboard.objects.create(
-            title=f"Dashboard 1 for {slug}", created_by_id=owner_id, organization=org
+            title=f"Dashboard 1 for {slug}",
+            created_by_id=owner_id,
+            organization=org,
         )
+        DashboardFavoriteUser.objects.create(
+            dashboard=dashboard,
+            user_id=owner_id,
+            organization=org,
+        )
+        DashboardLastVisited.objects.create(
+            dashboard=dashboard,
+            member=invited,
+            last_visited=timezone.now(),
+        )
+        permissions = DashboardPermissions.objects.create(
+            is_editable_by_everyone=True, dashboard=dashboard
+        )
+        permissions.teams_with_edit_access.set([team])
         widget = DashboardWidget.objects.create(
             dashboard=dashboard,
             order=1,
@@ -565,6 +595,10 @@ class ExhaustiveFixtures(Fixtures):
             dashboard_widget_query=widget_query,
             extraction_state=DashboardWidgetQueryOnDemand.OnDemandExtractionState.DISABLED_NOT_APPLICABLE,
             spec_hashes=[],
+        )
+        DashboardWidgetSnapshot.objects.create(
+            widget=widget,
+            data={"test": "data"},
         )
         DashboardTombstone.objects.create(organization=org, slug=f"test-tombstone-in-{slug}")
 
@@ -597,14 +631,30 @@ class ExhaustiveFixtures(Fixtures):
 
         # Group*
         group = self.create_group(project=project)
-        GroupSearchView.objects.create(
+        group_search_view = GroupSearchView.objects.create(
             name=f"View 1 for {slug}",
             user_id=owner_id,
             organization=org,
             query=f"some query for {slug}",
             query_sort="date",
+        )
+        GroupSearchViewProject.objects.create(
+            group_search_view=group_search_view,
+            project=project,
+        )
+        GroupSearchViewLastVisited.objects.create(
+            organization=org,
+            user_id=owner_id,
+            group_search_view=group_search_view,
+            last_visited=timezone.now(),
+        )
+        GroupSearchViewStarred.objects.create(
+            organization=org,
+            user_id=owner_id,
+            group_search_view=group_search_view,
             position=0,
         )
+
         Activity.objects.create(
             project=project,
             group=group,
@@ -618,11 +668,95 @@ class ExhaustiveFixtures(Fixtures):
                 user_id=owner_id,
             )
 
-        # DataSecrecyWaiver
-        DataSecrecyWaiver.objects.create(
+        # Setup a test 'Issue Rule' and 'Automation'
+        workflow = self.create_workflow(organization=org)
+        detector = self.create_detector(project=project)
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+        self.create_detector_state(detector=detector)
+
+        notification_condition_group = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ANY,
             organization=org,
-            access_start=timezone.now(),
-            access_end=timezone.now() + timedelta(days=1),
+        )
+
+        send_notification_action = self.create_action()
+        self.create_data_condition_group_action(
+            action=send_notification_action,
+            condition_group=notification_condition_group,
+        )
+
+        self.create_workflow_data_condition_group(
+            workflow=workflow, condition_group=notification_condition_group
+        )
+
+        data_source = self.create_data_source(organization=org)
+
+        self.create_data_source_detector(data_source, detector)
+        detector_conditions = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ALL,
+            organization=org,
+        )
+
+        trigger_workflows_action = self.create_action(type=Action.Type.WEBHOOK, data="")
+        self.create_data_condition_group_action(
+            action=trigger_workflows_action, condition_group=detector_conditions
+        )
+        data_condition = self.create_data_condition(
+            comparison=75,
+            condition_result=True,
+            condition_group=detector_conditions,
+        )
+        detector.workflow_condition_group = detector_conditions
+
+        self.create_alert_rule_detector(detector=detector, alert_rule_id=alert.id)
+        self.create_alert_rule_workflow(workflow=workflow, alert_rule_id=alert.id)
+        WorkflowActionGroupStatus.objects.create(
+            action=send_notification_action, group=group, workflow=workflow
+        )
+        DataConditionAlertRuleTrigger.objects.create(
+            data_condition=data_condition, alert_rule_trigger_id=trigger.id
+        )
+
+        TempestCredentials.objects.create(
+            project=project,
+            created_by_id=owner_id,
+            client_id="test_client_id",
+            client_secret="test_client_secret",
+            message="test_message",
+            latest_fetched_item_id="test_latest_fetched_item_id",
+        )
+
+        explore_saved_query = ExploreSavedQuery.objects.create(
+            organization=org,
+            created_by_id=owner_id,
+            name="saved query",
+            query={"query": "test_query"},
+        )
+
+        ExploreSavedQueryProject.objects.create(
+            project=project,
+            explore_saved_query=explore_saved_query,
+        )
+
+        ExploreSavedQueryStarred.objects.create(
+            organization=org,
+            user_id=owner_id,
+            explore_saved_query=explore_saved_query,
+            position=0,
+        )
+
+        ExploreSavedQueryLastVisited.objects.create(
+            organization=org,
+            user_id=owner_id,
+            explore_saved_query=explore_saved_query,
+            last_visited=timezone.now(),
+        )
+
+        InsightsStarredSegment.objects.create(
+            organization=org,
+            user_id=owner_id,
+            project=project,
+            segment_name="test_transaction",
         )
 
         return org

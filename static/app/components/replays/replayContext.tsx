@@ -1,15 +1,18 @@
 import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
+import type {Mirror} from '@sentry-internal/rrweb-snapshot';
 
 import useReplayHighlighting from 'sentry/components/replays/useReplayHighlighting';
 import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import clamp from 'sentry/utils/number/clamp';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+import useTouchEventsCheck from 'sentry/utils/replays/playback/hooks/useTouchEventsCheck';
+import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {ReplayCurrentTimeContextProvider} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
-import useReplayPrefs from 'sentry/utils/replays/playback/providers/useReplayPrefs';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
+import type {Dimensions} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
@@ -18,7 +21,6 @@ import {useUser} from 'sentry/utils/useUser';
 
 import {CanvasReplayerPlugin} from './canvasReplayerPlugin';
 
-type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
 
 type HighlightCallbacks = ReturnType<typeof useReplayHighlighting>;
@@ -28,6 +30,7 @@ type HighlightCallbacks = ReturnType<typeof useReplayHighlighting>;
 // Instead only expose methods that wrap `Replayer` and manage state.
 interface ReplayPlayerContextProps extends HighlightCallbacks {
   /**
+   * DEPRECATED - use `useAnalyticsArea` instead.
    * The context in which the replay is being viewed.
    */
   analyticsContext: string;
@@ -51,6 +54,11 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   fastForwardSpeed: number;
 
   /**
+   * Returns the replay DOM mirror
+   */
+  getMirror: () => Mirror | null;
+
+  /**
    * Set to true while the library is reconstructing the DOM
    */
   isBuffering: boolean;
@@ -58,7 +66,7 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   /**
    * Is the data inside the `replay` complete, or are we waiting for more.
    */
-  isFetching;
+  isFetching: any;
 
   /**
    * Set to true when the replay finish event is fired
@@ -84,7 +92,6 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   /**
    * The core replay data
    */
-  replay: ReplayReader | null;
 
   /**
    * Restart the replay
@@ -92,7 +99,7 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   restart: () => void;
 
   /**
-   * Jump the video to a specific time
+   * Jump the video to a specific time. Input is in ms.
    */
   setCurrentTime: (time: number) => void;
 
@@ -126,15 +133,16 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   isPlaying: false,
   isVideoReplay: false,
   removeHighlight: () => {},
-  replay: null,
   restart: () => {},
   setCurrentTime: () => {},
   setRoot: () => {},
   togglePlayPause: () => {},
+  getMirror: () => null,
 });
 
 type Props = {
   /**
+   * DEPRECATED - use `useAnalyticsArea` instead.
    * The context in which the replay is being viewed.
    * Attached to certain analytics events.
    */
@@ -194,7 +202,7 @@ export function Provider({
   const oldEvents = usePrevious(events);
   // Note we have to check this outside of hooks, see `usePrevious` comments
   const hasNewEvents = events !== oldEvents;
-  const replayerRef = useRef<Replayer>(null);
+  const replayerRef = useRef<Replayer | null>(null);
   const [dimensions, setDimensions] = useState<Dimensions>({height: 0, width: 0});
   const [isPlaying, setIsPlaying] = useState(false);
   const [finishedAtMS, setFinishedAtMS] = useState<number>(-1);
@@ -328,7 +336,7 @@ export function Provider({
           return;
         }
 
-        if (replayerRef.current.iframe.contentDocument?.body.childElementCount === 0) {
+        if (replayerRef.current.iframe.contentDocument?.body?.childElementCount === 0) {
           // If this is true, then no need to clear old iframe as nothing was rendered
           return;
         }
@@ -340,7 +348,6 @@ export function Provider({
         }
       }
 
-      // eslint-disable-next-line no-new
       const inst = new Replayer(events, {
         root,
         blockClass: 'sentry-block',
@@ -350,19 +357,17 @@ export function Provider({
           lineWidth: 2,
           strokeStyle: theme.purple200,
         },
-        plugins: organization.features.includes('session-replay-enable-canvas-replayer')
-          ? [CanvasReplayerPlugin(events)]
-          : [],
+        plugins: [CanvasReplayerPlugin(events)],
         skipInactive: initialPrefsRef.current.isSkippingInactive,
         speed: initialPrefsRef.current.playbackSpeed,
       });
 
-      // @ts-expect-error: rrweb types event handlers with `unknown` parameters
+      // @ts-expect-error TS(2345): Argument of type '(dimension: Dimensions) => void'... Remove this comment to see the full error message
       inst.on(ReplayerEvents.Resize, (dimension: Dimensions) => {
         setDimensions(dimension);
       });
       inst.on(ReplayerEvents.Finish, setReplayFinished);
-      // @ts-expect-error: rrweb types event handlers with `unknown` parameters
+      // @ts-expect-error TS(2345): Argument of type '(e: {    speed: number;}) => voi... Remove this comment to see the full error message
       inst.on(ReplayerEvents.SkipStart, (e: {speed: number}) => {
         setFFSpeed(e.speed);
       });
@@ -373,7 +378,6 @@ export function Provider({
       // `.current` is marked as readonly, but it's safe to set the value from
       // inside a `useEffect` hook.
       // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
-      // @ts-expect-error
       replayerRef.current = inst;
 
       applyInitialOffset();
@@ -383,11 +387,12 @@ export function Provider({
       events,
       hasNewEvents,
       isFetching,
-      organization.features,
       setReplayFinished,
       theme.purple200,
     ]
   );
+
+  useTouchEventsCheck({replay: isFetching ? null : replay});
 
   const initVideoRoot = useCallback(
     (root: RootElem) => {
@@ -428,14 +433,14 @@ export function Provider({
         speed: prefs.playbackSpeed,
         // rrweb specific
         theme,
-        events: events ?? [],
+        eventsWithSnapshots: replay?.getRRWebFramesWithSnapshots() ?? [],
         // common to both
         root,
       });
       // `.current` is marked as readonly, but it's safe to set the value from
       // inside a `useEffect` hook.
       // See: https://reactjs.org/docs/hooks-faq.html#is-there-something-like-instance-variables
-      // @ts-expect-error
+      // @ts-expect-error TS(2540): Cannot assign to 'current' because it is a read-on... Remove this comment to see the full error message
       replayerRef.current = inst;
       applyInitialOffset();
       return inst;
@@ -444,7 +449,6 @@ export function Provider({
       applyInitialOffset,
       clipWindow,
       durationMs,
-      events,
       isFetching,
       isVideoReplay,
       organization.slug,
@@ -464,7 +468,8 @@ export function Provider({
       return;
     }
     if (isPlaying) {
-      replayer.pause();
+      // we need to pass in the current time when pausing for mobile replays
+      replayer.pause(getCurrentPlayerTime());
       replayer.setConfig({speed: prefs.playbackSpeed});
       replayer.play(getCurrentPlayerTime());
     } else {
@@ -497,7 +502,12 @@ export function Provider({
     [organization, user.email, analyticsContext, getCurrentPlayerTime, isVideoReplay]
   );
 
+  // Pause the replay when the tab loses focus
   useEffect(() => {
+    if (!isPlaying) {
+      return () => {};
+    }
+
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible' && replayerRef.current) {
         togglePlayPause(false);
@@ -509,19 +519,23 @@ export function Provider({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [togglePlayPause]);
+  }, [togglePlayPause, isPlaying]);
 
   // Initialize replayer for Video Replays
   useEffect(() => {
     const instance =
-      isVideoReplay && rootEl && !replayerRef.current && initVideoRoot(rootEl);
+      isVideoReplay &&
+      rootEl &&
+      !replay?.isFetching() &&
+      !replayerRef.current &&
+      initVideoRoot(rootEl);
 
     return () => {
       if (instance && !rootEl) {
         instance.destroy();
       }
     };
-  }, [rootEl, isVideoReplay, initVideoRoot, videoEvents]);
+  }, [rootEl, isVideoReplay, initVideoRoot, videoEvents, replay]);
 
   // For non-video (e.g. rrweb) replays, initialize the player
   useEffect(() => {
@@ -541,7 +555,6 @@ export function Provider({
     return () => {
       if (rootEl && replayerRef.current) {
         replayerRef.current.destroy();
-        // @ts-expect-error Cleaning up
         replayerRef.current = null;
       }
     };
@@ -589,7 +602,7 @@ export function Provider({
 
   return (
     <ReplayCurrentTimeContextProvider>
-      <ReplayPlayerContext.Provider
+      <ReplayPlayerContext
         value={{
           analyticsContext,
           clearAllHighlights,
@@ -605,15 +618,15 @@ export function Provider({
           isFinished,
           isPlaying,
           removeHighlight,
-          replay,
           restart,
           setCurrentTime,
           togglePlayPause,
+          getMirror: () => replayerRef.current?.getMirror() ?? null,
           ...value,
         }}
       >
         {children}
-      </ReplayPlayerContext.Provider>
+      </ReplayPlayerContext>
     </ReplayCurrentTimeContextProvider>
   );
 }

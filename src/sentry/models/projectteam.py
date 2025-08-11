@@ -13,25 +13,16 @@ from sentry.db.models.manager.base import BaseManager
 if TYPE_CHECKING:
     from sentry.models.team import Team
 
+__all__ = ("ProjectTeam",)
+
 
 class ProjectTeamManager(BaseManager["ProjectTeam"]):
     def get_for_teams_with_org_cache(self, teams: Sequence["Team"]) -> QuerySet["ProjectTeam"]:
-        project_teams = (
+        return (
             self.filter(team__in=teams, project__status=ObjectStatus.ACTIVE)
             .order_by("project__name", "project__slug")
-            .select_related("project")
+            .select_related("project", "project__organization")
         )
-
-        # TODO(dcramer): we should query in bulk for ones we're missing here
-        orgs = {i.organization_id: i.organization for i in teams}
-
-        for project_team in project_teams:
-            if project_team.project.organization_id in orgs:
-                project_team.project.set_cached_field_value(
-                    "organization", orgs[project_team.project.organization_id]
-                )
-
-        return project_teams
 
 
 @region_silo_model
@@ -51,8 +42,7 @@ class ProjectTeam(Model):
     __repr__ = sane_repr("project_id", "team_id")
 
 
-def process_resource_change(instance, **kwargs):
-    from sentry.models.organization import Organization
+def process_resource_change(instance: ProjectTeam, **kwargs):
     from sentry.models.project import Project
     from sentry.tasks.codeowners import update_code_owners_schema
 
@@ -60,11 +50,11 @@ def process_resource_change(instance, **kwargs):
         try:
             update_code_owners_schema.apply_async(
                 kwargs={
-                    "organization": instance.project.organization,
-                    "projects": [instance.project],
+                    "organization": instance.project.organization_id,
+                    "projects": [instance.project_id],
                 }
             )
-        except (Project.DoesNotExist, Organization.DoesNotExist):
+        except Project.DoesNotExist:
             pass
 
     transaction.on_commit(_spawn_task, router.db_for_write(ProjectTeam))

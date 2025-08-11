@@ -12,7 +12,7 @@ def get_stacktrace(value, path, **kwargs):
     # badly.
     subvalue = get_path(value, *path)
     if subvalue and subvalue.get("frames"):
-        return Stacktrace.to_python_subpath(value, path, **kwargs)
+        return Stacktrace.to_python(subvalue, **kwargs)
 
 
 class Threads(Interface):

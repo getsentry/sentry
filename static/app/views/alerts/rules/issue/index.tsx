@@ -1,7 +1,5 @@
 import type {ChangeEvent, ReactNode} from 'react';
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
-import {components} from 'react-select';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
@@ -16,36 +14,37 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
-import AlertLink from 'sentry/components/alertLink';
-import {Button} from 'sentry/components/button';
-import Checkbox from 'sentry/components/checkbox';
 import Confirm from 'sentry/components/confirm';
+import {Alert} from 'sentry/components/core/alert';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
+import {Button} from 'sentry/components/core/button';
+import {Checkbox} from 'sentry/components/core/checkbox';
+import {Input} from 'sentry/components/core/input';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Select} from 'sentry/components/core/select';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {components} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
+import {FieldHelp} from 'sentry/components/forms/fieldGroup/fieldHelp';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
-import Input from 'sentry/components/input';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TeamSelector from 'sentry/components/teamSelector';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron, IconNot} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Environment, Member, Organization, Project, Team} from 'sentry/types';
 import type {
   IssueAlertConfiguration,
   IssueAlertRule,
@@ -58,29 +57,30 @@ import {
   IssueAlertConditionType,
   IssueAlertFilterType,
 } from 'sentry/types/alerts';
-import {OnboardingTaskKey} from 'sentry/types/onboarding';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Member, Organization, Team} from 'sentry/types/organization';
+import type {Environment, Project} from 'sentry/types/project';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import routeTitleGen from 'sentry/utils/routeTitle';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
+import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import FeedbackAlertBanner from 'sentry/views/alerts/rules/issue/feedbackAlertBanner';
 import {PreviewIssues} from 'sentry/views/alerts/rules/issue/previewIssues';
-import SetupMessagingIntegrationButton from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
+import SetupMessagingIntegrationButton, {
+  MessagingIntegrationAnalyticsView,
+} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
+import {getProjectOptions} from 'sentry/views/alerts/rules/utils';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
 } from 'sentry/views/alerts/utils/constants';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
-import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
-
-import {getProjectOptions} from '../utils';
+import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
 import RuleNodeList from './ruleNodeList';
-import SetupAlertIntegrationButton from './setupAlertIntegrationButton';
 
 const FREQUENCY_OPTIONS = [
   {value: '5', label: t('5 minutes')},
@@ -129,7 +129,7 @@ type RuleTaskResponse = {
 
 type RouteParams = {projectId?: string; ruleId?: string};
 
-export type IncompatibleRule = {
+type IncompatibleRule = {
   conditionIndices: number[] | null;
   filterIndices: number[] | null;
 };
@@ -143,13 +143,11 @@ type Props = {
   userTeamIds: string[];
   loadingProjects?: boolean;
   onChangeTitle?: (data: string) => void;
-} & RouteComponentProps<RouteParams, {}>;
+} & RouteComponentProps<RouteParams>;
 
-type State = DeprecatedAsyncView['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   configs: IssueAlertConfiguration | null;
-  detailedError: null | {
-    [key: string]: string[];
-  };
+  detailedError: null | Record<string, string[]>;
   environments: Environment[] | null;
   incompatibleConditions: number[] | null;
   incompatibleFilters: number[] | null;
@@ -169,7 +167,7 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
  */
 const isExactDuplicateExp = /duplicate of '(.*)'/;
 
-class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
+class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
   pollingTimeout: number | undefined = undefined;
   trackIncompatibleAnalytics = false;
   trackNoisyWarningViewed = false;
@@ -222,19 +220,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     );
   }
 
-  getTitle() {
-    const {organization} = this.props;
-    const {rule, project} = this.state;
-    const ruleName = rule?.name;
-
-    return routeTitleGen(
-      ruleName ? t('Alert - %s', ruleName) : t('New Alert Rule'),
-      organization.slug,
-      false,
-      project?.slug
-    );
-  }
-
   getDefaultState() {
     const {userTeamIds, project} = this.props;
     const defaultState = {
@@ -256,7 +241,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     return defaultState;
   }
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {
       location: {query},
       params: {ruleId},
@@ -292,10 +277,10 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       ]);
     }
 
-    return endpoints as [string, string][];
+    return endpoints as Array<[string, string]>;
   }
 
-  onRequestSuccess({stateKey, data}) {
+  onRequestSuccess({stateKey, data}: any) {
     if (stateKey === 'rule' && data.name) {
       this.props.onChangeTitle?.(data.name);
     }
@@ -323,14 +308,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     if (!ruleId && !this.isDuplicateRule) {
       // now that we've loaded all the possible conditions, we can populate the
       // value of conditions for a new alert
-      if (this.props.organization.features.includes('priority-ga-features')) {
-        this.handleChange('conditions', [
-          {id: IssueAlertConditionType.NEW_HIGH_PRIORITY_ISSUE},
-          {id: IssueAlertConditionType.EXISTING_HIGH_PRIORITY_ISSUE},
-        ]);
-      } else {
-        this.handleChange('conditions', [{id: IssueAlertConditionType.FIRST_SEEN_EVENT}]);
-      }
+      this.handleChange('conditions', [{id: IssueAlertConditionType.FIRST_SEEN_EVENT}]);
     }
   }
 
@@ -450,6 +428,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         method: 'POST',
         data: {
           actions: rule?.actions ?? [],
+          name: rule?.name,
         },
       })
       .then(() => {
@@ -475,18 +454,13 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   handleRuleSuccess = (isNew: boolean, rule: IssueAlertRule) => {
     const {organization, router} = this.props;
     const {project} = this.state;
-    // The onboarding task will be completed on the server side when the alert
-    // is created
-    updateOnboardingTask(null, organization, {
-      task: OnboardingTaskKey.ALERT_RULE,
-      status: 'complete',
-    });
 
     metric.endSpan({name: 'saveAlertRule'});
 
     router.push(
-      normalizeUrl({
-        pathname: `/organizations/${organization.slug}/alerts/rules/${project.slug}/${rule.id}/details/`,
+      makeAlertsPathname({
+        path: `/rules/${project.slug}/${rule.id}/details/`,
+        organization,
       })
     );
     addSuccessMessage(isNew ? t('Created alert rule') : t('Updated alert rule'));
@@ -531,6 +505,10 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
             delete action.name;
           }
           for (const condition of rule.conditions) {
+            // values of 0 must be manually changed to strings, otherwise they will be interpreted as missing by the serializer
+            if ('value' in condition && condition.value === 0) {
+              condition.value = '0';
+            }
             delete condition.name;
           }
           for (const filter of rule.filters) {
@@ -614,7 +592,12 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   handleCancel = () => {
     const {organization, router} = this.props;
 
-    router.push(normalizeUrl(`/organizations/${organization.slug}/alerts/rules/`));
+    router.push(
+      makeAlertsPathname({
+        path: `/rules/`,
+        organization,
+      })
+    );
   };
 
   hasError = (field: string) => {
@@ -661,7 +644,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     type: ConfigurationKey,
     id: string
   ): IssueAlertConfiguration[ConfigurationKey] => {
-    const configuration = this.state.configs?.[type]?.find(c => c.id === id);
+    const configuration = this.state.configs?.[type]?.find((c: any) => c.id === id);
 
     const hasChangeAlerts =
       configuration?.id &&
@@ -676,11 +659,11 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
               key,
               hasChangeAlerts && key === 'interval'
                 ? '1h'
-                : formField?.initial ?? formField?.choices?.[0]?.[0],
+                : (formField?.initial ?? formField?.choices?.[0]?.[0]),
             ])
             .filter(([, initial]) => !!initial)
         )
-      : {};
+      : [];
   };
 
   handleResetRow = <T extends keyof IssueAlertRuleAction>(
@@ -693,7 +676,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       const clonedState = cloneDeep(prevState);
 
       // Set initial configuration, but also set
-      const id = (clonedState.rule as IssueAlertRule)[type][idx].id;
+      const id = (clonedState.rule as IssueAlertRule)[type][idx]!.id;
       const newRule = {
         ...this.getInitialValue(type, id),
         id,
@@ -797,17 +780,35 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     if (!organization.features.includes('change-alerts')) {
       return this.state.configs?.conditions ?? null;
     }
+    let conditions = this.state.configs?.conditions ?? null;
 
-    return (
-      this.state.configs?.conditions?.map(condition =>
-        CHANGE_ALERT_CONDITION_IDS.includes(condition.id)
-          ? {
-              ...condition,
-              label: `${CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id]}...`,
-            }
-          : condition
-      ) ?? null
+    if (conditions === null) {
+      return null;
+    }
+
+    if (
+      !organization.features.includes(
+        'event-unique-user-frequency-condition-with-conditions'
+      )
+    ) {
+      conditions = conditions?.filter(
+        condition =>
+          condition.id !==
+          'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions'
+      );
+    }
+
+    conditions = conditions?.map(condition =>
+      CHANGE_ALERT_CONDITION_IDS.includes(condition.id)
+        ? {
+            ...condition,
+            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+            label: `${CHANGE_ALERT_PLACEHOLDERS_LABELS[condition.id]}...`,
+          }
+        : condition
     );
+
+    return conditions;
   }
 
   getTeamId = () => {
@@ -828,11 +829,13 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
 
   renderError() {
     return (
-      <Alert type="error" showIcon>
-        {t(
-          'Unable to access this alert rule -- check to make sure you have the correct permissions'
-        )}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error">
+          {t(
+            'Unable to access this alert rule -- check to make sure you have the correct permissions'
+          )}
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -900,22 +903,25 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
 
     // We want this to open in a new tab to not lose the current state of the rule editor
     return (
-      <AlertLink
-        openInNewTab
-        priority="error"
-        icon={<IconNot color="red300" />}
-        href={normalizeUrl(
-          `/organizations/${organization.slug}/alerts/rules/${project.slug}/${duplicateRuleId}/details/`
-        )}
-      >
-        {tct(
-          'This rule fully duplicates "[alertName]" in the project [projectName] and cannot be saved.',
-          {
-            alertName: duplicateName,
-            projectName: project.name,
-          }
-        )}
-      </AlertLink>
+      <AlertLink.Container>
+        <AlertLink
+          openInNewTab
+          type="error"
+          trailingItems={<IconNot color="red300" />}
+          href={makeAlertsPathname({
+            path: `/rules/${project.slug}/${duplicateRuleId}/details/`,
+            organization,
+          })}
+        >
+          {tct(
+            'This rule fully duplicates "[alertName]" in the project [projectName] and cannot be saved.',
+            {
+              alertName: duplicateName,
+              projectName: project.name,
+            }
+          )}
+        </AlertLink>
+      </AlertLink.Container>
     );
   }
 
@@ -929,7 +935,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     ];
 
     return (
-      this.props.organization.features.includes('noisy-alert-warning') &&
       !!rule &&
       !isSavedAlertRule(rule) &&
       rule.conditions.length === 0 &&
@@ -950,41 +955,43 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     }
 
     return (
-      <Alert type="warning" showIcon>
-        <div>
-          {t(
-            'Alerts without conditions can fire too frequently. Are you sure you want to save this alert rule?'
-          )}
-        </div>
-        <AcknowledgeField
-          label={null}
-          help={null}
-          error={detailedError?.acceptedNoisyAlert?.[0]}
-          disabled={disabled}
-          required
-          stacked
-          flexibleControlStateSize
-          inline
-        >
-          <AcknowledgeLabel>
-            <Checkbox
-              size="sm"
-              name="acceptedNoisyAlert"
-              checked={acceptedNoisyAlert}
-              onChange={() => {
-                this.setState({acceptedNoisyAlert: !acceptedNoisyAlert});
-                if (!acceptedNoisyAlert) {
-                  trackAnalytics('alert_builder.noisy_warning_agreed', {
-                    organization: this.props.organization,
-                  });
-                }
-              }}
-              disabled={disabled}
-            />
-            {t('Yes, I don’t mind if this alert gets noisy')}
-          </AcknowledgeLabel>
-        </AcknowledgeField>
-      </Alert>
+      <Alert.Container>
+        <Alert type="warning">
+          <div>
+            {t(
+              'Alerts without conditions can fire too frequently. Are you sure you want to save this alert rule?'
+            )}
+          </div>
+          <AcknowledgeField
+            label={null}
+            help={null}
+            error={detailedError?.acceptedNoisyAlert?.[0]}
+            disabled={disabled}
+            required
+            stacked
+            flexibleControlStateSize
+            inline
+          >
+            <AcknowledgeLabel>
+              <Checkbox
+                size="sm"
+                name="acceptedNoisyAlert"
+                checked={acceptedNoisyAlert}
+                onChange={() => {
+                  this.setState({acceptedNoisyAlert: !acceptedNoisyAlert});
+                  if (!acceptedNoisyAlert) {
+                    trackAnalytics('alert_builder.noisy_warning_agreed', {
+                      organization: this.props.organization,
+                    });
+                  }
+                }}
+                disabled={disabled}
+              />
+              {t('Yes, I don’t mind if this alert gets noisy')}
+            </AcknowledgeLabel>
+          </AcknowledgeField>
+        </Alert>
+      </Alert.Container>
     );
   }
 
@@ -1012,8 +1019,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         []),
     ];
 
-    const environment =
-      !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
+    const environment = rule?.environment ? rule.environment : ALL_ENVIRONMENTS_KEY;
 
     return (
       <FormField
@@ -1025,13 +1031,13 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         required
         disabled={disabled}
       >
-        {({onChange, onBlur}) => (
-          <SelectControl
+        {({onChange, onBlur}: any) => (
+          <Select
             clearable={false}
             disabled={disabled}
             value={environment}
             options={environmentOptions}
-            onChange={({value}) => {
+            onChange={({value}: any) => {
               this.handleEnvironmentChange(value);
               onChange(value, {});
               onBlur(value, {});
@@ -1059,17 +1065,17 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         style={{padding: 0}}
         flexibleControlStateSize
       >
-        {({onChange, onBlur, model}) => {
+        {({onChange, onBlur, model}: any) => {
           const selectedProject =
             projects.find(({id}) => id === model.getValue('projectId')) ||
             _selectedProject;
 
           return (
-            <SelectControl
+            <Select
               disabled={disabled || isSavedAlertRule(rule)}
               value={selectedProject.id}
               styles={{
-                container: (provided: {[x: string]: string | number | boolean}) => ({
+                container: (provided: Record<string, string | number | boolean>) => ({
                   ...provided,
                   marginBottom: `${space(1)}`,
                 }),
@@ -1084,11 +1090,10 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                   ?.split(':')[1];
                 if (
                   ownerId &&
-                  nextSelectedProject.teams.find(({id}) => id === ownerId) ===
-                    undefined &&
+                  !nextSelectedProject.teams.some(({id}) => id === ownerId) &&
                   nextSelectedProject.teams.length
                 ) {
-                  this.handleOwnerChange({value: nextSelectedProject.teams[0].id});
+                  this.handleOwnerChange({value: nextSelectedProject.teams[0]!.id});
                 }
 
                 this.setState({project: nextSelectedProject});
@@ -1097,7 +1102,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                 onBlur(value, {});
               }}
               components={{
-                SingleValue: containerProps => (
+                SingleValue: (containerProps: any) => (
                   <components.ValueContainer {...containerProps}>
                     <IdBadge
                       project={selectedProject}
@@ -1131,13 +1136,13 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         disabled={disabled}
         flexibleControlStateSize
       >
-        {({onChange, onBlur}) => (
-          <SelectControl
+        {({onChange, onBlur}: any) => (
+          <Select
             clearable={false}
             disabled={disabled}
             value={`${frequency}`}
             options={FREQUENCY_OPTIONS}
-            onChange={({value}) => {
+            onChange={({value}: any) => {
               this.handleChange('frequency', value);
               onChange(value, {});
               onBlur(value, {});
@@ -1161,24 +1166,24 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     } = this.state;
     const {actions, filters, conditions, frequency} = rule || {};
 
-    const environment =
-      !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
+    const environment = rule?.environment ? rule.environment : ALL_ENVIRONMENTS_KEY;
 
     const canCreateAlert = hasEveryAccess(['alerts:write'], {organization, project});
     const disabled = loading || !(canCreateAlert || isActiveSuperuser());
     const displayDuplicateError =
       detailedError?.name?.some(str => isExactDuplicateExp.test(str)) ?? false;
-    const hasMessagingIntegrationOnboarding = organization.features.includes(
-      'messaging-integration-onboarding'
-    );
 
     // Note `key` on `<Form>` below is so that on initial load, we show
     // the form with a loading mask on top of it, but force a re-render by using
     // a different key when we have fetched the rule so that form inputs are filled in
     return (
       <Main fullWidth>
-        <PermissionAlert access={['alerts:write']} project={project} />
-
+        <SentryDocumentTitle
+          title={rule ? t('Alert — %s', rule.name) : t('New Alert Rule')}
+          orgSlug={organization.slug}
+          projectSlug={project.slug}
+        />
+        <ProjectPermissionAlert access={['alerts:write']} project={project} />
         <StyledForm
           key={isSavedAlertRule(rule) ? rule.id : undefined}
           onCancel={this.handleCancel}
@@ -1199,7 +1204,9 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                 disabled={disabled}
                 priority="danger"
                 confirmText={t('Delete Rule')}
-                onConfirm={this.handleDeleteRule}
+                onConfirm={() => {
+                  this.handleDeleteRule();
+                }}
                 header={<h5>{t('Delete Alert Rule?')}</h5>}
                 message={t(
                   'Are you sure you want to delete "%s"? You won\'t be able to view the history of this alert once it\'s deleted.',
@@ -1224,18 +1231,11 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
             </ContentIndent>
             <SetConditionsListItem>
               <StepHeader>{t('Set conditions')}</StepHeader>{' '}
-              {hasMessagingIntegrationOnboarding ? (
-                <SetupMessagingIntegrationButton
-                  projectSlug={project.slug}
-                  refetchConfigs={this.refetchConfigs}
-                />
-              ) : (
-                <SetupAlertIntegrationButton
-                  projectSlug={project.slug}
-                  organization={organization}
-                  refetchConfigs={this.refetchConfigs}
-                />
-              )}
+              <SetupMessagingIntegrationButton
+                projectId={project.id}
+                refetchConfigs={this.refetchConfigs}
+                analyticsView={MessagingIntegrationAnalyticsView.ALERT_RULE_CREATION}
+              />
             </SetConditionsListItem>
             <ContentIndent>
               <ConditionsPanel>
@@ -1264,7 +1264,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                                       error: this.hasError('actionMatch'),
                                     })}
                                     styles={{
-                                      control: provided => ({
+                                      control: (provided: any) => ({
                                         ...provided,
                                         minHeight: '21px',
                                         height: '21px',
@@ -1277,7 +1277,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                                     required
                                     flexibleControlStateSize
                                     options={ACTION_MATCH_OPTIONS_MIGRATED}
-                                    onChange={val =>
+                                    onChange={(val: any) =>
                                       this.handleChange('actionMatch', val)
                                     }
                                     size="xs"
@@ -1302,9 +1302,9 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('conditions') && (
-                              <StyledAlert type="error">
-                                {detailedError?.conditions[0]}
-                                {(detailedError?.conditions[0] || '').startsWith(
+                              <Alert type="error" showIcon={false}>
+                                {detailedError?.conditions![0]}
+                                {(detailedError?.conditions![0] || '').startsWith(
                                   'You may not exceed'
                                 ) && (
                                   <Fragment>
@@ -1314,7 +1314,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                                     </ExternalLink>
                                   </Fragment>
                                 )}
-                              </StyledAlert>
+                              </Alert>
                             )
                           }
                           incompatibleRules={incompatibleConditions}
@@ -1353,7 +1353,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                                     error: this.hasError('filterMatch'),
                                   })}
                                   styles={{
-                                    control: provided => ({
+                                    control: (provided: any) => ({
                                       ...provided,
                                       minHeight: '21px',
                                       height: '21px',
@@ -1366,7 +1366,9 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                                   required
                                   flexibleControlStateSize
                                   options={ACTION_MATCH_OPTIONS}
-                                  onChange={val => this.handleChange('filterMatch', val)}
+                                  onChange={(val: any) =>
+                                    this.handleChange('filterMatch', val)
+                                  }
                                   size="xs"
                                   disabled={disabled}
                                 />
@@ -1387,15 +1389,19 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('filters') && (
-                              <StyledAlert type="error">
-                                {detailedError?.filters[0]}
-                              </StyledAlert>
+                              <Alert type="error" showIcon={false}>
+                                {detailedError?.filters![0]}
+                              </Alert>
                             )
                           }
                           incompatibleRules={incompatibleFilters}
                           incompatibleBanner={
                             incompatibleFilters ? incompatibleFilters.at(-1) : null
                           }
+                        />
+                        <FeedbackAlertBanner
+                          filters={this.state.rule?.filters}
+                          projectSlug={this.state.project.slug}
                         />
                       </StepContent>
                     </StepContainer>
@@ -1432,33 +1438,25 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                           disabled={disabled}
                           error={
                             this.hasError('actions') && (
-                              <StyledAlert type="error">
-                                {detailedError?.actions[0]}
-                              </StyledAlert>
+                              <Alert type="error" showIcon={false}>
+                                {detailedError?.actions![0]}
+                              </Alert>
                             )
                           }
-                          {...(hasMessagingIntegrationOnboarding && {
-                            additionalAction: {
-                              label: 'Notify integration\u{2026}',
-                              option: {
-                                label: 'Missing an integration? Click here to refresh',
-                                value: {
-                                  enabled: true,
-                                  id: 'refresh_configs',
-                                  label: 'Refresh Integration List',
-                                },
-                              },
-                              onClick: () => {
-                                trackAnalytics(
-                                  'onboarding.messaging_integration_steps_refreshed',
-                                  {
-                                    organization: this.props.organization,
-                                  }
-                                );
-                                this.refetchConfigs();
+                          additionalAction={{
+                            label: 'Notify integration\u{2026}',
+                            option: {
+                              label: 'Missing an integration? Click here to refresh',
+                              value: {
+                                enabled: true,
+                                id: 'refresh_configs',
+                                label: 'Refresh Integration List',
                               },
                             },
-                          })}
+                            onClick: () => {
+                              this.refetchConfigs();
+                            },
+                          }}
                         />
                         <TestButtonWrapper>
                           <Button
@@ -1527,7 +1525,7 @@ export const findIncompatibleRules = (
     let eventFrequency = -1;
     let userFrequency = -1;
     for (let i = 0; i < conditions.length; i++) {
-      const id = conditions[i].id;
+      const id = conditions[i]!.id;
       if (id === IssueAlertConditionType.FIRST_SEEN_EVENT) {
         firstSeen = i;
       } else if (id === IssueAlertConditionType.REGRESSION_EVENT) {
@@ -1536,12 +1534,12 @@ export const findIncompatibleRules = (
         reappeared = i;
       } else if (
         id === IssueAlertConditionType.EVENT_FREQUENCY &&
-        (conditions[i].value as number) >= 1
+        (conditions[i]!.value as number) >= 1
       ) {
         eventFrequency = i;
       } else if (
         id === IssueAlertConditionType.EVENT_UNIQUE_USER_FREQUENCY &&
-        (conditions[i].value as number) >= 1
+        (conditions[i]!.value as number) >= 1
       ) {
         userFrequency = i;
       }
@@ -1566,7 +1564,7 @@ export const findIncompatibleRules = (
   if (firstSeen !== -1 && (rule.actionMatch === 'all' || conditions.length === 1)) {
     let incompatibleFilters = 0;
     for (let i = 0; i < filters.length; i++) {
-      const filter = filters[i];
+      const filter = filters[i]!;
       const id = filter.id;
       if (id === IssueAlertFilterType.ISSUE_OCCURRENCES && filter) {
         if (
@@ -1594,7 +1592,7 @@ export const findIncompatibleRules = (
     if (incompatibleFilters === filters.length && incompatibleFilters > 0) {
       return {
         conditionIndices: [firstSeen],
-        filterIndices: [...Array(filters.length).keys()],
+        filterIndices: [...new Array(filters.length).keys()],
       };
     }
   }
@@ -1615,18 +1613,14 @@ const ConditionsPanel = styled(Panel)`
   padding-bottom: ${space(2)};
 `;
 
-const StyledAlert = styled(Alert)`
-  margin-bottom: 0;
-`;
-
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const StyledFieldHelp = styled(FieldHelp)`
   margin-top: 0;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     margin-left: -${space(4)};
   }
 `;
@@ -1691,8 +1685,8 @@ const Badge = styled('span')`
   color: ${p => p.theme.white};
   text-transform: uppercase;
   text-align: center;
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-size: ${p => p.theme.fontSize.md};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1.5;
 `;
 
@@ -1702,7 +1696,7 @@ const EmbeddedWrapper = styled('div')`
 
 const EmbeddedSelectField = styled(SelectField)`
   padding: 0;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   text-transform: none;
 `;
 
@@ -1729,7 +1723,7 @@ const StyledField = styled(FieldGroup)`
 `;
 
 const StyledFieldWrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: ${space(1)};
@@ -1737,7 +1731,7 @@ const StyledFieldWrapper = styled('div')`
 `;
 
 const ContentIndent = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     margin-left: ${space(4)};
   }
 `;
@@ -1747,7 +1741,7 @@ const AcknowledgeLabel = styled('label')`
   align-items: center;
   gap: ${space(1)};
   line-height: 2;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
 `;
 
 const AcknowledgeField = styled(FieldGroup)`

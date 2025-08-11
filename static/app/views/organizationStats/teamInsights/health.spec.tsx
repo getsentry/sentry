@@ -9,7 +9,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Project, Team as TeamType} from 'sentry/types';
+import type {Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
 import TeamStatsHealth from 'sentry/views/organizationStats/teamInsights/health';
@@ -165,7 +166,7 @@ describe('TeamStatsHealth', () => {
     projects,
     teams,
     isOrgOwner,
-  }: {isOrgOwner?: boolean; projects?: Project[]; teams?: TeamType[]} = {}) {
+  }: {isOrgOwner?: boolean; projects?: Project[]; teams?: Team[]} = {}) {
     teams = teams ?? [team1, team2, team3];
     projects = projects ?? [project1, project2];
     ProjectsStore.loadInitialData(projects);
@@ -219,7 +220,7 @@ describe('TeamStatsHealth', () => {
     await userEvent.type(screen.getByText('#backend'), '{mouseDown}');
     expect(screen.getByText('#frontend')).toBeInTheDocument();
     // Org owners can see all teams including ones they are not members of
-    expect(screen.queryByText('#internal')).toBeInTheDocument();
+    expect(screen.getByText('#internal')).toBeInTheDocument();
     await userEvent.click(screen.getByText('#internal'));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({query: {team: team3.id}})

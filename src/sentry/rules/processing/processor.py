@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 import uuid
 from collections.abc import Callable, Collection, Mapping, MutableMapping, Sequence
 from datetime import timedelta
@@ -11,6 +12,7 @@ from django.core.cache import cache
 from django.utils import timezone
 
 from sentry import analytics, buffer, features
+from sentry.analytics.events.issue_alert_fired import IssueAlertFiredEvent
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -26,6 +28,7 @@ from sentry.rules.conditions.event_frequency import EventFrequencyConditionData
 from sentry.rules.filters.base import EventFilter
 from sentry.types.rules import RuleFuture
 from sentry.utils import json, metrics
+from sentry.utils.dates import ensure_aware
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import safe_execute
 
@@ -70,7 +73,7 @@ def get_rule_type(condition: Mapping[str, Any]) -> str | None:
 
 def split_conditions_and_filters(
     rule_condition_list,
-) -> tuple[list[MutableMapping[str, Any]], list[MutableMapping[str, Any]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     condition_list = []
     filter_list = []
     for rule_cond in rule_condition_list:
@@ -148,6 +151,7 @@ def activate_downstream_actions(
     event: GroupEvent,
     notification_uuid: str | None = None,
     rule_fire_history: RuleFireHistory | None = None,
+    is_post_process: bool | None = True,
 ) -> MutableMapping[
     str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
 ]:
@@ -155,10 +159,14 @@ def activate_downstream_actions(
         str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
     ] = {}
 
+    instantiated_actions = 0
+
     for action in rule.data.get("actions", ()):
         action_inst = instantiate_action(rule, action, rule_fire_history)
         if not action_inst:
             continue
+
+        instantiated_actions += 1
 
         results = safe_execute(
             action_inst.after,
@@ -177,6 +185,21 @@ def activate_downstream_actions(
                 grouped_futures[key] = (future.callback, [rule_future])
             else:
                 grouped_futures[key][1].append(rule_future)
+
+    if features.has(
+        "organizations:workflow-engine-process-workflows",
+        rule.project.organization,
+    ):
+        if is_post_process:
+            logger_name = "post_process.process_rules.triggered_actions"
+        else:
+            logger_name = "post_process.delayed_processing.triggered_actions"
+
+        metrics.incr(
+            logger_name,
+            amount=instantiated_actions,
+            tags={"event_type": event.group.type},
+        )
 
     return grouped_futures
 
@@ -212,7 +235,7 @@ class RuleProcessor:
 
     def condition_matches(
         self,
-        condition: MutableMapping[str, Any],
+        condition: dict[str, Any],
         state: EventState,
         rule: Rule,
     ) -> bool | None:
@@ -237,8 +260,8 @@ class RuleProcessor:
         )
 
     def group_conditions_by_speed(
-        self, conditions: list[MutableMapping[str, Any]]
-    ) -> tuple[list[MutableMapping[str, str]], list[EventFrequencyConditionData]]:
+        self, conditions: list[dict[str, Any]]
+    ) -> tuple[list[dict[str, str]], list[EventFrequencyConditionData]]:
         fast_conditions = []
         slow_conditions: list[EventFrequencyConditionData] = []
 
@@ -251,10 +274,11 @@ class RuleProcessor:
         return fast_conditions, slow_conditions
 
     def enqueue_rule(self, rule: Rule) -> None:
-        logger.info(
-            "rule_processor.rule_enqueued",
-            extra={"rule": rule.id, "group": self.group.id, "project": rule.project.id},
-        )
+        if random.random() < 0.01:
+            logger.info(
+                "rule_processor.rule_enqueued",
+                extra={"rule": rule.id, "group": self.group.id, "project": rule.project.id},
+            )
         buffer.backend.push_to_sorted_set(PROJECT_ID_BUFFER_LIST_KEY, rule.project.id)
 
         value = json.dumps(
@@ -306,12 +330,7 @@ class RuleProcessor:
         state = self.get_state()
         condition_list, filter_list = split_conditions_and_filters(rule.data.get("conditions", ()))
         fast_conditions, slow_conditions = self.group_conditions_by_speed(condition_list)
-        process_slow_conditions_later = features.has(
-            "organizations:process-slow-alerts", self.project.organization
-        )
         condition_list = fast_conditions
-        if not process_slow_conditions_later:
-            condition_list = fast_conditions + slow_conditions  # type: ignore[operator]
 
         # evaluate all filters and return if they fail, then do the enqueue logic for conditions
         if filter_list:
@@ -348,7 +367,7 @@ class RuleProcessor:
                 result = predicate_func(predicate_iter)
 
             if condition_match == "any":
-                if not result and slow_conditions and process_slow_conditions_later:
+                if not result and slow_conditions:
                     self.enqueue_rule(rule)
                     return
                 elif not result:
@@ -358,7 +377,7 @@ class RuleProcessor:
                 if not result:
                     return
 
-                if slow_conditions and process_slow_conditions_later:
+                if slow_conditions:
                     self.enqueue_rule(rule)
                     return
 
@@ -373,13 +392,34 @@ class RuleProcessor:
 
         if randrange(10) == 0:
             analytics.record(
-                "issue_alert.fired",
-                issue_id=self.group.id,
-                project_id=rule.project.id,
-                organization_id=rule.project.organization.id,
-                rule_id=rule.id,
+                IssueAlertFiredEvent(
+                    issue_id=self.group.id,
+                    project_id=rule.project.id,
+                    organization_id=rule.project.organization.id,
+                    rule_id=rule.id,
+                )
             )
+
+        if features.has(
+            "organizations:workflow-engine-process-workflows-logs",
+            rule.project.organization,
+        ):
+            logger.info(
+                "post_process.process_rules.triggered_rule",
+                extra={
+                    "rule_id": rule.id,
+                    "payload": state.__dict__,
+                    "group_id": self.group.id,
+                    "event_id": self.event.event_id,
+                },
+            )
+
         notification_uuid = str(uuid.uuid4())
+        metrics.timing(
+            "rule_fire_history.latency",
+            (timezone.now() - ensure_aware(self.event.datetime)).total_seconds(),
+            tags={"delayed": False, "group_type": self.group.issue_type.slug},
+        )
         rule_fire_history = history.record(rule, self.group, self.event.event_id, notification_uuid)
         grouped_futures = activate_downstream_actions(
             rule, self.event, notification_uuid, rule_fire_history

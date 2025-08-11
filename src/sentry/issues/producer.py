@@ -66,9 +66,9 @@ def produce_occurrence_to_kafka(
 
     partition_key = None
     if occurrence and occurrence.fingerprint:
-        partition_key = occurrence.fingerprint[0].encode()
+        partition_key = f"{occurrence.fingerprint[0]}-{occurrence.project_id}".encode()
     elif status_change and status_change.fingerprint:
-        partition_key = status_change.fingerprint[0].encode()
+        partition_key = f"{status_change.fingerprint[0]}-{status_change.project_id}".encode()
     payload = KafkaPayload(partition_key, json.dumps(payload_data).encode("utf-8"), [])
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
         # If we're not running Kafka then we're just in dev.

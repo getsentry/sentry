@@ -8,10 +8,9 @@ import orjson
 from django.http.response import HttpResponseBase
 
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
-from sentry.integrations.gitlab.webhooks import GitlabWebhookEndpoint, GitlabWebhookMixin
+from sentry.integrations.gitlab.webhooks import GitlabWebhookEndpoint, get_gitlab_external_id
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.silo.base import control_silo_function
@@ -20,7 +19,7 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
-class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
+class GitlabRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.GITLAB]
     webhook_identifier = WebhookProviderIdentifier.GITLAB
     _integration: Integration | None = None
@@ -35,7 +34,7 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
             # AppPlatformEvents also hit this API
             "event-type": self.request.META.get("HTTP_X_GITLAB_EVENT"),
         }
-        return super()._get_external_id(request=self.request, extra=extra)
+        return get_gitlab_external_id(request=self.request, extra=extra)
 
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
@@ -72,7 +71,10 @@ class GitlabRequestParser(BaseRequestParser, GitlabWebhookMixin):
                 return self.get_default_missing_integration_response()
 
             regions = self.get_regions_from_organizations()
-        except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
+        except Integration.DoesNotExist:
+            return self.get_default_missing_integration_response()
+
+        if len(regions) == 0:
             return self.get_default_missing_integration_response()
 
         try:

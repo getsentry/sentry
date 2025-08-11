@@ -1,21 +1,22 @@
 ---
-created: '2023-02-01T08:22:00.202278Z'
+created: '2025-04-25T21:22:12.278502+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
+        stacktrace (ignored because it contains no in-app frames)
+          frame (marked out of app by the client)
             function*
               "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame (non app frame)
+          frame (marked out of app by the client)
             function*
               "<lambda>::operator()"
         type (ignored because exception is synthetic)
@@ -25,6 +26,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "9b78cced1eefcd0c655a0a3d8ce2cdd2"
+  contributing component: exception
   component:
     system*
       exception*

@@ -1,6 +1,8 @@
 import type {Query} from 'history';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -12,13 +14,22 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Project} from 'sentry/types';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import type {Project} from 'sentry/types/project';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import TransactionVitals from 'sentry/views/performance/transactionSummary/transactionVitals';
 import {
-  VITAL_GROUPS,
-  ZOOM_KEYS,
+  makeVitalGroups,
+  makeZoomKeys,
 } from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
+
+const theme = ThemeFixture();
+jest.mock('sentry/utils/useLocation');
+
+const mockUseLocation = jest.mocked(useLocation);
+jest.mock('sentry/utils/useNavigate');
+
+const mockUseNavigate = jest.mocked(useNavigate);
 
 interface HistogramData {
   count: number;
@@ -91,7 +102,10 @@ const vitals = [
 
 describe('Performance > Web Vitals', function () {
   beforeEach(function () {
-    // eslint-disable-next-line no-console
+    mockUseLocation.mockReturnValue(
+      LocationFixture({pathname: '/organizations/org-slug/insights/summary'})
+    );
+
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 
     MockApiClient.addMockResponse({
@@ -126,7 +140,7 @@ describe('Performance > Web Vitals', function () {
     });
 
     const histogramData: Record<string, HistogramData[]> = {};
-    const webVitals = VITAL_GROUPS.reduce<string[]>(
+    const webVitals = makeVitalGroups(theme).reduce<string[]>(
       (vs, group) => vs.concat(group.vitals),
       []
     );
@@ -166,6 +180,10 @@ describe('Performance > Web Vitals', function () {
       url: '/organizations/org-slug/replay-count/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
   });
 
   afterEach(() => {
@@ -180,6 +198,7 @@ describe('Performance > Web Vitals', function () {
     render(<TransactionVitals organization={organization} location={router.location} />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
@@ -192,11 +211,10 @@ describe('Performance > Web Vitals', function () {
     render(<TransactionVitals organization={organization} location={router.location} />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
-    expect(
-      screen.getByRole('heading', {name: '/organizations/:orgId/'})
-    ).toBeInTheDocument();
+    expect(screen.getByText('/organizations/:orgId/')).toBeInTheDocument();
 
     ['navigation', 'main'].forEach(role => {
       expect(screen.getByRole(role)).toBeInTheDocument();
@@ -209,22 +227,26 @@ describe('Performance > Web Vitals', function () {
     render(<TransactionVitals organization={organization} location={router.location} />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
-    expect(screen.getByRole('navigation')).toHaveTextContent('PerformanceWeb Vitals');
+    expect(screen.getByRole('navigation')).toHaveTextContent(
+      'InsightsTransaction Summary'
+    );
   });
 
   describe('renders all vitals cards correctly', function () {
     const {organization, router} = initialize();
 
-    beforeEach(() => {
+    it.each(vitals)('Renders %s', async function (vital) {
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
-    });
-
-    it.each(vitals)('Renders %s', async function (vital) {
       expect(await screen.findByText(vital.heading)).toBeInTheDocument();
       expect(await screen.findByText(vital.baseline)).toBeInTheDocument();
     });
@@ -236,7 +258,11 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeDisabled();
@@ -251,7 +277,11 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
@@ -266,7 +296,11 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
@@ -282,13 +316,19 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
     it('resets view properly', async function () {
+      const mockNavigate = jest.fn();
+      mockUseNavigate.mockReturnValue(mockNavigate);
       const {organization, router} = initialize({
         query: {
           fidStart: '20',
@@ -298,17 +338,24 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Reset View'}));
 
-      expect(browserHistory.push).toHaveBeenCalledWith({
+      expect(mockNavigate).toHaveBeenCalledWith({
         query: expect.not.objectContaining(
-          ZOOM_KEYS.reduce((obj, key) => {
-            obj[key] = expect.anything();
-            return obj;
-          }, {})
+          makeZoomKeys().reduce(
+            (obj, key) => {
+              obj[key] = expect.anything();
+              return obj;
+            },
+            {} as Record<string, unknown>
+          )
         ),
       });
     });
@@ -330,7 +377,11 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await waitForElementToBeRemoved(() =>
@@ -353,7 +404,11 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {router, organization}
+        {
+          router,
+          organization,
+          deprecatedRouterMocks: true,
+        }
       );
 
       await waitForElementToBeRemoved(() =>
@@ -389,6 +444,7 @@ describe('Performance > Web Vitals', function () {
     render(<TransactionVitals organization={organization} location={router.location} />, {
       router,
       organization,
+      deprecatedRouterMocks: true,
     });
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-placeholder'));

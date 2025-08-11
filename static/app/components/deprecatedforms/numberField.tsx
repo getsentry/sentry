@@ -1,4 +1,5 @@
 import InputField from 'sentry/components/deprecatedforms/inputField';
+import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
 
 type Props = {
   max?: number;
@@ -10,8 +11,8 @@ type Props = {
 /**
  * @deprecated Do not use this
  */
-export default class NumberField extends InputField<Props> {
-  coerceValue(value) {
+export class NumberField extends InputField<Props> {
+  coerceValue(value: any) {
     const intValue = parseInt(value, 10);
 
     // return previous value if new value is NaN, otherwise, will get recursive error
@@ -35,3 +36,8 @@ export default class NumberField extends InputField<Props> {
     };
   }
 }
+
+/**
+ * @deprecated Do not use this
+ */
+export default withFormContext(NumberField);

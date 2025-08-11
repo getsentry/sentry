@@ -30,7 +30,9 @@ def verify_models_in_output(expected_models: list[type[models.Model]], actual_js
 
     # Do a quick scan to ensure that at least one instance of each expected model is present.
     actual_model_names = {entry["model"] for entry in actual_json}
-    expected_model_types = {"sentry." + type.__name__.lower(): type for type in expected_models}
+    expected_model_types = {
+        type._meta.app_label + "." + type.__name__.lower(): type for type in expected_models
+    }
     expected_model_names = set(expected_model_types.keys())
     notfound = sorted(expected_model_names - actual_model_names)
     if len(notfound) > 0:
@@ -140,7 +142,7 @@ def expect_models(group: set[NormalizedModelName], *marking: type | Literal["__a
 
 
 def get_matching_exportable_models(
-    matcher: Callable[[ModelRelations], bool] = lambda mr: True
+    matcher: Callable[[ModelRelations], bool] = lambda mr: True,
 ) -> set[type[models.Model]]:
     """
     Helper function that returns all of the model class definitions that return true for the provided matching function. Models will be iterated in the order specified by the `sorted_dependencies` function.

@@ -1,19 +1,63 @@
 from __future__ import annotations
 
 import datetime as datetime_mod
-from collections import namedtuple
-from typing import Any, NamedTuple
+from collections.abc import Sequence
+from enum import StrEnum
+from typing import TYPE_CHECKING, NamedTuple
 
 from sentry.utils.dates import to_datetime
 
-Notification = namedtuple(
-    "Notification", "event rules notification_uuid", defaults=(None, None, None)
-)
+if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
+    from sentry.models.rule import Rule
+
+
+class IdentifierKey(StrEnum):
+    RULE = "rule"
+    WORKFLOW = "workflow"
+
+
+class Notification(NamedTuple):
+    event: Event
+    rules: Sequence[int] = ()
+    notification_uuid: str | None = None
+    identifier_key: IdentifierKey = IdentifierKey.RULE
+
+    def with_rules(self, rules: list[Rule]) -> NotificationWithRuleObjects:
+        return NotificationWithRuleObjects(
+            event=self.event,
+            rules=rules,
+            notification_uuid=self.notification_uuid,
+            # We don't really worry about identifier_key here since this method is not used after we pop record from redis
+        )
 
 
 class Record(NamedTuple):
     key: str
-    value: Any  # TODO: I think this is `Notification` ?
+    value: Notification
+    timestamp: float
+
+    @property
+    def datetime(self) -> datetime_mod.datetime:
+        return to_datetime(self.timestamp)
+
+    def with_rules(self, rules: list[Rule]) -> RecordWithRuleObjects:
+        return RecordWithRuleObjects(
+            key=self.key,
+            value=self.value.with_rules(rules),
+            timestamp=self.timestamp,
+        )
+
+
+class NotificationWithRuleObjects(NamedTuple):
+    event: Event
+    rules: list[Rule]
+    notification_uuid: str | None
+
+
+class RecordWithRuleObjects(NamedTuple):
+    key: str
+    value: NotificationWithRuleObjects
     timestamp: float
 
     @property

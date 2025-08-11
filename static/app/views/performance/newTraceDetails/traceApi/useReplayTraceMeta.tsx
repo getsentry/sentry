@@ -1,30 +1,39 @@
 import {useMemo} from 'react';
 import type {Location} from 'history';
 
-import {getUtcDateString} from 'sentry/utils/dates';
+import {getTimeStampFromTableDateField, getUtcDateString} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
+import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 import {type TraceMetaQueryResults, useTraceMeta} from './useTraceMeta';
 
 // Fetches the meta data for all the traces in a replay and combines the results.
 export function useReplayTraceMeta(
-  replayRecord: ReplayRecord | undefined
+  replayRecord: HydratedReplayRecord | undefined
 ): TraceMetaQueryResults {
   const organization = useOrganization();
 
+  // The replay timestamps have seconds precision, while the trace timestamps have milliseconds precision.
+  // We fetch the traces with a 1 second buffer on either side of the replay timestamps to ensure we capture all
+  // associated traces.
+  const start = replayRecord
+    ? getUtcDateString(replayRecord?.started_at.getTime() - 1000)
+    : undefined;
+  const end = replayRecord
+    ? getUtcDateString(replayRecord?.finished_at.getTime() + 1000)
+    : undefined;
+
   // EventView that is used to fetch the list of events for the replay
   const eventView = useMemo(() => {
-    if (!replayRecord) {
+    if (!replayRecord || !start || !end) {
       return null;
     }
     const replayId = replayRecord?.id;
     const projectId = replayRecord?.project_id;
-    const start = getUtcDateString(replayRecord?.started_at.getTime());
-    const end = getUtcDateString(replayRecord?.finished_at.getTime());
 
     return EventView.fromSavedQuery({
       id: undefined,
@@ -37,12 +46,9 @@ export function useReplayTraceMeta(
       start,
       end,
     });
-  }, [replayRecord]);
+  }, [replayRecord, start, end]);
 
-  const start = getUtcDateString(replayRecord?.started_at.getTime());
-  const end = getUtcDateString(replayRecord?.finished_at.getTime());
-
-  const {data: eventsData, isLoading: eventsIsLoading} = useApiQuery<{
+  const {data: eventsData, isPending: eventsIsLoading} = useApiQuery<{
     data: TableDataRow[];
   }>(
     [
@@ -66,17 +72,29 @@ export function useReplayTraceMeta(
     }
   );
 
-  const traceIds = useMemo(() => {
-    return (eventsData?.data ?? []).map(({trace}) => String(trace)).filter(Boolean);
+  const replayTraces = useMemo(() => {
+    const traces: ReplayTrace[] = [];
+
+    for (const row of eventsData?.data ?? []) {
+      if (row.trace) {
+        traces.push({
+          traceSlug: String(row.trace),
+          timestamp: getTimeStampFromTableDateField(row['min(timestamp)']),
+        });
+      }
+    }
+
+    return traces;
   }, [eventsData]);
 
-  const meta = useTraceMeta(traceIds);
+  const meta = useTraceMeta(replayTraces);
 
   const metaResults = useMemo(() => {
     return {
       data: meta.data,
-      isLoading: eventsIsLoading || meta.isLoading,
+      isLoading: eventsIsLoading || meta.status === 'pending',
       errors: meta.errors,
+      status: meta.status,
     };
   }, [meta, eventsIsLoading]);
 

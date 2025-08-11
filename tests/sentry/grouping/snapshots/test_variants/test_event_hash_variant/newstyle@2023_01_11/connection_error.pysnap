@@ -1,13 +1,16 @@
 ---
+created: '2025-04-25T21:21:49.005158+00:00'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "6b059b9febc815ac18ac4d2082e38a9b"
+  contributing component: exception
   component:
     app*
       exception*
         stacktrace*
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.utils.safe"
             filename (module takes precedence)
@@ -16,7 +19,7 @@ app:
               "safe_execute"
             context-line*
               "result = func(*args, **kwargs)"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.utils.services"
             filename (module takes precedence)
@@ -25,7 +28,7 @@ app:
               "<lambda>"
             context-line*
               "context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "getsentry.quotas"
             filename (module takes precedence)
@@ -34,7 +37,7 @@ app:
               "is_rate_limited"
             context-line*
               "return super(SubscriptionQuota, self).is_rate_limited(project, key=key)"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.quotas.redis"
             filename (module takes precedence)
@@ -43,7 +46,7 @@ app:
               "is_rate_limited"
             context-line*
               "rejections = is_rate_limited(client, keys, args)"
-          frame*
+          frame* (marked in-app by the client)
             module*
               "sentry.utils.redis"
             filename (module takes precedence)
@@ -52,7 +55,7 @@ app:
               "call_script"
             context-line*
               "return script(keys, args, client)"
-          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
+          frame (marked out of app by the client)
             module*
               "redis.client"
             filename (module takes precedence)
@@ -61,7 +64,7 @@ app:
               "__call__"
             context-line*
               "return client.evalsha(self.sha, len(keys), *args)"
-          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
+          frame (marked out of app by the client)
             module*
               "redis.client"
             filename (module takes precedence)
@@ -70,7 +73,7 @@ app:
               "evalsha"
             context-line*
               "return self.execute_command('EVALSHA', sha, numkeys, *keys_and_args)"
-          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
+          frame (marked out of app by the client)
             module*
               "redis.client"
             filename (module takes precedence)
@@ -79,7 +82,7 @@ app:
               "execute_command"
             context-line*
               "return self.parse_response(connection, command_name, **options)"
-          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
+          frame (marked out of app by the client)
             module*
               "redis.client"
             filename (module takes precedence)
@@ -88,7 +91,7 @@ app:
               "parse_response"
             context-line*
               "response = connection.read_response()"
-          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
+          frame (marked out of app by the client)
             module*
               "redis.connection"
             filename (module takes precedence)
@@ -97,7 +100,7 @@ app:
               "read_response"
             context-line*
               "response = self._parser.read_response()"
-          frame (marked out of app by stack trace rule (path:**/site-packages/** -app))
+          frame (marked out of app by the client)
             module*
               "redis.connection"
             filename (module takes precedence)
@@ -113,6 +116,7 @@ app:
 --------------------------------------------------------------------------
 default:
   hash: null
+  contributing component: null
   component:
     default (exception of app/system takes precedence)
       message (exception of app/system takes precedence)
@@ -120,6 +124,7 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "013d3477a774fe20c468dc8accd516f1"
+  contributing component: exception
   component:
     system*
       exception*

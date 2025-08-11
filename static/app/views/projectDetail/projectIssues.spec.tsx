@@ -68,6 +68,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -85,6 +86,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -95,7 +97,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/',
       query: {
-        limit: 5,
+        limit: '5',
         query: 'error.unhandled:true is:unresolved',
         sort: 'freq',
         statsPeriod: '14d',
@@ -114,6 +116,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -144,6 +147,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -158,7 +162,8 @@ describe('ProjectDetail > ProjectIssues', function () {
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
         name: 'Frequent Unhandled Issues',
         query: 'event.type:error error.unhandled:true',
-        sort: ['-count'],
+        queryDataset: 'error-events',
+        sort: '-count',
         statsPeriod: '14d',
       },
     });
@@ -175,7 +180,11 @@ describe('ProjectDetail > ProjectIssues', function () {
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         }}
       />,
-      {router, organization}
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(endpointMock).toHaveBeenCalledTimes(0);
@@ -188,7 +197,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     expect(router.push).toHaveBeenCalledWith({
       pathname: `/organizations/${organization.slug}/issues/`,
       query: {
-        limit: 5,
+        limit: '5',
         environment: 'staging',
         statsPeriod: '7d',
         query: 'error.unhandled:true is:unresolved',

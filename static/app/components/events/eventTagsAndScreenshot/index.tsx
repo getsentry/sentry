@@ -5,16 +5,7 @@ import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreen
 import {DataSection} from 'sentry/components/events/styles';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import EventTagsDataSection from './tags';
-
-const SCREENSHOT_NAMES = [
-  'screenshot.jpg',
-  'screenshot.png',
-  'screenshot-1.jpg',
-  'screenshot-1.png',
-  'screenshot-2.jpg',
-  'screenshot-2.png',
-];
+import {EventTagsDataSection} from './tags';
 
 type Props = React.ComponentProps<typeof EventTagsDataSection> & {
   isShare?: boolean;
@@ -31,8 +22,8 @@ export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Pr
     },
     {enabled: !isShare}
   );
-  const screenshots =
-    attachments?.filter(({name}) => SCREENSHOT_NAMES.includes(name)) ?? [];
+
+  const screenshots = attachments?.filter(({name}) => name.includes('screenshot')) ?? [];
 
   if (!tags.length && (isShare || !screenshots.length)) {
     return null;
@@ -72,7 +63,7 @@ const Wrapper = styled(DataSection)<{
 }>`
   padding: 0;
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     padding: 0;
     display: grid;
     grid-template-columns: ${p =>

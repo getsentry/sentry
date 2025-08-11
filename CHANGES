@@ -1,3 +1,680 @@
+25.7.0
+------
+
+### Various fixes & improvements
+
+- ref(deletions): Remove unnecessary Seer calls in endpoint (#93541) by @armenzg
+- chore(detectors): Clean up detection settings  (#95561) by @roggenkemper
+- ref(stories): rename sections (to core + product) (#95562) by @natemoo-re
+- fix(Jira-Server): Adds halts, better exceptions for failed syncs (#95281) by @GabeVillalobos
+- fix(stories): adjust routing (#95442) by @natemoo-re
+- feat(taskworker): Zstd compress process profile task (#95545) by @enochtangg
+- chore(relay): update VALID_PLATFORMS from relay location comment (#95510) by @cvxluo
+- ref(ecosystem): refactor link_all_repos to bulk update repositories (#95494) by @cathteng
+- build: fix storybook types (#95556) by @JonasBa
+- feat(replay): Unify the tooltips into one for replay details os/browser (#95558) by @ryan953
+- feat(otlp): Parse JSON-looking attributes in span attributes panel (#95544) by @gggritso
+- chore(aci): setup single processing flag for issue alerts in workflow engine (#95178) by @cathteng
+- feat(otlp): Register flag for displaying span links in the trace view UI (#95549) by @gggritso
+- ref(ui): make "md" the new buttonBar gap default (#95551) by @TkDodo
+- feat: Add dashboard widget snapshot model (#95236) by @shruthilayaj
+- [ft] Add a enable PR review + test gen setting at an org level (#95456) by @rohitvinnakota-codecov
+- fix(explore): Only permit span.duration for eap count (#95480) by @Zylphrex
+- ref: replace space function with p.theme.space in core/button (#95414) by @TkDodo
+- chore(nextjs-insights): remove feature flag registration (#95543) by @shellmayr
+- fix(taskworker) Add a short backoff when fetching tasks (#95346) by @markstory
+- chore(ui): Increase contrast on issues chart (#95349) by @leeandher
+- feat(tours): re-implement tour with inverse theme (#95530) by @TkDodo
+- fix(explore): Prettify aggregation in saved queries (#95479) by @Zylphrex
+- :wrench: chore(aci): update `send_activity_notification` to not send notifications for metric alert resolutions (#95476) by @iamrajjoshi
+
+_Plus 670 more_
+
+25.6.2
+------
+
+### Various fixes & improvements
+
+- feat(feedback): enable feedback category option for org stats page (#94649) by @aliu39
+- fix(anomaly detection): turn processing back on for dynamic rules (#94652) by @mifu67
+- chore(sentry apps): Add SLO for updating servicehooks (#94489) by @Christinarlong
+- feat(prevent): Initial RepoTokenTable (#94381) by @ajay-sentry
+- feat(aci): automation edit scaffolding (#94595) by @ameliahsu
+- feat(replay): add feedback to LLM context (#94315) by @michellewzhang
+- chore(opsgenie): instrument opsgenie installation slos (#94587) by @Christinarlong
+- chore(detectors): Add google API filtering for Consecutive HTTP detector  (#94634) by @roggenkemper
+- chore(launchpad): add dev check to skip ff logic on artifact upload path (#94638) by @NicoHinderling
+- profiling: allow session expanding (#94633) by @JonasBa
+- feat(aci): Add uptime detector form (#94617) by @malwilley
+- feat(preprod) Add file id for install file (#94642) by @noahsmartin
+- fix(ui): Silence additional AbortErrors (#94644) by @scttcper
+- fix(reports): Significantly increase the schedule_organizations deadline (#94596) by @kcons
+- feat(aci): add subfilters list to remaining frequency conditions (#94621) by @ameliahsu
+- :wrench: chore: add ecosystem to codeowners for sentry apps utils (#94620) by @iamrajjoshi
+- fix(ui): Throw error if response is undefined in api client (#94631) by @scttcper
+- :wrench: chore: fix and add a couple open pr comment logs (#94614) by @iamrajjoshi
+- :wrench: chore: sample sentry app client error slo logs (#94618) by @iamrajjoshi
+- feat(launchpad): Create size analysis upload (assemble) endpoint (#94353) by @NicoHinderling
+- fix(billing): update conditions for orgStatsBanner to appear (#94493) by @brendanhsentry
+- docs(replay): Iterate on bulk delete blueprint (#94494) by @ryan953
+- ref(issues): add rate limits to tagkey details (#94626) by @JoshFerge
+- feat(simpleTable): Allow `<SimpleTable>` to accept any Div props (#94619) by @ryan953
+
+_Plus 519 more_
+
+25.6.1
+------
+
+### Various fixes & improvements
+
+- feat(issues): Add hex parameterization experiment (#93970) by @mrduncan
+- feat(feedback): Split feedback tags into tags+context with collapsable sections (#93397) by @ryan953
+- ref(grouping): Small changes to grouping tests (#93960) by @lobsterkatie
+- ref(replay): adjust timestamps in replay ai summary UI (#93992) by @michellewzhang
+- fix(replay): Add handling for null max_segment_id (#93989) by @cmanallen
+- chore(issues): Remove traceparent experiment (#93942) by @mrduncan
+- ref(trace-items): Pull useGetTraceItemAttributeKeys into hook (#93739) by @Zylphrex
+- ref(explore): Visualize should only have 1 y axis (#93938) by @Zylphrex
+- feat(preprod): Add analytics to the assemble endpoint (#93871) by @trevor-e
+- feat(trace-eap-waterfall): Hiding some attrs (#93964) by @Abdkhan14
+- fix(aci): Fix accidental over-logging (#93971) by @kcons
+- feat(detectors): Add noise config to DB Query Injection Issue Type (#93943) by @roggenkemper
+- ref(dashboards): add a new table widget visualization component (#93902) by @lzhao-sentry
+- ref(issues): Remove redundant Type row from Event Grouping Information table (#93892) by @nora-shap
+- fix(taskworker) Extend deadlines for check_auth (#93961) by @markstory
+- flex: cleanup Flex* custom styling in favor of Flex primitive (#93809) by @JonasBa
+- ✨ feat(scm): add environment infomation to suspect commit prs (#93025) by @iamrajjoshi
+- ref(feedback): better summarization prompt (#93962) by @vishnupsatish
+- ref(replay): include error context in breadcrumb summary (#93669) by @michellewzhang
+- chore(issues): Remove regex parameterization experiment (#93958) by @mrduncan
+- fix(aci): Ensure slow conditions are consistent (#93895) by @kcons
+- feat(feedback): frontend to display summary (#93567) by @vishnupsatish
+- feat(devservices): Add tracing mode (#93759) by @hubertdeng123
+- ref(profiling): Move flamegraphFrameFilter types around for tsgo (#93948) by @scttcper
+
+_Plus 105 more_
+
+25.6.0
+------
+
+### Various fixes & improvements
+
+- fix(release): Run self-hosted image push on release branches (#93827) by @hubertdeng123
+- fixing(trace-eap-waterfall): Not implemented error (#93820) by @Abdkhan14
+- Remove `File`-based `EventAttachment` code (#93804) by @Swatinem
+- fix(aci): Change open period range boundary to inclusive (#93535) by @snigdhas
+- fix(ourlogs): Expand the menu automatically when you change the function (#93821) by @colin-sentry
+- fix(dashboards-comparison): Add proper handling for environment filters (#93822) by @nikkikapadia
+- feat(sentryapps): Display sentry apps token usage as app rather than proxy user  (#93763) by @leeandher
+- fix(issues): Handle breadcrumb item as array (#93784) by @scttcper
+- fix(issues): Move sentry attachment exception (#93783) by @scttcper
+- fix(ui): restore height for pageFilterBar (#93800) by @TkDodo
+- :wrench: chore: add logging for project transfers (#93779) by @iamrajjoshi
+- flex: add support for inline flex (#93813) by @JonasBa
+- ref(replays): Remove unused flag (#93805) by @cmanallen
+- releases: fix button overflow (#92344) by @JonasBa
+- chore(detectors): Normalize evidence data for query injection issues  (#93760) by @roggenkemper
+- ref(ci): Remove unused matrix (#93815) by @untitaker
+- fix(browser-reports): Support the correct media type (#93814) by @armenzg
+- chore(taskworker): Update put child multiprocessing queue metric (#93744) by @enochtangg
+- ref: growing input is no more (#86553) by @JonasBa
+- ref(replays): Clean up RRWeb event parsing logic (#93517) by @cmanallen
+- fix(spans): Do not shut down the flusher at the beginning of rebalancing (#93807) by @untitaker
+- fix(release): Publish image on release branches (#93757) by @hubertdeng123
+- ref: enable strict types on sentry.utils.github (#93710) by @asottile-sentry
+- Reapply "ref: match pipeline arg name in auth views (#93722) by @asottile-sentry
+
+_Plus 1454 more_
+
+25.5.1
+------
+
+### Various fixes & improvements
+
+- :wrench: chore(integrations): use `IntegrationProviderSlug` for Integration `key` (#91465) by @iamrajjoshi
+- ref: fix types for group_integration_details (#92026) by @asottile-sentry
+- Bump `devenv`/`devservices` to make Python SDK 3 compatible (#92028) by @antonpirker
+- build(ui): Remove react prod sourcemaps (#92006) by @scttcper
+- feat(spans): Produce items from process-segments (#91714) by @untitaker
+- feat(explore): Add attribute description throughout explore (#91829) by @Zylphrex
+- fix(symbolicator): check source credentials and not the credential token (#92024) by @Litarnus
+- feat(replay): Start bringing in new replay context wrappers to test (#91982) by @ryan953
+- feat(agents-insights): dashboard placeholder (#92021) by @obostjancic
+- ref: remove remote_subscriptions migrations (#92004) by @asottile-sentry
+- fix(apps): disallow Manager to rotate an app secret with org:admin scope (#92019) by @oioki
+- issues: remove custom save button styling (#91974) by @JonasBa
+- replay: replace colors for tokens on timeline (#91933) by @JonasBa
+- trace: fix buttons in chonk (#91878) by @JonasBa
+- tag: fix bad tag change and flickering text (#91927) by @JonasBa
+- chore(sdk): Use add_full_stack by default (#91939) by @armenzg
+- fix(codeowners): move demomode upwards in codewards to stop matching everything (#92020) by @shellmayr
+- fix(nextjs-insight): Filter spans without component type from tree view (#92017) by @ArthurKnaus
+- Add directory for preprod (#91961) by @chromy
+- fix(span-buffer): Fix crashing behavior in flusher (#91949) by @untitaker
+- feat(agents-insights): feature flag registration (#92014) by @obostjancic
+- fix(codeowners): add owner to demomode line (#92012) by @shellmayr
+- ref: add flags to migrations lockfile (#91991) by @asottile-sentry
+- feat(source-maps): Do not render source maps wizard if platform is react native (#91860) by @priscilawebdev
+
+_Plus 231 more_
+
+25.5.0
+------
+
+### Various fixes & improvements
+
+- chore(perf-issues): Add a flag and check it to allow customer to disable detectors (#91734) by @leeandher
+- feat(trace-tabs-ui): Adding ops to search on click and hiding trace level ops breakdown (#91684) by @Abdkhan14
+- build(ui): Add rspack as webpack alternative (#77077) by @scttcper
+- fix(taskworker) Fix async notification parameter serialization (#91720) by @markstory
+- fix(profiles): Set the proper span entity to insert data to in tests (#91736) by @phacops
+- fix(insights): line of code not working with db module on eap (#91654) by @DominikB2014
+- ref(reserved budgets): Update types + constants (#91606) by @isabellaenriquez
+- feat(taskworker) Check 2% of tasks for pickle (#91624) by @markstory
+- chore(github): Only support pagination for getting labels (#91570) by @armenzg
+- Skip test_queries_profile_candidates_from_spans (#91724) by @armenzg
+- fix(issue-details): Avoid persisting stacktrace folding behaviour (#91719) by @leeandher
+- feat(dashboards): Newly added widgets should scroll into view (#91721) by @narsaynorath
+- ref(crons): Use dateAdded over dateCreated (#91667) by @evanpurkhiser
+- fix(utils): return 0% for null and undefined values in formatpercentage (#91710) by @shellmayr
+- ref: fix nullability of requires_org_level_access (#91694) by @asottile-sentry
+- feat(explore): Flatten visualize yaxes into multiple (#91664) by @Zylphrex
+- fix(widget-library): Hide filters at top of panel if not small screen (#91716) by @narsaynorath
+- feat(attachments): Include all attachment with screenshot in name (#91602) by @armenzg
+- fix(insights): show - instead of null when metric value is null (#91656) by @DominikB2014
+- feat(ourlogs): Add a "new" badge for logs in the sidebar (#91674) by @colin-sentry
+- fix(nextjs-insights): remove project icon from rage/dead click widget (#91711) by @shellmayr
+- fix(nextjs-insights): show 0% for failure_rate()==0 instead of <0% (#91709) by @shellmayr
+- feat(nextjs-insights): add avg & p95 duration to navigations table (#91708) by @shellmayr
+- fix(sandbox): for debugging add telex org to exclude from redirect (#91704) by @constantinius
+
+_Plus 1819 more_
+
+25.4.0
+------
+
+### Automate Code Mappings & In-App Stack Trace Rules for Java projects (ongoing)
+
+Currently, we ask developers to set up their Java code mappings manually (because the SDK cannot determine it):
+https://docs.sentry.io/platforms/java/source-context/&#35;setting-up-code-mappings
+
+Unfortunately, many stack traces do not contain in-app frames, thus, many Sentry features are not available (e.g. SCM linking, suspect commit).
+
+This tracks using the code mappings derivation system to automatically add the code mappings and stack trace rules to mark in-app frames as such.
+
+This will automatically enable the following Sentry features :
+- Suspect Commits
+- GitHub pull request comments
+- Auto-assignments (if Codeowners imported)
+- Stack trace linking
+- Code coverage (if the customer also has an account)
+
+This will only be available to customers with the GitHub integration installed.
+
+You can read more about the system here:
+https://blog.sentry.io/code-mappings-and-why-they-matter/
+
+By: @armenzg (#89389, #89302, #89211, #88952, #88787, #88676, #88673, #88557, #88475, #88440, #88372, #88251, #88087, #88073, #87842, #87915, #87912, #87776, #87630, #87581, #87437, #87498, #87399, #86598)
+
+### Various fixes & improvements
+
+- :wrench: chore: fix slack webhook commands endpoint typing (#89579) by @iamrajjoshi
+- chore(issue-platform): Clean up issue platform feature flags now that we're using flagpole (#89451) by @wedamija
+- fix(issues): Open drawers without resetting scroll (#89574) by @scttcper
+- feat(ourlogs): Strip ANSI escape codes (#89619) by @colin-sentry
+- fix(schema-hints): Replace user tag with an available `user.*` tags (#89509) by @nikkikapadia
+- feat(explore): Remove feature flag for get traces rpc (#89621) by @Zylphrex
+- styles(explore): Reorganization explore for tours (#89616) by @Zylphrex
+- feat(logs): minor accordion cleanup (#89531) by @doralchan
+- ref: the first arg of prep_search is unused (#89611) by @asottile-sentry
+- ref: fix types for sentry.api.base (#89601) by @asottile-sentry
+- :wrench: chore: update msteams notifications typing (#89577) by @iamrajjoshi
+- ref(profiling): rename filestore profiles options (#89608) by @viglia
+- :wrench: chore: fix slack notifications typing (#89578) by @iamrajjoshi
+- fix(ui): make sure hovering disabled buttons doesn't change their textColor (#89588) by @TkDodo
+- feat(explore): Add support for count_unique in eap (#89558) by @Zylphrex
+- feat(demo-mode): issues tour (#89399) by @obostjancic
+- fix(dashboards-eap): Pass along sampled flag for disabling message (#89528) by @narsaynorath
+- fix(taskworker) Increase timeouts for deletion tasks (#89541) by @markstory
+- feat(explore): Switch trace samples over to rpc (#89575) by @Zylphrex
+- fix(dashboards): Fix typo in code comment (#89606) by @gggritso
+- Revert "feat(features) Add testing feature flag for region condition (#89405)" (12c54bb3) by @getsentry-bot
+- feat(profiling): Detect chunks without client sdk (#89195) by @Zylphrex
+- ref(laravel-insights): Move components (#89600) by @ArthurKnaus
+- feat(ui): chonkify segmentedControl (#89589) by @TkDodo
+
+_Plus 2007 more_
+
+25.3.0
+------
+
+### Automate Code Mappings & In-App Stack Trace Rules for Java projects (ongoing)
+
+Currently, we ask developers to set up their Java code mappings manually (because the SDK cannot determine it):
+https://docs.sentry.io/platforms/java/source-context/&#35;setting-up-code-mappings
+
+Unfortunately, many stack traces do not contain in-app frames, thus, many Sentry features are not available (e.g. SCM linking, suspect commit).
+
+This tracks using the code mappings derivation system to automatically add the code mappings and stack trace rules to mark in-app frames as such.
+
+This will automatically enable the following Sentry features :
+- Suspect Commits
+- GitHub pull request comments
+- Auto-assignments (if Codeowners imported)
+- Stack trace linking
+- Code coverage (if the customer also has an account)
+
+This will only be available to customers with the GitHub integration installed.
+
+You can read more about the system here:
+https://blog.sentry.io/code-mappings-and-why-they-matter/
+
+By: @armenzg (#86283, #86327, #86280, #86196, #86188, #86189, #86109, #86026, #85981, #85976, #85931, #85742)
+
+### Various fixes & improvements
+
+- Revert "chore(sentry apps): add SLO context manager for send alert event (issue alerts) (#86356)" (fa6491f2) by @getsentry-bot
+- fix(autofix): Fix running autofix after all issue summaries (#87134) by @jennmueng
+- fix(data-consent): Fix non touch customers seeing msa prompt (#87133) by @jennmueng
+- fix(eap-spans): count_op should use `score.total` (#87132) by @DominikB2014
+- chore(sentry apps): Add context manager for comment webhook SLOs (#86739) by @Christinarlong
+- feat(devenv): Skip `devenv sync` call when we have FE changes and env var is set (#87112) by @wedamija
+- feat(insights): make score easier to query (#87129) by @DominikB2014
+- chore(issue-details): Fix a few things about issue guide (#87122) by @leeandher
+- feat(issue-views): Improve drag handle and safari interactions (#87119) by @MichaelSun48
+- :recycle: ref(aci): remove alert rule from metric alert chart building logic (#87103) by @iamrajjoshi
+- fix(jira): Add a 'key_id' block list for JIRA installed webhook endpoint (#87086) by @Christinarlong
+- fix(event_manager): Resolve TypeError while recording first insight span (#87123) by @jan-auer
+- chore(sentry apps): add SLO context manager for send alert event (issue alerts) (#86356) by @Christinarlong
+- ref(feedback): add evidence test coverage and send alerts if source is none (#87121) by @aliu39
+- feat(releases): Change "version" to "release" in table (#87088) by @billyvg
+- feat(releases): Change release bubbles series color to match bubbles (#87109) by @billyvg
+- test(react19): Wait for text in billingPlans.spec.tex (#87120) by @scttcper
+- ref(tsc): convert projectPlugins details to FC (#87035) by @michellewzhang
+- chore(issues): Opt more modules into stronger typing (#87117) by @mrduncan
+- feat(ui): Move checkInTimeline underscan to the left (#87096) by @evanpurkhiser
+- fix(aci): ANY_SHORT_CIRCUIT early exit (#87114) by @cathteng
+- test(react19): Adjust widgetViewerModal for react 19 (#87110) by @scttcper
+- chore(uptime): Commit test helpers for getsentry (#87115) by @wedamija
+- feat(insights): add most related issues to backend (#87033) by @DominikB2014
+
+_Plus 1390 more_
+
+25.2.0
+------
+
+### Automate Code Mappings & In-App Stack Trace Rules for Java projects (ongoing)
+
+Currently, we ask developers to set up their Java code mappings manually (because the SDK cannot determine it):
+https://docs.sentry.io/platforms/java/source-context/&#35;setting-up-code-mappings
+
+Unfortunately, many stack traces do not contain in-app frames, thus, many Sentry features are not available (e.g. SCM linking, suspect commit).
+
+This tracks using the code mappings derivation system to automatically add the code mappings and stack trace rules to mark in-app frames as such.
+
+This will automatically enable the following Sentry features :
+- Suspect Commits
+- GitHub pull request comments
+- Auto-assignments (if Codeowners imported)
+- Stack trace linking
+- Code coverage (if the customer also has an account)
+
+This will only be available to customers with the GitHub integration installed.
+
+You can read more about the system here:
+https://blog.sentry.io/code-mappings-and-why-they-matter/
+
+By: @armenzg (#85174, #85065)
+
+### Various fixes & improvements
+
+- Revert "feat(autofix): Add Autofix status to sidebar button (#85287)" (b20e50ed) by @getsentry-bot
+- fix(autofix): Fix flash on initial run (#85299) by @roaga
+- feat(autofix): Add Autofix status to sidebar button (#85287) by @roaga
+- fix(issues): Left align commit authors (#85291) by @scttcper
+- :sparkles: feat(aci): add support for sentry apps for issue alerts in NOA (#85218) by @iamrajjoshi
+- feat(crons): Implement an all checks page for crons (#85202) by @leeandher
+- fix(apidocs): fix typo in user feedback api (#85280) by @michellewzhang
+- ref(dashboards): Namespaced `Widget` components (#85238) by @gggritso
+- ref(uptime): Remove config_topic from UptimeRegionConfig (#85155) by @evanpurkhiser
+- ref(seer grouping): Add ability to ignore useless filenames (#85277) by @lobsterkatie
+- fix(auto_source_config): Handle when the frame is None (#85235) by @armenzg
+- feat(issues): Disable delete on missing permission (#85278) by @scttcper
+- fix(widget-builder): Visualize field overflows on long field names (#85271) by @nikkikapadia
+- feat(nav): Update rest of alert links to use new pathname builder (#85257) by @malwilley
+- fix(profiling): Prevent landing page from scrolling on context menu (#85273) by @Zylphrex
+- ref: remove default margin from Alert in sentry (#85128) by @michellewzhang
+- feat(taskworker) Add metrics for RPC durations (#85194) by @markstory
+- feat(nav): Update alert links from explore/insights/crons (#85254) by @malwilley
+- feat(nav): Update replay onboarding to use drawer (#85267) by @malwilley
+- ref(crons): Rename parallel field -> batched_parallel (#85261) by @evanpurkhiser
+- Reapply "ref(crons): Remove parallel mode (batched-parallel replaced it)" (#85262) by @evanpurkhiser
+- ref(widget-builder): Extract selection components (#85248) by @narsaynorath
+- chore(apis): Publish GroupExternalIssue endpoint (#85184) by @Christinarlong
+- ref: get_group_{body,title,description} to not need request (#85263) by @asottile-sentry
+
+_Plus 1429 more_
+
+25.1.0
+------
+
+### Various fixes & improvements
+
+- fix(issues): inherit ShortIdLookupEndpoint from GroupEndpoint (#83502) by @oioki
+- feat(widget-builder): Create blank widget preview for templates (#83509) by @nikkikapadia
+- fix(eslint): Cleanup some TS cruft in the eslint.config.mjs file (#83468) by @ryan953
+- feat(eap): Add has filters to eap search query builder (#83437) by @Zylphrex
+- feat(explore): Add is_transaction to explore fields (#83423) by @Zylphrex
+- styles(explore): Fix spacing between explore toolbar visualize (#83449) by @Zylphrex
+- feat(streamline): Add an option to remove opt-out for new users (#83205) by @leeandher
+- ref(issue-details): Remove all query params from legacy UI when no event is found. (#83441) by @leeandher
+- Revert "ref(quick-start): Update backend enums names (#83361)" (0729289d) by @getsentry-bot
+- feat(symx): Add os as a tag (#83504) by @loewenheim
+- ref(quick-start): Update backend enums names (#83361) by @priscilawebdev
+- ref: fix type for serializers.models.rule (#83444) by @asottile-sentry
+- ref: fix typing for plugins.bases.issue{,2} (#83445) by @asottile-sentry
+- ref: standardize user param as User | RpcUser | AnonymousUser in Serializers (#83436) by @asottile-sentry
+- Reapply "ref: upgrade to python 3.13" (#83448) by @asottile-sentry
+- feat(widget-builder): Add widget dropdown for templates (#83426) by @nikkikapadia
+- ref(quick-start): Update comments in onboarding tasks model (#83496) by @priscilawebdev
+- ref(quick-start): Remove unused functions (#83499) by @priscilawebdev
+- ref(quick-start): Remove 'INTEGRATIONS' from onboarding task (#83488) by @priscilawebdev
+- ref(quick-start): Remove 'USER_CONTEXT' from onboarding tasks (#83489) by @priscilawebdev
+- ref(quick-start): Remove 'METRIC_ALERT' from onboarding task (#83487) by @priscilawebdev
+- ref(quick-start): Add 'default=True' to the flag manager (#83483) by @priscilawebdev
+- ref(quick-start): Remove 'USER_REPORTS' from onboarding task (#83490) by @priscilawebdev
+- fix(symx): Remove log message (#83491) by @tobias-wilfert
+
+_Plus 26 more_
+
+24.12.2
+-------
+
+### Various fixes & improvements
+
+- feat(devservices): Add option to setup sentry with new devservices to existing action (#83415) by @hubertdeng123
+- ref(react19): Remove various styled defaultProps (#83409) by @scttcper
+- feat(new-trace-issues): Updating designs for trace preview in issue details (#83430) by @Abdkhan14
+- feat(metric-issues): Add "correlated issues" section  (#83353) by @snigdhas
+- fix(ui): Clamp timeline zoom to the minute (#83435) by @evanpurkhiser
+- fix(eslint): Enable no-constant-binary-expression and fix violations (#83273) by @ryan953
+- feat(eap): Support eap autocompleting booleans (#83433) by @Zylphrex
+- fix(migrations): Actually fix BoundedPositiveBigIntegerField (#83431) by @wedamija
+- ref: delete dead serializer code (#83429) by @asottile-sentry
+- feat(ui): List available param keys in useParams (#83428) by @scttcper
+- ref: fix types for mentions serializer (#83424) by @asottile-sentry
+- :recycle: feat(workflow_engine): issue alert action migration util for slack (#83123) by @iamrajjoshi
+- feat(metric-issues): Hide log level indicator for non-error issues (#83354) by @snigdhas
+- ref: use types-requests-oauthlib (#83418) by @asottile-sentry
+- ref: use types-unidiff (#83416) by @asottile-sentry
+- ref(profiling) drop drag and drop functionality (#83420) by @JonasBa
+- ref: upgrade django-stubs (#83413) by @asottile-sentry
+- chore(alerts): Remove lingering activated alerts code (#83342) by @ceorourke
+- chore(analytics): Add experimental analytics for new streamlined orgs  (#83390) by @leeandher
+- feat(dashboards): Improve duration Y axis label formatting (#83337) by @gggritso
+- ref(profiling): Merge profile provider for both modes (#83338) by @Zylphrex
+- fix(migrations): Set the correct internal type for BoundedPositiveBigIntegerField (#83412) by @wedamija
+- fix: check user in helper (#83407) by @oioki
+- fix(widget-builder): Aggregates with no column not wiped (#83410) by @narsaynorath
+
+_Plus 775 more_
+
+24.12.1
+-------
+
+### Various fixes & improvements
+
+- fix: fixes KeyError when running with stale topic dlq (#82512) by @lynnagara
+- chore(issue-views): Add analytics back to tab actions (#82504) by @MichaelSun48
+- chore(sentry apps): Introduce new error types for sentry apps (#82507) by @Christinarlong
+- fix timezone normalization (#82496) by @kneeyo1
+- ref(tsc): convert teamAccessRequestModal to FC (#82470) by @michellewzhang
+- ref(tsc): convert dashboardWidgetQuerySelectorModal to FC (#82466) by @michellewzhang
+- ref(issue-views): Overhaul issue views state and logic to a new context  (#82429) by @MichaelSun48
+- ref: strptime -> fromisoformat in tests (#82488) by @asottile-sentry
+- chore(various): Fix linter warnings (#82494) by @lobsterkatie
+- ref(insights): Split out `getAxisMaxForPercentageSeries` (#82493) by @gggritso
+- fix(ecosystem): Track metrics for issue detail ticket creation (#82436) by @GabeVillalobos
+- ref(aci): pass WorkflowJob into process_workflows (#82489) by @cathteng
+- fix(group-events): Fix typo and error text (#82490) by @leeandher
+- fix(web): Add react_config context on auth pages take 2 (#82480) by @BYK
+- feat(alerts): ACI dual write alert rule helpers (#82400) by @ceorourke
+- feat(dashboards): Pass `LineChart` series meta alongside the data (#82047) by @gggritso
+- fix(eap): Numeric attribute filtering in snql eap (#82472) by @Zylphrex
+- chore(issues): Opt in a few more endpoint tests to stronger types (#82382) by @mrduncan
+- ref: remove calls to iso_format in testutils (#82461) by @asottile-sentry
+- feat(dashboards): enable sorting by column in table view (#82239) by @harshithadurai
+- ref(workflow_engine): remove remaining references to condition in validators (#82438) by @mifu67
+- fix(flags): separate permission class (#82463) by @oioki
+- feat(new-trace): Fixing scroll on trace drawer (#82475) by @Abdkhan14
+- support routing stale messages to lowpri topic (#82322) by @lynnagara
+
+_Plus 240 more_
+
+24.12.0
+-------
+
+### Various fixes & improvements
+
+- chore(utils): allow duplicate values in registry by making reverse lookup optional (#82114) by @cathteng
+- feat(workflow_engine): Add `process_data_packets` method (#82002) by @saponifi3d
+- ref(workflow_engine): Remove DetectorType (#82111) by @saponifi3d
+- chore(aci milestone 3): move aggregation value helpers to incidents directory (#82103) by @mifu67
+- ref(feedback): remove spam detection logs - replaced by redash (#82071) by @aliu39
+- fix(activity): Update activity message for linked issues (#82064) by @snigdhas
+- ref(replay): improve error messages for invalid searches that raise CouldNotParseValue (#82048) by @aliu39
+- fix(toolbar): Include credentials with fetch requests (#82108) by @ryan953
+- feat(autofix): Add support for streamed output (#82024) by @roaga
+- :sparkles: feat(discord): add button to redirect for user linking (#82104) by @iamrajjoshi
+- feat(workflow_engine): Adding support for `process_workflows` in the IssuePlatform (#81975) by @saponifi3d
+- ref: remove skip_for_relay_store (#82106) by @asottile-sentry
+- feat(metric-issues): Configure workflow notifications by group type (#81609) by @snigdhas
+- fix(iphone-codes): update frontend definitions (#82100) by @armcknight
+- ref: improve grouphash_metadata test (#82101) by @asottile-sentry
+- fix(iphone-codes): update BE mapping; remove unused method (#82094) by @armcknight
+- ref: remove xfail_if_not_postgres (#82097) by @asottile-sentry
+- ref: fix typing for endpoints.project_rule_preview (#82089) by @asottile-sentry
+- ref: fix types for test_event_attachment_details (#82091) by @asottile-sentry
+- ref: remove requires_not_arm64 (#82093) by @asottile-sentry
+- chore(aci): enforce config schema without subclassing (#81979) by @cathteng
+- ref: fix types for eventstore.test_base (#82092) by @asottile-sentry
+- chore(stacktrace): Make source map tooltip aligned (#82016) by @MichaelSun48
+- ref: delete unused GroupEnvironmentWithStatsSerializer (#82090) by @asottile-sentry
+
+_Plus 93 more_
+
+24.11.2
+-------
+
+### Various fixes & improvements
+
+- fix(dashboards): Abbreviate `LineChartWidget` Y axis integers (#81937) by @gggritso
+- Revert "chore(profiling): remove profiling.stack_trace_rules.allowed_project_ids option (#81903)" (d0bea1aa) by @getsentry-bot
+- feat(widget-builder): Add limit field to widget builder hook (#81944) by @nikkikapadia
+- fix(alerts): Fix EAP alert filter bar to behave more like explore (#81946) by @edwardgou-sentry
+- feat(alerts): Renames eap metrics in ui to spans (#81917) by @edwardgou-sentry
+- feat(alerts): Limits eap alert time windows and periods (#81916) by @edwardgou-sentry
+- chore(insights): Remove bundle analysis UI flag (#81932) by @gggritso
+- feat(widget-builder): Batch URL param changes (#81923) by @narsaynorath
+- fix(merged): Always show a link for latests event of a merged group (#81947) by @leeandher
+- fix(dashboards): Add missing propagated props in `LineChartWidget` (#81935) by @gggritso
+- chore(profiling): remove profiling.stack_trace_rules.allowed_project_ids option (#81903) by @viglia
+- feat(new-trace): remove prefix related (#81918) by @doralchan
+- :mag: nit(integration slo): cleanup tests (#81943) by @iamrajjoshi
+- ref(widget-builder): Split out tests (#81949) by @narsaynorath
+- fix(trace-view): Web Vitals scores (#81945) by @0Calories
+- ref(insights): Simplify `SpanTimeCharts` (#81931) by @gggritso
+- fix(oauth): only remove the related tokens (#81677) by @sentaur-athena
+- :wrench: chore(integration slo): cleaning up tests and use util method (#81936) by @iamrajjoshi
+- feat(issue summary): Change 3-dot menu to dropdown (#81928) by @roaga
+- feat(sdk): Upgrade @sentry SDKs to v8.43.0 (#81925) by @aliu39
+- Better logging for backpressure (#81648) by @kneeyo1
+- feat(dashboards): add success message when favoriting dashboards (#81887) by @harshithadurai
+- feat(ui): Add dark app loading theme (#81611) by @scttcper
+- ref(dashboards): Export Widget component props (#81924) by @gggritso
+
+_Plus 442 more_
+
+24.11.1
+-------
+
+### Various fixes & improvements
+
+- feat(toolbar): Make the login-success page have styles that blend with the login flow (#81230) by @ryan953
+- fix(issues): Revert to app external issue name (#81277) by @scttcper
+- Revert "chore(similarity): Do not send > 30 system frames to seer (#81259)" (104352cb) by @getsentry-bot
+- :wrench: chore(slos): Update Halt to Success for Bot Commands (#81271) by @iamrajjoshi
+- fix(auth): Adding scoping_organization_id to replica (#81213) by @sentaur-athena
+- chore(similarity): Do not send > 30 system frames to seer (#81259) by @jangjodi
+- fix(issues): Animate dropdown chevrons, button sizes (#81262) by @scttcper
+- feat(eap): Add missing profile.id column to EAP (#81263) by @Zylphrex
+- ref(dashboards): Modify how permissions are handled for editing/deleting dashboards (#80684) by @harshithadurai
+- feat(explore): Format numeric tags nicely in explore (#81255) by @Zylphrex
+- fix(explore): Preserve sort when adding group by (#81258) by @Zylphrex
+- ref(insights): remove insights-domain-view flag part 1 (#81241) by @DominikB2014
+- chore(alerts): Drop included and excluded projects (#81250) by @ceorourke
+- ref: fix flaky digests test (#81256) by @asottile-sentry
+- chore(sentryapps) Remove option for sentryapp RPC transition (#81245) by @markstory
+- fix(grouping): Only collect metadata timing metric when actually getting metadata (#81252) by @lobsterkatie
+- chore(performance): Remove old anomaly detection backend (#80696) by @gggritso
+- Revert "chore(similarity): Add logging for over 30 system frames (#81130)" (7b7e7955) by @getsentry-bot
+- ♻️ chore(slo): SLOs for CommitContextIntegration (#81225) by @iamrajjoshi
+- chore(widget-builder): Remove organization props (#81248) by @narsaynorath
+- chore(integrations): SourceCodeSearchEndpoint metrics (#80956) by @mifu67
+- chore(vsts): vsts installation step metrics (#80789) by @cathteng
+- Remove excluded_projects & include_all_projects columns (#81204) by @ceorourke
+- fix(issues): Wrap solutions in error boundary (#81244) by @scttcper
+
+_Plus 338 more_
+
+24.11.0
+-------
+
+### Various fixes & improvements
+
+- feat(issue-details): Add support link to dropdown (#80804) by @roggenkemper
+- fix(issues): Show 50+ Replays whenever the count is maxed out like that (#80809) by @ryan953
+- ref(replay): Refactor extractDomNodes stepper strategy into extractDomNodes.tsx (#80810) by @ryan953
+- ref: make condition_data / action_data param names match for create_project_rule (#80781) by @asottile-sentry
+- ref: explicitly install libexpat1 (#80742) by @asottile-sentry
+- ref(dashboards): Fixes and refactoring for edit access selector button (#80633) by @harshithadurai
+- feat(flamegraphs): Support functions flamegraphs for continuous profi… (#80822) by @Zylphrex
+- feature(dashboards): added grid icon (#80806) by @doralchan
+- fix(charts): Respect stacked prop in area chart (#80824) by @Zylphrex
+- fix(insights): filter out ui.action in backend, and add to mobile (#80823) by @DominikB2014
+- chore(flamegraph): Remove transactions from differential flamegraphs (#80807) by @Zylphrex
+- feat(functions): Use flamegraph as data source for slowest functions (#80791) by @Zylphrex
+- feat(dashboards): Dashboards landing page layout toggle (#80790) by @nikkikapadia
+- ref(grouping): Rename `GroupingComponent` to `BaseGroupingComponent` (#80725) by @lobsterkatie
+- feat(dynamic-sampling): Show project as active if not 100 percent (#80819) by @ArthurKnaus
+- feat(dynamic-sampling): Copy changes and doc links (#80818) by @ArthurKnaus
+- fix(releases): For semver releases, get latest release as the resolving one (#80737) by @armenzg
+- feat(dynamic-sampling): Use new span count endpoint (#80732) by @ArthurKnaus
+- feat(dynamic-sampling): Show stored span per sub-project (#80816) by @ArthurKnaus
+- fix(dynamic-sampling): set dynamic sampling project span count mql query limit (#80812) by @shellmayr
+- chore(codeowners): update telemetry experience ownership (#80813) by @shellmayr
+- fix(crons): Move limit back onto QuerySet for incident detection (#80805) by @evanpurkhiser
+- fix(grouping): Small types fixes (#80724) by @lobsterkatie
+- feat(backup): Add export checkpointer (#80711) by @azaslavsky
+
+_Plus 1276 more_
+
+24.10.0
+-------
+
+### Various fixes & improvements
+
+- feat(releases): Split release commit from shared component (#78538) by @scttcper
+- chore(alerts): Add info log when sending subscription update data to Seer (#79049) by @ceorourke
+- feat(anomaly detection): add preview chart to new alert form (#78238) by @natemoo-re
+- feat(issue-stream): Use stacked primary secondary counts designs (#79070) by @MichaelSun48
+- feat(alerts): Add new feature flag to enable EAP alerts (#78985) by @edwardgou-sentry
+- feat(discover): Update EAP dataset and entity key for discover builders (#78967) by @edwardgou-sentry
+- fix: add info to post process TypeErrors for debugging (#79099) by @mjq
+- ref(ingest): annotate transaction consumer with spans (#79101) by @mjq
+- ref(rr6): Replace many useRouter's with useNavigate's (#78804) by @evanpurkhiser
+- chore(feedback): Analytics for error rendering feedback item (#78978) by @c298lee
+- feat(explore): Linking to spans in traceview from all tables (#78984) by @Abdkhan14
+- fix(eap): Count takes arg (#79066) by @Zylphrex
+- feat(quick-start): Add analytics code to the backend to track quick start completion (#79089) by @priscilawebdev
+- feat(quick-start): Add new feature flag for the new updates (#79094) by @priscilawebdev
+- fix(dashboard): OnDemand widget creation also includes transaction type (#79059) by @narsaynorath
+- fix(dashboard): OnDemand extraction for Transaction widgets (#79055) by @narsaynorath
+- feat(quick-start): Add analytics code to the frontend to track quick start completion (#79092) by @priscilawebdev
+- ref(quick-start): Update 'project to set up' logic to default to the first project (#78460) by @priscilawebdev
+- ref(onboarding): Add pnpm to express js install step (#79093) by @priscilawebdev
+- feat(dynamic-sampling): add feature flag (#79084) by @constantinius
+- fix(loader): Catch errors in `sentryOnLoad` separately (#78993) by @mydea
+- ref(feedback): 401 for unauth'd POSTs to projectUserReports (#79069) by @aliu39
+- fix(issue-stream): reduce font size of events and user counts (#79028) by @MichaelSun48
+- fix(issue-stream): Fix bug where replay divider was shown despite no replays (#79068) by @MichaelSun48
+
+_Plus 1020 more_
+
+24.9.0
+------
+
+### Various fixes & improvements
+
+- fix(custom-views): Align hover state of overflow menu with add view button (#77526) by @MichaelSun48
+- fix(issues): Align streamlined event id (#77529) by @scttcper
+- fix(similarity): Return failure reason from multithread seer call (#77522) by @jangjodi
+- test(performance): Rearrange trace keyboard test (#77519) by @scttcper
+- fix(anomaly detection): get aggregation key from snuba data (#77498) by @mifu67
+- fix(ui): Remove team slug from settings search (#77520) by @scttcper
+- fix(issues): Fix incorrect API docs for statsPeriod (#77523) by @mrduncan
+- analytics(flags): add initial analytics (#77489) by @michellewzhang
+- chore(users): Move User base endpoint file to users directory (#77501) by @Christinarlong
+- chore(apidocs): Fix inconsistencies in replay docs (#77506) by @isabellaenriquez
+- chore(apidocs): id -> ID (#77505) by @isabellaenriquez
+- fix(onboarding): Open replay panel in quick start action (#77516) by @scttcper
+- fix(anomaly detection): update alert list status to be the same as details page (#77500) by @mifu67
+- ref(js): Remove default export of DateTime (#77493) by @evanpurkhiser
+- chore(similarity): Increase seer delay and add to log (#77474) by @jangjodi
+- chore(apidocs): Make UserRole related endpoints private (#77504) by @isabellaenriquez
+- fix(custom-views): Change cursor for tab to pointer everywhere (#77513) by @MichaelSun48
+- ref: fix test pollution integrity errors due to cache leaks between tests (#77476) by @asottile-sentry
+- chore(crons): Remove sentry monitor decorator from run_escalating_forcast job (#77499) by @MichaelSun48
+- ref(js): Missed one DateTime defualt export (#77497) by @evanpurkhiser
+- feat(flags): hide flags from context and add feedback button (#77488) by @michellewzhang
+- publish api endpoints (#77179) by @nhsiehgit
+- ref(js): Remove usage of DateTime default export (#77494) by @evanpurkhiser
+- fix(ui): Inmprove spacing on code snippet header (#77492) by @evanpurkhiser
+
+_Plus 853 more_
+
+24.8.0
+------
+
+### Various fixes & improvements
+
+- style(toolbar): adjust alert indicator css (#76189) by @michellewzhang
+- fix(issue-summary): Word break on code (#76217) by @jennmueng
+- fix(issue-details): Prevent event error section from showing up if no errors (#76235) by @roggenkemper
+- nit(scm): group functions by class they come from in main integration class (#76240) by @cathteng
+- chore(migrations): Generalize the migrations_added file filter (#76244) by @wedamija
+- chore(explore): Add new referrer for explore in events (#76256) by @Zylphrex
+- ref(explore): Use sort type from discover (#76220) by @Zylphrex
+- misc(deps): Bump the versions of a few google packages (#76257) by @colin-sentry
+- chore(slack): temporarily track snuba user count queries round 2 (#76216) by @cathteng
+- feat(breadcrumbs): Fix breadcrumbs styles + navigation (#76207) by @leeandher
+- feat(features) Use dataclasses for flagpole instead of pydantic (#75859) by @markstory
+- ref(similarity): Manually filter times seen in backfill query (#76188) by @jangjodi
+- feat(insights): implement geo region selector in web vitals and assets (#76185) by @DominikB2014
+- chore(dashboards): Register feature for auto sized Big Number widgets (#76205) by @gggritso
+- feat(profiling) add function metrics table (#76110) by @JonasBa
+- fix(self-hosted): SOURCE_COMMIT (#76139) by @joshuarli
+- Don't emit Sentry warnings for throttled queries to Snuba (#75879) by @xurui-c
+- chore(uptime): Switch result consumer duration/delay stats to use distribition (#76237) by @wedamija
+- chore: Bump React error codes cache TTL to 3 days (#76243) by @dashed
+- chore(uptime): Bump ACTIVE_FAILURE_THRESHOLD to 3 (#76218) by @wedamija
+- fix(alert): Correct url (#76236) by @schew2381
+- fix(uptime): Always pass span_id from check result to occurrence (#76227) by @evanpurkhiser
+- ref(replay): update missing replay alert to include ad blocker note (#76215) by @michellewzhang
+- Revert "fix(breadcrumbs): Use subgrid to align log levels (#76148)" (d08c8050) by @getsentry-bot
+
+_Plus 1113 more_
+
 24.7.1
 ------
 

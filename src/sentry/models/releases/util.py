@@ -12,7 +12,6 @@ from django.db.models.signals import pre_save
 from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import parse_release
 
-from sentry.db.models import ArrayField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.releases.release_project import ReleaseProject
@@ -34,7 +33,7 @@ class SemverVersion(
 class SemverFilter:
     operator: str
     version_parts: Sequence[int | str]
-    package: str | None = None
+    package: str | Sequence[str] | None = None
     negated: bool = False
 
 
@@ -112,7 +111,10 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         query_func = "exclude" if semver_filter.negated else "filter"
 
         if semver_filter.package:
-            qs = getattr(qs, query_func)(package=semver_filter.package)
+            if isinstance(semver_filter.package, str):
+                qs = getattr(qs, query_func)(package=semver_filter.package)
+            else:
+                qs = getattr(qs, query_func)(package__in=semver_filter.package)
         if project_ids:
             qs = qs.filter(
                 id__in=ReleaseProject.objects.filter(project_id__in=project_ids).values_list(
@@ -130,7 +132,9 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
             )
             cols = self.model.SEMVER_COLS[: len(semver_filter.version_parts)]
             qs = qs.annotate(
-                semver=Func(*(F(col) for col in cols), function="ROW", output_field=ArrayField())
+                semver=Func(
+                    *(F(col) for col in cols), function="ROW", output_field=models.JSONField()
+                )
             )
             qs = getattr(qs, query_func)(**{f"semver__{semver_filter.operator}": filter_func})
         return qs

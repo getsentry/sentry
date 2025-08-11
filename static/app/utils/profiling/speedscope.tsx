@@ -28,8 +28,6 @@ import {mat3, vec2} from 'gl-matrix';
 import {clamp} from 'sentry/utils/profiling/colors/utils';
 
 import type {ColorChannels, LCH} from './flamegraph/flamegraphTheme';
-import type {TrimTextCenter} from './gl/utils';
-import {ELLIPSIS} from './gl/utils';
 
 export class Rect {
   origin: vec2;
@@ -94,7 +92,7 @@ export class Rect {
     return [this.centerX, this.centerY];
   }
 
-  static decode(query: string | ReadonlyArray<string> | null | undefined): Rect | null {
+  static decode(query: string | readonly string[] | null | undefined): Rect | null {
     let maybeEncodedRect = query;
 
     if (typeof query === 'string') {
@@ -305,7 +303,6 @@ export function findRangeBinarySearch(
   target: number,
   precision = 1
 ): [number, number] {
-  // eslint-disable-next-line
   while (true) {
     if (high - low <= precision) {
       return [low, high];
@@ -320,9 +317,9 @@ export function findRangeBinarySearch(
   }
 }
 
-export const fract = (x: number): number => x - Math.floor(x);
-export const triangle = (x: number): number => 2.0 * Math.abs(fract(x) - 0.5) - 1.0;
-export function fromLumaChromaHue(L: number, C: number, H: number): ColorChannels {
+const fract = (x: number): number => x - Math.floor(x);
+const triangle = (x: number): number => 2.0 * Math.abs(fract(x) - 0.5) - 1.0;
+function fromLumaChromaHue(L: number, C: number, H: number): ColorChannels {
   const hPrime = H / 60;
   const X = C * (1 - Math.abs((hPrime % 2) - 1));
   const [R1, G1, B1] =
@@ -356,44 +353,6 @@ export function makeColorBucketTheme(
     const L = lch.L_0 - lch.L_d * x;
     return fromLumaChromaHue(L, C, H);
   };
-}
-
-export function trimTextCenter(text: string, low: number): TrimTextCenter {
-  if (low >= text.length) {
-    return {
-      text,
-      start: 0,
-      end: 0,
-      length: 0,
-    };
-  }
-
-  const prefixLength = Math.floor(low / 2);
-  // Use 1 character less than the low value to account for ellipsis and favor displaying the prefix
-  const postfixLength = low - prefixLength - 1;
-
-  const start = prefixLength;
-  const end = Math.floor(text.length - postfixLength + ELLIPSIS.length);
-  const trimText = `${text.substring(0, start)}${ELLIPSIS}${text.substring(end)}`;
-
-  return {
-    text: trimText,
-    start,
-    end,
-    length: end - start,
-  };
-}
-
-// @TODO drop when we move to sampled profile
-export interface SpeedscopeSchema {
-  profiles: ReadonlyArray<
-    Readonly<Profiling.EventedProfile | Profiling.SampledProfile | JSSelfProfiling.Trace>
-  >;
-  shared: {
-    frames: ReadonlyArray<Omit<Profiling.FrameInfo, 'key'>>;
-    profile_ids?: ReadonlyArray<string>;
-  };
-  activeProfileIndex?: number;
 }
 
 // This differs, but the underlying logic is similar, we just support a mat3 as the transform

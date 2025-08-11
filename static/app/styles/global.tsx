@@ -97,7 +97,7 @@ const prismStyles = (theme: Theme) => css`
     }
     .token.important,
     .token.bold {
-      font-weight: ${theme.fontWeightBold};
+      font-weight: ${theme.fontWeight.bold};
     }
     .token.italic {
       font-style: italic;
@@ -167,10 +167,19 @@ const styles = (theme: Theme, isDark: boolean) => css`
     background-color: ${theme.backgroundSecondary};
     white-space: pre-wrap;
     overflow-x: auto;
+
+    &:focus-visible {
+      outline: ${theme.focusBorder} auto 1px;
+    }
   }
 
   code {
     background-color: transparent;
+  }
+  .tsqd-queries-container code {
+    /* Don't override colors inside @tanstack/react-query-devtools */
+    background-color: unset;
+    color: inherit;
   }
 
   ${prismStyles(theme)}
@@ -217,14 +226,18 @@ const styles = (theme: Theme, isDark: boolean) => css`
             h6 {
               color: ${theme.headingColor};
             }
-
-            a {
-              color: ${theme.textColor};
-            }
           }
 
           .box-header {
             border-bottom-color: ${theme.border};
+
+            a {
+              color: ${theme.textColor};
+
+              &:hover {
+                color: ${theme.linkHoverColor};
+              }
+            }
           }
         }
         .loading .loading-indicator {
@@ -307,10 +320,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
               }
             }
           }
-        }
-
-        .exc-message {
-          color: ${theme.subText};
         }
         .group-detail h3 em {
           color: ${theme.subText};

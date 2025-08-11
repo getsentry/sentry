@@ -4,9 +4,7 @@ from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Literal, TypedDict, TypeVar, Union
-
-from typing_extensions import TypeIs
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, TypeIs, TypeVar, Union
 
 from sentry.utils.services import Service
 
@@ -38,6 +36,8 @@ SessionsQueryFunction = Literal[
     "crash_free_rate(user)",
     "anr_rate()",
     "foreground_anr_rate()",
+    "unhandled_rate(session)",
+    "unhandled_rate(user)",
 ]
 
 GroupByFieldName = Literal[
@@ -78,16 +78,23 @@ SessionsQueryValue = Union[None, float]
 
 ProjectWithCount = tuple[ProjectId, int]
 
+#: Group key as featured in output format
+GroupKeyDict = TypedDict(
+    "GroupKeyDict",
+    {"project": int, "release": str, "environment": str, "session.status": str},
+    total=False,
+)
+
 
 class SessionsQueryGroup(TypedDict):
-    by: dict[str, str | int]
-    series: dict[str, list[SessionsQueryValue]]
-    totals: dict[str, SessionsQueryValue]
+    by: GroupKeyDict
+    series: dict[SessionsQueryFunction, list[SessionsQueryValue]]
+    totals: dict[SessionsQueryFunction, SessionsQueryValue]
 
 
 class SessionsQueryResult(TypedDict):
-    start: DateString
-    end: DateString
+    start: datetime
+    end: datetime
     intervals: list[DateString]
     groups: list[SessionsQueryGroup]
     query: str
@@ -177,6 +184,9 @@ class ReleaseHealthOverview(TypedDict, total=False):
     duration_p50: float | None
     duration_p90: float | None
     stats: Mapping[StatsPeriod, ReleaseHealthStats]
+    sessions_unhandled: int
+    unhandled_session_rate: float | None
+    unhandled_user_rate: float | None
 
 
 class CrashFreeBreakdown(TypedDict):
@@ -197,6 +207,7 @@ class UserCounts(TypedDict):
     users_healthy: int
     users_crashed: int
     users_abnormal: int
+    users_unhandled: int
     users_errored: int
 
 
@@ -209,6 +220,7 @@ class SessionCounts(TypedDict):
     sessions_healthy: int
     sessions_crashed: int
     sessions_abnormal: int
+    sessions_unhandled: int
     sessions_errored: int
 
 
@@ -243,13 +255,9 @@ class ReleaseHealthBackend(Service):
         "get_project_releases_count",
         "get_project_release_stats",
         "get_project_sessions_count",
-        "is_metrics_based",
         "get_num_sessions_per_project",
         "get_project_releases_by_stability",
     )
-
-    def is_metrics_based(self) -> bool:
-        return False
 
     def get_current_and_previous_crash_free_rates(
         self,
@@ -344,7 +352,7 @@ class ReleaseHealthBackend(Service):
         Inputs:
             * project_id
             * release
-            * org_id: Organisation Id
+            * org_id: Organization Id
             * environments
         Return:
             Dictionary with two keys "sessions_lower_bound" and "sessions_upper_bound" that

@@ -17,7 +17,9 @@ class IssueListPage(BasePage):
         self.browser.wait_until('[data-test-id="event-issue-header"]', timeout=20)
 
     def select_issue(self, position):
-        self.browser.click(f'[data-test-id="group"]:nth-child({position})')
+        # Must hover over the row to show the checkbox
+        self.browser.move_to(f'[data-test-id="group"]:nth-child({position})')
+        self.browser.click(f'[data-test-id="group"]:nth-child({position}) input[type="checkbox"]')
 
     def navigate_to_issue(self, position):
         self.browser.click(f'[data-test-id="group"]:nth-child({position}) a')
@@ -48,8 +50,8 @@ class IssueListPage(BasePage):
 
     def merge_issues(self):
         # Merge button gets put into an overflow menu for small viewports
-        if self.browser.element_exists('[aria-label="Merge Selected Issues"]'):
-            self.browser.click('[aria-label="Merge Selected Issues"]')
+        if self.browser.element_exists('[aria-label="Merge"]'):
+            self.browser.click('[aria-label="Merge"]')
             self.browser.click('[data-test-id="confirm-button"]')
         else:
             self.browser.click('[aria-label="More issue actions"]')

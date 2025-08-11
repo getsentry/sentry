@@ -9,25 +9,24 @@ import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/uti
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
-import type {Event, EventTag} from 'sentry/types/event';
+import type {Event, EventTagWithMeta} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 const MAX_TREE_DEPTH = 4;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
 
-interface TagTree {
-  [key: string]: TagTreeContent;
-}
+type TagTree = Record<string, TagTreeContent>;
 
 export interface TagTreeContent {
   subtree: TagTree;
   value: string;
   // These will be omitted on pseudo tags (see addToTagTree)
-  meta?: Record<any, any>;
-  originalTag?: EventTag;
+  meta?: Record<string, any>;
+  originalTag?: EventTagWithMeta;
 }
 
 interface TagTreeColumnData {
@@ -39,16 +38,18 @@ interface TagTreeColumnData {
 interface EventTagsTreeProps {
   event: Event;
   projectSlug: Project['slug'];
-  tags: EventTag[];
-  meta?: Record<any, any>;
+  tags: EventTagWithMeta[];
 }
 
-function addToTagTree(
-  tree: TagTree,
-  tag: EventTag,
-  meta: Record<any, any>,
-  originalTag: EventTag
-): TagTree {
+function addToTagTree({
+  tree,
+  tag,
+  originalTag,
+}: {
+  originalTag: EventTagWithMeta;
+  tag: EventTagWithMeta;
+  tree: TagTree;
+}): TagTree {
   const BRANCH_MATCHES_REGEX = /\./g;
   if (!defined(tag.key)) {
     return tree;
@@ -62,7 +63,7 @@ function addToTagTree(
 
   // Ignore tags with 0, or >4 branches, as well as sequential dots (e.g. 'some..tag')
   if (hasInvalidBranchCount || hasInvalidBranchSequence) {
-    tree[tag.key] = {value: tag.value, subtree: {}, meta, originalTag};
+    tree[tag.key] = {value: tag.value, subtree: {}, meta: originalTag?.meta, originalTag};
     return tree;
   }
   // E.g. 'device.model.version'
@@ -78,7 +79,11 @@ function addToTagTree(
     key: branch,
     value: tag.value,
   };
-  tree[trunk].subtree = addToTagTree(tree[trunk].subtree, pseudoTag, meta, originalTag);
+  tree[trunk].subtree = addToTagTree({
+    tree: tree[trunk].subtree,
+    tag: pseudoTag,
+    originalTag,
+  });
   return tree;
 }
 
@@ -92,14 +97,16 @@ function getTagTreeRows({
   content,
   spacerCount = 0,
   uniqueKey,
-  ...props
-}: EventTagsTreeRowProps & {uniqueKey: string}) {
+  event,
+  project,
+}: EventTagsTreeRowProps & {uniqueKey: string}): React.ReactNode[] {
   const subtreeTags = Object.keys(content.subtree);
-  const subtreeRows = subtreeTags.reduce((rows, tag, i) => {
+  const subtreeRows = subtreeTags.reduce<React.ReactNode[]>((rows, tag, i) => {
     const branchRows = getTagTreeRows({
-      ...props,
+      event,
+      project,
       tagKey: tag,
-      content: content.subtree[tag],
+      content: content.subtree[tag]!,
       spacerCount: spacerCount + 1,
       isLast: i === subtreeTags.length - 1,
       // Encoding the trunk index with the branch index ensures uniqueness for the key
@@ -114,7 +121,8 @@ function getTagTreeRows({
       content={content}
       spacerCount={spacerCount}
       data-test-id="tag-tree-row"
-      {...props}
+      event={event}
+      project={project}
     />,
     ...subtreeRows,
   ];
@@ -125,20 +133,19 @@ function getTagTreeRows({
  * branch tags from their roots, and attempt to be as evenly distributed as possible.
  */
 function TagTreeColumns({
-  meta,
   tags,
   columnCount,
   projectSlug,
-  ...props
+  event,
 }: EventTagsTreeProps & {columnCount: number}) {
   const organization = useOrganization();
-  const {data: project, isLoading} = useDetailedProject({
+  const {data: project, isPending} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug,
   });
   const assembledColumns = useMemo(() => {
-    if (isLoading) {
-      return <TreeLoadingIndicator hideMessage />;
+    if (isPending) {
+      return <TreeLoadingIndicator />;
     }
 
     if (!project) {
@@ -146,14 +153,14 @@ function TagTreeColumns({
     }
     // Create the TagTree data structure using all the given tags
     const tagTree = tags.reduce<TagTree>(
-      (tree, tag, i) => addToTagTree(tree, tag, meta?.[i], tag),
+      (tree, tag) => addToTagTree({tree, tag, originalTag: tag}),
       {}
     );
     // Create a list of TagTreeRow lists, containing every row to be rendered. They are grouped by
     // root parent so that we do not split up roots/branches when forming columns
     const tagTreeRowGroups: React.ReactNode[][] = Object.entries(tagTree).map(
       ([tagKey, content], i) =>
-        getTagTreeRows({tagKey, content, uniqueKey: `${i}`, project: project, ...props})
+        getTagTreeRows({tagKey, content, uniqueKey: `${i}`, project, event})
     );
     // Get the total number of TagTreeRow components to be rendered, and a goal size for each column
     const tagTreeRowTotal = tagTreeRowGroups.reduce(
@@ -190,12 +197,13 @@ function TagTreeColumns({
       {startIndex: 0, runningTotal: 0, columns: []}
     );
     return data.columns;
-  }, [columnCount, isLoading, project, props, tags, meta]);
+  }, [columnCount, isPending, project, event, tags]);
 
   return <Fragment>{assembledColumns}</Fragment>;
 }
 
 function EventTagsTree(props: EventTagsTreeProps) {
+  const hasStreamlinedUI = useHasStreamlinedUI();
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
   return (
@@ -204,6 +212,7 @@ function EventTagsTree(props: EventTagsTreeProps) {
         columnCount={columnCount}
         ref={containerRef}
         data-test-id="event-tags-tree"
+        style={hasStreamlinedUI ? {marginTop: 0} : undefined}
       >
         <TagTreeColumns columnCount={columnCount} {...props} />
       </TreeContainer>
@@ -236,7 +245,7 @@ export const TreeColumn = styled('div')`
   }
 `;
 
-export const TreeLoadingIndicator = styled(LoadingIndicator)`
+const TreeLoadingIndicator = styled(LoadingIndicator)`
   grid-column: 1 /-1;
 `;
 

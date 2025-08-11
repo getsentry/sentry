@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property
 from ipaddress import IPv4Address, IPv6Address, ip_address
-from typing import Any
+from typing import Any, TypedDict
 
+import sentry_sdk
 from django.db.models import QuerySet
 from snuba_sdk import (
     BooleanCondition,
@@ -25,6 +26,8 @@ from snuba_sdk import (
 )
 
 from sentry import analytics
+from sentry.analytics.events.eventuser_snuba_for_projects import EventUserSnubaForProjects
+from sentry.analytics.events.eventuser_snuba_query import EventUserSnubaQuery
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -87,6 +90,15 @@ def get_ip_address_conditions(ip_addresses: list[str]) -> list[Condition]:
     return conditions
 
 
+class SerializedEventUser(TypedDict):
+    id: str
+    username: str | None
+    email: str | None
+    name: str | None
+    ipAddress: str | None
+    avatarUrl: str | None
+
+
 @dataclass
 class EventUser:
     project_id: int | None
@@ -118,7 +130,7 @@ class EventUser:
     @classmethod
     def for_projects(
         self,
-        projects: QuerySet[Project] | list[Project],
+        projects: QuerySet[Project] | Sequence[Project],
         keyword_filters: Mapping[str, list[Any]],
         filter_boolean: BooleanOp = BooleanOp.AND,
         result_offset: int = 0,
@@ -223,15 +235,20 @@ class EventUser:
 
             query_end_time = time.time()
 
-            analytics.record(
-                "eventuser_snuba.query",
-                project_ids=[p.id for p in projects],
-                query=query.print(),
-                query_try=tries,
-                count_rows_returned=len(data_results),
-                count_rows_filtered=len(data_results) - len(unique_event_users),
-                query_time_ms=int((query_end_time - query_start_time) * 1000),
-            )
+            try:
+                analytics.record(
+                    EventUserSnubaQuery(
+                        project_ids=[p.id for p in projects],
+                        query=query.print(),
+                        query_try=tries,
+                        count_rows_returned=len(data_results),
+                        count_rows_filtered=len(data_results) - len(unique_event_users),
+                        query_time_ms=int((query_end_time - query_start_time) * 1000),
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
             tries += 1
             if (
                 target_unique_rows_fetched
@@ -242,13 +259,17 @@ class EventUser:
                 break
 
         end_time = time.time()
-        analytics.record(
-            "eventuser_snuba.for_projects",
-            project_ids=[p.id for p in projects],
-            total_tries=tries,
-            total_rows_returned=len(full_results),
-            total_time_ms=int((end_time - start_time) * 1000),
-        )
+        try:
+            analytics.record(
+                EventUserSnubaForProjects(
+                    project_ids=[p.id for p in projects],
+                    total_tries=tries,
+                    total_rows_returned=len(full_results),
+                    total_time_ms=int((end_time - start_time) * 1000),
+                )
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
         if result_limit:
             return full_results[result_offset : result_offset + result_limit]
@@ -288,7 +309,7 @@ class EventUser:
         )
 
     @classmethod
-    def for_tags(cls, project_id: int, values):
+    def for_tags(cls, project_id: int, values: list[str]) -> dict[str, EventUser]:
         """
         Finds matching EventUser objects from a list of tag values.
 
@@ -334,9 +355,9 @@ class EventUser:
         for key in KEYWORD_MAP.keys():
             yield key, getattr(self, key)
 
-    def serialize(self):
+    def serialize(self) -> SerializedEventUser:
         return {
-            "id": str(self.id),
+            "id": str(self.id) if self.id else str(self.user_ident),
             "username": self.username,
             "email": self.email,
             "name": self.get_display_name(),

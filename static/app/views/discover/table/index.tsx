@@ -164,7 +164,9 @@ class Table extends PureComponent<TableProps, TableState> {
 
       // We need to include the event.type field because we want to
       // route to issue details for error and default event types.
-      apiPayload.field.push('event.type');
+      if (!hasDatasetSelector(organization)) {
+        apiPayload.field.push('event.type');
+      }
     }
 
     // To generate the target url for TRACE ID and EVENT ID links we always include a timestamp,
@@ -220,7 +222,7 @@ class Table extends PureComponent<TableProps, TableState> {
         // events api uses a different response format so we need to construct tableData differently
         const tableData = {
           ...data,
-          meta: {...fields, ...nonFieldsMeta},
+          meta: {...fields, ...nonFieldsMeta, fields},
         };
 
         trackAnalytics('discover_search.success', {
@@ -284,7 +286,7 @@ class Table extends PureComponent<TableProps, TableState> {
     const {pageLinks, tableData, isLoading, error} = this.state;
 
     const isFirstPage = pageLinks
-      ? parseLinkHeader(pageLinks).previous.results === false
+      ? parseLinkHeader(pageLinks).previous!.results === false
       : false;
 
     return (

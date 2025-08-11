@@ -35,8 +35,8 @@ class RotationSchedule(Model):
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
 
     class Meta:
-        app_label = "sentry"
-        db_table = "sentry_rotation_schedule"
+        app_label = "escalation_policies"
+        db_table = "escalation_policies_rotation_schedule"
         unique_together = (("organization", "name"),)
 
 
@@ -81,8 +81,8 @@ class RotationScheduleLayer(Model):
     start_date = models.DateField(default=timezone.now)
 
     class Meta:
-        app_label = "sentry"
-        db_table = "sentry_rotation_schedule_layer"
+        app_label = "escalation_policies"
+        db_table = "escalation_policies_rotation_schedule_layer"
         unique_together = ("schedule_id", "precedence")
         ordering = ("precedence",)
 
@@ -116,8 +116,8 @@ class RotationScheduleUserOrder(Model):
     order = models.PositiveIntegerField()
 
     class Meta:
-        app_label = "sentry"
-        db_table = "sentry_rotation_schedule_layer_user_order"
+        app_label = "escalation_policies"
+        db_table = "escalation_policies_rotation_schedule_layer_user_order"
         unique_together = ("schedule_layer", "user_id")
 
 
@@ -133,8 +133,8 @@ class RotationScheduleOverride(Model):
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="CASCADE")
 
     class Meta:
-        app_label = "sentry"
-        db_table = "sentry_rotation_schedule_override"
+        app_label = "escalation_policies"
+        db_table = "escalation_policies_rotation_schedule_override"
 
 
 DEFAULT_ROTATION_START_TIME = datetime(2024, 1, 1, tzinfo=UTC)

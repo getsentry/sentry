@@ -9,7 +9,7 @@ def make_threads_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"threads": data})
         mgr.normalize()
-        evt = eventstore.backend.create_event(data=mgr.get_data())
+        evt = eventstore.backend.create_event(project_id=1, data=mgr.get_data())
 
         interface = evt.interfaces.get("threads")
         insta_snapshot(
@@ -55,7 +55,7 @@ basic_payload = dict(
 )
 
 
-def test_basics(make_threads_snapshot):
+def test_basics(make_threads_snapshot) -> None:
     make_threads_snapshot(basic_payload)
 
 
@@ -70,5 +70,5 @@ def test_basics(make_threads_snapshot):
         {"values": [{"held_locks": None}]},
     ],
 )
-def test_null_values(make_threads_snapshot, input):
+def test_null_values(make_threads_snapshot, input) -> None:
     make_threads_snapshot(input)

@@ -54,7 +54,7 @@ def store_and_strip_event(configs, store_event):
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_event_data_keeps_allowed_keys(store_and_strip_event):
+def test_strip_event_data_keeps_allowed_keys(store_and_strip_event) -> None:
     stripped_event_data = store_and_strip_event(data=get_crash_event())
 
     keys_removed = {"tags", "user", "threads", "breadcrumbs", "environment"}
@@ -76,7 +76,7 @@ def test_strip_event_data_keeps_allowed_keys(store_and_strip_event):
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_event_data_strips_context(store_and_strip_event):
+def test_strip_event_data_strips_context(store_and_strip_event) -> None:
     stripped_event_data = store_and_strip_event(data=get_crash_event())
 
     assert stripped_event_data.get("contexts") == {
@@ -96,7 +96,7 @@ def test_strip_event_data_strips_context(store_and_strip_event):
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_event_data_strips_sdk(store_and_strip_event):
+def test_strip_event_data_strips_sdk(store_and_strip_event) -> None:
     stripped_event_data = store_and_strip_event(data=get_crash_event())
 
     assert stripped_event_data.get("sdk") == {
@@ -107,7 +107,7 @@ def test_strip_event_data_strips_sdk(store_and_strip_event):
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_event_data_strips_value_if_not_simple_type(store_event, configs):
+def test_strip_event_data_strips_value_if_not_simple_type(store_event, configs) -> None:
     event = store_event(data=get_crash_event())
     event.data["type"] = {"foo": "bar"}
 
@@ -118,7 +118,7 @@ def test_strip_event_data_strips_value_if_not_simple_type(store_event, configs):
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_event_data_keeps_simple_types(store_event, configs):
+def test_strip_event_data_keeps_simple_types(store_event, configs) -> None:
     event = store_event(data=get_crash_event())
     event.data["type"] = True
     event.data["datetime"] = 0.1
@@ -135,7 +135,7 @@ def test_strip_event_data_keeps_simple_types(store_event, configs):
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_event_data_keeps_simple_exception_properties(store_and_strip_event):
+def test_strip_event_data_keeps_simple_exception_properties(store_and_strip_event) -> None:
     stripped_event_data = store_and_strip_event(data=get_crash_event())
 
     assert get_path(stripped_event_data, "exception", "values", 0, "type") == "EXC_BAD_ACCESS"
@@ -144,7 +144,7 @@ def test_strip_event_data_keeps_simple_exception_properties(store_and_strip_even
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_event_data_keeps_exception_mechanism(store_event, configs):
+def test_strip_event_data_keeps_exception_mechanism(store_event, configs) -> None:
     event = store_event(data=get_crash_event())
 
     # set extra data that should be stripped
@@ -190,7 +190,7 @@ def test_strip_event_data_keeps_exception_mechanism(store_event, configs):
 
 @django_db_all
 @pytest.mark.snuba
-def test_set_in_app_only_for_sdk_frames(store_and_strip_event):
+def test_set_in_app_only_for_sdk_frames(store_and_strip_event) -> None:
     frames = get_frames("SentryCrashMonitor_CPPException.cpp", sentry_frame_in_app=False)
 
     system_frame_in_app = [
@@ -222,7 +222,7 @@ def test_set_in_app_only_for_sdk_frames(store_and_strip_event):
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_event_data_keeps_exception_stacktrace(store_and_strip_event):
+def test_strip_event_data_keeps_exception_stacktrace(store_and_strip_event) -> None:
     stripped_event_data = store_and_strip_event(data=get_crash_event())
 
     first_frame = get_path(stripped_event_data, "exception", "values", 0, "stacktrace", "frames", 0)
@@ -247,7 +247,7 @@ def test_strip_event_data_keeps_exception_stacktrace(store_and_strip_event):
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_frames(store_and_strip_event):
+def test_strip_frames(store_and_strip_event) -> None:
     frames = get_frames("SentryCrashMonitor_CPPException.cpp", sentry_frame_in_app=False)
 
     frames_kept = [
@@ -297,7 +297,7 @@ def test_strip_frames(store_and_strip_event):
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_frames_sdk_frames(store_and_strip_event):
+def test_strip_frames_sdk_frames(store_and_strip_event) -> None:
     frames = get_frames("SentryCrashMonitor_CPPException.cpp", sentry_frame_in_app=False)
     # When statically linked the package or module is usually set to the app name
     sentry_sdk_frame = frames[-1]
@@ -327,20 +327,20 @@ def test_strip_frames_sdk_frames(store_and_strip_event):
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_frames_sdk_frames_keep_after_matcher(store_and_strip_event, configs):
+def test_strip_frames_sdk_frames_keep_after_matcher(store_and_strip_event, configs) -> None:
     frames = get_frames("SentryCrashMonitor_CPPException.cpp", sentry_frame_in_app=False)
 
     sentry_sdk_frame = frames[-1]
 
-    sentry_sdk_frame[
-        "module"
-    ] = "Users/sentry/git-repos/sentry-react-native/dist/js/integrations/reactnative"
-    sentry_sdk_frame[
-        "filename"
-    ] = "/Users/sentry/git-repos/sentry-react-native/dist/js/integrations/reactnative.js"
-    sentry_sdk_frame[
-        "abs_path"
-    ] = "app:///Users/sentry/git-repos/sentry-react-native/dist/js/integrations/reactnative.js"
+    sentry_sdk_frame["module"] = (
+        "Users/sentry/git-repos/sentry-react-native/dist/js/integrations/reactnative"
+    )
+    sentry_sdk_frame["filename"] = (
+        "/Users/sentry/git-repos/sentry-react-native/dist/js/integrations/reactnative.js"
+    )
+    sentry_sdk_frame["abs_path"] = (
+        "app:///Users/sentry/git-repos/sentry-react-native/dist/js/integrations/reactnative.js"
+    )
 
     event_data = get_crash_event_with_frames(frames)
 
@@ -365,15 +365,15 @@ def test_strip_frames_sdk_frames_keep_after_matcher(store_and_strip_event, confi
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_frames_with_keep_for_fields_path_replacer(store_and_strip_event, configs):
+def test_strip_frames_with_keep_for_fields_path_replacer(store_and_strip_event, configs) -> None:
     frames = get_frames("register", sentry_frame_in_app=False)
 
     sentry_sdk_frame = frames[-1]
 
     sentry_sdk_frame["module"] = "io.sentry.android.core.SentryAndroidOptions"
     sentry_sdk_frame["filename"] = "SentryAndroidOptions.java"
+    sentry_sdk_frame["package"] = "/apex/com.android.art/lib64/libart.so"
     sentry_sdk_frame["abs_path"] = "remove_me"
-    sentry_sdk_frame["package"] = "remove_me"
 
     event_data = get_crash_event_with_frames(frames)
 
@@ -389,6 +389,7 @@ def test_strip_frames_with_keep_for_fields_path_replacer(store_and_strip_event, 
         "function": "register",
         "module": "io.sentry.android.core.SentryAndroidOptions",
         "filename": "SentryAndroidOptions.java",
+        "package": "/apex/com.android.art/lib64/libart.so",
         "in_app": True,
         "image_addr": "0x100304000",
     }
@@ -425,7 +426,7 @@ def test_strip_frames_with_keep_for_fields_path_replacer(store_and_strip_event, 
     ],
 )
 @django_db_all
-def test_event_data_with_registers(registers, expected_registers, store_and_strip_event):
+def test_event_data_with_registers(registers, expected_registers, store_and_strip_event) -> None:
     stripped_event_data = store_and_strip_event(data=get_crash_event(registers=registers))
 
     stripped_registers = get_path(
@@ -436,7 +437,7 @@ def test_event_data_with_registers(registers, expected_registers, store_and_stri
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_event_without_data_returns_empty_dict(store_and_strip_event):
+def test_strip_event_without_data_returns_empty_dict(store_and_strip_event) -> None:
     stripped_event_data = store_and_strip_event(data={})
 
     assert stripped_event_data == {}
@@ -444,7 +445,7 @@ def test_strip_event_without_data_returns_empty_dict(store_and_strip_event):
 
 @django_db_all
 @pytest.mark.snuba
-def test_strip_event_without_frames_returns_empty_dict(store_and_strip_event):
+def test_strip_event_without_frames_returns_empty_dict(store_and_strip_event) -> None:
     event_data = get_crash_event_with_frames([])
     set_path(event_data, "exception", value=None)
 

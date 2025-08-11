@@ -11,11 +11,13 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
-from sentry import eventstream, tagstore, tsdb
+from sentry import eventstream, tsdb
+from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.eventstore.models import Event
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
@@ -30,7 +32,8 @@ from sentry.tasks.unmerge import (
     unmerge,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import redis
@@ -41,7 +44,7 @@ index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 
 @patch.object(features, "index", new=index)
 class UnmergeTestCase(TestCase, SnubaTestCase):
-    def test_get_fingerprint(self):
+    def test_get_fingerprint(self) -> None:
         assert (
             get_fingerprint(
                 self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
@@ -59,7 +62,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             == hashlib.md5(b"Not hello world").hexdigest()
         )
 
-    def test_get_group_creation_attributes(self):
+    def test_get_group_creation_attributes(self) -> None:
         now = timezone.now().replace(microsecond=0)
         e1 = self.store_event(
             data={
@@ -69,7 +72,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 "type": "default",
                 "level": "info",
                 "tags": {"logger": "javascript"},
-                "timestamp": iso_format(now),
+                "timestamp": now.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -81,7 +84,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 "type": "default",
                 "level": "error",
                 "tags": {"logger": "python"},
-                "timestamp": iso_format(now),
+                "timestamp": now.isoformat(),
             },
             project_id=self.project.id,
         )
@@ -93,20 +96,19 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 "type": "default",
                 "level": "debug",
                 "tags": {"logger": "java"},
-                "timestamp": iso_format(now),
+                "timestamp": now.isoformat(),
             },
             project_id=self.project.id,
         )
         events = [e1, e2, e3]
 
-        assert get_group_creation_attributes(get_caches(), events) == {
+        assert get_group_creation_attributes(get_caches(), e1.group, events) == {
             "active_at": now,
             "first_seen": now,
             "last_seen": now,
             "platform": "java",
             "message": "Hello from JavaScript",
             "level": logging.INFO,
-            "score": Group.calculate_score(3, now),
             "logger": "java",
             "times_seen": 3,
             "first_release": None,
@@ -116,9 +118,11 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 "last_received": e1.data["received"],
                 "metadata": {"title": "Hello from JavaScript"},
             },
+            "status": e1.group.status,
+            "substatus": e1.group.substatus,
         }
 
-    def test_get_group_backfill_attributes(self):
+    def test_get_group_backfill_attributes(self) -> None:
         now = timezone.now().replace(microsecond=0)
 
         assert get_group_backfill_attributes(
@@ -130,7 +134,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 platform="javascript",
                 message="Hello from JavaScript",
                 level=logging.INFO,
-                score=Group.calculate_score(3, now),
                 logger="javascript",
                 times_seen=1,
                 first_release=None,
@@ -142,7 +145,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                     data={
                         "platform": "python",
                         "message": "Hello from Python",
-                        "timestamp": iso_format(now - timedelta(hours=1)),
+                        "timestamp": (now - timedelta(hours=1)).isoformat(),
                         "type": "default",
                         "level": "debug",
                         "tags": {"logger": "java"},
@@ -153,7 +156,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                     data={
                         "platform": "java",
                         "message": "Hello from Java",
-                        "timestamp": iso_format(now - timedelta(hours=2)),
+                        "timestamp": (now - timedelta(hours=2)).isoformat(),
                         "type": "default",
                         "level": "debug",
                         "tags": {"logger": "java"},
@@ -165,15 +168,15 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             "active_at": now - timedelta(hours=2),
             "first_seen": now - timedelta(hours=2),
             "platform": "java",
-            "score": Group.calculate_score(3, now),
             "logger": "java",
             "times_seen": 3,
             "first_release": None,
         }
 
     @with_feature("projects:similarity-indexing")
+    @with_feature("organizations:issue-open-periods")
     @mock.patch("sentry.analytics.record")
-    def test_unmerge(self, mock_record):
+    def test_unmerge(self, mock_record) -> None:
         now = before_now(minutes=5).replace(microsecond=0)
 
         def time_from_now(offset=0):
@@ -206,7 +209,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                     "user": next(user_values),
                     "tags": tags,
                     "fingerprint": [fingerprint],
-                    "timestamp": iso_format(now + timedelta(seconds=i)),
+                    "timestamp": (now + timedelta(seconds=i)).isoformat(),
                     "environment": environment,
                     "release": release,
                 },
@@ -274,16 +277,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             merge_groups.delay([merge_source.id], source.id)
             eventstream.backend.end_merge(eventstream_state)
 
-        assert {
-            (gtv.value, gtv.times_seen)
-            for gtv in tagstore.backend.get_group_tag_values(
-                source,
-                production_environment.id,
-                "color",
-                tenant_ids={"referrer": "get_tag_values", "organization_id": 1},
-            )
-        } == {("red", 6), ("green", 5), ("blue", 5)}
-
         similar_items = features.compare(source)
         assert len(similar_items) == 2
         assert similar_items[0][0] == source.id
@@ -334,16 +327,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             )
         ) == {("production", time_from_now(10), time_from_now(15))}
 
-        assert {
-            (gtv.value, gtv.times_seen)
-            for gtv in tagstore.backend.get_group_tag_values(
-                destination,
-                production_environment.id,
-                "color",
-                tenant_ids={"referrer": "get_tag_values", "organization_id": 1},
-            )
-        } == {("red", 4), ("green", 3), ("blue", 3)}
-
         destination_event_ids = set(
             map(lambda event: event.event_id, list(events.values())[0] + list(events.values())[2])
         )
@@ -364,16 +347,17 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             ("production", time_from_now(0), time_from_now(9)),
             ("staging", time_from_now(16), time_from_now(16)),
         }
+        source_open_periods = (
+            GroupOpenPeriod.objects.filter(group=source).order_by("-date_started").first()
+        )
+        destination_open_period = (
+            GroupOpenPeriod.objects.filter(group=destination).order_by("-date_started").first()
+        )
 
-        assert {
-            (gtk.value, gtk.times_seen)
-            for gtk in tagstore.backend.get_group_tag_values(
-                destination,
-                production_environment.id,
-                "color",
-                tenant_ids={"referrer": "get_tag_values", "organization_id": 1},
-            )
-        } == {("red", 4), ("blue", 3), ("green", 3)}
+        assert source_open_periods is not None
+        assert source_open_periods.date_ended is None
+        assert destination_open_period is not None
+        assert destination_open_period.date_ended is None
 
         rollup_duration = 3600
 
@@ -470,10 +454,12 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             aggregate.add(
                 get_event_user_from_interface(event.data["user"], event.group.project).tag_value
             )
-            mock_record.assert_called_with(
-                "eventuser_endpoint.request",
-                project_id=event.group.project.id,
-                endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
+            assert_last_analytics_event(
+                mock_record,
+                EventUserEndpointRequest(
+                    project_id=event.group.project.id,
+                    endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
+                ),
             )
             return aggregate
 
@@ -512,8 +498,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         def collect_by_release(group, aggregate, event):
             aggregate = aggregate if aggregate is not None else {}
             release = event.get_tag("sentry:release")
-            if not release:
-                return aggregate
+            assert release
             release = GroupRelease.objects.get(
                 group_id=group.id,
                 environment=event.data["environment"],

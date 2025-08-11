@@ -1,12 +1,19 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {OnboardingRecentCreatedProject, Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import SetupDocs from 'sentry/views/onboarding/setupDocs';
 
 const PROJECT_KEY = ProjectKeysFixture()[0];
@@ -46,13 +53,6 @@ function renderMockRequests({
       },
     },
   });
-
-  if (project.slug !== 'javascript-react') {
-    MockApiClient.addMockResponse({
-      url: `/projects/${orgSlug}/${project.slug}/docs/${project.platform}/`,
-      body: {html: ''},
-    });
-  }
 }
 
 describe('Onboarding Setup Docs', function () {
@@ -84,12 +84,13 @@ describe('Onboarding Setup Docs', function () {
           genSkipOnboardingLink={() => ''}
           orgId={organization.slug}
           search=""
-          recentCreatedProject={project as OnboardingRecentCreatedProject}
+          recentCreatedProject={project}
         />
       </OnboardingContextProvider>,
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -132,12 +133,13 @@ describe('Onboarding Setup Docs', function () {
           genSkipOnboardingLink={() => ''}
           orgId={organization.slug}
           search=""
-          recentCreatedProject={project as OnboardingRecentCreatedProject}
+          recentCreatedProject={project}
         />
       </OnboardingContextProvider>,
       {
         router,
         organization,
+        deprecatedRouterMocks: true,
       }
     );
 
@@ -188,12 +190,13 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project as OnboardingRecentCreatedProject}
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
@@ -201,9 +204,10 @@ describe('Onboarding Setup Docs', function () {
         await screen.findByRole('heading', {name: 'Configure React SDK'})
       ).toBeInTheDocument();
 
-      const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).toHaveTextContent(/Performance Monitoring/);
-      expect(codeBlock).toHaveTextContent(/Session Replay/);
+      // First code block is the install snippet, second is the verify snippet
+      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      expect(codeBlocks[0]).toHaveTextContent(/Tracing/);
+      expect(codeBlocks[0]).toHaveTextContent(/Session Replay/);
     });
 
     it('only performance checked', async function () {
@@ -242,18 +246,20 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project as OnboardingRecentCreatedProject}
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
-      const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).toHaveTextContent(/Performance Monitoring/);
-      expect(codeBlock).not.toHaveTextContent(/Session Replay/);
+      // First code block is the install snippet, second is the verify snippet
+      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      expect(codeBlocks[0]).toHaveTextContent(/Tracing/);
+      expect(codeBlocks[0]).not.toHaveTextContent(/Session Replay/);
     });
 
     it('only session replay checked', async function () {
@@ -292,18 +298,20 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project as OnboardingRecentCreatedProject}
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
-      const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).toHaveTextContent(/Session Replay/);
-      expect(codeBlock).not.toHaveTextContent(/Performance Monitoring/);
+      // First code block is the install snippet, second is the verify snippet
+      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      expect(codeBlocks[0]).toHaveTextContent(/Session Replay/);
+      expect(codeBlocks[0]).not.toHaveTextContent(/Tracing/);
     });
 
     it('only error monitoring checked', async function () {
@@ -342,20 +350,22 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project as OnboardingRecentCreatedProject}
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-      const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).not.toHaveTextContent(/Performance Monitoring/);
-      expect(codeBlock).not.toHaveTextContent(/Session Replay/);
+      // First code block is the install snippet, second is the verify snippet
+      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      expect(codeBlocks[0]).not.toHaveTextContent(/Tracing/);
+      expect(codeBlocks[0]).not.toHaveTextContent(/Session Replay/);
     });
   });
 
@@ -369,6 +379,7 @@ describe('Onboarding Setup Docs', function () {
                 ProductSolution.PERFORMANCE_MONITORING,
                 ProductSolution.SESSION_REPLAY,
               ],
+              installationMode: 'auto',
             },
           },
         },
@@ -379,10 +390,13 @@ describe('Onboarding Setup Docs', function () {
             platform: 'javascript',
           },
         ],
+        organization: OrganizationFixture({
+          features: ['session-replay', 'performance-view'],
+        }),
       });
 
       const updateLoaderMock = MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${project.slug}/keys/${PROJECT_KEY.id}/`,
+        url: `/projects/${organization.slug}/${project.slug}/keys/${PROJECT_KEY!.id}/`,
         method: 'PUT',
         body: PROJECT_KEY,
       });
@@ -395,7 +409,7 @@ describe('Onboarding Setup Docs', function () {
         orgSlug: organization.slug,
       });
 
-      const {rerender} = render(
+      render(
         <OnboardingContextProvider>
           <SetupDocs
             active
@@ -407,17 +421,18 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project as OnboardingRecentCreatedProject}
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 
       expect(
-        await screen.findByRole('heading', {name: 'Configure Browser JavaScript SDK'})
+        await screen.findByRole('radio', {name: 'Loader Script'})
       ).toBeInTheDocument();
 
       expect(updateLoaderMock).toHaveBeenCalledTimes(1);
@@ -437,36 +452,21 @@ describe('Onboarding Setup Docs', function () {
         }
       );
 
-      // update query in URL
-      router.location.query = {
-        product: [ProductSolution.SESSION_REPLAY],
-      };
-      rerender(
-        <OnboardingContextProvider>
-          <SetupDocs
-            active
-            onComplete={() => {}}
-            stepIndex={2}
-            router={router}
-            route={{}}
-            location={router.location}
-            genSkipOnboardingLink={() => ''}
-            orgId={organization.slug}
-            search=""
-            recentCreatedProject={project as OnboardingRecentCreatedProject}
-          />
-        </OnboardingContextProvider>
-      );
+      expect(
+        await screen.findByRole('radio', {name: 'Loader Script'})
+      ).toBeInTheDocument();
 
+      await userEvent.click(screen.getByRole('button', {name: 'Session Replay'}));
       expect(updateLoaderMock).toHaveBeenCalledTimes(2);
+
       expect(updateLoaderMock).toHaveBeenLastCalledWith(
         expect.any(String), // The URL
         {
           data: {
             dynamicSdkLoaderOptions: {
               hasDebug: false,
-              hasPerformance: false,
-              hasReplay: true,
+              hasPerformance: true,
+              hasReplay: false,
             },
           },
           error: expect.any(Function),
@@ -506,12 +506,13 @@ describe('Onboarding Setup Docs', function () {
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
             search=""
-            recentCreatedProject={project as OnboardingRecentCreatedProject}
+            recentCreatedProject={project}
           />
         </OnboardingContextProvider>,
         {
           router,
           organization,
+          deprecatedRouterMocks: true,
         }
       );
 

@@ -1,5 +1,4 @@
-import {Component, Fragment} from 'react';
-import type {InjectedRouter} from 'react-router';
+import {Component, Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -11,14 +10,12 @@ import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import SearchBar from 'sentry/components/events/searchBar';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -31,52 +28,57 @@ import {
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import type {CursorHandler} from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconClose} from 'sentry/icons/iconClose';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {NewQuery, Organization, PageFilters, SavedQuery} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import {SavedSearchType} from 'sentry/types/group';
+import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
+import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
 import {
   DatasetSource,
+  DiscoverDatasets,
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
   SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import localStorage from 'sentry/utils/localStorage';
-import marked from 'sentry/utils/marked';
+import {MarkedText} from 'sentry/utils/marked/markedText';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {
-  DATASET_LABEL_MAP,
-  DatasetSelector,
-} from 'sentry/views/discover/savedQuery/datasetSelector';
+  DEFAULT_EVENT_VIEW,
+  DEFAULT_EVENT_VIEW_MAP,
+} from 'sentry/views/discover/results/data';
+import ResultsChart from 'sentry/views/discover/results/resultsChart';
+import ResultsHeader from 'sentry/views/discover/results/resultsHeader';
+import ResultsSearchQueryBuilder from 'sentry/views/discover/results/resultsSearchQueryBuilder';
+import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
+import Tags from 'sentry/views/discover/results/tags';
+import {DATASET_LABEL_MAP} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
   getSavedQueryWithDataset,
 } from 'sentry/views/discover/savedQuery/utils';
-
-import {addRoutePerformanceContext} from '../performance/utils';
-
-import {DEFAULT_EVENT_VIEW, DEFAULT_EVENT_VIEW_MAP} from './data';
-import ResultsChart from './resultsChart';
-import ResultsHeader from './resultsHeader';
-import {SampleDataAlert} from './sampleDataAlert';
-import Table from './table';
-import Tags from './tags';
-import {generateTitle} from './utils';
+import Table from 'sentry/views/discover/table';
+import {generateTitle} from 'sentry/views/discover/utils';
+import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 
 type Props = {
   api: Client;
@@ -104,6 +106,8 @@ type State = {
   savedQueryDataset?: SavedQueryDatasets;
   showForcedDatasetAlert?: boolean;
   showMetricsAlert?: boolean;
+  showQueryIncompatibleWithDataset?: boolean;
+  showTransactionsDeprecationAlert?: boolean;
   showUnparameterizedBanner?: boolean;
   splitDecision?: SavedQueryDatasets;
 };
@@ -168,6 +172,8 @@ export class Results extends Component<Props, State> {
     confirmedQuery: false,
     tips: [],
     showForcedDatasetAlert: true,
+    showQueryIncompatibleWithDataset: false,
+    showTransactionsDeprecationAlert: true,
   };
 
   componentDidMount() {
@@ -198,6 +204,14 @@ export class Results extends Component<Props, State> {
   componentDidUpdate(prevProps: Props, prevState: State) {
     const {location, organization, selection} = this.props;
     const {eventView, confirmedQuery, savedQuery} = this.state;
+
+    if (location.query.incompatible) {
+      this.setState({showQueryIncompatibleWithDataset: true});
+      browserHistory.replace({
+        ...location,
+        query: {...location.query, incompatible: undefined},
+      });
+    }
 
     this.checkEventView();
     const currentQuery = eventView.getEventsAPIPayload(location);
@@ -303,7 +317,7 @@ export class Results extends Component<Props, State> {
 
   openConfirm = () => {};
 
-  setOpenFunction = ({open}) => {
+  setOpenFunction = ({open}: any) => {
     this.openConfirm = open;
     return null;
   };
@@ -358,6 +372,9 @@ export class Results extends Component<Props, State> {
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;
     }
+    if (nextEventView.environment.length === 0 && selection.environments) {
+      nextEventView.environment = selection.environments;
+    }
     if (selection.datetime) {
       const {period, utc, start, end} = selection.datetime;
       nextEventView.statsPeriod = period ?? undefined;
@@ -375,7 +392,7 @@ export class Results extends Component<Props, State> {
     browserHistory.replace(
       normalizeUrl(
         nextEventView.getResultsViewUrlTarget(
-          organization.slug,
+          organization,
           isHomepage,
           hasDatasetSelector(organization) ? savedQueryDataset : undefined
         )
@@ -411,7 +428,7 @@ export class Results extends Component<Props, State> {
     const {router, location} = this.props;
 
     const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
+      ...location.query,
       query,
     });
 
@@ -518,12 +535,12 @@ export class Results extends Component<Props, State> {
   };
 
   getDocumentTitle(): string {
-    const {organization} = this.props;
     const {eventView} = this.state;
+    const {isHomepage} = this.props;
     if (!eventView) {
       return '';
     }
-    return generateTitle({eventView, organization});
+    return generateTitle({eventView, isHomepage});
   }
 
   renderTagsTable() {
@@ -549,7 +566,7 @@ export class Results extends Component<Props, State> {
     const {eventView, savedQueryDataset} = this.state;
 
     const url = eventView.getResultsViewUrlTarget(
-      organization.slug,
+      organization,
       isHomepage,
       hasDatasetSelector(organization) ? savedQueryDataset : undefined
     );
@@ -565,9 +582,9 @@ export class Results extends Component<Props, State> {
       return null;
     }
     return (
-      <Alert type="error" showIcon>
-        {error}
-      </Alert>
+      <Alert.Container>
+        <Alert type="error">{error}</Alert>
+      </Alert.Container>
     );
   }
 
@@ -582,25 +599,56 @@ export class Results extends Component<Props, State> {
       this.state.showMetricsAlert
     ) {
       return (
-        <Alert type="info" showIcon>
-          {t(
-            "You've navigated to this page from a performance metric widget generated from processed events. The results here only show indexed events."
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert type="info">
+            {t(
+              "You've navigated to this page from a performance metric widget generated from processed events. The results here only show indexed events."
+            )}
+          </Alert>
+        </Alert.Container>
       );
     }
     if (this.state.showUnparameterizedBanner) {
       return (
-        <Alert type="info" showIcon>
-          {tct(
-            'These are unparameterized transactions. To better organize your transactions, [link:set transaction names manually].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/automatic-instrumentation/#beforenavigate" />
-              ),
+        <Alert.Container>
+          <Alert type="info">
+            {tct(
+              'These are unparameterized transactions. To better organize your transactions, [link:set transaction names manually].',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/javascript/tracing/instrumentation/automatic-instrumentation/#beforenavigate" />
+                ),
+              }
+            )}
+          </Alert>
+        </Alert.Container>
+      );
+    }
+    return null;
+  }
+
+  renderQueryIncompatibleWithDatasetBanner() {
+    const {organization} = this.props;
+    if (hasDatasetSelector(organization) && this.state.showQueryIncompatibleWithDataset) {
+      return (
+        <Alert.Container>
+          <Alert
+            type="warning"
+            trailingItems={
+              <StyledCloseButton
+                icon={<IconClose size="sm" />}
+                aria-label={t('Close')}
+                onClick={() => {
+                  this.setState({showQueryIncompatibleWithDataset: false});
+                }}
+                size="zero"
+                borderless
+              />
             }
-          )}
-        </Alert>
+          >
+            {t('Your query was updated to make it compatible with this dataset.')}
+          </Alert>
+        </Alert.Container>
       );
     }
     return null;
@@ -618,26 +666,68 @@ export class Results extends Component<Props, State> {
         return null;
       }
       return (
-        <Alert
-          type="warning"
-          showIcon
-          trailingItems={
-            <StyledCloseButton
-              icon={<IconClose size="sm" />}
-              aria-label={t('Close')}
-              onClick={() => {
-                this.setState({showForcedDatasetAlert: false});
-              }}
-              size="zero"
-              borderless
-            />
-          }
-        >
-          {tct(
-            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to [splitDecision]. Edit as you see fit.",
-            {splitDecision: DATASET_LABEL_MAP[splitDecision]}
-          )}
-        </Alert>
+        <Alert.Container>
+          <Alert
+            type="warning"
+            trailingItems={
+              <StyledCloseButton
+                icon={<IconClose size="sm" />}
+                aria-label={t('Close')}
+                onClick={() => {
+                  this.setState({showForcedDatasetAlert: false});
+                }}
+                size="zero"
+                borderless
+              />
+            }
+          >
+            {tct(
+              "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to [splitDecision]. Edit as you see fit.",
+              {splitDecision: DATASET_LABEL_MAP[splitDecision]}
+            )}
+          </Alert>
+        </Alert.Container>
+      );
+    }
+    return null;
+  }
+
+  renderTransactionsDatasetDeprecationBanner() {
+    const {savedQueryDataset} = this.state;
+    const {location, organization} = this.props;
+    const dataset = getDatasetFromLocationOrSavedQueryDataset(
+      location,
+      savedQueryDataset
+    );
+    if (
+      this.state.showTransactionsDeprecationAlert &&
+      organization.features.includes('performance-transaction-deprecation-banner') &&
+      dataset === DiscoverDatasets.TRANSACTIONS
+    ) {
+      return (
+        <Alert.Container>
+          <Alert
+            type="warning"
+            trailingItems={
+              <StyledCloseButton
+                icon={<IconClose size="sm" />}
+                aria-label={t('Close')}
+                onClick={() => {
+                  this.setState({showTransactionsDeprecationAlert: false});
+                }}
+                size="zero"
+                borderless
+              />
+            }
+          >
+            {tctCode(
+              'The transactions dataset is being deprecated. Please use [traceLink:Explore / Traces] with the [code:is_transaction:true] filter instead.',
+              {
+                traceLink: <Link to="/explore/traces/?query=is_transaction:true" />,
+              }
+            )}
+          </Alert>
+        </Alert.Container>
       );
     }
     return null;
@@ -647,9 +737,11 @@ export class Results extends Component<Props, State> {
     const {tips} = this.state;
     if (tips) {
       return tips.map((tip, index) => (
-        <Alert type="info" showIcon key={`tip-${index}`}>
-          <TipContainer dangerouslySetInnerHTML={{__html: marked(tip)}} />
-        </Alert>
+        <Alert.Container key={`tip-${index}`}>
+          <Alert type="info" key={`tip-${index}`}>
+            <TipContainer as="span" text={tip} />
+          </Alert>
+        </Alert.Container>
       ));
     }
     return null;
@@ -676,6 +768,37 @@ export class Results extends Component<Props, State> {
     });
   };
 
+  renderSearchBar(customMeasurements: CustomMeasurementCollection | undefined) {
+    const {organization} = this.props;
+    const {eventView} = this.state;
+    const fields = eventView.hasAggregateField()
+      ? generateAggregateFields(organization, eventView.fields)
+      : eventView.fields;
+
+    let savedSearchType: SavedSearchType | undefined = SavedSearchType.EVENT;
+    if (hasDatasetSelector(organization)) {
+      savedSearchType =
+        eventView.dataset === DiscoverDatasets.TRANSACTIONS
+          ? SavedSearchType.TRANSACTION
+          : SavedSearchType.ERROR;
+    }
+
+    return (
+      <Wrapper>
+        <ResultsSearchQueryBuilder
+          projectIds={eventView.project}
+          query={eventView.query}
+          fields={fields}
+          onSearch={this.handleSearch}
+          customMeasurements={customMeasurements}
+          dataset={eventView.dataset}
+          includeTransactions
+          recentSearches={savedSearchType}
+        />
+      </Wrapper>
+    );
+  }
+
   render() {
     const {organization, location, router, selection, api, setSavedQuery, isHomepage} =
       this.props;
@@ -690,10 +813,6 @@ export class Results extends Component<Props, State> {
       splitDecision,
       savedQueryDataset,
     } = this.state;
-    const fields = eventView.hasAggregateField()
-      ? generateAggregateFields(organization, eventView.fields)
-      : eventView.fields;
-
     const hasDatasetSelectorFeature = hasDatasetSelector(organization);
 
     const query = eventView.query;
@@ -716,6 +835,7 @@ export class Results extends Component<Props, State> {
             yAxis={yAxisArray}
             router={router}
             isHomepage={isHomepage}
+            splitDecision={splitDecision}
           />
           <Layout.Body>
             <CustomMeasurementsProvider organization={organization} selection={selection}>
@@ -724,24 +844,11 @@ export class Results extends Component<Props, State> {
                 {this.renderError(error)}
                 {this.renderTips()}
                 {this.renderForcedDatasetBanner()}
+                {this.renderQueryIncompatibleWithDatasetBanner()}
+                {this.renderTransactionsDatasetDeprecationBanner()}
                 {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}
 
                 <Wrapper>
-                  <Feature
-                    organization={organization}
-                    features="performance-discover-dataset-selector"
-                  >
-                    {({hasFeature}) =>
-                      hasFeature && (
-                        <DatasetSelector
-                          isHomepage={isHomepage}
-                          savedQuery={savedQuery}
-                          splitDecision={splitDecision}
-                          eventView={eventView}
-                        />
-                      )
-                    }
-                  </Feature>
                   <PageFilterBar condensed>
                     <ProjectPageFilter />
                     <EnvironmentPageFilter />
@@ -749,20 +856,9 @@ export class Results extends Component<Props, State> {
                   </PageFilterBar>
                 </Wrapper>
                 <CustomMeasurementsContext.Consumer>
-                  {contextValue => (
-                    <StyledSearchBar
-                      searchSource="eventsv2"
-                      organization={organization}
-                      projectIds={eventView.project}
-                      query={query}
-                      fields={fields}
-                      onSearch={this.handleSearch}
-                      maxQueryLength={MAX_QUERY_LENGTH}
-                      customMeasurements={contextValue?.customMeasurements ?? undefined}
-                      dataset={eventView.dataset}
-                      includeTransactions={hasDatasetSelectorFeature ? false : true}
-                    />
-                  )}
+                  {contextValue =>
+                    this.renderSearchBar(contextValue?.customMeasurements ?? undefined)
+                  }
                 </CustomMeasurementsContext.Consumer>
                 <MetricsCardinalityProvider
                   organization={organization}
@@ -770,7 +866,6 @@ export class Results extends Component<Props, State> {
                 >
                   <ResultsChart
                     api={api}
-                    router={router}
                     organization={organization}
                     eventView={eventView}
                     location={location}
@@ -849,70 +944,75 @@ const Wrapper = styled('div')`
   gap: ${space(1)};
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: grid;
     grid-auto-flow: row;
   }
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  margin-bottom: ${space(2)};
 `;
 
 const Top = styled(Layout.Main)`
   flex-grow: 0;
 `;
 
-const TipContainer = styled('span')`
+const TipContainer = styled(MarkedText)`
   > p {
     margin: 0;
   }
 `;
 
-type SavedQueryState = DeprecatedAsyncComponent['state'] & {
-  savedQuery?: SavedQuery | null;
-};
+function SavedQueryAPI(props: Omit<Props, 'savedQuery' | 'loading' | 'setSavedQuery'>) {
+  const queryClient = useQueryClient();
+  const {organization, location} = props;
 
-class SavedQueryAPI extends DeprecatedAsyncComponent<Props, SavedQueryState> {
-  shouldReload = true;
-
-  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    const {organization, location} = this.props;
-
-    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [];
-    if (location.query.id) {
-      endpoints.push([
-        'savedQuery',
-        `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
-      ]);
-      return endpoints;
+  const queryKey = useMemo(
+    (): ApiQueryKey => [
+      `/organizations/${organization.slug}/discover/saved/${location.query.id}/`,
+    ],
+    [organization, location.query.id]
+  );
+  const {data, isError, isFetching, refetch} = useApiQuery<SavedQuery | undefined>(
+    queryKey,
+    {
+      enabled: Boolean(location.query.id),
+      staleTime: 0,
     }
-    return endpoints;
+  );
+
+  const setSavedQuery = useCallback(
+    (newQuery?: SavedQuery) => {
+      setApiQueryData(queryClient, queryKey, newQuery);
+      queryClient.refetchQueries({queryKey});
+    },
+    [queryClient, queryKey]
+  );
+
+  if (isFetching) {
+    return <LoadingIndicator />;
   }
 
-  setSavedQuery = (newSavedQuery?: SavedQuery) => {
-    this.setState({savedQuery: newSavedQuery});
-  };
-
-  renderBody(): React.ReactNode {
-    const {organization} = this.props;
-    const {savedQuery, loading} = this.state;
-    let savedQueryWithDataset = savedQuery;
-    if (hasDatasetSelector(organization) && savedQuery) {
-      savedQueryWithDataset = getSavedQueryWithDataset(savedQuery) as SavedQuery;
-    }
-    return (
-      <Results
-        {...this.props}
-        savedQuery={savedQueryWithDataset ?? undefined}
-        loading={loading}
-        setSavedQuery={this.setSavedQuery}
-      />
-    );
+  if (isError) {
+    return <LoadingError message={t('Failed to load saved query')} onRetry={refetch} />;
   }
+
+  return (
+    <Results
+      {...props}
+      savedQuery={
+        hasDatasetSelector(organization) ? getSavedQueryWithDataset(data) : data
+      }
+      loading={isFetching}
+      setSavedQuery={setSavedQuery}
+    />
+  );
 }
 
-function ResultsContainer(props: Props) {
+export default function ResultsContainer(
+  props: Omit<Props, 'api' | 'organization' | 'selection' | 'loading' | 'setSavedQuery'>
+) {
+  const api = useApi();
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+
   /**
    * Block `<Results>` from mounting until GSH is ready since there are API
    * requests being performed on mount.
@@ -927,19 +1027,25 @@ function ResultsContainer(props: Props) {
   return (
     <PageFiltersContainer
       disablePersistence={
-        props.organization.features.includes('discover-query') &&
+        organization.features.includes('discover-query') &&
         !!(props.savedQuery || props.location.query.id)
       }
       skipLoadLastUsed={
-        props.organization.features.includes('global-views') && !!props.savedQuery
+        organization.features.includes('global-views') && !!props.savedQuery
       }
+      // The Discover Results component will manage URL params, including page filters state
+      // This avoids an unnecessary re-render when forcing a project filter for team plan users
+      skipInitializeUrlParams
     >
-      <SavedQueryAPI {...props} />
+      <SavedQueryAPI
+        api={api}
+        organization={organization}
+        selection={selection}
+        {...props}
+      />
     </PageFiltersContainer>
   );
 }
-
-export default withApi(withOrganization(withPageFilters(ResultsContainer)));
 
 const StyledCloseButton = styled(Button)`
   background-color: transparent;

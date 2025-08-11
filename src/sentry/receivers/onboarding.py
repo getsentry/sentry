@@ -3,43 +3,56 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 
+import sentry_sdk
 from django.db.models import F
-from django.utils import timezone as django_timezone
 
-from sentry import analytics, features
+from sentry import analytics
+from sentry.analytics.events.first_cron_checkin_sent import FirstCronCheckinSent
+from sentry.analytics.events.first_event_sent import (
+    FirstEventSentEvent,
+    FirstEventSentForProjectEvent,
+)
+from sentry.analytics.events.first_feedback_sent import FirstFeedbackSentEvent
+from sentry.analytics.events.first_flag_sent import FirstFlagSentEvent
+from sentry.analytics.events.first_insight_span_sent import FirstInsightSpanSentEvent
+from sentry.analytics.events.first_log_sent import FirstLogSentEvent
+from sentry.analytics.events.first_profile_sent import FirstProfileSentEvent
+from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
+from sentry.analytics.events.first_transaction_sent import FirstTransactionSentEvent
+from sentry.analytics.events.member_invited import MemberInvitedEvent
+from sentry.analytics.events.project_transferred import ProjectTransferredEvent
+from sentry.analytics.events.second_platform_added import SecondPlatformAddedEvent
 from sentry.constants import InsightModules
+from sentry.integrations.base import IntegrationDomain, get_integration_types
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.organization import Organization
-from sentry.models.organizationonboardingtask import (
-    OnboardingTask,
-    OnboardingTaskStatus,
-    OrganizationOnboardingTask,
-)
+from sentry.models.organizationonboardingtask import OnboardingTask
 from sentry.models.project import Project
-from sentry.onboarding_tasks import try_mark_onboarding_complete
-from sentry.plugins.bases.issue import IssueTrackingPlugin
-from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
+from sentry.onboarding_tasks import (
+    complete_onboarding_task,
+    has_completed_onboarding_task,
+    transfer_onboarding_tasks,
+)
 from sentry.signals import (
     alert_rule_created,
     cron_monitor_created,
     event_processed,
     first_cron_checkin_received,
     first_cron_monitor_created,
-    first_custom_metric_received,
     first_event_received,
     first_event_with_minified_stack_trace_received,
     first_feedback_received,
+    first_flag_received,
     first_insight_span_received,
+    first_log_received,
     first_new_feedback_received,
     first_profile_received,
     first_replay_received,
     first_transaction_received,
     integration_added,
-    issue_tracker_used,
     member_invited,
-    member_joined,
-    plugin_enabled,
     project_created,
+    project_transferred,
     transaction_processed,
 )
 from sentry.users.services.user import RpcUser
@@ -59,22 +72,35 @@ START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
 START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ = datetime(2023, 11, 16, tzinfo=timezone.utc)
 
 
-@project_created.connect(weak=False)
-def record_new_project(project, user=None, user_id=None, **kwargs):
+def get_owner_id(project: Project, user: RpcUser | None = None) -> int | None:
+    if user and user.is_authenticated:
+        return user.id
+
+    # this is either the organizations owners user id or None
+    return Organization.objects.get_from_cache(id=project.organization_id).default_owner_id
+
+
+@project_created.connect(weak=False, dispatch_uid="record_new_project")
+def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
+
+    scope = sentry_sdk.get_current_scope()
+    scope.set_extra("project_id", project.id)
+    scope.set_extra("source", "record_new_project")
+
     if user_id is not None:
         default_user_id = user_id
     elif user.is_authenticated:
         user_id = default_user_id = user.id
     else:
-        user_id = None
-        try:
-            default_user_id = (
-                Organization.objects.get(id=project.organization_id).get_default_owner().id
-            )
-        except IndexError:
+        user_id = default_user_id = get_owner_id(project, user)
+        if user_id is None:
             logger.warning(
                 "Cannot initiate onboarding for organization (%s) due to missing owners",
                 project.organization_id,
+            )
+            sentry_sdk.capture_message(
+                f"Cannot initiate onboarding for organization ({project.organization_id}) due to missing owners",
+                level="warning",
             )
             # XXX(dcramer): we cannot setup onboarding tasks without a user
             return
@@ -84,340 +110,263 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=project.organization_id,
+        origin=origin,
         project_id=project.id,
         platform=project.platform,
-        updated_empty_state=features.has(
-            "organizations:issue-stream-empty-state", project.organization
-        ),
     )
 
-    success = OrganizationOnboardingTask.objects.record(
-        organization_id=project.organization_id,
+    completed = complete_onboarding_task(
+        organization=project.organization,
         task=OnboardingTask.FIRST_PROJECT,
         user_id=user_id,
-        status=OnboardingTaskStatus.COMPLETE,
         project_id=project.id,
     )
-    if not success:
-        OrganizationOnboardingTask.objects.record(
-            organization_id=project.organization_id,
+
+    # if we updated the task "first project", it means that it already exists and now we want to create the task "second platform"
+    if not completed:
+        complete_onboarding_task(
+            organization=project.organization,
             task=OnboardingTask.SECOND_PLATFORM,
             user_id=user_id,
-            status=OnboardingTaskStatus.PENDING,
             project_id=project.id,
+        )
+        analytics.record(
+            SecondPlatformAddedEvent(
+                user_id=default_user_id,
+                organization_id=project.organization_id,
+                project_id=project.id,
+            )
         )
 
 
-@first_event_received.connect(weak=False)
+@first_event_received.connect(weak=False, dispatch_uid="onboarding.record_first_event")
 def record_first_event(project, event, **kwargs):
-    """
-    Requires up to 2 database calls, but should only run with the first event in
-    any project, so performance should not be a huge bottleneck.
-    """
-    # If complete, pass (creation fails due to organization, task unique constraint)
-    # If pending, update.
-    # If does not exist, create.
-    rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
-        organization_id=project.organization_id,
-        task=OnboardingTask.FIRST_EVENT,
-        status=OnboardingTaskStatus.PENDING,
-        values={
-            "status": OnboardingTaskStatus.COMPLETE,
-            "project_id": project.id,
-            "date_completed": project.first_event,
-            "data": {"platform": event.platform},
-        },
-    )
-
-    try:
-        user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
-    except IndexError:
+    if (owner_id := get_owner_id(project)) is None:
         logger.warning(
             "Cannot record first event for organization (%s) due to missing owners",
             project.organization_id,
         )
         return
 
-    # this event fires once per project
     analytics.record(
-        "first_event_for_project.sent",
-        user_id=user.id if user else None,
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=event.platform,
-        project_platform=project.platform,
-        url=dict(event.tags).get("url", None),
-        has_minified_stack_trace=has_event_minified_stack_trace(event),
-        sdk_name=get_path(event, "sdk", "name"),
-    )
-
-    if rows_affected or created:
-        # this event only fires once per org
-        analytics.record(
-            "first_event.sent",
-            user_id=user.id if user else None,
+        FirstEventSentForProjectEvent(
+            user_id=owner_id,
             organization_id=project.organization_id,
             project_id=project.id,
             platform=event.platform,
             project_platform=project.platform,
+            url=dict(event.tags).get("url", None),
+            has_minified_stack_trace=has_event_minified_stack_trace(event),
+            sdk_name=get_path(event, "sdk", "name"),
         )
+    )
+
+    if has_completed_onboarding_task(project.organization, OnboardingTask.FIRST_EVENT):
+        # We don't need to record a first event for every project.
+        # Once a user sends their first event, we assume they've learned the process
+        # and completed the quick start task.
         return
 
-    try:
-        oot = OrganizationOnboardingTask.objects.filter(
-            organization_id=project.organization_id, task=OnboardingTask.FIRST_EVENT
-        )[0]
-    except IndexError:
-        return
+    completed = complete_onboarding_task(
+        project.organization, OnboardingTask.FIRST_EVENT, user_id=owner_id, project_id=project.id
+    )
 
-    # Only counts if it's a new project
-    if oot.project_id != project.id:
-        rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
-            organization_id=project.organization_id,
-            task=OnboardingTask.SECOND_PLATFORM,
-            status=OnboardingTaskStatus.PENDING,
-            values={
-                "status": OnboardingTaskStatus.COMPLETE,
-                "project_id": project.id,
-                "date_completed": project.first_event,
-                "data": {"platform": event.platform},
-            },
-        )
-        if rows_affected or created:
-            analytics.record(
-                "second_platform.added",
-                user_id=user.id if user else None,
+    if completed:
+        analytics.record(
+            FirstEventSentEvent(
+                user_id=owner_id,
                 organization_id=project.organization_id,
                 project_id=project.id,
                 platform=event.platform,
+                project_platform=project.platform,
             )
+        )
 
 
-@first_transaction_received.connect(weak=False)
+@first_transaction_received.connect(weak=False, dispatch_uid="onboarding.record_first_transaction")
 def record_first_transaction(project, event, **kwargs):
-    project.update(flags=F("flags").bitor(Project.flags.has_transactions))
-
-    OrganizationOnboardingTask.objects.record(
-        organization_id=project.organization_id,
+    complete_onboarding_task(
+        organization=project.organization,
         task=OnboardingTask.FIRST_TRANSACTION,
-        status=OnboardingTaskStatus.COMPLETE,
         date_completed=event.datetime,
     )
-
-    try:
-        default_user_id = project.organization.get_default_owner().id
-    except IndexError:
-        default_user_id = None
-
     analytics.record(
-        "first_transaction.sent",
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
-    )
-
-
-@first_profile_received.connect(weak=False)
-def record_first_profile(project, **kwargs):
-    project.update(flags=F("flags").bitor(Project.flags.has_profiles))
-
-    analytics.record(
-        "first_profile.sent",
-        user_id=project.organization.default_owner_id,
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
-    )
-
-
-@first_replay_received.connect(weak=False)
-def record_first_replay(project, **kwargs):
-    logger.info("record_first_replay_start")
-    project.update(flags=F("flags").bitor(Project.flags.has_replays))
-
-    success = OrganizationOnboardingTask.objects.record(
-        organization_id=project.organization_id,
-        task=OnboardingTask.SESSION_REPLAY,
-        status=OnboardingTaskStatus.COMPLETE,
-        date_completed=django_timezone.now(),
-    )
-    logger.info("record_first_replay_onboard_task", extra={"success": success})
-
-    if success:
-        logger.info("record_first_replay_analytics_start")
-        analytics.record(
-            "first_replay.sent",
-            user_id=project.organization.default_owner_id,
+        FirstTransactionSentEvent(
+            default_user_id=get_owner_id(project),
             organization_id=project.organization_id,
             project_id=project.id,
             platform=project.platform,
         )
-        logger.info("record_first_replay_analytics_end")
-        try_mark_onboarding_complete(project.organization_id)
-
-
-@first_feedback_received.connect(weak=False)
-def record_first_feedback(project, **kwargs):
-    project.update(flags=F("flags").bitor(Project.flags.has_feedbacks))
-
-    analytics.record(
-        "first_feedback.sent",
-        user_id=project.organization.default_owner_id,
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
     )
 
 
-@first_new_feedback_received.connect(weak=False)
-def record_first_new_feedback(project, **kwargs):
-    project.update(flags=F("flags").bitor(Project.flags.has_new_feedbacks))
-
+@first_profile_received.connect(weak=False, dispatch_uid="onboarding.record_first_profile")
+def record_first_profile(project, **kwargs):
     analytics.record(
-        "first_new_feedback.sent",
-        user_id=project.organization.default_owner_id,
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
-    )
-
-
-@first_cron_monitor_created.connect(weak=False)
-def record_first_cron_monitor(project, user, from_upsert, **kwargs):
-    updated = project.update(flags=F("flags").bitor(Project.flags.has_cron_monitors))
-
-    if updated:
-        analytics.record(
-            "first_cron_monitor.created",
-            user_id=user.id if user else project.organization.default_owner_id,
+        FirstProfileSentEvent(
+            user_id=get_owner_id(project),
             organization_id=project.organization_id,
             project_id=project.id,
-            from_upsert=from_upsert,
+            platform=project.platform,
         )
+    )
 
 
-@cron_monitor_created.connect(weak=False)
-def record_cron_monitor_created(project, user, from_upsert, **kwargs):
+@first_replay_received.connect(weak=False, dispatch_uid="onboarding.record_first_replay")
+def record_first_replay(project, **kwargs):
+    logger.info("record_first_replay_start")
+    completed = complete_onboarding_task(
+        organization=project.organization,
+        task=OnboardingTask.SESSION_REPLAY,
+    )
+    logger.info("record_first_replay_onboard_task", extra={"success": completed})
+
+    if completed:
+        logger.info("record_first_replay_analytics_start")
+        analytics.record(
+            FirstReplaySentEvent(
+                user_id=get_owner_id(project),
+                organization_id=project.organization_id,
+                project_id=project.id,
+                platform=project.platform,
+            )
+        )
+        logger.info("record_first_replay_analytics_end")
+
+
+@first_flag_received.connect(weak=False, dispatch_uid="onboarding.record_first_flag")
+def record_first_flag(project, **kwargs):
     analytics.record(
-        "cron_monitor.created",
-        user_id=user.id if user else project.organization.default_owner_id,
+        FirstFlagSentEvent(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+        )
+    )
+
+
+@first_feedback_received.connect(weak=False, dispatch_uid="onboarding.record_first_feedback")
+def record_first_feedback(project, **kwargs):
+    analytics.record(
+        FirstFeedbackSentEvent(
+            user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+        )
+    )
+
+
+@first_new_feedback_received.connect(
+    weak=False, dispatch_uid="onboarding.record_first_new_feedback"
+)
+def record_first_new_feedback(project, **kwargs):
+    analytics.record(
+        "first_new_feedback.sent",
+        user_id=get_owner_id(project),
+        organization_id=project.organization_id,
+        project_id=project.id,
+        platform=project.platform,
+    )
+
+
+@first_cron_monitor_created.connect(weak=False, dispatch_uid="onboarding.record_first_cron_monitor")
+def record_first_cron_monitor(project, user, from_upsert, **kwargs):
+    analytics.record(
+        "first_cron_monitor.created",
+        user_id=get_owner_id(project, user),
         organization_id=project.organization_id,
         project_id=project.id,
         from_upsert=from_upsert,
     )
 
 
-@first_cron_checkin_received.connect(weak=False)
+@cron_monitor_created.connect(weak=False, dispatch_uid="onboarding.record_cron_monitor_created")
+def record_cron_monitor_created(project, user, from_upsert, **kwargs):
+    analytics.record(
+        "cron_monitor.created",
+        user_id=get_owner_id(project, user),
+        organization_id=project.organization_id,
+        project_id=project.id,
+        from_upsert=from_upsert,
+    )
+
+
+@first_cron_checkin_received.connect(
+    weak=False, dispatch_uid="onboarding.record_first_cron_checkin"
+)
 def record_first_cron_checkin(project, monitor_id, **kwargs):
-    project.update(flags=F("flags").bitor(Project.flags.has_cron_checkins))
-
     analytics.record(
-        "first_cron_checkin.sent",
-        user_id=project.organization.default_owner_id,
-        organization_id=project.organization_id,
-        project_id=project.id,
-        monitor_id=monitor_id,
+        FirstCronCheckinSent(
+            user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            monitor_id=monitor_id,
+        )
     )
 
 
-@first_custom_metric_received.connect(weak=False)
-def record_first_custom_metric(project, **kwargs):
-    project.update(flags=F("flags").bitor(Project.flags.has_custom_metrics))
-
+@first_insight_span_received.connect(
+    weak=False, dispatch_uid="onboarding.record_first_insight_span"
+)
+def record_first_insight_span(project, module: InsightModules, **kwargs):
     analytics.record(
-        "first_custom_metric.sent",
-        user_id=project.organization.default_owner_id,
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
+        FirstInsightSpanSentEvent(
+            user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+            module=module.value,
+        )
     )
 
 
-@first_insight_span_received.connect(weak=False)
-def record_first_insight_span(project, module, **kwargs):
-    flag = None
-    if module == InsightModules.HTTP:
-        flag = Project.flags.has_insights_http
-    elif module == InsightModules.DB:
-        flag = Project.flags.has_insights_db
-    elif module == InsightModules.ASSETS:
-        flag = Project.flags.has_insights_assets
-    elif module == InsightModules.APP_START:
-        flag = Project.flags.has_insights_app_start
-    elif module == InsightModules.SCREEN_LOAD:
-        flag = Project.flags.has_insights_screen_load
-    elif module == InsightModules.VITAL:
-        flag = Project.flags.has_insights_vitals
-    elif module == InsightModules.CACHE:
-        flag = Project.flags.has_insights_caches
-    elif module == InsightModules.QUEUE:
-        flag = Project.flags.has_insights_queues
-    elif module == InsightModules.LLM_MONITORING:
-        flag = Project.flags.has_insights_llm_monitoring
-
-    if flag is not None:
-        project.update(flags=F("flags").bitor(flag))
-
+@first_log_received.connect(weak=False, dispatch_uid="onboarding.record_first_log")
+def record_first_log(project, **kwargs):
     analytics.record(
-        "first_insight_span.sent",
-        user_id=project.organization.default_owner_id,
-        organization_id=project.organization_id,
-        project_id=project.id,
-        platform=project.platform,
-        module=module,
+        FirstLogSentEvent(
+            user_id=get_owner_id(project),
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=project.platform,
+        )
     )
 
 
-@member_invited.connect(weak=False)
+# TODO (mifu67): update this to use the new org member invite model
+@member_invited.connect(weak=False, dispatch_uid="onboarding.record_member_invited")
 def record_member_invited(member, user, **kwargs):
-    OrganizationOnboardingTask.objects.record(
-        organization_id=member.organization_id,
+    complete_onboarding_task(
+        organization=member.organization,
         task=OnboardingTask.INVITE_MEMBER,
-        user_id=user.id if user else None,
-        status=OnboardingTaskStatus.PENDING,
-        data={"invited_member_id": member.id},
     )
 
     analytics.record(
-        "member.invited",
-        invited_member_id=member.id,
-        inviter_user_id=user.id if user else None,
-        organization_id=member.organization_id,
-        referrer=kwargs.get("referrer"),
+        MemberInvitedEvent(
+            invited_member_id=member.id,
+            inviter_user_id=user.id if user else None,
+            organization_id=member.organization_id,
+            referrer=kwargs.get("referrer"),
+        )
     )
 
 
-@member_joined.connect(weak=False)
-def record_member_joined(organization_id: int, organization_member_id: int, **kwargs):
-    rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
-        organization_id=organization_id,
-        task=OnboardingTask.INVITE_MEMBER,
-        status=OnboardingTaskStatus.PENDING,
-        values={
-            "status": OnboardingTaskStatus.COMPLETE,
-            "date_completed": django_timezone.now(),
-            "data": {"invited_member_id": organization_member_id},
-        },
-    )
-    if created or rows_affected:
-        try_mark_onboarding_complete(organization_id)
+def _record_release_received(project, event, **kwargs):
+    return record_release_received(project, event.data.get("release"), **kwargs)
 
 
-def record_release_received(project, event, **kwargs):
-    if not event.get_tag("sentry:release"):
+def record_release_received(project, release, **kwargs):
+    if not release:
         return
 
-    success = OrganizationOnboardingTask.objects.record(
-        organization_id=project.organization_id,
+    completed = complete_onboarding_task(
+        organization=project.organization,
         task=OnboardingTask.RELEASE_TRACKING,
-        status=OnboardingTaskStatus.COMPLETE,
         project_id=project.id,
     )
-    if success:
-        organization = Organization.objects.get_from_cache(id=project.organization_id)
-        owner_id = organization.default_owner_id
-        if not owner_id:
+
+    if completed:
+        if (owner_id := get_owner_id(project)) is None:
             logger.warning(
                 "Cannot record release received for organization (%s) due to missing owners",
                 project.organization_id,
@@ -430,102 +379,47 @@ def record_release_received(project, event, **kwargs):
             project_id=project.id,
             organization_id=project.organization_id,
         )
-        try_mark_onboarding_complete(project.organization_id)
 
 
-event_processed.connect(record_release_received, weak=False)
-transaction_processed.connect(record_release_received, weak=False)
+event_processed.connect(_record_release_received, weak=False)
+transaction_processed.connect(_record_release_received, weak=False)
 
 
-def record_user_context_received(project, event, **kwargs):
-    user_context = event.data.get("user")
-    if not user_context:
-        return
-    # checking to see if only ip address is being sent (our js library does this automatically)
-    # testing for this in test_no_user_tracking_for_ip_address_only
-    # list(d.keys()) pattern is to make this python3 safe
-    elif list(user_context.keys()) != ["ip_address"]:
-        success = OrganizationOnboardingTask.objects.record(
-            organization_id=project.organization_id,
-            task=OnboardingTask.USER_CONTEXT,
-            status=OnboardingTaskStatus.COMPLETE,
-            project_id=project.id,
-        )
-        if success:
-            organization = Organization.objects.get_from_cache(id=project.organization_id)
-            owner_id = organization.default_owner_id
-            if not owner_id:
-                logger.warning(
-                    "Cannot record user context received for organization (%s) due to missing owners",
-                    project.organization_id,
-                )
-                return
-
-            analytics.record(
-                "first_user_context.sent",
-                user_id=owner_id,
-                organization_id=project.organization_id,
-                project_id=project.id,
-            )
-            try_mark_onboarding_complete(project.organization_id)
-
-
-event_processed.connect(record_user_context_received, weak=False)
-
-
-@first_event_with_minified_stack_trace_received.connect(weak=False)
+@first_event_with_minified_stack_trace_received.connect(
+    weak=False, dispatch_uid="onboarding.record_event_with_first_minified_stack_trace_for_project"
+)
 def record_event_with_first_minified_stack_trace_for_project(project, event, **kwargs):
-    organization = Organization.objects.get_from_cache(id=project.organization_id)
-    owner_id = organization.default_owner_id
-    if not owner_id:
+    if (owner_id := get_owner_id(project)) is None:
         logger.warning(
             "Cannot record first event for organization (%s) due to missing owners",
             project.organization_id,
         )
         return
 
-    # First, only enter this logic if we've never seen a minified stack trace before
-    if not project.flags.has_minified_stack_trace:
-        # Next, attempt to update the flag, but ONLY if the flag is currently not set.
-        # The number of affected rows tells us whether we succeeded or not. If we didn't, then skip sending the event.
-        # This guarantees us that this analytics event will only be ever sent once.
-        affected = Project.objects.filter(
-            id=project.id, flags=F("flags").bitand(~Project.flags.has_minified_stack_trace)
-        ).update(flags=F("flags").bitor(Project.flags.has_minified_stack_trace))
-
-        if (
-            project.date_added > START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ
-            and affected > 0
-        ):
-            analytics.record(
-                "first_event_with_minified_stack_trace_for_project.sent",
-                user_id=owner_id,
-                organization_id=project.organization_id,
-                project_id=project.id,
-                platform=event.platform,
-                project_platform=project.platform,
-                url=dict(event.tags).get("url", None),
-            )
+    if project.date_added > START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ:
+        analytics.record(
+            "first_event_with_minified_stack_trace_for_project.sent",
+            user_id=owner_id,
+            organization_id=project.organization_id,
+            project_id=project.id,
+            platform=event.platform,
+            project_platform=project.platform,
+            url=dict(event.tags).get("url", None),
+        )
 
 
-transaction_processed.connect(record_user_context_received, weak=False)
-
-
-@event_processed.connect(weak=False)
+@event_processed.connect(weak=False, dispatch_uid="onboarding.record_sourcemaps_received")
 def record_sourcemaps_received(project, event, **kwargs):
     if not has_sourcemap(event):
         return
 
-    success = OrganizationOnboardingTask.objects.record(
-        organization_id=project.organization_id,
+    completed = complete_onboarding_task(
+        organization=project.organization,
         task=OnboardingTask.SOURCEMAPS,
-        status=OnboardingTaskStatus.COMPLETE,
         project_id=project.id,
     )
-    if success:
-        organization = Organization.objects.get_from_cache(id=project.organization_id)
-        owner_id = organization.default_owner_id
-        if not owner_id:
+    if completed:
+        if (owner_id := get_owner_id(project)) is None:
             logger.warning(
                 "Cannot record sourcemaps received for organization (%s) due to missing owners",
                 project.organization_id,
@@ -540,17 +434,16 @@ def record_sourcemaps_received(project, event, **kwargs):
             project_platform=project.platform,
             url=dict(event.tags).get("url", None),
         )
-        try_mark_onboarding_complete(project.organization_id)
 
 
-@event_processed.connect(weak=False)
+@event_processed.connect(
+    weak=False, dispatch_uid="onboarding.record_sourcemaps_received_for_project"
+)
 def record_sourcemaps_received_for_project(project, event, **kwargs):
     if not has_sourcemap(event):
         return
 
-    organization = Organization.objects.get_from_cache(id=project.organization_id)
-    owner_id = organization.default_owner_id
-    if not owner_id:
+    if (owner_id := get_owner_id(project)) is None:
         logger.warning(
             "Cannot record sourcemaps received for organization (%s) due to missing owners",
             project.organization_id,
@@ -578,96 +471,22 @@ def record_sourcemaps_received_for_project(project, event, **kwargs):
             )
 
 
-@plugin_enabled.connect(weak=False)
-def record_plugin_enabled(plugin, project, user, **kwargs):
-    if isinstance(plugin, IssueTrackingPlugin) or isinstance(plugin, IssueTrackingPlugin2):
-        task = OnboardingTask.ISSUE_TRACKER
-        status = OnboardingTaskStatus.PENDING
-    else:
+@alert_rule_created.connect(weak=False, dispatch_uid="onboarding.record_alert_rule_created")
+def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
+    # The quick start now only has a task for issue alert rules.
+    # Please see https://github.com/getsentry/sentry/blob/c06a3aa5fb104406f2a44994d32983e99bc2a479/static/app/components/onboardingWizard/taskConfig.tsx#L351-L352
+    if rule_type == "metric":
         return
 
-    success = OrganizationOnboardingTask.objects.record(
-        organization_id=project.organization_id,
-        task=task,
-        status=status,
+    complete_onboarding_task(
+        organization=project.organization,
+        task=OnboardingTask.ALERT_RULE,
         user_id=user.id if user else None,
         project_id=project.id,
-        data={"plugin": plugin.slug},
-    )
-    if success:
-        try_mark_onboarding_complete(project.organization_id)
-
-    analytics.record(
-        "plugin.enabled",
-        user_id=user.id if user else None,
-        organization_id=project.organization_id,
-        project_id=project.id,
-        plugin=plugin.slug,
     )
 
 
-@alert_rule_created.connect(weak=False)
-def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
-    # NOTE: This intentionally does not fire for the default issue alert rule
-    # that gets created on new project creation.
-    task = OnboardingTask.METRIC_ALERT if rule_type == "metric" else OnboardingTask.ALERT_RULE
-    rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
-        organization_id=project.organization_id,
-        task=task,
-        values={
-            "status": OnboardingTaskStatus.COMPLETE,
-            "user_id": user.id if user else None,
-            "project_id": project.id,
-            "date_completed": django_timezone.now(),
-        },
-    )
-
-    if rows_affected or created:
-        try_mark_onboarding_complete(project.organization_id)
-
-
-@issue_tracker_used.connect(weak=False)
-def record_issue_tracker_used(plugin, project, user, **kwargs):
-    rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
-        organization_id=project.organization_id,
-        task=OnboardingTask.ISSUE_TRACKER,
-        status=OnboardingTaskStatus.PENDING,
-        values={
-            "status": OnboardingTaskStatus.COMPLETE,
-            "user_id": user.id,
-            "project_id": project.id,
-            "date_completed": django_timezone.now(),
-            "data": {"plugin": plugin.slug},
-        },
-    )
-
-    if rows_affected or created:
-        try_mark_onboarding_complete(project.organization_id)
-
-    if user and user.is_authenticated:
-        user_id = default_user_id = user.id
-    else:
-        user_id = None
-        try:
-            default_user_id = project.organization.get_default_owner().id
-        except IndexError:
-            logger.warning(
-                "Cannot record issue tracker used for organization (%s) due to missing owners",
-                project.organization_id,
-            )
-            return
-
-    analytics.record(
-        "issue_tracker.used",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        project_id=project.id,
-        issue_tracker=plugin.slug,
-    )
-
-
-@integration_added.connect(weak=False)
+@integration_added.connect(weak=False, dispatch_uid="onboarding.record_integration_added")
 def record_integration_added(
     integration_id: int, organization_id: int, user_id: int | None, **kwargs
 ):
@@ -677,25 +496,35 @@ def record_integration_added(
     if integration is None:
         return
 
-    task = OrganizationOnboardingTask.objects.filter(
-        organization_id=organization_id,
-        task=OnboardingTask.INTEGRATIONS,
-    ).first()
+    integration_types = get_integration_types(integration.provider)
 
-    if task:
-        providers = task.data.get("providers", [])
-        if integration.provider not in providers:
-            providers.append(integration.provider)
-        task.data["providers"] = providers
-        if task.status != OnboardingTaskStatus.COMPLETE:
-            task.status = OnboardingTaskStatus.COMPLETE
-            task.user_id = user_id
-            task.date_completed = django_timezone.now()
-        task.save()
-    else:
-        task = OrganizationOnboardingTask.objects.create(
-            organization_id=organization_id,
-            task=OnboardingTask.INTEGRATIONS,
-            status=OnboardingTaskStatus.COMPLETE,
-            data={"providers": [integration.provider]},
+    task_mapping = {
+        IntegrationDomain.SOURCE_CODE_MANAGEMENT: OnboardingTask.LINK_SENTRY_TO_SOURCE_CODE,
+        IntegrationDomain.MESSAGING: OnboardingTask.REAL_TIME_NOTIFICATIONS,
+    }
+
+    for integration_type in integration_types:
+        if integration_type in task_mapping:
+            complete_onboarding_task(
+                organization=Organization.objects.get_from_cache(id=organization_id),
+                task=task_mapping[integration_type],
+            )
+
+
+@project_transferred.connect(weak=False, dispatch_uid="onboarding.record_project_transferred")
+def record_project_transferred(old_org_id: int, project: Project, **kwargs):
+
+    analytics.record(
+        ProjectTransferredEvent(
+            old_organization_id=old_org_id,
+            new_organization_id=project.organization.id,
+            project_id=project.id,
+            platform=project.platform,
         )
+    )
+
+    transfer_onboarding_tasks(
+        from_organization_id=old_org_id,
+        to_organization_id=project.organization_id,
+        project=project,
+    )

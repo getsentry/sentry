@@ -10,7 +10,6 @@ import useCleanQueryParamsOnRouteLeave, {
 } from './useCleanQueryParamsOnRouteLeave';
 import {useLocation} from './useLocation';
 
-jest.mock('react-router');
 jest.mock('./useLocation');
 
 const MockBrowserHistoryListen = jest.mocked(browserHistory.listen);

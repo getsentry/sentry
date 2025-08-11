@@ -4,8 +4,6 @@ import hashlib
 import hmac
 import logging
 import re
-from collections.abc import Callable
-from typing import Any
 
 import orjson
 import sentry_sdk
@@ -17,22 +15,24 @@ from django.views.decorators.csrf import csrf_exempt
 from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.constants import ObjectStatus
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.webhook import (
+    GitHubWebhook,
     InstallationEventWebhook,
     PullRequestEventWebhook,
     PushEventWebhook,
     get_github_external_id,
 )
+from sentry.integrations.utils.metrics import IntegrationWebhookEvent
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.utils import metrics
-from sentry.utils.sdk import Scope
-
-from .repository import GitHubEnterpriseRepositoryProvider
 
 logger = logging.getLogger("sentry.webhooks")
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 
 SHA1_PATTERN = r"^sha1=[0-9a-fA-F]{40}$"
 SHA256_PATTERN = r"^sha256=[0-9a-fA-F]{64}$"
@@ -78,7 +78,8 @@ def get_installation_metadata(event, host):
     external_id = get_github_external_id(event=event, host=host)
     integration = integration_service.get_integration(
         external_id=external_id,
-        provider="github_enterprise",
+        provider=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+        status=ObjectStatus.ACTIVE,
     )
     if integration is None:
         metrics.incr("integrations.github_enterprise.does_not_exist")
@@ -86,16 +87,10 @@ def get_installation_metadata(event, host):
     return integration.metadata["installation"]
 
 
-class GitHubEnterpriseInstallationEventWebhook(InstallationEventWebhook):
-    provider = "github_enterprise"
-
-
-class GitHubEnterprisePushEventWebhook(PushEventWebhook):
-    provider = "github_enterprise"
-
-    # https://developer.github.com/v3/activity/events/types/#pushevent
-    def is_anonymous_email(self, email: str) -> bool:
-        return email[-25:] == "@users.noreply.github.com"
+class GitHubEnterpriseWebhook:
+    @property
+    def provider(self) -> str:
+        return IntegrationProviderSlug.GITHUB_ENTERPRISE.value
 
     def get_external_id(self, username: str) -> str:
         return f"github_enterprise:{username}"
@@ -103,29 +98,24 @@ class GitHubEnterprisePushEventWebhook(PushEventWebhook):
     def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
         return "{}:{}".format(host, integration.metadata["installation"]["id"])
 
-    def should_ignore_commit(self, commit):
-        return GitHubEnterpriseRepositoryProvider.should_ignore_commit(commit["message"])
+
+class GitHubEnterpriseInstallationEventWebhook(GitHubEnterpriseWebhook, InstallationEventWebhook):
+    pass
 
 
-class GitHubEnterprisePullRequestEventWebhook(PullRequestEventWebhook):
-    provider = "github_enterprise"
+class GitHubEnterprisePushEventWebhook(GitHubEnterpriseWebhook, PushEventWebhook):
+    pass
 
-    # https://developer.github.com/v3/activity/events/types/#pullrequestevent
-    def is_anonymous_email(self, email: str) -> bool:
-        return email[-25:] == "@users.noreply.github.com"
 
-    def get_external_id(self, username: str) -> str:
-        return f"github_enterprise:{username}"
-
-    def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
-        return "{}:{}".format(host, integration.metadata["installation"]["id"])
+class GitHubEnterprisePullRequestEventWebhook(GitHubEnterpriseWebhook, PullRequestEventWebhook):
+    pass
 
 
 class GitHubEnterpriseWebhookBase(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
-    _handlers: dict[str, Callable[[], Callable[[Any], Any]]] = {}
+    _handlers: dict[str, type[GitHubWebhook]] = {}
 
     # https://developer.github.com/webhooks/
     def get_handler(self, event_type):
@@ -160,9 +150,9 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         else:
             return None
 
-    def handle(self, request: HttpRequest) -> HttpResponse:
+    def _handle(self, request: HttpRequest) -> HttpResponse:
         clear_tags_and_context()
-        scope = Scope.get_isolation_scope()
+        scope = sentry_sdk.get_isolation_scope()
 
         try:
             host = get_host(request=request)
@@ -173,7 +163,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             sentry_sdk.capture_exception(e)
             return HttpResponse(MISSING_GITHUB_ENTERPRISE_HOST_ERROR, status=400)
 
-        extra = {"host": host}
+        extra: dict[str, str | None] = {"host": host}
         # If we do tag the host early we can't even investigate
         scope.set_tag("host", host)
 
@@ -282,14 +272,26 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             else:
                 # the host is allowed to skip signature verification
                 # log it, and continue on.
+                extra["github_enterprise_version"] = request.headers.get(
+                    "x-github-enterprise-version"
+                )
+                extra["ip_address"] = request.headers.get("x-real-ip")
                 logger.info("github_enterprise.webhook.allowed-missing-signature", extra=extra)
+                sentry_sdk.capture_message("Allowed missing signature")
 
         except (MalformedSignatureError, IndexError) as e:
             logger.warning("github_enterprise.webhook.malformed-signature", extra=extra)
             sentry_sdk.capture_exception(e)
             return HttpResponse(MALFORMED_SIGNATURE_ERROR, status=400)
 
-        handler()(event, host)
+        event_handler = handler()
+        with IntegrationWebhookEvent(
+            interaction_type=event_handler.event_type,
+            domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+            provider_key=event_handler.provider,
+        ).capture():
+            event_handler(event, host=host)
+
         return HttpResponse(status=204)
 
 
@@ -314,4 +316,4 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
 
     @method_decorator(csrf_exempt)
     def post(self, request: HttpRequest) -> HttpResponse:
-        return self.handle(request)
+        return self._handle(request)

@@ -124,7 +124,7 @@ class ProfileFunctionNumericColumn(NumericColumn):
 
         raise InvalidFunctionArgument(f"{value} is not a numeric column")
 
-    def get_type(self, value: str) -> str:
+    def get_type(self, value: str) -> str:  # type: ignore[override]  # baseclass is unsound
         try:
             return COLUMN_MAP[value].kind.value
         except KeyError:
@@ -298,6 +298,84 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                                                         [SnQLColumn("examples")],
                                                     ),
                                                     Function("argMaxMerge", [SnQLColumn("worst")]),
+                                                ],
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="string",  # TODO: support array type
+                ),
+                SnQLFunction(
+                    "all_examples",
+                    snql_aggregate=lambda _, alias: Function(
+                        # The worst may collide with one of the examples, so make sure to filter it out.
+                        "arrayDistinct",
+                        [
+                            Function(
+                                "arrayFilter",
+                                [
+                                    # Filter out the profile ids for processed profiles
+                                    Lambda(
+                                        ["x"],
+                                        Function(
+                                            "notEquals",
+                                            [
+                                                Function("tupleElement", [Identifier("x"), 1]),
+                                                uuid.UUID(int=0).hex,
+                                            ],
+                                        ),
+                                    ),
+                                    Function(
+                                        "arrayMap",
+                                        [
+                                            # TODO: should this transform be moved to snuba?
+                                            Lambda(
+                                                ["x"],
+                                                Function(
+                                                    "tuple",
+                                                    [
+                                                        Function(
+                                                            "replaceAll",
+                                                            [
+                                                                Function(
+                                                                    "toString",
+                                                                    [
+                                                                        Function(
+                                                                            "tupleElement",
+                                                                            [Identifier("x"), 1],
+                                                                        )
+                                                                    ],
+                                                                ),
+                                                                "-",
+                                                                "",
+                                                            ],
+                                                        ),
+                                                        Function(
+                                                            "tupleElement", [Identifier("x"), 2]
+                                                        ),
+                                                        Function(
+                                                            "tupleElement", [Identifier("x"), 3]
+                                                        ),
+                                                        Function(
+                                                            "tupleElement", [Identifier("x"), 4]
+                                                        ),
+                                                    ],
+                                                ),
+                                            ),
+                                            Function(
+                                                "arrayPushFront",
+                                                [
+                                                    Function(
+                                                        "groupUniqArrayMerge(5)",
+                                                        [SnQLColumn("examples_v2")],
+                                                    ),
+                                                    Function(
+                                                        "argMaxMerge", [SnQLColumn("worst_v2")]
+                                                    ),
                                                 ],
                                             ),
                                         ],

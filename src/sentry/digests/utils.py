@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import TypedDict
 
 from django.db.models import Q
 
@@ -56,7 +56,15 @@ def should_get_personalized_digests(target_type: ActionTargetType, project_id: i
     )
 
 
-def get_digest_as_context(digest: Digest) -> Mapping[str, Any]:
+class _DigestContext(TypedDict):
+    counts: Counter[Group]
+    digest: Digest
+    group: Group
+    end: datetime | None
+    start: datetime | None
+
+
+def get_digest_as_context(digest: Digest) -> _DigestContext:
     start, end, counts = get_digest_metadata(digest)
     group = next(iter(counts))
 
@@ -70,7 +78,7 @@ def get_digest_as_context(digest: Digest) -> Mapping[str, Any]:
 
 
 def get_events_by_participant(
-    participants_by_provider_by_event: Mapping[Event, Mapping[ExternalProviders, set[Actor]]]
+    participants_by_provider_by_event: Mapping[Event, Mapping[ExternalProviders, set[Actor]]],
 ) -> Mapping[Actor, set[Event]]:
     """Invert a mapping of events to participants to a mapping of participants to events."""
     output = defaultdict(set)

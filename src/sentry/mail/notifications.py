@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable, Mapping, MutableMapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import orjson
 import sentry_sdk
@@ -17,6 +17,7 @@ from sentry.notifications.notifications.base import BaseNotification, ProjectNot
 from sentry.notifications.notify import register_notification_provider
 from sentry.notifications.types import UnsubscribeContext
 from sentry.types.actor import Actor
+from sentry.users.models.user import User
 from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.linksign import generate_signed_unsubscribe_link
 
@@ -26,7 +27,7 @@ if TYPE_CHECKING:
     from sentry.users.services.user import RpcUser
 
 
-def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
+def get_headers(notification: BaseNotification, context: Mapping[str, Any]) -> Mapping[str, Any]:
     headers = {"X-SMTPAPI": orjson.dumps({"category": notification.metrics_key}).decode()}
     if isinstance(notification, ProjectNotification) and notification.project.slug:
         headers["X-Sentry-Project"] = notification.project.slug
@@ -40,6 +41,8 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
                 "X-Sentry-Reply-To": group_id_to_email(group.id, group.project.organization_id),
             }
         )
+    if context.get("reply_to"):
+        headers["X-Sentry-Reply-To"] = context["reply_to"]
 
     return headers
 
@@ -79,7 +82,7 @@ def _log_message(notification: BaseNotification, recipient: Actor) -> None:
 
 def get_context(
     notification: BaseNotification,
-    recipient: Actor | Team | RpcUser,
+    recipient: Actor | Team | RpcUser | User,
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
@@ -113,20 +116,20 @@ def send_notification_as_email(
 ) -> None:
     for recipient in recipients:
         recipient_actor = Actor.from_object(recipient)
-        with sentry_sdk.start_span(op="notification.send_email", description="one_recipient"):
+        with sentry_sdk.start_span(op="notification.send_email", name="one_recipient"):
             if recipient_actor.is_team:
                 # TODO(mgaeta): MessageBuilder only works with Users so filter out Teams for now.
                 continue
             _log_message(notification, recipient_actor)
 
-            with sentry_sdk.start_span(op="notification.send_email", description="build_message"):
+            with sentry_sdk.start_span(op="notification.send_email", name="build_message"):
                 msg = MessageBuilder(
                     **get_builder_args(
                         notification, recipient_actor, shared_context, extra_context_by_actor
                     )
                 )
 
-            with sentry_sdk.start_span(op="notification.send_email", description="send_message"):
+            with sentry_sdk.start_span(op="notification.send_email", name="send_message"):
                 # TODO: find better way of handling this
                 add_users_kwargs = {}
                 if isinstance(notification, ProjectNotification):
@@ -136,11 +139,14 @@ def send_notification_as_email(
             notification.record_notification_sent(recipient_actor, ExternalProviders.EMAIL)
 
 
+RecipientT = TypeVar("RecipientT", Actor, User)
+
+
 def get_builder_args(
     notification: BaseNotification,
-    recipient: Actor,
+    recipient: RecipientT,
     shared_context: Mapping[str, Any] | None = None,
-    extra_context_by_actor: Mapping[Actor, Mapping[str, Any]] | None = None,
+    extra_context_by_actor: Mapping[RecipientT, Mapping[str, Any]] | None = None,
 ) -> Mapping[str, Any]:
     # TODO: move context logic to single notification class method
     extra_context = (
@@ -158,7 +164,7 @@ def get_builder_args_from_context(
         "context": context,
         "template": f"{notification.template_path}.txt",
         "html_template": f"{notification.template_path}.html",
-        "headers": get_headers(notification),
+        "headers": get_headers(notification, context),
         "reference": notification.reference,
         "type": notification.metrics_key,
     }

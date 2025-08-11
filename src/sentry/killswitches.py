@@ -39,7 +39,7 @@ def _update_project_configs(
     changed_project_ids = old_project_ids ^ new_project_ids
 
     if None in changed_project_ids:
-        with click.progressbar(length=Organization.objects.count()) as bar:  # type: ignore[var-annotated]  # pallets/click#2630
+        with click.progressbar(length=Organization.objects.count()) as bar:
             # Since all other invalidations, which would happen anyway, will de-duplicate
             # with these ones the extra load of this is reasonable.  A temporary backlog in
             # the relay_config_bulk queue is just fine.  We have server-side cursors
@@ -130,28 +130,6 @@ ALL_KILLSWITCH_OPTIONS = {
             "platform": "The event platform as defined in the event payload's platform field, or 'none'",
         },
     ),
-    "store.symbolicate-event-lpq-never": KillswitchInfo(
-        description="""
-        Never allow a project's symbolication events to be demoted to symbolicator's low priority queue.
-
-        If a project is in both store.symbolicate-event-lpq-never and store.symbolicate-event-lpq-always,
-        store.symbolicate-event-lpq-never will always take precedence.
-        """,
-        fields={
-            "project_id": "A project ID to filter events by.",
-        },
-    ),
-    "store.symbolicate-event-lpq-always": KillswitchInfo(
-        description="""
-        Always push a project's symbolication events to symbolicator's low priority queue.
-
-        If a project is in both store.symbolicate-event-lpq-never and store.symbolicate-event-lpq-always,
-        store.symbolicate-event-lpq-never will always take precedence.
-        """,
-        fields={
-            "project_id": "A project ID to filter events by.",
-        },
-    ),
     "post_process.get-autoassign-owners": KillswitchInfo(
         description="""
         Prevent project from running ProjectOwnership._matching_ownership_rules.
@@ -217,7 +195,7 @@ ALL_KILLSWITCH_OPTIONS = {
         """,
         fields={"organization_id": "An organization ID to disable check-ins for."},
     ),
-    "embeddings-grouping.use-embeddings": KillswitchInfo(
+    "seer.similarity.grouping_killswitch_projects": KillswitchInfo(
         description="""
         Prevent project from using LLM embeddings for grouping new hashes.
         In case project has too many new events, spike of events from that
@@ -227,7 +205,7 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "A project ID to filter events by.",
         },
     ),
-    "issues.skip-seer-requests": KillswitchInfo(
+    "issues.severity.skip-seer-requests": KillswitchInfo(
         description="""
         Do not make requests to Seer.
 
@@ -237,6 +215,17 @@ ALL_KILLSWITCH_OPTIONS = {
         """,
         fields={
             "project_id": "A project ID to filter events by.",
+        },
+    ),
+    "spans.drop-in-buffer": KillswitchInfo(
+        description="""
+        Drop spans.
+        """,
+        fields={
+            "org_id": "An org ID to filter spans by.",
+            "project_id": "A project ID.",
+            "trace_id": "A trace ID.",
+            "partition_id": "A kafka partition index.",
         },
     ),
 }
@@ -272,28 +261,25 @@ def normalize_value(
     return rv
 
 
-def killswitch_matches_context(killswitch_name: str, context: Context, emit_metrics=True) -> bool:
+def get_killswitch_value(killswitch_name: str) -> KillswitchConfig:
     assert killswitch_name in ALL_KILLSWITCH_OPTIONS
+    raw_option_value = options.get(killswitch_name)
+    return normalize_value(killswitch_name, raw_option_value)
+
+
+def killswitch_matches_context(killswitch_name: str, context: Context, emit_metrics=True) -> bool:
+    option_value = get_killswitch_value(killswitch_name)
     assert set(ALL_KILLSWITCH_OPTIONS[killswitch_name].fields) == set(context)
-    option_value = options.get(killswitch_name)
-    rv = _value_matches(killswitch_name, option_value, context)
-
-    if emit_metrics:
-        # metrics can have a meaningful performance impact, so allow caller to opt out
-        # TODO: re-evaluate after we make metric collection aysnc.
-        metrics.incr(
-            "killswitches.run",
-            tags={"killswitch_name": killswitch_name, "decision": "matched" if rv else "passed"},
-        )
-
-    return rv
+    return value_matches(killswitch_name, option_value, context, emit_metrics)
 
 
-def _value_matches(
-    killswitch_name: str, raw_option_value: LegacyKillswitchConfig, context: Context
+def value_matches(
+    killswitch_name: str,
+    option_value: KillswitchConfig,
+    context: Context,
+    emit_metrics=True,
 ) -> bool:
-    option_value = normalize_value(killswitch_name, raw_option_value)
-
+    decision = False
     for condition in option_value:
         for field, matching_value in condition.items():
             if matching_value is None:
@@ -306,9 +292,21 @@ def _value_matches(
             if str(value) != matching_value:
                 break
         else:
-            return True
+            decision = True
+            break
 
-    return False
+    if emit_metrics:
+        # metrics can have a meaningful performance impact, so allow caller to opt out
+        # TODO: re-evaluate after we make metric collection aysnc.
+        metrics.incr(
+            "killswitches.run",
+            tags={
+                "killswitch_name": killswitch_name,
+                "decision": "matched" if decision else "passed",
+            },
+        )
+
+    return decision
 
 
 def print_conditions(killswitch_name: str, raw_option_value: LegacyKillswitchConfig) -> str:

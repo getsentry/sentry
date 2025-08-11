@@ -1,4 +1,5 @@
 import type {Layout} from 'react-grid-layout';
+// @ts-expect-error TS(7016): Could not find a declaration file for module 'reac... Remove this comment to see the full error message
 import {compact} from 'react-grid-layout/build/utils';
 import pickBy from 'lodash/pickBy';
 import sortBy from 'lodash/sortBy';
@@ -12,7 +13,6 @@ import type {Widget, WidgetLayout} from './types';
 import {DisplayType} from './types';
 
 export const DEFAULT_WIDGET_WIDTH = 2;
-export const METRIC_WIDGET_MIN_SIZE = {minH: 2, h: 2, w: 2};
 
 const WIDGET_PREFIX = 'grid-item';
 
@@ -39,19 +39,6 @@ export function assignTempId(widget: Widget) {
   return {...widget, tempId: uniqueId()};
 }
 
-/**
- * Naive positioning for widgets assuming no resizes.
- */
-export function getDefaultPosition(index: number, displayType: DisplayType) {
-  return {
-    x: (DEFAULT_WIDGET_WIDTH * index) % NUM_DESKTOP_COLS,
-    y: Number.MAX_SAFE_INTEGER,
-    w: DEFAULT_WIDGET_WIDTH,
-    h: displayType === DisplayType.BIG_NUMBER ? 1 : 2,
-    minH: displayType === DisplayType.BIG_NUMBER ? 1 : 2,
-  };
-}
-
 export function getMobileLayout(desktopLayout: Layout[], widgets: Widget[]) {
   if (desktopLayout.length === 0) {
     // Initial case where the user has no layout saved, but
@@ -59,7 +46,7 @@ export function getMobileLayout(desktopLayout: Layout[], widgets: Widget[]) {
     return [];
   }
 
-  const layoutWidgetPairs = zip(desktopLayout, widgets) as [Layout, Widget][];
+  const layoutWidgetPairs = zip(desktopLayout, widgets) as Array<[Layout, Widget]>;
 
   // Sort by y and then subsort by x
   const sorted = sortBy(layoutWidgetPairs, ['0.y', '0.x']);
@@ -101,14 +88,14 @@ export function getDefaultWidgetHeight(displayType: DisplayType): number {
 }
 
 export function getInitialColumnDepths() {
-  return Array(NUM_DESKTOP_COLS).fill(0);
+  return new Array(NUM_DESKTOP_COLS).fill(0);
 }
 
 /**
  * Creates an array from layouts where each column stores how deep it is.
  */
 export function calculateColumnDepths(
-  layouts: Pick<Layout, 'h' | 'w' | 'x' | 'y'>[]
+  layouts: Array<Pick<Layout, 'h' | 'w' | 'x' | 'y'>>
 ): number[] {
   const depths = getInitialColumnDepths();
 
@@ -144,7 +131,7 @@ export function getNextAvailablePosition(
   // we get the top-most available spot
   for (let currDepth = 0; currDepth <= maxColumnDepth; currDepth++) {
     for (let start = 0; start <= columnDepths.length - DEFAULT_WIDGET_WIDTH; start++) {
-      if (columnDepths[start] > currDepth) {
+      if (columnDepths[start]! > currDepth) {
         // There are potentially widgets in the way here, so skip
         continue;
       }
@@ -220,14 +207,10 @@ export function generateWidgetsAfterCompaction(widgets: Widget[]) {
   // single widget change would affect other widget positions, e.g. deletion
   const nextLayout = compact(getDashboardLayout(widgets), 'vertical', NUM_DESKTOP_COLS);
   return widgets.map(widget => {
-    const layout = nextLayout.find(({i}) => i === constructGridItemKey(widget));
+    const layout = nextLayout.find(({i}: any) => i === constructGridItemKey(widget));
     if (!layout) {
       return widget;
     }
     return {...widget, layout};
   });
-}
-
-export function isValidLayout(layout: Layout) {
-  return !isNaN(layout.x) && !isNaN(layout.y) && layout.w > 0 && layout;
 }

@@ -8,17 +8,20 @@ const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
   [/\/organizations\/(?!new)[^\/]+\/(.*)/, '/$1'],
   // For /settings/:orgId/ -> /settings/organization/
   [
-    /\/settings\/(?!account\/|billing\/|projects\/|teams\/)[^\/]+\/?$/,
+    /\/settings\/(?!account\/|billing\/|projects\/|teams\/|stats\/)[^\/]+\/?$/,
     '/settings/organization/',
   ],
   // Move /settings/:orgId/:section -> /settings/:section
   // but not /settings/organization or /settings/projects which is a new URL
   [
-    /^\/?settings\/(?!account\/|billing\/|projects\/|teams\/)[^\/]+\/(.*)/,
+    /^\/?settings\/(?!account\/|billing\/|projects\/|teams\/|stats\/)[^\/]+\/(.*)/,
     '/settings/$1',
   ],
   [/^\/?join-request\/[^\/]+\/?.*/, '/join-request/'],
-  [/^\/?onboarding\/[^\/]+\/(.*)/, '/onboarding/$1'],
+  [
+    /^\/?onboarding\/(?!setup-docs|select-platform|welcome)[^\/]+\/(.*)/,
+    '/onboarding/$1',
+  ],
   // Handles /org-slug/project-slug/getting-started/platform/ -> /getting-started/project-slug/platform/
   [/^\/?(?!settings)[^\/]+\/([^\/]+)\/getting-started\/(.*)/, '/getting-started/$1/$2'],
   [/^\/?accept-terms\/[^\/]*\/?$/, '/accept-terms/'],
@@ -75,7 +78,9 @@ export default function normalizeUrl(
   if (!resolved.pathname) {
     return resolved;
   }
+
   for (const patternData of NORMALIZE_PATTERNS) {
+    // @ts-expect-error TS(7022): 'replacement' implicitly has type 'any' because it... Remove this comment to see the full error message
     const replacement = resolved.pathname.replace(patternData[0], patternData[1]);
     if (replacement !== resolved.pathname) {
       return {...resolved, pathname: replacement};

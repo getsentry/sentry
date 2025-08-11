@@ -25,7 +25,7 @@ describe('OrganizationTeamProjects', function () {
     access: ['project:read', 'project:write', 'project:admin'],
   });
 
-  const {router, routerProps, organization} = initializeOrg({
+  const {routerProps, organization} = initializeOrg({
     organization: OrganizationFixture({slug: 'org-slug'}),
     projects: [project, project2],
     router: {params: {teamId: team.slug}},
@@ -64,7 +64,6 @@ describe('OrganizationTeamProjects', function () {
 
   it('should fetch linked and unlinked projects', async function () {
     render(<OrganizationTeamProjects {...routerProps} team={team} />, {
-      router,
       organization,
     });
 
@@ -78,16 +77,15 @@ describe('OrganizationTeamProjects', function () {
 
   it('should allow bookmarking', async function () {
     render(<OrganizationTeamProjects {...routerProps} team={team} />, {
-      router,
       organization,
     });
 
-    const stars = await screen.findAllByRole('button', {name: 'Bookmark Project'});
+    const stars = await screen.findAllByRole('button', {name: 'Bookmark'});
     expect(stars).toHaveLength(2);
 
-    await userEvent.click(stars[0]);
+    await userEvent.click(stars[0]!);
     expect(
-      screen.getByRole('button', {name: 'Bookmark Project', pressed: true})
+      screen.getByRole('button', {name: 'Remove Bookmark', pressed: true})
     ).toBeInTheDocument();
 
     expect(putMock).toHaveBeenCalledTimes(1);
@@ -101,7 +99,6 @@ describe('OrganizationTeamProjects', function () {
 
   it('should allow adding and removing projects', async function () {
     render(<OrganizationTeamProjects {...routerProps} team={team} />, {
-      router,
       organization,
     });
 
@@ -114,14 +111,13 @@ describe('OrganizationTeamProjects', function () {
 
     // find second project's remove button
     const removeButtons = await screen.findAllByRole('button', {name: 'Remove'});
-    await userEvent.click(removeButtons[1]);
+    await userEvent.click(removeButtons[1]!);
 
     expect(deleteMock).toHaveBeenCalledTimes(1);
   });
 
   it('handles filtering unlinked projects', async function () {
     render(<OrganizationTeamProjects {...routerProps} team={team} />, {
-      router,
       organization,
     });
 

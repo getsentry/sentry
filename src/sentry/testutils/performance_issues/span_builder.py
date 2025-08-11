@@ -8,6 +8,7 @@ class SpanBuilder:
         self.trace_id = "a" * 32
         self.parent_span_id = "a" * 16
         self.span_id = "b" * 16
+        self.is_segment = False
         self.start_timestamp: float = 0
         self.timestamp: float = 1
         self.same_process_as_parent = True
@@ -16,7 +17,12 @@ class SpanBuilder:
         self.fingerprint: list[str] | None = None
         self.tags: Any | None = None
         self.data: Any | None = None
+        self.sentry_tags: dict[str, str] = {}
         self.hash: str | None = None
+
+    def segment(self) -> "SpanBuilder":
+        self.is_segment = True
+        return self
 
     def with_op(self, op: str) -> "SpanBuilder":
         self.op = op
@@ -42,11 +48,16 @@ class SpanBuilder:
         self.data = data
         return self
 
+    def with_sentry_tag(self, key: str, value: str) -> "SpanBuilder":
+        self.sentry_tags[key] = value
+        return self
+
     def build(self) -> Span:
         span: Span = {
             "trace_id": self.trace_id,
             "parent_span_id": self.parent_span_id,
             "span_id": self.span_id,
+            "is_segment": self.is_segment,
             "start_timestamp": self.start_timestamp,
             "timestamp": self.timestamp,
             "same_process_as_parent": self.same_process_as_parent,
@@ -56,6 +67,8 @@ class SpanBuilder:
             "tags": self.tags,
             "data": self.data,
         }
+        if self.sentry_tags:
+            span["sentry_tags"] = self.sentry_tags
         if self.hash is not None:
             span["hash"] = self.hash
         return span

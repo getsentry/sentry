@@ -1,10 +1,10 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   getCrashReportApiIntroduction,
@@ -13,11 +13,13 @@ import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJSServerMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 import {
   getImportInstrumentSnippet,
   getInstallConfig,
+  getNodeAgentMonitoringOnboarding,
+  getNodeMcpOnboarding,
+  getNodeProfilingOnboarding,
   getSdkInitSnippet,
   getSentryImportSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
@@ -53,6 +55,10 @@ app.use(async function () {
 `;
 
 const onboarding: OnboardingConfig = {
+  introduction: () =>
+    tct('In this quick guide you’ll use [strong:npm] or [strong:yarn] to set up:', {
+      strong: <strong />,
+    }),
   install: params => [
     {
       type: StepType.INSTALL,
@@ -64,7 +70,7 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: t(
-        "Initialize Sentry as early as possible in your application's lifecycle. Otherwise, auto-instrumentation will not work."
+        "Initialize Sentry as early as possible in your application's lifecycle."
       ),
       configurations: [
         {
@@ -84,10 +90,9 @@ const onboarding: OnboardingConfig = {
         },
         {
           description: tct(
-            "Make sure to import [code1:instrument.js/mjs] at the top of your file. Set up the error handler. This setup is typically done in your application's entry point file, which is usually [code2:index.(js|ts)]. If you're running your application in ESM mode, or looking for alternative ways to set up Sentry, read about [docs:installation methods in our docs].",
+            "Make sure to import [code:instrument.js/mjs] at the top of your file. Set up the error handler. This setup is typically done in your application's entry point file, which is usually [code:index.(js|ts)]. If you're running your application in ESM mode, or looking for alternative ways to set up Sentry, read about [docs:installation methods in our docs].",
             {
-              code1: <code />,
-              code2: <code />,
+              code: <code />,
               docs: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/hapi/install/" />
               ),
@@ -124,6 +129,22 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/hapi/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const feedbackOnboardingNode: OnboardingConfig = {
@@ -181,8 +202,10 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedbackOnboardingNode,
-  customMetricsOnboarding: getJSServerMetricsOnboarding(),
   crashReportOnboarding,
+  profilingOnboarding: getNodeProfilingOnboarding(),
+  agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding(),
+  mcpOnboarding: getNodeMcpOnboarding(),
 };
 
 export default docs;

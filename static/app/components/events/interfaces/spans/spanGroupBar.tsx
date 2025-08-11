@@ -1,4 +1,3 @@
-import type {LegacyRef, MutableRefObject} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import maxBy from 'lodash/maxBy';
@@ -10,7 +9,7 @@ import {
 } from 'sentry/components/events/interfaces/spans/spanFrequencyBox';
 import type {SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {
-  getSpanBarColours,
+  getSpanBarColors,
   ROW_HEIGHT,
 } from 'sentry/components/performance/waterfall/constants';
 import {
@@ -168,8 +167,8 @@ function renderMeasurements(
 }
 
 export function SpanGroupBar(props: Props) {
-  const spanTitleRef: LegacyRef<HTMLDivElement> | null = useRef(null);
-  const spanContentRef: MutableRefObject<HTMLDivElement | null> = useRef(null);
+  const spanTitleRef = useRef<HTMLDivElement | null>(null);
+  const spanContentRef = useRef<HTMLDivElement | null>(null);
 
   const {
     onWheel,
@@ -315,7 +314,7 @@ export function SpanGroupBar(props: Props) {
                     }}
                   >
                     <SpanGroupRowTitleContent
-                      color={getSpanBarColours(spanBarType, theme).primary}
+                      color={getSpanBarColors(spanBarType, theme).primary}
                     >
                       {props.renderGroupSpansTitle()}
                     </SpanGroupRowTitleContent>

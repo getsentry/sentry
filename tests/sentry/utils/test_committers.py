@@ -1,7 +1,7 @@
 import unittest
 from datetime import timedelta
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid4
 
 import pytest
@@ -10,7 +10,6 @@ from django.utils import timezone
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
@@ -19,7 +18,7 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.committers import (
     _get_commit_file_changes,
@@ -36,7 +35,7 @@ from sentry.utils.committers import (
 
 
 class CommitTestCase(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.repo = Repository.objects.create(
             organization_id=self.organization.id, name=self.organization.id
         )
@@ -49,20 +48,6 @@ class CommitTestCase(TestCase):
             author=author,
         )
 
-    def create_commit_with_author(self, user=None, commit=None):
-        if not user:
-            user = self.create_user(name="Sentry", email="sentry@sentry.io")
-
-        author = CommitAuthor.objects.create(
-            organization_id=self.organization.id,
-            name=user.name,
-            email=user.email,
-            external_id=user.id,
-        )
-        if not commit:
-            commit = self.create_commit(author)
-        return commit
-
     def create_commitfilechange(self, commit=None, filename=None, type=None):
         return CommitFileChange.objects.create(
             organization_id=self.organization.id,
@@ -73,74 +58,74 @@ class CommitTestCase(TestCase):
 
 
 class TokenizePathTestCase(unittest.TestCase):
-    def test_forward_slash(self):
+    def test_forward_slash(self) -> None:
         assert list(tokenize_path("foo/bar")) == ["bar", "foo"]
 
-    def test_back_slash(self):
+    def test_back_slash(self) -> None:
         assert list(tokenize_path("foo\\bar")) == ["bar", "foo"]
 
-    def test_dot_does_not_separate(self):
+    def test_dot_does_not_separate(self) -> None:
         assert list(tokenize_path("foo.bar")) == ["foo.bar"]
 
-    def test_additional_slash_in_front(self):
+    def test_additional_slash_in_front(self) -> None:
         assert list(tokenize_path("/foo/bar")) == ["bar", "foo"]
         assert list(tokenize_path("\\foo\\bar")) == ["bar", "foo"]
 
-    def test_relative_paths(self):
+    def test_relative_paths(self) -> None:
         assert list(tokenize_path("./")) == ["."]
         assert list(tokenize_path("./../")) == ["..", "."]
         assert list(tokenize_path("./foo/bar")) == ["bar", "foo", "."]
         assert list(tokenize_path(".\\foo\\bar")) == ["bar", "foo", "."]
 
-    def test_path_with_spaces(self):
+    def test_path_with_spaces(self) -> None:
         assert list(tokenize_path("\\foo bar\\bar")) == ["bar", "foo bar"]
 
-    def test_no_path(self):
+    def test_no_path(self) -> None:
         assert list(tokenize_path("/")) == []
 
 
 class ScorePathMatchLengthTest(unittest.TestCase):
-    def test_equal_paths(self):
+    def test_equal_paths(self) -> None:
         assert score_path_match_length("foo/bar/baz", "foo/bar/baz") == 3
 
-    def test_partial_match_paths(self):
+    def test_partial_match_paths(self) -> None:
         assert score_path_match_length("foo/bar/baz", "bar/baz") == 2
         assert score_path_match_length("foo/bar/baz", "baz") == 1
 
-    def test_prefix_no_score(self):
+    def test_prefix_no_score(self) -> None:
         assert score_path_match_length("foo/bar/baz", "foo") == 0
 
-    def test_path_with_empty_path_segment(self):
+    def test_path_with_empty_path_segment(self) -> None:
         assert score_path_match_length("./foo/bar/baz", "foo/bar/baz") == 3
 
-    def test_case_insensitive_comparison(self):
+    def test_case_insensitive_comparison(self) -> None:
         assert score_path_match_length("./Foo/Bar/BAZ", "foo/bar/baz") == 3
 
 
 class GetFramePathsTestCase(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.event = Mock()
         self.event.data = {}
 
-    def test_data_in_stacktrace_frames(self):
+    def test_data_in_stacktrace_frames(self) -> None:
         self.event.data = {"stacktrace": {"frames": ["data"]}}
         assert get_frame_paths(self.event) == ["data"]
 
-    def test_data_in_exception_values(self):
+    def test_data_in_exception_values(self) -> None:
         self.event.data = {"exception": {"values": [{"stacktrace": {"frames": ["data"]}}]}}
         assert get_frame_paths(self.event) == ["data"]
 
-    def test_data_does_not_match(self):
+    def test_data_does_not_match(self) -> None:
         self.event.data = {"this does not": "match"}
         assert get_frame_paths(self.event) == []
 
-    def test_no_stacktrace_in_exception_values(self):
+    def test_no_stacktrace_in_exception_values(self) -> None:
         self.event.data = {"exception": {"values": [{"this does not": "match"}]}}
         assert get_frame_paths(self.event) == []
 
 
 class GetCommitFileChangesTestCase(CommitTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         file_change_1 = self.create_commitfilechange(filename="hello/app.py", type="A")
         file_change_2 = self.create_commitfilechange(filename="hello/templates/app.html", type="A")
@@ -153,18 +138,18 @@ class GetCommitFileChangesTestCase(CommitTestCase):
         self.commits = [file_change.commit for file_change in self.file_changes]
         self.path_name_set = {file_change.filename for file_change in self.file_changes}
 
-    def test_no_paths(self):
+    def test_no_paths(self) -> None:
         assert [] == _get_commit_file_changes(self.commits, set())
 
-    def test_no_valid_paths(self):
+    def test_no_valid_paths(self) -> None:
         assert [] == _get_commit_file_changes(self.commits, {"/"})
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         assert _get_commit_file_changes(self.commits, self.path_name_set) == self.file_changes
 
 
 class MatchCommitsPathTestCase(CommitTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         file_change = self.create_commitfilechange(filename="hello/app.py", type="A")
         file_changes = [
             file_change,
@@ -172,7 +157,7 @@ class MatchCommitsPathTestCase(CommitTestCase):
         ]
         assert [(file_change.commit, 2)] == _match_commits_path(file_changes, "hello/app.py")
 
-    def test_skip_one_score_match_longer_than_one_token(self):
+    def test_skip_one_score_match_longer_than_one_token(self) -> None:
         file_changes = [
             self.create_commitfilechange(filename="hello/app.py", type="A"),
             self.create_commitfilechange(filename="hello/world/app.py", type="A"),
@@ -180,7 +165,7 @@ class MatchCommitsPathTestCase(CommitTestCase):
         ]
         assert [] == _match_commits_path(file_changes, "app.py")
 
-    def test_similar_paths(self):
+    def test_similar_paths(self) -> None:
         file_changes = [
             self.create_commitfilechange(filename="hello/app.py", type="A"),
             self.create_commitfilechange(filename="world/hello/app.py", type="A"),
@@ -192,7 +177,7 @@ class MatchCommitsPathTestCase(CommitTestCase):
             _match_commits_path(file_changes, "hello/app.py"), key=lambda fc: fc[0].id
         )
 
-    def test_path_shorter_than_filechange(self):
+    def test_path_shorter_than_filechange(self) -> None:
         file_changes = [
             self.create_commitfilechange(filename="app.py", type="A"),
             self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="A"),
@@ -204,7 +189,7 @@ class MatchCommitsPathTestCase(CommitTestCase):
             file_changes[2].commit,
         }
 
-    def test_path_longer_than_filechange(self):
+    def test_path_longer_than_filechange(self) -> None:
         file_changes = [
             self.create_commitfilechange(filename="app.py", type="A"),
             self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="A"),
@@ -217,7 +202,7 @@ class MatchCommitsPathTestCase(CommitTestCase):
 
 
 class GetPreviousReleasesTestCase(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         current_datetime = timezone.now()
 
         org = self.create_organization()
@@ -250,14 +235,14 @@ class GetPreviousReleasesTestCase(TestCase):
 
 
 class GetEventFileCommitters(CommitTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.release = self.create_release(project=self.project, version="v12")
         self.group = self.create_group(
             project=self.project, message="Kaboom!", first_release=self.release
         )
 
-    def test_java_sdk_path_mangling(self):
+    def test_java_sdk_path_mangling(self) -> None:
         event = self.store_event(
             data={
                 "message": "Kaboom!",
@@ -319,7 +304,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
-    def test_kotlin_java_sdk_path_mangling(self):
+    def test_kotlin_java_sdk_path_mangling(self) -> None:
         event = self.store_event(
             data={
                 "message": "Kaboom!",
@@ -496,7 +481,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["score"] > 1
         assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
-    def test_cocoa_swift_repo_relative_path(self):
+    def test_cocoa_swift_repo_relative_path(self) -> None:
         event = self.store_event(
             data={
                 "message": "Kaboom!",
@@ -558,7 +543,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["score"] > 1
         assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
-    def test_react_native_unchanged_frames(self):
+    def test_react_native_unchanged_frames(self) -> None:
         event = self.store_event(
             data={
                 "message": "Kaboom!",
@@ -629,7 +614,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["score"] == 3
         assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
-    def test_flutter_munged_frames(self):
+    def test_flutter_munged_frames(self) -> None:
         event = self.store_event(
             data={
                 "platform": "other",
@@ -684,12 +669,12 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["score"] == 3
         assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
-    def test_matching(self):
+    def test_matching(self) -> None:
         event = self.store_event(
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -739,7 +724,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
     @patch("sentry.utils.committers.get_frame_paths")
-    def test_none_frame(self, mock_get_frame_paths):
+    def test_none_frame(self, mock_get_frame_paths: MagicMock) -> None:
         """Test that if a frame is None, we skip over it"""
         frames: list[Any] = [
             {
@@ -763,7 +748,7 @@ class GetEventFileCommitters(CommitTestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": frames,
                 },
@@ -796,7 +781,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
-    def test_no_author(self):
+    def test_no_author(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             model = self.create_provider_integration(
                 provider="github", external_id="github_external_id", name="getsentry"
@@ -807,7 +792,7 @@ class GetEventFileCommitters(CommitTestCase):
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -851,7 +836,7 @@ class GetEventFileCommitters(CommitTestCase):
         result = get_serialized_event_file_committers(self.project, event)
         assert len(result) == 0
 
-    def test_matching_case_insensitive(self):
+    def test_matching_case_insensitive(self) -> None:
         event = self.store_event(
             data={
                 "message": "Kaboom!",
@@ -896,7 +881,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
-    def test_not_matching(self):
+    def test_not_matching(self) -> None:
         event = self.store_event(
             data={
                 "message": "Kaboom!",
@@ -945,10 +930,10 @@ class GetEventFileCommitters(CommitTestCase):
         result = get_serialized_event_file_committers(self.project, event)
         assert len(result) == 0
 
-    def test_no_commits(self):
+    def test_no_commits(self) -> None:
         event = self.store_event(
             data={
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "message": "Kaboom!",
                 "stacktrace": {
                     "frames": [
@@ -982,14 +967,14 @@ class GetEventFileCommitters(CommitTestCase):
         with pytest.raises(Commit.DoesNotExist):
             get_serialized_event_file_committers(self.project, event)
 
-    def test_commit_context_fallback(self):
+    def test_commit_context_fallback(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             Integration.objects.all().delete()
         event = self.store_event(
             data={
                 "message": "Kaboom!",
                 "platform": "python",
-                "timestamp": iso_format(before_now(seconds=1)),
+                "timestamp": before_now(seconds=1).isoformat(),
                 "stacktrace": {
                     "frames": [
                         {
@@ -1040,16 +1025,16 @@ class GetEventFileCommitters(CommitTestCase):
 
 
 class DedupeCommits(CommitTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
-    def test_dedupe_with_same_commit(self):
+    def test_dedupe_with_same_commit(self) -> None:
         commit = self.create_commit().__dict__
         commits = [commit, commit, commit]
         result = dedupe_commits(commits)
         assert len(result) == 1
 
-    def test_dedupe_with_different_commit(self):
+    def test_dedupe_with_different_commit(self) -> None:
         same_commit = self.create_commit().__dict__
         diff_commit = self.create_commit().__dict__
         commits = [same_commit, diff_commit, same_commit]

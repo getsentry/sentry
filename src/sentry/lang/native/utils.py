@@ -1,7 +1,8 @@
 import logging
 import re
+import time
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, overload
 
 from sentry.attachments import attachment_cache
 from sentry.stacktraces.processing import StacktraceInfo
@@ -108,7 +109,15 @@ def get_event_attachment(data, attachment_type):
     return next((a for a in attachments if a.type == attachment_type), None)
 
 
-def convert_crashreport_count(value, allow_none=False) -> int | None:
+@overload
+def convert_crashreport_count(value: bool | None) -> int: ...
+
+
+@overload
+def convert_crashreport_count(value: bool | None, *, allow_none: bool) -> int | None: ...
+
+
+def convert_crashreport_count(value: bool | None, allow_none: bool = False) -> int | None:
     """
     Shim to read both legacy and new `sentry:store_crash_reports` project and
     organization options.
@@ -151,3 +160,32 @@ def is_applecrashreport_event(data):
     """
     exceptions = get_path(data, "exception", "values", filter=True)
     return get_path(exceptions, 0, "mechanism", "type") == "applecrashreport"
+
+
+class Backoff:
+    """
+    Creates a new exponential backoff.
+    """
+
+    def __init__(self, initial, max):
+        """
+        :param initial: The initial backoff time in seconds.
+        :param max: The maximum backoff time in seconds.
+        """
+        self.initial = initial
+        self.max = max
+        self._current = 0
+
+    def reset(self):
+        """
+        Resets the backoff time zero.
+        """
+        self._current = 0
+
+    def sleep_failure(self):
+        """
+        Sleeps until the next retry attempt and increases the backoff time for the next failure.
+        """
+        if self._current > 0:
+            time.sleep(self._current)
+        self._current = min(max(self._current * 2, self.initial), self.max)

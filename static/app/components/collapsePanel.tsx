@@ -14,7 +14,7 @@ type ChildRenderProps = {
 };
 
 type Props = {
-  children: (props: ChildRenderProps) => JSX.Element;
+  children: (props: ChildRenderProps) => React.JSX.Element;
   items: number;
   buttonTitle?: string;
   collapseCount?: number;
@@ -94,7 +94,7 @@ const ShowMore = styled('div')<{disableBorder: boolean}>`
   display: flex;
   align-items: center;
   padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   cursor: pointer;
   border-top: 1px solid ${p => p.theme.border};

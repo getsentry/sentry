@@ -1,4 +1,3 @@
-import type {ReactChild} from 'react';
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
@@ -14,7 +13,7 @@ import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 
 type SpanEvidencePreviewProps = {
-  children: ReactChild;
+  children: React.ReactNode;
   groupId: string;
   query?: string;
 };
@@ -34,25 +33,25 @@ function SpanEvidencePreviewBody({
   onUnmount,
   query,
 }: SpanEvidencePreviewBodyProps) {
-  const {data, isLoading, isError} = usePreviewEvent<EventTransaction>({
+  const {data, isPending, isError} = usePreviewEvent<EventTransaction>({
     groupId,
     query,
   });
 
   useEffect(() => {
-    if (isLoading) {
+    if (isPending) {
       onRequestBegin();
     } else {
       onRequestEnd();
     }
 
     return onUnmount;
-  }, [isLoading, onRequestBegin, onRequestEnd, onUnmount]);
+  }, [isPending, onRequestBegin, onRequestEnd, onUnmount]);
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <EmptyWrapper>
-        <LoadingIndicator hideMessage size={32} />
+        <LoadingIndicator size={32} />
       </EmptyWrapper>
     );
   }
@@ -105,7 +104,7 @@ export function SpanEvidencePreview({
 const EmptyWrapper = styled('div')`
   color: ${p => p.theme.subText};
   padding: ${space(1.5)};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   display: flex;
   align-items: center;
   justify-content: center;

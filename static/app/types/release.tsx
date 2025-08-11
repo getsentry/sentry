@@ -1,7 +1,6 @@
-import type {PlatformKey} from 'sentry/types/project';
-
 import type {TimeseriesValue} from './core';
 import type {Commit} from './integrations';
+import type {PlatformKey} from './project';
 import type {User} from './user';
 
 export enum ReleaseStatus {
@@ -20,7 +19,7 @@ export type SourceMapsArchive = {
 export type Artifact = {
   dateCreated: string;
   dist: string | null;
-  headers: {'Content-Type': string} | {};
+  headers: {'Content-Type': string} | Record<string, unknown>;
   id: string;
   name: string;
   sha1: string;
@@ -41,7 +40,7 @@ interface RawVersion {
   raw: string;
 }
 
-export interface SemverVerison extends RawVersion {
+export interface SemverVersion extends RawVersion {
   buildCode: string | null;
   components: number;
   major: number;
@@ -54,7 +53,7 @@ export type VersionInfo = {
   buildHash: string | null;
   description: string;
   package: string | null;
-  version: RawVersion | SemverVerison;
+  version: RawVersion | SemverVersion;
 };
 
 export interface BaseRelease {
@@ -73,11 +72,11 @@ export interface Release extends BaseRelease, ReleaseData {
 }
 
 export interface ReleaseWithHealth extends BaseRelease, ReleaseData {
-  projects: Required<ReleaseProject>[];
+  projects: Array<Required<ReleaseProject>>;
 }
 
 interface ReleaseData {
-  authors: User[];
+  authors: Array<User | {email: string; name: string}>;
   commitCount: number;
   currentProjectMeta: {
     firstReleaseVersion: string | null;
@@ -87,7 +86,7 @@ interface ReleaseData {
     sessionsLowerBound: string | null;
     sessionsUpperBound: string | null;
   };
-  data: {};
+  data: Record<string, unknown>;
   deployCount: number;
   fileCount: number | null;
   firstEvent: string;
@@ -132,6 +131,14 @@ export type ReleaseProject = {
   healthData?: Health;
 };
 
+/**
+ * From the `/releases/stats/` endpoint
+ */
+export type ReleaseMetaBasic = {
+  date: string;
+  version: string;
+};
+
 export type ReleaseMeta = {
   commitCount: number;
   commitFilesChanged: number;
@@ -167,7 +174,7 @@ export type Health = {
   totalUsers24h: number | null;
 };
 
-export type HealthGraphData = Record<string, TimeseriesValue[]>;
+type HealthGraphData = Record<string, TimeseriesValue[]>;
 
 export enum ReleaseComparisonChartType {
   CRASH_FREE_USERS = 'crashFreeUsers',
@@ -192,10 +199,10 @@ export enum HealthStatsPeriodOption {
   TWENTY_FOUR_HOURS = '24h',
 }
 
-export type CrashFreeTimeBreakdown = {
+export type CrashFreeTimeBreakdown = Array<{
   crashFreeSessions: number | null;
   crashFreeUsers: number | null;
   date: string;
   totalSessions: number;
   totalUsers: number;
-}[];
+}>;

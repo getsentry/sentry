@@ -1,6 +1,6 @@
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {StatusPageComponent, StatuspageIncident} from 'sentry/types';
+import type {StatusPageComponent, StatuspageIncident} from 'sentry/types/system';
 import {useQuery} from 'sentry/utils/queryClient';
 
 interface UseServiceIncidentsOptions {
@@ -9,9 +9,9 @@ interface UseServiceIncidentsOptions {
    */
   componentFilter?: StatusPageComponent[];
   /**
-   * Should we load all incidents or just unresolved incidents
+   * Should we include resolved incidents
    */
-  statusFilter?: 'unresolved' | 'resolved';
+  includeResolved?: boolean;
 }
 
 /**
@@ -22,31 +22,28 @@ interface UseServiceIncidentsOptions {
  * endpoint, efficiently only loading unresolved incidents.
  */
 export function useServiceIncidents({
-  statusFilter,
+  includeResolved,
   componentFilter,
 }: UseServiceIncidentsOptions = {}) {
   const {statuspage} = useLegacyStore(ConfigStore);
+  const {api_host, id} = statuspage ?? {};
 
   return useQuery<StatuspageIncident[] | null>({
-    queryKey: ['statuspage-incidents', statusFilter],
-    cacheTime: 60 * 5,
+    queryKey: ['statuspage-incidents', {api_host, id, includeResolved}],
     queryFn: async () => {
-      const {api_host, id} = statuspage ?? {};
-
       if (!api_host || !id) {
         return null;
       }
 
       // We can avoid fetching lots of data by only querying the unresolved API
-      // when we filter to only unresolvedf incidents
-      const sttusPageUrl =
-        statusFilter === 'unresolved'
-          ? `https://${id}.${api_host}/api/v2/incidents/unresolved.json`
-          : `https://${id}.${api_host}/api/v2/incidents.json`;
+      // when we filter to only unresolved incidents
+      const statusPageUrl = includeResolved
+        ? `https://${id}.${api_host}/api/v2/incidents.json`
+        : `https://${id}.${api_host}/api/v2/incidents/unresolved.json`;
 
       let resp: Response;
       try {
-        resp = await fetch(sttusPageUrl);
+        resp = await fetch(statusPageUrl);
       } catch {
         // No point in capturing this as we can't make statuspage come back.
         return null;
@@ -64,8 +61,8 @@ export function useServiceIncidents({
     select: incidents => {
       let filteredIncidents = incidents;
 
-      if (statusFilter) {
-        filteredIncidents = incidents?.filter(inc => inc.status === statusFilter) ?? null;
+      if (!includeResolved) {
+        filteredIncidents = incidents?.filter(inc => inc.status !== 'resolved') ?? null;
       }
       if (componentFilter) {
         filteredIncidents =
@@ -76,5 +73,10 @@ export function useServiceIncidents({
 
       return filteredIncidents;
     },
+    // 5 minutes
+    staleTime: 1000 * 60 * 5,
+    // Refetch every 5 minutes and when window is refocused
+    refetchInterval: 1000 * 60 * 5,
+    refetchOnWindowFocus: true,
   });
 }

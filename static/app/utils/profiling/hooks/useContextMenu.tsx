@@ -5,11 +5,7 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 
 import {useKeyboardNavigation} from './useKeyboardNavigation';
 
-export function computeBestContextMenuPosition(
-  mouse: Rect,
-  container: Rect,
-  target: Rect
-) {
+function computeBestContextMenuPosition(mouse: Rect, container: Rect, target: Rect) {
   const maxY = Math.floor(container.height - target.height);
   const minY = container.top;
 
@@ -146,7 +142,7 @@ export function useContextMenu({container}: UseContextMenuOptions) {
     }
 
     const resizeObserver = new window.ResizeObserver(entries => {
-      const contentRect = entries[0].contentRect;
+      const contentRect = entries[0]!.contentRect;
       setMenuCoordinates(new Rect(0, 0, contentRect.width, contentRect.height));
     });
 
@@ -164,7 +160,7 @@ export function useContextMenu({container}: UseContextMenuOptions) {
     }
 
     const resizeObserver = new window.ResizeObserver(entries => {
-      const contentRect = entries[0].contentRect;
+      const contentRect = entries[0]!.contentRect;
       setContainerCoordinates(new Rect(0, 0, contentRect.width, contentRect.height));
     });
 

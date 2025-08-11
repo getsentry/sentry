@@ -13,13 +13,13 @@ from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Join, Limit, Query
 from snuba_sdk.relationships import Relationship
 
-from sentry.api.serializers.snuba import zerofill
 from sentry.constants import DataCategory
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
+from sentry.models.team import TeamStatus
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.types.group import GroupSubStatus
@@ -42,9 +42,9 @@ class OrganizationReportContext:
         self.end = to_datetime(timestamp)
 
         self.organization: Organization = organization
-        self.projects_context_map: dict[
-            int, ProjectContext | DailySummaryProjectContext
-        ] = {}  # { project_id: ProjectContext }
+        self.projects_context_map: dict[int, ProjectContext | DailySummaryProjectContext] = (
+            {}
+        )  # { project_id: ProjectContext }
 
         self.project_ownership: dict[int, set[int]] = {}  # { user_id: set<project_id> }
         self.daily = daily
@@ -54,8 +54,17 @@ class OrganizationReportContext:
             else:
                 self.projects_context_map[project.id] = ProjectContext(project)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.projects_context_map.__repr__()
+
+    def is_empty(self):
+        """
+        Returns True if every project context is empty.
+        """
+        return all(
+            project_ctx.check_if_project_is_empty()
+            for project_ctx in self.projects_context_map.values()
+        )
 
 
 class ProjectContext:
@@ -91,7 +100,7 @@ class ProjectContext:
         # Dictionary of { timestamp: count }
         self.replay_count_by_day = {}
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "\n".join(
             [
                 f"{self.key_errors_by_group}, ",
@@ -146,7 +155,9 @@ def user_project_ownership(ctx: OrganizationReportContext) -> None:
     Populates context.project_ownership which is { user_id: set<project_id> }
     """
     for project_id, user_id in OrganizationMember.objects.filter(
-        organization_id=ctx.organization.id, teams__projectteam__project__isnull=False
+        organization_id=ctx.organization.id,
+        teams__projectteam__project__isnull=False,
+        teams__status=TeamStatus.ACTIVE,
     ).values_list("teams__projectteam__project_id", "user_id"):
         if user_id is not None:
             ctx.project_ownership.setdefault(user_id, set()).add(project_id)
@@ -396,9 +407,6 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
     Populates context.projects which is { project_id: ProjectContext }
     """
 
-    def zerofill_data(data):
-        return zerofill(data, start, end, ONE_DAY, fill_default=0)
-
     query = Query(
         match=Entity("outcomes"),
         select=[
@@ -442,6 +450,7 @@ def organization_project_issue_substatus_summaries(ctx: OrganizationReportContex
             last_seen__lt=ctx.end,
             status=GroupStatus.UNRESOLVED,
         )
+        .select_related("project")
         .values("project_id", "substatus")
         .annotate(total=Count("substatus"))
     )
@@ -462,10 +471,6 @@ def check_if_ctx_is_empty(ctx: OrganizationReportContext) -> bool:
     """
     Check if the context is empty. If it is, we don't want to send a notification.
     """
-    if ctx.daily:
-        project_ctxs = [project_ctx for project_ctx in ctx.projects_context_map.values()]
-
-    else:
-        project_ctxs = [project_ctx for project_ctx in ctx.projects_context_map.values()]
-
-    return all(project_ctx.check_if_project_is_empty() for project_ctx in project_ctxs)
+    return all(
+        project_ctx.check_if_project_is_empty() for project_ctx in ctx.projects_context_map.values()
+    )

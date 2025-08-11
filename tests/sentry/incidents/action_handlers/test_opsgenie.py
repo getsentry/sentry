@@ -1,14 +1,26 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
+import orjson
 import responses
+from urllib3.response import HTTPResponse
 
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.incidents.action_handlers import OpsgenieActionHandler
 from sentry.incidents.logic import update_incident_status
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import (
+    AlertRuleDetectionType,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
+    AlertRuleTriggerAction,
+)
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
+from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.seer.anomaly_detection.types import StoreDataResponse
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.utils import json
 
@@ -24,7 +36,8 @@ METADATA = {
 @freeze_time()
 class OpsgenieActionHandlerTest(FireTest):
     @responses.activate
-    def setUp(self):
+    def setUp(self) -> None:
+        self.handler = OpsgenieActionHandler()
         self.og_team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
         self.integration = self.create_provider_integration(
             provider="opsgenie", name="hello-world", external_id="hello-world", metadata=METADATA
@@ -56,7 +69,7 @@ class OpsgenieActionHandlerTest(FireTest):
         )
 
     @responses.activate
-    def test_build_incident_attachment(self):
+    def test_build_incident_attachment(self) -> None:
         from sentry.integrations.opsgenie.utils import build_incident_attachment
 
         alert_rule = self.create_alert_rule()
@@ -82,7 +95,13 @@ class OpsgenieActionHandlerTest(FireTest):
         )
         metric_value = 1000
         data = build_incident_attachment(
-            incident=incident, new_status=IncidentStatus(incident.status), metric_value=metric_value
+            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident=incident,
+                new_status=IncidentStatus(incident.status),
+                metric_value=metric_value,
+            ),
+            organization=incident.organization,
         )
 
         assert data["message"] == alert_rule.name
@@ -91,7 +110,67 @@ class OpsgenieActionHandlerTest(FireTest):
         assert data["priority"] == "P1"
         assert (
             data["details"]["URL"]
-            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert_opsgenie"
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert_opsgenie&detection_type={alert_rule.detection_type}"
+        )
+
+    @responses.activate
+    @with_feature("organizations:anomaly-detection-alerts")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_build_incident_attachment_dynamic_alert(self, mock_seer_request: MagicMock) -> None:
+        from sentry.integrations.opsgenie.utils import build_incident_attachment
+
+        seer_return_value: StoreDataResponse = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        alert_rule = self.create_alert_rule(
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            time_window=30,
+            sensitivity=AlertRuleSensitivity.LOW,
+            seasonality=AlertRuleSeasonality.AUTO,
+        )
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CRITICAL.value)
+        trigger = self.create_alert_rule_trigger(alert_rule=alert_rule, alert_threshold=0)
+        update_incident_status(
+            incident, IncidentStatus.CRITICAL, status_method=IncidentStatusMethod.RULE_TRIGGERED
+        )
+        resp_data = {
+            "result": "Integration [sentry] is valid",
+            "took": 1,
+            "requestId": "hello-world",
+        }
+        responses.add(
+            responses.POST,
+            url="https://api.opsgenie.com/v2/integrations/authenticate",
+            json=resp_data,
+        )
+        self.create_alert_rule_trigger_action(
+            target_identifier=self.og_team["id"],
+            type=AlertRuleTriggerAction.Type.OPSGENIE,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            integration=self.integration,
+            alert_rule_trigger=trigger,
+            triggered_for_incident=incident,
+        )
+        metric_value = 1000
+        data = build_incident_attachment(
+            metric_issue_context=MetricIssueContext.from_legacy_models(
+                incident, IncidentStatus(incident.status), metric_value
+            ),
+            alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+            organization=incident.organization,
+        )
+
+        assert data["message"] == alert_rule.name
+        assert data["alias"] == f"incident_{incident.organization_id}_{incident.identifier}"
+        assert (
+            data["description"]
+            == f"1000 events in the last 30 minutes\nThreshold: {alert_rule.detection_type.title()}"
+        )
+        assert data["priority"] == "P1"
+        assert (
+            data["details"]["URL"]
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer=metric_alert_opsgenie&detection_type={alert_rule.detection_type}"
         )
 
     @responses.activate
@@ -106,7 +185,7 @@ class OpsgenieActionHandlerTest(FireTest):
         if method == "resolve":
             responses.add(
                 responses.POST,
-                url=f"https://api.opsgenie.com/v2/alerts/{alias}/acknowledge?identifierType=alias",
+                url=f"https://api.opsgenie.com/v2/alerts/{alias}/close?identifierType=alias",
                 json={},
                 status=202,
             )
@@ -123,23 +202,34 @@ class OpsgenieActionHandlerTest(FireTest):
                 json={},
                 status=202,
             )
-            expected_payload = build_incident_attachment(incident, new_status, metric_value=1000)
+            expected_payload = build_incident_attachment(
+                metric_issue_context=MetricIssueContext.from_legacy_models(
+                    incident, new_status, metric_value=1000
+                ),
+                alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
+                organization=incident.organization,
+            )
             expected_payload = attach_custom_priority(expected_payload, self.action, new_status)
 
-        handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            getattr(handler, method)(metric_value, IncidentStatus(incident.status))
+            getattr(self.handler, method)(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                new_status=IncidentStatus(incident.status),
+                metric_value=metric_value,
+            )
         data = responses.calls[0].request.body
 
         assert json.loads(data) == expected_payload
 
     @responses.activate
-    def test_fire_metric_alert(self):
+    def test_fire_metric_alert(self) -> None:
         self.run_fire_test()
 
     @responses.activate
-    def test_fire_metric_alert_multiple_teams(self):
+    def test_fire_metric_alert_multiple_teams(self) -> None:
         team2 = {"id": "456-id", "team": "cooler-team", "integration_key": "1234-7890"}
         self.org_integration.config["team_table"].append(team2)
         with assume_test_silo_mode_of(OrganizationIntegration):
@@ -148,11 +238,11 @@ class OpsgenieActionHandlerTest(FireTest):
         self.run_fire_test()
 
     @responses.activate
-    def test_resolve_metric_alert(self):
+    def test_resolve_metric_alert(self) -> None:
         self.run_fire_test("resolve")
 
     @responses.activate
-    def test_rule_snoozed(self):
+    def test_rule_snoozed(self) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
         self.snooze_rule(alert_rule=alert_rule)
@@ -163,26 +253,36 @@ class OpsgenieActionHandlerTest(FireTest):
             json={},
             status=202,
         )
-        handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
+            )
 
         assert len(responses.calls) == 0
 
     @responses.activate
     @patch("sentry.integrations.opsgenie.utils.logger")
-    def test_missing_integration(self, mock_logger):
+    def test_missing_integration(self, mock_logger: MagicMock) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule)
 
         with assume_test_silo_mode_of(Integration):
             self.integration.delete()
 
-        handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
+            )
 
         assert len(responses.calls) == 0
         assert (
@@ -192,7 +292,7 @@ class OpsgenieActionHandlerTest(FireTest):
 
     @responses.activate
     @patch("sentry.integrations.opsgenie.utils.logger")
-    def test_missing_team(self, mock_logger):
+    def test_missing_team(self, mock_logger: MagicMock) -> None:
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule)
 
@@ -200,10 +300,15 @@ class OpsgenieActionHandlerTest(FireTest):
         with assume_test_silo_mode_of(OrganizationIntegration):
             self.org_integration.save()
 
-        handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
-            handler.fire(metric_value, IncidentStatus(incident.status))
+            self.handler.fire(
+                action=self.action,
+                incident=incident,
+                project=self.project,
+                metric_value=metric_value,
+                new_status=IncidentStatus(incident.status),
+            )
 
         assert len(responses.calls) == 0
         assert (
@@ -212,26 +317,28 @@ class OpsgenieActionHandlerTest(FireTest):
         )
 
     @patch("sentry.analytics.record")
-    def test_alert_sent_recorded(self, mock_record):
+    def test_alert_sent_recorded(self, mock_record: MagicMock) -> None:
         self.run_fire_test()
-        mock_record.assert_called_with(
-            "alert.sent",
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            provider="opsgenie",
-            alert_id=self.alert_rule.id,
-            alert_type="metric_alert",
-            external_id=str(self.action.target_identifier),
-            notification_uuid="",
+        assert_last_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                provider="opsgenie",
+                alert_id=str(self.alert_rule.id),
+                alert_type="metric_alert",
+                external_id=str(self.action.target_identifier),
+                notification_uuid="",
+            ),
         )
 
     @responses.activate
-    def test_custom_priority(self):
+    def test_custom_priority(self) -> None:
         # default critical incident priority is P1, custom set to P3
         self.action.update(sentry_app_config={"priority": "P3"})
         self.run_fire_test()
 
     @responses.activate
-    def test_custom_priority_resolve(self):
+    def test_custom_priority_resolve(self) -> None:
         self.action.update(sentry_app_config={"priority": "P3"})
         self.run_fire_test("resolve")

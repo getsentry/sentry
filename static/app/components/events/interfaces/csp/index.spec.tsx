@@ -21,7 +21,7 @@ describe('Csp report entry', function () {
         },
       },
     });
-    render(<Csp data={event.entries[0].data} event={event} />, {
+    render(<Csp data={event.entries[0]!.data} event={event} />, {
       organization: {
         relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
       },

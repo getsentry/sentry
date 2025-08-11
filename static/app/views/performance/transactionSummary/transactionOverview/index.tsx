@@ -1,16 +1,19 @@
 import {useEffect} from 'react';
+import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import LoadingContainer from 'sentry/components/loading/loadingContainer';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters, Project} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import type {Column, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {isAggregateField} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {WebVital} from 'sentry/utils/fields';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
@@ -25,30 +28,31 @@ import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
-
-import {addRoutePerformanceContext} from '../../utils';
+import {useTransactionSummaryEAP} from 'sentry/views/performance/otlp/useTransactionSummaryEAP';
 import {
   decodeFilterFromLocation,
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
-} from '../filter';
-import type {ChildProps} from '../pageLayout';
-import PageLayout from '../pageLayout';
-import Tab from '../tabs';
+} from 'sentry/views/performance/transactionSummary/filter';
+import type {ChildProps} from 'sentry/views/performance/transactionSummary/pageLayout';
+import PageLayout from 'sentry/views/performance/transactionSummary/pageLayout';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
+import {getTransactionMEPParamsIfApplicable} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
+  makeVitalGroups,
   PERCENTILE as VITAL_PERCENTILE,
-  VITAL_GROUPS,
-} from '../transactionVitals/constants';
+} from 'sentry/views/performance/transactionSummary/transactionVitals/constants';
+import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 
 import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
-import SummaryContent from './content';
+import SummaryContent, {OTelSummaryContent} from './content';
 
 // Used to cast the totals request to numbers
-// as React.ReactText
+// as string | number
 type TotalValues = Record<string, number>;
 
 type Props = {
@@ -71,6 +75,8 @@ function TransactionOverview(props: Props) {
     });
   }, [selection, organization, api]);
 
+  const shouldUseTransactionSummaryEAP = useTransactionSummaryEAP();
+
   return (
     <MEPSettingProvider>
       <PageLayout
@@ -80,7 +86,11 @@ function TransactionOverview(props: Props) {
         tab={Tab.TRANSACTION_SUMMARY}
         getDocumentTitle={getDocumentTitle}
         generateEventView={generateEventView}
-        childComponent={CardinalityLoadingWrapper}
+        childComponent={
+          shouldUseTransactionSummaryEAP
+            ? EAPCardinalityLoadingWrapper
+            : CardinalityLoadingWrapper
+        }
       />
     </MEPSettingProvider>
   );
@@ -96,6 +106,113 @@ function CardinalityLoadingWrapper(props: ChildProps) {
   return <OverviewContentWrapper {...props} />;
 }
 
+function EAPCardinalityLoadingWrapper(props: ChildProps) {
+  const mepCardinalityContext = useMetricsCardinalityContext();
+
+  if (mepCardinalityContext.isLoading) {
+    return <LoadingContainer isLoading />;
+  }
+
+  return <OTelOverviewContentWrapper {...props} />;
+}
+
+function OTelOverviewContentWrapper(props: ChildProps) {
+  const {
+    location,
+    organization,
+    eventView,
+    projectId,
+    transactionName,
+    transactionThreshold,
+    transactionThresholdMetric,
+  } = props;
+
+  const navigate = useNavigate();
+  const mepContext = useMEPDataContext();
+
+  const queryData = useDiscoverQuery({
+    eventView: getEAPTotalsEventView(organization, eventView),
+    orgSlug: organization.slug,
+    location,
+    transactionThreshold,
+    transactionThresholdMetric,
+    referrer: 'api.performance.transaction-summary',
+    options: {
+      refetchOnWindowFocus: false,
+    },
+  });
+
+  // Count has to be total indexed events count because it's only used
+  // in indexed events contexts
+  const totalCountQueryData = useDiscoverQuery({
+    eventView: getTotalCountEventView(organization, eventView),
+    orgSlug: organization.slug,
+    location,
+    transactionThreshold,
+    transactionThresholdMetric,
+    referrer: 'api.performance.transaction-summary',
+  });
+
+  useEffect(() => {
+    const isMetricsData = getIsMetricsDataFromResults(queryData.data);
+    mepContext.setIsMetricsData(isMetricsData);
+  }, [mepContext, queryData.data]);
+
+  const {data: tableData, isPending, error} = queryData;
+  const {
+    data: totalCountTableData,
+    isPending: isTotalCountQueryLoading,
+    error: totalCountQueryError,
+  } = totalCountQueryData;
+
+  const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
+
+  const onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
+    trackAnalytics('performance_views.filter_dropdown.selection', {
+      organization,
+      action: newFilter as string,
+    });
+
+    const nextQuery: Location['query'] = {
+      ...removeHistogramQueryStrings(location, [ZOOM_START, ZOOM_END]),
+      ...filterToLocationQuery(newFilter),
+    };
+
+    if (newFilter === SpanOperationBreakdownFilter.NONE) {
+      delete nextQuery.breakdown;
+    }
+
+    navigate({
+      pathname: location.pathname,
+      query: nextQuery,
+    });
+  };
+
+  let totals: TotalValues | null =
+    (tableData?.data?.[0] as Record<string, number>) ?? null;
+  const totalCountData: TotalValues | null =
+    (totalCountTableData?.data?.[0] as Record<string, number>) ?? null;
+
+  // Count is always a count of indexed events,
+  // while other fields could be either metrics or index based
+  totals = {...totals, ...totalCountData};
+
+  return (
+    <OTelSummaryContent
+      location={location}
+      organization={organization}
+      eventView={eventView}
+      projectId={projectId}
+      transactionName={transactionName}
+      isLoading={isPending || isTotalCountQueryLoading}
+      error={error || totalCountQueryError}
+      totalValues={totals}
+      onChangeFilter={onChangeFilter}
+      spanOperationBreakdownFilter={spanOperationBreakdownFilter}
+    />
+  );
+}
+
 function OverviewContentWrapper(props: ChildProps) {
   const {
     location,
@@ -106,6 +223,8 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThreshold,
     transactionThresholdMetric,
   } = props;
+  const theme = useTheme();
+  const navigate = useNavigate();
 
   const mepContext = useMEPDataContext();
   const mepSetting = useMEPSettingContext();
@@ -117,7 +236,7 @@ function OverviewContentWrapper(props: ChildProps) {
   );
 
   const queryData = useDiscoverQuery({
-    eventView: getTotalsEventView(organization, eventView),
+    eventView: getTotalsEventView(organization, eventView, theme),
     orgSlug: organization.slug,
     location,
     transactionThreshold,
@@ -145,10 +264,10 @@ function OverviewContentWrapper(props: ChildProps) {
     mepContext.setIsMetricsData(isMetricsData);
   }, [mepContext, queryData.data]);
 
-  const {data: tableData, isLoading, error} = queryData;
+  const {data: tableData, isPending, error} = queryData;
   const {
     data: totalCountTableData,
-    isLoading: isTotalCountQueryLoading,
+    isPending: isTotalCountQueryLoading,
     error: totalCountQueryError,
   } = totalCountQueryData;
 
@@ -169,18 +288,16 @@ function OverviewContentWrapper(props: ChildProps) {
       delete nextQuery.breakdown;
     }
 
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: nextQuery,
     });
   };
 
   let totals: TotalValues | null =
-    (tableData?.data?.[0] as {
-      [k: string]: number;
-    }) ?? null;
+    (tableData?.data?.[0] as Record<string, number>) ?? null;
   const totalCountData: TotalValues | null =
-    (totalCountTableData?.data?.[0] as {[k: string]: number}) ?? null;
+    (totalCountTableData?.data?.[0] as Record<string, number>) ?? null;
 
   // Count is always a count of indexed events,
   // while other fields could be either metrics or index based
@@ -193,7 +310,7 @@ function OverviewContentWrapper(props: ChildProps) {
       eventView={eventView}
       projectId={projectId}
       transactionName={transactionName}
-      isLoading={isLoading || isTotalCountQueryLoading}
+      isLoading={isPending || isTotalCountQueryLoading}
       error={error || totalCountQueryError}
       totalValues={totals}
       onChangeFilter={onChangeFilter}
@@ -216,17 +333,28 @@ function getDocumentTitle(transactionName: string): string {
 function generateEventView({
   location,
   transactionName,
+  shouldUseOTelFriendlyUI,
 }: {
   location: Location;
-  organization: Organization;
+  shouldUseOTelFriendlyUI: boolean;
   transactionName: string;
 }): EventView {
   // Use the user supplied query but overwrite any transaction or event type
   // conditions they applied.
+
   const query = decodeScalar(location.query.query, '');
   const conditions = new MutableSearch(query);
 
-  conditions.setFilterValues('event.type', ['transaction']);
+  if (shouldUseOTelFriendlyUI) {
+    conditions.setFilterValues('is_transaction', ['true']);
+    conditions.setFilterValues(
+      'transaction.method',
+      conditions.getFilterValues('http.method')
+    );
+    conditions.removeFilter('http.method');
+  } else {
+    conditions.setFilterValues('event.type', ['transaction']);
+  }
   conditions.setFilterValues('transaction', [transactionName]);
 
   Object.keys(conditions.filters).forEach(field => {
@@ -235,7 +363,18 @@ function generateEventView({
     }
   });
 
-  const fields = ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'];
+  const fields = shouldUseOTelFriendlyUI
+    ? [
+        'id',
+        'user.email',
+        'user.username',
+        'user.id',
+        'user.ip',
+        'span.duration',
+        'trace',
+        'timestamp',
+      ]
+    : ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'];
 
   return EventView.fromNewQueryWithLocation(
     {
@@ -245,6 +384,7 @@ function generateEventView({
       fields,
       query: conditions.formatString(),
       projects: [],
+      dataset: shouldUseOTelFriendlyUI ? DiscoverDatasets.SPANS : undefined,
     },
     location
   );
@@ -264,12 +404,15 @@ function getTotalCountEventView(
 
 function getTotalsEventView(
   _organization: Organization,
-  eventView: EventView
+  eventView: EventView,
+  theme: Theme
 ): EventView {
-  const vitals = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce((keys: WebVital[], vs) => {
-    vs.forEach(vital => keys.push(vital));
-    return keys;
-  }, []);
+  const vitals = makeVitalGroups(theme)
+    .map(({vitals: vs}) => vs)
+    .reduce((keys: WebVital[], vs) => {
+      vs.forEach(vital => keys.push(vital));
+      return keys;
+    }, []);
 
   const totalsColumns: QueryFieldValue[] = [
     {
@@ -316,6 +459,24 @@ function getTotalsEventView(
         }) as Column
     ),
   ]);
+}
+
+function getEAPTotalsEventView(
+  _organization: Organization,
+  eventView: EventView
+): EventView {
+  const totalsColumns: QueryFieldValue[] = [
+    {
+      kind: 'function',
+      function: ['p95', '', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['count_unique', 'user', undefined, undefined],
+    },
+  ];
+
+  return eventView.withColumns([...totalsColumns]);
 }
 
 export default withPageFilters(withProjects(withOrganization(TransactionOverview)));

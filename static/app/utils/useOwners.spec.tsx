@@ -10,6 +10,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import {useOwners} from './useOwners';
 
@@ -23,8 +24,12 @@ describe('useOwners', () => {
 
   const queryClient = makeTestQueryClient();
 
-  function Wrapper({children}) {
-    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  function Wrapper({children}: {children: React.ReactNode}) {
+    return (
+      <OrganizationContext.Provider value={org}>
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      </OrganizationContext.Provider>
+    );
   }
 
   beforeEach(() => {

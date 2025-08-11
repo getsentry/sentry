@@ -6,20 +6,21 @@ import omit from 'lodash/omit';
 import type {Client, ResponseMeta} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
+import type {Confidence, Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
-
-import type {DatasetConfig} from '../datasetConfig/base';
-import type {DashboardFilters, Widget, WidgetQuery} from '../types';
-import {DEFAULT_TABLE_LIMIT, DisplayType} from '../types';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 function getReferrer(displayType: DisplayType) {
-  let referrer: string = '';
+  let referrer = '';
 
   if (displayType === DisplayType.TABLE) {
     referrer = 'api.dashboards.tablewidget';
@@ -33,7 +34,11 @@ function getReferrer(displayType: DisplayType) {
 }
 
 export type OnDataFetchedProps = {
+  confidence?: Confidence;
+  isProgressivelyLoading?: boolean;
+  isSampled?: boolean | null;
   pageLinks?: string;
+  sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
@@ -42,8 +47,12 @@ export type OnDataFetchedProps = {
 
 export type GenericWidgetQueriesChildrenProps = {
   loading: boolean;
+  confidence?: Confidence;
   errorMessage?: string;
+  isProgressivelyLoading?: boolean;
+  isSampled?: boolean | null;
   pageLinks?: string;
+  sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
@@ -72,6 +81,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   limit?: number;
   loading?: boolean;
   mepSetting?: MEPState | null;
+  onDataFetchStart?: () => void;
   onDataFetched?: ({
     tableResults,
     timeseriesResults,
@@ -80,6 +90,7 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResultsTypes,
   }: OnDataFetchedProps) => void;
   onDemandControlContext?: OnDemandControlContext;
+  samplingMode?: SamplingMode;
   // Skips adding parens before applying dashboard filters
   // Used for datasets that do not support parens/boolean logic
   skipDashboardFilterParens?: boolean;
@@ -128,7 +139,10 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     // Also don't count empty fields when checking for field changes
     const previousQueries = prevProps.widget.queries;
     const [prevWidgetQueryNames, prevWidgetQueries] = previousQueries.reduce(
-      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+      (
+        [names, queries]: [string[], Array<Omit<WidgetQuery, 'name'>>],
+        {name, ...rest}
+      ) => {
         names.push(name);
         rest.fields = rest.fields?.filter(field => !!field) ?? [];
 
@@ -142,7 +156,10 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
     const nextQueries = widget.queries;
     const [widgetQueryNames, widgetQueries] = nextQueries.reduce(
-      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+      (
+        [names, queries]: [string[], Array<Omit<WidgetQuery, 'name'>>],
+        {name, ...rest}
+      ) => {
         names.push(name);
         rest.fields = rest.fields?.filter(field => !!field) ?? [];
 
@@ -178,11 +195,10 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     ) {
       // If the query names has changed, then update timeseries labels
 
-      // eslint-disable-next-line react/no-did-update-set-state
       this.setState(prevState => {
         const timeseriesResults = widget.queries.reduce((acc: Series[], query, index) => {
           return acc.concat(
-            config.transformSeries!(prevState.rawResults![index], query, organization)
+            config.transformSeries!(prevState.rawResults![index]!, query, organization)
           );
         }, []);
 
@@ -195,7 +211,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     this._isMounted = false;
   }
 
-  private _isMounted: boolean = false;
+  private _isMounted = false;
 
   applyDashboardFilters(widget: Widget): Widget {
     const {dashboardFilters, skipDashboardFilterParens} = this.props;
@@ -231,6 +247,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       onDataFetched,
       onDemandControlContext,
       mepSetting,
+      samplingMode,
     } = this.props;
     const widget = this.widgetForRequest(cloneDeep(originalWidget));
     const responses = await Promise.all(
@@ -254,7 +271,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           requestLimit,
           cursor,
           getReferrer(widget.displayType),
-          mepSetting
+          mepSetting,
+          samplingMode
         );
       })
     );
@@ -267,7 +285,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       // Cast so we can add the title.
       const transformedData = config.transformTable(
         data,
-        widget.queries[0],
+        widget.queries[0]!,
         organization,
         selection
       ) as TableDataWithTitle;
@@ -293,7 +311,6 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       });
     }
   }
-
   async fetchSeriesData(queryFetchID: symbol) {
     const {
       widget: originalWidget,
@@ -305,6 +322,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       onDataFetched,
       mepSetting,
       onDemandControlContext,
+      samplingMode,
     } = this.props;
     const widget = this.widgetForRequest(cloneDeep(originalWidget));
 
@@ -318,18 +336,19 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
           selection,
           onDemandControlContext,
           getReferrer(widget.displayType),
-          mepSetting
+          mepSetting,
+          samplingMode
         );
       })
     );
     const rawResultsClone = cloneDeep(this.state.rawResults) ?? [];
-    const transformedTimeseriesResults: Series[] = [];
+    const transformedTimeseriesResults: Series[] = []; // Watch out, this is a sparse array. `map` and `forEach` will skip the empty slots. Spreading the array with `...` will create an `undefined` for each slot.
     responses.forEach(([data], requestIndex) => {
       afterFetchSeriesData?.(data);
       rawResultsClone[requestIndex] = data;
       const transformedResult = config.transformSeries!(
         data,
-        widget.queries[requestIndex],
+        widget.queries[requestIndex]!,
         organization
       );
       // When charting timeseriesData on echarts, color association to a timeseries result
@@ -347,8 +366,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     // Get series result type
     // Only used by custom measurements in errorsAndTransactions at the moment
     const timeseriesResultsTypes = config.getSeriesResultType?.(
-      responses[0][0],
-      widget.queries[0]
+      responses[0]![0],
+      widget.queries[0]!
     );
 
     if (this._isMounted && this.state.queryFetchID === queryFetchID) {
@@ -365,7 +384,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
   }
 
   async fetchData() {
-    const {widget} = this.props;
+    const {widget, onDataFetchStart} = this.props;
 
     const queryFetchID = Symbol('queryFetchID');
     this.setState({
@@ -375,6 +394,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       errorMessage: undefined,
       queryFetchID,
     });
+
+    onDataFetchStart?.();
 
     try {
       if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {

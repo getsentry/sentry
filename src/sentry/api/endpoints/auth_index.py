@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -9,20 +10,25 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
+from sentry.analytics.events.auth_v2 import AuthV2DeleteLogin
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.exceptions import SsoRequired
-from sentry.api.serializers import DetailedSelfUserSerializer, serialize
+from sentry.api.serializers import serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.auth.providers.saml2.provider import handle_saml_single_logout
 from sentry.auth.services.auth.impl import promote_request_rpc_user
 from sentry.auth.superuser import SUPERUSER_ORG_ID
-from sentry.models.authenticator import Authenticator
+from sentry.demo_mode.utils import is_demo_user
 from sentry.organizations.services.organization import organization_service
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.api.serializers.user import DetailedSelfUserSerializer
+from sentry.users.models.authenticator import Authenticator
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import DISABLE_SSO_CHECK_FOR_LOCAL_DEV, has_completed_sso, initiate_login
 from sentry.utils.settings import is_self_hosted
@@ -66,6 +72,7 @@ class BaseAuthIndexEndpoint(Endpoint):
         assert organization_context, "Failed to fetch organization in _reauthenticate_with_sso"
         raise SsoRequired(
             organization=organization_context.organization,
+            request=request,
             after_login_redirect=redirect,
         )
 
@@ -74,7 +81,8 @@ class BaseAuthIndexEndpoint(Endpoint):
         # See if we have a u2f challenge/response
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
-                interface: U2fInterface = Authenticator.objects.get_interface(request.user, "u2f")
+                interface = Authenticator.objects.get_interface(request.user, "u2f")
+                assert isinstance(interface, U2fInterface)
                 if not interface.is_enrolled():
                     raise LookupError()
                 challenge = json.loads(validator.validated_data["challenge"])
@@ -124,6 +132,14 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
     authentication methods from JS endpoints by relying on internal sessions
     and simple HTTP authentication.
     """
+    enforce_rate_limit = True
+    rate_limits = {
+        "PUT": {
+            RateLimitCategory.USER: RateLimit(
+                limit=5, window=60 * 60
+            ),  # 5 PUT requests per hour per user
+        }
+    }
 
     def _validate_superuser(
         self, validator: AuthVerifyValidator, request: Request, verify_authenticator: bool
@@ -180,6 +196,9 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        if is_demo_user(request.user):
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
         # If 2fa login is enabled then we cannot sign in with username and
         # password through this api endpoint.
@@ -294,9 +313,34 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         Deauthenticate all active sessions for this user.
         """
-        handle_saml_single_logout(request)
+        # Allows demo user to log out from its current session but not others
+        if is_demo_user(request.user) and request.data.get("all", None) is True:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        # If there is an SLO URL, return it to frontend so the browser can redirect
+        # the user back to the IdP site to delete the IdP session cookie
+        slo_url = handle_saml_single_logout(request)
 
         # For signals to work here, we must promote the request.user to a full user object
         logout(request._request)
         request.user = AnonymousUser()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+
+        # Force cookies to be deleted
+        response = Response()
+        response.delete_cookie(settings.CSRF_COOKIE_NAME, domain=settings.CSRF_COOKIE_DOMAIN)
+        response.delete_cookie(settings.SESSION_COOKIE_NAME, domain=settings.SESSION_COOKIE_DOMAIN)
+
+        if referrer := request.GET.get("referrer"):
+            analytics.record(
+                AuthV2DeleteLogin(
+                    event=referrer,
+                )
+            )
+
+        if slo_url:
+            response.status_code = status.HTTP_200_OK
+            response.data = {"sloUrl": slo_url}
+        else:
+            response.status_code = status.HTTP_204_NO_CONTENT
+
+        return response

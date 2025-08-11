@@ -1,5 +1,4 @@
 import {Component, isValidElement} from 'react';
-import type {InjectedRouter} from 'react-router';
 import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import type {
@@ -9,7 +8,7 @@ import type {
   XAXisComponentOption,
   YAXisComponentOption,
 } from 'echarts';
-import type {Query} from 'history';
+import type {Location, Query} from 'history';
 import isEqual from 'lodash/isEqual';
 
 import type {Client} from 'sentry/api';
@@ -46,7 +45,8 @@ import {
   isEquation,
 } from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeList} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {ellipsize} from 'sentry/utils/string/ellipsize';
 
 import EventsRequest from './eventsRequest';
 
@@ -78,6 +78,7 @@ type ChartProps = {
    * a list of series names that are also disableable.
    */
   disableableSeries?: string[];
+  forceChartType?: string;
   fromDiscover?: boolean;
   height?: number;
   interval?: string;
@@ -137,7 +138,7 @@ class Chart extends Component<ChartProps, State> {
   }
 
   getChartComponent(): ChartComponent {
-    const {showDaily, timeseriesData, yAxis, chartComponent} = this.props;
+    const {showDaily, timeseriesData, yAxis, chartComponent, forceChartType} = this.props;
 
     if (defined(chartComponent)) {
       return chartComponent;
@@ -148,7 +149,7 @@ class Chart extends Component<ChartProps, State> {
     }
 
     if (timeseriesData.length > 1) {
-      switch (aggregateMultiPlotType(yAxis)) {
+      switch (forceChartType || aggregateMultiPlotType(yAxis)) {
         case 'line':
           return LineChart;
         case 'area':
@@ -161,17 +162,20 @@ class Chart extends Component<ChartProps, State> {
     return AreaChart;
   }
 
-  handleLegendSelectChanged = legendChange => {
+  handleLegendSelectChanged = (legendChange: any) => {
     const {disableableSeries = []} = this.props;
     const {selected} = legendChange;
-    const seriesSelection = Object.keys(selected).reduce((state, key) => {
-      // we only want them to be able to disable the Releases&Other series,
-      // and not any of the other possible series here
-      const disableable =
-        ['Releases', 'Other'].includes(key) || disableableSeries.includes(key);
-      state[key] = disableable ? selected[key] : true;
-      return state;
-    }, {});
+    const seriesSelection = Object.keys(selected).reduce(
+      (state, key) => {
+        // we only want them to be able to disable the Releases&Other series,
+        // and not any of the other possible series here
+        const disableable =
+          ['Releases', 'Other'].includes(key) || disableableSeries.includes(key);
+        state[key] = disableable ? selected[key] : true;
+        return state;
+      },
+      {} as Record<string, boolean>
+    );
 
     // we have to force an update here otherwise ECharts will
     // update its internal state and disable the series
@@ -211,9 +215,14 @@ class Chart extends Component<ChartProps, State> {
 
     const data = [
       ...(currentSeriesNames.length > 0 ? currentSeriesNames : [t('Current')]),
-      ...(previousSeriesNames.length > 0 ? previousSeriesNames : [t('Previous')]),
       ...(additionalSeries ? additionalSeries.map(series => series.name as string) : []),
     ];
+
+    if (defined(previousTimeseriesData)) {
+      data.push(
+        ...(previousSeriesNames.length > 0 ? previousSeriesNames : [t('Previous')])
+      );
+    }
 
     const releasesLegend = t('Releases');
 
@@ -222,7 +231,7 @@ class Chart extends Component<ChartProps, State> {
       data.push('Other');
     }
 
-    if (Array.isArray(releaseSeries)) {
+    if (Array.isArray(releaseSeries) && releaseSeries.length > 0) {
       data.push(releasesLegend);
     }
 
@@ -233,11 +242,11 @@ class Chart extends Component<ChartProps, State> {
       (releases as any)?.markLine?.data &&
       (releases as any).markLine.data.length >= RELEASE_LINES_THRESHOLD;
 
-    const selected = !Array.isArray(releaseSeries)
-      ? seriesSelection
-      : Object.keys(seriesSelection).length === 0 && hideReleasesByDefault
+    const selected = Array.isArray(releaseSeries)
+      ? Object.keys(seriesSelection).length === 0 && hideReleasesByDefault
         ? {[releasesLegend]: false}
-        : seriesSelection;
+        : seriesSelection
+      : seriesSelection;
 
     const legend = showLegend
       ? {
@@ -245,7 +254,7 @@ class Chart extends Component<ChartProps, State> {
           top: 12,
           data,
           selected,
-          ...(legendOptions ?? {}),
+          ...legendOptions,
         }
       : undefined;
 
@@ -264,9 +273,10 @@ class Chart extends Component<ChartProps, State> {
       );
     }
     const chartColors = timeseriesData.length
-      ? colors?.slice(0, series.length) ?? [
-          ...theme.charts.getColorPalette(timeseriesData.length - 2 - (hasOther ? 1 : 0)),
-        ]
+      ? (colors?.slice(0, series.length) ??
+        this.props.theme.chart
+          .getColorPalette(timeseriesData.length - 1 - (hasOther ? 1 : 0))
+          .slice())
       : undefined;
     if (chartColors?.length && hasOther) {
       chartColors.push(theme.chartOther);
@@ -313,7 +323,7 @@ class Chart extends Component<ChartProps, State> {
               // Check to see if all series output types are the same. If not, then default to number.
               const outputType =
                 new Set(Object.values(timeseriesResultsTypes)).size === 1
-                  ? timeseriesResultsTypes[yAxis]
+                  ? timeseriesResultsTypes[yAxis]!
                   : 'number';
               return axisLabelFormatterUsingAggregateOutputType(value, outputType);
             }
@@ -321,7 +331,7 @@ class Chart extends Component<ChartProps, State> {
           },
         },
       },
-      ...(chartOptionsProp ?? {}),
+      ...chartOptionsProp,
       animation: typeof ChartComponent === typeof BarChart ? false : undefined,
     };
 
@@ -353,6 +363,7 @@ export type EventsChartProps = {
    * Environment condition.
    */
   environments: string[];
+  location: Location;
   organization: OrganizationSummary;
   /**
    * Project ids
@@ -362,7 +373,6 @@ export type EventsChartProps = {
    * The discover query string to find events with.
    */
   query: string;
-  router: InjectedRouter;
   /**
    * Absolute start date.
    */
@@ -498,7 +508,7 @@ class EventsChart extends Component<EventsChartProps> {
       period,
       utc,
       query,
-      router,
+      location,
       start,
       end,
       projects,
@@ -541,13 +551,11 @@ class EventsChart extends Component<EventsChartProps> {
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !disablePrevious && !start && !end;
 
+    const forceChartType = decodeScalar(location.query.forceChartType);
     const yAxisArray = decodeList(yAxis);
     const yAxisSeriesNames = yAxisArray.map(name => {
-      let yAxisLabel = name && isEquation(name) ? getEquation(name) : name;
-      if (yAxisLabel && yAxisLabel.length > 60) {
-        yAxisLabel = yAxisLabel.substring(0, 60) + '...';
-      }
-      return yAxisLabel;
+      const yAxisLabel = name && isEquation(name) ? getEquation(name) : name;
+      return ellipsize(yAxisLabel, 60);
     });
 
     const previousSeriesNames = previousName
@@ -590,6 +598,7 @@ class EventsChart extends Component<EventsChartProps> {
           {isValidElement(chartHeader) && chartHeader}
 
           <ThemedChart
+            forceChartType={forceChartType}
             zoomRenderProps={zoomRenderProps}
             loading={loading || !!loadingAdditionalSeries}
             reloading={reloading || !!reloadingAdditionalSeries}
@@ -604,7 +613,7 @@ class EventsChart extends Component<EventsChartProps> {
             additionalSeries={additionalSeries}
             previousSeriesTransformer={previousSeriesTransformer}
             stacked={this.isStacked()}
-            yAxis={yAxisArray[0]}
+            yAxis={yAxisArray[0]!}
             showDaily={showDaily}
             colors={colors}
             legendOptions={legendOptions}
@@ -643,7 +652,6 @@ class EventsChart extends Component<EventsChartProps> {
 
     return (
       <ChartZoom
-        router={router}
         period={period}
         start={start}
         end={end}

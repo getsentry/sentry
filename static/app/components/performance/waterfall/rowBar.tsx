@@ -5,7 +5,7 @@ import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/c
 import type {DurationDisplay} from 'sentry/components/performance/waterfall/types';
 import {
   getDurationPillAlignment,
-  getDurationPillColours,
+  getDurationPillColors,
   getHatchPattern,
 } from 'sentry/components/performance/waterfall/utils';
 import {space} from 'sentry/styles/space';
@@ -36,15 +36,15 @@ export const DurationPill = styled('div')<{
   align-items: center;
   transform: translateY(-50%);
   white-space: nowrap;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
 
   font-variant-numeric: tabular-nums;
   line-height: 1;
 
   ${getDurationPillAlignment}
-  ${getDurationPillColours}
+  ${getDurationPillColors}
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     font-size: 10px;
   }
 `;

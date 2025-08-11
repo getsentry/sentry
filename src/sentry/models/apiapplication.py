@@ -1,10 +1,11 @@
 import os
 import secrets
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar, Literal, Self, TypeIs
 from urllib.parse import urlparse, urlunparse
 
 import petname
 import sentry_sdk
+from django.contrib.postgres.fields.array import ArrayField
 from django.db import models, router, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -20,8 +21,8 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.manager.base import BaseManager
+from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.models.outbox import ControlOutbox, outbox_context
 from sentry.types.region import find_all_region_names
 
 
@@ -66,6 +67,10 @@ class ApiApplication(Model):
     terms_url = models.URLField(null=True)
 
     date_added = models.DateTimeField(default=timezone.now)
+    scopes = ArrayField(models.TextField(), default=list)
+    # ApiApplication by default provides user level access
+    # This field is true if a certain application is limited to access only a specific org
+    requires_org_level_access = models.BooleanField(default=False, db_default=False)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("client_id",))
 
@@ -75,7 +80,7 @@ class ApiApplication(Model):
 
     __repr__ = sane_repr("name", "owner_id")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
     def delete(self, *args, **kwargs):
@@ -100,19 +105,23 @@ class ApiApplication(Model):
     def is_active(self):
         return self.status == ApiApplicationStatus.active
 
-    def is_allowed_response_type(self, value):
+    def is_allowed_response_type(self, value: object) -> TypeIs[Literal["code", "token"]]:
         return value in ("code", "token")
 
-    def is_valid_redirect_uri(self, value):
+    def normalize_url(self, value):
         parts = urlparse(value)
         normalized_path = os.path.normpath(parts.path)
-        if value.endswith("/"):
+        if normalized_path == ".":
+            normalized_path = "/"
+        elif value.endswith("/") and not normalized_path.endswith("/"):
             normalized_path += "/"
-        value = urlunparse(parts._replace(path=normalized_path))
+        return urlunparse(parts._replace(path=normalized_path))
 
-        for ruri in self.redirect_uris.split("\n"):
-            if parts.netloc != urlparse(ruri).netloc:
-                continue
+    def is_valid_redirect_uri(self, value):
+        value = self.normalize_url(value)
+
+        for redirect_uri in self.redirect_uris.split("\n"):
+            ruri = self.normalize_url(redirect_uri)
             if value == ruri:
                 return True
             if value.startswith(ruri):
@@ -133,7 +142,7 @@ class ApiApplication(Model):
     def get_default_redirect_uri(self):
         return self.redirect_uris.split()[0]
 
-    def get_allowed_origins(self):
+    def get_allowed_origins(self) -> list[str]:
         if not self.allowed_origins:
             return []
         return [origin for origin in self.allowed_origins.split()]

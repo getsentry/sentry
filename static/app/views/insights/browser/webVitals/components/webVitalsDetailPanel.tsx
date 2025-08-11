@@ -1,29 +1,28 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import type {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {DrawerHeader} from 'sentry/components/globalDrawer/components';
 import type {
   GridColumnHeader,
   GridColumnOrder,
   GridColumnSortBy,
-} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
+} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
+import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {WebVitalStatusLineChart} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalStatusLineChart';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {WebVitalDescription} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
-import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
-import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
+import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
@@ -33,8 +32,9 @@ import type {
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
-import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
-import {SpanIndexedField} from 'sentry/views/insights/types';
+import {SampleDrawerBody} from 'sentry/views/insights/common/components/sampleDrawerBody';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 
 type Column = GridColumnHeader;
 
@@ -50,27 +50,24 @@ const sort: GridColumnSortBy<keyof Row> = {key: 'count()', order: 'desc'};
 
 const MAX_ROWS = 10;
 
-export function WebVitalsDetailPanel({
-  webVital,
-  onClose,
-}: {
-  onClose: () => void;
-  webVital: WebVitals | null;
-}) {
+export function WebVitalsDetailPanel({webVital}: {webVital: WebVitals | null}) {
   const location = useLocation();
   const organization = useOrganization();
-  const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
+  const moduleUrl = useModuleURL(ModuleName.VITAL);
+  const browserTypes = decodeBrowserTypes(location.query[SpanFields.BROWSER_NAME]);
+  const subregions = decodeList(
+    location.query[SpanFields.USER_GEO_SUBREGION]
+  ) as SubregionCode[];
 
-  const {data: projectData} = useProjectRawWebVitalsQuery({browserTypes});
+  const {data: projectData} = useProjectRawWebVitalsQuery({browserTypes, subregions});
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
     weightWebVital: webVital ?? 'total',
     browserTypes,
+    subregions,
   });
 
-  const projectScore = calculatePerformanceScoreFromStoredTableDataRow(
-    projectScoresData?.data?.[0]
-  );
-  const {data, isLoading} = useTransactionWebVitalsScoresQuery({
+  const projectScore = getWebVitalScoresFromTableDataRow(projectScoresData?.[0]);
+  const {data, isPending} = useTransactionWebVitalsScoresQuery({
     limit: 100,
     webVital: webVital ?? 'total',
     ...(webVital
@@ -85,23 +82,19 @@ export function WebVitalsDetailPanel({
     enabled: webVital !== null,
     sortName: 'webVitalsDetailPanelSort',
     browserTypes,
+    subregions,
   });
 
   const dataByOpportunity = useMemo(() => {
     if (!data) {
       return [];
     }
-    const sumWeights = projectScoresData?.data?.[0]?.[
-      `sum(measurements.score.weight.${webVital})`
-    ] as number;
+    const sumWeights = 1;
+
     return data
       .map(row => ({
         ...row,
-        opportunity:
-          Math.round(
-            (((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100 * 100) /
-              sumWeights
-          ) / 100,
+        opportunity: Math.round(((row.opportunity ?? 0) * 100 * 100) / sumWeights) / 100,
       }))
       .sort((a, b) => {
         if (a.opportunity === undefined) {
@@ -113,23 +106,7 @@ export function WebVitalsDetailPanel({
         return b.opportunity - a.opportunity;
       })
       .slice(0, MAX_ROWS);
-  }, [data, projectScoresData?.data, webVital]);
-
-  const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectRawWebVitalsValuesTimeseriesQuery({browserTypes});
-
-  const webVitalData: LineChartSeries = {
-    data:
-      !isTimeseriesLoading && webVital
-        ? timeseriesData?.[webVital].map(({name, value}) => ({
-            name,
-            value,
-          }))
-        : [],
-    seriesName: webVital ?? '',
-  };
-
-  const detailKey = webVital;
+  }, [data]);
 
   useEffect(() => {
     if (webVital !== null) {
@@ -191,7 +168,7 @@ export function WebVitalsDetailPanel({
     if (key === 'score') {
       return (
         <AlignCenter>
-          <PerformanceBadge score={row[`${webVital}Score`]} />
+          <PerformanceBadge score={row[`${webVital!}Score`]} />
         </AlignCenter>
       );
     }
@@ -210,7 +187,7 @@ export function WebVitalsDetailPanel({
           <Link
             to={{
               ...location,
-              pathname: `${location.pathname}overview/`,
+              pathname: `${moduleUrl}/overview/`,
               query: {
                 ...location.query,
                 transaction: row.transaction,
@@ -226,41 +203,50 @@ export function WebVitalsDetailPanel({
     }
     if (key === 'count') {
       const count =
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         webVital === 'inp' ? row['count_scores(measurements.score.inp)'] : row['count()'];
       return <AlignRight>{formatAbbreviatedNumber(count)}</AlignRight>;
     }
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     return <AlignRight>{row[key]}</AlignRight>;
   };
 
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const webVitalScore = projectScore[`${webVital}Score`];
-  const webVitalValue = projectData?.data?.[0]?.[mapWebVitalToColumn(webVital)] as
-    | number
-    | undefined;
+  const webVitalValue = projectData?.[0]?.[mapWebVitalToColumn(webVital)];
 
   return (
     <PageAlertProvider>
-      <DetailPanel detailKey={detailKey ?? undefined} onClose={onClose}>
+      <DrawerHeader />
+
+      <SampleDrawerBody>
         {webVital && (
           <WebVitalDescription
             value={
-              webVitalValue !== undefined
-                ? webVital !== 'cls'
-                  ? getDuration(webVitalValue / 1000, 2, true)
-                  : webVitalValue?.toFixed(2)
-                : undefined
+              webVitalValue === undefined
+                ? undefined
+                : webVital === 'cls'
+                  ? webVitalValue?.toFixed(2)
+                  : getDuration(webVitalValue / 1000, 2, true)
             }
             webVital={webVital}
             score={webVitalScore}
           />
         )}
         <ChartContainer>
-          {webVital && <WebVitalStatusLineChart webVitalSeries={webVitalData} />}
+          {webVital && (
+            <WebVitalStatusLineChart
+              webVital={webVital}
+              browserTypes={browserTypes}
+              subregions={subregions}
+            />
+          )}
         </ChartContainer>
 
         <TableContainer>
           <GridEditable
             data={dataByOpportunity}
-            isLoading={isLoading}
+            isLoading={isPending}
             columnOrder={columnOrder}
             columnSortBy={[sort]}
             grid={{
@@ -270,7 +256,7 @@ export function WebVitalsDetailPanel({
           />
         </TableContainer>
         <PageAlert />
-      </DetailPanel>
+      </SampleDrawerBody>
     </PageAlertProvider>
   );
 }

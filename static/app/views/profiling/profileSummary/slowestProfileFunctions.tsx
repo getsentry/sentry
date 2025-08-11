@@ -1,10 +1,10 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import type {SelectOption} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/core/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Link} from 'sentry/components/core/link';
 import Count from 'sentry/components/count';
-import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
@@ -15,16 +15,16 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import {Frame} from 'sentry/utils/profiling/frame';
 import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const SLOWEST_FUNCTIONS_LIMIT = 15;
@@ -36,7 +36,7 @@ const functionsFields = [
   'count()',
   'p75()',
   'sum()',
-  'examples()',
+  'all_examples()',
 ] as const;
 
 type FunctionsField = (typeof functionsFields)[number];
@@ -45,12 +45,13 @@ interface SlowestProfileFunctionsProps {
 }
 
 export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const organization = useOrganization();
   const project = useCurrentProjectFromRouteParam();
   const [functionType, setFunctionType] = useState<'application' | 'system' | 'all'>(
     'application'
   );
-  const location = useLocation();
   const functionsCursor = useMemo(
     () => decodeScalar(location.query[SLOWEST_FUNCTIONS_CURSOR]),
     [location.query]
@@ -68,12 +69,14 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
     [location.query.functionsSort]
   );
 
-  const handleFunctionsCursor = useCallback((cursor, pathname, query) => {
-    browserHistory.push({
-      pathname,
-      query: {...query, [SLOWEST_FUNCTIONS_CURSOR]: cursor},
-    });
-  }, []);
+  const handleFunctionsCursor = useCallback(
+    (cursor: any, pathname: any, query: any) =>
+      navigate({
+        pathname,
+        query: {...query, [SLOWEST_FUNCTIONS_CURSOR]: cursor},
+      }),
+    [navigate]
+  );
 
   const query = useMemo(() => {
     const conditions = new MutableSearch('');
@@ -95,13 +98,13 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
     cursor: functionsCursor,
   });
 
-  const onChangeFunctionType = useCallback(v => setFunctionType(v.value), []);
+  const onChangeFunctionType = useCallback((v: any) => setFunctionType(v.value), []);
   const functions = functionsQuery.data?.data ?? [];
 
   const onSlowestFunctionClick = useCallback(() => {
     trackAnalytics('profiling_views.go_to_flamegraph', {
       organization,
-      source: `profiling_transaction.slowest_functions_table`,
+      source: 'unknown',
     });
   }, [organization]);
 
@@ -122,7 +125,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
         />
       </SlowestFunctionsTitleContainer>
       <SlowestFunctionsList>
-        {functionsQuery.isLoading ? (
+        {functionsQuery.isPending ? (
           <SlowestFunctionsQueryState>
             <LoadingIndicator size={36} />
           </SlowestFunctionsQueryState>
@@ -130,11 +133,7 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
           <SlowestFunctionsQueryState>
             {t('Failed to fetch slowest functions')}
           </SlowestFunctionsQueryState>
-        ) : !functions.length ? (
-          <SlowestFunctionsQueryState>
-            {t('The fastest code is one that never runs.')}
-          </SlowestFunctionsQueryState>
-        ) : (
+        ) : functions.length ? (
           functions.map((fn, i) => {
             return (
               <SlowestFunctionEntry
@@ -146,6 +145,10 @@ export function SlowestProfileFunctions(props: SlowestProfileFunctionsProps) {
               />
             );
           })
+        ) : (
+          <SlowestFunctionsQueryState>
+            {t('The fastest code is one that never runs.')}
+          </SlowestFunctionsQueryState>
         )}
       </SlowestFunctionsList>
     </SlowestFunctionsContainer>
@@ -159,6 +162,7 @@ interface SlowestFunctionEntryProps {
   project: Project | null;
 }
 function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
+  const organization = useOrganization();
   const frame = useMemo(() => {
     return new Frame(
       {
@@ -175,22 +179,18 @@ function SlowestFunctionEntry(props: SlowestFunctionEntryProps) {
   }, [props.func, props.project]);
 
   let rendered = <TextTruncateOverflow>{frame.name}</TextTruncateOverflow>;
-  if (defined(props.func['examples()']?.[0])) {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+  const example = props.func['all_examples()']?.[0];
+  if (defined(example)) {
+    const target = generateProfileRouteFromProfileReference({
+      organization,
+      projectSlug: props.project?.slug ?? '',
+      frameName: frame.name,
+      framePackage: frame.package as string,
+      reference: example,
+    });
     rendered = (
-      <Link
-        onClick={props.onSlowestFunctionClick}
-        to={generateProfileFlamechartRouteWithQuery({
-          orgSlug: props.organization.slug,
-          projectSlug: props.project?.slug ?? '',
-          profileId: props.func['examples()']?.[0] as string,
-          query: {
-            // specify the frame to focus, the flamegraph will switch
-            // to the appropriate thread when these are specified
-            frameName: frame.name as string,
-            framePackage: frame.package as string,
-          },
-        })}
-      >
+      <Link onClick={props.onSlowestFunctionClick} to={target}>
         {rendered}
       </Link>
     );
@@ -291,13 +291,13 @@ const SlowestFunctionMetricsRow = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin-top: ${space(0.25)};
 `;
 
 const TRIGGER_PROPS = {borderless: true, size: 'zero' as const};
-const SLOWEST_FUNCTION_OPTIONS: SelectOption<'application' | 'system' | 'all'>[] = [
+const SLOWEST_FUNCTION_OPTIONS: Array<SelectOption<'application' | 'system' | 'all'>> = [
   {
     label: t('Slowest Application Functions'),
     value: 'application' as const,

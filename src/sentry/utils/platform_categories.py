@@ -6,24 +6,28 @@ FRONTEND = {
     "dart",
     "javascript",
     "javascript-react",
+    "javascript-react-router",
     "javascript-angular",
     "javascript-angularjs",
     "javascript-backbone",
     "javascript-ember",
     "javascript-gatsby",
     "javascript-vue",
+    "javascript-nuxt",
     "javascript-nextjs",
     "javascript-remix",
     "javascript-solid",
     "javascript-solidstart",
     "javascript-svelte",
     "javascript-sveltekit",
+    "javascript-tanstackstart-react",
     "javascript-astro",
     "unity",
 }
 
 # Mirrors `const mobile` in sentry/static/app/data/platformCategories.tsx
 # When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
+
 MOBILE = {
     "android",
     "apple-ios",
@@ -74,6 +78,8 @@ BACKEND = {
     "kotlin",
     "native",
     "node",
+    "node-cloudflare-pages",
+    "node-cloudflare-workers",
     "node-connect",
     "node-express",
     "node-fastify",
@@ -120,6 +126,8 @@ SERVERLESS = {
     "node-awslambda",
     "node-azurefunctions",
     "node-gcpfunctions",
+    "node-cloudflare-pages",
+    "node-cloudflare-workers",
     "python-awslambda",
     "python-azurefunctions",
     "python-gcpfunctions",
@@ -136,6 +144,7 @@ DESKTOP = {
     "dotnet-wpf",
     "electron",
     "flutter",
+    "godot",
     "java",
     "javascript-electron",
     "kotlin",
@@ -149,9 +158,19 @@ DESKTOP = {
     "unreal",
 }
 
-# TODO: @athena Remove this
-# This is only temporary since we decide the right category. Don't add anything here or your frontend experience will be broken
-TEMPORARY = {"nintendo"}
+CONSOLES = {
+    "nintendo-switch",
+    "playstation",
+    "xbox",
+}
+
+GAMING = {
+    "godot",
+    "native",
+    "unity",
+    "unreal",
+    *CONSOLES,
+}
 
 CATEGORY_LIST = [
     {id: "browser", "name": _("Browser"), "platforms": FRONTEND},
@@ -159,5 +178,14 @@ CATEGORY_LIST = [
     {id: "mobile", "name": _("Mobile"), "platforms": MOBILE},
     {id: "desktop", "name": _("Desktop"), "platforms": DESKTOP},
     {id: "serverless", "name": _("Serverless"), "platforms": SERVERLESS},
-    {id: "temporary", "name": _("Temporary"), "platforms": TEMPORARY},
+    {id: "gaming", "name": _("Gaming"), "platforms": GAMING},
 ]
+
+# Mirrors `const sourceMaps` in sentry/static/app/data/platformCategories.tsx
+# When changing this file, make sure to keep sentry/static/app/data/platformCategories.tsx in sync.
+SOURCE_MAPS = {
+    *FRONTEND,
+    "react-native",
+    "cordova",
+    "electron",
+}

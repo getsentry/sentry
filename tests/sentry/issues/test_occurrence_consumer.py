@@ -1,6 +1,7 @@
 import datetime
 import logging
 import uuid
+from collections import namedtuple
 from collections.abc import Sequence
 from copy import deepcopy
 from datetime import timezone
@@ -11,7 +12,7 @@ import pytest
 from django.core.cache import cache
 from jsonschema import ValidationError
 
-from sentry import eventstore
+from sentry import eventstore, options
 from sentry.eventstore.models import Event
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType, ProfileFileIOGroupType
@@ -27,16 +28,18 @@ from sentry.issues.producer import _prepare_status_change_message
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
+from sentry.ratelimits.sliding_windows import Quota
 from sentry.receivers import create_default_projects
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
+from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import PriorityLevel
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 logger = logging.getLogger(__name__)
+MockGranted = namedtuple("MockGranted", ["granted"])
 
 
 def get_test_message(
@@ -146,9 +149,13 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
 
     def test_invalid_occurrence_payload(self) -> None:
         message = get_test_message(self.project.id, type=300)
-        with pytest.raises(InvalidEventPayloadError):
+        with (mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics,):
             with self.feature("organizations:profile-file-io-main-thread-ingest"):
                 _process_message(message)
+            metrics.incr.assert_called_once_with(
+                "occurrence_ingest.invalid_group_type",
+                tags={"occurrence_type": 300},
+            )
 
     def test_mismatch_event_ids(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
@@ -198,7 +205,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     ) -> None:
         # test explicitly set priority of HIGH
         message = get_test_message(self.project.id)
-        message["initial_issue_priority"] = PriorityLevel.HIGH.value
+        message["priority"] = PriorityLevel.HIGH.value
         with self.feature("organizations:profile-file-io-main-thread-ingest"):
             result = _process_message(message)
         assert result is not None
@@ -208,6 +215,27 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
         assert group.priority == PriorityLevel.HIGH
         assert "severity" not in group.data["metadata"]
+
+    @with_feature("organizations:profile-file-io-main-thread-ingest")
+    def test_issue_platform_updates_priority(self) -> None:
+        # test explicitly set priority of HIGH
+        message = get_test_message(self.project.id)
+        message["priority"] = PriorityLevel.HIGH.value
+        result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
+        assert group.priority == PriorityLevel.HIGH
+
+        # test that the priority is updated
+        message["priority"] = PriorityLevel.MEDIUM.value
+        result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
+        assert group.priority == PriorityLevel.MEDIUM
 
     def test_new_group_with_user_assignee(self) -> None:
         message = get_test_message(self.project.id, assignee=f"user:{self.user.id}")
@@ -243,6 +271,40 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         with pytest.raises(GroupAssignee.DoesNotExist):
             GroupAssignee.objects.get(group=group)
 
+    @mock.patch(
+        "sentry.issues.occurrence_consumer.rate_limiter.check_and_use_quotas",
+        return_value=[MockGranted(granted=False)],
+    )
+    def test_rate_limit(self, is_limited: mock.MagicMock) -> None:
+        message = get_test_message(self.project.id)
+        with (
+            self.feature("organizations:profile-file-io-main-thread-ingest"),
+            self.options({"issues.occurrence-consumer.rate-limit.enabled": True}),
+        ):
+            result = _process_message(message)
+        assert result is None
+
+    @mock.patch(
+        "sentry.issues.occurrence_consumer.rate_limiter.check_and_use_quotas",
+        return_value=[MockGranted(granted=True)],
+    )
+    def test_rate_limit_granted(self, is_limited: mock.MagicMock) -> None:
+        message = get_test_message(self.project.id)
+        with (
+            self.feature("organizations:profile-file-io-main-thread-ingest"),
+            self.options({"issues.occurrence-consumer.rate-limit.enabled": True}),
+        ):
+            result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+
+    def test_occurrence_rate_limit_quota(self) -> None:
+        rate_limit_quota = Quota(**options.get("issues.occurrence-consumer.rate-limit.quota"))
+        assert rate_limit_quota.window_seconds == 3600
+        assert rate_limit_quota.granularity_seconds == 60
+        assert rate_limit_quota.limit == 1000
+
 
 class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
     def test_lookup_event_doesnt_exist(self) -> None:
@@ -256,8 +318,8 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
         from sentry.event_manager import EventManager
 
         event_data = load_data("transaction")
-        event_data["timestamp"] = iso_format(before_now(minutes=1))
-        event_data["start_timestamp"] = iso_format(before_now(minutes=1, seconds=1))
+        event_data["timestamp"] = before_now(minutes=1).isoformat()
+        event_data["start_timestamp"] = before_now(minutes=1, seconds=1).isoformat()
         event_data["event_id"] = "d" * 32
 
         manager = EventManager(data=event_data)
@@ -487,19 +549,19 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
     def test_priority(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
         kwargs = _get_kwargs(message)
-        assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.LOW
+        assert kwargs["occurrence_data"]["priority"] == PriorityLevel.LOW
 
     def test_priority_defaults_to_grouptype(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
-        message["initial_issue_priority"] = None
+        message["priority"] = None
         kwargs = _get_kwargs(message)
-        assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.LOW
+        assert kwargs["occurrence_data"]["priority"] == PriorityLevel.LOW
 
     def test_priority_overrides_defaults(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
-        message["initial_issue_priority"] = PriorityLevel.HIGH
+        message["priority"] = PriorityLevel.HIGH
         kwargs = _get_kwargs(message)
-        assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.HIGH
+        assert kwargs["occurrence_data"]["priority"] == PriorityLevel.HIGH
 
     def test_assignee(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
@@ -557,7 +619,7 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": iso_format(datetime.datetime.now()),
+                "timestamp": datetime.datetime.now().isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -578,18 +640,3 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
 
         group = Group.objects.get(id=group.id)
         assert group.status == status
-
-
-@apply_feature_flag_on_cls("organizations:occurence-consumer-prune-status-changes")
-class IssueOccurrenceProcessMessageWithPruningTest(IssueOccurrenceProcessMessageTest):
-    pass
-
-
-@apply_feature_flag_on_cls("organizations:occurence-consumer-prune-status-changes")
-class IssueOccurrenceLookupEventIdWithPruningTest(IssueOccurrenceLookupEventIdTest):
-    pass
-
-
-@apply_feature_flag_on_cls("organizations:occurence-consumer-prune-status-changes")
-class ParseEventPayloadWithPruningTest(ParseEventPayloadTest):
-    pass

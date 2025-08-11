@@ -1,0 +1,13 @@
+{
+  "fingerprint": ["{{ default }}", "adopt don't shop"],
+  "exception": {
+    "values": [
+      {
+        "type": "FailedToFetchError",
+        "value": "FailedToFetchError: Charlie didn't bring the ball back!"
+      }
+    ]
+  },
+  "platform": "javascript",
+  "sdk": {"name": "sentry.javascript.nextjs", "version": "12.31.12"}
+}

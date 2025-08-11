@@ -1,9 +1,16 @@
 import {memo} from 'react';
 import styled from '@emotion/styled';
 
-import Avatar from 'sentry/components/avatar';
+import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
+import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';
+import {ProjectAvatar} from 'sentry/components/core/avatar/projectAvatar';
+import {TeamAvatar} from 'sentry/components/core/avatar/teamAvatar';
+import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {space, type ValidSize} from 'sentry/styles/space';
-import type {Actor, AvatarProject, AvatarUser, Organization, Team} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {AvatarProject} from 'sentry/types/project';
+import type {AvatarUser} from 'sentry/types/user';
 
 export interface BaseBadgeProps {
   avatarProps?: Record<string, any>;
@@ -13,6 +20,7 @@ export interface BaseBadgeProps {
   // Hides the main display name
   hideAvatar?: boolean;
   hideName?: boolean;
+  onClick?: React.HTMLAttributes<HTMLDivElement>['onClick'];
 }
 
 interface AllBaseBadgeProps extends BaseBadgeProps {
@@ -32,6 +40,7 @@ export const BaseBadge = memo(
     avatarProps = {},
     avatarSize = 24,
     description,
+    onClick,
     team,
     user,
     organization,
@@ -43,16 +52,15 @@ export const BaseBadge = memo(
     const wrapperGap: ValidSize = avatarSize <= 14 ? 0.5 : avatarSize <= 20 ? 0.75 : 1;
 
     return (
-      <Wrapper className={className} style={{gap: space(wrapperGap)}}>
+      <Wrapper className={className} style={{gap: space(wrapperGap)}} onClick={onClick}>
         {!hideAvatar && (
-          <Avatar
-            {...avatarProps}
-            size={avatarSize}
+          <EntityAvatarType
             team={team}
             user={user}
             organization={organization}
             project={project}
             actor={actor}
+            avatarProps={{...avatarProps, size: avatarSize}}
           />
         )}
 
@@ -68,6 +76,40 @@ export const BaseBadge = memo(
     );
   }
 );
+
+function EntityAvatarType({
+  user,
+  team,
+  organization,
+  project,
+  actor,
+  avatarProps,
+}: Pick<
+  AllBaseBadgeProps,
+  'user' | 'team' | 'organization' | 'project' | 'actor' | 'avatarProps'
+>) {
+  if (user) {
+    return <UserAvatar user={user} {...avatarProps} />;
+  }
+
+  if (team) {
+    return <TeamAvatar team={team} {...avatarProps} />;
+  }
+
+  if (organization) {
+    return <OrganizationAvatar organization={organization} {...avatarProps} />;
+  }
+
+  if (project) {
+    return <ProjectAvatar project={project} {...avatarProps} />;
+  }
+
+  if (actor) {
+    return <ActorAvatar actor={actor} {...avatarProps} />;
+  }
+
+  return null;
+}
 
 const Wrapper = styled('div')`
   display: flex;
@@ -91,7 +133,7 @@ const DisplayName = styled('span')`
 const Description = styled('div')`
   font-size: 0.875em;
   margin-top: ${space(0.25)};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   line-height: 14px;
   ${p => p.theme.overflowEllipsis};
 `;

@@ -9,17 +9,25 @@ from typing import Any
 from django.utils.datastructures import OrderedSet
 
 from sentry import analytics
+from sentry.analytics.events.integration_commit_context_all_frames import (
+    IntegrationsFailedToFetchCommitContextAllFrames,
+    IntegrationsSuccessfullyFetchedCommitContextAllFrames,
+)
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
-from sentry.integrations.mixins.commit_context import (
-    CommitContextMixin,
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.commit_context import (
+    CommitContextIntegration,
     FileBlameInfo,
     SourceLineInfo,
 )
-from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.integrations.services.integration import integration_service
-from sentry.integrations.utils.code_mapping import convert_stacktrace_frame_path_to_source_path
+from sentry.issues.auto_source_code_config.code_mapping import (
+    convert_stacktrace_frame_path_to_source_path,
+)
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 from sentry.utils.committers import get_stacktrace_path_from_event_frame
@@ -35,7 +43,7 @@ def find_commit_context_for_event_all_frames(
     project_id: int,
     platform: str,
     sdk_name: str | None,
-    extra: Mapping[str, Any],
+    extra: dict[str, Any],
 ) -> tuple[FileBlameInfo | None, IntegrationInstallation | None]:
     """
     Given a list of event frames and code mappings, finds the most recent commit.
@@ -60,6 +68,7 @@ def find_commit_context_for_event_all_frames(
         platform=platform,
         sdk_name=sdk_name,
         extra=extra,
+        organization=Organization.objects.get(id=organization_id),
     )
 
     file_blames, integration_to_install_mapping = _get_blames_from_all_integrations(
@@ -112,7 +121,7 @@ def get_or_create_commit_from_blame(
     If not, create it.
     """
     try:
-        commit: Commit = Commit.objects.get(
+        commit = Commit.objects.get(
             repository_id=blame.repo.id,
             key=blame.commit.commitId,
         )
@@ -168,13 +177,14 @@ def _generate_integration_to_files_mapping(
     platform: str,
     sdk_name: str | None,
     extra: Mapping[str, Any],
-) -> tuple[dict[str, list[SourceLineInfo]], int]:
+    organization: Organization,
+) -> tuple[dict[int, list[SourceLineInfo]], int]:
     """
     Because a single stack trace can be mapped to multiple integrations,
     this function is used to separate files into each integration so that
     we can later call get_commit_context_all_frames on each integration.
     """
-    integration_to_files_mapping: dict[str, list[SourceLineInfo]] = {}
+    integration_to_files_mapping: dict[int, list[SourceLineInfo]] = {}
     num_successfully_mapped_frames = 0
 
     for frame in frames:
@@ -192,7 +202,10 @@ def _generate_integration_to_files_mapping(
                 continue
 
             src_path = convert_stacktrace_frame_path_to_source_path(
-                frame=frame, platform=platform, sdk_name=sdk_name, code_mapping=code_mapping
+                frame=frame,
+                platform=platform,
+                sdk_name=sdk_name,
+                code_mapping=code_mapping,
             )
 
             if not src_path:
@@ -248,22 +261,23 @@ def _generate_integration_to_files_mapping(
 
 
 def _get_blames_from_all_integrations(
-    integration_to_files_mapping: dict[str, list[SourceLineInfo]],
+    integration_to_files_mapping: dict[int, list[SourceLineInfo]],
     organization_id: int,
     project_id: int,
-    extra: Mapping[str, Any],
-) -> tuple[list[FileBlameInfo], dict[str, tuple[IntegrationInstallation, str]]]:
+    extra: dict[str, Any],
+) -> tuple[list[FileBlameInfo], dict[int, tuple[IntegrationInstallation, str]]]:
     """
     Calls get_commit_context_all_frames for each integration, using the file
     list provided for the integration ID, and returns a combined list of
     file blames.
     """
     file_blames: list[FileBlameInfo] = []
-    integration_to_install_mapping: dict[str, tuple[IntegrationInstallation, str]] = {}
+    integration_to_install_mapping: dict[int, tuple[IntegrationInstallation, str]] = {}
 
     for integration_organization_id, files in integration_to_files_mapping.items():
+        # find active integrations, otherwise integration proxy will not send request
         integration = integration_service.get_integration(
-            organization_integration_id=integration_organization_id
+            organization_integration_id=integration_organization_id, status=ObjectStatus.ACTIVE
         )
         if not integration:
             continue
@@ -274,7 +288,7 @@ def _get_blames_from_all_integrations(
             "integration_id": integration.id,
         }
         install = integration.get_installation(organization_id=organization_id)
-        if not isinstance(install, CommitContextMixin):
+        if not isinstance(install, CommitContextIntegration):
             logger.info("process_commit_context_all_frames.unsupported_integration", extra=log_info)
             continue
         integration_to_install_mapping[integration_organization_id] = (
@@ -352,14 +366,15 @@ def _record_commit_context_all_frames_analytics(
             },
         )
         analytics.record(
-            "integrations.failed_to_fetch_commit_context_all_frames",
-            organization_id=organization_id,
-            project_id=project_id,
-            group_id=extra["group"],
-            event_id=extra["event"],
-            num_frames=len(frames),
-            num_successfully_mapped_frames=num_successfully_mapped_frames,
-            reason=reason,
+            IntegrationsFailedToFetchCommitContextAllFrames(
+                organization_id=organization_id,
+                project_id=project_id,
+                group_id=extra["group"],
+                event_id=extra["event"],
+                num_frames=len(frames),
+                num_successfully_mapped_frames=num_successfully_mapped_frames,
+                reason=reason,
+            )
         )
         return
 
@@ -382,18 +397,19 @@ def _record_commit_context_all_frames_analytics(
     )
 
     analytics.record(
-        "integrations.successfully_fetched_commit_context_all_frames",
-        organization_id=organization_id,
-        project_id=project_id,
-        group_id=extra["group"],
-        event_id=extra["event"],
-        num_frames=len(frames),
-        num_unique_commits=len(unique_commit_ids),
-        num_unique_commit_authors=len(unique_author_emails),
-        num_successfully_mapped_frames=num_successfully_mapped_frames,
-        selected_frame_index=selected_frame_index,
-        selected_provider=selected_provider,
-        selected_code_mapping_id=selected_blame.code_mapping.id,
+        IntegrationsSuccessfullyFetchedCommitContextAllFrames(
+            organization_id=organization_id,
+            project_id=project_id,
+            group_id=extra["group"],
+            event_id=extra["event"],
+            num_frames=len(frames),
+            num_unique_commits=len(unique_commit_ids),
+            num_unique_commit_authors=len(unique_author_emails),
+            num_successfully_mapped_frames=num_successfully_mapped_frames,
+            selected_frame_index=selected_frame_index,
+            selected_provider=selected_provider,
+            selected_code_mapping_id=selected_blame.code_mapping.id,
+        )
     )
 
 

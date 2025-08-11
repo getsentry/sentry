@@ -15,8 +15,8 @@ export default function getMinMax(arr: number[]) {
   let max = -Infinity;
 
   while (len--) {
-    min = arr[len] < min ? arr[len] : min;
-    max = arr[len] > max ? arr[len] : max;
+    min = arr[len]! < min ? arr[len]! : min;
+    max = arr[len]! > max ? arr[len]! : max;
   }
 
   return {min, max};

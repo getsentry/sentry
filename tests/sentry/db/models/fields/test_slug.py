@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.core.exceptions import ValidationError
@@ -55,14 +55,16 @@ class IdOrSlugLookupTests(TestCase):
     def setUp(self) -> None:
         self.compiler = Mock()
         # Simulate the quoting behavior for simplicity in tests
-        self.compiler.quote_name_unless_alias = (
-            lambda name: f"{name}" if '"' in name else f'"{name}"'
+        self.compiler.quote_name_unless_alias = lambda name: (
+            f"{name}" if '"' in name else f'"{name}"'
         )
         self.connection = Mock()
 
     @patch("sentry.db.models.fields.slug.IdOrSlugLookup.process_rhs")
     @patch("sentry.db.models.fields.slug.IdOrSlugLookup.process_lhs")
-    def test_as_sql_with_numeric_rhs(self, mock_process_lhs, mock_process_rhs):
+    def test_as_sql_with_numeric_rhs(
+        self, mock_process_lhs: MagicMock, mock_process_rhs: MagicMock
+    ) -> None:
         mock_process_lhs.return_value = ('"table"."id"', [])
         mock_process_rhs.return_value = ("%s", ["123"])
 
@@ -74,7 +76,9 @@ class IdOrSlugLookupTests(TestCase):
 
     @patch("sentry.db.models.fields.slug.IdOrSlugLookup.process_rhs")
     @patch("sentry.db.models.fields.slug.IdOrSlugLookup.process_lhs")
-    def test_as_sql_with_non_numeric_rhs(self, mock_process_lhs, mock_process_rhs):
+    def test_as_sql_with_non_numeric_rhs(
+        self, mock_process_lhs: MagicMock, mock_process_rhs: MagicMock
+    ) -> None:
         mock_process_lhs.return_value = ('"table"."slug"', [])
         mock_process_rhs.return_value = ("%s", ["123slug"])
 
@@ -86,7 +90,9 @@ class IdOrSlugLookupTests(TestCase):
 
     @patch("sentry.db.models.fields.slug.IdOrSlugLookup.process_rhs")
     @patch("sentry.db.models.fields.slug.IdOrSlugLookup.process_lhs")
-    def test_as_sql_with_alphabetic_rhs(self, mock_process_lhs, mock_process_rhs):
+    def test_as_sql_with_alphabetic_rhs(
+        self, mock_process_lhs: MagicMock, mock_process_rhs: MagicMock
+    ) -> None:
         mock_process_lhs.return_value = ('"table"."slug"', [])
         mock_process_rhs.return_value = ("%s", ["slug"])
 

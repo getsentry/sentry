@@ -6,17 +6,16 @@ from logging import Logger
 from django.http.request import HttpRequest
 from django.utils.crypto import constant_time_compare
 
-from sentry import audit_log, features
+from sentry import audit_log
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.user import User
-from sentry.models.useremail import UserEmail
 from sentry.organizations.services.organization import (
     RpcOrganizationMember,
     RpcUserInviteContext,
     organization_service,
 )
 from sentry.signals import member_joined
+from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 
@@ -211,12 +210,9 @@ class ApiInviteHelper:
             and not any(self.get_onboarding_steps().values())
         )
 
-    def accept_invite(self, user: User | None = None) -> RpcOrganizationMember | None:
+    def accept_invite(self, user: User) -> RpcOrganizationMember | None:
         member = self.invite_context.member
         assert member
-
-        if user is None:
-            user = self.request.user
 
         if self.member_already_exists:
             self.handle_member_already_exists()
@@ -275,22 +271,9 @@ class ApiInviteHelper:
             not self.request.user.is_authenticated or not self.request.user.has_2fa()
         )
 
-    def _needs_email_verification(self) -> bool:
-        organization = self.invite_context.organization
-        if not (
-            features.has("organizations:required-email-verification", organization)
-            and organization.flags.require_email_verification
-        ):
-            return False
-
-        user = self.request.user
-        primary_email_is_verified = (
-            isinstance(user, User) and UserEmail.objects.get_primary_email(user).is_verified
-        )
-        return not primary_email_is_verified
-
     def get_onboarding_steps(self) -> dict[str, bool]:
         return {
             "needs2fa": self._needs_2fa(),
-            "needsEmailVerification": self._needs_email_verification(),
+            # needs email verification is being removed
+            "needsEmailVerification": False,
         }

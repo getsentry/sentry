@@ -1,37 +1,61 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  Docs,
-  DocsParams,
-  OnboardingConfig,
+import {ExternalLink} from 'sentry/components/core/link';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  type Docs,
+  type DocsParams,
+  type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  agentMonitoringOnboarding,
+  AlternativeConfiguration,
+  crashReportOnboardingPython,
+  featureFlagOnboarding,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {
+  getPythonAiocontextvarsConfig,
+  getPythonInstallConfig,
+  getPythonProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
 
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
-
-const getSdkSetupSnippet = (params: Params) => `import sentry_sdk
+const getSdkSetupSnippet = (params: Params) => `
+import sentry_sdk
 
 sentry_sdk.init(
-    dsn="${params.dsn}",${
+    dsn="${params.dsn.public}",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
+    # of transactions for tracing.
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode !== 'continuous'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : ''
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
+          ? `
+    # Set profile_session_sample_rate to 1.0 to profile 100%
+    # of profile sessions.
+    profile_session_sample_rate=1.0,
+    # Set profile_lifecycle to "trace" to automatically
+    # run the profiler on when there is an active transaction
+    profile_lifecycle="trace",`
+          : ''
     }
 )
 `;
@@ -41,41 +65,16 @@ const onboarding: OnboardingConfig = {
     tct('The Tornado integration adds support for the [link:Tornado Web Framework].', {
       link: <ExternalLink href="https://www.tornadoweb.org/en/stable/" />,
     }),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentryTornadoCode:tornado] extra:',
+        'Install [code:sentry-sdk] from PyPI with the [code:tornado] extra:',
         {
-          sentrySdkCode: <code />,
-          sentryTornadoCode: <code />,
+          code: <code />,
         }
       ),
-      configurations: [
-        {
-          description: params.isProfilingSelected
-            ? tct(
-                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
-                {
-                  codeVersion: <code />,
-                  codePackage: <code />,
-                }
-              )
-            : undefined,
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-        {
-          description: tct(
-            "If you're on Python 3.6, you also need the [code:aiocontextvars] package:",
-            {
-              code: <code />,
-            }
-          ),
-          language: 'bash',
-          code: 'pip install --upgrade aiocontextvars',
-        },
-      ],
+      configurations: [...getPythonInstallConfig(), ...getPythonAiocontextvarsConfig()],
     },
   ],
   configure: (params: Params) => [
@@ -90,12 +89,14 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           language: 'python',
-          code: `${getSdkSetupSnippet(params)}
+          code: `
+${getSdkSetupSnippet(params)}
 class MainHandler(tornado.web.RequestHandler):
     # ...
-        `,
+`,
         },
       ],
+      additionalInfo: <AlternativeConfiguration />,
     },
   ],
   verify: (params: Params) => [
@@ -128,7 +129,7 @@ async def main():
     await asyncio.Event().wait()
 
 asyncio.run(main())
-    `,
+`,
         },
       ],
       additionalInfo: (
@@ -157,10 +158,11 @@ asyncio.run(main())
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  customMetricsOnboarding: getPythonMetricsOnboarding({
-    installSnippet: getInstallSnippet(),
-  }),
+  profilingOnboarding: getPythonProfilingOnboarding(),
   crashReportOnboarding: crashReportOnboardingPython,
+  featureFlagOnboarding,
+  feedbackOnboardingJsLoader,
+  agentMonitoringOnboarding,
 };
 
 export default docs;

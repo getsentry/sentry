@@ -29,23 +29,17 @@ class ExhaustiveTests(BackupTransactionTestCase):
     Ensure that a database with all exportable models filled out still works.
     """
 
-    def export_to_tmp_file_and_clear_database(self, tmp_dir, reset_pks) -> Path:
-        tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.expect.json")
-        export_to_file(tmp_path, ExportScope.Global)
-        clear_database(reset_pks=reset_pks)
-        return tmp_path
-
     # Note: the "clean_pks" version of this test lives in
     # `test_sanitize.py::SanitizationExhaustiveTests`. Because these tests are slow, we want to
     # reduce duplication, so we only use that one in that particular location.
     @expect_models(EXHAUSTIVELY_TESTED, "__all__")
-    def test_exhaustive_dirty_pks(self, expected_models: list[type[Model]]):
+    def test_exhaustive_dirty_pks(self, expected_models: list[type[Model]]) -> None:
         self.create_exhaustive_instance(is_superadmin=True)
         actual = self.import_export_then_validate(self._testMethodName, reset_pks=False)
         verify_models_in_output(expected_models, actual)
 
     @expect_models(UNIQUENESS_TESTED, "__all__")
-    def test_uniqueness(self, expected_models: list[type[Model]]):
+    def test_uniqueness(self, expected_models: list[type[Model]]) -> None:
         self.create_exhaustive_instance(is_superadmin=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Export the data once.

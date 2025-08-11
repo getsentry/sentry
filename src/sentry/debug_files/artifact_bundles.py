@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import sentry_sdk
 from django.conf import settings
 from django.db import router
-from django.db.models import Count
+from django.db.models import Count, Exists, OuterRef
 from django.utils import timezone
 from rediscluster import RedisCluster
 
@@ -32,8 +32,6 @@ MAX_BUNDLES_QUERY = 5
 # A value of 3 means that the third upload will trigger indexing and backfill.
 INDEXING_THRESHOLD = 3
 
-# Number of days that determine whether an artifact bundle is ready for being renewed.
-AVAILABLE_FOR_RENEWAL_DAYS = 30
 
 # We want to keep the bundle as being indexed for 600 seconds = 10 minutes. We might need to revise this number and
 # optimize it based on the time taken to perform the indexing (on average).
@@ -215,7 +213,9 @@ def refresh_artifact_bundles_in_use():
     redis_client = get_redis_cluster_for_artifact_bundles()
 
     now = timezone.now()
-    threshold_date = now - timedelta(days=AVAILABLE_FOR_RENEWAL_DAYS)
+    threshold_date = now - timedelta(
+        days=options.get("system.debug-files-renewal-age-threshold-days")
+    )
 
     for _ in range(LOOP_TIMES):
         artifact_bundle_ids = redis_client.spop(get_refresh_key(), IDS_PER_LOOP)
@@ -236,7 +236,9 @@ def maybe_renew_artifact_bundles(used_artifact_bundles: dict[int, datetime]):
     # We take a snapshot in time that MUST be consistent across all updates.
     now = timezone.now()
     # We compute the threshold used to determine whether we want to renew the specific bundle.
-    threshold_date = now - timedelta(days=AVAILABLE_FOR_RENEWAL_DAYS)
+    threshold_date = now - timedelta(
+        days=options.get("system.debug-files-renewal-age-threshold-days")
+    )
 
     for artifact_bundle_id, date_added in used_artifact_bundles.items():
         # We perform the condition check also before running the query, in order to reduce the amount of queries to the database.
@@ -289,7 +291,7 @@ def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now
 
 
 def _maybe_renew_and_return_bundles(
-    bundles: dict[int, tuple[datetime, str]]
+    bundles: dict[int, tuple[datetime, str]],
 ) -> list[tuple[int, str]]:
     maybe_renew_artifact_bundles(
         {id: date_added for id, (date_added, _resolved) in bundles.items()}
@@ -443,16 +445,30 @@ def get_artifact_bundles_containing_url(
     """
     return set(
         ArtifactBundle.objects.filter(
-            releaseartifactbundle__organization_id=project.organization.id,
-            releaseartifactbundle__release_name=release_name,
-            releaseartifactbundle__dist_name=dist_name,
-            projectartifactbundle__project_id=project.id,
-            artifactbundleindex__organization_id=project.organization.id,
-            artifactbundleindex__url__icontains=url,
+            Exists(
+                ArtifactBundleIndex.objects.filter(
+                    artifact_bundle_id=OuterRef("pk"),
+                    organization_id=project.organization.id,
+                    url__icontains=url,
+                )
+            ),
+            Exists(
+                ProjectArtifactBundle.objects.filter(
+                    artifact_bundle_id=OuterRef("pk"),
+                    project_id=project.id,
+                )
+            ),
+            Exists(
+                ReleaseArtifactBundle.objects.filter(
+                    artifact_bundle_id=OuterRef("pk"),
+                    organization_id=project.organization.id,
+                    release_name=release_name,
+                    dist_name=dist_name,
+                )
+            ),
         )
         .values_list("id", "date_added")
-        .order_by("-date_last_modified", "-id")
-        .distinct("date_last_modified", "id")[:MAX_BUNDLES_QUERY]
+        .order_by("-date_last_modified", "-id")[:MAX_BUNDLES_QUERY]
     )
 
 

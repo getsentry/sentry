@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import Any
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from sentry.integrations.opsgenie.integration import OpsgenieIntegration
+from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason, OnCallInteractionType
+from sentry.integrations.opsgenie.metrics import record_event
 from sentry.integrations.opsgenie.utils import get_team
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.services.integration.model import (
-    RpcIntegration,
-    RpcOrganizationIntegration,
-)
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.utils.forms import set_field_choices
 
 INVALID_TEAM = 1
 INVALID_KEY = 2
@@ -36,88 +35,63 @@ class OpsgenieNotifyTeamForm(forms.Form):
 
     account = forms.ChoiceField(choices=(), widget=forms.Select())
     team = forms.ChoiceField(required=False, choices=(), widget=forms.Select())
-    fields: Mapping[str, forms.ChoiceField]  # type: ignore[assignment]
 
     def __init__(self, *args, **kwargs):
         self.org_id = kwargs.pop("org_id")
-        integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
-        teams = kwargs.pop("teams")
+        self._integrations = [(i.id, i.name) for i in kwargs.pop("integrations")]
+        self._teams = kwargs.pop("teams")
 
         super().__init__(*args, **kwargs)
-        if integrations:
-            self.fields["account"].initial = integrations[0][0]
+        if self._integrations:
+            self.fields["account"].initial = self._integrations[0][0]
 
-        self.fields["account"].choices = integrations
-        self.fields["account"].widget.choices = self.fields["account"].choices
+        set_field_choices(self.fields["account"], self._integrations)
 
-        if teams:
-            self.fields["team"].initial = teams[0][0]
+        if self._teams:
+            self.fields["team"].initial = self._teams[0][0]
 
-        self.fields["team"].choices = teams
-        self.fields["team"].widget.choices = self.fields["team"].choices
+        set_field_choices(self.fields["team"], self._teams)
 
     def _get_team_status(
         self,
         team_id: str | None,
-        integration: RpcIntegration,
         org_integration: RpcOrganizationIntegration,
     ) -> int:
         team = get_team(team_id, org_integration)
         if not team or not team_id:
             return INVALID_TEAM
 
-        install = cast(
-            "OpsgenieIntegration",
-            integration.get_installation(organization_id=org_integration.organization_id),
-        )
-        client = install.get_keyring_client(keyid=team_id)
-        # the integration should be of type "sentry"
-        # there's no way to authenticate that a key is an integration key
-        # without specifying the type... even though the type is arbitrary
-        # and all integration keys do the same thing
-        try:
-            client.authorize_integration(type="sentry")
-        except ApiError:
-            return INVALID_KEY
-
         return VALID_TEAM
 
     def _validate_team(self, team_id: str | None, integration_id: int | None) -> None:
-        params = {
-            "account": dict(self.fields["account"].choices).get(integration_id),
-            "team": dict(self.fields["team"].choices).get(team_id),
-        }
-        integration = integration_service.get_integration(
-            integration_id=integration_id, provider="opsgenie"
-        )
-        org_integration = integration_service.get_organization_integration(
-            integration_id=integration_id,
-            organization_id=self.org_id,
-        )
-        if integration is None or org_integration is None:
-            raise forms.ValidationError(
-                _("The Opsgenie integration does not exist."),
-                code="invalid_integration",
-                params=params,
+        with record_event(OnCallInteractionType.VERIFY_TEAM).capture() as lifecyle:
+            params = {
+                "account": dict(self._integrations).get(integration_id),
+                "team": dict(self._teams).get(team_id),
+            }
+            integration = integration_service.get_integration(
+                integration_id=integration_id, provider=IntegrationProviderSlug.OPSGENIE.value
             )
-        team_status = self._get_team_status(
-            team_id=team_id, integration=integration, org_integration=org_integration
-        )
-        if team_status == INVALID_TEAM:
-            raise forms.ValidationError(
-                _('The team "%(team)s" does not belong to the %(account)s Opsgenie account.'),
-                code="invalid_team",
-                params=params,
+            org_integration = integration_service.get_organization_integration(
+                integration_id=integration_id,
+                organization_id=self.org_id,
             )
-        elif team_status == INVALID_KEY:
-            raise forms.ValidationError(
-                _(
-                    'The provided API key is invalid. Please make sure that the Opsgenie API \
-                  key is an integration key of type "Sentry" that has configuration access.'
-                ),
-                code="invalid_key",
-                params=params,
-            )
+            if integration is None or org_integration is None:
+                lifecyle.record_halt(OnCallIntegrationsHaltReason.INVALID_TEAM)
+                raise forms.ValidationError(
+                    _("The Opsgenie integration does not exist."),
+                    code="invalid_integration",
+                    params=params,
+                )
+
+            team_status = self._get_team_status(team_id=team_id, org_integration=org_integration)
+            if team_status == INVALID_TEAM:
+                lifecyle.record_halt(OnCallIntegrationsHaltReason.INVALID_TEAM)
+                raise forms.ValidationError(
+                    _('The team "%(team)s" does not belong to the %(account)s Opsgenie account.'),
+                    code="invalid_team",
+                    params=params,
+                )
 
     def clean(self) -> dict[str, Any] | None:
         cleaned_data = super().clean()

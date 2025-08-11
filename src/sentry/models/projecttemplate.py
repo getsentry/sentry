@@ -1,11 +1,18 @@
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
+from sentry.db.models import (
+    DefaultFieldsModelExisting,
+    FlexibleForeignKey,
+    region_silo_model,
+    sane_repr,
+)
+
+__all__ = ("ProjectTemplate",)
 
 
 @region_silo_model
-class ProjectTemplate(DefaultFieldsModel):
+class ProjectTemplate(DefaultFieldsModelExisting):
     """
     Identifies a project template that can be used to create new projects.
 

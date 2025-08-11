@@ -15,6 +15,7 @@ from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 
 TRACKED_STATUSES = [
@@ -23,6 +24,7 @@ TRACKED_STATUSES = [
     CheckInStatus.ERROR,
     CheckInStatus.MISSED,
     CheckInStatus.TIMEOUT,
+    CheckInStatus.UNKNOWN,
 ]
 
 
@@ -45,7 +47,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
     owner = ApiOwner.CRONS
 
     # TODO(epurkhiser): probably convert to snuba
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         # Do not restrict rollups allowing us to define custom resolutions.
         # Important for this endpoint since we want our buckets to align with
         # the UI's timescale markers.
@@ -55,6 +57,9 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         end = normalize_to_epoch(args["end"], args["rollup"])
 
         monitor_guids: list[str] = request.GET.getlist("monitor")
+
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+        project_ids = [project.id for project in projects]
 
         # Pre-fetch the monitor-ids and their guid. This is an
         # optimization to eliminate a join against the monitor table which
@@ -67,9 +72,11 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         monitor_map = {
             id: str(guid)
             for id, guid in Monitor.objects.filter(
-                organization_id=organization.id, guid__in=monitor_guids
+                organization_id=organization.id, project_id__in=project_ids, guid__in=monitor_guids
             ).values_list("id", "guid")
         }
+        # Filter monitors, keeping only ones that the user has access to.
+        monitor_guids = [guid for guid in monitor_guids if guid in monitor_map.values()]
 
         # We only care about the name but we don't want to join to get it. So we're maintaining
         # this map until the very end where we'll map from monitor_environment to environment to

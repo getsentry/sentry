@@ -2,6 +2,8 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import type {GridCellProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, MultiGrid} from 'react-virtualized';
 
+import {Flex} from 'sentry/components/core/layout/flex';
+import {ExternalLink} from 'sentry/components/core/link';
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -10,14 +12,14 @@ import {GridTable} from 'sentry/components/replays/virtualizedGrid/gridTable';
 import {OverflowHidden} from 'sentry/components/replays/virtualizedGrid/overflowHidden';
 import {SplitPanel} from 'sentry/components/replays/virtualizedGrid/splitPanel';
 import useDetailsSplit from 'sentry/components/replays/virtualizedGrid/useDetailsSplit';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import useOrganization from 'sentry/utils/useOrganization';
 import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NetworkDetails from 'sentry/views/replays/detail/network/details';
 import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
 import NetworkHeaderCell, {
@@ -40,13 +42,15 @@ const cellMeasurer = {
   fixedHeight: true,
 };
 
-function NetworkList() {
+export default function NetworkList() {
   const organization = useOrganization();
-  const {currentTime, replay} = useReplayContext();
+  const replay = useReplayReader();
+  const {currentTime} = useReplayContext();
   const [currentHoverTime] = useCurrentHoverTime();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
   const isNetworkDetailsSetup = Boolean(replay?.isNetworkDetailsSetup());
+  const isCaptureBodySetup = Boolean(replay?.isNetworkCaptureBodySetup());
   const networkFrames = replay?.getNetworkFrames();
   const projectId = replay?.getReplay()?.project_id;
   const startTimestampMs = replay?.getReplay()?.started_at?.getTime() || 0;
@@ -82,16 +86,16 @@ function NetworkList() {
     handleHeight: RESIZEABLE_HANDLE_HEIGHT,
     urlParamName: 'n_detail_row',
     onShowDetails: useCallback(
-      ({dataIndex, rowIndex}) => {
+      ({dataIndex, rowIndex}: any) => {
         setScrollToRow(rowIndex);
 
         const item = items[dataIndex];
         trackAnalytics('replay.details-network-panel-opened', {
           is_sdk_setup: isNetworkDetailsSetup,
           organization,
-          resource_method: getFrameMethod(item),
-          resource_status: String(getFrameStatus(item)),
-          resource_type: item.op,
+          resource_method: getFrameMethod(item!),
+          resource_status: String(getFrameStatus(item!)),
+          resource_type: item!.op,
         });
       },
       [organization, items, isNetworkDetailsSetup]
@@ -117,7 +121,7 @@ function NetworkList() {
   });
 
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
-    const network = items[rowIndex - 1];
+    const network = items[rowIndex - 1]!;
 
     return (
       <CellMeasurer
@@ -130,7 +134,11 @@ function NetworkList() {
         {({measure: _, registerChild}) =>
           rowIndex === 0 ? (
             <NetworkHeaderCell
-              ref={e => e && registerChild?.(e)}
+              ref={e => {
+                if (e) {
+                  registerChild(e);
+                }
+              }}
               handleSort={handleSort}
               index={columnIndex}
               sortConfig={sortConfig}
@@ -146,7 +154,11 @@ function NetworkList() {
               onMouseLeave={onMouseLeave}
               onClickCell={onClickCell}
               onClickTimestamp={onClickTimestamp}
-              ref={e => e && registerChild?.(e)}
+              ref={e => {
+                if (e) {
+                  registerChild(e);
+                }
+              }}
               rowIndex={rowIndex}
               sortConfig={sortConfig}
               startTimestampMs={startTimestampMs}
@@ -159,14 +171,14 @@ function NetworkList() {
   };
 
   return (
-    <FluidHeight>
+    <Flex direction="column" wrap="nowrap">
       <FilterLoadingIndicator isLoading={!replay}>
         <NetworkFilters networkFrames={networkFrames} {...filterProps} />
       </FilterLoadingIndicator>
       <GridTable ref={containerRef} data-test-id="replay-details-network-tab">
         <SplitPanel
           style={{
-            gridTemplateRows: splitSize !== undefined ? `1fr auto ${splitSize}px` : '1fr',
+            gridTemplateRows: splitSize === undefined ? '1fr' : `1fr auto ${splitSize}px`,
           }}
         >
           {networkFrames ? (
@@ -188,7 +200,19 @@ function NetworkList() {
                         unfilteredItems={networkFrames}
                         clearSearchTerm={clearSearchTerm}
                       >
-                        {t('No network requests recorded')}
+                        {replay?.getReplay()?.sdk.name?.includes('flutter')
+                          ? tct(
+                              'No network requests recorded. Make sure you are using either the [link1:Sentry Dio] or the [link2:Sentry HTTP] integration.',
+                              {
+                                link1: (
+                                  <ExternalLink href="https://docs.sentry.io/platforms/dart/integrations/dio/" />
+                                ),
+                                link2: (
+                                  <ExternalLink href="https://docs.sentry.io/platforms/dart/integrations/http-integration/" />
+                                ),
+                              }
+                            )
+                          : t('No network requests recorded')}
                       </NoRowRenderer>
                     )}
                     onScrollbarPresenceChange={onScrollbarPresenceChange}
@@ -221,6 +245,8 @@ function NetworkList() {
           <NetworkDetails
             {...resizableDrawerProps}
             isSetup={isNetworkDetailsSetup}
+            isCaptureBodySetup={isCaptureBodySetup}
+            // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
             item={selectedIndex ? items[selectedIndex] : null}
             onClose={onCloseDetailsSplit}
             projectId={projectId}
@@ -228,8 +254,6 @@ function NetworkList() {
           />
         </SplitPanel>
       </GridTable>
-    </FluidHeight>
+    </Flex>
   );
 }
-
-export default NetworkList;

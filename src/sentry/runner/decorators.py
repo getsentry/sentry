@@ -1,9 +1,8 @@
 import os
 from collections.abc import Callable
-from typing import Concatenate, TypeVar
+from typing import Concatenate, ParamSpec, TypeVar
 
 import click
-from typing_extensions import ParamSpec
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -11,7 +10,7 @@ R = TypeVar("R")
 LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL", "FATAL")
 
 
-class CaseInsensitiveChoice(click.Choice):
+class CaseInsensitiveChoice(click.Choice[str]):
     def convert(self, value: str, param: click.Parameter | None, ctx: click.Context | None) -> str:
         self.choices = [choice.upper() for choice in self.choices]
         return super().convert(value.upper(), param, ctx)

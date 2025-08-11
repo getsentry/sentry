@@ -1,19 +1,15 @@
-import {Fragment} from 'react';
-
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getJavaMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -21,6 +17,11 @@ export enum PackageManager {
   GRADLE = 'gradle',
   MAVEN = 'maven',
   SBT = 'sbt',
+}
+
+export enum YesNo {
+  YES = 'yes',
+  NO = 'no',
 }
 
 const packageManagerName: Record<PackageManager, string> = {
@@ -44,6 +45,19 @@ const platformOptions = {
       {
         label: packageManagerName[PackageManager.SBT],
         value: PackageManager.SBT,
+      },
+    ],
+  },
+  opentelemetry: {
+    label: t('OpenTelemetry'),
+    items: [
+      {
+        label: t('With OpenTelemetry'),
+        value: YesNo.YES,
+      },
+      {
+        label: t('Without OpenTelemetry'),
+        value: YesNo.NO,
       },
     ],
   },
@@ -74,7 +88,7 @@ sentry {
   includeSourceContext = true
 
   org = "${params.organization.slug}"
-  projectName = "${params.projectSlug}"
+  projectName = "${params.project.slug}"
   authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }`;
 
@@ -92,7 +106,7 @@ const getMavenInstallSnippet = (params: Params) => `
 
         <org>${params.organization.slug}</org>
 
-        <project>${params.projectSlug}</project>
+        <project>${params.project.slug}</project>
 
         <!-- in case you're self hosting, provide the URL here -->
         <!--<url>http://localhost:8000/</url>-->
@@ -117,14 +131,40 @@ const getMavenInstallSnippet = (params: Params) => `
   ...
 </build>`;
 
+const getOpenTelemetryRunSnippet = (params: Params) => `
+SENTRY_PROPERTIES_FILE=sentry.properties java -javaagent:sentry-opentelemetry-agent-${getPackageVersion(params, 'sentry.java.opentelemetry-agent', '8.0.0')}.jar -jar your-application.jar
+`;
+
+const getSentryPropertiesSnippet = (params: Params) => `
+dsn=${params.dsn.public}
+# Add data like request headers and IP for users,
+# see https://docs.sentry.io/platforms/java/data-management/data-collected/ for more info
+send-default-pii=true${
+  params.isPerformanceSelected
+    ? `
+traces-sample-rate=1.0`
+    : ''
+}`;
+
 const getConfigureSnippet = (params: Params) => `
 import io.sentry.Sentry;
 
 Sentry.init(options -> {
-  options.setDsn("${params.dsn}");${
+  options.setDsn("${params.dsn.public}");
+
+  // Add data like request headers and IP for users,
+  // see https://docs.sentry.io/platforms/java/data-management/data-collected/ for more info
+  options.setSendDefaultPii(true);${
+    params.isLogsSelected
+      ? `
+
+  // Enable sending logs to Sentry
+  options.getLogs().setEnabled(true);`
+      : ''
+  }${
     params.isPerformanceSelected
       ? `
-  // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+  // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
   // We recommend adjusting this value in production.
   options.setTracesSampleRate(1.0);`
       : ''
@@ -155,128 +195,202 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: t(
-        `Install the SDK via %s:`,
-        packageManagerName[params.platformOptions.packageManager]
-      ),
-      configurations: [
+      content: [
         {
-          description: tct(
-            'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Auth Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
+          type: 'text',
+          text: t(
+            `Install the SDK via %s:`,
+            packageManagerName[params.platformOptions.packageManager]
+          ),
+        },
+        {
+          type: 'text',
+          text: tct(
+            'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
             {
-              link: <Link to="/settings/auth-tokens/" />,
+              link: <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />,
             }
           ),
+        },
+        {
+          type: 'code',
           language: 'bash',
           code: `SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
         },
-        ...(params.platformOptions.packageManager === PackageManager.GRADLE
-          ? [
-              {
-                language: 'groovy',
-                partialLoading: params.sourcePackageRegistries?.isLoading,
-                description: tct(
-                  'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
-                  {
-                    code: <code />,
-                    link: (
-                      <ExternalLink href="https://github.com/getsentry/sentry-android-gradle-plugin" />
-                    ),
-                  }
-                ),
-                code: getGradleInstallSnippet(params),
-              },
-            ]
-          : []),
-        ...(params.platformOptions.packageManager === PackageManager.MAVEN
-          ? [
-              {
-                language: 'xml',
-                partialLoading: params.sourcePackageRegistries?.isLoading,
-                description: tct(
-                  'The [link:Sentry Maven Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:pom.xml] file:',
-                  {
-                    code: <code />,
-                    link: (
-                      <ExternalLink href="https://github.com/getsentry/sentry-maven-plugin" />
-                    ),
-                  }
-                ),
-                code: getMavenInstallSnippet(params),
-              },
-            ]
-          : []),
-        ...(params.platformOptions.packageManager === PackageManager.SBT
-          ? [
-              {
-                description: tct(
-                  'Add the sentry SDK to your [code:libraryDependencies]:',
-                  {
-                    code: <code />,
-                  }
-                ),
-                language: 'scala',
-                partialLoading: params.sourcePackageRegistries?.isLoading,
-                code: `libraryDependencies += "io.sentry" % "sentry" % "${getPackageVersion(
-                  params,
-                  'sentry.java',
-                  '6.27.0'
-                )}"`,
-              },
-            ]
-          : []),
-      ],
-      additionalInfo: tct(
-        'If you prefer to manually upload your source code to Sentry, please refer to [link:Manually Uploading Source Context].',
         {
-          link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/java/source-context/#manually-uploading-source-context" />
+          type: 'conditional',
+          condition: params.platformOptions.packageManager === PackageManager.GRADLE,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'The [link:Sentry Gradle Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:build.gradle] file:',
+                {
+                  code: <code />,
+                  link: (
+                    <ExternalLink href="https://github.com/getsentry/sentry-android-gradle-plugin" />
+                  ),
+                }
+              ),
+            },
+            {
+              type: 'code',
+              language: 'groovy',
+              code: getGradleInstallSnippet(params),
+            },
+          ],
+        },
+        {
+          type: 'conditional',
+          condition: params.platformOptions.packageManager === PackageManager.MAVEN,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                'The [link:Sentry Maven Plugin] automatically installs the Sentry SDK as well as available integrations for your dependencies. Add the following to your [code:pom.xml] file:',
+                {
+                  code: <code />,
+                  link: (
+                    <ExternalLink href="https://github.com/getsentry/sentry-maven-plugin" />
+                  ),
+                }
+              ),
+            },
+            {
+              type: 'code',
+              language: 'xml',
+              code: getMavenInstallSnippet(params),
+            },
+          ],
+        },
+        {
+          type: 'conditional',
+          condition: params.platformOptions.packageManager === PackageManager.SBT,
+          content: [
+            {
+              type: 'text',
+              text: tct('Add the sentry SDK to your [code:libraryDependencies]:', {
+                code: <code />,
+              }),
+            },
+            {
+              type: 'code',
+              language: 'scala',
+              code: `libraryDependencies += "io.sentry" % "sentry" % "${getPackageVersion(
+                params,
+                'sentry.java',
+                '6.27.0'
+              )}"`,
+            },
+          ],
+        },
+        {
+          type: 'conditional',
+          condition: params.platformOptions.opentelemetry === YesNo.YES,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                "When running your application, please add our [code:sentry-opentelemetry-agent] to the [code:java] command. You can download the latest version of the [code:sentry-opentelemetry-agent.jar] from [linkMC:MavenCentral]. It's also available as a [code:ZIP] containing the [code:JAR] used on this page on [linkGH:GitHub].",
+                {
+                  code: <code />,
+                  linkMC: (
+                    <ExternalLink href="https://search.maven.org/artifact/io.sentry/sentry-opentelemetry-agent" />
+                  ),
+                  linkGH: (
+                    <ExternalLink href="https://github.com/getsentry/sentry-java/releases/" />
+                  ),
+                }
+              ),
+            },
+            {
+              type: 'code',
+              language: 'bash',
+              code: getOpenTelemetryRunSnippet(params),
+            },
+          ],
+        },
+        {
+          type: 'text',
+          text: tct(
+            'If you prefer to manually upload your source code to Sentry, please refer to [link:Manually Uploading Source Context].',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/java/source-context/#manually-uploading-source-context" />
+              ),
+            }
           ),
-        }
-      ),
-    },
-  ],
-  configure: params => [
-    {
-      type: StepType.CONFIGURE,
-      description: t(
-        "Configure Sentry as soon as possible in your application's lifecycle:"
-      ),
-      configurations: [
-        {
-          language: 'java',
-          code: getConfigureSnippet(params),
         },
       ],
     },
+  ],
+  configure: params => [
+    params.platformOptions.opentelemetry === YesNo.YES
+      ? {
+          type: StepType.CONFIGURE,
+          content: [
+            {
+              type: 'text',
+              text: tct(
+                "Here's the [code:sentry.properties] file that goes with the [code:java] command above:",
+                {
+                  code: <code />,
+                }
+              ),
+            },
+            {
+              type: 'code',
+              language: 'properties',
+              code: getSentryPropertiesSnippet(params),
+            },
+          ],
+        }
+      : {
+          type: StepType.CONFIGURE,
+          content: [
+            {
+              type: 'text',
+              text: t(
+                "Configure Sentry as soon as possible in your application's lifecycle:"
+              ),
+            },
+            {
+              type: 'code',
+              language: 'java',
+              code: getConfigureSnippet(params),
+            },
+          ],
+        },
   ],
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: tct(
-        'Trigger your first event from your development environment by intentionally creating an error with the [code:Sentry#captureException] method, to test that everything is working:',
-        {code: <code />}
-      ),
-      configurations: [
+      content: [
         {
+          type: 'text',
+          text: tct(
+            'Trigger your first event from your development environment by intentionally creating an error with the [code:Sentry#captureException] method, to test that everything is working:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
           language: 'java',
           code: getVerifySnippet(),
         },
+        {
+          type: 'text',
+          text: t(
+            "If you're new to Sentry, use the email alert to access your account and complete a product tour."
+          ),
+        },
+        {
+          type: 'text',
+          text: t(
+            "If you're an existing user and have disabled alerts, you won't receive this email."
+          ),
+        },
       ],
-      additionalInfo: (
-        <Fragment>
-          <p>
-            {t(
-              "If you're new to Sentry, use the email alert to access your account and complete a product tour."
-            )}
-          </p>
-          <p>
-            {t(
-              "If you're an existing user and have disabled alerts, you won't receive this email."
-            )}
-          </p>
-        </Fragment>
-      ),
     },
   ],
   nextSteps: () => [
@@ -285,14 +399,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       name: t('Examples'),
       description: t('Check out our sample applications.'),
       link: 'https://github.com/getsentry/sentry-java/tree/main/sentry-samples',
-    },
-    {
-      id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
-      description: t(
-        'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
-      ),
-      link: 'https://docs.sentry.io/platforms/java/tracing/',
     },
   ],
 };
@@ -351,7 +457,6 @@ const docs: Docs<PlatformOptions> = {
   platformOptions,
   feedbackOnboardingCrashApi: feedbackOnboardingCrashApiJava,
   crashReportOnboarding: feedbackOnboardingCrashApiJava,
-  customMetricsOnboarding: getJavaMetricsOnboarding(),
   onboarding,
 };
 

@@ -1,11 +1,11 @@
-import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import type {LinkButtonProps} from 'sentry/components/core/button/linkButton';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import type {Organization} from 'sentry/types/organization';
 import type {SandboxData} from 'sentry/types/sandbox';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type DemoSandboxButtonProps = ButtonProps & {
+interface DemoSandboxButtonProps extends Omit<LinkButtonProps, 'to' | 'href'> {
   /**
    * The deep link scenario
    */
@@ -39,7 +39,7 @@ type DemoSandboxButtonProps = ButtonProps & {
    * Where is the component being used
    */
   source?: string;
-};
+}
 
 /**
  * Renders a button that will kick off the sandbox around children
@@ -76,7 +76,7 @@ function DemoSandboxButton({
   };
   url.searchParams.append('client', JSON.stringify(clientOptions));
   return (
-    <Button
+    <LinkButton
       external
       href={url.toString()}
       onClick={() =>

@@ -1,123 +1,44 @@
-import {useContext} from 'react';
-import omit from 'lodash/omit';
-
 import type {Client} from 'sentry/api';
-import {isMultiSeriesStats} from 'sentry/components/charts/utils';
+import type {PageFilters} from 'sentry/types/core';
 import type {
   EventsStats,
+  GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
   Organization,
-  PageFilters,
-} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+} from 'sentry/types/organization';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
-import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
-import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import type {MetricsResultsMetaMapKey} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useMetricsResultsMeta} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlConsumer} from 'sentry/utils/performance/contexts/onDemandControl';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {
+  type DashboardFilters,
+  type Widget,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
-import {type DashboardFilters, type Widget, WidgetType} from '../types';
-
-import {DashboardsMEPContext} from './dashboardsMEPContext';
+import {useDashboardsMEPContext} from './dashboardsMEPContext';
 import type {
   GenericWidgetQueriesChildrenProps,
   OnDataFetchedProps,
 } from './genericWidgetQueries';
 import GenericWidgetQueries from './genericWidgetQueries';
 
-type SeriesResult = EventsStats | MultiSeriesEventsStats;
+type SeriesResult = EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats;
 type TableResult = TableData | EventsTableData;
-
-type SeriesWithOrdering = [order: number, series: Series];
-
-export function transformSeries(
-  stats: EventsStats,
-  seriesName: string,
-  field: string
-): Series {
-  const unit = stats.meta?.units?.[getAggregateAlias(field)];
-  // Scale series values to milliseconds or bytes depending on units from meta
-  const scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
-  return {
-    seriesName,
-    data:
-      stats?.data?.map(([timestamp, counts]) => {
-        return {
-          name: timestamp * 1000,
-          value: counts.reduce((acc, {count}) => acc + count, 0) * scale,
-        };
-      }) ?? [],
-  };
-}
-
-/**
- * Multiseries data with a grouping needs to be "flattened" because the aggregate data
- * are stored under the group names. These names need to be combined with the aggregate
- * names to show a series.
- *
- * e.g. count() and count_unique() grouped by environment
- * {
- *    "local": {
- *      "count()": {...},
- *      "count_unique()": {...}
- *    },
- *    "prod": {
- *      "count()": {...},
- *      "count_unique()": {...}
- *    }
- * }
- */
-export function flattenMultiSeriesDataWithGrouping(
-  result: SeriesResult,
-  queryAlias: string
-): SeriesWithOrdering[] {
-  const seriesWithOrdering: SeriesWithOrdering[] = [];
-  const groupNames = Object.keys(result);
-
-  groupNames.forEach(groupName => {
-    // Each group contains an order key which we should ignore
-    const aggregateNames = Object.keys(
-      omit(result[groupName], ['order', 'isMetricsExtractedData'])
-    );
-
-    aggregateNames.forEach(aggregate => {
-      const seriesName = `${groupName} : ${aggregate}`;
-      const prefixedName = queryAlias ? `${queryAlias} > ${seriesName}` : seriesName;
-      const seriesData: EventsStats = result[groupName][aggregate];
-
-      seriesWithOrdering.push([
-        result[groupName].order || 0,
-        transformSeries(seriesData, prefixedName, seriesName),
-      ]);
-    });
-  });
-
-  return seriesWithOrdering;
-}
-
-export function getIsMetricsDataFromSeriesResponse(
-  result: SeriesResult
-): boolean | undefined {
-  const multiIsMetricsData = Object.values(result)
-    .map(({isMetricsData}) => isMetricsData)
-    // One non-metrics series will cause all of them to be marked as such
-    .reduce((acc, value) => (acc === false ? false : value), undefined);
-
-  return isMultiSeriesStats(result) ? multiIsMetricsData : result.isMetricsData;
-}
 
 type Props = {
   api: Client;
-  children: (props: GenericWidgetQueriesChildrenProps) => JSX.Element;
+  children: (props: GenericWidgetQueriesChildrenProps) => React.JSX.Element;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
   dashboardFilters?: DashboardFilters;
   limit?: number;
+  onDataFetchStart?: () => void;
   onDataFetched?: (results: OnDataFetchedProps) => void;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
 };
@@ -133,12 +54,13 @@ function WidgetQueries({
   limit,
   onDataFetched,
   onWidgetSplitDecision,
+  onDataFetchStart,
 }: Props) {
   // Discover and Errors datasets are the only datasets processed in this component
   const config = getDatasetConfig(
     widget.widgetType as WidgetType.DISCOVER | WidgetType.ERRORS | WidgetType.TRANSACTIONS
   );
-  const context = useContext(DashboardsMEPContext);
+  const context = useDashboardsMEPContext();
   const metricsMeta = useMetricsResultsMeta();
   const mepSettingContext = useMEPSettingContext();
 
@@ -155,7 +77,7 @@ function WidgetQueries({
   }
 
   const isSeriesMetricsDataResults: boolean[] = [];
-  const isSeriesMetricsExtractedDataResults: (boolean | undefined)[] = [];
+  const isSeriesMetricsExtractedDataResults: Array<boolean | undefined> = [];
   const afterFetchSeriesData = (rawResults: SeriesResult) => {
     if (rawResults.data) {
       rawResults = rawResults as EventsStats;
@@ -170,6 +92,7 @@ function WidgetQueries({
       );
     } else {
       Object.keys(rawResults).forEach(key => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         const rawResult: EventsStats = rawResults[key];
         if (rawResult.isMetricsData !== undefined) {
           isSeriesMetricsDataResults.push(rawResult.isMetricsData);
@@ -193,20 +116,18 @@ function WidgetQueries({
     );
 
     const resultValues = Object.values(rawResults);
-    if (organization.features.includes('performance-discover-dataset-selector')) {
-      let splitDecision: WidgetType | undefined = undefined;
-      if (rawResults.meta) {
-        splitDecision = (rawResults.meta as EventsStats['meta'])?.discoverSplitDecision;
-      } else if (Object.values(rawResults).length > 0) {
-        // Multi-series queries will have a meta key on each series
-        // We can just read the decision from one.
-        splitDecision = resultValues[0]?.meta?.discoverSplitDecision;
-      }
+    let splitDecision: WidgetType | undefined = undefined;
+    if (rawResults.meta) {
+      splitDecision = (rawResults.meta as EventsStats['meta'])?.discoverSplitDecision;
+    } else if (Object.values(rawResults).length > 0) {
+      // Multi-series queries will have a meta key on each series
+      // We can just read the decision from one.
+      splitDecision = resultValues[0]?.meta?.discoverSplitDecision;
+    }
 
-      if (splitDecision) {
-        // Update the dashboard state with the split decision
-        onWidgetSplitDecision?.(splitDecision);
-      }
+    if (splitDecision) {
+      // Update the dashboard state with the split decision
+      onWidgetSplitDecision?.(splitDecision);
     }
   };
 
@@ -228,7 +149,6 @@ function WidgetQueries({
     );
 
     if (
-      organization.features.includes('performance-discover-dataset-selector') &&
       [WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(
         rawResults?.meta?.discoverSplitDecision
       )
@@ -247,10 +167,14 @@ function WidgetQueries({
           organization={organization}
           selection={selection}
           widget={widget}
+          samplingMode={
+            widget.widgetType === WidgetType.SPANS ? SAMPLING_MODE.NORMAL : undefined
+          }
           cursor={cursor}
           limit={limit}
           dashboardFilters={dashboardFilters}
           onDataFetched={onDataFetched}
+          onDataFetchStart={onDataFetchStart}
           afterFetchSeriesData={afterFetchSeriesData}
           afterFetchTableData={afterFetchTableData}
           mepSetting={mepSettingContext.metricSettingState}

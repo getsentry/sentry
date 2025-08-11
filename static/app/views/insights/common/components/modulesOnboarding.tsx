@@ -6,17 +6,19 @@ import {PlatformIcon} from 'platformicons';
 import appStartPreviewImg from 'sentry-images/insights/module-upsells/insights-app-starts-module-charts.svg';
 import assetsPreviewImg from 'sentry-images/insights/module-upsells/insights-assets-module-charts.svg';
 import cachesPreviewImg from 'sentry-images/insights/module-upsells/insights-caches-module-charts.svg';
-import llmPreviewImg from 'sentry-images/insights/module-upsells/insights-llm-module-charts.svg';
 import queriesPreviewImg from 'sentry-images/insights/module-upsells/insights-queries-module-charts.svg';
 import queuesPreviewImg from 'sentry-images/insights/module-upsells/insights-queues-module-charts.svg';
 import requestPreviewImg from 'sentry-images/insights/module-upsells/insights-requests-module-charts.svg';
 import screenLoadsPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-loads-module-charts.svg';
+import screenRenderingPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-rendering-module-charts.svg';
+import sessionHealthPreviewImg from 'sentry-images/insights/module-upsells/insights-session-health-module-charts.svg';
 import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-web-vitals-module-charts.svg';
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
-import {LinkButton} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Panel from 'sentry/components/panels/panel';
-import {Tooltip} from 'sentry/components/tooltip';
+import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformKey} from 'sentry/types/project';
@@ -26,21 +28,22 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
   MODULE_DATA_TYPES,
   MODULE_DATA_TYPES_PLURAL,
   MODULE_PRODUCT_DOC_LINKS,
+  MODULE_TITLES,
 } from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-import PerformanceOnboarding from 'sentry/views/performance/onboarding';
+import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 
-export function ModulesOnboarding({
-  children,
-  moduleName,
-}: {
+type ModuleOnboardingProps = {
   children: React.ReactNode;
   moduleName: ModuleName;
-}) {
+};
+
+export function ModulesOnboarding({children, moduleName}: ModuleOnboardingProps) {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
   const {reloadProjects} = useProjects();
@@ -59,7 +62,7 @@ export function ModulesOnboarding({
   if (onboardingProject) {
     return (
       <ModuleLayout.Full>
-        <PerformanceOnboarding organization={organization} project={onboardingProject} />
+        <LegacyOnboarding organization={organization} project={onboardingProject} />
       </ModuleLayout.Full>
     );
   }
@@ -75,9 +78,16 @@ export function ModulesOnboarding({
   return children;
 }
 
-function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
+export function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
+  const {view} = useDomainViewFilters();
+  const docLink =
+    typeof MODULE_PRODUCT_DOC_LINKS[moduleName] === 'string'
+      ? MODULE_PRODUCT_DOC_LINKS[moduleName]
+      : view && MODULE_PRODUCT_DOC_LINKS[moduleName][view]
+        ? MODULE_PRODUCT_DOC_LINKS[moduleName][view]
+        : '';
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
-
   return (
     <Panel>
       <Container>
@@ -92,7 +102,7 @@ function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
               <ValueProp>
                 {emptyStateContent.valuePropDescription}
                 <ul>
-                  {emptyStateContent.valuePropPoints.map(point => (
+                  {emptyStateContent.valuePropPoints.map((point: any) => (
                     <li key={point?.toString()}>{point}</li>
                   ))}
                 </ul>
@@ -103,11 +113,7 @@ function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
             <PerfImage src={emptyStateImg} />
           </Sidebar>
         </SplitMainContent>
-        <LinkButton
-          priority="primary"
-          external
-          href={MODULE_PRODUCT_DOC_LINKS[moduleName]}
-        >
+        <LinkButton priority="primary" external href={docLink}>
           {t('Read the docs')}
         </LinkButton>
       </Container>
@@ -117,7 +123,13 @@ function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
 
 type ModulePreviewProps = {moduleName: ModuleName};
 
+function getSDKName(sdk: PlatformKey) {
+  const currentPlatform = platforms.find(p => p.id === sdk);
+  return currentPlatform?.name;
+}
+
 function ModulePreview({moduleName}: ModulePreviewProps) {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
   const [hoveredIcon, setHoveredIcon] = useState<PlatformKey | null>(null);
 
@@ -129,7 +141,7 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
           <div>{t('Supported Today: ')}</div>
           <SupportedSdkList>
             {emptyStateContent.supportedSdks.map((sdk: PlatformKey) => (
-              <Tooltip title={startCase(sdk)} key={sdk} position="top">
+              <Tooltip title={getSDKName(sdk) ?? startCase(sdk)} key={sdk} position="top">
                 <SupportedSdkIconContainer
                   onMouseOver={() => setHoveredIcon(sdk)}
                   onMouseOut={() => setHoveredIcon(null)}
@@ -179,6 +191,7 @@ const Header = styled('h3')`
 const SplitContainer = styled(Panel)`
   display: flex;
   justify-content: center;
+  overflow: hidden;
 `;
 
 const ModuleInfo = styled('div')`
@@ -206,7 +219,7 @@ const SupportedSdkContainer = styled('div')`
   flex-direction: column;
   gap: ${space(1)};
   align-items: center;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
 `;
 
 const SupportedSdkList = styled('div')`
@@ -267,39 +280,47 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: appStartPreviewImg,
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
-  ai: {
-    heading: t('Find out what your LLM model is actually saying'),
-    description: tct(
-      'Get insights into critical [dataType] metrics, like token usage, to monitor and fix issues with AI pipelines.',
-      {
-        dataType: MODULE_DATA_TYPES[ModuleName.AI],
-      }
-    ),
-    valuePropDescription: tct(
-      'See what your [dataTypePlural] are doing in production by monitoring:',
-      {
-        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.AI],
-      }
-    ),
-    valuePropPoints: [
-      t('Token cost and usage per-provider and per-pipeline.'),
-      tct('The inputs and outputs of [dataType] calls.', {
-        dataType: MODULE_DATA_TYPES[ModuleName.AI],
-      }),
-      tct('Performance and timing information about [dataTypePlural] in production.', {
-        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.AI],
-      }),
-    ],
-    imageSrc: llmPreviewImg,
-    supportedSdks: ['python'],
+
+  agents: {
+    heading: t('TODO'),
+    description: t('TODO'),
+    valuePropDescription: t('Mobile UI load insights include:'),
+    valuePropPoints: [],
+    imageSrc: screenLoadsPreviewImg,
   },
-  // Mobile UI is not released yet
+  mcp: {
+    heading: t('Model Context Providers'),
+    description: t(
+      'Monitor your MCP servers to ensure your AI applications have reliable access to tools, resources, and data sources they depend on.'
+    ),
+    imageSrc: screenLoadsPreviewImg,
+    valuePropDescription: t('MCP monitoring gives you visibility into:'),
+    valuePropPoints: [
+      t('Tool execution success rates and failure patterns.'),
+      t('Resource access performance and availability.'),
+      t('Usage patterns across different tools and prompts.'),
+    ],
+  },
   'mobile-ui': {
     heading: t('TODO'),
     description: t('TODO'),
     valuePropDescription: t('Mobile UI load insights include:'),
     valuePropPoints: [],
     imageSrc: screenLoadsPreviewImg,
+  },
+  'mobile-vitals': {
+    heading: t('Mobile Vitals'),
+    description: t(
+      'Key metrics for for mobile development that help you ensure a great mobile user experience.'
+    ),
+    valuePropDescription: t('With Mobile Vitals:'),
+    valuePropPoints: [
+      t('Get recommendations to improve key mobile metrics.'),
+      t('Track the performance of your application on real user devices.'),
+      t('Understand the full lifecycle of an app, from startup to user interactions.'),
+    ],
+    imageSrc: screenLoadsPreviewImg,
+    supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
   },
   cache: {
     heading: t('Bringing you one less hard problem in computer science'),
@@ -360,7 +381,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: requestPreviewImg,
   },
   resource: {
-    heading: t('Is your favourite animated gif worth the time it takes to load?'),
+    heading: t('Is your favorite animated gif worth the time it takes to load?'),
     description: tct(
       'Find large and slow-to-load [dataTypePlurl] used by your application and understand their impact on page performance.',
       {dataTypePlurl: MODULE_DATA_TYPES_PLURAL[ModuleName.RESOURCE].toLocaleLowerCase()}
@@ -449,5 +470,57 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     ],
     imageSrc: screenLoadsPreviewImg,
     supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
+  },
+  'screen-rendering': {
+    description: t(
+      'Screen Rendering identifies slow and frozen interactions, helping you find and fix problems that might cause users to complain, or uninstall.'
+    ),
+    heading: t('Fast-loading apps can still be janky'),
+    imageSrc: screenRenderingPreviewImg,
+    valuePropDescription: tct('With [moduleTitle]:', {
+      moduleTitle: MODULE_TITLES[ModuleName.SCREEN_RENDERING],
+    }),
+    valuePropPoints: [
+      tct('Find and debug slow rendering interactions.', {
+        dataType: MODULE_DATA_TYPES[ModuleName.SCREEN_RENDERING].toLowerCase(),
+      }),
+      t('Compare render performance between releases.'),
+      tct('Correlate [dataType] performance with real-user metrics.', {
+        dataType: MODULE_DATA_TYPES[ModuleName.SCREEN_RENDERING].toLowerCase(),
+      }),
+    ],
+    supportedSdks: ['android', 'flutter', 'apple-ios', 'react-native'],
+  },
+  sessions: {
+    heading: t(`Get insights about your application's session health`),
+    description: tct(
+      'Understand the frequency of handled errors and crashes compared to healthy sessions.',
+      {
+        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.SESSIONS].toLocaleLowerCase(),
+      }
+    ),
+    valuePropDescription: tct('[dataType] insights include:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.SESSIONS],
+    }),
+    valuePropPoints: [
+      t('Understanding the rate of errored sessions across active releases.'),
+      t('Comparing adoption rates across different releases.'),
+      t('Visualizing user adoption over time.'),
+    ],
+    imageSrc: sessionHealthPreviewImg,
+    supportedSdks: [
+      'android',
+      'flutter',
+      'apple-ios',
+      'javascript',
+      'electron',
+      'native',
+      'php',
+      'python',
+      'react-native',
+      'dotnet',
+      'rust',
+      'unity',
+    ], // this techncially isn't the full list - we support JS browser & node but it seems like too many SDKs to list here
   },
 };

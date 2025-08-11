@@ -8,6 +8,7 @@ from sentry import options
 from sentry.auth.provider import MigratingIdentityId
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
 from sentry.auth.services.auth.model import RpcAuthProvider
+from sentry.auth.view import AuthView
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.base.response import DeferredResponse
 
@@ -19,11 +20,11 @@ class GoogleOAuth2Login(OAuth2Login):
     authorize_url = AUTHORIZE_URL
     scope = SCOPE
 
-    def __init__(self, client_id, domains=None):
+    def __init__(self, client_id: str, domains=None) -> None:
         self.domains = domains
         super().__init__(client_id=client_id)
 
-    def get_authorize_params(self, state, redirect_uri):
+    def get_authorize_params(self, state: str, redirect_uri: str) -> dict[str, str | None]:
         params = super().get_authorize_params(state, redirect_uri)
         # TODO(dcramer): ideally we could look at the current resulting state
         # when an existing auth happens, and if they're missing a refresh_token
@@ -35,8 +36,9 @@ class GoogleOAuth2Login(OAuth2Login):
 
 class GoogleOAuth2Provider(OAuth2Provider):
     name = "Google"
+    key = "google"
 
-    def __init__(self, domain=None, domains=None, version=None, **config):
+    def __init__(self, domain=None, domains=None, version=None, **config) -> None:
         if domain:
             if domains:
                 domains.append(domain)
@@ -54,10 +56,10 @@ class GoogleOAuth2Provider(OAuth2Provider):
         self.version = version
         super().__init__(**config)
 
-    def get_client_id(self):
+    def get_client_id(self) -> str:
         return options.get("auth-google.client-id")
 
-    def get_client_secret(self):
+    def get_client_secret(self) -> str:
         return options.get("auth-google.client-secret")
 
     def get_configure_view(
@@ -65,7 +67,7 @@ class GoogleOAuth2Provider(OAuth2Provider):
     ) -> Callable[[HttpRequest, RpcOrganization, RpcAuthProvider], DeferredResponse]:
         return google_configure_view
 
-    def get_auth_pipeline(self):
+    def get_auth_pipeline(self) -> list[AuthView]:
         return [
             GoogleOAuth2Login(domains=self.domains, client_id=self.get_client_id()),
             OAuth2Callback(
@@ -76,7 +78,7 @@ class GoogleOAuth2Provider(OAuth2Provider):
             FetchUser(domains=self.domains, version=self.version),
         ]
 
-    def get_refresh_token_url(self):
+    def get_refresh_token_url(self) -> str:
         return ACCESS_TOKEN_URL
 
     def build_config(self, state):

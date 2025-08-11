@@ -1,19 +1,23 @@
+from __future__ import annotations
+
 import logging
 import re
 
 from django.db import IntegrityError, router
 from django.db.models import Q
+from django.db.models.query import QuerySet
 from django.utils.functional import cached_property
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import BaseEndpointMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import MAX_RELEASE_FILES_OFFSET
+from sentry.debug_files.release_files import maybe_renew_releasefiles
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
 from sentry.models.release import Release
@@ -33,28 +37,29 @@ def load_dist(results):
     # Dists are pretty uncommon.  In case they do appear load them now
     # as trying to join this on the DB does terrible things with large
     # offsets (it would otherwise generate a left outer join).
-    dists = dict.fromkeys(x.dist_id for x in results)
-    if not dists:
+    dist_map = {}
+    dist_ids = dict.fromkeys(x.dist_id for x in results)
+    if not dist_ids:
         return results
 
-    for dist in Distribution.objects.filter(pk__in=dists.keys()):
-        dists[dist.id] = dist
+    for d in Distribution.objects.filter(pk__in=dist_ids.keys()):
+        dist_map[d.id] = d
 
     for result in results:
         if result.dist_id is not None:
-            dist = dists.get(result.dist_id)
-            if dist is not None:
-                result.dist = dist
+            result_dist = dist_map.get(result.dist_id)
+            if result_dist is not None:
+                result.dist = result_dist
 
     return results
 
 
-class ReleaseFilesMixin:
+class ReleaseFilesMixin(BaseEndpointMixin):
     def get_releasefiles(self, request: Request, release, organization_id):
         query = request.GET.getlist("query")
         checksums = request.GET.getlist("checksum")
 
-        data_sources = []
+        data_sources: list[QuerySet[ReleaseFile] | ArtifactSource] = []
 
         # Exclude files which are also present in archive:
         file_list = ReleaseFile.public_objects.filter(release_id=release.id).exclude(
@@ -63,18 +68,12 @@ class ReleaseFilesMixin:
         file_list = file_list.select_related("file").order_by("name")
 
         if query:
-            if not isinstance(query, list):
-                query = [query]
-
             condition = Q(name__icontains=query[0])
             for name in query[1:]:
                 condition |= Q(name__icontains=name)
             file_list = file_list.filter(condition)
 
         if checksums:
-            if not isinstance(checksums, list):
-                checksums = [checksums]
-
             condition = Q(file__checksum__in=checksums)
             file_list = file_list.filter(condition)
 
@@ -95,8 +94,11 @@ class ReleaseFilesMixin:
                 source = ArtifactSource(dist, files, query, checksums)
                 data_sources.append(source)
 
-        def on_results(r):
-            return serialize(load_dist(r), request.user)
+        def on_results(release_files: list[ReleaseFile]):
+            # this should filter out all the "pseudo-ReleaseFile"s
+            maybe_renew_releasefiles([rf for rf in release_files if rf.id])
+
+            return serialize(load_dist(release_files), request.user)
 
         # NOTE: Returned release files are ordered by name within their block,
         # (i.e. per index file), but not overall
@@ -126,21 +128,6 @@ class ReleaseFilesMixin:
                 {"detail": "File name must not contain special whitespace characters"}, status=400
             )
 
-        dist_name = request.data.get("dist")
-        dist = None
-        if dist_name:
-            dist = release.add_dist(dist_name)
-
-        # Quickly check for the presence of this file before continuing with
-        # the costly file upload process.
-        if ReleaseFile.objects.filter(
-            organization_id=release.organization_id,
-            release_id=release.id,
-            name=full_name,
-            dist_id=dist.id if dist else dist,
-        ).exists():
-            return Response({"detail": ERR_FILE_EXISTS}, status=409)
-
         headers = {"Content-Type": fileobj.content_type}
         for headerval in request.data.getlist("header") or ():
             try:
@@ -154,6 +141,22 @@ class ReleaseFilesMixin:
                         status=400,
                     )
                 headers[k] = v.strip()
+
+        dist_name = request.data.get("dist")
+
+        dist = None
+        if dist_name:
+            dist = release.add_dist(dist_name)
+
+        # Quickly check for the presence of this file before continuing with
+        # the costly file upload process.
+        if ReleaseFile.objects.filter(
+            organization_id=release.organization_id,
+            release_id=release.id,
+            name=full_name,
+            dist_id=dist.id if dist else dist,
+        ).exists():
+            return Response({"detail": ERR_FILE_EXISTS}, status=409)
 
         file = File.objects.create(name=name, type="release.file", headers=headers)
         file.putfile(fileobj, logger=logger)
@@ -202,7 +205,7 @@ class ArtifactSource:
 
         return files
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.sorted_and_filtered_files)
 
     def __getitem__(self, range):
@@ -271,6 +274,9 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
 
         Unlike other API requests, files must be uploaded using the
         traditional multipart/form-data content-type.
+
+        Requests to this endpoint should use the region-specific domain
+        eg. `us.sentry.io` or `de.sentry.io`
 
         The optional 'name' attribute should reflect the absolute path
         that this file will be referenced as. For example, in the case of

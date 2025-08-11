@@ -80,9 +80,7 @@ def __write_ownership_data(ownership_data: dict[ApiOwner, dict]):
             ApiPublishStatus.EXPERIMENTAL.value: sorted(
                 ownership_data[team][ApiPublishStatus.EXPERIMENTAL]
             ),
-            ApiPublishStatus.UNKNOWN.value: sorted(
-                ownership_data[team][ApiPublishStatus.EXPERIMENTAL.UNKNOWN]
-            ),
+            ApiPublishStatus.UNKNOWN.value: sorted(ownership_data[team][ApiPublishStatus.UNKNOWN]),
         }
         index += __get_line_count_for_team_stats(ownership_data[team])
     dir = os.path.dirname(os.path.realpath(__file__))
@@ -165,9 +163,9 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
 
 
 def dereference_schema(
-    schema: Mapping[str, Any],
+    schema: dict[str, Any],
     schema_components: Mapping[str, Any],
-) -> Mapping[str, Any]:
+) -> dict[str, Any]:
     """
     Dereferences the schema reference if it exists. Otherwise, returns the schema as is.
     """
@@ -179,7 +177,7 @@ def dereference_schema(
 
 
 def _validate_request_body(
-    request_body: Mapping[str, Any], schema_components: Mapping[str, Any], endpoint_name: str
+    request_body: dict[str, Any], schema_components: Mapping[str, Any], endpoint_name: str
 ) -> None:
     """
     1. Dereferences schema if needed.
@@ -224,6 +222,8 @@ def _validate_request_body(
 
 
 def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
+    _fix_issue_paths(result)
+
     # Fetch schema component references
     schema_components = result["components"]["schemas"]
 
@@ -281,3 +281,39 @@ def _check_tag(method_info: Mapping[str, Any], endpoint_name: str) -> None:
 def _check_description(json_body: Mapping[str, Any], err_str: str) -> None:
     if json_body.get("description") is None:
         raise SentryApiBuildError(err_str)
+
+
+def _fix_issue_paths(result: Any) -> Any:
+    """
+    The way we define `/issues/` paths causes some problems with drf-spectacular:
+    - The path may be defined twice, with `/organizations/{organization_id_slug}` prefix and
+      without. We want to use the `/organizations` prefixed path as it works across regions.
+    - The `/issues/` part of the path is defined as `issues|groups` for compatibility reasons,
+      but we only want to use `issues` in the docs
+
+    This function removes duplicate paths, removes the `issues|groups` path parameter and
+    replaces it with `issues` in the path.
+    """
+    items = list(result["paths"].items())
+
+    modified_paths = []
+
+    for path, endpoint in items:
+        if "{var}/{issue_id}" in path:
+            modified_paths.append(path)
+
+    for path in modified_paths:
+        updated_path = path.replace("{var}/{issue_id}", "issues/{issue_id}")
+        if updated_path.startswith("/api/0/issues/"):
+            updated_path = updated_path.replace(
+                "/api/0/issues/", "/api/0/organizations/{organization_id_or_slug}/issues/"
+            )
+        endpoint = result["paths"][path]
+        for method in endpoint.keys():
+            endpoint[method]["parameters"] = [
+                param
+                for param in endpoint[method]["parameters"]
+                if not (param["in"] == "path" and param["name"] == "var")
+            ]
+        result["paths"][updated_path] = endpoint
+        del result["paths"][path]

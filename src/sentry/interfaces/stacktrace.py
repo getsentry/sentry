@@ -1,14 +1,21 @@
-__all__ = ("Stacktrace",)
-
 import math
+from enum import Enum
 
 from django.utils.translation import gettext as _
 
 from sentry.app import env
-from sentry.interfaces.base import DataPath, Interface
+from sentry.interfaces.base import Interface
 from sentry.users.services.user_option import get_option_from_list, user_option_service
 from sentry.utils.json import prune_empty_keys
 from sentry.web.helpers import render_to_string
+
+__all__ = ("Stacktrace",)
+
+
+class StacktraceOrder(str, Enum):
+    DEFAULT = "-1"  # Equivalent to `MOST_RECENT_FIRST`
+    MOST_RECENT_LAST = "1"
+    MOST_RECENT_FIRST = "2"
 
 
 def max_addr(cur, addr):
@@ -86,6 +93,11 @@ def get_context(lineno, context_line, pre_context=None, post_context=None):
 
 
 def is_newest_frame_first(event):
+    # TODO: Investigate if we should keep this special-casing for python, since we don't special
+    # case it anywhere else we check stacktrace order. If we do remove it, we might consider
+    # ditching this helper altogether, and just checking and using the option value directly in the
+    # one spot this helper is used.
+    # (See https://github.com/getsentry/sentry/pull/96719 for more context.)
     newest_first = event.platform not in ("python", None)
 
     if env.request and env.request.user.is_authenticated:
@@ -93,9 +105,9 @@ def is_newest_frame_first(event):
             filter=dict(user_ids=[env.request.user.id], keys=["stacktrace_order"])
         )
         display = get_option_from_list(options, default=None)
-        if display == "1":
+        if display == StacktraceOrder.MOST_RECENT_LAST:
             newest_first = False
-        elif display == "2":
+        elif display == StacktraceOrder.MOST_RECENT_FIRST:
             newest_first = True
 
     return newest_first
@@ -154,7 +166,6 @@ class Frame(Interface):
             "symbol_addr",
             "trust",
             "vars",
-            "snapshot",
             "lock",
         ):
             data.setdefault(key, None)
@@ -248,12 +259,6 @@ class Frame(Interface):
         if self.data:
             if "symbolicator_status" in self.data:
                 data["symbolicatorStatus"] = self.data["symbolicator_status"]
-
-            if self.data.get("is_sentinel"):
-                data["isSentinel"] = True
-
-            if self.data.get("is_prefix"):
-                data["isPrefix"] = True
 
             if "min_grouping_level" in self.data:
                 data["minGroupingLevel"] = self.data["min_grouping_level"]
@@ -453,20 +458,18 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data, datapath: DataPath | None = None, **kwargs):
+    def to_python(cls, data, **kwargs):
         data = dict(data)
         frame_list = []
         for i, f in enumerate(data.get("frames") or []):
             # XXX(dcramer): handle PHP sending an empty array for a frame
-            frame_list.append(
-                Frame.to_python(f or {}, datapath=datapath + ["frames", i] if datapath else None)
-            )
+            frame_list.append(Frame.to_python(f or {}))
 
         data["frames"] = frame_list
         data.setdefault("registers", None)
         data.setdefault("frames_omitted", None)
 
-        return super().to_python(data, datapath=datapath, **kwargs)
+        return super().to_python(data, **kwargs)
 
     def get_has_system_frames(self):
         # This is a simplified logic from how the normalizer works.

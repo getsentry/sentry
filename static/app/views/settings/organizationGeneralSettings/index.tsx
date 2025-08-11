@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
 
 import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -7,8 +6,8 @@ import {
   removeAndRedirectToRemainingOrganization,
   updateOrganization,
 } from 'sentry/actionCreators/organizations';
-import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
@@ -19,21 +18,24 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
+import {defaultEnableSeerFeaturesValue} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';
 import {OrganizationRegionAction} from 'sentry/views/settings/organizationGeneralSettings/organizationRegionAction';
 
 import OrganizationSettingsForm from './organizationSettingsForm';
 
-export default function OrganizationGeneralSettings({}: RouteComponentProps<{}, {}>) {
+export default function OrganizationGeneralSettings() {
   const api = useApi();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const navigate = useNavigate();
 
   const removeConfirmMessage = (
     <Fragment>
@@ -69,9 +71,9 @@ export default function OrganizationGeneralSettings({}: RouteComponentProps<{}, 
 
       if (ConfigStore.get('features').has('system:multi-region')) {
         const {organizationUrl} = updated.links;
-        window.location.replace(`${organizationUrl}/settings/organization/`);
+        testableWindowLocation.replace(`${organizationUrl}/settings/organization/`);
       } else {
-        browserHistory.replace(`/settings/${updated.slug}/`);
+        navigate(`/settings/${updated.slug}/`, {replace: true});
       }
     } else {
       if (prevData.codecovAccess !== updated.codecovAccess) {
@@ -94,6 +96,7 @@ export default function OrganizationGeneralSettings({}: RouteComponentProps<{}, 
 
     addLoadingMessage();
     removeAndRedirectToRemainingOrganization(api, {
+      navigate,
       orgId: organization.slug,
       successMessage: `${organization.name} is queued for deletion.`,
       errorMessage: `Error removing the ${organization.name} organization`,
@@ -112,9 +115,15 @@ export default function OrganizationGeneralSettings({}: RouteComponentProps<{}, 
           title={t('Organization Settings')}
           action={organizationRegionInfo}
         />
-        <PermissionAlert />
+        <OrganizationPermissionAlert />
 
-        <OrganizationSettingsForm initialData={organization} onSave={handleSaveForm} />
+        <OrganizationSettingsForm
+          initialData={{
+            ...organization,
+            hideAiFeatures: defaultEnableSeerFeaturesValue(organization),
+          }}
+          onSave={handleSaveForm}
+        />
 
         {organization.access.includes('org:admin') && !organization.isDefault && (
           <Panel>

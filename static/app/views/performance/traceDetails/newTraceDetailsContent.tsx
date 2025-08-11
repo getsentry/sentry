@@ -1,24 +1,24 @@
 import {Fragment, useMemo, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Alert} from 'sentry/components/core/alert';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {ExternalLink, Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import DiscoverButton from 'sentry/components/discoverButton';
 import EventVitals from 'sentry/components/events/eventVitals';
 import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import type {Organization} from 'sentry/types/organization';
 import {generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -34,21 +34,21 @@ import type {
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useRouter from 'sentry/utils/useRouter';
-import Tags from 'sentry/views/discover/tags';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import Tags from 'sentry/views/discover/results/tags';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {TraceShape} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {BrowserDisplay} from 'sentry/views/performance/transactionDetails/eventMetas';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
-
-import {BrowserDisplay} from '../transactionDetails/eventMetas';
+import {makeReplaysPathname} from 'sentry/views/replays/pathnames';
 
 import NewTraceView from './newTraceDetailsTraceView';
 import TraceNotFound from './traceNotFound';
 import TraceViewDetailPanel from './traceViewDetailPanel';
-import {getTraceInfo, hasTraceData, isRootTransaction} from './utils';
+import {getTraceInfo, hasTraceData, isRootEvent} from './utils';
 
-type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'location'> & {
+type Props = Pick<RouteComponentProps<{traceSlug: string}>, 'params' | 'location'> & {
   dateSelected: boolean;
   error: QueryError | null;
   isLoading: boolean;
@@ -61,15 +61,6 @@ type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'loca
   orphanErrors?: TraceError[];
 };
 
-export enum TraceType {
-  ONE_ROOT = 'one_root',
-  NO_ROOT = 'no_root',
-  MULTIPLE_ROOTS = 'multiple_roots',
-  BROKEN_SUBTRACES = 'broken_subtraces',
-  ONLY_ERRORS = 'only_errors',
-  EMPTY_TRACE = 'empty_trace',
-}
-
 export type EventDetail = {
   event: EventTransaction | undefined;
   openPanel: string | undefined;
@@ -77,7 +68,7 @@ export type EventDetail = {
 };
 
 function NewTraceDetailsContent(props: Props) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [detail, setDetail] = useState<EventDetail | SpanDetailProps | undefined>(
     undefined
   );
@@ -86,7 +77,7 @@ function NewTraceDetailsContent(props: Props) {
     [props.traces, props.orphanErrors]
   );
   const root = props.traces?.[0];
-  const {data: rootEvent, isLoading: isRootEventLoading} = useApiQuery<EventTransaction>(
+  const {data: rootEvent, isPending: isRootEventLoading} = useApiQuery<EventTransaction>(
     [
       `/organizations/${props.organization.slug}/events/${root?.project_slug}:${root?.event_id}/`,
       {
@@ -142,9 +133,10 @@ function NewTraceDetailsContent(props: Props) {
                 tooltipText=""
                 bodyText={
                   <Link
-                    to={normalizeUrl(
-                      `/organizations/${organization.slug}/replays/${replay_id}/`
-                    )}
+                    to={makeReplaysPathname({
+                      path: `/${replay_id}/`,
+                      organization,
+                    })}
                   >
                     <ReplayLinkBody>
                       {getShortEventId(replay_id)}
@@ -208,12 +200,12 @@ function NewTraceDetailsContent(props: Props) {
     );
   };
 
-  const getTraceType = (): TraceType => {
+  const getTraceType = (): TraceShape => {
     const {traces, orphanErrors} = props;
 
     const {roots, orphans} = (traces ?? []).reduce(
       (counts, trace) => {
-        if (isRootTransaction(trace)) {
+        if (isRootEvent(trace)) {
           counts.roots++;
         } else {
           counts.orphans++;
@@ -224,27 +216,27 @@ function NewTraceDetailsContent(props: Props) {
     );
 
     if (roots === 0 && orphans > 0) {
-      return TraceType.NO_ROOT;
+      return TraceShape.NO_ROOT;
     }
 
     if (roots === 1 && orphans > 0) {
-      return TraceType.BROKEN_SUBTRACES;
+      return TraceShape.BROKEN_SUBTRACES;
     }
 
     if (roots > 1) {
-      return TraceType.MULTIPLE_ROOTS;
+      return TraceShape.MULTIPLE_ROOTS;
     }
 
     if (orphanErrors && orphanErrors.length > 1) {
-      return TraceType.ONLY_ERRORS;
+      return TraceShape.ONLY_ERRORS;
     }
 
     if (roots === 1) {
-      return TraceType.ONE_ROOT;
+      return TraceShape.ONE_ROOT;
     }
 
     if (roots === 0 && orphans === 0) {
-      return TraceType.EMPTY_TRACE;
+      return TraceShape.EMPTY_TRACE;
     }
 
     throw new Error('Unknown trace type');
@@ -255,49 +247,57 @@ function NewTraceDetailsContent(props: Props) {
     const traceType = getTraceType();
 
     switch (traceType) {
-      case TraceType.NO_ROOT:
+      case TraceShape.NO_ROOT:
         warning = (
-          <Alert type="info" showIcon>
-            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
-              {t(
-                'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
+          <Alert.Container>
+            <Alert type="info">
+              <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
+                {t(
+                  'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
+                )}
+              </ExternalLink>
+            </Alert>
+          </Alert.Container>
+        );
+        break;
+      case TraceShape.BROKEN_SUBTRACES:
+        warning = (
+          <Alert.Container>
+            <Alert type="info">
+              <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
+                {t(
+                  'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
+                )}
+              </ExternalLink>
+            </Alert>
+          </Alert.Container>
+        );
+        break;
+      case TraceShape.MULTIPLE_ROOTS:
+        warning = (
+          <Alert.Container>
+            <Alert type="info">
+              <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#multiple-roots">
+                {t('Multiple root transactions have been found with this trace ID.')}
+              </ExternalLink>
+            </Alert>
+          </Alert.Container>
+        );
+        break;
+      case TraceShape.ONLY_ERRORS:
+        warning = (
+          <Alert.Container>
+            <Alert type="info">
+              {tct(
+                "The good news: we know all these errors are related. The bad news: we can't tell you more than that. If you haven't already, [tracingLink:configure tracing for your SDKs] to get a connected view of your software systems and services.",
+                {
+                  tracingLink: (
+                    <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
+                  ),
+                }
               )}
-            </ExternalLink>
-          </Alert>
-        );
-        break;
-      case TraceType.BROKEN_SUBTRACES:
-        warning = (
-          <Alert type="info" showIcon>
-            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
-              {t(
-                'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
-              )}
-            </ExternalLink>
-          </Alert>
-        );
-        break;
-      case TraceType.MULTIPLE_ROOTS:
-        warning = (
-          <Alert type="info" showIcon>
-            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#multiple-roots">
-              {t('Multiple root transactions have been found with this trace ID.')}
-            </ExternalLink>
-          </Alert>
-        );
-        break;
-      case TraceType.ONLY_ERRORS:
-        warning = (
-          <Alert type="info" showIcon>
-            {tct(
-              "The good news is we know these errors are related to each other. The bad news is that we can't tell you more than that. If you haven't already, [tracingLink: configure performance monitoring for your SDKs] to learn more about service interactions.",
-              {
-                tracingLink: (
-                  <ExternalLink href="https://docs.sentry.io/product/performance/getting-started/" />
-                ),
-              }
-            )}
-          </Alert>
+            </Alert>
+          </Alert.Container>
         );
         break;
       default:
@@ -312,6 +312,7 @@ function NewTraceDetailsContent(props: Props) {
     const transactionsCount = meta?.transactions ?? traceInfo?.transactions.size ?? 0;
     const totalNumOfEvents = transactionsCount + orphanErrorsCount;
     const webVitals = Object.keys(rootEvent?.measurements ?? {})
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       .filter(name => Boolean(WEB_VITAL_DETAILS[`measurements.${name}`]))
       .sort();
 
@@ -326,10 +327,7 @@ function NewTraceDetailsContent(props: Props) {
           <div style={{flex: 1}}>
             <Tags
               generateUrl={(key: string, value: string) => {
-                const url = traceEventView.getResultsViewUrlTarget(
-                  organization.slug,
-                  false
-                );
+                const url = traceEventView.getResultsViewUrlTarget(organization, false);
                 url.query = generateQueryWithTag(url.query, {
                   key: formatTagKey(key),
                   value,
@@ -409,13 +407,16 @@ function NewTraceDetailsContent(props: Props) {
         <TraceViewDetailPanel
           detail={detail}
           onClose={() => {
-            router.replace({
-              ...location,
-              hash: undefined,
-              query: {
-                ...omit(location.query, 'openPanel'),
+            navigate(
+              {
+                ...location,
+                hash: undefined,
+                query: {
+                  ...omit(location.query, 'openPanel'),
+                },
               },
-            });
+              {replace: true}
+            );
             setDetail(undefined);
           }}
         />
@@ -442,10 +443,10 @@ function NewTraceDetailsContent(props: Props) {
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <ButtonBar gap={1}>
+          <ButtonBar>
             <DiscoverButton
               size="sm"
-              to={traceEventView.getResultsViewUrlTarget(organization.slug)}
+              to={traceEventView.getResultsViewUrlTarget(organization)}
               onClick={() => {
                 trackAnalytics('performance_views.trace_view.open_in_discover', {
                   organization,
@@ -469,7 +470,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const LoadingContainer = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   color: ${p => p.theme.subText};
   text-align: center;
 `;

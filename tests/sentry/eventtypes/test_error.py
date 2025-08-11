@@ -4,19 +4,19 @@ from typing import Any
 from unittest import TestCase
 
 from sentry.eventtypes.error import ErrorEvent
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 class GetMetadataTest(TestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         inst = ErrorEvent()
         data = {"exception": {"values": [{"type": "Exception", "value": "Foo"}]}}
         assert inst.get_metadata(data) == {
             "type": "Exception",
             "value": "Foo",
-            "display_title_with_tree_label": False,
         }
 
-    def test_no_exception_type_or_value(self):
+    def test_no_exception_type_or_value(self) -> None:
         inst = ErrorEvent()
         data: dict[str, dict[str, Any]] = {
             "exception": {"values": [{"type": None, "value": None, "stacktrace": {}}]}
@@ -24,10 +24,9 @@ class GetMetadataTest(TestCase):
         assert inst.get_metadata(data) == {
             "type": "Error",
             "value": "",
-            "display_title_with_tree_label": False,
         }
 
-    def test_pulls_top_function(self):
+    def test_pulls_top_function(self) -> None:
         inst = ErrorEvent()
         data = {
             "platform": "native",
@@ -49,19 +48,17 @@ class GetMetadataTest(TestCase):
             "type": "Error",
             "value": "",
             "function": "top_func",
-            "display_title_with_tree_label": True,  # native!
         }
 
-    def test_none_frame(self):
+    def test_none_frame(self) -> None:
         inst = ErrorEvent()
         data = {"exception": {"values": [{"stacktrace": {"frames": [None]}}]}}
         assert inst.get_metadata(data) == {
             "type": "Error",
             "value": "",
-            "display_title_with_tree_label": False,
         }
 
-    def test_multiple_exceptions_default(self):
+    def test_multiple_exceptions_default(self) -> None:
         inst = ErrorEvent()
         data = {
             "exception": {
@@ -74,10 +71,9 @@ class GetMetadataTest(TestCase):
         assert inst.get_metadata(data) == {
             "type": "Exception",
             "value": "Foo",
-            "display_title_with_tree_label": False,
         }
 
-    def test_multiple_exceptions_main_indicated(self):
+    def test_multiple_exceptions_main_indicated(self) -> None:
         inst = ErrorEvent()
         data = {
             "main_exception_id": 1,
@@ -91,22 +87,22 @@ class GetMetadataTest(TestCase):
         assert inst.get_metadata(data) == {
             "type": "Exception",
             "value": "Bar",
-            "display_title_with_tree_label": False,
         }
 
 
+@django_db_all
 class GetTitleTest(TestCase):
-    def test_none_value(self):
+    def test_none_value(self) -> None:
         inst = ErrorEvent()
         result = inst.get_title({"type": "Error", "value": None})
         assert result == "Error"
 
-    def test_trims_value_at_newline(self):
+    def test_trims_value_at_newline(self) -> None:
         inst = ErrorEvent()
         result = inst.get_title({"type": "Error", "value": "foo\nbar"})
         assert result == "Error: foo"
 
-    def test_handles_empty_value(self):
+    def test_handles_empty_value(self) -> None:
         inst = ErrorEvent()
         result = inst.get_title({"type": "Error", "value": ""})
         assert result == "Error"

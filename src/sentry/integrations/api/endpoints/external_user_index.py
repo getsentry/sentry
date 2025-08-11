@@ -10,41 +10,44 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_SUCCESS
-from sentry.apidocs.examples.organization_examples import OrganizationExamples
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.integrations.api.bases.external_actor import (
     ExternalActorEndpointMixin,
+    ExternalUserPermission,
     ExternalUserSerializer,
 )
+from sentry.integrations.api.serializers.models.external_actor import ExternalActorSerializer
 from sentry.models.organization import Organization
 
 logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-@extend_schema(tags=["Organizations"])
+@extend_schema(tags=["Integrations"])
 class ExternalUserEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
+    owner = ApiOwner.ECOSYSTEM
+    permission_classes = (ExternalUserPermission,)
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ENTERPRISE
 
     @extend_schema(
         operation_id="Create an External User",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=ExternalUserSerializer,
         responses={
-            200: RESPONSE_SUCCESS,
-            201: ExternalUserSerializer,
+            200: ExternalActorSerializer,
+            201: ExternalActorSerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
-        examples=OrganizationExamples.EXTERNAL_USER_CREATE,
+        examples=IntegrationExamples.EXTERNAL_USER_CREATE,
     )
     def post(self, request: Request, organization: Organization) -> Response:
         """
-        Links a user from an external provider to a Sentry user.
+        Link a user from an external provider to a Sentry user.
         """
         self.assert_has_feature(request, organization)
 

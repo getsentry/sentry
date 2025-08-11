@@ -2,9 +2,8 @@ import {Component, createContext} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {setActiveProject} from 'sentry/actionCreators/projects';
 import type {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -14,7 +13,13 @@ import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project, User} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {User} from 'sentry/types/user';
+import {
+  addProjectFeaturesHandler,
+  buildSentryFeaturesHandler,
+} from 'sentry/utils/featureFlags';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -162,7 +167,6 @@ class ProjectContextProvider extends Component<Props, State> {
     }));
 
     if (activeProject && hasAccess) {
-      setActiveProject(null);
       const projectRequest = this.props.api.requestPromise(
         `/projects/${organization.slug}/${projectSlug}/`
       );
@@ -177,7 +181,10 @@ class ProjectContextProvider extends Component<Props, State> {
         });
 
         // assuming here that this means the project is considered the active project
-        setActiveProject(project);
+        addProjectFeaturesHandler({
+          project,
+          handler: buildSentryFeaturesHandler('feature.projects:'),
+        });
       } catch (error) {
         this.setState({
           loading: false,
@@ -232,9 +239,9 @@ class ProjectContextProvider extends Component<Props, State> {
 
     if (!error && project) {
       return (
-        <ProjectContext.Provider value={project}>
+        <ProjectContext value={project}>
           {typeof children === 'function' ? children({project}) : children}
-        </ProjectContext.Provider>
+        </ProjectContext>
       );
     }
 
@@ -243,9 +250,11 @@ class ProjectContextProvider extends Component<Props, State> {
         // TODO(chrissy): use scale for margin values
         return (
           <Layout.Page withPadding>
-            <Alert type="warning">
-              {t('The project you were looking for was not found.')}
-            </Alert>
+            <Alert.Container>
+              <Alert type="warning" showIcon={false}>
+                {t('The project you were looking for was not found.')}
+              </Alert>
+            </Alert.Container>
           </Layout.Page>
         );
       case ErrorTypes.MISSING_MEMBERSHIP:

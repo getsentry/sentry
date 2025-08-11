@@ -72,6 +72,10 @@ class UseCase(enum.Enum):
     PROFILING = "profiling"
     """ An internal project key for submitting escalating issues metrics."""
     ESCALATING_ISSUES = "escalating_issues"
+    """ An internal project key for submitting events from tempest."""
+    TEMPEST = "tempest"
+    """ An internal project key for demo mode."""
+    DEMO = "demo"
 
 
 @region_silo_model
@@ -122,6 +126,7 @@ class ProjectKey(Model):
         max_length=32,
         choices=[(v.value, v.value) for v in UseCase],
         default=UseCase.USER.value,
+        db_default=UseCase.USER.value,
     )
 
     # support legacy project keys in API
@@ -141,7 +146,7 @@ class ProjectKey(Model):
 
     __repr__ = sane_repr("project_id", "public_key")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.public_key)
 
     @classmethod
@@ -195,7 +200,7 @@ class ProjectKey(Model):
         super().save(*args, **kwargs)
 
     def get_dsn(self, domain=None, secure=True, public=False):
-        urlparts = urlparse(self.get_endpoint(public=public))
+        urlparts = urlparse(self.get_endpoint())
 
         if not public:
             key = f"{self.public_key}:{self.secret_key}"
@@ -255,6 +260,18 @@ class ProjectKey(Model):
         return f"{endpoint}/api/{self.project_id}/minidump/?sentry_key={self.public_key}"
 
     @property
+    def playstation_endpoint(self):
+        endpoint = self.get_endpoint()
+
+        return f"{endpoint}/api/{self.project_id}/playstation/?sentry_key={self.public_key}"
+
+    @property
+    def otlp_traces_endpoint(self):
+        endpoint = self.get_endpoint()
+
+        return f"{endpoint}/api/{self.project_id}/otlp/v1/traces"
+
+    @property
     def unreal_endpoint(self):
         return f"{self.get_endpoint()}/api/{self.project_id}/unreal/{self.public_key}/"
 
@@ -273,27 +290,24 @@ class ProjectKey(Model):
                 reverse("sentry-js-sdk-loader", args=[self.public_key, ".min"]),
             )
 
-    def get_endpoint(self, public=True):
+    def get_endpoint(self) -> str:
         from sentry.api.utils import generate_region_url
 
-        if public:
-            endpoint = settings.SENTRY_PUBLIC_ENDPOINT or settings.SENTRY_ENDPOINT
-        else:
-            endpoint = settings.SENTRY_ENDPOINT
-
-        if not endpoint and SiloMode.get_current_mode() == SiloMode.REGION:
-            endpoint = generate_region_url()
+        endpoint = settings.SENTRY_ENDPOINT
         if not endpoint:
-            endpoint = options.get("system.url-prefix")
+            if SiloMode.get_current_mode() == SiloMode.REGION:
+                endpoint = generate_region_url()
+            else:
+                endpoint = options.get("system.url-prefix")
+            assert endpoint is not None
 
-        has_org_subdomain = False
         try:
             has_org_subdomain = features.has(
                 "organizations:org-ingest-subdomains", self.project.organization
             )
         except ProgrammingError:
             # This happens during migration generation for the organization model.
-            pass
+            has_org_subdomain = False
 
         if has_org_subdomain:
             urlparts = urlparse(endpoint)
@@ -309,7 +323,7 @@ class ProjectKey(Model):
 
         return endpoint
 
-    def get_allowed_origins(self):
+    def get_allowed_origins(self) -> frozenset[str]:
         from sentry.utils.http import get_origins
 
         return get_origins(self.project)

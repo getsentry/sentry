@@ -6,7 +6,7 @@ import clamp from 'sentry/utils/number/clamp';
 import type {DragManagerChildrenProps} from './dragManager';
 import type {ParsedTraceType} from './types';
 
-export type CursorGuideManagerChildrenProps = {
+type CursorGuideManagerChildrenProps = {
   displayCursorGuide: (mousePageX: number) => void;
   hideCursorGuide: () => void;
   mouseLeft: number | undefined;
@@ -29,7 +29,7 @@ type PropType = {
   dragProps: DragManagerChildrenProps;
   // this is the DOM element where the drag events occur. it's also the reference point
   // for calculating the relative mouse x coordinate.
-  interactiveLayerRef: React.RefObject<HTMLDivElement>;
+  interactiveLayerRef: React.RefObject<HTMLDivElement | null>;
 
   trace: ParsedTraceType;
 };
@@ -110,9 +110,9 @@ export class Provider extends Component<PropType, StateType> {
     };
 
     return (
-      <CursorGuideManagerContext.Provider value={childrenProps}>
+      <CursorGuideManagerContext value={childrenProps}>
         {this.props.children}
-      </CursorGuideManagerContext.Provider>
+      </CursorGuideManagerContext>
     );
   }
 }

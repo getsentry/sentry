@@ -1,30 +1,31 @@
 ---
-created: '2023-01-11T11:41:28.135789Z'
+created: '2025-04-25T21:22:12.501597+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
+        stacktrace (ignored because it contains no in-app frames)
+          frame (marked out of app by the client)
             filename*
               "main.cpp"
             function*
               "main"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "main.cpp"
             function*
               "(anonymous namespace)::start"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "main.cpp"
             function*
               "(anonymous namespace)::crash"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "main.cpp"
             function*
@@ -37,6 +38,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "c29439027eafcf7642f641554ab0f0ef"
+  contributing component: exception
   component:
     system*
       exception*

@@ -1,10 +1,10 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.testutils.cases import APITestCase
 
 
 class OrganizationIntegrationReposTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.login_as(user=self.user)
@@ -16,11 +16,13 @@ class OrganizationIntegrationReposTest(APITestCase):
             f"/api/0/organizations/{self.org.slug}/integrations/{self.integration.id}/repos/"
         )
 
-    @patch("sentry.integrations.github.GitHubApiClient.get_repositories", return_value=[])
-    def test_simple(self, get_repositories):
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]
+    )
+    def test_simple(self, get_repositories: MagicMock) -> None:
         get_repositories.return_value = [
-            {"name": "rad-repo", "full_name": "Example/rad-repo", "default_branch": "main"},
-            {"name": "cool-repo", "full_name": "Example/cool-repo"},
+            {"name": "rad-repo", "identifier": "Example/rad-repo", "default_branch": "main"},
+            {"name": "cool-repo", "identifier": "Example/cool-repo"},
         ]
         response = self.client.get(self.path, format="json")
 
@@ -37,15 +39,17 @@ class OrganizationIntegrationReposTest(APITestCase):
             "searchable": True,
         }
 
-    @patch("sentry.integrations.github.GitHubApiClient.get_repositories", return_value=[])
-    def test_hide_hidden_repos(self, get_repositories):
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_repositories", return_value=[]
+    )
+    def test_hide_hidden_repos(self, get_repositories: MagicMock) -> None:
         get_repositories.return_value = [
             {
                 "name": "rad-repo",
-                "full_name": "Example/rad-repo",
+                "identifier": "Example/rad-repo",
                 "default_branch": "main",
             },
-            {"name": "cool-repo", "full_name": "Example/cool-repo"},
+            {"name": "cool-repo", "identifier": "Example/cool-repo"},
         ]
 
         self.create_repo(
@@ -68,7 +72,7 @@ class OrganizationIntegrationReposTest(APITestCase):
             "searchable": True,
         }
 
-    def test_no_repository_method(self):
+    def test_no_repository_method(self) -> None:
         integration = self.create_integration(
             organization=self.org, provider="jira", name="Example", external_id="example:1"
         )

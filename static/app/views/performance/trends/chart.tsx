@@ -7,7 +7,8 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import type {OrganizationSummary, Project} from 'sentry/types';
+import type {OrganizationSummary} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {
@@ -19,12 +20,10 @@ import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
 import generateTrendFunctionAsString from 'sentry/views/performance/trends/utils/generateTrendFunctionAsString';
 import transformEventStats from 'sentry/views/performance/trends/utils/transformEventStats';
+import type {ViewProps} from 'sentry/views/performance/types';
 import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
-
-import type {ViewProps} from '../types';
 
 import type {
   NormalizedTrendsTransaction,
@@ -36,8 +35,8 @@ import {
   getCurrentTrendFunction,
   getCurrentTrendParameter,
   getUnselectedSeries,
+  makeTrendToColorMapping,
   transformEventStatsSmoothed,
-  trendToColor,
 } from './utils';
 
 type Props = ViewProps & {
@@ -99,10 +98,9 @@ export function Chart({
   applyRegressionFormatToInterval = false,
 }: Props) {
   const location = useLocation();
-  const router = useRouter();
   const theme = useTheme();
 
-  const handleLegendSelectChanged = legendChange => {
+  const handleLegendSelectChanged = (legendChange: any) => {
     const {selected} = legendChange;
     const unselected = Object.keys(selected).filter(key => !selected[key]);
 
@@ -123,7 +121,10 @@ export function Chart({
   const derivedTrendChangeType = organization.features.includes('performance-new-trends')
     ? transaction?.change
     : trendChangeType;
+
+  const trendToColor = makeTrendToColorMapping(theme);
   const lineColor =
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     trendToColor[neutralColor ? 'neutral' : derivedTrendChangeType || trendChangeType];
 
   const events =
@@ -151,6 +152,7 @@ export function Chart({
   const seriesSelection = decodeList(
     location.query[getUnselectedSeries(trendChangeType)]
   ).reduce((selection, metric) => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     selection[metric] = false;
     return selection;
   }, {});
@@ -222,13 +224,7 @@ export function Chart({
   };
 
   return (
-    <ChartZoom
-      router={router}
-      period={statsPeriod}
-      start={start}
-      end={end}
-      utc={utc === 'true'}
-    >
+    <ChartZoom period={statsPeriod} start={start} end={end} utc={utc === 'true'}>
       {zoomRenderProps => {
         return (
           <TransitionChart loading={loading} reloading={reloading}>
@@ -268,5 +264,3 @@ export function Chart({
     </ChartZoom>
   );
 }
-
-export default Chart;

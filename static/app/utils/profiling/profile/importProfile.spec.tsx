@@ -7,9 +7,8 @@ import {
 import {JSSelfProfile} from 'sentry/utils/profiling/profile/jsSelfProfile';
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 
-import {makeSentryContinuousProfile} from './continuousProfile.spec';
 import {SentrySampledProfile} from './sentrySampledProfile';
-import {makeSentrySampledProfile} from './sentrySampledProfile.spec';
+import {makeSentryContinuousProfile, makeSentrySampledProfile} from './testUtils';
 
 describe('importProfile', () => {
   it('imports evented profile', () => {
@@ -156,7 +155,7 @@ describe('importProfile', () => {
   it('throws on unrecognized profile type', () => {
     expect(() =>
       importProfile(
-        // @ts-expect-error
+        // @ts-expect-error wrong type 'unrecognized' is on purpose
         {name: 'profile', activeProfileIndex: 0, profiles: [{type: 'unrecognized'}]},
         '',
         '',
@@ -187,7 +186,7 @@ describe('parseDroppedProfile', () => {
       reader.dispatchEvent(loadEvent);
     });
 
-    await expect(parseDroppedProfile(file)).rejects.toEqual(
+    await expect(parseDroppedProfile(file)).rejects.toBe(
       'Failed to read string contents of input file'
     );
 
@@ -211,7 +210,7 @@ describe('parseDroppedProfile', () => {
       reader.dispatchEvent(loadEvent);
     });
 
-    await expect(parseDroppedProfile(file)).rejects.toEqual(
+    await expect(parseDroppedProfile(file)).rejects.toBe(
       'Failed to read string contents of input file'
     );
 

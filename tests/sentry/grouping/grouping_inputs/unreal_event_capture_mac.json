@@ -1,0 +1,799 @@
+{
+  "platform": "cocoa",
+  "message": "Message for scoped event",
+  "threads": {
+    "values": [
+      {
+        "id": 6,
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "thread_start",
+              "symbol": "thread_start",
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "_pthread_start",
+              "symbol": "_pthread_start",
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "__NSThread__start__",
+              "symbol": "__NSThread__start__",
+              "package": "/System/Library/Frameworks/Foundation.framework/Versions/C/Foundation",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "-[FCocoaGameThread main]",
+              "symbol": "-[FCocoaGameThread main]",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "-[UEAppDelegate runGameThread:]",
+              "symbol": "-[UEAppDelegate runGameThread:]",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "GuardedMain",
+              "raw_function": "GuardedMain(char16_t const*)",
+              "symbol": "_Z11GuardedMainPKDs",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "FEngineLoop::Tick",
+              "raw_function": "FEngineLoop::Tick()",
+              "symbol": "_ZN11FEngineLoop4TickEv",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "FSlateApplication::Tick",
+              "raw_function": "FSlateApplication::Tick(ESlateTickType)",
+              "symbol": "_ZN17FSlateApplication4TickE14ESlateTickType",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "FSlateApplication::TickPlatform",
+              "raw_function": "FSlateApplication::TickPlatform(float)",
+              "symbol": "_ZN17FSlateApplication12TickPlatformEf",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "FMacApplication::ProcessDeferredEvents",
+              "raw_function": "FMacApplication::ProcessDeferredEvents(float)",
+              "symbol": "_ZN15FMacApplication21ProcessDeferredEventsEf",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "FMacApplication::ProcessEvent",
+              "raw_function": "FMacApplication::ProcessEvent(FDeferredMacEvent const&)",
+              "symbol": "_ZN15FMacApplication12ProcessEventERK17FDeferredMacEvent",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "FMacApplication::ProcessMouseUpEvent",
+              "raw_function": "FMacApplication::ProcessMouseUpEvent(FDeferredMacEvent const&, TSharedPtr<FMacWindow, (ESPMode)1>)",
+              "symbol": "_ZN15FMacApplication19ProcessMouseUpEventERK17FDeferredMacEvent10TSharedPtrI10FMacWindowL7ESPMode1EE",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "FSlateApplication::OnMouseUp",
+              "raw_function": "FSlateApplication::OnMouseUp(EMouseButtons::Type, UE::Math::TVector2<double>)",
+              "symbol": "_ZN17FSlateApplication9OnMouseUpEN13EMouseButtons4TypeEN2UE4Math8TVector2IdEE",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "FSlateApplication::ProcessMouseButtonUpEvent",
+              "raw_function": "FSlateApplication::ProcessMouseButtonUpEvent(FPointerEvent const&)",
+              "symbol": "_ZN17FSlateApplication25ProcessMouseButtonUpEventERK13FPointerEvent",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "FSlateApplication::RoutePointerUpEvent",
+              "raw_function": "FSlateApplication::RoutePointerUpEvent(FWidgetPath const&, FPointerEvent const&)",
+              "symbol": "_ZN17FSlateApplication19RoutePointerUpEventERK11FWidgetPathRK13FPointerEvent",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "SButton::OnMouseButtonUp",
+              "raw_function": "SButton::OnMouseButtonUp(FGeometry const&, FPointerEvent const&)",
+              "symbol": "_ZN7SButton15OnMouseButtonUpERK9FGeometryRK13FPointerEvent",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "SButton::ExecuteOnClick",
+              "raw_function": "SButton::ExecuteOnClick()",
+              "symbol": "_ZN7SButton14ExecuteOnClickEv",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "UButton::SlateHandleClicked",
+              "raw_function": "UButton::SlateHandleClicked()",
+              "symbol": "_ZN7UButton18SlateHandleClickedEv",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "TMulticastScriptDelegate<T>::ProcessMulticastDelegate<T>",
+              "raw_function": "TMulticastScriptDelegate<FNotThreadSafeDelegateMode>::ProcessMulticastDelegate<UObject>(void*) const",
+              "symbol": "_ZNK24TMulticastScriptDelegateI26FNotThreadSafeDelegateModeE24ProcessMulticastDelegateI7UObjectEEvPv",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "UObject::ProcessEvent",
+              "raw_function": "UObject::ProcessEvent(UFunction*, void*)",
+              "symbol": "_ZN7UObject12ProcessEventEP9UFunctionPv",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "UFunction::Invoke",
+              "raw_function": "UFunction::Invoke(UObject*, FFrame&, void*)",
+              "symbol": "_ZN9UFunction6InvokeEP7UObjectR6FFramePv",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "ProcessLocalScriptFunction",
+              "raw_function": "ProcessLocalScriptFunction(UObject*, FFrame&, void*)",
+              "symbol": "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "ProcessLocalFunction",
+              "raw_function": "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void*)",
+              "symbol": "_Z20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePv",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "ProcessLocalFunction::lambda::operator()",
+              "raw_function": "ProcessLocalFunction(UObject*, UFunction*, FFrame&, void*)::$_48::operator()() const",
+              "symbol": "_ZZ20ProcessLocalFunctionP7UObjectP9UFunctionR6FFramePvENK4$_48clEv",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "ProcessScriptFunction<T>",
+              "raw_function": "ProcessScriptFunction<void (*)(UObject*, FFrame&, void*)>(UObject*, UFunction*, FFrame&, void*, void (*)(UObject*, FFrame&, void*))",
+              "symbol": "_Z21ProcessScriptFunctionIPFvP7UObjectR6FFramePvEEvS1_P9UFunctionS3_S4_T_",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "ProcessLocalScriptFunction",
+              "raw_function": "ProcessLocalScriptFunction(UObject*, FFrame&, void*)",
+              "symbol": "_Z26ProcessLocalScriptFunctionP7UObjectR6FFramePv",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "UObject::execLetObj",
+              "raw_function": "UObject::execLetObj(UObject*, FFrame&, void*)",
+              "symbol": "_ZN7UObject10execLetObjEPS_R6FFramePv",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "UObject::ProcessContextOpcode",
+              "raw_function": "UObject::ProcessContextOpcode(FFrame&, void*, bool)",
+              "symbol": "_ZN7UObject20ProcessContextOpcodeER6FFramePvb",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "UObject::CallFunction",
+              "raw_function": "UObject::CallFunction(FFrame&, void*, UFunction*)",
+              "symbol": "_ZN7UObject12CallFunctionER6FFramePvP9UFunction",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "UFunction::Invoke",
+              "raw_function": "UFunction::Invoke(UObject*, FFrame&, void*)",
+              "symbol": "_ZN9UFunction6InvokeEP7UObjectR6FFramePv",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "USentrySubsystem::execCaptureEventWithScope",
+              "raw_function": "USentrySubsystem::execCaptureEventWithScope(UObject*, FFrame&, void*)",
+              "symbol": "_ZN16USentrySubsystem25execCaptureEventWithScopeEP7UObjectR6FFramePv",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "USentrySubsystem::CaptureEventWithScope",
+              "raw_function": "USentrySubsystem::CaptureEventWithScope(USentryEvent*, FConfigureScopeDelegate const&)",
+              "symbol": "_ZN16USentrySubsystem21CaptureEventWithScopeEP12USentryEventRK23FConfigureScopeDelegate",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "USentrySubsystem::CaptureEventWithScope",
+              "raw_function": "USentrySubsystem::CaptureEventWithScope(USentryEvent*, TDelegate<void (USentryScope*), FDefaultDelegateUserPolicy> const&)",
+              "symbol": "_ZN16USentrySubsystem21CaptureEventWithScopeEP12USentryEventRK9TDelegateIFvP12USentryScopeE26FDefaultDelegateUserPolicyE",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "SentrySubsystemApple::CaptureEventWithScope",
+              "raw_function": "SentrySubsystemApple::CaptureEventWithScope(TSharedPtr<ISentryEvent, (ESPMode)1>, TDelegate<void (TSharedPtr<ISentryScope, (ESPMode)1>), FDefaultDelegateUserPolicy> const&)",
+              "symbol": "_ZN20SentrySubsystemApple21CaptureEventWithScopeE10TSharedPtrI12ISentryEventL7ESPMode1EERK9TDelegateIFvS0_I12ISentryScopeLS2_1EEE26FDefaultDelegateUserPolicyE",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/MacOS/SentryPlayground",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "+[SentrySDK captureEvent:withScopeBlock:]",
+              "symbol": "+[SentrySDK captureEvent:withScopeBlock:]",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "+[SentrySDK captureEvent:withScope:]",
+              "symbol": "+[SentrySDK captureEvent:withScope:]",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "-[SentryHub captureEvent:withScope:additionalEnvelopeItems:]",
+              "symbol": "-[SentryHub captureEvent:withScope:additionalEnvelopeItems:]",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]",
+              "symbol": "-[SentryClient sendEvent:withScope:alwaysAttachStacktrace:isCrashEvent:additionalEnvelopeItems:]",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]",
+              "symbol": "-[SentryClient prepareEvent:withScope:alwaysAttachStacktrace:isCrashEvent:]",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "-[SentryThreadInspector getCurrentThreads]",
+              "symbol": "-[SentryThreadInspector getCurrentThreads]",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            },
+            {
+              "function": "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]",
+              "symbol": "-[SentryStacktraceBuilder buildStacktraceForCurrentThread]",
+              "package": "/Users/foo/Desktop/Mac/SentryPlayground.app/Contents/UE/SentryPlayground/Plugins/sentry/Binaries/Mac/sentry.dylib",
+              "data": {
+                "symbolicator_status": "symbolicated"
+              }
+            }
+          ]
+        },
+        "crashed": false,
+        "current": true,
+        "main": true
+      },
+      {
+        "id": 0,
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 1,
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 2,
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 3,
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 4,
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 5,
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 7,
+        "name": "BackgroundThreadPool #0",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 8,
+        "name": "BackgroundThreadPool #1",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 9,
+        "name": "Foreground Worker #0",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 10,
+        "name": "Foreground Worker #1",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 11,
+        "name": "Background Worker #0",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 12,
+        "name": "Background Worker #1",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 13,
+        "name": "com.apple.NSEventThread",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 14,
+        "name": "FAsyncWriter_SentryPlayground",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 15,
+        "name": "HttpManagerThread",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 16,
+        "name": "OnlineAsyncTaskThreadNull DefaultInstance(1)",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 17,
+        "name": "OutputDeviceRedirector",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 18,
+        "name": "IOThreadPool #0",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 19,
+        "name": "IOThreadPool #1",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 20,
+        "name": "IOThreadPool #2",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 21,
+        "name": "IOThreadPool #3",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 22,
+        "name": "IoService",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 23,
+        "name": "IoDispatcher",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 24,
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 25,
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 26,
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 27,
+        "name": "PSOPrecompilePool #0",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 28,
+        "name": "PSOPrecompilePool #1",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 29,
+        "name": "Background Worker (Standby #0)",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 30,
+        "name": "PSOPrecompilePool #2",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 31,
+        "name": "PSOPrecompilePool #3",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 32,
+        "name": "PSOPrecompilePool #4",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 33,
+        "name": "PSOPrecompilePool #5",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 34,
+        "name": "PSOPrecompilePool #6",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 35,
+        "name": "PSOPrecompilePool #7",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 36,
+        "name": "FMediaTicker",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 37,
+        "name": "FMessageBus.DefaultBus.Router",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 38,
+        "name": "RHIThread",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 39,
+        "name": "RenderThread 0",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 40,
+        "name": "RTHeartBeat 0",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 41,
+        "name": "LiveLinkMessageBusDiscoveryManager",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 42,
+        "name": "FAsyncLoadingThread",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 43,
+        "name": "UnknownThreadPool #0",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 44,
+        "name": "UnknownThreadPool #1",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 45,
+        "name": "UnknownThreadPool #2",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 46,
+        "name": "UnknownThreadPool #3",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 47,
+        "name": "UnknownThreadPool #4",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 48,
+        "name": "UnknownThreadPool #5",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 49,
+        "name": "UnknownThreadPool #6",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 50,
+        "name": "UnknownThreadPool #7",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 51,
+        "name": "UnknownThreadPool #8",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 52,
+        "name": "UnknownThreadPool #9",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 53,
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 54,
+        "name": "SentryCrash Exception Handler (Secondary)",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 55,
+        "name": "SentryCrash Exception Handler (Primary)",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 56,
+        "name": "caulk.messenger.shared:17",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 57,
+        "name": "caulk.messenger.shared:high",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 58,
+        "name": "caulk::deferred_logger",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 59,
+        "name": "AudioMixerRenderThread(1)",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 60,
+        "name": "com.apple.audio.IOThread.client",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 61,
+        "name": "Foreground Worker (Standby #0)",
+        "crashed": false,
+        "current": false,
+        "main": false
+      },
+      {
+        "id": 62,
+        "name": "com.apple.NSURLConnectionLoader",
+        "crashed": false,
+        "current": false,
+        "main": false
+      }
+    ]
+  }
+}

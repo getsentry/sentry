@@ -1,3 +1,4 @@
+import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {t} from 'sentry/locale';
 
@@ -26,9 +27,9 @@ export class Frame {
 
   readonly isRoot: boolean;
 
-  totalWeight: number = 0;
-  selfWeight: number = 0;
-  aggregateDuration: number = 0;
+  totalWeight = 0;
+  selfWeight = 0;
+  aggregateDuration = 0;
 
   static Root = new Frame({
     key: ROOT_KEY,
@@ -118,7 +119,7 @@ export class Frame {
           if (match?.groups) {
             const {maybeScopeOrPackage, maybePackage} = match.groups;
 
-            if (maybeScopeOrPackage.startsWith('@')) {
+            if (maybeScopeOrPackage!.startsWith('@')) {
               this.module = `${maybeScopeOrPackage}/${maybePackage}`;
             } else {
               this.module = match.groups.maybeScopeOrPackage;
@@ -156,5 +157,15 @@ export class Frame {
     if (!this.name) {
       this.name = t('<unknown>');
     }
+  }
+
+  getSourceLocation(): string {
+    const trimmedPackage = this.package ? trimPackage(this.package) : this.package;
+    const packageFileOrPath: string =
+      this.file ?? this.module ?? trimmedPackage ?? this.path ?? '<unknown>';
+
+    const line = typeof this.line === 'number' ? this.line : '<unknown line>';
+    const column = typeof this.column === 'number' ? this.column : '<unknown column>';
+    return `${packageFileOrPath}:${line}:${column}`;
   }
 }

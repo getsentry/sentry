@@ -1,4 +1,4 @@
-import type {PlainRoute} from 'react-router';
+import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 
 /**
  * For all routes with a `path`, find the first route without a route param (e.g. :apiKey)
@@ -11,7 +11,7 @@ export default function findFirstRouteWithoutRouteParam(
   routes: PlainRoute[],
   route?: PlainRoute
 ) {
-  const routeIndex = route !== undefined ? routes.indexOf(route) : -1;
+  const routeIndex = route === undefined ? -1 : routes.indexOf(route);
   const routesToSearch = route && routeIndex > -1 ? routes.slice(routeIndex) : routes;
 
   return (

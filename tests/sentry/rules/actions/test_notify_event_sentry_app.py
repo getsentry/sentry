@@ -1,11 +1,11 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from rest_framework import serializers
 
 from sentry.rules.actions.sentry_apps import NotifyEventSentryAppAction
+from sentry.sentry_apps.tasks.sentry_apps import notify_sentry_app
 from sentry.silo.base import SiloMode
-from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -27,7 +27,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
     def create_schema(self):
         self.schema = {"elements": [self.create_alert_rule_action_schema()]}
 
-    def test_applies_correctly_for_sentry_apps(self):
+    def test_applies_correctly_for_sentry_apps(self) -> None:
         event = self.get_event()
 
         self.app = self.create_sentry_app(
@@ -57,7 +57,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         assert futures[0].kwargs["schema_defined_settings"] == self.schema_data
 
     @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
-    def test_sentry_app_actions(self, mock_sentry_app_component_preparer):
+    def test_sentry_app_actions(self, mock_sentry_app_component_preparer: MagicMock) -> None:
         event = self.get_event()
 
         self.project = self.create_project(organization=event.organization)
@@ -93,7 +93,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         assert action["formFields"] == alert_element["settings"]
         assert alert_element["title"] in action["label"]
 
-    def test_self_validate(self):
+    def test_self_validate(self) -> None:
         self.organization = self.create_organization()
         self.app = self.create_sentry_app(
             organization=self.organization,
@@ -188,7 +188,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         with pytest.raises(ValidationError):
             rule.self_validate()
 
-    def test_render_label(self):
+    def test_render_label(self) -> None:
         event = self.get_event()
 
         self.app = self.create_sentry_app(

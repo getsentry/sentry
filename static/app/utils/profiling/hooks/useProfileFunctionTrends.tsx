@@ -13,7 +13,7 @@ interface UseProfileFunctionTrendsOptions<F extends string> {
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   limit?: number;
-  projects?: (number | string)[];
+  projects?: Array<number | string>;
   query?: string;
   refetchOnMount?: boolean;
 }

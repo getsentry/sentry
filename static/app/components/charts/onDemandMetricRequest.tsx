@@ -7,7 +7,7 @@ import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organizatio
 export class OnDemandMetricRequest extends EventsRequest {
   fetchExtrapolatedData = async (): Promise<EventsStats> => {
     const {api, organization, ...props} = this.props;
-    const retVal = await doEventsRequest(api, {
+    const retVal = await doEventsRequest<false>(api, {
       ...props,
       organization,
       generatePathname: () =>
@@ -31,7 +31,7 @@ export class OnDemandMetricRequest extends EventsRequest {
       errored: false,
       errorMessage: undefined,
     }));
-    let errorMessage;
+    let errorMessage: any;
     if (expired) {
       errorMessage = t(
         '%s has an invalid date range. Please try a more recent date range.',

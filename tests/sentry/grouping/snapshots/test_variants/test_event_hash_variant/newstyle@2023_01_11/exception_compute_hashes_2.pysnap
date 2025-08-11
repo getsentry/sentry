@@ -1,15 +1,16 @@
 ---
-created: '2023-01-11T11:41:28.150918Z'
+created: '2025-04-25T21:21:51.359658+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: null
+  hash: "9509e122c6175606d52862fa4f64853c"
+  contributing component: exception
   component:
-    app (exception of system takes precedence)
-      exception (ignored because hash matches system variant)
+    app*
+      exception*
         stacktrace*
-          frame*
+          frame* (marked in-app by the client)
             filename*
               "baz.py"
         type*
@@ -18,10 +19,11 @@ app:
           "hello world"
 --------------------------------------------------------------------------
 system:
-  hash: "9509e122c6175606d52862fa4f64853c"
+  hash: null
+  contributing component: null
   component:
-    system*
-      exception*
+    system (exception of app takes precedence)
+      exception (ignored because hash matches app variant)
         stacktrace*
           frame*
             filename*

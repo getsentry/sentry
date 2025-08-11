@@ -1,13 +1,11 @@
 import contextlib
 from unittest import mock
-from unittest.mock import call, patch
 
 import pytest
 from django.db import router, transaction
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.options.project_option import ProjectOption
-from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
@@ -18,6 +16,7 @@ from sentry.tasks.relay import (
     schedule_build_project_config,
     schedule_invalidate_project_config,
 )
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -26,15 +25,6 @@ from sentry.testutils.pytest.fixtures import django_db_all
 def _cache_keys_for_project(project):
     for key in ProjectKey.objects.filter(project_id=project.id):
         yield key.public_key
-
-
-def _cache_keys_for_org(org):
-    # The `ProjectKey` model doesn't have any attribute we can use to filter by
-    # org, and the `Project` model doesn't have a project key exposed. So using
-    # the org we fetch the project, and then the project key.
-    for proj in Project.objects.filter(organization_id=org.id):
-        for key in ProjectKey.objects.filter(project_id=proj.id):
-            yield key.public_key
 
 
 @pytest.fixture(autouse=True)
@@ -84,63 +74,61 @@ def emulate_transactions(django_capture_on_commit_callbacks):
 
 
 @pytest.fixture
-def redis_cache(monkeypatch):
-    monkeypatch.setattr(
-        "django.conf.settings.SENTRY_RELAY_PROJECTCONFIG_CACHE",
-        "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache",
-    )
-
+def redis_cache():
     cache = RedisProjectConfigCache()
-    monkeypatch.setattr("sentry.relay.projectconfig_cache.set_many", cache.set_many)
-    monkeypatch.setattr("sentry.relay.projectconfig_cache.delete_many", cache.delete_many)
-    monkeypatch.setattr("sentry.relay.projectconfig_cache.get", cache.get)
-
-    return cache
+    with (
+        mock.patch(
+            "django.conf.settings.SENTRY_RELAY_PROJECTCONFIG_CACHE",
+            "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache",
+        ),
+        mock.patch("sentry.relay.projectconfig_cache.set_many", cache.set_many),
+        mock.patch("sentry.relay.projectconfig_cache.delete_many", cache.delete_many),
+        mock.patch("sentry.relay.projectconfig_cache.get", cache.get),
+    ):
+        yield cache
 
 
 @pytest.fixture
-def debounce_cache(monkeypatch):
-    monkeypatch.setattr(
-        "django.conf.settings.SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE",
-        "sentry.relay.projectconfig_debounce_cache.redis.RedisProjectConfigDebounceCache",
-    )
-
+def debounce_cache():
     cache = RedisProjectConfigDebounceCache()
-    monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.backend.mark_task_done", cache.mark_task_done
-    )
-    monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.backend.debounce", cache.debounce
-    )
-    monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.backend.is_debounced", cache.is_debounced
-    )
-
-    return cache
+    with (
+        mock.patch(
+            "django.conf.settings.SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE",
+            "sentry.relay.projectconfig_debounce_cache.redis.RedisProjectConfigDebounceCache",
+        ),
+        mock.patch(
+            "sentry.relay.projectconfig_debounce_cache.backend.mark_task_done", cache.mark_task_done
+        ),
+        mock.patch("sentry.relay.projectconfig_debounce_cache.backend.debounce", cache.debounce),
+        mock.patch(
+            "sentry.relay.projectconfig_debounce_cache.backend.is_debounced", cache.is_debounced
+        ),
+    ):
+        yield cache
 
 
 @pytest.fixture
-def invalidation_debounce_cache(monkeypatch):
+def invalidation_debounce_cache():
     debounce_cache = RedisProjectConfigDebounceCache()
-    monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.invalidation.mark_task_done",
-        debounce_cache.mark_task_done,
-    )
-    monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.invalidation.debounce",
-        debounce_cache.debounce,
-    )
-    monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.invalidation.is_debounced",
-        debounce_cache.is_debounced,
-    )
-
-    return debounce_cache
+    with (
+        mock.patch(
+            "sentry.relay.projectconfig_debounce_cache.invalidation.mark_task_done",
+            debounce_cache.mark_task_done,
+        ),
+        mock.patch(
+            "sentry.relay.projectconfig_debounce_cache.invalidation.debounce",
+            debounce_cache.debounce,
+        ),
+        mock.patch(
+            "sentry.relay.projectconfig_debounce_cache.invalidation.is_debounced",
+            debounce_cache.is_debounced,
+        ),
+    ):
+        yield debounce_cache
 
 
 @django_db_all
 def test_debounce(
-    monkeypatch,
     default_projectkey,
     default_organization,
     debounce_cache,
@@ -152,10 +140,9 @@ def test_debounce(
         assert not args
         tasks.append(kwargs)
 
-    monkeypatch.setattr("sentry.tasks.relay.build_project_config.apply_async", apply_async)
-
-    schedule_build_project_config(public_key=default_projectkey.public_key)
-    schedule_build_project_config(public_key=default_projectkey.public_key)
+    with mock.patch("sentry.tasks.relay.build_project_config.apply_async", apply_async):
+        schedule_build_project_config(public_key=default_projectkey.public_key)
+        schedule_build_project_config(public_key=default_projectkey.public_key)
 
     assert len(tasks) == 1
     assert tasks[0]["public_key"] == default_projectkey.public_key
@@ -163,7 +150,6 @@ def test_debounce(
 
 @django_db_all
 def test_generate(
-    monkeypatch,
     default_project,
     default_organization,
     default_projectkey,
@@ -248,16 +234,17 @@ def test_project_delete_option(
 def test_project_get_option_does_not_reload(
     default_project,
     emulate_transactions,
-    monkeypatch,
     django_cache,
 ):
     ProjectOption.objects._option_cache.clear()
-    with emulate_transactions(assert_num_callbacks=0):
-        with patch("sentry.utils.cache.cache.get", return_value=None):
-            with patch("sentry.tasks.relay.schedule_build_project_config") as build_project_config:
-                default_project.get_option(
-                    "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
-                )
+    with (
+        emulate_transactions(assert_num_callbacks=0),
+        mock.patch("sentry.utils.cache.cache.get", return_value=None),
+        mock.patch("sentry.tasks.relay.schedule_build_project_config") as build_project_config,
+    ):
+        default_project.get_option(
+            "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
+        )
 
     assert not build_project_config.called
 
@@ -375,7 +362,6 @@ def test_db_transaction(
 class TestInvalidationTask:
     def test_debounce(
         self,
-        monkeypatch,
         default_project,
         default_organization,
         invalidation_debounce_cache,
@@ -387,19 +373,22 @@ class TestInvalidationTask:
             assert not args
             tasks.append(kwargs)
 
-        monkeypatch.setattr("sentry.tasks.relay.invalidate_project_config.apply_async", apply_async)
+        with mock.patch("sentry.tasks.relay.invalidate_project_config.apply_async", apply_async):
+            invalidation_debounce_cache.mark_task_done(
+                public_key=None, project_id=default_project.id, organization_id=None
+            )
+            schedule_invalidate_project_config(project_id=default_project.id, trigger="test")
+            schedule_invalidate_project_config(project_id=default_project.id, trigger="test")
 
-        invalidation_debounce_cache.mark_task_done(
-            public_key=None, project_id=default_project.id, organization_id=None
-        )
-        schedule_invalidate_project_config(project_id=default_project.id, trigger="test")
-        schedule_invalidate_project_config(project_id=default_project.id, trigger="test")
-
-        invalidation_debounce_cache.mark_task_done(
-            public_key=None, project_id=None, organization_id=default_organization.id
-        )
-        schedule_invalidate_project_config(organization_id=default_organization.id, trigger="test")
-        schedule_invalidate_project_config(organization_id=default_organization.id, trigger="test")
+            invalidation_debounce_cache.mark_task_done(
+                public_key=None, project_id=None, organization_id=default_organization.id
+            )
+            schedule_invalidate_project_config(
+                organization_id=default_organization.id, trigger="test", trigger_details="more test"
+            )
+            schedule_invalidate_project_config(
+                organization_id=default_organization.id, trigger="test", trigger_details="more test"
+            )
 
         assert tasks == [
             {
@@ -407,18 +396,19 @@ class TestInvalidationTask:
                 "organization_id": None,
                 "public_key": None,
                 "trigger": "test",
+                "trigger_details": None,
             },
             {
                 "project_id": None,
                 "organization_id": default_organization.id,
                 "public_key": None,
                 "trigger": "test",
+                "trigger_details": "more test",
             },
         ]
 
     def test_invalidate(
         self,
-        monkeypatch,
         default_project,
         default_organization,
         default_projectkey,
@@ -441,7 +431,6 @@ class TestInvalidationTask:
 
     def test_invalidate_org(
         self,
-        monkeypatch,
         default_project,
         default_organization,
         default_projectkey,
@@ -481,8 +470,9 @@ class TestInvalidationTask:
 
         assert oncommit.call_count == 1
         assert schedule_inner.call_count == 1
-        assert schedule_inner.call_args == call(
+        assert schedule_inner.call_args == mock.call(
             trigger="test",
+            trigger_details=None,
             organization_id=None,
             project_id=default_project.id,
             public_key=None,
@@ -508,9 +498,9 @@ class TestInvalidationTask:
         assert schedule_inner.call_count == 2
 
 
+@override_options({"taskworker.enabled": True})
 @django_db_all(transaction=True)
 def test_invalidate_hierarchy(
-    monkeypatch,
     default_project,
     default_projectkey,
     redis_cache,
@@ -528,9 +518,10 @@ def test_invalidate_hierarchy(
         calls.append((args, kwargs))
         orig_apply_async(*args, **kwargs)
 
-    monkeypatch.setattr(invalidate_project_config, "apply_async", proxy)
-
-    with BurstTaskRunner() as run:
+    with (
+        mock.patch.object(invalidate_project_config, "apply_async", proxy),
+        BurstTaskRunner() as run,
+    ):
         schedule_invalidate_project_config(
             organization_id=default_project.organization.id, trigger="test"
         )

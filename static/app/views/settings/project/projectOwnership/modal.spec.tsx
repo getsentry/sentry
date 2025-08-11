@@ -52,7 +52,7 @@ describe('Project Ownership', () => {
       },
     });
     // Set one frame to in-app
-    stacktrace.data.frames![0].inApp = true;
+    stacktrace.data.frames![0]!.inApp = true;
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
       body: MembersFixture(),
@@ -63,7 +63,7 @@ describe('Project Ownership', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders stacktrace suggestions', () => {
+  it('renders stacktrace suggestions', async () => {
     render(
       <ProjectOwnershipModal
         issueId={issueId}
@@ -75,7 +75,9 @@ describe('Project Ownership', () => {
     );
 
     // Description
-    expect(screen.getByText(/Assign issues based on custom rules/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Assign issues based on custom rules/)
+    ).toBeInTheDocument();
 
     // Suggestions
     expect(
@@ -102,7 +104,53 @@ describe('Project Ownership', () => {
     );
 
     // Cancel
-    await userEvent.click(screen.getByText('Cancel'));
+    await userEvent.click(await screen.findByText('Cancel'));
     expect(onCancel).toHaveBeenCalled();
+  });
+
+  it('still renders if 404 error occurs', async () => {
+    MockApiClient.addMockResponse({
+      url: `/issues/${issueId}/tags/url/`,
+      statusCode: 404,
+    });
+
+    render(
+      <ProjectOwnershipModal
+        issueId={issueId}
+        organization={org}
+        project={project}
+        eventData={event}
+        onCancel={() => {}}
+      />
+    );
+
+    expect(
+      await screen.findByText(/Assign issues based on custom rules/)
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByText(/Here’s some suggestions based on this issue/)
+    ).toBeInTheDocument();
+  });
+
+  it('does not render if any other error status occurs', async () => {
+    MockApiClient.addMockResponse({
+      url: `/issues/${issueId}/tags/url/`,
+      statusCode: 401,
+    });
+
+    render(
+      <ProjectOwnershipModal
+        issueId={issueId}
+        organization={org}
+        project={project}
+        eventData={event}
+        onCancel={() => {}}
+      />
+    );
+
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
   });
 });

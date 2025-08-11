@@ -1,8 +1,8 @@
-import {
+import type {
   AutofixDefaultStep,
   AutofixStep,
-  AutofixStepType,
 } from 'sentry/components/events/autofix/types';
+import {AutofixStepType} from 'sentry/components/events/autofix/types';
 
 export function AutofixStepFixture(params: Partial<AutofixStep> = {}): AutofixStep {
   return {
@@ -12,6 +12,7 @@ export function AutofixStepFixture(params: Partial<AutofixStep> = {}): AutofixSt
     title: 'I am processing',
     status: 'PROCESSING',
     progress: [],
+    insights: [],
     ...params,
   } as AutofixDefaultStep;
 }

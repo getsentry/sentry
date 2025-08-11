@@ -9,7 +9,7 @@ export enum ProblemSpan {
   CAUSE = 'cause',
 }
 
-export const EXAMPLE_TRANSACTION_TITLE = '/api/0/transaction-test-endpoint/';
+const EXAMPLE_TRANSACTION_TITLE = '/api/0/transaction-test-endpoint/';
 
 type AddSpanOpts = {
   endTimestamp: number;
@@ -87,11 +87,7 @@ export class TransactionEventBuilder {
       perfProblem: undefined,
       metadata: {
         current_level: undefined,
-        current_tree_label: undefined,
-        directive: undefined,
-        display_title_with_tree_label: undefined,
         filename: undefined,
-        finest_tree_label: undefined,
         function: undefined,
         message: undefined,
         origin: undefined,
@@ -260,7 +256,7 @@ export class MockSpan {
 
     for (let i = 0; i < depth; i++) {
       currentSpan.addChild(currentSpan.getOpts());
-      currentSpan = currentSpan.children[0];
+      currentSpan = currentSpan.children[0]!;
     }
 
     return this;

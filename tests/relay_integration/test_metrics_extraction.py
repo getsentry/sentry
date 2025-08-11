@@ -6,7 +6,7 @@ import pytest
 
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
 from sentry.testutils.cases import TransactionTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.relay import RelayStoreHelper
@@ -19,7 +19,7 @@ pytestmark = [requires_kafka]
 class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
     @pytest.mark.skip("breaks in Relay for unknown reasons")
     @override_options({"relay.transaction-names-client-based": 1.0})
-    def test_all_transaction_metrics_emitted(self):
+    def test_all_transaction_metrics_emitted(self) -> None:
         with Feature(
             {
                 "organizations:transaction-metrics-extraction": True,
@@ -29,8 +29,8 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
                 "type": "transaction",
                 "transaction": "foo",
                 "transaction_info": {"source": "url"},  # 'transaction' tag not extracted
-                "timestamp": iso_format(before_now(seconds=1)),
-                "start_timestamp": iso_format(before_now(seconds=2)),
+                "timestamp": before_now(seconds=1),
+                "start_timestamp": before_now(seconds=2),
                 "contexts": {
                     "trace": {
                         "trace_id": 32 * "b",
@@ -62,8 +62,8 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
                         "op": op,
                         "trace_id": 32 * "b",
                         "span_id": 16 * "1",
-                        "start_timestamp": iso_format(before_now(seconds=2)),
-                        "timestamp": iso_format(before_now(seconds=1)),
+                        "start_timestamp": before_now(seconds=2),
+                        "timestamp": before_now(seconds=1),
                     }
                     for op in ("db", "http", "resource", "browser", "ui")
                 ],
@@ -108,7 +108,7 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
             non_common_strings = strings_emitted - SHARED_STRINGS.keys()
             assert non_common_strings == known_non_common_strings
 
-    def test_histogram_outliers(self):
+    def test_histogram_outliers(self) -> None:
         with Feature(
             {
                 "organizations:transaction-metrics-extraction": True,
@@ -118,8 +118,8 @@ class MetricsExtractionTest(RelayStoreHelper, TransactionTestCase):
                 "type": "transaction",
                 "transaction": "foo",
                 "transaction_info": {"source": "url"},  # 'transaction' tag not extracted
-                "timestamp": iso_format(before_now(seconds=1)),
-                "start_timestamp": iso_format(before_now(seconds=2)),
+                "timestamp": before_now(seconds=1).isoformat(),
+                "start_timestamp": before_now(seconds=2).isoformat(),
                 "platform": "javascript",
                 "contexts": {
                     "trace": {

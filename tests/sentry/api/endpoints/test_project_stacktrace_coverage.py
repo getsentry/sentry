@@ -1,5 +1,5 @@
 import logging
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -9,10 +9,10 @@ from sentry.integrations.example.integration import ExampleIntegration
 from tests.sentry.issues.endpoints.test_project_stacktrace_link import BaseProjectStacktraceLink
 
 
-class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
+class ProjectStacktraceLinkTestCodecov(BaseProjectStacktraceLink):
     endpoint = "sentry-api-0-project-stacktrace-coverage"
 
-    def setUp(self):
+    def setUp(self) -> None:
         BaseProjectStacktraceLink.setUp(self)
         options.set("codecov.client-secret", "supersecrettoken")
         self.code_mapping1 = self.create_code_mapping(
@@ -41,7 +41,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         return_value="https://github.com/repo/blob/a67ea84967ed1ec42844720d9daf77be36ff73b0/src/path/to/file.py",
     )
     @responses.activate
-    def test_codecov_not_enabled(self, mock_integration):
+    def test_codecov_not_enabled(self, mock_integration: MagicMock) -> None:
         self.organization.flags.codecov_access = False
         self.organization.save()
         response = self.get_error_response(
@@ -64,7 +64,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         return_value="https://github.com/repo/blob/a67ea84967ed1ec42844720d9daf77be36ff73b0/src/path/to/file.py",
     )
     @responses.activate
-    def test_codecov_line_coverage_success(self, mock_integration):
+    def test_codecov_line_coverage_success(self, mock_integration: MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
@@ -98,7 +98,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         return_value="https://github.com/repo/blob/master/src/path/to/file.py",
     )
     @responses.activate
-    def test_codecov_line_coverage_with_branch_success(self, mock_integration):
+    def test_codecov_line_coverage_with_branch_success(self, mock_integration: MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
@@ -130,7 +130,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         return_value="https://github.com/repo/blob/a67ea84967ed1ec42844720d9daf77be36ff73b0/src/path/to/file.py",
     )
     @responses.activate
-    def test_codecov_line_coverage_exception(self, mock_integration):
+    def test_codecov_line_coverage_exception(self, mock_integration: MagicMock) -> None:
         self._caplog.set_level(logging.ERROR, logger="sentry")
         responses.add(
             responses.GET,
@@ -155,6 +155,6 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
             (
                 "sentry.integrations.utils.codecov",
                 logging.ERROR,
-                "Codecov HTTP error: 500. Continuing execution.",
+                "Codecov HTTP error: 500",
             )
         ]

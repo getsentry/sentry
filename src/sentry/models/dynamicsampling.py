@@ -5,8 +5,9 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
-from django.db import connections, models, router, transaction
-from django.db.models import Q
+from django.db import models, router, transaction
+from django.db.models import F, IntegerField, Max, Q, Subquery, Value
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -237,7 +238,6 @@ class CustomDynamicSamplingRule(Model):
         Assigns the smallest rule id that is not taken in the
         current organization.
         """
-        table_name = self._meta.db_table
         if self.id is None:
             raise ValueError("Cannot assign rule id to unsaved object")
         if self.rule_id != 0:
@@ -245,15 +245,27 @@ class CustomDynamicSamplingRule(Model):
 
         now = timezone.now()
 
-        raw_sql = (
-            f"UPDATE {table_name} SET rule_id = ( "
-            f"   SELECT COALESCE ((SELECT MIN(rule_id) + 1  FROM {table_name} WHERE rule_id + 1 NOT IN ("
-            f"       SELECT rule_id FROM {table_name} WHERE organization_id = %s AND end_date > %s AND "
-            f"is_active)),1))  "
-            f"WHERE id = %s"
+        base_qs = CustomDynamicSamplingRule.objects.filter(
+            organization_id=self.organization.id, end_date__gt=now, is_active=True
         )
-        with connections["default"].cursor() as cursor:
-            cursor.execute(raw_sql, (self.organization.id, now, self.id))
+
+        # We want to find the smallest free rule id. We do this by self-joining with rule_id + 1 and excluding the existing rule_ids.
+        # We then order by rule_id_plus_one and take the first value.
+        # This also works for the first rule, as it is pre-initialized with 0, and will thus end up with 1.
+        new_rule_id_subquery = Subquery(
+            base_qs.annotate(rule_id_plus_one=F("rule_id") + 1)
+            .exclude(rule_id_plus_one__in=base_qs.values_list("rule_id", flat=True))
+            .order_by("rule_id_plus_one")
+            .values("rule_id_plus_one")[:1]
+        )
+
+        max_rule_id = base_qs.aggregate(Max("rule_id"))["rule_id__max"] or 0
+        fallback_value = Value(max_rule_id + 1, output_field=IntegerField())
+
+        safe_new_rule_id = Coalesce(new_rule_id_subquery, fallback_value)
+
+        # Update this instance with the new rule_id
+        CustomDynamicSamplingRule.objects.filter(id=self.id).update(rule_id=safe_new_rule_id)
         self.refresh_from_db()
         return self.rule_id
 

@@ -1,7 +1,7 @@
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 
-const getUserIsNotManaged = ({user}) => !user.isManaged;
+const getUserIsNotManaged = ({user}: any) => !user.isManaged;
 
 const formGroups: JsonFormObject[] = [
   {
@@ -14,7 +14,7 @@ const formGroups: JsonFormObject[] = [
         autoComplete: 'current-password',
         label: t('Current Password'),
         help: t('Your current password'),
-        placeholder: '',
+        placeholder: t('Your current password'),
         visible: getUserIsNotManaged,
         required: true,
       },
@@ -23,10 +23,10 @@ const formGroups: JsonFormObject[] = [
         type: 'secret',
         autoComplete: 'new-password',
         label: t('New Password'),
-        placeholder: '',
+        placeholder: t('Your new password'),
         required: true,
         visible: getUserIsNotManaged,
-        validate: ({id, form}) => (form[id] !== form.passwordVerify ? [[id, '']] : []),
+        validate: ({id, form}) => (form[id] === form.passwordVerify ? [] : [[id, '']]),
       },
       {
         name: 'passwordVerify',
@@ -34,7 +34,7 @@ const formGroups: JsonFormObject[] = [
         autoComplete: 'new-password',
         label: t('Verify New Password'),
         help: t('Verify your new password'),
-        placeholder: '',
+        placeholder: t('Verify your new password'),
         required: true,
         visible: getUserIsNotManaged,
         validate: ({id, form}) => {

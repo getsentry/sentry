@@ -1,17 +1,20 @@
-import {browserHistory} from 'react-router';
+import type {Theme} from '@emotion/react';
 import {mat3, vec2} from 'gl-matrix';
 import * as qs from 'query-string';
 
+import {browserHistory} from 'sentry/utils/browserHistory';
 import getDuration from 'sentry/utils/duration/getDuration';
 import clamp from 'sentry/utils/number/clamp';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {
+  isEAPError,
+  isMissingInstrumentationNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {TraceRowWidthMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceRowWidthMeasurer';
 import {TraceTextMeasurer} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTextMeasurer';
 import type {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
@@ -33,8 +36,8 @@ function getHorizontalDelta(x: number, y: number): number {
 }
 
 type ViewColumn = {
-  column_nodes: TraceTreeNode<TraceTree.NodeValue>[];
-  column_refs: (HTMLElement | undefined)[];
+  column_nodes: Array<TraceTreeNode<TraceTree.NodeValue>>;
+  column_refs: Array<HTMLElement | undefined>;
   translate: [number, number];
   width: number;
 };
@@ -55,13 +58,13 @@ export class VirtualizedViewManager {
     new TraceRowWidthMeasurer();
   indicator_label_measurer: TraceRowWidthMeasurer<TraceTree['indicators'][0]> =
     new TraceRowWidthMeasurer();
-  text_measurer: TraceTextMeasurer = new TraceTextMeasurer();
+  text_measurer: TraceTextMeasurer;
 
   resize_observer: ResizeObserver | null = null;
   list: VirtualizedList | null = null;
 
   scrolling_source: 'list' | 'fake scrollbar' | null = null;
-  start_virtualized_index: number = 0;
+  start_virtualized_index = 0;
 
   // HTML refs that we need to keep track of such
   // that rendering can be done programmatically
@@ -71,21 +74,25 @@ export class VirtualizedViewManager {
   horizontal_scrollbar_container: HTMLElement | null = null;
   indicator_container: HTMLElement | null = null;
 
-  intervals: (number | undefined)[] = [];
+  intervals: Array<number | undefined> = [];
   // We want to render an indicator every 100px, but because we dont track resizing
   // of the container, we need to precompute the number of intervals we need to render.
   // We'll oversize the count by 3x, assuming no user will ever resize the window to 3x the
   // original size.
   interval_bars = new Array(Math.ceil(window.innerWidth / 100) * 3).fill(0);
-  indicators: ({indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined)[] =
+  indicators: Array<
+    {indicator: TraceTree['indicators'][0]; ref: HTMLElement} | undefined
+  > = [];
+  timeline_indicators: Array<HTMLElement | undefined> = [];
+  vertical_indicators: Record<string, VerticalIndicator> = {};
+  vertical_indicator_labels: Record<string, HTMLElement | undefined> = {};
+  span_bars: Array<
+    {color: string; ref: HTMLElement; space: [number, number]} | undefined
+  > = [];
+  span_patterns: Array<Array<{ref: HTMLElement; space: [number, number]} | undefined>> =
     [];
-  timeline_indicators: (HTMLElement | undefined)[] = [];
-  vertical_indicators: {[key: string]: VerticalIndicator} = {};
-  span_bars: ({color: string; ref: HTMLElement; space: [number, number]} | undefined)[] =
-    [];
-  span_patterns: ({ref: HTMLElement; space: [number, number]} | undefined)[][] = [];
-  invisible_bars: ({ref: HTMLElement; space: [number, number]} | undefined)[] = [];
-  span_arrows: (
+  invisible_bars: Array<{ref: HTMLElement; space: [number, number]} | undefined> = [];
+  span_arrows: Array<
     | {
         position: 0 | 1;
         ref: HTMLElement;
@@ -93,13 +100,14 @@ export class VirtualizedViewManager {
         visible: boolean;
       }
     | undefined
-  )[] = [];
-  span_text: ({ref: HTMLElement; space: [number, number]; text: string} | undefined)[] =
-    [];
+  > = [];
+  span_text: Array<
+    {ref: HTMLElement; space: [number, number]; text: string} | undefined
+  > = [];
 
-  row_depth_padding: number = 22;
+  row_depth_padding = 22;
 
-  private scrollbar_width: number = 0;
+  private scrollbar_width = 0;
   // the transformation matrix that is used to render scaled elements to the DOM
   private span_to_px: mat3 = mat3.create();
   private readonly ROW_PADDING_PX = 16;
@@ -134,7 +142,8 @@ export class VirtualizedViewManager {
       span_list: Pick<ViewColumn, 'width'>;
     },
     trace_scheduler: TraceScheduler,
-    trace_view: TraceView
+    trace_view: TraceView,
+    theme: Theme
   ) {
     this.columns = {
       list: {...columns.list, column_nodes: [], column_refs: [], translate: [0, 0]},
@@ -145,6 +154,9 @@ export class VirtualizedViewManager {
         translate: [0, 0],
       },
     };
+
+    this.text_measurer = new TraceTextMeasurer(theme);
+
     this.scheduler = trace_scheduler;
     this.view = trace_view;
 
@@ -263,6 +275,7 @@ export class VirtualizedViewManager {
 
   registerResetZoomRef(ref: HTMLButtonElement | null) {
     this.reset_zoom_button = ref;
+    this.syncResetZoomButton();
   }
 
   registerGhostRowRef(column: string, ref: HTMLElement | null) {
@@ -330,7 +343,7 @@ export class VirtualizedViewManager {
   ) {
     if (ref) {
       this.span_text[index] = {ref, text, space};
-      this.drawSpanText(this.span_text[index]!, this.columns.list.column_nodes[index]);
+      this.drawSpanText(this.span_text[index], this.columns.list.column_nodes[index]);
     }
   }
 
@@ -347,7 +360,7 @@ export class VirtualizedViewManager {
       const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
       ref.style.setProperty(
         '--inverse-span-scale',
-        // @ts-expect-error this is a number
+        // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
         isNaN(inverseScale) ? 1 : inverseScale
       );
     }
@@ -364,7 +377,7 @@ export class VirtualizedViewManager {
 
       if (scrollableElement) {
         scrollableElement.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
-        this.row_measurer.enqueueMeasure(node, scrollableElement as HTMLElement);
+        this.row_measurer.enqueueMeasure(node, scrollableElement);
         ref.addEventListener('wheel', this.onSyncedScrollbarScroll, {passive: false});
       }
     }
@@ -374,7 +387,9 @@ export class VirtualizedViewManager {
     }
 
     if (ref && node) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       this.columns[column].column_refs[index] = ref;
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       this.columns[column].column_nodes[index] = node;
     }
   }
@@ -384,25 +399,31 @@ export class VirtualizedViewManager {
     index: number,
     indicator: TraceTree['indicators'][0]
   ) {
-    if (!ref) {
+    if (ref) {
+      this.indicators[index] = {ref, indicator};
+    } else {
       const element = this.indicators[index]?.ref;
       if (element) {
         element.removeEventListener('wheel', this.onWheel);
       }
-    } else {
-      this.indicators[index] = {ref, indicator};
     }
 
     if (ref) {
-      const label = ref.children[0] as HTMLElement | undefined;
-      if (label) {
-        this.indicator_label_measurer.enqueueMeasure(indicator, label);
-      }
-
       ref.addEventListener('wheel', this.onWheel, {passive: false});
       ref.style.transform = `translateX(${this.transformXFromTimestamp(
         indicator.start
       )}px)`;
+    }
+  }
+
+  registerIndicatorLabelRef(
+    ref: HTMLElement | null,
+    index: number,
+    indicator: TraceTree['indicators'][0]
+  ) {
+    if (ref) {
+      this.vertical_indicator_labels[index] = ref;
+      this.indicator_label_measurer.enqueueMeasure(indicator, ref);
     }
   }
 
@@ -453,7 +474,7 @@ export class VirtualizedViewManager {
       const scale = 1 - event.deltaY * 0.01 * -1;
       const x = offsetX > 0 ? event.clientX - offsetX : event.offsetX;
       const configSpaceCursor = this.view.getConfigSpaceCursor({
-        x: x,
+        x,
         y: 0,
       });
 
@@ -538,22 +559,33 @@ export class VirtualizedViewManager {
   }
 
   onZoomIntoSpace(space: [number, number]) {
-    let distance_x = space[0] - this.view.to_origin - this.view.trace_view.x;
     let final_x = space[0] - this.view.to_origin;
     let final_width = space[1];
-    const distance_width = this.view.trace_view.width - space[1];
 
     if (space[1] < this.view.MAX_ZOOM_PRECISION_MS) {
-      distance_x -= this.view.MAX_ZOOM_PRECISION_MS / 2 - space[1] / 2;
       final_x -= this.view.MAX_ZOOM_PRECISION_MS / 2 - space[1] / 2;
       final_width = this.view.MAX_ZOOM_PRECISION_MS;
     }
 
+    // If the view is not small, then zoom into the span and keep
+    // an offset on each side. This ensures we dont need
+    // to move the duration label insdie the bar and can preserve
+    // some context around the star/end time of a span
+    if (this.view.trace_physical_space.width > 300) {
+      const mat = this.view.getSpanToPxForSpace([final_x, final_width]);
+      const offsetInConfigSpace = 74 * mat[0];
+
+      final_x -= offsetInConfigSpace;
+      final_width += offsetInConfigSpace * 2;
+    }
+
     const start_x = this.view.trace_view.x;
     const start_width = this.view.trace_view.width;
+    const distance_x = final_x - this.view.trace_view.x;
+    const distance_width = this.view.trace_view.width - final_width;
 
     const max_distance = Math.max(Math.abs(distance_x), Math.abs(distance_width));
-    const p = max_distance !== 0 ? Math.log10(max_distance) : 1;
+    const p = max_distance === 0 ? 1 : Math.log10(max_distance);
     // We need to clamp the duration to prevent the animation from being too slow,
     // sometimes the distances are very large as traces can be hours in duration
     const duration = clamp(200 + 70 * Math.abs(p), 200, 600);
@@ -619,8 +651,7 @@ export class VirtualizedViewManager {
       }
     }
 
-    for (let i = 0; i < this.indicators.length; i++) {
-      const indicator = this.indicators[i];
+    for (const indicator of this.indicators) {
       if (indicator?.ref) {
         indicator.ref.style.pointerEvents = 'none';
       }
@@ -641,8 +672,7 @@ export class VirtualizedViewManager {
         span_text.ref.style.pointerEvents = 'auto';
       }
     }
-    for (let i = 0; i < this.indicators.length; i++) {
-      const indicator = this.indicators[i];
+    for (const indicator of this.indicators) {
       if (indicator?.ref) {
         indicator.ref.style.pointerEvents = 'auto';
       }
@@ -652,15 +682,15 @@ export class VirtualizedViewManager {
   maybeInitializeTraceViewFromQS(fov: string): void {
     const [x, width] = fov.split(',').map(parseFloat);
 
-    if (isNaN(x) || isNaN(width)) {
+    if (isNaN(x!) || isNaN(width!)) {
       return;
     }
 
-    if (width <= 0 || width > this.view.trace_space.width) {
+    if (width! <= 0 || width! > this.view.trace_space.width) {
       return;
     }
 
-    if (x < 0 || x > this.view.trace_space.width) {
+    if (x! < 0 || x! > this.view.trace_space.width) {
       return;
     }
 
@@ -683,7 +713,7 @@ export class VirtualizedViewManager {
       this.timers.onFovChange = null;
     }, 500);
   }
-  onNewMaxRowWidth(max) {
+  onNewMaxRowWidth(max: any) {
     this.syncHorizontalScrollbar(max);
   }
 
@@ -699,7 +729,9 @@ export class VirtualizedViewManager {
   }
 
   syncResetZoomButton() {
-    if (!this.reset_zoom_button) return;
+    if (!this.reset_zoom_button) {
+      return;
+    }
     this.reset_zoom_button.disabled =
       this.view.trace_view.width === this.view.trace_space.width;
   }
@@ -747,8 +779,8 @@ export class VirtualizedViewManager {
     this.columns.list.translate[0] = this.clampRowTransform(-scrollLeft);
 
     const rows = Array.from(
-      document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-    ) as HTMLElement[];
+      document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+    );
 
     for (const row of rows) {
       row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
@@ -806,8 +838,8 @@ export class VirtualizedViewManager {
     this.columns.list.translate[0] = newTransform;
 
     const rows = Array.from(
-      document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-    ) as HTMLElement[];
+      document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+    );
 
     for (const row of rows) {
       row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
@@ -878,6 +910,16 @@ export class VirtualizedViewManager {
       (space[0] - this.view.to_origin) / this.span_to_px[0] -
       this.view.trace_view.x / this.span_to_px[0];
 
+    // if span ends less than 1px before the end of the view, we move it back by 1px and prevent it from being clipped
+    if (
+      space[0] - this.view.to_origin > this.view.trace_space.width / 2 &&
+      (this.view.to_origin + this.view.trace_space.width - space[0] - space[1]) /
+        this.span_to_px[0] <=
+        1
+    ) {
+      // 1px for the span and 1px for the border
+      this.span_matrix[4] = this.span_matrix[4] - 2;
+    }
     return this.span_matrix;
   }
 
@@ -910,7 +952,7 @@ export class VirtualizedViewManager {
     let innerMostNode: TraceTreeNode<any> | undefined;
 
     for (let i = 5; i < this.columns.span_list.column_refs.length - 5; i++) {
-      const width = this.row_measurer.cache.get(this.columns.list.column_nodes[i]);
+      const width = this.row_measurer.cache.get(this.columns.list.column_nodes[i]!);
       if (width === undefined) {
         // this is unlikely to happen, but we should trigger a sync measure event if it does
         continue;
@@ -919,7 +961,9 @@ export class VirtualizedViewManager {
       min = Math.min(min, width);
       max = Math.max(max, width);
       innerMostNode =
-        !innerMostNode || this.columns.list.column_nodes[i].depth < innerMostNode.depth
+        !innerMostNode ||
+        TraceTree.Depth(this.columns.list.column_nodes[i]!) <
+          TraceTree.Depth(innerMostNode)
           ? this.columns.list.column_nodes[i]
           : innerMostNode;
     }
@@ -928,7 +972,7 @@ export class VirtualizedViewManager {
       if (translation + max < 0) {
         this.scrollRowIntoViewHorizontally(innerMostNode);
       } else if (
-        translation + innerMostNode.depth * this.row_depth_padding >
+        translation + TraceTree.Depth(innerMostNode) * this.row_depth_padding >
         this.columns.list.width * this.view.trace_container_physical_space.width
       ) {
         this.scrollRowIntoViewHorizontally(innerMostNode);
@@ -946,19 +990,19 @@ export class VirtualizedViewManager {
     const translation = this.columns.list.translate[0];
 
     return (
-      translation + node.depth * this.row_depth_padding < 0 ||
-      translation + node.depth * this.row_depth_padding >
+      translation + TraceTree.Depth(node) * this.row_depth_padding < 0 ||
+      translation + TraceTree.Depth(node) * this.row_depth_padding >
         (this.columns.list.width * this.view.trace_container_physical_space.width) / 2
     );
   }
 
   scrollRowIntoViewHorizontally(
     node: TraceTreeNode<any>,
-    duration: number = 600,
-    offset_px: number = 0,
+    duration = 600,
+    offset_px = 0,
     position: 'exact' | 'measured' = 'measured'
   ) {
-    const depth_px = -node.depth * this.row_depth_padding + offset_px;
+    const depth_px = -TraceTree.Depth(node) * this.row_depth_padding + offset_px;
     const newTransform =
       position === 'exact' ? depth_px : this.clampRowTransform(depth_px);
 
@@ -970,8 +1014,8 @@ export class VirtualizedViewManager {
       this.columns.list.translate[0] = x;
 
       const rows = Array.from(
-        document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-      ) as HTMLElement[];
+        document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+      );
 
       for (const row of rows) {
         row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
@@ -996,8 +1040,8 @@ export class VirtualizedViewManager {
       const pos = startPosition + distance * eased;
 
       const rows = Array.from(
-        document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
-      ) as HTMLElement[];
+        document.querySelectorAll<HTMLElement>('.TraceRow .TraceLeftColumn > div')
+      );
 
       for (const row of rows) {
         row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
@@ -1089,16 +1133,16 @@ export class VirtualizedViewManager {
     span_space: [number, number],
     text: string
   ): [number, number] {
-    const TEXT_PADDING = 2;
+    const TEXT_PADDING = 3;
 
     const icon_width_config_space = (18 * this.span_to_px[0]) / 2;
     const text_anchor_left =
-      span_space[0] > this.view.to_origin + this.view.trace_space.width * 0.8;
+      span_space[0] > this.view.to_origin + this.view.trace_space.width * 0.5;
     const text_width = this.text_measurer.measure(text);
 
     const timestamps = getIconTimestamps(node, span_space, icon_width_config_space);
-    const text_left = Math.min(span_space[0], timestamps[0]);
-    const text_right = Math.max(span_space[0] + span_space[1], timestamps[1]);
+    const text_left = Math.min(span_space[0], timestamps[0]!);
+    const text_right = Math.max(span_space[0] + span_space[1], timestamps[1]!);
 
     // precompute all anchor points aot, so we make the control flow more readable.
     /// |---| text
@@ -1255,8 +1299,9 @@ export class VirtualizedViewManager {
     }
 
     this.drawInvisibleBars();
+    this.drawVerticalIndicators();
 
-    let start_indicator = 0;
+    let start_indicator = -1;
     let end_indicator = this.indicators.length;
 
     while (start_indicator < this.indicators.length - 1) {
@@ -1293,94 +1338,121 @@ export class VirtualizedViewManager {
     start_indicator = Math.max(0, start_indicator - 1);
     end_indicator = Math.min(this.indicators.length - 1, end_indicator);
 
+    let indicator_label_right = 0;
+
     for (let i = 0; i < this.indicators.length; i++) {
       const entry = this.indicators[i];
-      if (!entry) {
+      const label = this.vertical_indicator_labels[i];
+      if (!entry || !label) {
         continue;
       }
 
       if (i < start_indicator || i > end_indicator) {
         entry.ref.style.opacity = '0';
+        label.style.opacity = `0`;
         continue;
       }
 
+      const label_width = this.indicator_label_measurer.cache.get(entry.indicator) ?? 34;
       const transform = this.transformXFromTimestamp(entry.indicator.start);
-      const label = entry.ref.children[0] as HTMLElement | undefined;
 
-      const indicator_max = this.view.trace_physical_space.width + 1;
-      const indicator_min = -1;
+      const indicator_max = this.view.trace_physical_space.width;
+      const indicator_min = 0;
 
-      const label_width = this.indicator_label_measurer.cache.get(entry.indicator);
-      const clamped_transform = clamp(transform, -1, indicator_max);
+      const PADDING = 2;
+      const clamped_transform = clamp(transform, indicator_min, indicator_max);
+      let clamped_label_transform = clamp(
+        transform - label_width / 2,
+        indicator_min + PADDING,
+        indicator_max - label_width - PADDING
+      );
 
-      if (label_width === undefined) {
-        entry.ref.style.transform = `translate(${clamp(transform, indicator_min, indicator_max)}px, 0)`;
+      if (clamped_transform <= 2) {
+        label.style.transform = `translateX(${clamped_label_transform}px)`;
+        entry.ref.style.opacity = '0';
+        indicator_label_right = clamped_label_transform + label_width;
+        continue;
+      } else if (clamped_transform + label_width / 2 >= indicator_max) {
+        label.style.transform = `translateX(${clamped_label_transform}px)`;
+        indicator_label_right = clamped_label_transform;
+        entry.ref.style.opacity = '0';
         continue;
       }
 
-      if (label) {
-        const PADDING = 2;
-        const label_window_left = PADDING;
-        const label_window_right = -label_width - PADDING;
+      if (clamped_label_transform < indicator_label_right) {
+        const previousIndicator = this.indicators[i - 1]!;
 
-        if (transform < -1) {
-          label.style.transform = `translateX(${label_window_left}px)`;
-        } else if (transform >= indicator_max) {
-          label.style.transform = `translateX(${label_window_right}px)`;
-        } else {
-          const space_left = transform - PADDING - label_width / 2;
-          const space_right = transform + label_width / 2;
+        const overlapsWithLastVisibleOnLeft =
+          i - 1 === start_indicator &&
+          previousIndicator.indicator.start <
+            this.view.to_origin + this.view.trace_view.left;
 
-          if (space_left < 0) {
-            const left = -label_width / 2 + Math.abs(space_left);
-            label.style.transform = `translateX(${left - 1}px)`;
-          } else if (space_right > this.view.trace_physical_space.width) {
-            const right =
-              -label_width / 2 - (space_right - this.view.trace_physical_space.width) - 1;
-            label.style.transform = `translateX(${right}px)`;
-          } else {
-            label.style.transform = `translateX(${-label_width / 2}px)`;
+        if (overlapsWithLastVisibleOnLeft) {
+          const previousLabel = this.vertical_indicator_labels[i - 1];
+
+          if (previousLabel && previousIndicator) {
+            previousLabel.style.opacity = '1';
+            const overlap = indicator_label_right - clamped_label_transform;
+            previousLabel.style.transform = `translateX(${2 - overlap}px)`;
           }
+        } else {
+          const OVERLAP_FACTOR = 0.25;
+          clamped_label_transform +=
+            (indicator_label_right - clamped_label_transform) * OVERLAP_FACTOR;
         }
       }
+
+      indicator_label_right = clamped_label_transform + label_width;
+
+      label.style.opacity = `1`;
+      label.style.transform = `translateX(${clamp(clamped_label_transform, -1, indicator_max)}px)`;
 
       entry.ref.style.opacity = '1';
       entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
     }
 
-    this.drawVerticalIndicators();
     this.drawTimelineIntervals();
   }
 
   // DRAW METHODS
 
   hideSpanBar(span_bar: this['span_bars'][0], span_text: this['span_text'][0]) {
-    span_bar && (span_bar.ref.style.transform = 'translate(-10000px, -10000px)');
-    span_text && (span_text.ref.style.transform = 'translate(-10000px, -10000px)');
+    if (span_bar) {
+      span_bar.ref.style.transform = 'translate(-10000px, -10000px)';
+    }
+    if (span_text) {
+      span_text.ref.style.transform = 'translate(-10000px, -10000px)';
+    }
   }
 
   hideSpanArrow(span_arrow: this['span_arrows'][0]) {
-    if (!span_arrow) return;
+    if (!span_arrow) {
+      return;
+    }
     span_arrow.ref.className = 'TraceArrow';
     span_arrow.visible = false;
     span_arrow.ref.style.opacity = '0';
   }
 
   drawSpanBar(span_bar: this['span_bars'][0]) {
-    if (!span_bar) return;
+    if (!span_bar) {
+      return;
+    }
 
     const span_transform = this.computeSpanCSSMatrixTransform(span_bar?.space);
     span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
     const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
     span_bar.ref.style.setProperty(
       '--inverse-span-scale',
-      // @ts-expect-error we set number value type on purpose
+      // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
       isNaN(inverseScale) ? 1 : inverseScale
     );
   }
 
   drawSpanText(span_text: this['span_text'][0], node: TraceTreeNode<any> | undefined) {
-    if (!span_text) return;
+    if (!span_text) {
+      return;
+    }
 
     const [inside, text_transform] = this.computeSpanTextPlacement(
       node!,
@@ -1392,12 +1464,17 @@ export class VirtualizedViewManager {
       return;
     }
 
-    span_text.ref.style.color = inside ? 'white' : '';
+    // We don't color the text white for missing instrumentation nodes
+    // as the text will be invisible on the light background.
+    span_text.ref.style.color =
+      inside && node && !isMissingInstrumentationNode(node) ? 'white' : '';
     span_text.ref.style.transform = `translateX(${text_transform}px)`;
   }
 
   drawSpanArrow(span_arrow: this['span_arrows'][0], visible: boolean, position: 0 | 1) {
-    if (!span_arrow) return;
+    if (!span_arrow) {
+      return;
+    }
 
     if (visible !== span_arrow.visible) {
       span_arrow.visible = visible;
@@ -1413,7 +1490,7 @@ export class VirtualizedViewManager {
 
   drawVerticalIndicators() {
     for (const key in this.vertical_indicators) {
-      this.drawVerticalIndicator(this.vertical_indicators[key]);
+      this.drawVerticalIndicator(this.vertical_indicators[key]!);
     }
   }
 
@@ -1506,21 +1583,23 @@ export class VirtualizedViewManager {
     container: HTMLElement | null,
     options: {list_width: number; span_list_width: number}
   ) {
-    if (!container) return;
+    if (!container) {
+      return;
+    }
 
     if (this.last_list_column_width !== options.list_width) {
       container.style.setProperty(
         '--list-column-width',
-        // @ts-expect-error we set number value type on purpose
-        Math.round(options.list_width * 1000) / 1000
+        // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
+        options.list_width
       );
       this.last_list_column_width = options.list_width;
     }
     if (this.last_span_column_width !== options.span_list_width) {
       container.style.setProperty(
         '--span-column-width',
-        // @ts-expect-error we set number value type on purpose
-        Math.round(options.span_list_width * 1000) / 1000
+        // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
+        options.span_list_width
       );
       this.last_span_column_width = options.span_list_width;
     }
@@ -1571,14 +1650,14 @@ export class VirtualizedViewManager {
         const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
         invisible_bar.ref.style.setProperty(
           '--inverse-span-scale',
-          // @ts-expect-error we set number value type on purpose
+          // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
           isNaN(inverseScale) ? 1 : inverseScale
         );
       }
 
       if (text) {
         const [inside, text_transform] = this.computeSpanTextPlacement(
-          this.columns.list.column_nodes[i],
+          this.columns.list.column_nodes[i]!,
           text.space,
           text.text
         );
@@ -1617,22 +1696,31 @@ function getIconTimestamps(
   let min_icon_timestamp = span_space[0];
   let max_icon_timestamp = span_space[0] + span_space[1];
 
-  if (!node.errors.size && !node.performance_issues.size) {
+  if (!node.errors.size && !node.occurrences.size) {
     return [min_icon_timestamp, max_icon_timestamp];
   }
 
-  for (const issue of node.performance_issues) {
-    // Perf issues render icons at the start timestamp
-    if (typeof issue.start === 'number') {
-      min_icon_timestamp = Math.min(min_icon_timestamp, issue.start * 1e3 - icon_width);
-      max_icon_timestamp = Math.max(max_icon_timestamp, issue.start * 1e3 + icon_width);
+  for (const occurence of node.occurrences) {
+    // Occurences render icons at the start timestamp
+    const start_timestamp =
+      'start_timestamp' in occurence ? occurence.start_timestamp : occurence.start;
+    if (typeof start_timestamp === 'number') {
+      min_icon_timestamp = Math.min(
+        min_icon_timestamp,
+        start_timestamp * 1e3 - icon_width
+      );
+      max_icon_timestamp = Math.max(
+        max_icon_timestamp,
+        start_timestamp * 1e3 + icon_width
+      );
     }
   }
 
   for (const err of node.errors) {
-    if (typeof err.timestamp === 'number') {
-      min_icon_timestamp = Math.min(min_icon_timestamp, err.timestamp * 1e3 - icon_width);
-      max_icon_timestamp = Math.max(max_icon_timestamp, err.timestamp * 1e3 + icon_width);
+    const timestamp = isEAPError(err) ? err.start_timestamp : err.timestamp;
+    if (typeof timestamp === 'number') {
+      min_icon_timestamp = Math.min(min_icon_timestamp, timestamp * 1e3 - icon_width);
+      max_icon_timestamp = Math.max(max_icon_timestamp, timestamp * 1e3 + icon_width);
     }
   }
 
@@ -1656,7 +1744,7 @@ function getIconTimestamps(
 function computeTimelineIntervals(
   view: TraceView,
   targetInterval: number,
-  results: (number | undefined)[]
+  results: Array<number | undefined>
 ): void {
   const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
   let interval = minInterval;
@@ -1685,8 +1773,8 @@ function computeTimelineIntervals(
 export class VirtualizedList {
   container: HTMLElement | null = null;
 
-  scrollHeight: number = 0;
-  scrollTop: number = 0;
+  scrollHeight = 0;
+  scrollTop = 0;
 
   scrollToRow(index: number, anchor?: ViewManagerScrollAnchor) {
     if (!this.container) {
@@ -1715,11 +1803,9 @@ export class VirtualizedList {
       }
     } else {
       // If no anchor is provided, we default to 'auto'
-      if (position < top) {
-        position = position;
-      } else if (position > top + height) {
+      if (position > top + height) {
         position = index * 24 - height + 24;
-      } else {
+      } else if (position >= top) {
         return;
       }
     }
@@ -1732,8 +1818,12 @@ export class VirtualizedList {
 // Jest does not implement scroll updates, however since we have the
 // middleware to handle scroll updates, we can dispatch a scroll event ourselves
 function dispatchJestScrollUpdate(container: HTMLElement) {
-  if (!container) return;
-  if (process.env.NODE_ENV !== 'test') return;
+  if (!container) {
+    return;
+  }
+  if (process.env.NODE_ENV !== 'test') {
+    return;
+  }
   // since we do not tightly control how browsers handle event dispatching, dispatch it async
   window.requestAnimationFrame(() => {
     container.dispatchEvent(new CustomEvent('scroll'));

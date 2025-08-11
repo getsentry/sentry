@@ -2,13 +2,17 @@ import isEqual from 'lodash/isEqual';
 import type {ObservableMap} from 'mobx';
 import {action, computed, makeObservable, observable} from 'mobx';
 
-import {addErrorMessage, saveOnBlurUndoMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {APIRequestMethod} from 'sentry/api';
 import {Client} from 'sentry/api';
+import {addUndoableFormChangeMessage} from 'sentry/components/forms/formIndicators';
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
-import type {Choice} from 'sentry/types';
+import type {Choice} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
+
+export const fieldIsRequiredMessage = t('Field is required');
 
 type Snapshot = Map<string, FieldValue>;
 type SaveSnapshot = (() => number) | null;
@@ -19,7 +23,9 @@ export type FieldValue =
   | Set<string>
   | number
   | boolean
+  | Record<PropertyKey, unknown>
   | Choice
+  | null
   | undefined; // is undefined valid here?
 
 export type FormOptions = {
@@ -112,7 +118,7 @@ class FormModel {
   /**
    * Holds a list of `fields` states
    */
-  snapshots: Array<Snapshot> = [];
+  snapshots: Snapshot[] = [];
 
   /**
    * POJO of field name -> value
@@ -135,11 +141,13 @@ class FormModel {
       fieldState: observable,
       formState: observable,
 
+      isFormIncomplete: computed,
       isError: computed,
       isSaving: computed,
       formData: computed,
       formChanged: computed,
 
+      validateFormCompletion: action,
       resetForm: action,
       setFieldDescriptor: action,
       removeField: action,
@@ -201,6 +209,13 @@ class FormModel {
   }
 
   /**
+   * Are all required fields filled out
+   */
+  get isFormIncomplete() {
+    return this.formState === FormState.INCOMPLETE;
+  }
+
+  /**
    * Is form saving
    */
   get isSaving() {
@@ -230,17 +245,17 @@ class FormModel {
    * Set form options
    */
   setFormOptions(options: FormOptions) {
-    this.options = {...this.options, ...options} || {};
+    this.options = {...this.options, ...options};
   }
 
   /**
    * Set field properties
    */
-  setFieldDescriptor(id: string, props) {
+  setFieldDescriptor(id: string, props: any) {
     // TODO(TS): add type to props
     this.fieldDescriptor.set(id, props);
 
-    // Set default value iff initialData for field is undefined
+    // Set default value if initialData for field is undefined
     // This must take place before checking for `props.setValue` so that it can
     // be applied to `defaultValue`
     if (
@@ -259,17 +274,35 @@ class FormModel {
       this.initialData[id] = props.setValue(this.initialData[id], props);
       this.fields.set(id, this.initialData[id]);
     }
+
+    this.validateFormCompletion();
   }
 
   /**
    * Remove a field from the descriptor map and errors.
    */
   removeField(id: string) {
+    const descriptor = this.fieldDescriptor.get(id);
+    if (descriptor?.preserveOnUnmount) {
+      this.softRemoveField(id);
+      return;
+    }
+
     this.fields.delete(id);
     this.fieldState.delete(id);
     this.fieldDescriptor.delete(id);
     this.errors.delete(id);
     delete this.initialData[id];
+  }
+
+  /**
+   * The field is no longer being rendered, but we still want to keep the value
+   * in the form model. Useful for fields that might disappear and reappear.
+   */
+  softRemoveField(id: string) {
+    this.fieldState.delete(id);
+    this.fieldDescriptor.delete(id);
+    this.errors.delete(id);
   }
 
   /**
@@ -348,14 +381,32 @@ class FormModel {
     return this.errors.has(id) && this.errors.get(id);
   }
 
+  getErrors() {
+    return this.errors;
+  }
+
   /**
    * Returns true if not required or is required and is not empty
    */
   isValidRequiredField(id: string) {
     // Check field descriptor to see if field is required
     const isRequired = this.getDescriptor(id, 'required');
+
+    if (!isRequired) {
+      return true;
+    }
+
     const value = this.getValue(id);
-    return !isRequired || (value !== '' && defined(value));
+
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    if (typeof value === 'boolean') {
+      return value === true;
+    }
+
+    return value !== '' && defined(value);
   }
 
   isValidField(id: string) {
@@ -367,7 +418,7 @@ class FormModel {
     apiMethod,
     data,
   }: {
-    data: object;
+    data: Record<PropertyKey, unknown>;
     apiEndpoint?: string;
     apiMethod?: APIRequestMethod;
   }) {
@@ -416,8 +467,6 @@ class FormModel {
       errors = validate({model: this, id, form: this.getData()}) || [];
     }
 
-    const fieldIsRequiredMessage = t('Field is required');
-
     if (!this.isValidRequiredField(id)) {
       errors.push([id, fieldIsRequiredMessage]);
     }
@@ -454,7 +503,7 @@ class FormModel {
     }
 
     this.snapshots.shift();
-    this.fields.replace(this.snapshots[0]);
+    this.fields.replace(this.snapshots[0]!);
 
     return true;
   }
@@ -521,7 +570,7 @@ class FormModel {
 
         // Only use `allowUndo` option if explicitly defined
         if (typeof this.options.allowUndo === 'undefined' || this.options.allowUndo) {
-          saveOnBlurUndoMessage(change, this, id);
+          addUndoableFormChangeMessage(change, this, id);
         }
 
         if (this.options.onSubmitSuccess) {
@@ -574,7 +623,11 @@ class FormModel {
     const getData = this.getDescriptor(id, 'getData');
 
     // Check if field needs to handle transforming request object
-    const getDataFn = typeof getData === 'function' ? getData : a => a;
+    const getDataFn = typeof getData === 'function' ? getData : (a: any) => a;
+
+    const defaultErrorMsg = isDemoModeActive()
+      ? t('Editing data is not allowed in demo mode.')
+      : t('Failed to save');
 
     const request = this.doApiRequest({
       data: getDataFn(
@@ -633,11 +686,11 @@ class FormModel {
           } else if (firstError) {
             this.setError(id, firstError);
           } else {
-            this.setError(id, 'Failed to save');
+            this.setError(id, defaultErrorMsg);
           }
         } else {
           // Default error behavior
-          this.setError(id, 'Failed to save');
+          this.setError(id, defaultErrorMsg);
         }
 
         // eslint-disable-next-line no-console
@@ -696,7 +749,7 @@ class FormModel {
 
   setFieldState(id: string, key: string, value: FieldValue) {
     const state = {
-      ...(this.fieldState.get(id) || {}),
+      ...this.fieldState.get(id),
       [key]: value,
     };
     this.fieldState.set(id, state);
@@ -722,7 +775,7 @@ class FormModel {
       this.formState = FormState.ERROR;
       this.errors.set(id, error);
     } else {
-      this.formState = FormState.READY;
+      this.validateFormCompletion();
       this.errors.delete(id);
     }
 
@@ -739,10 +792,24 @@ class FormModel {
     return !this.isError;
   }
 
+  /**
+   * Validate if all required fields are filled out
+   */
+  validateFormCompletion() {
+    const formComplete = Array.from(this.fieldDescriptor.keys()).every(field =>
+      this.isValidRequiredField(field)
+    );
+
+    this.formState = formComplete ? FormState.READY : FormState.INCOMPLETE;
+  }
+
   handleErrorResponse({responseJSON: resp}: {responseJSON?: any} = {}) {
     if (!resp) {
+      addErrorMessage(t('Unknown error while saving'));
       return;
     }
+
+    let errorDisplayed = false;
 
     // Show resp msg from API endpoint if possible
     Object.keys(resp).forEach(id => {
@@ -754,11 +821,17 @@ class FormModel {
         nonFieldErrors.length
       ) {
         addErrorMessage(nonFieldErrors[0], {duration: 10000});
+        errorDisplayed = true;
       } else if (Array.isArray(resp[id]) && resp[id].length) {
         // Just take first resp for now
         this.setError(id, resp[id][0]);
+        errorDisplayed = true;
       }
     });
+
+    if (!errorDisplayed) {
+      addErrorMessage(t('Unknown error while saving'));
+    }
   }
 
   submitSuccess(data: Record<string, FieldValue>) {
@@ -790,7 +863,7 @@ export class MockModel {
 
   initialData: Record<string, FieldValue>;
 
-  constructor(props) {
+  constructor(props: any) {
     this.props = props;
 
     this.initialData = {

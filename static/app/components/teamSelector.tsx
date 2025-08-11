@@ -1,25 +1,26 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
-import {createFilter} from 'react-select';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import type {
   ControlProps,
   GeneralSelectValue,
   StylesConfig,
-} from 'sentry/components/forms/controls/selectControl';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+} from 'sentry/components/core/select';
+import {Select} from 'sentry/components/core/select';
+import {Tooltip} from 'sentry/components/core/tooltip';
+import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import IdBadge from 'sentry/components/idBadge';
-import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project, Team} from 'sentry/types';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
 import {useTeams} from 'sentry/utils/useTeams';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -55,7 +56,7 @@ const optionFilter = createFilter({
   stringify: option => `${option.label} ${option.value}`,
 });
 
-const filterOption = (canditate, input) =>
+const filterOption = (canditate: any, input: any) =>
   // Never filter out the create team option
   canditate.data.value === CREATE_TEAM_VALUE || optionFilter(canditate, input);
 
@@ -111,6 +112,10 @@ type Props = {
    * Controls whether the dropdown allows to create a new team
    */
   allowCreate?: boolean;
+  /**
+   * Flag that indicates whether to filter teams to only show teams that the user is a member of
+   */
+  filterByUserMembership?: boolean;
   includeUnassigned?: boolean;
   /**
    * Can be used to restrict teams to a certain project and allow for new teams to be add to that project
@@ -136,7 +141,7 @@ type TeamActor = {
   type: 'team';
 };
 
-type TeamOption = GeneralSelectValue & {
+export type TeamOption = GeneralSelectValue & {
   actor: TeamActor | null;
   searchKey: string;
 };
@@ -145,6 +150,7 @@ function TeamSelector(props: Props) {
   const {
     allowCreate,
     includeUnassigned,
+    filterByUserMembership = false,
     styles: stylesProp,
     onChange,
     useTeamDefaultIfOnlyOne = false,
@@ -153,7 +159,12 @@ function TeamSelector(props: Props) {
   const {teamFilter, organization, project, multiple, value, useId} = props;
 
   const api = useApi();
-  const {teams, fetching, onSearch} = useTeams();
+  const {teams: initialTeams, fetching, onSearch} = useTeams();
+
+  let teams = initialTeams;
+  if (filterByUserMembership) {
+    teams = initialTeams.filter(team => team.isMember);
+  }
 
   // TODO(ts) This type could be improved when react-select types are better.
   const selectRef = useRef<any>(null);
@@ -303,6 +314,7 @@ function TeamSelector(props: Props) {
 
   function getOptions() {
     const filteredTeams = teamFilter ? teams.filter(teamFilter) : teams;
+
     const createOption = {
       value: CREATE_TEAM_VALUE,
       label: t('Create team'),
@@ -357,7 +369,7 @@ function TeamSelector(props: Props) {
     () => ({
       ...(includeUnassigned ? unassignedSelectStyles : {}),
       ...(multiple ? {} : placeholderSelectStyles),
-      ...(stylesProp ?? {}),
+      ...stylesProp,
     }),
     [includeUnassigned, multiple, stylesProp]
   );
@@ -380,7 +392,7 @@ function TeamSelector(props: Props) {
   }, [fetching, useTeamDefaultIfOnlyOne]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <SelectControl
+    <Select
       ref={selectRef}
       options={options}
       onInputChange={handleInputChange}
@@ -401,6 +413,4 @@ const AddToProjectButton = styled(Button)`
 export {TeamSelector};
 
 // TODO(davidenwang): this is broken due to incorrect types on react-select
-export default withOrganization(TeamSelector) as unknown as (
-  p: Omit<Props, 'organization'>
-) => JSX.Element;
+export default withOrganization(TeamSelector);

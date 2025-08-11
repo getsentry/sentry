@@ -10,28 +10,31 @@ from typing import Any
 from django.db import router, transaction
 from django.db.models.base import Model
 
-from sentry import analytics, eventstore, similarity, tsdb
+from sentry import analytics, eventstore, features, similarity, tsdb
+from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.culprit import generate_culprit
 from sentry.eventstore.models import BaseEvent
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
+from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import issues_tasks
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.unmerge import InitialUnmergeArgs, SuccessiveUnmergeArgs, UnmergeArgs, UnmergeArgsBase
 from sentry.utils.eventuser import EventUser
 from sentry.utils.query import celery_run_batch_query
-from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
@@ -96,33 +99,19 @@ def _generate_culprit(event):
     return generate_culprit(data)
 
 
-def group_metadata_from_event_metadata(event):
-    # XXX(markus): current_tree_label will have to be fixed once one can
-    # set the level, right now we can get away with setting the outermost
-    # level because that's the default and you can't change it.
-    #
-    # There's more stuff that has to change in unmerge anyway, wrt which hashes
-    # are persisted if split/unsplit ever lands.
-
-    rv = dict(event.data["metadata"])
-    current_tree_label = get_path(event.data, "hierarchical_tree_labels", 0) or None
-    if current_tree_label is not None:
-        rv["current_tree_label"] = current_tree_label
-
-    return rv
-
-
 initial_fields = {
-    "culprit": lambda event: _generate_culprit(event),
-    "data": lambda event: {
+    "culprit": lambda event, group: _generate_culprit(event),
+    "data": lambda event, group: {
         "last_received": event.data.get("received") or float(event.datetime.strftime("%s")),
         "type": event.data["type"],
-        "metadata": group_metadata_from_event_metadata(event),
+        "metadata": event.data["metadata"],
     },
-    "last_seen": lambda event: event.datetime,
-    "level": lambda event: LOG_LEVELS_MAP.get(event.get_tag("level"), logging.ERROR),
-    "message": lambda event: event.search_message,
-    "times_seen": lambda event: 0,
+    "last_seen": lambda event, group: event.datetime,
+    "level": lambda event, group: LOG_LEVELS_MAP.get(event.get_tag("level"), logging.ERROR),
+    "message": lambda event, group: event.search_message,
+    "times_seen": lambda event, group: 0,
+    "status": lambda event, group: group.status,
+    "substatus": lambda event, group: group.substatus,
 }
 
 
@@ -139,20 +128,17 @@ backfill_fields = {
         else data.get("first_release", None)
     ),
     "times_seen": lambda caches, data, event: data["times_seen"] + 1,
-    "score": lambda caches, data, event: Group.calculate_score(
-        data["times_seen"] + 1, data["last_seen"]
-    ),
 }
 
 
-def get_group_creation_attributes(caches, events):
+def get_group_creation_attributes(caches, group, events):
     latest_event = events[0]
     return reduce(
         lambda data, event: merge_mappings(
             [data, {name: f(caches, data, event) for name, f in backfill_fields.items()}]
         ),
         events,
-        {name: f(latest_event) for name, f in initial_fields.items()},
+        {name: f(latest_event, group) for name, f in initial_fields.items()},
     )
 
 
@@ -179,6 +165,7 @@ def get_fingerprint(event: BaseEvent) -> str | None:
 
 
 def migrate_events(
+    source,
     caches,
     project,
     args: UnmergeArgs,
@@ -210,7 +197,7 @@ def migrate_events(
         destination = Group.objects.create(
             project_id=project.id,
             short_id=project.next_short_id(),
-            **get_group_creation_attributes(caches, events),
+            **get_group_creation_attributes(caches, source, events),
         )
 
         destination_id = destination.id
@@ -220,6 +207,7 @@ def migrate_events(
         destination = Group.objects.get(id=destination_id)
         destination.update(**get_group_backfill_attributes(caches, destination, events))
 
+    update_open_periods(source, destination)
     logger.info("migrate_events.migrate", extra={"destination_id": destination_id})
 
     if isinstance(args, InitialUnmergeArgs) or opt_eventstream_state is None:
@@ -263,6 +251,36 @@ def migrate_events(
     )
 
     return (destination.id, eventstream_state)
+
+
+def update_open_periods(source: Group, destination: Group) -> None:
+    if not features.has("organizations:issue-open-periods", destination.project.organization):
+        return
+
+    # For groups that are not resolved, the open period created on group creation should have the necessary information
+    if destination.status != GroupStatus.RESOLVED:
+        return
+
+    try:
+        dest_open_period = GroupOpenPeriod.objects.get(group=destination)
+    except GroupOpenPeriod.DoesNotExist:
+        logger.exception("No open period found for group", extra={"group_id": destination.id})
+
+    source_open_period = GroupOpenPeriod.objects.filter(group=source).order_by("-datetime").first()
+    if not source_open_period:
+        logger.error("No open period found for group", extra={"group_id": destination.id})
+        return
+
+    if source_open_period.date_ended is None:
+        return
+
+    # If the destination group is resolved, set the open period fields to match the source's open period.
+    dest_open_period.update(
+        date_started=source_open_period.date_started,
+        date_ended=source_open_period.date_ended,
+        resolution_activity=source_open_period.resolution_activity,
+        user_id=source_open_period.user_id,
+    )
 
 
 def truncate_denormalizations(project, group):
@@ -310,31 +328,11 @@ def repair_group_environment_data(caches, project, events):
         if first_release:
             fields["first_release"] = caches["Release"](project.organization_id, first_release)
 
-        GroupEnvironment.objects.create_or_update(
+        GroupEnvironment.objects.update_or_create(
             environment_id=caches["Environment"](project.organization_id, env_name).id,
             group_id=group_id,
             defaults=fields,
-            values=fields,
         )
-
-
-def collect_tag_data(events):
-    results: dict[tuple[int, str], dict[str, dict[str, tuple[int, datetime, datetime]]]] = {}
-
-    for event in events:
-        environment = get_environment_name(event)
-        tags = results.setdefault((event.group_id, environment), {})
-
-        for key, value in event.tags:
-            values = tags.setdefault(key, {})
-
-            if value in values:
-                times_seen, first_seen, last_seen = values[value]
-                values[value] = (times_seen + 1, event.datetime, last_seen)
-            else:
-                values[value] = (1, event.datetime, event.datetime)
-
-    return results
 
 
 def get_environment_name(event) -> str:
@@ -382,9 +380,10 @@ def repair_group_release_data(caches, project, events):
 
 def get_event_user_from_interface(value, project):
     analytics.record(
-        "eventuser_endpoint.request",
-        project_id=project.id,
-        endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
+        EventUserEndpointRequest(
+            project_id=project.id,
+            endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
+        )
     )
     return EventUser(
         user_ident=value.get("id"),
@@ -497,6 +496,9 @@ def unlock_hashes(project_id, locked_primary_hashes):
     name="sentry.tasks.unmerge",
     queue="unmerge",
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=issues_tasks,
+    ),
 )
 def unmerge(*posargs, **kwargs):
     args = UnmergeArgsBase.parse_arguments(*posargs, **kwargs)
@@ -563,7 +565,7 @@ def unmerge(*posargs, **kwargs):
 
     if source_events:
         if not source_fields_reset:
-            source.update(**get_group_creation_attributes(caches, source_events))
+            source.update(**get_group_creation_attributes(caches, source, source_events))
             source_fields_reset = True
         else:
             source.update(**get_group_backfill_attributes(caches, source, source_events))
@@ -589,6 +591,7 @@ def unmerge(*posargs, **kwargs):
     for unmerge_key, _destination_events in destination_events.items():
         destination_id, eventstream_state = destinations.get(unmerge_key) or (None, None)
         (destination_id, eventstream_state) = migrate_events(
+            source,
             caches,
             project,
             args,

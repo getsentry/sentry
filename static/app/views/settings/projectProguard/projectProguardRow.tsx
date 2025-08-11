@@ -2,14 +2,15 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import {Role} from 'sentry/components/acl/role';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {useRole} from 'sentry/components/acl/useRole';
 import Confirm from 'sentry/components/confirm';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import FileSize from 'sentry/components/fileSize';
-import Link from 'sentry/components/links/link';
 import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,7 +19,6 @@ import type {ProguardMappingAssociation} from 'sentry/views/settings/projectProg
 import {ProguardAssociations} from 'sentry/views/settings/projectProguard/associations';
 
 type Props = {
-  downloadRole: string;
   downloadUrl: string;
   mapping: DebugFile;
   onDelete: (id: string) => void;
@@ -31,9 +31,9 @@ function ProjectProguardRow({
   mapping,
   onDelete,
   downloadUrl,
-  downloadRole,
   orgSlug,
 }: Props) {
+  const {hasRole, roleRequired: downloadRole} = useRole({role: 'debugFilesRole'});
   const {id, debugId, uuid, size, dateCreated} = mapping;
 
   const handleDeleteClick = () => {
@@ -54,32 +54,28 @@ function ProjectProguardRow({
         <FileSize bytes={size} />
       </SizeColumn>
       <ActionsColumn>
-        <ButtonBar gap={0.5}>
-          <Role role={downloadRole}>
-            {({hasRole}) => (
-              <Tooltip
-                title={tct(
-                  'Mappings can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
-                  {
-                    downloadRole,
-                    orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
-                    settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
-                  }
-                )}
-                disabled={hasRole}
-                isHoverable
-              >
-                <Button
-                  size="sm"
-                  icon={<IconDownload size="sm" />}
-                  disabled={!hasRole}
-                  href={downloadUrl}
-                  title={hasRole ? t('Download Mapping') : undefined}
-                  aria-label={t('Download Mapping')}
-                />
-              </Tooltip>
+        <ButtonBar gap="xs">
+          <Tooltip
+            title={tct(
+              'Mappings can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
+              {
+                downloadRole,
+                orHigher: downloadRole === 'owner' ? '' : ` ${t('or higher')}`,
+                settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
+              }
             )}
-          </Role>
+            disabled={hasRole}
+            isHoverable
+          >
+            <LinkButton
+              size="sm"
+              icon={<IconDownload size="sm" />}
+              disabled={!hasRole}
+              href={downloadUrl}
+              title={hasRole ? t('Download Mapping') : undefined}
+              aria-label={t('Download Mapping')}
+            />
+          </Tooltip>
 
           <Access access={['project:releases']}>
             {({hasAccess}) => (
@@ -135,7 +131,7 @@ const TimeWrapper = styled('div')`
   display: grid;
   gap: ${space(0.5)};
   grid-template-columns: min-content 1fr;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   align-items: center;
   color: ${p => p.theme.subText};
   margin-top: ${space(1)};

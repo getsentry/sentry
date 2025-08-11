@@ -8,6 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationAndStaffPermission, OrganizationEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidParams
+from sentry.models.organization import Organization
 from sentry.sentry_metrics.use_case_utils import get_use_case_id
 from sentry.snuba.metrics import DerivedMetricException, QueryDefinition, get_series
 from sentry.snuba.metrics.naming_layer import SessionMetricKey
@@ -20,12 +21,18 @@ from sentry.utils.cursors import Cursor, CursorResult
 @region_silo_endpoint
 class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (OrganizationAndStaffPermission,)
 
-    """Get the time series data for one or more metrics.
+    """
+    @deprecated This endpoint is not actively maintained
+    and its usages should be replaced with queries to a
+    span-based system backed by `eap_spans`
+
+
+    Get the time series data for one or more metrics.
 
     The data can be filtered and grouped by tags.
     Based on `OrganizationSessionsEndpoint`.
@@ -71,7 +78,7 @@ class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
             except InvalidParams as exc:
                 raise ParseError(detail=str(exc))
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         projects = self.get_projects(request, organization)
         self._validate_fields(request)
 

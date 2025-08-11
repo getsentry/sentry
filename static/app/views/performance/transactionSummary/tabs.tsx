@@ -4,7 +4,6 @@ enum Tab {
   TAGS = 'tags',
   EVENTS = 'events',
   SPANS = 'spans',
-  ANOMALIES = 'anomalies',
   REPLAYS = 'replays',
   PROFILING = 'profiling',
   AGGREGATE_WATERFALL = 'aggregateWaterfall',

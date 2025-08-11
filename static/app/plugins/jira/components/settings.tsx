@@ -1,8 +1,12 @@
+import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
 import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
 import DefaultSettings from 'sentry/plugins/components/settings';
 
 type Field = Parameters<typeof DefaultSettings.prototype.renderField>[0]['config'];
@@ -25,8 +29,8 @@ const PAGE_FIELD_LIST = {
 };
 
 class Settings extends DefaultSettings<Props, State> {
-  constructor(props: Props, context: any) {
-    super(props, context);
+  constructor(props: Props) {
+    super(props);
 
     Object.assign(this.state, {
       page: 0,
@@ -50,6 +54,7 @@ class Settings extends DefaultSettings<Props, State> {
         const initialData = {};
         data.config.forEach(field => {
           formData[field.name] = field.value || field.defaultValue;
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           initialData[field.name] = field.value;
         });
         this.setState(
@@ -96,7 +101,9 @@ class Settings extends DefaultSettings<Props, State> {
         const formData = {};
         const initialData = {};
         data.config.forEach(field => {
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           formData[field.name] = field.value || field.defaultValue;
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           initialData[field.name] = field.value;
         });
         const state = {
@@ -115,7 +122,7 @@ class Settings extends DefaultSettings<Props, State> {
         }
         this.setState(state);
       }),
-      error: this.onSaveError.bind(this, error => {
+      error: this.onSaveError.bind(this, (error: any) => {
         this.setState({
           errors: error.responseJSON?.errors || {},
         });
@@ -141,10 +148,12 @@ class Settings extends DefaultSettings<Props, State> {
 
     if (this.state.state === FormState.ERROR && !this.state.fieldList) {
       return (
-        <div className="alert alert-error m-b-1">
-          An unknown error occurred. Need help with this?{' '}
-          <a href="https://sentry.io/support/">Contact support</a>
-        </div>
+        <Alert.Container>
+          <Alert type="error" showIcon={false}>
+            An unknown error occurred. Need help with this?{' '}
+            <a href="https://sentry.io/support/">Contact support</a>
+          </Alert>
+        </Alert.Container>
       );
     }
 
@@ -155,6 +164,7 @@ class Settings extends DefaultSettings<Props, State> {
     let submitLabel: string;
     if (this.state.editing) {
       fields = this.state.fieldList?.filter(f =>
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         PAGE_FIELD_LIST[this.state.page].includes(f.name)
       );
       onSubmit = this.onSubmit;
@@ -171,22 +181,18 @@ class Settings extends DefaultSettings<Props, State> {
         submitLabel={submitLabel}
         extraButton={
           this.state.page === 0 ? null : (
-            <a
-              href="#"
-              className={'btn btn-default pull-left' + (isSaving ? ' disabled' : '')}
-              onClick={this.back}
-            >
-              Back
-            </a>
+            <FloatLeftButton onClick={this.back} busy={isSaving}>
+              {t('Back')}
+            </FloatLeftButton>
           )
         }
       >
         {this.state.errors.__all__ && (
-          <div className="alert alert-block alert-error">
+          <Alert type="error" showIcon={false}>
             <ul>
               <li>{this.state.errors.__all__}</li>
             </ul>
-          </div>
+          </Alert>
         )}
         {fields?.map(f =>
           this.renderField({
@@ -200,5 +206,9 @@ class Settings extends DefaultSettings<Props, State> {
     );
   }
 }
+
+const FloatLeftButton = styled(Button)`
+  float: left;
+`;
 
 export default Settings;

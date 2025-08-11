@@ -7,7 +7,7 @@
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization the file belongs to.",
+        "description": "The ID or slug of the organization the file belongs to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -16,7 +16,7 @@
       {
         "name": "project_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the project to list the DIFs of.",
+        "description": "The ID or slug of the project to list the DIFs of.",
         "required": true,
         "schema": {
           "type": "string"
@@ -45,13 +45,13 @@
   },
   "post": {
     "tags": ["Projects"],
-    "description": "Upload a new debug information file for the given release.\n\nUnlike other API requests, files must be uploaded using the\ntraditional multipart/form-data content-type.\n\nThe file uploaded is a zip archive of an Apple .dSYM folder which\ncontains the individual debug images.  Uploading through this endpoint\nwill create different files for the contained images.",
+    "description": "Upload a new debug information file for the given release.\n\nUnlike other API requests, files must be uploaded using the\ntraditional multipart/form-data content-type.\n\nRequests to this endpoint should use the region-specific domain eg. `us.sentry.io` or `de.sentry.io`.\n\nThe file uploaded is a zip archive of an Apple .dSYM folder which\ncontains the individual debug images.  Uploading through this endpoint\nwill create different files for the contained images.",
     "operationId": "Upload a New File",
     "parameters": [
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization the project belongs to.",
+        "description": "The ID or slug of the organization the project belongs to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -60,7 +60,7 @@
       {
         "name": "project_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the project to upload a file to.",
+        "description": "The ID or slug of the project to upload a file to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -109,7 +109,8 @@
       {
         "auth_token": ["project:write"]
       }
-    ]
+    ],
+    "servers": [{ "url": "https://{region}.sentry.io" }]
   },
   "delete": {
     "tags": ["Projects"],
@@ -119,7 +120,7 @@
       {
         "name": "organization_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the organization the file belongs to.",
+        "description": "The ID or slug of the organization the file belongs to.",
         "required": true,
         "schema": {
           "type": "string"
@@ -128,7 +129,7 @@
       {
         "name": "project_id_or_slug",
         "in": "path",
-        "description": "The id or slug of the project to delete the DIF.",
+        "description": "The ID or slug of the project to delete the DIF.",
         "required": true,
         "schema": {
           "type": "string"
@@ -157,7 +158,7 @@
     },
     "security": [
       {
-        "auth_token": ["project:write"]
+        "auth_token": ["project:admin", "project:releases"]
       }
     ]
   }

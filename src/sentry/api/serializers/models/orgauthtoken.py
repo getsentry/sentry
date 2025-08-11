@@ -13,9 +13,9 @@ class OrgAuthTokenSerializer(Serializer):
             "tokenLastCharacters": obj.token_last_characters,
             "dateCreated": obj.date_added,
             "dateLastUsed": obj.date_last_used,
-            "projectLastUsedId": str(obj.project_last_used_id)
-            if obj.project_last_used_id
-            else None,
+            "projectLastUsedId": (
+                str(obj.project_last_used_id) if obj.project_last_used_id else None
+            ),
         }
 
         if token:

@@ -1,10 +1,11 @@
 ---
-created: '2023-02-01T08:22:06.117061Z'
+created: '2025-02-26T00:34:15.546061+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "eb87c1031dba55b67df86fb9fff59dc6"
+  contributing component: exception
   component:
     app*
       exception*
@@ -37,6 +38,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "0817e4e604fbe88c4534eff166df1db9"
+  contributing component: exception
   component:
     system*
       exception*
@@ -44,19 +46,19 @@ system:
           frame*
             function*
               "_main"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             function*
               "std::rt::lang_start_internal"
           frame (ignored by stack trace rule (family:native function:__* -group))
             function*
               "___rust_maybe_catch_panic"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame*
             function*
               "std::panicking::try::do_call"
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start::{{closure}}"
-          frame* (marked in-app by stack trace rule (family:native function:log_demo::* +app))
+          frame*
             function*
               "log_demo::main"
           frame (ignored by stack trace rule (family:native function:*::__* -group))

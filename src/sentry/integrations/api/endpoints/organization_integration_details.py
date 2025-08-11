@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from typing import Any
 
+import sentry_sdk
 from django.db import router, transaction
 from django.http import Http404
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,13 +17,20 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
+from sentry.apidocs.constants import RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
+from sentry.apidocs.examples.integration_examples import IntegrationExamples
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.integrations.api.bases.organization_integrations import (
     OrganizationIntegrationBaseEndpoint,
 )
-from sentry.integrations.api.serializers.models.integration import OrganizationIntegrationSerializer
+from sentry.integrations.api.serializers.models.integration import (
+    OrganizationIntegrationResponse,
+    OrganizationIntegrationSerializer,
+)
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.models.scheduledeletion import ScheduledDeletion
 from sentry.organizations.services.organization import RpcUserOrganizationContext
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.audit import create_audit_entry
@@ -34,14 +43,28 @@ class IntegrationSerializer(serializers.Serializer):
 
 
 @control_silo_endpoint
+@extend_schema(tags=["Integrations"])
 class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PRIVATE,
     }
 
+    @extend_schema(
+        operation_id="Retrieve an Integration for an Organization",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.INTEGRATION_ID,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationIntegrationResponse", OrganizationIntegrationResponse
+            ),
+        },
+        examples=IntegrationExamples.GET_INTEGRATION,
+    )
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
     def get(
@@ -61,6 +84,14 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
             )
         )
 
+    @extend_schema(
+        operation_id="Delete an Integration for an Organization",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.INTEGRATION_ID],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     @set_referrer_policy("strict-origin-when-cross-origin")
     @method_decorator(never_cache)
     def delete(
@@ -114,13 +145,22 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         integration_id: int,
         **kwds: Any,
     ) -> Response:
-        integration = self.get_integration(organization_context.organization.id, integration_id)
-        installation = integration.get_installation(
-            organization_id=organization_context.organization.id
-        )
+        organization = organization_context.organization
+
+        integration = self.get_integration(organization.id, integration_id)
+        installation = integration.get_installation(organization_id=organization.id)
         try:
             installation.update_organization_config(request.data)
         except (IntegrationError, ApiError) as e:
+            sentry_sdk.capture_exception(e)
             return self.respond({"detail": [str(e)]}, status=400)
+
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=integration.id,
+            event=audit_log.get_event_id("INTEGRATION_EDIT"),
+            data={"provider": integration.provider, "name": "config"},
+        )
 
         return self.respond(status=200)

@@ -3,16 +3,17 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import {LinkButton} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
-import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
@@ -26,24 +27,20 @@ import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
 import {getResourcesEventViewQuery} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/insights/browser/resources/settings';
-import {BASE_FILTERS, CACHE_BASE_URL} from 'sentry/views/insights/cache/settings';
+import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
+import {EXCLUDED_DB_OPS} from 'sentry/views/insights/database/settings';
 import {DomainCell} from 'sentry/views/insights/http/components/tables/domainCell';
-import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {ModuleName, SpanFields, SpanFunction} from 'sentry/views/insights/types';
 import DurationChart from 'sentry/views/performance/charts/chart';
-import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-import {
-  createUnnamedTransactionsDiscoverTarget,
-  UNPARAMETERIZED_TRANSACTION,
-} from 'sentry/views/performance/utils';
-import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-
-import {excludeTransaction} from '../../utils';
-import {Accordion} from '../components/accordion';
-import {GenericPerformanceWidget} from '../components/performanceWidget';
+import {excludeTransaction} from 'sentry/views/performance/landing/utils';
+import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
 import SelectableList, {
   GrowLink,
   HighestCacheMissRateTransactionsWidgetEmptyStateWarning,
@@ -54,22 +51,38 @@ import SelectableList, {
   TimeSpentInDatabaseWidgetEmptyStateWarning,
   WidgetAddInstrumentationWarning,
   WidgetEmptyStateWarning,
-} from '../components/selectableList';
-import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
-import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
-import type {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import {transformDiscoverToList} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToList';
+import {transformEventsRequestToArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToArea';
+import type {
+  GenericPerformanceWidgetProps,
+  PerformanceWidgetProps,
+  QueryDefinition,
+  WidgetDataResult,
+} from 'sentry/views/performance/landing/widgets/types';
 import {
   eventsRequestQueryProps,
   getMEPParamsIfApplicable,
   QUERY_LIMIT_PARAM,
   TOTAL_EXPANDABLE_ROWS_HEIGHT,
-} from '../utils';
-import {PerformanceWidgetSetting} from '../widgetDefinitions';
+} from 'sentry/views/performance/landing/widgets/utils';
+import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets/settings';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import {
+  createUnnamedTransactionsDiscoverTarget,
+  UNPARAMETERIZED_TRANSACTION,
+} from 'sentry/views/performance/utils';
+import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
 };
+
+type ComponentData = React.ComponentProps<
+  GenericPerformanceWidgetProps<DataType>['Visualizations'][0]['component']
+>;
 
 const slowList = [
   PerformanceWidgetSetting.SLOW_HTTP_OPS,
@@ -98,8 +111,27 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const canHaveIntegrationEmptyState = integrationEmptyStateWidgets.includes(
     props.chartSetting
   );
+  const useEap = useInsightsEap();
+  const canUseMetrics = canUseMetricsData(organization);
 
-  let emptyComponent;
+  // Some am1 customers have on demand metrics, so we still need to keep metrics here.
+  let metricsDataset = canUseMetrics
+    ? DiscoverDatasets.METRICS
+    : DiscoverDatasets.TRANSACTIONS;
+
+  const spanDataset = DiscoverDatasets.SPANS;
+
+  if (useEap) {
+    metricsDataset = DiscoverDatasets.SPANS;
+  }
+
+  const spanQueryParams: Record<string, string> = {...EAP_QUERY_PARAMS};
+
+  const metricsQueryParams: Record<string, string> = useEap
+    ? {...EAP_QUERY_PARAMS}
+    : {dataset: metricsDataset};
+
+  let emptyComponent: any;
   if (props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES) {
     emptyComponent = TimeSpentInDatabaseWidgetEmptyStateWarning;
   } else if (
@@ -122,7 +154,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       : WidgetEmptyStateWarning;
   }
 
-  const field = props.fields[0];
+  const field = props.fields[0]!;
 
   if (props.fields.length !== 1 && !canHaveIntegrationEmptyState) {
     throw new Error(
@@ -150,99 +182,96 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           ];
           eventView.additionalConditions.setFilterValues('event.type', ['error']);
           eventView.additionalConditions.setFilterValues('!tags[transaction]', ['']);
-          if (canUseMetricsData(organization)) {
+          if (canUseMetrics) {
             eventView.additionalConditions.setFilterValues('!transaction', [
               UNPARAMETERIZED_TRANSACTION,
             ]);
           }
           const mutableSearch = new MutableSearch(eventView.query);
           mutableSearch.removeFilter('transaction.duration');
-          eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
-          eventView.additionalConditions.removeFilter('!transaction.op'); // Remove transaction op incase it's applied from the performance view.
+          removeTransactionOpFilter({eventView, mutableSearch, useEap});
           eventView.query = mutableSearch.formatString();
         } else if (
           props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES
         ) {
           // Set fields
           eventView.fields = [
-            {field: SpanMetricsField.SPAN_OP},
-            {field: SpanMetricsField.SPAN_GROUP},
+            {field: SpanFields.SPAN_OP},
+            {field: SpanFields.SPAN_GROUP},
             {field: 'project.id'},
-            {field: SpanMetricsField.SPAN_DESCRIPTION},
-            {field: `sum(${SpanMetricsField.SPAN_SELF_TIME})`},
-            {field: `avg(${SpanMetricsField.SPAN_SELF_TIME})`},
+            {field: SpanFields.NORMALIZED_DESCRIPTION},
+            {field: `sum(${SpanFields.SPAN_SELF_TIME})`},
+            {field: `avg(${SpanFields.SPAN_SELF_TIME})`},
             {field},
           ];
 
-          // Change data set to spansMetrics
-          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          // Change data set to spans
+          eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
-            dataset: DiscoverDatasets.SPANS_METRICS,
+            ...spanQueryParams,
           };
 
           // Update query
           const mutableSearch = new MutableSearch(eventView.query);
-          mutableSearch.removeFilter('event.type');
-          eventView.additionalConditions.removeFilter('event.type');
+
+          removeTransactionFilterForSpanQuery({eventView, mutableSearch, useEap});
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
-          mutableSearch.addFilterValue('has', 'span.description');
-          mutableSearch.addFilterValue('span.module', 'db');
+          mutableSearch.addFilterValue('has', 'sentry.normalized_description');
+          mutableSearch.addFilterValue('span.category', 'db');
+          mutableSearch.addFilterValue('!span.op', `[${EXCLUDED_DB_OPS.join(',')}]`);
           eventView.query = mutableSearch.formatString();
         } else if (
           props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
         ) {
           // Set fields
           eventView.fields = [
-            {field: SpanMetricsField.PROJECT_ID},
-            {field: SpanMetricsField.SPAN_DOMAIN},
-            {field: `sum(${SpanMetricsField.SPAN_SELF_TIME})`},
-            {field: `avg(${SpanMetricsField.SPAN_SELF_TIME})`},
+            {field: SpanFields.PROJECT_ID},
+            {field: SpanFields.SPAN_DOMAIN},
+            {field: `sum(${SpanFields.SPAN_SELF_TIME})`},
+            {field: `avg(${SpanFields.SPAN_SELF_TIME})`},
             {field},
           ];
 
-          // Change data set to spansMetrics
-          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          // Change data set to spans
+          eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
-            dataset: DiscoverDatasets.SPANS_METRICS,
+            ...spanQueryParams,
           };
 
           // Update query
           const mutableSearch = new MutableSearch(eventView.query);
-          mutableSearch.removeFilter('event.type');
-          mutableSearch.removeFilter('transaction.op');
-          eventView.additionalConditions.removeFilter('event.type');
-          eventView.additionalConditions.removeFilter('transaction.op');
+          removeTransactionFilterForSpanQuery({eventView, mutableSearch, useEap});
+          removeTransactionOpFilter({eventView, mutableSearch, useEap});
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
-          mutableSearch.addFilterValue('span.module', 'http');
+          mutableSearch.addFilterValue('span.category', 'http');
           eventView.query = mutableSearch.formatString();
         } else if (
           props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES
         ) {
           // Set fields
           eventView.fields = [
-            {field: SpanMetricsField.SPAN_DESCRIPTION},
-            {field: SpanMetricsField.SPAN_OP},
+            {field: SpanFields.NORMALIZED_DESCRIPTION},
+            {field: SpanFields.SPAN_OP},
             {field: 'project.id'},
-            {field: SpanMetricsField.SPAN_GROUP},
-            {field: `sum(${SpanMetricsField.SPAN_SELF_TIME})`},
-            {field: `avg(${SpanMetricsField.SPAN_SELF_TIME})`},
+            {field: SpanFields.SPAN_GROUP},
+            {field: `sum(${SpanFields.SPAN_SELF_TIME})`},
+            {field: `avg(${SpanFields.SPAN_SELF_TIME})`},
             {field},
           ];
 
-          // Change data set to spansMetrics
-          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          // Change data set to spans
+          eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
-            dataset: DiscoverDatasets.SPANS_METRICS,
+            ...spanQueryParams,
           };
 
           // Update query
           const mutableSearch = new MutableSearch(eventView.query);
-          mutableSearch.removeFilter('event.type');
+          removeTransactionFilterForSpanQuery({eventView, mutableSearch, useEap});
           mutableSearch.removeFilter('time_spent_percentage()');
-          eventView.additionalConditions.removeFilter('event.type');
           eventView.additionalConditions.removeFilter('time_spent_percentage()');
           eventView.query = `${mutableSearch.formatString()} ${getResourcesEventViewQuery(
             {'resource.render_blocking_status': 'blocking'},
@@ -253,25 +282,30 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
         ) {
           eventView.fields = [
-            {field: SpanMetricsField.TRANSACTION},
+            {field: SpanFields.TRANSACTION},
             {field: 'project.id'},
             {field},
           ];
 
-          // Change data set to spansMetrics
-          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          // Change data set to spans
+          eventView.dataset = spanDataset;
           extraQueryParams = {
             ...extraQueryParams,
-            dataset: DiscoverDatasets.SPANS_METRICS,
+            ...spanQueryParams,
           };
 
           // Update query
           const mutableSearch = MutableSearch.fromQueryObject(BASE_FILTERS);
-          eventView.additionalConditions.removeFilter('event.type');
-          eventView.additionalConditions.removeFilter('transaction.op');
+          removeTransactionFilterForSpanQuery({eventView, mutableSearch, useEap});
+          removeTransactionOpFilter({eventView, mutableSearch, useEap});
           eventView.query = mutableSearch.formatString();
         } else if (isSlowestType || isFramesType) {
-          eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
+          eventView.additionalConditions.setFilterValues('count()', ['>1']);
+          extraQueryParams = {
+            ...extraQueryParams,
+            ...metricsQueryParams,
+          };
+          eventView.dataset = metricsDataset;
           eventView.fields = [
             {field: 'transaction'},
             {field: 'project.id'},
@@ -312,6 +346,8 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     [props.chartSetting, mepSetting.memoizationKey]
   );
 
+  const {view} = useDomainViewFilters();
+
   const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => {
       return {
@@ -321,7 +357,8 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
         fields: field,
         component: provided => {
           const eventView = props.eventView.clone();
-          let extraQueryParams = getMEPParamsIfApplicable(mepSetting, props.chartSetting);
+          let extraQueryParams: Record<string, string | boolean | number> =
+            getMEPParamsIfApplicable(mepSetting, props.chartSetting)!;
           const pageFilterDatetime = {
             start: provided.start,
             end: provided.end,
@@ -338,11 +375,9 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           if (
             !provided.widgetData.list.data[selectedListIndex]?.transaction &&
             !provided.widgetData.list.data[selectedListIndex]?.[
-              SpanMetricsField.SPAN_DESCRIPTION
+              SpanFields.NORMALIZED_DESCRIPTION
             ] &&
-            !provided.widgetData.list.data[selectedListIndex]?.[
-              SpanMetricsField.SPAN_DOMAIN
-            ]
+            !provided.widgetData.list.data[selectedListIndex]?.[SpanFields.SPAN_DOMAIN]
           ) {
             return null;
           }
@@ -364,14 +399,19 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             ]);
             eventView.additionalConditions.setFilterValues('event.type', ['error']);
 
-            if (canUseMetricsData(organization)) {
+            if (canUseMetrics) {
               eventView.additionalConditions.setFilterValues('!transaction', [
                 UNPARAMETERIZED_TRANSACTION,
               ]);
             }
 
-            eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
-            eventView.additionalConditions.removeFilter('!transaction.op'); // Remove transaction op incase it's applied from the performance view.
+            if (useEap) {
+              eventView.additionalConditions.removeFilter('span.op');
+              eventView.additionalConditions.removeFilter('!span.op');
+            } else {
+              eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
+              eventView.additionalConditions.removeFilter('!transaction.op'); // Remove transaction op incase it's applied from the performance view.
+            }
             const mutableSearch = new MutableSearch(eventView.query);
             mutableSearch.removeFilter('transaction.duration');
             eventView.query = mutableSearch.formatString();
@@ -382,10 +422,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
           ) {
             // Update request params
-            eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+            eventView.dataset = spanDataset;
             extraQueryParams = {
               ...extraQueryParams,
-              dataset: DiscoverDatasets.SPANS_METRICS,
+              ...spanQueryParams,
               excludeOther: false,
               per_page: 50,
             };
@@ -393,31 +433,31 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
             // Update chart options
             partialDataParam = false;
-            yAxis = `avg(${SpanMetricsField.SPAN_SELF_TIME})`;
+            yAxis = `avg(${SpanFields.SPAN_SELF_TIME})`;
             interval = getInterval(pageFilterDatetime, STARFISH_CHART_INTERVAL_FIDELITY);
             includePreviousParam = false;
-            currentSeriesNames = [`avg(${SpanMetricsField.SPAN_SELF_TIME})`];
+            currentSeriesNames = [`avg(${SpanFields.SPAN_SELF_TIME})`];
 
             // Update search query
-            eventView.additionalConditions.removeFilter('event.type');
+            removeTransactionFilterForSpanQuery({eventView, useEap});
             eventView.additionalConditions.removeFilter('transaction');
 
             if (
               props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
             ) {
               eventView.additionalConditions.addFilterValue(
-                SpanMetricsField.SPAN_DOMAIN,
+                SpanFields.SPAN_DOMAIN,
                 provided.widgetData.list.data[selectedListIndex][
-                  SpanMetricsField.SPAN_DOMAIN
-                ].toString(),
+                  SpanFields.SPAN_DOMAIN
+                ]!.toString(),
                 false
               );
             } else {
               eventView.additionalConditions.addFilterValue(
-                SpanMetricsField.SPAN_GROUP,
+                SpanFields.SPAN_GROUP,
                 provided.widgetData.list.data[selectedListIndex][
-                  SpanMetricsField.SPAN_GROUP
-                ].toString()
+                  SpanFields.SPAN_GROUP
+                ]!.toString()
               );
             }
 
@@ -429,10 +469,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
           ) {
             // Update request params
-            eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+            eventView.dataset = spanDataset;
             extraQueryParams = {
               ...extraQueryParams,
-              dataset: DiscoverDatasets.SPANS_METRICS,
+              ...spanQueryParams,
               excludeOther: false,
               per_page: 50,
             };
@@ -446,8 +486,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             currentSeriesNames = [`${SpanFunction.CACHE_MISS_RATE}()`];
 
             // Update search query
-            eventView.additionalConditions.removeFilter('event.type');
-            eventView.additionalConditions.removeFilter('transaction.op');
+            removeTransactionFilterForSpanQuery({eventView, useEap});
 
             const mutableSearch = new MutableSearch(eventView.query);
             mutableSearch.removeFilter('transaction');
@@ -456,9 +495,18 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             eventView.fields = [{field: 'transaction'}, {field}];
           }
 
+          if (useEap) {
+            eventView.dataset = DiscoverDatasets.SPANS;
+            extraQueryParams = {
+              ...extraQueryParams,
+              ...spanQueryParams,
+            };
+          }
+
           return (
             <EventsRequest
               {...pick(provided, eventsRequestQueryProps)}
+              includeAllArgs={false}
               yAxis={yAxis}
               limit={1}
               includePrevious={includePreviousParam}
@@ -485,10 +533,10 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     chart: chartQuery,
   };
 
-  const assembleAccordionItems = provided =>
+  const assembleAccordionItems = (provided: ComponentData) =>
     getItems(provided).map(item => ({header: item, content: getChart(provided)}));
 
-  const getChart = provided => (
+  const getChart = (provided: ComponentData) => (
     <DurationChart
       {...provided.widgetData.chart}
       {...provided}
@@ -499,7 +547,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     />
   );
 
-  const getItems = provided =>
+  const getItems = (provided: ComponentData) =>
     provided.widgetData.list.data.map(listItem => {
       const transaction = (listItem.transaction as string | undefined) ?? '';
 
@@ -526,11 +574,12 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             location,
           })
         : transactionSummaryRouteWithQuery({
-            orgSlug: props.organization.slug,
+            organization: props.organization,
             projectID: listItem['project.id'] as string,
             transaction,
             query: props.eventView.getPageFiltersQuery(),
             additionalQuery,
+            view,
           });
 
       const fieldString = field;
@@ -541,7 +590,9 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
         slowest: getPerformanceDuration(listItem[fieldString] as number),
       };
       const rightValue =
-        valueMap[isSlowestType ? 'slowest' : props.chartSetting] ?? listItem[fieldString];
+        valueMap[
+          isSlowestType ? 'slowest' : (props.chartSetting as keyof typeof valueMap)
+        ] ?? listItem[fieldString];
 
       switch (props.chartSetting) {
         case PerformanceWidgetSetting.MOST_RELATED_ISSUES:
@@ -563,7 +614,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 <ListClose
                   setSelectListIndex={setSelectListIndex}
                   onClick={() =>
-                    excludeTransaction(listItem.transaction, {
+                    excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
                     })
@@ -580,14 +631,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               </GrowLink>
               <RightAlignedCell>
                 {tct('[count] errors', {
-                  count: <Count value={rightValue} />,
+                  count: <Count value={rightValue!} />,
                 })}
               </RightAlignedCell>
               {!props.withStaticFilters && (
                 <ListClose
                   setSelectListIndex={setSelectListIndex}
                   onClick={() =>
-                    excludeTransaction(listItem.transaction, {
+                    excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
                     })
@@ -601,15 +652,15 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             <Fragment>
               <StyledTextOverflow>
                 <DomainCell
-                  projectId={listItem[SpanMetricsField.PROJECT_ID].toString()}
-                  domain={listItem[SpanMetricsField.SPAN_DOMAIN]}
+                  projectId={listItem[SpanFields.PROJECT_ID]!.toString()}
+                  domain={listItem[SpanFields.SPAN_DOMAIN] as any}
                 />
               </StyledTextOverflow>
 
               <RightAlignedCell>
                 <TimeSpentCell
-                  percentage={listItem[fieldString]}
-                  total={listItem[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
+                  percentage={listItem[fieldString] as number}
+                  total={listItem[`sum(${SpanFields.SPAN_SELF_TIME})`] as number}
                   op={'http.client'}
                 />
               </RightAlignedCell>
@@ -618,7 +669,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 <ListClose
                   setSelectListIndex={setSelectListIndex}
                   onClick={() =>
-                    excludeTransaction(listItem.transaction, {
+                    excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
                     })
@@ -628,12 +679,12 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             </Fragment>
           );
         case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
-        case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES:
-          const description: string = listItem[SpanMetricsField.SPAN_DESCRIPTION];
-          const group: string = listItem[SpanMetricsField.SPAN_GROUP];
-          const projectID: number = listItem['project.id'];
-          const timeSpentPercentage: number = listItem[fieldString];
-          const totalTime: number = listItem[`sum(${SpanMetricsField.SPAN_SELF_TIME})`];
+        case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES: {
+          const description = listItem[SpanFields.NORMALIZED_DESCRIPTION] as string;
+          const group = listItem[SpanFields.SPAN_GROUP] as string;
+          const projectID = listItem['project.id'] as number;
+          const timeSpentPercentage = listItem[fieldString] as number;
+          const totalTime = listItem[`sum(${SpanFields.SPAN_SELF_TIME})`] as number;
 
           const isQueriesWidget =
             props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES;
@@ -661,7 +712,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 <ListClose
                   setSelectListIndex={setSelectListIndex}
                   onClick={() =>
-                    excludeTransaction(listItem.transaction, {
+                    excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
                     })
@@ -670,11 +721,15 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               )}
             </Fragment>
           );
-        case PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS:
-          const cacheMissRate = listItem[fieldString];
+        }
+        case PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS: {
+          const moduleRoute = moduleURLBuilder('cache', 'backend');
+          const cacheMissRate = listItem[fieldString] as any;
+
           const target = normalizeUrl(
-            `${CACHE_BASE_URL}/?${qs.stringify({transaction: transaction, project: listItem['project.id']})}`
+            `${moduleRoute}/?${qs.stringify({transaction, project: listItem['project.id']})}`
           );
+
           return (
             <Fragment>
               <GrowLink to={target}>
@@ -685,7 +740,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 <ListClose
                   setSelectListIndex={setSelectListIndex}
                   onClick={() =>
-                    excludeTransaction(listItem.transaction, {
+                    excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
                     })
@@ -694,6 +749,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               )}
             </Fragment>
           );
+        }
         default:
           if (typeof rightValue === 'number') {
             return (
@@ -708,7 +764,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                   <ListClose
                     setSelectListIndex={setSelectListIndex}
                     onClick={() =>
-                      excludeTransaction(listItem.transaction, {
+                      excludeTransaction(listItem.transaction!, {
                         eventView: props.eventView,
                         location,
                       })
@@ -728,7 +784,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                 <ListClose
                   setSelectListIndex={setSelectListIndex}
                   onClick={() =>
-                    excludeTransaction(listItem.transaction, {
+                    excludeTransaction(listItem.transaction!, {
                       eventView: props.eventView,
                       location,
                     })
@@ -740,60 +796,64 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       }
     });
 
-  const Visualizations = organization.features.includes('performance-new-widget-designs')
-    ? [
-        {
-          component: provided => (
-            <Accordion
-              expandedIndex={selectedListIndex}
-              setExpandedIndex={setSelectListIndex}
-              items={assembleAccordionItems(provided)}
-            />
-          ),
-          // accordion items height + chart height
-          height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
-          noPadding: true,
-        },
-      ]
-    : [
-        {
-          component: provided => (
-            <DurationChart
-              {...provided.widgetData.chart}
-              {...provided}
-              disableMultiAxis
-              disableXAxis
-              chartColors={props.chartColor ? [props.chartColor] : undefined}
-              isLineChart
-            />
-          ),
-          height: props.chartHeight,
-        },
-        {
-          component: provided => (
-            <SelectableList
-              selectedIndex={selectedListIndex}
-              setSelectedIndex={setSelectListIndex}
-              items={getItems(provided)}
-            />
-          ),
-          height: 124,
-          noPadding: true,
-        },
-      ];
+  const Visualizations: GenericPerformanceWidgetProps<DataType>['Visualizations'] =
+    organization.features.includes('performance-new-widget-designs')
+      ? [
+          {
+            component: provided => (
+              <Accordion
+                expandedIndex={selectedListIndex}
+                setExpandedIndex={setSelectListIndex}
+                items={assembleAccordionItems(provided)}
+              />
+            ),
+            // accordion items height + chart height
+            height: TOTAL_EXPANDABLE_ROWS_HEIGHT + props.chartHeight,
+            noPadding: true,
+          },
+        ]
+      : [
+          {
+            component: provided => (
+              <DurationChart
+                {...provided.widgetData.chart}
+                {...provided}
+                disableMultiAxis
+                disableXAxis
+                chartColors={props.chartColor ? [props.chartColor] : undefined}
+                isLineChart
+              />
+            ),
+            height: props.chartHeight,
+          },
+          {
+            component: provided => (
+              <SelectableList
+                selectedIndex={selectedListIndex}
+                setSelectedIndex={setSelectListIndex}
+                items={getItems(provided)}
+              />
+            ),
+            height: 124,
+            noPadding: true,
+          },
+        ];
 
-  const moduleURLBuilder = useModuleURLBuilder(true);
+  const moduleURLBuilder = useModuleURLBuilder();
 
-  const getContainerActions = provided => {
-    const route =
-      {
-        [PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES]: moduleURLBuilder('db'),
-        [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]:
-          moduleURLBuilder('resource'),
-        [PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS]: moduleURLBuilder('http'),
-        [PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS]:
-          moduleURLBuilder('cache'),
-      }[props.chartSetting] ?? '';
+  const getContainerActions = (provided: ComponentData) => {
+    const route: string =
+      (
+        {
+          [PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES]: moduleURLBuilder('db'),
+          [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]:
+            moduleURLBuilder('resource'),
+          [PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS]:
+            moduleURLBuilder('http'),
+          [PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS]:
+            moduleURLBuilder('cache'),
+        } as any
+      )[props.chartSetting] ?? '';
 
     return [
       PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES,
@@ -803,7 +863,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     ].includes(props.chartSetting) ? (
       <Fragment>
         <div>
-          <LinkButton to={`/${route}/`} size="sm">
+          <LinkButton to={`${route}/`} size="sm">
             {t('View All')}
           </LinkButton>
         </div>
@@ -840,3 +900,43 @@ const EventsRequest = withApi(_EventsRequest);
 const StyledTextOverflow = styled(TextOverflow)`
   flex: 1;
 `;
+
+const removeTransactionFilterForSpanQuery = ({
+  eventView,
+  mutableSearch,
+  useEap,
+}: {
+  eventView: EventView;
+  useEap: boolean;
+  mutableSearch?: MutableSearch;
+}) => {
+  if (useEap) {
+    eventView.additionalConditions.removeFilter('is_transaction');
+    mutableSearch?.removeFilter('is_transaction');
+  } else {
+    eventView.additionalConditions.removeFilter('event.type');
+    mutableSearch?.removeFilter('event.type');
+  }
+};
+
+const removeTransactionOpFilter = ({
+  eventView,
+  mutableSearch,
+  useEap,
+}: {
+  eventView: EventView;
+  useEap: boolean;
+  mutableSearch?: MutableSearch;
+}) => {
+  if (useEap) {
+    eventView.additionalConditions.removeFilter('span.op');
+    eventView.additionalConditions.removeFilter('!span.op');
+    mutableSearch?.removeFilter('span.op');
+    mutableSearch?.removeFilter('!span.op');
+  } else {
+    eventView.additionalConditions.removeFilter('transaction.op');
+    eventView.additionalConditions.removeFilter('!transaction.op');
+    mutableSearch?.removeFilter('transaction.op');
+    mutableSearch?.removeFilter('!transaction.op');
+  }
+};

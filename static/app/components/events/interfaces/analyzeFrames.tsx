@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
+import {ExternalLink} from 'sentry/components/core/link';
 import {
   getMappedThreadState,
   ThreadStates,
 } from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import {getCurrentThread} from 'sentry/components/events/interfaces/utils';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import type {EntryException, Event, Frame, Lock, Thread} from 'sentry/types';
+import type {EntryException, Event, Frame, Lock, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
@@ -15,7 +15,7 @@ type SuspectFrame = {
   module: string | RegExp;
   resources: React.ReactNode;
   exceptionMessage?: string;
-  functions?: (string | RegExp)[];
+  functions?: Array<string | RegExp>;
   offendingThreadStates?: ThreadStates[];
 };
 
@@ -170,12 +170,11 @@ function satisfiesFunctionCondition(frame: Frame, suspect: SuspectFrame) {
   if (frame.function === null || frame.function === undefined) {
     return false;
   }
-  for (let index = 0; index < suspect.functions.length; index++) {
-    const matchFuction = suspect.functions[index];
+  for (const matchFunction of suspect.functions) {
     const match =
-      typeof matchFuction === 'string'
-        ? frame.function === matchFuction
-        : matchFuction.test(frame.function);
+      typeof matchFunction === 'string'
+        ? frame.function === matchFunction
+        : matchFunction.test(frame.function);
     if (match) {
       return true;
     }
@@ -219,7 +218,7 @@ export function analyzeFramesForRootCause(event: Event): {
 
   // iterating the frames in reverse order, because the topmost frames most like the root cause
   for (let index = exceptionFrames.length - 1; index >= 0; index--) {
-    const frame = exceptionFrames[index];
+    const frame = exceptionFrames[index]!;
     const rootCause = analyzeFrameForRootCause(frame, currentThread);
     if (defined(rootCause)) {
       return rootCause;
@@ -298,5 +297,5 @@ export function analyzeFrameForRootCause(
 }
 
 const Bold = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;

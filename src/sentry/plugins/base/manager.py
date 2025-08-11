@@ -22,16 +22,13 @@ class PluginManager(InstanceManager):
         return sum(1 for i in self.all())
 
     @overload
-    def all(self) -> Generator[Plugin]:
-        ...
+    def all(self) -> Generator[Plugin]: ...
 
     @overload
-    def all(self, *, version: Literal[2]) -> Generator[Plugin2]:
-        ...
+    def all(self, *, version: Literal[2]) -> Generator[Plugin2]: ...
 
     @overload
-    def all(self, *, version: None) -> Generator[Plugin | Plugin2]:
-        ...
+    def all(self, *, version: None) -> Generator[Plugin | Plugin2]: ...
 
     def all(self, version: int | None = 1) -> Generator[Plugin | Plugin2]:
         for plugin in sorted(super().all(), key=lambda x: x.get_title()):
@@ -58,15 +55,9 @@ class PluginManager(InstanceManager):
                 return True
         return False
 
-    def for_project(self, project, version=1):
+    def for_project(self, project, version=1) -> Generator[Plugin | Plugin2]:
         for plugin in self.all(version=version):
             if not safe_execute(plugin.is_enabled, project):
-                continue
-            yield plugin
-
-    def for_site(self, version=1):
-        for plugin in self.all(version=version):
-            if not plugin.has_site_conf():
                 continue
             yield plugin
 

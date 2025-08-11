@@ -12,12 +12,11 @@ import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
-import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
-import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
-import {SpanMetricsField} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
@@ -46,40 +45,27 @@ export function EventSamples({
   const {primaryRelease} = useReleaseSelection();
   const cursor = decodeScalar(location.query?.[cursorName]);
 
-  const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
-
-  const deviceClass = decodeScalar(location.query[SpanMetricsField.DEVICE_CLASS]) ?? '';
+  const deviceClass = decodeScalar(location.query[SpanFields.DEVICE_CLASS]) ?? '';
   const startType =
-    decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
+    decodeScalar(location.query[SpanFields.APP_START_TYPE]) ?? COLD_START_TYPE;
 
   const searchQuery = new MutableSearch([
     `transaction:${transaction}`,
     `release:${release}`,
-    startType
-      ? `${SpanMetricsField.SPAN_OP}:${
-          startType === COLD_START_TYPE ? 'app.start.cold' : 'app.start.warm'
-        }`
-      : 'span.op:[app.start.cold,app.start.warm]',
-    '(',
-    'span.description:"Cold Start"',
-    'OR',
-    'span.description:"Warm Start"',
-    ')',
-    ...(deviceClass ? [`${SpanMetricsField.DEVICE_CLASS}:${deviceClass}`] : []),
-    // TODO: Add this back in once we have the ability to filter by start type
-    // `${SpanMetricsField.APP_START_TYPE}:${
-    //   startType || `[${COLD_START_TYPE},${WARM_START_TYPE}]`
-    // }`,
+    ...(startType ? [`${SpanFields.APP_START_TYPE}:${startType}`] : []),
+    ...(deviceClass ? [`${SpanFields.DEVICE_CLASS}:${deviceClass}`] : []),
   ]);
 
-  if (isProjectCrossPlatform) {
-    searchQuery.addFilterValue('os.name', selectedPlatform);
-  }
+  // TODO: Add this back in once os.name is available in the spansIndexed dataset
+  // const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
+  // if (isProjectCrossPlatform) {
+  //   searchQuery.addFilterValue('os.name', selectedPlatform);
+  // }
 
   const sort = decodeSorts(location.query[sortKey])[0] ?? DEFAULT_SORT;
 
   const columnNameMap = {
-    'transaction.id': t(
+    'transaction.span_id': t(
       'Event ID (%s)',
       release === primaryRelease ? PRIMARY_RELEASE_ALIAS : SECONDARY_RELEASE_ALIAS
     ),
@@ -89,9 +75,16 @@ export function EventSamples({
 
   const newQuery: NewQuery = {
     name: '',
-    fields: ['trace', 'transaction.id', 'project.name', 'profile_id', 'span.duration'],
+    fields: [
+      'trace',
+      'timestamp',
+      'transaction.span_id',
+      'project.name',
+      'profile_id',
+      'span.duration',
+    ],
     query: searchQuery.formatString(),
-    dataset: DiscoverDatasets.SPANS_INDEXED,
+    dataset: DiscoverDatasets.SPANS,
     version: 2,
     projects: selection.projects,
   };
@@ -99,24 +92,35 @@ export function EventSamples({
   const eventView = EventView.fromNewQueryWithLocation(newQuery, location);
   eventView.sorts = [sort];
 
-  const {data, isLoading, pageLinks} = useTableQuery({
-    eventView,
-    enabled: defined(release),
-    limit: 4,
-    cursor,
-    referrer: 'api.starfish.mobile-startup-event-samples',
-    initialData: {data: []},
-  });
+  const {data, meta, isPending, pageLinks} = useSpans(
+    {
+      search: searchQuery.formatString(),
+      cursor,
+      limit: 4,
+      enabled: defined(release),
+      fields: [
+        SpanFields.ID,
+        SpanFields.TRACE,
+        SpanFields.TIMESTAMP,
+        SpanFields.TRANSACTION,
+        SpanFields.TRANSACTION_SPAN_ID,
+        SpanFields.PROJECT,
+        SpanFields.PROFILE_ID,
+        SpanFields.SPAN_DURATION,
+      ],
+    },
+    'api.starfish.mobile-startup-event-samples'
+  );
 
   return (
     <EventSamplesTable
       cursorName={cursorName}
-      eventIdKey="transaction.id"
+      eventIdKey={SpanFields.TRANSACTION_SPAN_ID}
       eventView={eventView}
-      isLoading={defined(release) && isLoading}
+      isLoading={defined(release) && isPending}
       profileIdKey="profile_id"
       sortKey={sortKey}
-      data={data}
+      data={{data, meta}}
       pageLinks={pageLinks}
       showDeviceClassSelector={showDeviceClassSelector}
       columnNameMap={columnNameMap}

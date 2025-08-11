@@ -8,16 +8,14 @@ import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import type {OrganizationSummary} from 'sentry/types';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {getAggregateArg, getMeasurementSlug} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
-
-import type {ViewProps} from '../../../types';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import type {ViewProps} from 'sentry/views/performance/types';
 
 import Content from './content';
 
@@ -40,8 +38,8 @@ function VitalsChart({
   end: propsEnd,
   queryExtras,
 }: Props) {
+  const navigate = useNavigate();
   const location = useLocation();
-  const router = useRouter();
   const api = useApi();
   const theme = useTheme();
 
@@ -60,7 +58,7 @@ function VitalsChart({
         unselectedSeries: unselected,
       },
     };
-    browserHistory.push(to);
+    navigate(to);
   };
 
   const vitals = [WebVital.FCP, WebVital.LCP, WebVital.FID, WebVital.CLS];
@@ -89,7 +87,6 @@ function VitalsChart({
 
   const contentCommonProps = {
     theme,
-    router,
     start,
     end,
     utc,

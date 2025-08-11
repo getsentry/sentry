@@ -1,30 +1,31 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import SearchBar from 'sentry/components/events/searchBar';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {ExternalLink} from 'sentry/components/core/link';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {WebVital} from 'sentry/utils/fields';
 import Histogram from 'sentry/utils/performance/histogram';
 import {FILTER_OPTIONS} from 'sentry/utils/performance/histogram/constants';
 import VitalsCardsDiscoverQuery from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
-import {VITAL_GROUPS, ZOOM_KEYS} from './constants';
+import {makeVitalGroups, makeZoomKeys} from './constants';
 import {isMissingVitalsData} from './utils';
 import VitalsPanel from './vitalsPanel';
 
@@ -36,29 +37,32 @@ type Props = {
 
 function VitalsContent(props: Props) {
   const {location, organization, eventView} = props;
+  const theme = useTheme();
+  const navigate = useNavigate();
   const query = decodeScalar(location.query.query, '');
-
   const handleSearch = (newQuery: string) => {
     const queryParams = normalizeDateTimeParams({
-      ...(location.query || {}),
+      ...location.query,
       query: newQuery,
     });
 
     // do not propagate pagination when making a new search
     delete queryParams.cursor;
 
-    browserHistory.push({
+    navigate({
       pathname: location.pathname,
       query: queryParams,
     });
   };
 
-  const allVitals = VITAL_GROUPS.reduce((keys: WebVital[], {vitals}) => {
+  const allVitals = makeVitalGroups(theme).reduce((keys: WebVital[], {vitals}) => {
     return keys.concat(vitals);
   }, []);
 
+  const zoomKeys = useMemo(() => makeZoomKeys(), []);
+
   return (
-    <Histogram location={location} zoomKeys={ZOOM_KEYS}>
+    <Histogram location={location} zoomKeys={zoomKeys}>
       {({activeFilter, handleFilterChange, handleResetView, isZoomed}) => (
         <Layout.Main fullWidth>
           <VitalsCardsDiscoverQuery
@@ -74,31 +78,34 @@ function VitalsContent(props: Props) {
               return (
                 <Fragment>
                   {shouldDisplayMissingVitalsAlert && (
-                    <Alert type="info" showIcon>
-                      {tct(
-                        'If this page is looking a little bare, keep in mind not all browsers support these vitals. [link]',
-                        {
-                          link: (
-                            <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#browser-support">
-                              {t('Read more about browser support.')}
-                            </ExternalLink>
-                          ),
-                        }
-                      )}
-                    </Alert>
+                    <Alert.Container>
+                      <Alert type="info">
+                        {tct(
+                          'If this page is looking a little bare, keep in mind not all browsers support these vitals. [link]',
+                          {
+                            link: (
+                              <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#browser-support">
+                                {t('Read more about browser support.')}
+                              </ExternalLink>
+                            ),
+                          }
+                        )}
+                      </Alert>
+                    </Alert.Container>
                   )}
                   <FilterActions>
                     <PageFilterBar condensed>
                       <EnvironmentPageFilter />
                       <DatePageFilter />
                     </PageFilterBar>
-                    <StyledSearchBar
-                      organization={organization}
-                      projectIds={eventView.project}
-                      query={query}
-                      fields={eventView.fields}
-                      onSearch={handleSearch}
-                    />
+                    <StyledSearchBarWrapper>
+                      <TransactionSearchQueryBuilder
+                        projects={eventView.project}
+                        initialQuery={query}
+                        onSearch={handleSearch}
+                        searchSource="transaction_events"
+                      />
+                    </StyledSearchBarWrapper>
                     <CompactSelect
                       value={activeFilter.value}
                       options={FILTER_OPTIONS}
@@ -127,6 +134,7 @@ function VitalsContent(props: Props) {
                     </Button>
                   </FilterActions>
                   <VitalsPanel
+                    theme={theme}
                     organization={organization}
                     location={location}
                     eventView={eventView}
@@ -148,22 +156,22 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(3, min-content);
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     grid-template-columns: auto 1fr auto auto;
   }
 `;
 
-const StyledSearchBar = styled(SearchBar)`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+const StyledSearchBarWrapper = styled('div')`
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     order: 1;
-    grid-column: 1/5;
+    grid-column: 1/6;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     order: initial;
     grid-column: auto;
   }

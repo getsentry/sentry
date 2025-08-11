@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from django.contrib.auth import REDIRECT_FIELD_NAME
+from django.http.request import HttpRequest
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.exceptions import APIException
 
-from sentry.app import env
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.utils.auth import construct_link_with_query
@@ -50,16 +50,6 @@ class ParameterValidationError(SentryAPIException):
         super().__init__(message=message, context=".".join(context or []))
 
 
-class ProjectMoved(SentryAPIException):
-    status_code = status.HTTP_302_FOUND
-    # code/message currently don't get used
-    code = "resource-moved"
-    message = "Resource has been moved"
-
-    def __init__(self, new_url, slug):
-        super().__init__(url=new_url, slug=slug)
-
-
 class SsoRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "sso-required"
@@ -68,11 +58,11 @@ class SsoRequired(SentryAPIException):
     def __init__(
         self,
         organization: Organization | RpcOrganization,
+        request: HttpRequest,
         after_login_redirect=None,
     ):
         login_url = reverse("sentry-auth-organization", args=[organization.slug])
-        request = env.request
-        if request and is_using_customer_domain(request):
+        if is_using_customer_domain(request):
             login_url = organization.absolute_url(path=login_url)
 
         if after_login_redirect:
@@ -119,10 +109,10 @@ class SudoRequired(SentryAPIException):
         super().__init__(username=user.username)
 
 
-class EmailVerificationRequired(SentryAPIException):
+class PrimaryEmailVerificationRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
-    code = "email-verification-required"
-    message = "Email verification required."
+    code = "primary-email-verification-required"
+    message = "Primary email verification required."
 
     def __init__(self, user):
         super().__init__(username=user.username)

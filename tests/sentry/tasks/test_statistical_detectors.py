@@ -125,7 +125,7 @@ def test_run_detection_options(
     if expected_performance_project:
         assert detect_transaction_trends.apply_async.called
         detect_transaction_trends.apply_async.assert_has_calls(
-            [mock.call(args=[[], [project.id], timestamp], countdown=0)]
+            [mock.call(args=[[], [project.id], timestamp.isoformat()], countdown=0)]
         )
     else:
         assert not detect_transaction_trends.apply_async.called
@@ -133,7 +133,7 @@ def test_run_detection_options(
     if expected_profiling_project:
         assert detect_function_trends.apply_async.called
         detect_function_trends.apply_async.assert_has_calls(
-            [mock.call(args=[[project.id], timestamp], countdown=0)]
+            [mock.call(args=[[project.id], timestamp.isoformat()], countdown=0)]
         )
     else:
         assert not detect_function_trends.apply_async.called
@@ -173,7 +173,7 @@ def test_run_detection_options_multiple_batches(
                 args=[
                     [],
                     [project.id for project in projects[i : i + 5]],
-                    timestamp,
+                    timestamp.isoformat(),
                 ],
                 countdown=countdown,
             )
@@ -184,7 +184,7 @@ def test_run_detection_options_multiple_batches(
     detect_function_trends.apply_async.assert_has_calls(
         [
             mock.call(
-                args=[[project.id for project in projects[i : i + 5]], timestamp],
+                args=[[project.id for project in projects[i : i + 5]], timestamp.isoformat()],
                 countdown=countdown,
             )
             for i, countdown in zip(range(0, len(projects), 5), itertools.count(start=0, step=17))
@@ -221,7 +221,7 @@ def test_detect_transaction_trends_options(
     }
 
     with override_options(options):
-        detect_transaction_trends([project.organization_id], [project.id], timestamp)
+        detect_transaction_trends([project.organization_id], [project.id], timestamp.isoformat())
     assert query_transactions.called == (task_enabled and option_enabled)
 
 
@@ -254,19 +254,41 @@ def test_detect_function_trends_options(
     }
 
     with override_options(options):
-        detect_function_trends([project.id], timestamp)
+        detect_function_trends([project.id], timestamp.isoformat())
     assert query_functions.called == (task_enabled and option_enabled)
 
 
-@mock.patch("sentry.snuba.functions.query")
+@mock.patch("sentry.tasks.statistical_detectors.query_functions")
 @django_db_all
-def test_detect_function_trends_query_timerange(functions_query, timestamp, project):
+def test_detect_function_trends_options_with_str(
+    query_functions,
+    timestamp,
+    project,
+):
+    ProjectOption.objects.set_value(
+        project=project,
+        key="sentry:performance_issue_settings",
+        value={InternalProjectOptions.FUNCTION_DURATION_REGRESSION.value: True},
+    )
+
     options = {
         "statistical_detectors.enable": True,
     }
 
     with override_options(options):
-        detect_function_trends([project.id], timestamp)
+        detect_function_trends([project.id], timestamp.isoformat())
+    assert query_functions.called == (True and True)
+
+
+@mock.patch("sentry.snuba.functions.query")
+@django_db_all
+def test_detect_function_trends_query_timerange(functions_query, timestamp, project) -> None:
+    options = {
+        "statistical_detectors.enable": True,
+    }
+
+    with override_options(options):
+        detect_function_trends([project.id], timestamp.isoformat())
 
     assert functions_query.called
     params = functions_query.mock_calls[0].kwargs["snuba_params"]
@@ -274,6 +296,10 @@ def test_detect_function_trends_query_timerange(functions_query, timestamp, proj
     assert params.end == datetime(2023, 8, 1, 11, 1, tzinfo=UTC)
 
 
+@pytest.mark.parametrize(
+    ["count", "should_emit"],
+    [(100, True), (10, False)],
+)
 @mock.patch("sentry.tasks.statistical_detectors.query_transactions")
 @mock.patch("sentry.tasks.statistical_detectors.detect_transaction_change_points")
 @django_db_all
@@ -282,6 +308,8 @@ def test_detect_transaction_trends(
     query_transactions,
     timestamp,
     project,
+    count,
+    should_emit,
 ):
     n = 50
     timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
@@ -292,7 +320,7 @@ def test_detect_transaction_trends(
                 project_id=project.id,
                 group="/123",
                 fingerprint="/123",
-                count=100,
+                count=count,
                 value=100 if i < n / 2 else 300,
                 timestamp=ts,
             ),
@@ -306,8 +334,12 @@ def test_detect_transaction_trends(
 
     with override_options(options):
         for ts in timestamps:
-            detect_transaction_trends([project.organization.id], [project.id], ts)
-    assert detect_transaction_change_points.apply_async.called
+            detect_transaction_trends([project.organization.id], [project.id], ts.isoformat())
+
+    if should_emit:
+        assert detect_transaction_change_points.apply_async.called
+    else:
+        assert not detect_transaction_change_points.apply_async.called
 
 
 @mock.patch("sentry.issues.status_change_message.uuid4", return_value=uuid.UUID(int=0))
@@ -347,7 +379,7 @@ def test_detect_transaction_trends_auto_resolution(
 
     with override_options(options):
         for ts in timestamps[:50]:
-            detect_transaction_trends([project.organization.id], [project.id], ts)
+            detect_transaction_trends([project.organization.id], [project.id], ts.isoformat())
 
     assert detect_transaction_change_points.apply_async.called
 
@@ -363,7 +395,7 @@ def test_detect_transaction_trends_auto_resolution(
             regressed=300,
         )
         for ts in timestamps[50:]:
-            detect_transaction_trends([project.organization.id], [project.id], ts)
+            detect_transaction_trends([project.organization.id], [project.id], ts.isoformat())
 
     status_change = StatusChangeMessage(
         fingerprint=[generate_fingerprint(RegressionType.ENDPOINT, "/123")],
@@ -432,7 +464,7 @@ def test_detect_transaction_trends_ratelimit(
 
     with override_options(options):
         for ts in timestamps:
-            detect_transaction_trends([project.organization.id], [project.id], ts)
+            detect_transaction_trends([project.organization.id], [project.id], ts.isoformat())
 
     if expected_calls > 0:
         assert detect_transaction_change_points.apply_async.call_count == 1
@@ -470,7 +502,7 @@ def test_detect_transaction_trends_ratelimit(
         pytest.param(3, 4, id="three per project"),
     ],
 )
-def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expected_idx):
+def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expected_idx) -> None:
     payloads = {
         (project_id, group): DetectorPayload(
             project_id=project_id,
@@ -675,7 +707,7 @@ def test_get_regression_versions_active(
         "evidence_data": {},
         "evidence_display": [],
         "type": issue_type.type_id,
-        "detection_time": timestamp.isoformat(),
+        "detection_time": timestamp,
         "level": "info",
         "culprit": "",
         "payload_type": PayloadType.OCCURRENCE.value,
@@ -725,6 +757,10 @@ def test_get_regression_versions_active(
         assert regressions == []
 
 
+@pytest.mark.parametrize(
+    ["count", "should_emit"],
+    [(100, True), (10, False)],
+)
 @mock.patch("sentry.tasks.statistical_detectors.query_functions")
 @mock.patch("sentry.tasks.statistical_detectors.detect_function_change_points")
 @django_db_all
@@ -733,6 +769,8 @@ def test_detect_function_trends(
     query_functions,
     timestamp,
     project,
+    count,
+    should_emit,
 ):
     n = 50
     timestamps = [timestamp - timedelta(hours=n - i) for i in range(n)]
@@ -743,7 +781,7 @@ def test_detect_function_trends(
                 project_id=project.id,
                 group=123,
                 fingerprint=f"{123:x}",
-                count=100,
+                count=count,
                 value=100 if i < n / 2 else 300,
                 timestamp=ts,
             ),
@@ -757,8 +795,12 @@ def test_detect_function_trends(
 
     with override_options(options):
         for ts in timestamps:
-            detect_function_trends([project.id], ts)
-    assert detect_function_change_points.apply_async.called
+            detect_function_trends([project.id], ts.isoformat())
+
+    if should_emit:
+        assert detect_function_change_points.apply_async.called
+    else:
+        assert not detect_function_change_points.apply_async.called
 
 
 @mock.patch("sentry.tasks.statistical_detectors.functions.query")
@@ -796,7 +838,7 @@ def test_detect_function_trends_auto_resolution(
 
     with override_options(options):
         for ts in timestamps[:50]:
-            detect_function_trends([project.id], ts)
+            detect_function_trends([project.id], ts.isoformat())
 
     assert detect_function_change_points.apply_async.called
 
@@ -812,7 +854,7 @@ def test_detect_function_trends_auto_resolution(
             regressed=300,
         )
         for ts in timestamps[50:]:
-            detect_function_trends([project.id], ts)
+            detect_function_trends([project.id], ts.isoformat())
 
     assert produce_occurrence_to_kafka.called
 
@@ -872,7 +914,7 @@ def test_detect_function_trends_ratelimit(
 
     with override_options(options):
         for ts in timestamps:
-            detect_function_trends([project.id], ts)
+            detect_function_trends([project.id], ts.isoformat())
 
     if expected_calls > 0:
         assert detect_function_change_points.apply_async.call_count == 1
@@ -948,7 +990,8 @@ def test_detect_function_change_points(
     }
 
     with override_options(options):
-        detect_function_change_points([(project.id, fingerprint)], timestamp)
+        detect_function_change_points([(project.id, fingerprint)], timestamp.isoformat())
+
     assert mock_emit_function_regression_issue.called
 
 
@@ -1300,7 +1343,7 @@ def test_redirect_escalations(
 
 
 class FunctionsTasksTest(ProfilesSnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.now = before_now(minutes=10)
@@ -1310,11 +1353,14 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
             self.create_project(organization=self.organization, teams=[self.team], name="Bar"),
         ]
 
+        self.transaction_functions = []
+        self.continuous_functions = []
+
         for project in self.projects:
-            self.store_functions(
+            stored = self.store_functions(
                 [
                     {
-                        "self_times_ns": [100 for _ in range(100)],
+                        "self_times_ns": [100_000_000 for _ in range(10)],
                         "package": "foo",
                         "function": "foo",
                         # only in app functions should
@@ -1323,17 +1369,17 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
                     },
                     {
                         # this function has a lower count, so `foo` is prioritized
-                        "self_times_ns": [100 for _ in range(10)],
-                        "package": "bar",
-                        "function": "bar",
+                        "self_times_ns": [200_000_000 for _ in range(20)],
+                        "package": "baz",
+                        "function": "baz",
                         # only in app functions should
                         # appear in the results
                         "in_app": True,
                     },
                     {
-                        "self_times_ns": [200 for _ in range(100)],
-                        "package": "baz",
-                        "function": "quz",
+                        "self_times_ns": [300_000_000 for _ in range(30)],
+                        "package": "qux",
+                        "function": "qux",
                         # non in app functions should not
                         # appear in the results
                         "in_app": False,
@@ -1342,36 +1388,75 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
                 project=project,
                 timestamp=self.hour_ago,
             )
+            self.transaction_functions.append(stored)
+
+            stored = self.store_functions_chunk(
+                [
+                    {
+                        "self_times_ns": [100_000_000 for _ in range(10)],
+                        "package": "bar",
+                        "function": "bar",
+                        "thread_id": "1",
+                        # only in app functions should
+                        # appear in the results
+                        "in_app": True,
+                    },
+                    {
+                        "self_times_ns": [200_000_000 for _ in range(20)],
+                        "package": "baz",
+                        "function": "baz",
+                        "thread_id": "2",
+                        # only in app functions should
+                        # appear in the results
+                        "in_app": True,
+                    },
+                    {
+                        "self_times_ns": [300_000_000 for _ in range(30)],
+                        "package": "qux",
+                        "function": "qux",
+                        "thread_id": "3",
+                        # non in app functions should not
+                        # appear in the results
+                        "in_app": False,
+                    },
+                ],
+                project=project,
+                timestamp=self.hour_ago,
+            )
+            self.continuous_functions.append(stored)
 
     @mock.patch("sentry.tasks.statistical_detectors.FUNCTIONS_PER_PROJECT", 1)
-    def test_functions_query(self):
+    def test_functions_query(self) -> None:
         results = query_functions(self.projects, self.now)
-        fingerprint = self.function_fingerprint({"package": "foo", "function": "foo"})
+        fingerprint = self.function_fingerprint({"package": "baz", "function": "baz"})
         assert results == [
             DetectorPayload(
                 project_id=project.id,
                 group=fingerprint,
                 fingerprint=f"{fingerprint:x}",
-                count=100,
-                value=pytest.approx(100),  # type: ignore[arg-type]
+                count=40,
+                value=pytest.approx(200_000_000),  # type: ignore[arg-type]
                 timestamp=self.hour_ago,
             )
             for project in self.projects
         ]
 
     @mock.patch("sentry.tasks.statistical_detectors.get_from_profiling_service")
-    def test_emit_function_regression_issue(self, mock_get_from_profiling_service):
+    def test_emit_function_regression_issue_transaction_function(
+        self, mock_get_from_profiling_service
+    ):
         mock_value = mock.MagicMock()
         mock_value.status = 200
-        mock_value.data = b'{"occurrences":5}'
+        mock_value.data = b'{"occurrences":2}'
         mock_get_from_profiling_service.return_value = mock_value
+
+        fingerprint = self.function_fingerprint({"package": "foo", "function": "foo"})
+        breakpoint = int((self.hour_ago - timedelta(hours=12)).timestamp())
 
         regressions: list[BreakpointData] = [
             {
                 "project": str(project.id),
-                "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "foo"})
-                ),
+                "transaction": str(fingerprint),
                 "aggregate_range_1": 100_000_000,
                 "aggregate_range_2": 200_000_000,
                 "unweighted_t_value": 1.23,
@@ -1379,35 +1464,212 @@ class FunctionsTasksTest(ProfilesSnubaTestCase):
                 "trend_percentage": 1.23,
                 "absolute_percentage_change": 1.23,
                 "trend_difference": 1.23,
-                "breakpoint": int((self.hour_ago - timedelta(hours=12)).timestamp()),
+                "breakpoint": breakpoint,
             }
             for project in self.projects
         ]
-        emitted = emit_function_regression_issue(
+        emit_function_regression_issue(
             {project.id: project for project in self.projects}, regressions, self.now
         )
-        assert emitted == 5
+
+        def get_example(stored):
+            return {
+                "profile_id": stored["transaction"]["contexts"]["profile"]["profile_id"],
+            }
+
+        mock_get_from_profiling_service.assert_has_calls(
+            [
+                mock.call(
+                    method="POST",
+                    path="/regressed",
+                    json_data=[
+                        {
+                            "organization_id": self.organization.id,
+                            "project_id": project.id,
+                            "example": get_example(stored),
+                            "fingerprint": fingerprint,
+                            "absolute_percentage_change": 1.23,
+                            "aggregate_range_1": 100_000_000,
+                            "aggregate_range_2": 200_000_000,
+                            "breakpoint": breakpoint,
+                            "trend_difference": 1.23,
+                            "trend_percentage": 1.23,
+                            "unweighted_p_value": 1.23,
+                            "unweighted_t_value": 1.23,
+                        }
+                        for project, stored in zip(self.projects, self.transaction_functions)
+                    ],
+                )
+            ],
+        )
+
+    @mock.patch("sentry.tasks.statistical_detectors.get_from_profiling_service")
+    @mock.patch("sentry.tasks.statistical_detectors.raw_snql_query")
+    def test_emit_function_regression_issue_continuous_function(
+        self,
+        mock_raw_snql_query,
+        mock_get_from_profiling_service,
+    ):
+        mock_raw_snql_query.return_value = {
+            "data": [
+                {
+                    "project_id": project.id,
+                    "profiler_id": stored["profiler_id"],
+                    "chunk_id": stored["chunk_id"],
+                    "start_timestamp": self.hour_ago.isoformat(),
+                    "end_timestamp": (self.hour_ago + timedelta(microseconds=300_000)).isoformat(),
+                }
+                for project, stored in zip(
+                    self.projects,
+                    self.continuous_functions,
+                )
+            ],
+        }
+
+        mock_value = mock.MagicMock()
+        mock_value.status = 200
+        mock_value.data = b'{"occurrences":2}'
+        mock_get_from_profiling_service.return_value = mock_value
+
+        fingerprint = self.function_fingerprint({"package": "bar", "function": "bar"})
+        breakpoint = int((self.hour_ago - timedelta(hours=12)).timestamp())
+
+        regressions: list[BreakpointData] = [
+            {
+                "project": str(project.id),
+                "transaction": str(fingerprint),
+                "aggregate_range_1": 100_000_000,
+                "aggregate_range_2": 200_000_000,
+                "unweighted_t_value": 1.23,
+                "unweighted_p_value": 1.23,
+                "trend_percentage": 1.23,
+                "absolute_percentage_change": 1.23,
+                "trend_difference": 1.23,
+                "breakpoint": breakpoint,
+            }
+            for project in self.projects
+        ]
+        emit_function_regression_issue(
+            {project.id: project for project in self.projects}, regressions, self.now
+        )
+
+        def get_example(stored):
+            return {
+                "profiler_id": stored["profiler_id"],
+                "thread_id": "1",
+                "start": self.hour_ago.timestamp(),
+                "end": (self.hour_ago + timedelta(microseconds=300_000)).timestamp(),
+                "chunk_id": stored["chunk_id"],
+            }
+
+        mock_get_from_profiling_service.assert_has_calls(
+            [
+                mock.call(
+                    method="POST",
+                    path="/regressed",
+                    json_data=[
+                        {
+                            "organization_id": self.organization.id,
+                            "project_id": project.id,
+                            "example": get_example(stored),
+                            "fingerprint": fingerprint,
+                            "absolute_percentage_change": 1.23,
+                            "aggregate_range_1": 100_000_000,
+                            "aggregate_range_2": 200_000_000,
+                            "breakpoint": breakpoint,
+                            "trend_difference": 1.23,
+                            "trend_percentage": 1.23,
+                            "unweighted_p_value": 1.23,
+                            "unweighted_t_value": 1.23,
+                        }
+                        for project, stored in zip(self.projects, self.continuous_functions)
+                    ],
+                )
+            ],
+        )
+
+    @mock.patch("sentry.tasks.statistical_detectors.get_from_profiling_service")
+    def test_emit_function_regression_issue_mixed(
+        self, mock_get_from_profiling_service: mock.MagicMock
+    ) -> None:
+        mock_value = mock.MagicMock()
+        mock_value.status = 200
+        mock_value.data = b'{"occurrences":2}'
+        mock_get_from_profiling_service.return_value = mock_value
+
+        fingerprint = self.function_fingerprint({"package": "foo", "function": "foo"})
+        breakpoint = int((self.hour_ago - timedelta(hours=12)).timestamp())
+
+        regressions: list[BreakpointData] = [
+            {
+                "project": str(project.id),
+                "transaction": str(fingerprint),
+                "aggregate_range_1": 100_000_000,
+                "aggregate_range_2": 200_000_000,
+                "unweighted_t_value": 1.23,
+                "unweighted_p_value": 1.23,
+                "trend_percentage": 1.23,
+                "absolute_percentage_change": 1.23,
+                "trend_difference": 1.23,
+                "breakpoint": breakpoint,
+            }
+            for project in self.projects
+        ]
+        emit_function_regression_issue(
+            {project.id: project for project in self.projects}, regressions, self.now
+        )
+
+        def get_example(stored):
+            # when the 2 modes are mixed, we try to prefer transaction based profiles
+            return {
+                "profile_id": stored["transaction"]["contexts"]["profile"]["profile_id"],
+            }
+
+        mock_get_from_profiling_service.assert_has_calls(
+            [
+                mock.call(
+                    method="POST",
+                    path="/regressed",
+                    json_data=[
+                        {
+                            "organization_id": self.organization.id,
+                            "project_id": project.id,
+                            "example": get_example(stored),
+                            "fingerprint": fingerprint,
+                            "absolute_percentage_change": 1.23,
+                            "aggregate_range_1": 100_000_000,
+                            "aggregate_range_2": 200_000_000,
+                            "breakpoint": breakpoint,
+                            "trend_difference": 1.23,
+                            "trend_percentage": 1.23,
+                            "unweighted_p_value": 1.23,
+                            "unweighted_t_value": 1.23,
+                        }
+                        for project, stored in zip(self.projects, self.transaction_functions)
+                    ],
+                )
+            ],
+        )
 
 
 @pytest.mark.sentry_metrics
 class TestTransactionsQuery(MetricsAPIBaseTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.num_projects = 2
         self.num_transactions = 4
 
         self.hour_ago = (self.now - timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
         self.hour_ago_seconds = int(self.hour_ago.timestamp())
-        self.org = self.create_organization(owner=self.user)
         self.projects = [
-            self.create_project(organization=self.org) for _ in range(self.num_projects)
+            self.create_project(organization=self.organization) for _ in range(self.num_projects)
         ]
 
         for project in self.projects:
             for i in range(self.num_transactions):
                 # Store metrics for a backend transaction
                 self.store_metric(
-                    self.org.id,
+                    self.organization.id,
                     project.id,
                     TransactionMRI.DURATION.value,
                     {"transaction": f"transaction_{i}", "transaction.op": "http.server"},
@@ -1415,7 +1677,7 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
                     1.0,
                 )
                 self.store_metric(
-                    self.org.id,
+                    self.organization.id,
                     project.id,
                     TransactionMRI.DURATION.value,
                     {"transaction": f"transaction_{i}", "transaction.op": "http.server"},
@@ -1426,7 +1688,7 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
                 # Store metrics for a frontend transaction, which should be
                 # ignored by the query
                 self.store_metric(
-                    self.org.id,
+                    self.organization.id,
                     project.id,
                     TransactionMRI.DURATION.value,
                     {"transaction": f"fe_transaction_{i}", "transaction.op": "navigation"},
@@ -1434,7 +1696,7 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
                     1.0,
                 )
                 self.store_metric(
-                    self.org.id,
+                    self.organization.id,
                     project.id,
                     TransactionMRI.DURATION.value,
                     {"transaction": f"fe_transaction_{i}", "transaction.op": "navigation"},
@@ -1464,21 +1726,20 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
 
 @pytest.mark.sentry_metrics
 class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.num_projects = 2
         self.num_transactions = 4
 
         self.hour_ago = (self.now - timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
         self.hour_ago_seconds = int(self.hour_ago.timestamp())
-        self.org = self.create_organization(owner=self.user)
         self.projects = [
-            self.create_project(organization=self.org) for _ in range(self.num_projects)
+            self.create_project(organization=self.organization) for _ in range(self.num_projects)
         ]
 
         def store_metric(project_id, transaction, minutes_ago, value):
             self.store_metric(
-                self.org.id,
+                self.organization.id,
                 project_id,
                 TransactionMRI.DURATION_LIGHT.value,
                 {"transaction": transaction},
@@ -1659,6 +1920,6 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
                     (self.projects[0].id, "transaction_2"),
                     (self.projects[1].id, "transaction_1"),
                 ],
-                self.now,
+                self.now.isoformat(),
             )
         assert mock_send_regression_to_platform.called

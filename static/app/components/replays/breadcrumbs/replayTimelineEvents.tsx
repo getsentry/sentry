@@ -2,17 +2,16 @@ import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Tooltip} from 'sentry/components/core/tooltip';
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
 import {getFramesByColumn} from 'sentry/components/replays/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {uniq} from 'sentry/utils/array/uniq';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
-import type {Color} from 'sentry/utils/theme';
 
 const NODE_SIZES = [8, 12, 16];
 
@@ -39,7 +38,7 @@ export default function ReplayTimelineEvents({
   return (
     <Timeline.Columns className={className} totalColumns={totalColumns} remainder={0}>
       {Array.from(framesByCol.entries()).map(([column, colFrames]) => (
-        <EventColumn key={column} column={column}>
+        <EventColumn key={column} style={{gridColumn: Math.floor(column)}}>
           <Event
             frames={colFrames}
             markerWidth={markerWidth}
@@ -51,8 +50,9 @@ export default function ReplayTimelineEvents({
   );
 }
 
-const EventColumn = styled(Timeline.Col)<{column: number}>`
-  grid-column: ${p => Math.floor(p.column)};
+const EventColumn = styled(Timeline.Col)`
+  pointer-events: auto;
+
   place-items: stretch;
   display: grid;
   align-items: center;
@@ -62,6 +62,12 @@ const EventColumn = styled(Timeline.Col)<{column: number}>`
     z-index: ${p => p.theme.zIndex.initial};
   }
 `;
+
+type GraphicsKey = keyof Theme['tokens']['graphics'];
+type GraphicsKeyTrio =
+  | [GraphicsKey]
+  | [GraphicsKey, GraphicsKey]
+  | [GraphicsKey, GraphicsKey, GraphicsKey];
 
 function Event({
   frames,
@@ -78,8 +84,9 @@ function Event({
 
   const buttons = frames.map((frame, i) => (
     <BreadcrumbItem
+      allowShowSnippet={false}
       frame={frame}
-      extraction={undefined}
+      showSnippet={false}
       key={i}
       onClick={() => {
         onClickTimestamp(frame);
@@ -89,6 +96,7 @@ function Event({
       onMouseLeave={onMouseLeave}
       startTimestampMs={startTimestampMs}
       onInspectorExpanded={() => {}}
+      onShowSnippet={() => {}}
     />
   ));
   const title = <TooltipWrapper>{buttons}</TooltipWrapper>;
@@ -99,7 +107,7 @@ function Event({
     max-width: 291px !important;
     width: 291px;
 
-    @media screen and (max-width: ${theme.breakpoints.small}) {
+    @media screen and (max-width: ${theme.breakpoints.sm}) {
       max-width: 220px !important;
     }
   `;
@@ -107,26 +115,25 @@ function Event({
   const firstFrame = frames.at(0);
 
   // We want to show the full variety of colors available.
-  const uniqueColors = uniq(frames.map(frame => getFrameDetails(frame).color));
+  const uniqueColorTokens = uniq(
+    frames.map(frame => getFrameDetails(frame).colorGraphicsToken)
+  );
 
   // We just need to stack up to 3 times
-  const frameCount = Math.min(uniqueColors.length, 3);
+  const frameCount = Math.min(uniqueColorTokens.length, 3);
 
   // Sort the frame colors by color priority
-  // Priority order: red300, yellow300, green300, purple300, gray300
-  const sortedUniqueColors = uniqueColors.sort(function (x, y) {
-    const colorOrder: Color[] = [
-      'red300',
-      'yellow300',
-      'green300',
-      'purple300',
-      'gray300',
-    ];
-    function getColorPos(c: Color) {
-      return colorOrder.indexOf(c);
-    }
-    return getColorPos(x) - getColorPos(y);
-  });
+  const colorOrder = [
+    'danger',
+    'warning',
+    'success',
+    'accent',
+    'muted',
+  ] as readonly GraphicsKey[];
+  const getColorPos = (c: GraphicsKey) => colorOrder.indexOf(c);
+  const sortedUniqueColorTokens = uniqueColorTokens
+    .toSorted((x, y) => getColorPos(x) - getColorPos(y))
+    .slice(0, 3) as GraphicsKeyTrio;
 
   return (
     <IconPosition style={{marginLeft: `${markerWidth / 2}px`}}>
@@ -137,7 +144,7 @@ function Event({
         isHoverable
       >
         <IconNode
-          colors={sortedUniqueColors}
+          colorTokens={sortedUniqueColorTokens}
           frameCount={frameCount}
           onClick={() => {
             if (firstFrame) {
@@ -152,21 +159,21 @@ function Event({
 
 const IconPosition = styled('div')`
   position: absolute;
-  transform: translate(-50%);
+  translate: -50% 0;
 `;
 
 const getBackgroundGradient = ({
-  colors,
+  colorTokens,
   frameCount,
   theme,
 }: {
-  colors: Color[];
+  colorTokens: GraphicsKeyTrio;
   frameCount: number;
   theme: Theme;
 }) => {
-  const c0 = theme[colors[0]] ?? colors[0];
-  const c1 = theme[colors[1]] ?? colors[1] ?? c0;
-  const c2 = theme[colors[2]] ?? colors[2] ?? c1;
+  const c0 = theme.tokens.graphics[colorTokens[0]];
+  const c1 = colorTokens[1] ? theme.tokens.graphics[colorTokens[1]] : c0;
+  const c2 = colorTokens[2] ? theme.tokens.graphics[colorTokens[2]] : c1;
 
   if (frameCount === 1) {
     return `background: ${c0};`;
@@ -191,7 +198,10 @@ const getBackgroundGradient = ({
     );`;
 };
 
-const IconNode = styled('button')<{colors: Color[]; frameCount: number}>`
+const IconNode = styled('button')<{
+  colorTokens: GraphicsKeyTrio;
+  frameCount: number;
+}>`
   padding: 0;
   border: none;
   grid-column: 1;

@@ -1,15 +1,29 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, NoReturn
 
 from django.urls import reverse
 
-from sentry.integrations.mixins import IssueBasicMixin
+from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.models.group import Group
-from sentry.models.user import User
-from sentry.shared_integrations.exceptions import ApiError, IntegrationFormError
+from sentry.organizations.services.organization.service import organization_service
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    IntegrationFormError,
+    IntegrationInstallationConfigurationError,
+)
 from sentry.silo.base import all_silo_function
+from sentry.users.models.identity import Identity
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
+from sentry.utils.strings import truncatechars
+
+# Generated based on the response from the Bitbucket API
+# Example: {"type": "error", "error": {"message": "Repository has no issue tracker."}}
+BITBUCKET_HALT_ERROR_CODES = ["Repository has no issue tracker.", "Resource not found"]
+BITBUCKET_MAX_TITLE_LENGTH = 255
+
 
 ISSUE_TYPES = (
     ("bug", "Bug"),
@@ -27,7 +41,7 @@ PRIORITIES = (
 )
 
 
-class BitbucketIssueBasicMixin(IssueBasicMixin):
+class BitbucketIssuesSpec(SourceCodeIssueIntegration):
     def get_issue_url(self, key: str) -> str:
         repo, issue_id = key.split("#")
         return f"https://bitbucket.org/{repo}/issues/{issue_id}"
@@ -37,18 +51,35 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User, **kwargs
+        self, group: Group | None, user: User | RpcUser, **kwargs
     ) -> list[dict[str, Any]]:
         kwargs["link_referrer"] = "bitbucket_integration"
 
-        fields = super().get_create_issue_config(group, user, **kwargs)
-        params = kwargs.pop("params", {})
-        default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
+        if group:
+            fields = super().get_create_issue_config(group, user, **kwargs)
+            org = group.organization
+        else:
+            fields = []
+            org_context = organization_service.get_organization_by_id(
+                id=self.organization_id, include_projects=False, include_teams=False
+            )
+            if not org_context:
+                raise IntegrationFormError({"repo": "Organization not found"})
+            org = org_context.organization
 
-        org = group.organization
+        params = kwargs.pop("params", {})
+        default_repo, repo_choices = self.get_repository_choices(group, params)
+
         autocomplete_url = reverse(
             "sentry-extensions-bitbucket-search", args=[org.slug, self.model.id]
         )
+
+        title_field = next((field for field in fields if field["name"] == "title"), None)
+        if title_field:
+            title_field["maxLength"] = BITBUCKET_MAX_TITLE_LENGTH
+            title_field["default"] = truncatechars(
+                title_field["default"], BITBUCKET_MAX_TITLE_LENGTH
+            )
 
         return [
             {
@@ -80,7 +111,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
 
     def get_link_issue_config(self, group: Group, **kwargs) -> list[dict[str, Any]]:
         params = kwargs.pop("params", {})
-        default_repo, repo_choices = self.get_repository_choices(group, params, **kwargs)
+        default_repo, repo_choices = self.get_repository_choices(group, params)
 
         org = group.organization
         autocomplete_url = reverse(
@@ -117,6 +148,12 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
                 ),
             },
         ]
+
+    def raise_error(self, exc: Exception, identity: Identity | None = None) -> NoReturn:
+        if isinstance(exc, ApiError) and exc.json:
+            if (message := exc.json.get("error", {}).get("message")) in BITBUCKET_HALT_ERROR_CODES:
+                raise IntegrationInstallationConfigurationError(message)
+        super().raise_error(exc, identity)
 
     def create_issue(self, data, **kwargs):
         client = self.get_client()
@@ -171,3 +208,10 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
                 )
             except ApiError as e:
                 self.raise_error(e)
+
+    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+        client = self.get_client()
+        repo = kwargs["repo"]
+        resp = client.search_issues(repo, query)
+        assert isinstance(resp, dict)
+        return resp

@@ -1,7 +1,6 @@
 from typing import Literal, TypedDict
 
 import sentry_sdk
-from django.db.models import QuerySet
 from django.utils.encoding import force_bytes, force_str
 from drf_spectacular.utils import extend_schema
 from packaging.version import Version
@@ -17,6 +16,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.debug_files.release_files import maybe_renew_releasefiles
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleArchive,
@@ -315,21 +315,18 @@ class ReleaseLookupData:
         self.matching_source_file_names = ReleaseFile.normalize(abs_path)
 
         # Source file lookup result variables
-        self.source_file_lookup_result: Literal[
-            "found", "wrong-dist", "unsuccessful"
-        ] = "unsuccessful"
-        self.found_source_file_name: None | (
-            str
-        ) = None  # The name of the source file artifact that was found, e.g. "~/static/bundle.min.js"
-        self.source_map_reference: None | (
-            str
-        ) = None  # The source map reference as found in the source file or its headers, e.g. "https://example.com/static/bundle.min.js.map"
-        self.matching_source_map_name: None | (
-            str
-        ) = None  # The location where Sentry will look for the source map (relative to the source file), e.g. "bundle.min.js.map"
+        self.source_file_lookup_result: Literal["found", "wrong-dist", "unsuccessful"] = (
+            "unsuccessful"
+        )
+        # The name of the source file artifact that was found, e.g. "~/static/bundle.min.js"
+        self.found_source_file_name: str | None = None
+        # The source map reference as found in the source file or its headers, e.g. "https://example.com/static/bundle.min.js.map"
+        self.source_map_reference: str | None = None
+        # The location where Sentry will look for the source map (relative to the source file), e.g. "bundle.min.js.map"
+        self.matching_source_map_name: str | None = None
 
         # Cached db objects across operations
-        self.artifact_index_release_files: QuerySet | list[ReleaseFile] | None = None
+        self.artifact_index_release_files: list[ReleaseFile] | None = None
         self.dist_matched_artifact_index_release_file: ReleaseFile | None = None
 
         self._find_source_file_in_basic_uploaded_files()
@@ -337,9 +334,9 @@ class ReleaseLookupData:
         self._find_source_file_in_artifact_bundles()
 
         # Source map lookup result variable
-        self.source_map_lookup_result: Literal[
-            "found", "wrong-dist", "unsuccessful"
-        ] = "unsuccessful"
+        self.source_map_lookup_result: Literal["found", "wrong-dist", "unsuccessful"] = (
+            "unsuccessful"
+        )
 
         if self.source_map_reference is not None and self.found_source_file_name is not None:  # type: ignore[unreachable]
             if self.source_map_reference.startswith("data:"):  # type: ignore[unreachable]
@@ -364,19 +361,22 @@ class ReleaseLookupData:
             "source_map_lookup_result": self.source_map_lookup_result,
         }
 
-    def _find_source_file_in_basic_uploaded_files(self):
+    def _find_source_file_in_basic_uploaded_files(self) -> None:
         if self.source_file_lookup_result == "found":
             return
 
-        basic_release_source_files = ReleaseFile.objects.filter(
-            organization_id=self.project.organization_id,
-            release_id=self.release.id,
-            name__in=self.matching_source_file_names,
-            artifact_count=1,  # Filter for un-zipped files
-        ).select_related("file")
+        basic_release_source_files = list(
+            ReleaseFile.objects.filter(
+                organization_id=self.project.organization_id,
+                release_id=self.release.id,
+                name__in=self.matching_source_file_names,
+                artifact_count=1,  # Filter for un-zipped files
+            ).select_related("file")
+        )
 
         if len(basic_release_source_files) > 0:
             self.source_file_lookup_result = "wrong-dist"
+            maybe_renew_releasefiles(basic_release_source_files)
 
         for possible_release_file in basic_release_source_files:
             # Chck if dist matches
@@ -430,6 +430,7 @@ class ReleaseLookupData:
                             file__type="release.bundle",
                             ident=archive_ident,
                         )
+                        maybe_renew_releasefiles([archive_file])
                         with ReleaseArchive(archive_file.file.getfile()) as archive:
                             source_file, headers = archive.get_file_by_url(
                                 self.found_source_file_name
@@ -509,15 +510,18 @@ class ReleaseLookupData:
         if self.source_map_lookup_result == "found":
             return
 
-        basic_release_source_map_files = ReleaseFile.objects.filter(
-            organization_id=self.project.organization_id,
-            release_id=self.release.id,
-            name=matching_source_map_name,
-            artifact_count=1,  # Filter for un-zipped files
-        ).select_related("file")
+        basic_release_source_map_files = list(
+            ReleaseFile.objects.filter(
+                organization_id=self.project.organization_id,
+                release_id=self.release.id,
+                name=matching_source_map_name,
+                artifact_count=1,  # Filter for un-zipped files
+            ).select_related("file")
+        )
 
         if len(basic_release_source_map_files) > 0:
             self.source_map_lookup_result = "wrong-dist"
+            maybe_renew_releasefiles(basic_release_source_map_files)
         for basic_release_source_map_file in basic_release_source_map_files:
             if basic_release_source_map_file.ident == ReleaseFile.get_ident(
                 basic_release_source_map_file.name, self.event.dist
@@ -564,18 +568,19 @@ class ReleaseLookupData:
                 self.source_map_lookup_result = "found"
                 return
 
-    def _get_artifact_index_release_files(self):
+    def _get_artifact_index_release_files(self) -> list[ReleaseFile]:
         # Cache result
         if self.artifact_index_release_files is not None:
             return self.artifact_index_release_files
 
-        self.artifact_index_release_files = ReleaseFile.objects.filter(
-            organization_id=self.project.organization_id,
-            release_id=self.release.id,
-            file__type="release.artifact-index",
-        ).select_related("file")[
-            :ARTIFACT_INDEX_LOOKUP_LIMIT
-        ]  # limit by something sane in case people have a large number of dists for the same release
+        self.artifact_index_release_files = list(
+            ReleaseFile.objects.filter(
+                organization_id=self.project.organization_id,
+                release_id=self.release.id,
+                file__type="release.artifact-index",
+            ).select_related("file")[:ARTIFACT_INDEX_LOOKUP_LIMIT]
+        )  # limit by something sane in case people have a large number of dists for the same release
+        maybe_renew_releasefiles(self.artifact_index_release_files)
 
         return self.artifact_index_release_files
 
@@ -594,6 +599,8 @@ class ReleaseLookupData:
             .select_related("file")
             .first()
         )
+        if self.dist_matched_artifact_index_release_file:
+            maybe_renew_releasefiles([self.dist_matched_artifact_index_release_file])
 
         return self.dist_matched_artifact_index_release_file
 
@@ -634,6 +641,7 @@ def get_sdk_debug_id_support(event_data):
             "sentry.javascript.browser",
             "sentry.javascript.capacitor",
             "sentry.javascript.cordova",
+            "sentry.javascript.cloudflare",
             "sentry.javascript.electron",
             "sentry.javascript.gatsby",
             "sentry.javascript.nextjs",
@@ -646,6 +654,7 @@ def get_sdk_debug_id_support(event_data):
             "sentry.javascript.svelte",
             "sentry.javascript.sveltekit",
             "sentry.javascript.vue",
+            "sentry.javascript.serverless",
         ]
 
     if sdk_name not in official_sdks or sdk_name is None:
@@ -660,32 +669,41 @@ def get_sdk_debug_id_support(event_data):
 
     if sdk_name == "sentry.javascript.react-native":
         return (
-            "full"
-            if Version(sdk_version) >= Version(MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS)
-            else "needs-upgrade",
+            (
+                "full"
+                if Version(sdk_version) >= Version(MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS)
+                else "needs-upgrade"
+            ),
             MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS,
         )
 
     if sdk_name == "sentry.javascript.electron":
         return (
-            "full"
-            if Version(sdk_version) >= Version(MIN_ELECTRON_SDK_VERSION_FOR_DEBUG_IDS)
-            else "needs-upgrade",
+            (
+                "full"
+                if Version(sdk_version) >= Version(MIN_ELECTRON_SDK_VERSION_FOR_DEBUG_IDS)
+                else "needs-upgrade"
+            ),
             MIN_ELECTRON_SDK_VERSION_FOR_DEBUG_IDS,
         )
 
     if sdk_name == "sentry.javascript.nextjs" or sdk_name == "sentry.javascript.sveltekit":
         return (
-            "full"
-            if Version(sdk_version) >= Version(MIN_NEXTJS_AND_SVELTEKIT_SDK_VERSION_FOR_DEBUG_IDS)
-            else "needs-upgrade",
+            (
+                "full"
+                if Version(sdk_version)
+                >= Version(MIN_NEXTJS_AND_SVELTEKIT_SDK_VERSION_FOR_DEBUG_IDS)
+                else "needs-upgrade"
+            ),
             MIN_NEXTJS_AND_SVELTEKIT_SDK_VERSION_FOR_DEBUG_IDS,
         )
 
     return (
-        "full"
-        if Version(sdk_version) >= Version(MIN_JS_SDK_VERSION_FOR_DEBUG_IDS)
-        else "needs-upgrade",
+        (
+            "full"
+            if Version(sdk_version) >= Version(MIN_JS_SDK_VERSION_FOR_DEBUG_IDS)
+            else "needs-upgrade"
+        ),
         MIN_JS_SDK_VERSION_FOR_DEBUG_IDS,
     )
 

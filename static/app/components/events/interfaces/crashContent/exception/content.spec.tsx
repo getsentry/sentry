@@ -1,6 +1,9 @@
 import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
 import {EventFixture} from 'sentry-fixture/event';
-import {EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryExceptionGroup';
+import {
+  EventEntryChainedExceptionFixture,
+  EventEntryExceptionGroupFixture,
+} from 'sentry-fixture/eventEntryChainedException';
 import {EventStacktraceFrameFixture} from 'sentry-fixture/eventStacktraceFrame';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -133,20 +136,23 @@ describe('Exception Content', function () {
       <Content
         type={StackType.ORIGINAL}
         groupingCurrentLevel={0}
-        hasHierarchicalGrouping
         newestFirst
         stackView={StackView.APP}
         event={event}
-        values={event.entries[0].data.values}
+        values={event.entries[0]!.data.values}
         meta={event._meta!.entries[0].data.values}
         projectSlug={project.slug}
       />,
-      {organization: org, router}
+      {
+        organization: org,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);
 
-    await userEvent.hover(screen.getAllByText(/redacted/)[0]);
+    await userEvent.hover(screen.getAllByText(/redacted/)[0]!);
 
     expect(
       await screen.findByText(
@@ -171,7 +177,7 @@ describe('Exception Content', function () {
     );
   });
 
-  it('respects platform overrides in stacktrace frames', function () {
+  it('respects platform overrides in stacktrace frames', async function () {
     const event = EventFixture({
       projectID: project.id,
       platform: 'python',
@@ -199,19 +205,94 @@ describe('Exception Content', function () {
     render(
       <Content
         type={StackType.ORIGINAL}
-        hasHierarchicalGrouping={false}
         stackView={StackView.APP}
         event={event}
-        values={event.entries[0].data.values}
+        values={event.entries[0]!.data.values}
         projectSlug={project.slug}
-      />
+        newestFirst
+      />,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     // Cocoa override should render a native stack trace component
     expect(screen.getByTestId('native-stack-trace-content')).toBeInTheDocument();
 
+    await userEvent.click(screen.getByRole('button', {name: 'View Section'}));
+
     // Other stacktrace should render the normal stack trace (python)
     expect(screen.getByTestId('stack-trace-content')).toBeInTheDocument();
+  });
+
+  it('does not use fold section for non-chained exceptions', function () {
+    const event = EventFixture({
+      projectID: project.id,
+      entries: [
+        {
+          type: EntryType.EXCEPTION,
+          data: {
+            excOmitted: null,
+            hasSystemFrames: false,
+            values: [
+              {
+                type: 'ValueError',
+                value: 'test',
+                mechanism: {
+                  handled: true,
+                  type: '',
+                },
+                stacktrace: {
+                  framesOmitted: null,
+                  hasSystemFrames: false,
+                  registers: null,
+                  frames: [
+                    {
+                      function: 'func4',
+                      module: 'helpers',
+                      filename: 'file4.py',
+                      absPath: 'file4.py',
+                      lineNo: 50,
+                      colNo: null,
+                      context: [[50, 'raise ValueError("test")']],
+                      inApp: true,
+                      rawFunction: null,
+                      package: null,
+                      platform: null,
+                      instructionAddr: null,
+                      symbol: null,
+                      symbolAddr: null,
+                      trust: null,
+                      vars: null,
+                    },
+                  ],
+                },
+                module: 'helpers',
+                threadId: null,
+                rawStacktrace: null,
+              },
+            ],
+          },
+        },
+      ],
+    });
+    render(
+      <Content
+        type={StackType.ORIGINAL}
+        stackView={StackView.APP}
+        event={event}
+        values={event.entries[0]!.data.values}
+        projectSlug={project.slug}
+        newestFirst
+      />,
+      {deprecatedRouterMocks: true}
+    );
+
+    expect(screen.getByRole('heading', {name: 'ValueError'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Collapse Section'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'View Section'})).not.toBeInTheDocument();
   });
 
   describe('exception groups', function () {
@@ -240,51 +321,69 @@ describe('Exception Content', function () {
 
     const defaultProps = {
       type: StackType.ORIGINAL,
-      hasHierarchicalGrouping: false,
       newestFirst: true,
       platform: 'python' as const,
       stackView: StackView.APP,
       event,
-      values: event.entries[0].data.values,
+      values: event.entries[0]!.data.values,
       projectSlug: project.slug,
     };
 
     it('displays exception group tree under first exception', function () {
-      render(<Content {...defaultProps} />);
+      render(<Content {...defaultProps} />, {
+        deprecatedRouterMocks: true,
+      });
 
+      expect(
+        screen.getByText('There are 4 chained exceptions in this event.')
+      ).toBeInTheDocument();
       const exceptions = screen.getAllByTestId('exception-value');
 
       // First exception should be the parent ExceptionGroup
-      expect(within(exceptions[0]).getByText('ExceptionGroup 1')).toBeInTheDocument();
+      expect(within(exceptions[0]!).getByText('ExceptionGroup 1')).toBeInTheDocument();
       expect(
-        within(exceptions[0]).getByRole('heading', {name: 'ExceptionGroup 1'})
+        within(exceptions[0]!).getByRole('heading', {name: 'ExceptionGroup 1'})
       ).toBeInTheDocument();
+      expect(within(exceptions[0]!).getByText('Related Exceptions')).toBeInTheDocument();
     });
 
-    it('displays exception group tree in first frame when there is no other context', function () {
-      render(<Content {...defaultProps} />);
+    it('displays exception group tree in first frame when there is no other context', async function () {
+      render(<Content {...defaultProps} />, {
+        deprecatedRouterMocks: true,
+      });
+
+      const viewSectionButtons = screen.getAllByRole('button', {name: 'View Section'});
+      for (const button of viewSectionButtons) {
+        await userEvent.click(button); // just expand all of them so we can see the exception group tree
+      }
 
       const exceptions = screen.getAllByTestId('exception-value');
 
-      const exceptionGroupWithNoContext = exceptions[2];
+      const exceptionGroupWithNoContext = exceptions[2]!;
       expect(
         within(exceptionGroupWithNoContext).getByText('Related Exceptions')
       ).toBeInTheDocument();
     });
 
-    it('collapses sub-groups by default', async function () {
-      render(<Content {...defaultProps} />);
+    it('hides sub-groups by default', async function () {
+      render(<Content {...defaultProps} />, {
+        deprecatedRouterMocks: true,
+      });
 
       // There are 4 values, but 1 should be hidden
-      expect(screen.getAllByTestId('exception-value').length).toBe(3);
+      expect(screen.getAllByTestId('exception-value')).toHaveLength(3);
       expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
 
+      const viewSectionButtons = screen.getAllByRole('button', {name: 'View Section'});
+      for (const button of viewSectionButtons) {
+        await userEvent.click(button); // just expand all of them so we know the child exception group is open
+      }
       await userEvent.click(
         screen.getByRole('button', {name: /show 1 related exception/i})
       );
 
       // After expanding, ValueError should be visible
-      expect(screen.getAllByTestId('exception-value').length).toBe(4);
+      expect(screen.getAllByTestId('exception-value')).toHaveLength(4);
       expect(screen.getByRole('heading', {name: 'ValueError'})).toBeInTheDocument();
 
       await userEvent.click(
@@ -292,19 +391,106 @@ describe('Exception Content', function () {
       );
 
       // After collapsing, ValueError should be gone again
-      expect(screen.getAllByTestId('exception-value').length).toBe(3);
+      expect(screen.getAllByTestId('exception-value')).toHaveLength(3);
       expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
     });
 
     it('auto-opens sub-groups when clicking link in tree', async function () {
-      render(<Content {...defaultProps} />);
+      render(<Content {...defaultProps} />, {
+        deprecatedRouterMocks: true,
+      });
 
       expect(screen.queryByRole('heading', {name: 'ValueError'})).not.toBeInTheDocument();
 
+      const viewSectionButtons = screen.getAllByRole('button', {name: 'View Section'});
+      for (const button of viewSectionButtons) {
+        await userEvent.click(button); // just expand all of them so we know the child exception group is open
+      }
+
+      expect(
+        screen.getByRole('button', {name: /show 1 related exception/i})
+      ).toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', {name: /ValueError: test/i}));
 
       // After expanding, ValueError should be visible
       expect(screen.getByRole('heading', {name: 'ValueError'})).toBeInTheDocument();
+    });
+  });
+
+  describe('chained exceptions', function () {
+    const event = EventFixture({
+      entries: [EventEntryChainedExceptionFixture()],
+      projectID: project.id,
+    });
+
+    beforeEach(() => {
+      MockApiClient.clearMockResponses();
+
+      const promptResponse = {
+        dismissed_ts: undefined,
+        snoozed_ts: undefined,
+      };
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/prompts-activity/`,
+        body: promptResponse,
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+        body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+      });
+      ProjectsStore.loadInitialData([project]);
+    });
+
+    const defaultProps = {
+      type: StackType.ORIGINAL,
+      newestFirst: true,
+      platform: 'python' as const,
+      stackView: StackView.APP,
+      event,
+      values: event.entries[0]!.data.values,
+      projectSlug: project.slug,
+    };
+
+    it('only expands root cause exception by default', function () {
+      render(<Content {...defaultProps} />, {
+        deprecatedRouterMocks: true,
+      });
+
+      // both toggle headings are visible because they are not exception group chained exceptions
+      expect(screen.getByRole('heading', {name: 'ValueError'})).toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'TypeError'})).toBeInTheDocument();
+
+      // only ValueError is expanded by default
+      expect(screen.getAllByRole('button', {name: 'Collapse Section'})).toHaveLength(1);
+      expect(screen.getAllByRole('button', {name: 'View Section'})).toHaveLength(1);
+
+      // does not show exception group UI elements
+      expect(screen.queryByText('Related Exceptions')).not.toBeInTheDocument();
+    });
+
+    it('can expand and collapse all exceptions', async function () {
+      render(<Content {...defaultProps} />, {
+        deprecatedRouterMocks: true,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'View Section'}));
+
+      // all exceptions are expanded
+      expect(screen.getAllByRole('button', {name: 'Collapse Section'})).toHaveLength(2);
+      expect(
+        screen.queryByRole('button', {name: 'View Section'})
+      ).not.toBeInTheDocument();
+
+      const collapseButtons = screen.getAllByRole('button', {name: 'Collapse Section'});
+      for (const button of collapseButtons) {
+        await userEvent.click(button);
+      }
+
+      // all exceptions are collapsed
+      expect(
+        screen.queryByRole('button', {name: 'Collapse Section'})
+      ).not.toBeInTheDocument();
+      expect(screen.getAllByRole('button', {name: 'View Section'})).toHaveLength(2);
     });
   });
 });

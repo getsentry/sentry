@@ -1,20 +1,20 @@
 import {Component} from 'react';
-import {createFilter} from 'react-select';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import type {GeneralSelectValue} from 'sentry/components/forms/controls/selectControl';
+import type {GeneralSelectValue} from 'sentry/components/core/select';
+import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import type {Field, FieldValue} from 'sentry/components/forms/types';
+import type {Field, FieldValue, OnSubmitCallback} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import withApi from 'sentry/utils/withApi';
 
 // 0 is a valid choice but empty string, undefined, and null are not
-const hasValue = value => !!value || value === 0;
+const hasValue = (value: any) => !!value || value === 0;
 
 // See docs: https://docs.sentry.io/product/integrations/integration-platform/ui-components/formfield/
 export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
@@ -23,6 +23,7 @@ export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
   choices?: Array<[any, string]>;
   default?: 'issue.title' | 'issue.description';
   depends_on?: string[];
+  skip_load_on_open?: boolean;
   uri?: string;
 };
 
@@ -42,7 +43,7 @@ type SentryAppSetting = {
 // only need required_fields and optional_fields
 type State = Omit<SchemaFormConfig, 'uri' | 'description'> & {
   optionsByField: Map<string, Array<{label: string; value: any}>>;
-  selectedOptions: {[name: string]: GeneralSelectValue};
+  selectedOptions: Record<string, GeneralSelectValue>;
 };
 
 type Props = {
@@ -51,16 +52,21 @@ type Props = {
   appName: string;
   config: SchemaFormConfig;
   element: 'issue-link' | 'alert-rule-action';
-  onSubmitSuccess: Function;
+  onSubmitSuccess: (
+    response: any,
+    instance: FormModel,
+    id?: string,
+    change?: {new: FieldValue; old: FieldValue}
+  ) => void;
   sentryAppInstallationUuid: string;
   /**
    * Additional form data to submit with the request
    */
-  extraFields?: {[key: string]: any};
+  extraFields?: Record<string, any>;
   /**
    * Additional body parameters to submit with the request
    */
-  extraRequestBody?: {[key: string]: any};
+  extraRequestBody?: Record<string, any>;
   /**
    * Function to provide fields with pre-written data if a default is specified
    */
@@ -82,7 +88,7 @@ type Props = {
  *
  *  See (#28465) for more details.
  */
-export class SentryAppExternalForm extends Component<Props, State> {
+class SentryAppExternalForm extends Component<Props, State> {
   state: State = {optionsByField: new Map(), selectedOptions: {}};
 
   componentDidMount() {
@@ -113,6 +119,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     if (element === 'alert-rule-action') {
       const defaultResetValues = this.props.resetValues?.settings || [];
       const initialData = defaultResetValues.reduce((acc, curr) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         acc[curr.name] = curr.value;
         return acc;
       }, {});
@@ -125,7 +132,34 @@ export class SentryAppExternalForm extends Component<Props, State> {
         uri: config.uri,
       });
     }
+    // let the state update before we try and load the dependent options
+    setTimeout(() => {
+      this.tryAndLoadDependentOptions();
+    }, 0);
   }
+
+  tryAndLoadDependentOptions = () => {
+    const {required_fields, optional_fields} = this.state;
+
+    // first find every field where we don't load the values on open
+    const fieldsToLoad = [...(required_fields || []), ...(optional_fields || [])].filter(
+      field =>
+        field.skip_load_on_open || (field.depends_on && field.depends_on.length > 0)
+    );
+
+    fieldsToLoad.forEach(field => {
+      if (field.depends_on && field.depends_on.length > 0) {
+        // check that we can load this field
+        const isReadyToLoad = field.depends_on.every(dependentField => {
+          return !!this.model.getValue(dependentField);
+        });
+        // if ready to load, trigger a field change to trigger the api request to load options
+        if (isReadyToLoad) {
+          this.handleFieldChange(field.depends_on[0]!);
+        }
+      }
+    });
+  };
 
   onSubmitError = () => {
     const {action, appName} = this.props;
@@ -194,6 +228,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     // instead makes the requests every 200ms
     async (field: FieldFromSchema, input, resolve) => {
       const choices = await this.makeExternalRequest(field, input);
+      // @ts-expect-error TS(7031): Binding element 'value' implicitly has an 'any' ty... Remove this comment to see the full error message
       const options = choices.map(([value, label]) => ({value, label}));
       const optionsByField = new Map(this.state.optionsByField);
       optionsByField.set(field.name, options);
@@ -208,7 +243,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
 
   makeExternalRequest = async (field: FieldFromSchema, input: FieldValue) => {
     const {extraRequestBody = {}, sentryAppInstallationUuid} = this.props;
-    const query: {[key: string]: any} = {
+    const query: Record<string, any> = {
       ...extraRequestBody,
       uri: field.uri,
       query: input,
@@ -216,6 +251,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
 
     if (field.depends_on) {
       const dependentData = field.depends_on.reduce((accum, dependentField: string) => {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         accum[dependentField] = this.model.getValue(dependentField);
         return accum;
       }, {});
@@ -223,10 +259,16 @@ export class SentryAppExternalForm extends Component<Props, State> {
       query.dependentData = JSON.stringify(dependentData);
     }
 
-    const {choices} = await this.props.api.requestPromise(
+    const {choices, defaultValue} = await this.props.api.requestPromise(
       `/sentry-app-installations/${sentryAppInstallationUuid}/external-requests/`,
       {query}
     );
+
+    // If there is a default choice prepopulate the select with it
+    if (defaultValue) {
+      this.model.setValue(field.name, defaultValue);
+    }
+
     return choices || [];
   };
 
@@ -257,7 +299,8 @@ export class SentryAppExternalForm extends Component<Props, State> {
     const choiceArray = await Promise.all(
       impactedFields.map(field => {
         // reset all impacted fields first
-        this.model.setValue(field.name || '', '', {quiet: true});
+        const defaultValue = this.getDefaultFieldValue(field);
+        this.model.setValue(field.name || '', defaultValue || '', {quiet: true});
         return this.makeExternalRequest(field, '');
       })
     );
@@ -296,7 +339,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     });
   };
 
-  createPreserveOptionFunction = (name: string) => (option, _event) => {
+  createPreserveOptionFunction = (name: string) => (option: any, _event: any) => {
     this.setState({
       selectedOptions: {
         ...this.state.selectedOptions,
@@ -374,7 +417,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     );
   };
 
-  handleAlertRuleSubmit = (formData, onSubmitSuccess) => {
+  handleAlertRuleSubmit: OnSubmitCallback = (formData, onSubmitSuccess) => {
     const {sentryAppInstallationUuid} = this.props;
     if (this.model.validateForm()) {
       onSubmitSuccess({
@@ -385,6 +428,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
           // If the field is a SelectAsync, we need to preserve the label since the next time it's rendered,
           // we can't be sure the options will contain this selection
           if (stateOption?.value === value) {
+            // eslint-disable-next-line @typescript-eslint/no-base-to-string
             savedSetting.label = `${stateOption?.label}`;
           }
           return savedSetting;

@@ -5,8 +5,8 @@ from typing import Any
 
 from sentry.digests.notifications import Digest
 from sentry.digests.utils import get_groups
-from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.integrations.slack.message_builder.types import SlackBlock
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.types.actor import Actor
 
@@ -42,6 +42,6 @@ class DigestNotificationMessageBuilder(SlackNotificationsMessageBuilder):
             ).build()
             # we iterate through the list of blocks created for each alert in the digest and add
             # each block to the list of blocks which is used for the entire digest notification
-            for block in alert_as_blocks.get("blocks"):
+            for block in alert_as_blocks["blocks"]:
                 blocks.append(block)
         return self._build_blocks(*blocks)

@@ -4,9 +4,10 @@ import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import {Button} from 'sentry/components/button';
-import type {SelectOption, SelectSection} from 'sentry/components/compactSelect';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {Button} from 'sentry/components/core/button';
+import type {SelectOption, SelectSection} from 'sentry/components/core/compactSelect';
+import {ExternalLink} from 'sentry/components/core/link';
+import SearchBarAction from 'sentry/components/events/interfaces/searchBarAction';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
@@ -16,8 +17,6 @@ import {CandidateDownloadStatus, ImageStatus} from 'sentry/types/debugImage';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-
-import SearchBarAction from '../../searchBarAction';
 
 import Status from './candidate/status';
 import Candidate from './candidate';
@@ -43,8 +42,8 @@ type Props = {
 };
 
 type State = {
-  filterOptions: SelectSection<string>[];
-  filterSelections: SelectOption<string>[];
+  filterOptions: Array<SelectSection<string>>;
+  filterSelections: Array<SelectOption<string>>;
   filteredCandidatesByFilter: ImageCandidates;
   filteredCandidatesBySearch: ImageCandidates;
   searchTerm: string;
@@ -100,12 +99,13 @@ class Candidates extends Component<Props, State> {
 
     const filteredCandidatesBySearch = candidates.filter(obj =>
       Object.keys(pick(obj, ['source_name', 'location'])).some(key => {
-        const info = obj[key];
+        const info = obj[key as keyof typeof obj];
 
         if (key === 'location' && typeof Number(info) === 'number') {
           return false;
         }
 
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         if (!defined(info) || !String(info).trim()) {
           return false;
         }
@@ -156,7 +156,7 @@ class Candidates extends Component<Props, State> {
   }
 
   getFilterOptions(candidates: ImageCandidates) {
-    const filterOptions: SelectSection<string>[] = [];
+    const filterOptions: Array<SelectSection<string>> = [];
 
     const candidateStatus = [
       ...new Set(candidates.map(candidate => candidate.download.status)),
@@ -194,7 +194,7 @@ class Candidates extends Component<Props, State> {
 
   getFilteredCandidatedByFilter(
     candidates: ImageCandidates,
-    filterOptions: SelectOption<string>[]
+    filterOptions: Array<SelectOption<string>>
   ) {
     const checkedStatusOptions = new Set(
       filterOptions
@@ -264,7 +264,7 @@ class Candidates extends Component<Props, State> {
     this.setState({searchTerm});
   };
 
-  handleChangeFilter = (filterSelections: SelectOption<string>[]) => {
+  handleChangeFilter = (filterSelections: Array<SelectOption<string>>) => {
     const {filteredCandidatesBySearch} = this.state;
     const filteredCandidatesByFilter = this.getFilteredCandidatedByFilter(
       filteredCandidatesBySearch,
@@ -379,7 +379,7 @@ const Wrapper = styled('div')`
 const Header = styled('div')`
   display: flex;
   flex-direction: column;
-  @media (min-width: ${props => props.theme.breakpoints.small}) {
+  @media (min-width: ${props => props.theme.breakpoints.sm}) {
     flex-wrap: wrap;
     flex-direction: row;
   }
@@ -391,12 +391,12 @@ const Title = styled('div')`
   gap: ${space(0.5)};
   grid-template-columns: repeat(2, max-content);
   align-items: center;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   color: ${p => p.theme.gray400};
   height: 32px;
   flex: 1;
 
-  @media (min-width: ${props => props.theme.breakpoints.small}) {
+  @media (min-width: ${props => props.theme.breakpoints.sm}) {
     margin-bottom: ${space(1)};
   }
 `;
@@ -407,7 +407,7 @@ const StyledPanelTable = styled(PanelTable)`
 
   height: 100%;
 
-  @media (min-width: ${props => props.theme.breakpoints.xxlarge}) {
+  @media (min-width: ${props => props.theme.breakpoints['2xl']}) {
     overflow: visible;
   }
 `;

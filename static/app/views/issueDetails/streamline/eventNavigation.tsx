@@ -1,406 +1,373 @@
-import {type CSSProperties, forwardRef} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import color from 'color';
-import omit from 'lodash/omit';
 
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import {Chevron} from 'sentry/components/chevron';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import Count from 'sentry/components/count';
+import DropdownButton from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {TabList, Tabs} from 'sentry/components/tabs';
-import TimeSince from 'sentry/components/timeSince';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron, IconCopy} from 'sentry/icons';
+import {TourElement} from 'sentry/components/tours/components';
+import {IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  getAnalyticsDataForEvent,
-  getAnalyticsDataForGroup,
-  getShortEventId,
-} from 'sentry/utils/events';
-import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
-import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {keepPreviousData} from 'sentry/utils/queryClient';
+import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
-import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
+import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
+import {
+  IssueDetailsTour,
+  IssueDetailsTourContext,
+} from 'sentry/views/issueDetails/issueDetailsTour';
+import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/streamline/hooks/useIssueDetailsDiscoverQuery';
+import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/streamline/issueDetailsEventNavigation';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
-type EventNavigationProps = {
-  event: Event;
+interface IssueEventNavigationProps {
+  event: Event | undefined;
   group: Group;
-  className?: string;
-  style?: CSSProperties;
-};
-
-type SectionDefinition = {
-  condition: (event: Event) => boolean;
-  label: string;
-  section: FoldSectionKey;
-};
-
-enum EventNavOptions {
-  RECOMMENDED = 'recommended',
-  LATEST = 'latest',
-  OLDEST = 'oldest',
-  CUSTOM = 'custom',
 }
 
-const EventNavLabels = {
-  [EventNavOptions.RECOMMENDED]: t('Recommended Event'),
-  [EventNavOptions.OLDEST]: t('First Event'),
-  [EventNavOptions.LATEST]: t('Last Event'),
-  [EventNavOptions.CUSTOM]: t('Custom Event'),
-};
+const LIST_VIEW_TABS = new Set([
+  Tab.EVENTS,
+  Tab.OPEN_PERIODS,
+  Tab.CHECK_INS,
+  Tab.UPTIME_CHECKS,
+]);
 
-const EventNavOrder = [
-  EventNavOptions.RECOMMENDED,
-  EventNavOptions.OLDEST,
-  EventNavOptions.LATEST,
-  EventNavOptions.CUSTOM,
-];
+export function IssueEventNavigation({event, group}: IssueEventNavigationProps) {
+  const organization = useOrganization();
+  const {baseUrl, currentTab} = useGroupDetailsRoute();
+  const location = useLocation();
+  const eventView = useIssueDetailsEventView({group});
+  const {eventCount} = useIssueDetails();
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
+  const theme = useTheme();
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
-const eventDataSections: SectionDefinition[] = [
-  {
-    section: FoldSectionKey.HIGHLIGHTS,
-    label: t('Event Highlights'),
-    condition: () => true,
-  },
-  {
-    section: FoldSectionKey.STACKTRACE,
-    label: t('Stack Trace'),
-    condition: (event: Event) => event.entries.some(entry => entry.type === 'stacktrace'),
-  },
-  {
-    section: FoldSectionKey.EXCEPTION,
-    label: t('Stack Trace'),
-    condition: (event: Event) => event.entries.some(entry => entry.type === 'exception'),
-  },
-  {
-    section: FoldSectionKey.BREADCRUMBS,
-    label: t('Breadcrumbs'),
-    condition: (event: Event) =>
-      event.entries.some(entry => entry.type === 'breadcrumbs'),
-  },
-  {
-    section: FoldSectionKey.TAGS,
-    label: t('Tags'),
-    condition: (event: Event) => event.tags.length > 0,
-  },
-  {
-    section: FoldSectionKey.CONTEXTS,
-    label: t('Context'),
-    condition: (event: Event) => !!event.context,
-  },
-  {
-    section: FoldSectionKey.USER_FEEDBACK,
-    label: t('User Feedback'),
-    condition: (event: Event) => !!event.userReport,
-  },
-  {
-    section: FoldSectionKey.REPLAY,
-    label: t('Replay'),
-    condition: (event: Event) => !!getReplayIdFromEvent(event),
-  },
-];
+  const hideDropdownButton =
+    !issueTypeConfig.pages.attachments.enabled &&
+    !issueTypeConfig.pages.userFeedback.enabled &&
+    !issueTypeConfig.pages.replays.enabled;
 
-export const EventNavigation = forwardRef<HTMLDivElement, EventNavigationProps>(
-  function EventNavigation({event, group, ...props}, ref) {
-    const location = useLocation();
-    const organization = useOrganization();
-    const theme = useTheme();
-    const params = useParams<{eventId?: string}>();
-    const defaultIssueEvent = useDefaultIssueEvent();
+  const discoverUrl = eventView.getResultsViewUrlTarget(
+    organization,
+    false,
+    hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+  );
 
-    const getSelectedOption = () => {
-      switch (params.eventId) {
-        case EventNavOptions.RECOMMENDED:
-        case EventNavOptions.LATEST:
-        case EventNavOptions.OLDEST:
-          return params.eventId;
-        case undefined:
-          return defaultIssueEvent;
-        default:
-          return EventNavOptions.CUSTOM;
-      }
-    };
+  const {getReplayCountForIssue} = useReplayCountForIssues({
+    statsPeriod: '90d',
+  });
+  const replaysCount = getReplayCountForIssue(group.id, group.issueCategory) ?? 0;
 
-    const selectedOption = getSelectedOption();
+  const attachments = useGroupEventAttachments({
+    group,
+    activeAttachmentsTab: 'all',
+    options: {placeholderData: keepPreviousData},
+  });
 
-    const hasPreviousEvent = defined(event.previousEventID);
-    const hasNextEvent = defined(event.nextEventID);
+  const attachmentPagination = parseLinkHeader(
+    attachments.getResponseHeader?.('Link') ?? null
+  );
+  // Since we reuse whatever page the user was on, we can look at pagination to determine if there are more attachments
+  const hasManyAttachments =
+    attachmentPagination.next?.results || attachmentPagination.previous?.results;
 
-    const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
+  const TabName: Partial<Record<Tab, string>> = {
+    [Tab.DETAILS]: issueTypeConfig.customCopy.eventUnits,
+    [Tab.EVENTS]: issueTypeConfig.customCopy.eventUnits,
+    [Tab.REPLAYS]: t('Replays'),
+    [Tab.ATTACHMENTS]: t('Attachments'),
+    [Tab.USER_FEEDBACK]: t('Feedback'),
+  };
 
-    const jumpToSections = eventDataSections.filter(eventSection =>
-      eventSection.condition(event)
-    );
+  const isListView = LIST_VIEW_TABS.has(currentTab);
 
-    const grayText = css`
-      color: ${theme.subText};
-      font-weight: ${theme.fontWeightNormal};
-    `;
-
-    const downloadJson = () => {
-      const host = organization.links.regionUrl;
-      const jsonUrl = `${host}/api/0/projects/${organization.slug}/${group.project.slug}/events/${event.id}/json/`;
-      window.open(jsonUrl);
-      trackAnalytics('issue_details.event_json_clicked', {
-        organization,
-        group_id: parseInt(`${event.groupID}`, 10),
-      });
-    };
-
-    const {onClick: copyLink} = useCopyToClipboard({
-      successMessage: t('Event URL copied to clipboard'),
-      text: window.location.origin + normalizeUrl(`${baseEventsPath}${event.id}/`),
-      onCopy: () =>
-        trackAnalytics('issue_details.copy_event_link_clicked', {
-          organization,
-          ...getAnalyticsDataForGroup(group),
-          ...getAnalyticsDataForEvent(event),
-        }),
-    });
-
-    const {onClick: copyEventId} = useCopyToClipboard({
-      successMessage: t('Event ID copied to clipboard'),
-      text: event.id,
-    });
-
-    return (
-      <div {...props} ref={ref}>
-        <EventNavigationWrapper>
-          <Tabs value={selectedOption}>
-            <TabList hideBorder variant="floating">
-              {EventNavOrder.map(label => {
-                const eventPath =
-                  label === selectedOption
-                    ? undefined
-                    : {
-                        pathname: normalizeUrl(baseEventsPath + label + '/'),
-                        query: {...location.query, referrer: `${label}-event`},
-                      };
-                return (
-                  <TabList.Item
-                    to={eventPath}
-                    key={label}
-                    hidden={
-                      label === EventNavOptions.CUSTOM &&
-                      selectedOption !== EventNavOptions.CUSTOM
-                    }
-                  >
-                    {EventNavLabels[label]}
-                  </TabList.Item>
-                );
-              })}
-            </TabList>
-          </Tabs>
-          <NavigationWrapper>
-            <Navigation>
-              <Tooltip title={t('Previous Event')}>
-                <LinkButton
-                  aria-label={t('Previous Event')}
-                  borderless
-                  size="xs"
-                  icon={<IconChevron direction="left" />}
-                  disabled={!hasPreviousEvent}
-                  to={{
-                    pathname: `${baseEventsPath}${event.previousEventID}/`,
-                    query: {...location.query, referrer: 'previous-event'},
-                  }}
-                  css={grayText}
-                />
-              </Tooltip>
-              <Tooltip title={t('Next Event')}>
-                <LinkButton
-                  aria-label={t('Next Event')}
-                  borderless
-                  size="xs"
-                  icon={<IconChevron direction="right" />}
-                  disabled={!hasNextEvent}
-                  to={{
-                    pathname: `${baseEventsPath}${event.nextEventID}/`,
-                    query: {...location.query, referrer: 'next-event'},
-                  }}
-                  css={grayText}
-                />
-              </Tooltip>
-            </Navigation>
-            <LinkButton
-              to={{
-                pathname: normalizeUrl(
-                  `/organizations/${organization.slug}/issues/${group.id}/events/`
-                ),
-                query: omit(location.query, 'query'),
-              }}
-              borderless
-              size="xs"
-              css={grayText}
-            >
-              {t('View All Events')}
-            </LinkButton>
-          </NavigationWrapper>
-        </EventNavigationWrapper>
-        <Divider />
-        <EventInfoJumpToWrapper>
-          <EventInfo>
-            <EventIdInfo>
-              <EventTitle>{t('Event')}</EventTitle>
-              <Button
-                aria-label={t('Copy')}
+  return (
+    <EventNavigationWrapper role="navigation">
+      <LargeDropdownButtonWrapper>
+        <DropdownMenu
+          onAction={key => {
+            trackAnalytics('issue_details.issue_content_selected', {
+              organization,
+              content: TabName[key as keyof typeof TabName]!,
+            });
+          }}
+          items={[
+            {
+              key: Tab.DETAILS,
+              label: (
+                <DropdownCountWrapper isCurrentTab={currentTab === Tab.DETAILS}>
+                  {TabName[Tab.DETAILS]} <ItemCount value={eventCount ?? 0} />
+                </DropdownCountWrapper>
+              ),
+              textValue: TabName[Tab.DETAILS],
+              to: {
+                ...location,
+                pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
+                hash: undefined,
+              },
+            },
+            {
+              key: Tab.REPLAYS,
+              label: (
+                <DropdownCountWrapper isCurrentTab={currentTab === Tab.REPLAYS}>
+                  {TabName[Tab.REPLAYS]}{' '}
+                  {replaysCount > 50 ? (
+                    <CustomItemCount>50+</CustomItemCount>
+                  ) : (
+                    <ItemCount value={replaysCount} />
+                  )}
+                </DropdownCountWrapper>
+              ),
+              textValue: TabName[Tab.REPLAYS],
+              to: {
+                ...location,
+                pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
+                hash: undefined,
+              },
+              hidden: !issueTypeConfig.pages.replays.enabled,
+            },
+            {
+              key: Tab.ATTACHMENTS,
+              label: (
+                <DropdownCountWrapper isCurrentTab={currentTab === Tab.ATTACHMENTS}>
+                  {TabName[Tab.ATTACHMENTS]}
+                  <CustomItemCount>
+                    {hasManyAttachments ? '50+' : attachments.attachments.length}
+                  </CustomItemCount>
+                </DropdownCountWrapper>
+              ),
+              textValue: TabName[Tab.ATTACHMENTS],
+              to: {
+                ...location,
+                pathname: `${baseUrl}${TabPaths[Tab.ATTACHMENTS]}`,
+                hash: undefined,
+              },
+              hidden: !issueTypeConfig.pages.attachments.enabled,
+            },
+            {
+              key: Tab.USER_FEEDBACK,
+              label: (
+                <DropdownCountWrapper isCurrentTab={currentTab === Tab.USER_FEEDBACK}>
+                  {TabName[Tab.USER_FEEDBACK]} <ItemCount value={group.userReportCount} />
+                </DropdownCountWrapper>
+              ),
+              textValue: TabName[Tab.USER_FEEDBACK],
+              to: {
+                ...location,
+                pathname: `${baseUrl}${TabPaths[Tab.USER_FEEDBACK]}`,
+                hash: undefined,
+              },
+              hidden: !issueTypeConfig.pages.userFeedback.enabled,
+            },
+          ]}
+          offset={[-2, 1]}
+          trigger={(triggerProps, isOpen) =>
+            hideDropdownButton ? (
+              <NavigationLabel>
+                {TabName[currentTab] ?? TabName[Tab.DETAILS]}
+              </NavigationLabel>
+            ) : (
+              <NavigationDropdownButton
+                {...triggerProps}
+                isOpen={isOpen}
                 borderless
-                onClick={copyEventId}
-                size="zero"
-                title={event.id}
-                tooltipProps={{overlayStyle: {maxWidth: 'max-content'}}}
-                translucentBorder
+                size="sm"
+                disabled={hideDropdownButton}
+                aria-label={t('Select issue content')}
+                aria-description={TabName[currentTab]}
+                analyticsEventName="Issue Details: Issue Content Dropdown Opened"
+                analyticsEventKey="issue_details.issue_content_dropdown_opened"
               >
-                <EventId>
-                  {getShortEventId(event.id)}
-                  <CopyIconContainer>
-                    <IconCopy size="xs" />
-                  </CopyIconContainer>
-                </EventId>
-              </Button>
-              <DropdownMenu
-                triggerProps={{
-                  'aria-label': t('Event actions'),
-                  icon: <Chevron direction="down" color={theme.subText} />,
-                  size: 'zero',
-                  borderless: true,
-                  showChevron: false,
-                }}
-                position="bottom"
-                size="xs"
-                items={[
-                  {
-                    key: 'copy-event-id',
-                    label: t('Copy Event ID'),
-                    onAction: copyEventId,
-                  },
-                  {
-                    key: 'copy-event-link',
-                    label: t('Copy Event Link'),
-                    onAction: copyLink,
-                  },
-                  {
-                    key: 'view-json',
-                    label: t('View JSON'),
-                    onAction: downloadJson,
-                  },
-                ]}
-              />
-            </EventIdInfo>
-            <TimeSince date={event.dateCreated ?? event.dateReceived} css={grayText} />
-          </EventInfo>
-          <JumpTo>
-            <div>{t('Jump to:')}</div>
-            <ButtonBar>
-              {jumpToSections.map(jump => (
-                <Button
-                  key={jump.section}
-                  onClick={() => {
-                    document
-                      .getElementById(jump.section)
-                      ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+                {TabName[currentTab] ?? TabName[Tab.DETAILS]}
+              </NavigationDropdownButton>
+            )
+          }
+        />
+        <LargeInThisIssueText aria-hidden>{t('in this issue')}</LargeInThisIssueText>
+      </LargeDropdownButtonWrapper>
+      <TourElement<IssueDetailsTour>
+        tourContext={IssueDetailsTourContext}
+        id={IssueDetailsTour.NAVIGATION}
+        title={t('Compare different examples')}
+        description={t(
+          'You can quickly navigate between different examples in this issue to find their similarities (and differences).'
+        )}
+      >
+        <NavigationWrapper>
+          {currentTab === Tab.DETAILS && (
+            <Fragment>
+              <IssueDetailsEventNavigation event={event} group={group} />
+              {issueTypeConfig.pages.events.enabled && (
+                <LinkButton
+                  to={{
+                    pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+                    query: location.query,
                   }}
-                  borderless
                   size="xs"
-                  css={grayText}
+                  analyticsEventKey="issue_details.all_events_clicked"
+                  analyticsEventName="Issue Details: All Events Clicked"
                 >
-                  {jump.label}
-                </Button>
-              ))}
+                  {isSmallScreen
+                    ? t('More %s', issueTypeConfig.customCopy.eventUnits)
+                    : t('View More %s', issueTypeConfig.customCopy.eventUnits)}
+                </LinkButton>
+              )}
+              {issueTypeConfig.pages.openPeriods.enabled && (
+                <LinkButton
+                  to={{
+                    pathname: `${baseUrl}${TabPaths[Tab.OPEN_PERIODS]}`,
+                    query: location.query,
+                  }}
+                  size="xs"
+                  analyticsEventKey="issue_details.all_open_periods_clicked"
+                  analyticsEventName="Issue Details: All Open Periods Clicked"
+                >
+                  {isSmallScreen ? t('More Open Periods') : t('View More Open Periods')}
+                </LinkButton>
+              )}
+              {issueTypeConfig.pages.checkIns.enabled && (
+                <LinkButton
+                  to={{
+                    pathname: `${baseUrl}${TabPaths[Tab.CHECK_INS]}`,
+                    query: location.query,
+                  }}
+                  size="xs"
+                  analyticsEventKey="issue_details.all_checks_ins_clicked"
+                  analyticsEventName="Issue Details: All Checks-Ins Clicked"
+                >
+                  {isSmallScreen ? t('More Check-Ins') : t('View More Check-Ins')}
+                </LinkButton>
+              )}
+              {issueTypeConfig.pages.uptimeChecks.enabled && (
+                <LinkButton
+                  to={{
+                    pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`,
+                    query: location.query,
+                  }}
+                  size="xs"
+                  analyticsEventKey="issue_details.all_uptime_checks_clicked"
+                  analyticsEventName="Issue Details: All Uptime Checks Clicked"
+                >
+                  {isSmallScreen ? t('More Uptime Checks') : t('View More Uptime Checks')}
+                </LinkButton>
+              )}
+            </Fragment>
+          )}
+          {isListView && (
+            <ButtonBar>
+              {issueTypeConfig.discover.enabled && currentTab === Tab.EVENTS && (
+                <LinkButton
+                  to={{
+                    pathname: discoverUrl.pathname,
+                    query: {
+                      ...discoverUrl.query,
+                      sort: location.query.sort ?? '-timestamp',
+                    },
+                  }}
+                  aria-label={t('Open in Discover')}
+                  size="xs"
+                  icon={<IconTelescope />}
+                  analyticsEventKey="issue_details.discover_clicked"
+                  analyticsEventName="Issue Details: Discover Clicked"
+                >
+                  {t('Open in Discover')}
+                </LinkButton>
+              )}
+              <LinkButton
+                to={{
+                  pathname: `${baseUrl}${TabPaths[Tab.DETAILS]}`,
+                  query: {...location.query, cursor: undefined},
+                }}
+                aria-label={t('Return to event details')}
+                size="xs"
+              >
+                {t('Close')}
+              </LinkButton>
             </ButtonBar>
-          </JumpTo>
-        </EventInfoJumpToWrapper>
-        <Divider />
-      </div>
-    );
-  }
-);
+          )}
+        </NavigationWrapper>
+      </TourElement>
+    </EventNavigationWrapper>
+  );
+}
 
-const EventNavigationWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  font-size: ${p => p.theme.fontSizeSmall};
-  padding: ${space(1)} ${space(1.5)};
-`;
-
-const NavigationWrapper = styled('div')`
-  display: flex;
-`;
-
-const Navigation = styled('div')`
-  display: flex;
-  border-right: 1px solid ${p => p.theme.gray100};
-`;
-
-const EventInfoJumpToWrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  padding: ${space(1)} ${space(2)};
-`;
-
-const EventInfo = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-direction: row;
-  align-items: center;
-`;
-
-const JumpTo = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  flex-direction: row;
-  align-items: center;
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const Divider = styled('hr')`
-  border-color: ${p => p.theme.border};
-  margin: 0;
-`;
-
-const EventIdInfo = styled('span')`
+const LargeDropdownButtonWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.25)};
 `;
 
-const EventId = styled('span')`
-  position: relative;
-  font-weight: ${p => p.theme.fontWeightBold};
-  text-decoration: underline;
-  text-decoration-color: ${p => color(p.theme.gray200).alpha(0.5).string()};
-  &:hover {
-    > span {
-      display: flex;
-    }
+const NavigationDropdownButton = styled(DropdownButton)`
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  padding-right: ${space(0.5)};
+`;
+
+const NavigationLabel = styled('div')`
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  padding-right: ${space(0.25)};
+  padding-left: ${space(1.5)};
+`;
+
+const LargeInThisIssueText = styled('div')`
+  font-size: ${p => p.theme.fontSize.lg};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  color: ${p => p.theme.subText};
+  line-height: 1;
+`;
+
+const EventNavigationWrapper = styled('div')`
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: ${p => p.theme.fontSize.sm};
+
+  @media (min-width: ${p => p.theme.breakpoints.xs}) {
+    flex-direction: row;
+    align-items: center;
   }
 `;
 
-const CopyIconContainer = styled('span')`
-  display: none;
-  align-items: center;
-  padding: ${space(0.25)};
-  background: ${p => p.theme.background};
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+const NavigationWrapper = styled('div')`
+  display: flex;
+  gap: ${space(0.25)};
+  justify-content: space-between;
+
+  @media (min-width: ${p => p.theme.breakpoints.xs}) {
+    gap: ${space(0.5)};
+  }
 `;
 
-const EventTitle = styled('div')`
-  font-weight: ${p => p.theme.fontWeightBold};
+const DropdownCountWrapper = styled('div')<{isCurrentTab: boolean}>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${space(3)};
+  font-variant-numeric: tabular-nums;
+  font-weight: ${p =>
+    p.isCurrentTab ? p.theme.fontWeight.bold : p.theme.fontWeight.normal};
+`;
+
+const ItemCount = styled(Count)`
+  color: ${p => p.theme.subText};
+`;
+
+const CustomItemCount = styled('div')`
+  color: ${p => p.theme.subText};
 `;

@@ -11,12 +11,11 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class MetricsInterfaceTestCase(BaseMetricsLayerTestCase, TestCase, GenericMetricsTestMixIn):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
 
 class SnubaMetricsInterfaceTest(MetricsInterfaceTestCase):
-
     """
     A sample test case that shows the process of writing
     the metric via the Snuba HTTP endpoint, and then
@@ -24,11 +23,7 @@ class SnubaMetricsInterfaceTest(MetricsInterfaceTestCase):
     This test is also very similar to those in the Metrics Layer.
     """
 
-    @property
-    def now(self):
-        return BaseMetricsLayerTestCase.MOCK_DATETIME
-
-    def test_count_query(self):
+    def test_count_query(self) -> None:
         generic_metrics_backend.distribution(
             self.use_case_id,
             self.organization.id,

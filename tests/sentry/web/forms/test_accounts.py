@@ -1,45 +1,49 @@
-from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import control_silo_test
-from sentry.web.forms.accounts import RelocationForm
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.silo import no_silo_test
+from sentry.users.models.user_option import UserOption
+from sentry.web.forms.accounts import RegistrationForm
 
 
-@control_silo_test
-class TestRelocationForm(TestCase):
-    def test_placeholder_username(self):
-        username = "test_user"
-        user = self.create_user(username=username)
-        relocation_form = RelocationForm(user=user)
+def test_valid_does_not_crash_without_username() -> None:
+    form = RegistrationForm({"password": "watwatwatwatwatwatawtataw"})
+    assert form.is_valid() is False
 
-        assert relocation_form.fields["username"].widget.attrs["placeholder"] == username
 
-    def test_clean_username_use_default_username_if_none_entered(self):
-        username = "test_user"
-        user = self.create_user(username=username)
-        relocation_form = RelocationForm(user=user)
-        relocation_form.cleaned_data = {"username": ""}
+@no_silo_test
+@django_db_all
+def test_sets_user_timezone_when_present() -> None:
+    form_data = {
+        "username": "a@b.com",
+        "name": "Test",
+        "password": "watwatwatwatwatwatawtataw",
+        "timezone": "Europe/Vienna",
+    }
 
-        assert relocation_form.clean_username() == username
+    form = RegistrationForm(data=form_data)
+    assert form.is_valid()
 
-    def test_clean_username_strips_special_chars(self):
-        username = "test_user"
-        user = self.create_user(username=username)
-        relocation_form = RelocationForm(user=user)
-        relocation_form.cleaned_data = {"username": "\n\rnew_u\n\n \0se\r\trname\n\n\t\r\0\n"}
+    user = form.save(commit=True)
 
-        assert relocation_form.clean_username() == "new_username"
+    assert UserOption.objects.filter(
+        user=user, key="timezone", value="Europe/Vienna"
+    ).exists(), "Timezone should be set correctly"
 
-    def test_clean_username_forces_lowercase(self):
-        username = "test_user"
-        user = self.create_user(username=username)
-        relocation_form = RelocationForm(user=user)
-        relocation_form.cleaned_data = {"username": "nEw_UsErname"}
 
-        assert relocation_form.clean_username() == "new_username"
+@no_silo_test
+@django_db_all
+def test_registration_form_without_timezone() -> None:
+    form_data = {
+        "username": "a@b.com",
+        "name": "Test",
+        "password": "watwatwatwatwatwatawtataw",
+        # No timezone provided
+    }
 
-    def test_clean_password(self):
-        username = "test_user"
-        user = self.create_user(username=username)
-        relocation_form = RelocationForm(user=user)
-        relocation_form.cleaned_data = {"password": "new_password"}
+    form = RegistrationForm(data=form_data)
+    assert form.is_valid()
 
-        assert relocation_form.clean_password() == "new_password"
+    user = form.save(commit=True)
+
+    assert not UserOption.objects.filter(
+        user=user, key="timezone"
+    ).exists(), "Timezone should not be set"

@@ -1,21 +1,22 @@
-import {Fragment, useMemo, useRef} from 'react';
-import type {Theme} from '@emotion/react';
+import {Fragment, useMemo} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import bannerStar from 'sentry-images/spot/banner-star.svg';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import Tag from 'sentry/components/badge/tag';
-import {Button, LinkButton} from 'sentry/components/button';
-import {Chevron} from 'sentry/components/chevron';
+import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
+import {Tag} from 'sentry/components/core/badge/tag';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
-import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Placeholder from 'sentry/components/placeholder';
-import {Tooltip} from 'sentry/components/tooltip';
-import {IconClose} from 'sentry/icons';
+import {IconChevron, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Activity} from 'sentry/types/group';
@@ -35,6 +36,7 @@ type GroupPriorityDropdownProps = {
 type GroupPriorityBadgeProps = {
   priority: PriorityLevel;
   children?: React.ReactNode;
+  showLabel?: boolean;
 };
 
 const PRIORITY_KEY_TO_LABEL: Record<PriorityLevel, string> = {
@@ -44,18 +46,6 @@ const PRIORITY_KEY_TO_LABEL: Record<PriorityLevel, string> = {
 };
 
 const PRIORITY_OPTIONS = [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW];
-
-function getTagTypeForPriority(priority: string): keyof Theme['tag'] {
-  switch (priority) {
-    case PriorityLevel.HIGH:
-      return 'error';
-    case PriorityLevel.MEDIUM:
-      return 'warning';
-    case PriorityLevel.LOW:
-    default:
-      return 'default';
-  }
-}
 
 function useLastEditedBy({
   groupId,
@@ -92,15 +82,23 @@ export function makeGroupPriorityDropdownOptions({
   return PRIORITY_OPTIONS.map(priority => ({
     textValue: PRIORITY_KEY_TO_LABEL[priority],
     key: priority,
-    label: <GroupPriorityBadge priority={priority} />,
+    label: <GroupPriorityBadge showLabel priority={priority} />,
     onAction: () => onChange(priority),
   }));
 }
 
-export function GroupPriorityBadge({priority, children}: GroupPriorityBadgeProps) {
+export function GroupPriorityBadge({
+  priority,
+  showLabel = true,
+  children,
+}: GroupPriorityBadgeProps) {
+  const bars =
+    priority === PriorityLevel.HIGH ? 3 : priority === PriorityLevel.MEDIUM ? 2 : 1;
+  const label = PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown');
+
   return (
-    <StyledTag type={getTagTypeForPriority(priority)}>
-      {PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown')}
+    <StyledTag type="default" icon={<IconCellSignal bars={bars} />}>
+      {showLabel ? label : <VisuallyHidden>{label}</VisuallyHidden>}
       {children}
     </StyledTag>
   );
@@ -124,29 +122,6 @@ function PriorityChangeActor({
     <Tooltip skipWrapper title={resolvedLastEditedBy.name}>
       <span>{resolvedLastEditedBy.name}</span>
     </Tooltip>
-  );
-}
-
-function GroupPriorityFeedback() {
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const feedback = useFeedbackWidget({
-    buttonRef,
-    messagePlaceholder: t('How can we make priority better for you?'),
-  });
-
-  if (!feedback) {
-    return null;
-  }
-
-  return (
-    <StyledButton
-      ref={buttonRef}
-      size="zero"
-      borderless
-      onClick={e => e.stopPropagation()}
-    >
-      {t('Give Feedback')}
-    </StyledButton>
   );
 }
 
@@ -176,11 +151,11 @@ function GroupPriorityLearnMore() {
       <BannerStar2 src={bannerStar} />
       <BannerStar3 src={bannerStar} />
       <p>
-        <strong>{t('Time to prioritize!')}</strong>
+        <strong>{t('Time to prioritize')}</strong>
       </p>
       <p>
         {t(
-          'Use priority to make your issue stream more actionable. Sentry will automatically assign a priority score to new issues and filter low priority issues from the default view.'
+          'Use priority to make your issue stream more actionable. Sentry will automatically assign a priority score to new issues.'
         )}
       </p>
       <LinkButton
@@ -218,7 +193,6 @@ export function GroupPriorityDropdown({
       menuTitle={
         <MenuTitleContainer>
           <div>{t('Set Priority')}</div>
-          <GroupPriorityFeedback />
         </MenuTitleContainer>
       }
       minMenuWidth={230}
@@ -228,8 +202,8 @@ export function GroupPriorityDropdown({
           aria-label={t('Modify issue priority')}
           size="zero"
         >
-          <GroupPriorityBadge priority={value}>
-            <Chevron direction={isOpen ? 'up' : 'down'} size="small" />
+          <GroupPriorityBadge showLabel={false} priority={value}>
+            <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" color="subText" />
           </GroupPriorityBadge>
         </DropdownButton>
       )}
@@ -258,24 +232,28 @@ export function GroupPriorityDropdown({
 }
 
 const DropdownButton = styled(Button)`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   border: none;
   padding: 0;
   height: unset;
   border-radius: 20px;
   box-shadow: none;
+
+  ${p =>
+    // Chonk tags have a smaller border radius, so we need make sure it matches.
+    p.theme.isChonk &&
+    css`
+      > span > div {
+        border-radius: 20px;
+      }
+    `}
 `;
 
 const StyledTag = styled(Tag)`
-  span {
-    display: flex;
-    align-items: center;
-    gap: ${space(0.25)};
-  }
-
-  & > div {
-    height: 24px;
-  }
+  gap: ${space(0.25)};
+  position: relative;
+  height: 24px;
+  overflow: hidden;
 `;
 
 const InlinePlaceholder = styled(Placeholder)`
@@ -287,18 +265,6 @@ const MenuTitleContainer = styled('div')`
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-`;
-
-const StyledButton = styled(Button)`
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
-  font-weight: ${p => p.theme.fontWeightNormal};
-  padding: 0;
-  border: none;
-
-  &:hover {
-    color: ${p => p.theme.subText};
-  }
 `;
 
 const StyledFooter = styled(DropdownMenuFooter)`
@@ -314,7 +280,7 @@ const LearnMoreWrapper = styled('div')`
   position: relative;
   max-width: 230px;
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   padding: ${space(1.5)};
   border-top: 1px solid ${p => p.theme.innerBorder};
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};

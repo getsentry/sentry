@@ -1,14 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
 import TeamDetails from 'sentry/views/settings/organizationTeams/teamDetails';
 
 describe('TeamMembers', () => {
-  let joinMock;
+  let joinMock: any;
 
   const organization = OrganizationFixture();
   const team = TeamFixture({hasAccess: false});
@@ -29,18 +28,19 @@ describe('TeamMembers', () => {
   });
 
   it('can request membership', async () => {
-    const {routerProps, router} = initializeOrg({
-      organization,
-      router: {
-        params: {orgId: organization.slug, teamId: team.slug},
-      },
-    });
-
     render(
-      <TeamDetails {...routerProps}>
+      <TeamDetails>
         <div data-test-id="test" />
       </TeamDetails>,
-      {organization, router}
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/teams/${team.slug}/`,
+          },
+          route: '/settings/:orgId/teams/:teamId/',
+        },
+      }
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Request Access'}));
@@ -49,20 +49,22 @@ describe('TeamMembers', () => {
     expect(screen.queryByTestId('test')).not.toBeInTheDocument();
   });
 
-  it('displays children', () => {
-    const {router, routerProps} = initializeOrg({
-      organization,
-      router: {
-        params: {orgId: organization.slug, teamId: teamHasAccess.slug},
-      },
-    });
+  it('displays children', async () => {
     render(
-      <TeamDetails {...routerProps}>
+      <TeamDetails>
         <div data-test-id="test" />
       </TeamDetails>,
-      {organization, router}
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/teams/${teamHasAccess.slug}/`,
+          },
+          route: '/settings/:orgId/teams/:teamId/',
+        },
+      }
     );
 
-    expect(screen.getByTestId('test')).toBeInTheDocument();
+    expect(await screen.findByTestId('test')).toBeInTheDocument();
   });
 });

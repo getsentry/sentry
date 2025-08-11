@@ -7,10 +7,13 @@ from typing import Any
 from django.conf import settings
 from django.core.handlers.wsgi import WSGIRequest
 
+from sentry.hybridcloud.models.outbox import OutboxBase
 from sentry.hybridcloud.models.webhookpayload import THE_PAST, WebhookPayload
-from sentry.models.outbox import OutboxBase
+from sentry.hybridcloud.tasks.deliver_from_outbox import (
+    enqueue_outbox_jobs,
+    enqueue_outbox_jobs_control,
+)
 from sentry.silo.base import SiloMode
-from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs, enqueue_outbox_jobs_control
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -86,6 +89,7 @@ def assert_webhook_payloads_for_mailbox(
         assert message.request_body == expected_payload["request_body"]
         assert message.schedule_for == THE_PAST
         assert message.attempts == 0
+        assert message.region_name is not None
         try:
             region_names_set.remove(message.region_name)
         except KeyError:

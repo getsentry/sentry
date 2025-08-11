@@ -17,7 +17,7 @@ jest.mock('echarts-for-react/lib/core', () => {
   };
 });
 
-function TestContainer({children}) {
+function TestContainer({children}: {children: React.ReactNode}) {
   return (
     <div style={{height: '500px', background: 'yellow', padding: '20px'}}>{children}</div>
   );

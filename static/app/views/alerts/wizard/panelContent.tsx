@@ -2,20 +2,19 @@ import diagramApdex from 'sentry-images/spot/alerts-wizard-apdex.svg';
 import diagramCLS from 'sentry-images/spot/alerts-wizard-cls.svg';
 import diagramCrashFreeSessions from 'sentry-images/spot/alerts-wizard-crash-free-sessions.svg';
 import diagramCrashFreeUsers from 'sentry-images/spot/alerts-wizard-crash-free-users.svg';
+import diagramCrons from 'sentry-images/spot/alerts-wizard-crons.svg';
 import diagramCustomTransaction from 'sentry-images/spot/alerts-wizard-custom.svg';
-import diagramCustomMetrics from 'sentry-images/spot/alerts-wizard-custom-metrics.svg';
 import diagramErrors from 'sentry-images/spot/alerts-wizard-errors.svg';
 import diagramFailureRate from 'sentry-images/spot/alerts-wizard-failure-rate.svg';
 import diagramFID from 'sentry-images/spot/alerts-wizard-fid.svg';
 import diagramIssues from 'sentry-images/spot/alerts-wizard-issues.svg';
 import diagramLCP from 'sentry-images/spot/alerts-wizard-lcp.svg';
-import diagramSpanMetrics from 'sentry-images/spot/alerts-wizard-span-metrics.svg';
 import diagramThroughput from 'sentry-images/spot/alerts-wizard-throughput.svg';
 import diagramTransactionDuration from 'sentry-images/spot/alerts-wizard-transaction-duration.svg';
+import diagramUptime from 'sentry-images/spot/alerts-wizard-uptime.svg';
 import diagramUsers from 'sentry-images/spot/alerts-wizard-users-experiencing-errors.svg';
 
-import ExternalLink from 'sentry/components/links/externalLink';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 
 import type {AlertType} from './options';
 
@@ -132,47 +131,6 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ],
     illustration: diagramCustomTransaction,
   },
-  custom_metrics: {
-    description: t(
-      'Alert on custom metrics that you have configured and are not related to errors, transactions or sessions.'
-    ),
-    examples: [
-      t('When the number of sign-ups dropped by 10% compared to the previous week.'),
-      t(
-        'When the 75th percentile of your login flow is taking longer than 500 milliseconds.'
-      ),
-    ],
-    illustration: diagramCustomMetrics,
-  },
-  span_metrics: {
-    description: tct(
-      'Alert on custom [link:span metrics] that you have configured, such as number of sign-ups or duration of your login.',
-      {
-        link: <ExternalLink href="https://docs.sentry.io/product/explore/metrics/" />,
-      }
-    ),
-    examples: [
-      t('When the number of sign-ups dropped by 10% compared to the previous week.'),
-      t(
-        'When the 75th percentile of your login flow is taking longer than 500 milliseconds.'
-      ),
-    ],
-    illustration: diagramSpanMetrics,
-  },
-  llm_tokens: {
-    description: t(
-      'Receive an alert when the total number of tokens used by your LLMs reaches a limit.'
-    ),
-    examples: [t('When there are more than 100,000 tokens used within an hour')],
-    illustration: diagramCustomMetrics,
-  },
-  llm_cost: {
-    description: t(
-      'Receive an alert when the total cost of tokens used by your LLMs reaches a limit.'
-    ),
-    examples: [t('When there are more than $100 used by LLM  within an hour')],
-    illustration: diagramCustomMetrics,
-  },
   crash_free_sessions: {
     description: t(
       'A session begins when a user starts the application and ends when it’s closed or sent to the background. A crash is when a session ends due to an error and this type of alert lets you monitor when those crashed sessions exceed a threshold. This lets you get a better picture of the health of your app.'
@@ -190,5 +148,80 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
       t('When the Crash Free Rate is below 97%, send an email notification to yourself.'),
     ],
     illustration: diagramCrashFreeUsers,
+  },
+  uptime_monitor: {
+    description: t(
+      'Alert when the availability or reliability of a monitored URL changes, providing instant notifications and insights to quickly detect and resolve issues.'
+    ),
+    examples: [
+      t('When the URL returns a response status code other than 200.'),
+      t('When the URL response times out after 20 seconds.'),
+      t('When a DNS resolution error is detected for the URL.'),
+    ],
+    illustration: diagramUptime,
+  },
+  crons_monitor: {
+    description: t(
+      'Alert on scheduled monitors that check-in on recurring jobs and tell you if they’re running on schedule, failing, or succeeding.'
+    ),
+    examples: [
+      t('When a scheduled job fails during execution'),
+      t("When a scheduled job runs for longer than it's expected runtime"),
+      t('When a scheduled job does not run'),
+    ],
+    illustration: diagramCrons,
+  },
+  eap_metrics: {
+    description: t('Alert on spans.'),
+    examples: [
+      t('When your average time in queue exceeds 100ms.'),
+      t('When your app runs more than 1000 queries in a minute.'),
+    ],
+    illustration: diagramThroughput,
+  },
+  trace_item_throughput: {
+    description: t(
+      'Throughput is the total number of spans in a project and you can alert when it reaches a threshold within a period of time.'
+    ),
+    examples: [
+      t('When number of spans on a key page exceeds 100k per minute.'),
+      t('When number of spans drops below a threshold.'),
+    ],
+    illustration: diagramThroughput,
+  },
+  trace_item_duration: {
+    description: t(
+      'Monitor how long it takes for spans to complete. Use flexible aggregates like percentiles, averages, and min/max.'
+    ),
+    examples: [
+      t('When any span is slower than 3 seconds.'),
+      t('When the 75th percentile response time is higher than 250 milliseconds.'),
+    ],
+    illustration: diagramTransactionDuration,
+  },
+  trace_item_failure_rate: {
+    description: t(
+      'Failure rate is the percentage of unsuccessful spans. Sentry treats spans with a status other than “ok,” “canceled,” and “unknown” as failures.'
+    ),
+    examples: [t('When the failure rate for an important endpoint reaches 10%.')],
+    docsLink: 'https://docs.sentry.io/product/performance/metrics/#failure-rate',
+    illustration: diagramFailureRate,
+  },
+  trace_item_lcp: {
+    description: t(
+      'Largest Contentful Paint (LCP) measures loading performance. It marks the point when the largest image or text block is visible within the viewport. A fast LCP helps reassure the user that the page is useful, and so we recommend an LCP of less than 2.5 seconds.'
+    ),
+    examples: [
+      t('When the 75th percentile LCP of your homepage is longer than 2.5 seconds.'),
+    ],
+    docsLink: 'https://docs.sentry.io/product/performance/web-vitals',
+    illustration: diagramLCP,
+  },
+  trace_item_logs: {
+    description: t(
+      'Alert on log counts and log attributes such as severity, message and log level.'
+    ),
+    examples: [t('When the number of error level logs exceeds 10 in 5 minutes.')],
+    illustration: diagramThroughput,
   },
 };

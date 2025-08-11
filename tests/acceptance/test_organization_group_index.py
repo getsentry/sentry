@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.utils import timezone as django_timezone
 
@@ -8,7 +8,7 @@ from sentry.models.assistant import AssistantActivity
 from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 
 event_time = before_now(days=3)
@@ -36,7 +36,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "oh no",
-                "timestamp": iso_format(event_time - timedelta(hours=1)),
+                "timestamp": (event_time - timedelta(hours=1)).isoformat(),
                 "fingerprint": ["group-1"],
             },
             project_id=self.project.id,
@@ -46,25 +46,25 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             data={
                 "event_id": "b" * 32,
                 "message": "oh snap",
-                "timestamp": iso_format(event_time),
+                "timestamp": event_time.isoformat(),
                 "fingerprint": ["group-2"],
             },
             project_id=self.project.id,
         )
         add_group_to_inbox(self.event_b.group, GroupInboxReason.NEW)
 
-    def test_with_onboarding(self):
+    def test_with_onboarding(self) -> None:
         self.project.update(first_event=None)
         self.page.visit_issue_list(self.org.slug)
         self.browser.wait_until_test_id("awaiting-events")
 
-    def test_with_no_results(self):
+    def test_with_no_results(self) -> None:
         self.project.update(first_event=django_timezone.now())
         self.page.visit_issue_list(self.org.slug, query="?query=assigned%3Ame")
         self.browser.wait_until_test_id("empty-state")
 
     @patch("django.utils.timezone.now")
-    def test_with_results(self, mock_now):
+    def test_with_results(self, mock_now: MagicMock) -> None:
         mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()
         self.page.visit_issue_list(self.org.slug)
@@ -76,7 +76,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         assert "oh no" in groups[1].text
 
     @patch("django.utils.timezone.now")
-    def test_resolve_issues_removal(self, mock_now):
+    def test_resolve_issues_removal(self, mock_now: MagicMock) -> None:
         mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()
         group1 = self.event_a.group
@@ -95,7 +95,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
-    def test_resolve_issues_removal_multi_projects(self, mock_now):
+    def test_resolve_issues_removal_multi_projects(self, mock_now: MagicMock) -> None:
         mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()
 
@@ -116,7 +116,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
-    def test_archive_issues(self, mock_now):
+    def test_archive_issues(self, mock_now: MagicMock) -> None:
         mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()
 
@@ -136,7 +136,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
-    def test_archive_issues_multi_projects(self, mock_now):
+    def test_archive_issues_multi_projects(self, mock_now: MagicMock) -> None:
         mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()
 
@@ -157,7 +157,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
-    def test_delete_issues(self, mock_now):
+    def test_delete_issues(self, mock_now: MagicMock) -> None:
         mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()
 
@@ -177,7 +177,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
-    def test_delete_issues_multi_projects(self, mock_now):
+    def test_delete_issues_multi_projects(self, mock_now: MagicMock) -> None:
         mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()
 
@@ -198,7 +198,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
             assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
-    def test_merge_issues(self, mock_now):
+    def test_merge_issues(self, mock_now: MagicMock) -> None:
         mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()
 
@@ -221,7 +221,7 @@ class OrganizationGroupIndexTest(AcceptanceTestCase, SnubaTestCase):
         assert len(groups) == 1
 
     @patch("django.utils.timezone.now")
-    def test_inbox_results(self, mock_now):
+    def test_inbox_results(self, mock_now: MagicMock) -> None:
         mock_now.return_value = datetime.now(timezone.utc)
         self.create_issues()
         # Disable for_review_guide

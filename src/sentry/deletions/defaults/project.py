@@ -1,10 +1,17 @@
 from __future__ import annotations
 
-from ..base import BulkModelDeletionTask, ModelDeletionTask, ModelRelation
+from sentry.deletions.base import (
+    BaseRelation,
+    BulkModelDeletionTask,
+    ModelDeletionTask,
+    ModelRelation,
+)
+from sentry.models.project import Project
+from sentry.models.rule import Rule
 
 
-class ProjectDeletionTask(ModelDeletionTask):
-    def get_child_relations(self, instance):
+class ProjectDeletionTask(ModelDeletionTask[Project]):
+    def get_child_relations(self, instance: Project) -> list[BaseRelation]:
         from sentry.discover.models import DiscoverSavedQueryProject
         from sentry.incidents.models.alert_rule import AlertRule, AlertRuleProjects
         from sentry.incidents.models.incident import IncidentProject
@@ -20,7 +27,7 @@ class ProjectDeletionTask(ModelDeletionTask):
         from sentry.models.groupassignee import GroupAssignee
         from sentry.models.groupbookmark import GroupBookmark
         from sentry.models.groupemailthread import GroupEmailThread
-        from sentry.models.grouphash import GroupHash
+        from sentry.models.groupopenperiod import GroupOpenPeriod
         from sentry.models.grouprelease import GroupRelease
         from sentry.models.grouprulestatus import GroupRuleStatus
         from sentry.models.groupseen import GroupSeen
@@ -34,27 +41,30 @@ class ProjectDeletionTask(ModelDeletionTask):
         from sentry.models.release_threshold import ReleaseThreshold
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
         from sentry.models.releases.release_project import ReleaseProject
-        from sentry.models.servicehook import ServiceHook, ServiceHookProject
         from sentry.models.transaction_threshold import ProjectTransactionThreshold
         from sentry.models.userreport import UserReport
         from sentry.monitors.models import Monitor
         from sentry.replays.models import ReplayRecordingSegment
+        from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
         from sentry.snuba.models import QuerySubscription
+        from sentry.uptime.models import ProjectUptimeSubscription
+        from sentry.workflow_engine.models import Detector
 
-        relations = [
+        relations: list[BaseRelation] = [
             # ProjectKey gets revoked immediately, in bulk
             ModelRelation(ProjectKey, {"project_id": instance.id})
         ]
 
         # in bulk
         for m1 in (
+            # GroupOpenPeriod should be deleted before Activity
+            GroupOpenPeriod,
             Activity,
             AlertRuleProjects,
             EnvironmentProject,
             GroupAssignee,
             GroupBookmark,
             GroupEmailThread,
-            GroupHash,
             GroupRelease,
             GroupRuleStatus,
             GroupSeen,
@@ -80,26 +90,34 @@ class ProjectDeletionTask(ModelDeletionTask):
             ProguardArtifactRelease,
             DiscoverSavedQueryProject,
             IncidentProject,
+            ProjectUptimeSubscription,
         ):
             relations.append(ModelRelation(m1, {"project_id": instance.id}, BulkModelDeletionTask))
 
-        relations.append(ModelRelation(Monitor, {"project_id": instance.id}))
-        relations.append(ModelRelation(Group, {"project_id": instance.id}))
-        relations.append(ModelRelation(QuerySubscription, {"project_id": instance.id}))
+        for m2 in (
+            Monitor,
+            Group,
+            QuerySubscription,
+            Rule,
+        ):
+            relations.append(ModelRelation(m2, {"project_id": instance.id}))
+
         relations.append(
             ModelRelation(
                 AlertRule,
-                {"snuba_query__subscriptions__project": instance, "include_all_projects": False},
+                {"snuba_query__subscriptions__project": instance},
             )
         )
+        relations.append(ModelRelation(Detector, {"project_id": instance.id}))
 
         # Release needs to handle deletes after Group is cleaned up as the foreign
         # key is protected
-        for m2 in (
+        for m3 in (
             ReleaseProject,
             ReleaseProjectEnvironment,
             EventAttachment,
             ProjectDebugFile,
         ):
-            relations.append(ModelRelation(m2, {"project_id": instance.id}, ModelDeletionTask))
+            relations.append(ModelRelation(m3, {"project_id": instance.id}, ModelDeletionTask))
+
         return relations

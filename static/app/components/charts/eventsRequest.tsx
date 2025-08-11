@@ -12,28 +12,29 @@ import {
   isMultiSeriesStats,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import type {DateString} from 'sentry/types/core';
+import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import type {
-  DateString,
   EventsStats,
   EventsStatsData,
   MultiSeriesEventsStats,
   OrganizationSummary,
-} from 'sentry/types';
-import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
+} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {getAggregateAlias, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
-export type TimeSeriesData = {
+type TimeSeriesData = {
   allTimeseriesData?: EventsStatsData;
   comparisonTimeseriesData?: Series[];
   originalPreviousTimeseriesData?: EventsStatsData | null;
   originalTimeseriesData?: EventsStatsData;
   previousTimeseriesData?: Series[] | null;
-  timeAggregatedData?: Series | {};
+  timeAggregatedData?: Series | Record<string, unknown>;
   timeframe?: {end: number; start: number};
   // timeseries data
   timeseriesData?: Series[];
@@ -65,14 +66,11 @@ export type RenderProps = LoadingStatus &
   };
 
 type DefaultProps = {
+  includeAllArgs: false;
   /**
    * Include data for previous period
    */
   includePrevious: boolean;
-  /**
-   * Transform the response data to be something ingestible by charts
-   */
-  includeTransformedData: boolean;
   /**
    * Interval to group results in
    *
@@ -95,6 +93,10 @@ type DefaultProps = {
    * Absolute end date for query
    */
   end?: DateString;
+  /**
+   * Transform the response data to be something ingestible by charts
+   */
+  includeTransformedData?: boolean;
   /**
    * Relative time period for query.
    *
@@ -144,7 +146,7 @@ type EventsRequestPartialProps = {
   /**
    * List of environments to query
    */
-  environment?: Readonly<string[]>;
+  environment?: readonly string[];
   /**
    * Is query out of retention
    */
@@ -181,7 +183,7 @@ type EventsRequestPartialProps = {
   /**
    * List of project ids to query
    */
-  project?: Readonly<number[]>;
+  project?: readonly number[];
   /**
    * A container for query batching data and functions.
    */
@@ -189,7 +191,7 @@ type EventsRequestPartialProps = {
   /**
    * Extra query parameters to be added.
    */
-  queryExtras?: Record<string, string>;
+  queryExtras?: Record<string, string | boolean | number>;
   /**
    * A unique name for what's triggering this request, see organization_events_stats for an allowlist
    */
@@ -198,6 +200,10 @@ type EventsRequestPartialProps = {
    * Sample rate used for data extrapolation in OnDemandMetricsRequest
    */
   sampleRate?: number;
+  /**
+   * The type of sampling mode used for EAP dataset requests
+   */
+  sampling?: SamplingMode;
   /**
    * Should loading be shown.
    */
@@ -273,6 +279,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     comparisonDelta: undefined,
     limit: 15,
     query: '',
+    includeAllArgs: false,
     includePrevious: true,
     includeTransformedData: true,
   };
@@ -299,7 +306,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     this.unmounting = true;
   }
 
-  private unmounting: boolean = false;
+  private unmounting = false;
 
   fetchData = async () => {
     const {api, confirmedQuery, onError, expired, name, hideError, ...props} = this.props;
@@ -315,7 +322,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       errorMessage: undefined,
     }));
 
-    let errorMessage;
+    let errorMessage: any;
     if (expired) {
       errorMessage = t(
         '%s has an invalid date range. Please try a more recent date range.',
@@ -330,7 +337,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     } else {
       try {
         api.clear();
-        timeseriesData = await doEventsRequest(api, props);
+        timeseriesData = await doEventsRequest<false>(api, props);
       } catch (resp) {
         if (resp?.responseJSON?.detail) {
           errorMessage = resp.responseJSON.detail;
@@ -392,7 +399,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     data: EventsStatsData,
     getName: (
       timestamp: number,
-      countArray: {count: number}[],
+      countArray: Array<{count: number}>,
       i: number
     ) => number = timestamp => timestamp * 1000
   ): SeriesDataUnit[] {
@@ -421,7 +428,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       seriesName: seriesName ?? 'Previous',
       data: this.calculateTotalsPerTimestamp(
         previous,
-        (_timestamp, _countArray, i) => current[i][0] * 1000
+        (_timestamp, _countArray, i) => current[i]![0] * 1000
       ),
       stack: 'previous',
     };
@@ -430,58 +437,14 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
   /**
    * Aggregate all counts for each time stamp
    */
-  transformAggregatedTimeseries(data: EventsStatsData, seriesName: string = ''): Series {
+  transformAggregatedTimeseries(data: EventsStatsData, seriesName = ''): Series {
     return {
       seriesName,
       data: this.calculateTotalsPerTimestamp(data),
     };
   }
 
-  /**
-   * Transforms query response into timeseries data to be used in a chart
-   */
-  transformTimeseriesData(
-    data: EventsStatsData,
-    meta: EventsStats['meta'],
-    seriesName?: string
-  ): Series[] {
-    let scale = 1;
-    if (seriesName) {
-      const unit = meta?.units?.[getAggregateAlias(seriesName)];
-      // Scale series values to milliseconds or bytes depending on units from meta
-      scale = (unit && (DURATION_UNITS[unit] ?? SIZE_UNITS[unit])) ?? 1;
-    }
-
-    return [
-      {
-        seriesName: seriesName || 'Current',
-        data: data.map(([timestamp, countsForTimestamp]) => ({
-          name: timestamp * 1000,
-          value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0) * scale,
-        })),
-      },
-    ];
-  }
-
-  /**
-   * Transforms comparisonCount in query response into timeseries data to be used in a comparison chart for change alerts
-   */
-  transformComparisonTimeseriesData(data: EventsStatsData): Series[] {
-    return [
-      {
-        seriesName: 'comparisonCount()',
-        data: data.map(([timestamp, countsForTimestamp]) => ({
-          name: timestamp * 1000,
-          value: countsForTimestamp.reduce(
-            (acc, {comparisonCount}) => acc + (comparisonCount ?? 0),
-            0
-          ),
-        })),
-      },
-    ];
-  }
-
-  processData(response: EventsStats, seriesIndex: number = 0, seriesName?: string) {
+  processData(response: EventsStats, seriesIndex = 0, seriesName?: string) {
     const {data, isMetricsData, totals, meta, isExtrapolatedData} = response;
     const {
       includeTransformedData,
@@ -493,7 +456,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
     } = this.props;
     const {current, previous} = this.getData(data);
     const transformedData = includeTransformedData
-      ? this.transformTimeseriesData(
+      ? transformTimeseriesData(
           current,
           meta,
           seriesName ?? currentSeriesNames?.[seriesIndex]
@@ -501,7 +464,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       : [];
     const transformedComparisonData =
       includeTransformedData && comparisonDelta
-        ? this.transformComparisonTimeseriesData(current)
+        ? transformComparisonTimeseriesData(current)
         : [];
     const previousData = includeTransformedData
       ? this.transformPreviousPeriodData(
@@ -516,14 +479,14 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       : {};
     const timeframe =
       response.start && response.end
-        ? !previous
+        ? previous
           ? {
-              start: response.start * 1000,
+              // Find the midpoint of start & end since previous includes 2x data
+              start: (response.start + response.end) * 500,
               end: response.end * 1000,
             }
           : {
-              // Find the midpoint of start & end since previous includes 2x data
-              start: (response.start + response.end) * 500,
+              start: response.start * 1000,
               end: response.end * 1000,
             }
         : undefined;
@@ -569,7 +532,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
             seriesName: string,
             index: number
           ): [number, Series, Series | null, AdditionalSeriesInfo] => {
-            const seriesData: EventsStats = timeseriesData[seriesName];
+            const seriesData: EventsStats = timeseriesData[seriesName]!;
             const processedData = this.processData(
               seriesData,
               index,
@@ -585,7 +548,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
             }
             return [
               seriesData.order || 0,
-              processedData.data[0],
+              processedData.data[0]!,
               processedData.previousData,
               {isMetricsData: processedData.isMetricsData},
             ];
@@ -594,7 +557,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
         .sort((a, b) => a[0] - b[0]);
       const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
       Object.keys(timeseriesData).forEach(key => {
-        const fieldsMeta = timeseriesData[key].meta?.fields[getAggregateAlias(key)];
+        const fieldsMeta = timeseriesData[key]!.meta?.fields[getAggregateAlias(key)];
         if (fieldsMeta) {
           timeseriesResultsTypes[key] = fieldsMeta;
         }
@@ -686,3 +649,50 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
   }
 }
 export default EventsRequest;
+
+/**
+ * Transforms query response into timeseries data to be used in a chart
+ */
+export function transformTimeseriesData(
+  data: EventsStatsData,
+  meta: EventsStats['meta'],
+  seriesName?: string
+): Series[] {
+  let scale = 1;
+  if (seriesName) {
+    const unit = meta?.units?.[getAggregateAlias(seriesName)];
+    // Scale series values to milliseconds or bytes depending on units from meta
+    scale =
+      ((unit &&
+        (DURATION_UNITS[unit as keyof typeof DURATION_UNITS] ??
+          SIZE_UNITS[unit as keyof typeof SIZE_UNITS])) as number) ?? 1;
+  }
+
+  return [
+    {
+      seriesName: seriesName || 'Current',
+      data: data.map(([timestamp, countsForTimestamp]) => ({
+        name: timestamp * 1000,
+        value: countsForTimestamp.reduce((acc, {count}) => acc + count, 0) * scale,
+      })),
+    },
+  ];
+}
+
+/**
+ * Transforms comparisonCount in query response into timeseries data to be used in a comparison chart for change alerts
+ */
+export function transformComparisonTimeseriesData(data: EventsStatsData): Series[] {
+  return [
+    {
+      seriesName: 'comparisonCount()',
+      data: data.map(([timestamp, countsForTimestamp]) => ({
+        name: timestamp * 1000,
+        value: countsForTimestamp.reduce(
+          (acc, {comparisonCount}) => acc + (comparisonCount ?? 0),
+          0
+        ),
+      })),
+    },
+  ];
+}

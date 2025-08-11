@@ -1,3 +1,4 @@
+import {platforms} from 'sentry/data/platforms';
 import type {PlatformKey} from 'sentry/types/project';
 
 export enum PlatformCategory {
@@ -7,6 +8,7 @@ export enum PlatformCategory {
   SERVERLESS = 3,
   DESKTOP = 4,
   OTHER = 5,
+  GAMING = 6,
 }
 
 // Mirrors `FRONTEND` in src/sentry/utils/platform_categories.py
@@ -21,10 +23,15 @@ export const frontend: PlatformKey[] = [
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',
+  'javascript-nuxt',
   'javascript-react',
+  'javascript-react-router',
   'javascript-remix',
+  'javascript-solid',
+  'javascript-solidstart',
   'javascript-svelte',
   'javascript-sveltekit',
+  'javascript-tanstackstart-react',
   'javascript-vue',
   'unity',
 ];
@@ -84,6 +91,8 @@ export const backend: PlatformKey[] = [
   'node-express',
   'node-koa',
   'node-connect',
+  'node-cloudflare-pages',
+  'node-cloudflare-workers',
   'perl',
   'php',
   'php-laravel',
@@ -124,6 +133,8 @@ export const serverless: PlatformKey[] = [
   'node-awslambda',
   'node-azurefunctions',
   'node-gcpfunctions',
+  'node-cloudflare-pages',
+  'node-cloudflare-workers',
   'python-awslambda',
   'python-azurefunctions',
   'python-gcpfunctions',
@@ -140,6 +151,7 @@ export const desktop: PlatformKey[] = [
   'dotnet',
   'electron',
   'flutter',
+  'godot',
   'java',
   'javascript-electron',
   'kotlin',
@@ -151,6 +163,18 @@ export const desktop: PlatformKey[] = [
   'native-qt',
   'unity',
   'unreal',
+];
+
+// Mirrors `GAMING` in src/sentry/utils/platform_categories.py
+// When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
+export const gaming: PlatformKey[] = [
+  'godot',
+  'native',
+  'nintendo-switch',
+  'playstation',
+  'unity',
+  'unreal',
+  'xbox',
 ];
 
 export const sourceMaps: PlatformKey[] = [
@@ -187,6 +211,77 @@ export const performance: PlatformKey[] = [
   'node-connect',
 ];
 
+// List of platforms that have tracing custom instrumentation guide docs for its nested frameworks
+// i.e. for a platform like `javascript-react`, we have a custom instrumentation guide for `react` that can be
+// accessed at `https://docs.sentry.io/platforms/javascript/guides/react/tracing/instrumentation/custom-instrumentation/`
+export const platformsWithNestedInstrumentationGuides: PlatformKey[] = [
+  'apple',
+  'apple-ios',
+  'apple-macos',
+  'dart',
+  'dart-flutter',
+  'go',
+  'go-echo',
+  'go-fasthttp',
+  'go-fiber',
+  'go-gin',
+  'go-http',
+  'go-iris',
+  'go-martini',
+  'go-negroni',
+  'java',
+  'java-android',
+  'java-appengine',
+  'java-log4j',
+  'java-log4j2',
+  'java-logback',
+  'java-logging',
+  'java-spring',
+  'java-spring-boot',
+  'javascript',
+  'javascript-angular',
+  'javascript-angularjs',
+  'javascript-astro',
+  'javascript-backbone',
+  'javascript-browser',
+  'javascript-capacitor',
+  'javascript-cordova',
+  'javascript-electron',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-nextjs',
+  'javascript-nuxt',
+  'javascript-react',
+  'javascript-react-router',
+  'javascript-remix',
+  'javascript-solid',
+  'javascript-svelte',
+  'javascript-sveltekit',
+  'javascript-tanstackstart-react',
+  'javascript-vue',
+  'dotnet',
+  'dotnet-aspnet',
+  'dotnet-aspnetcore',
+  'dotnet-awslambda',
+  'dotnet-gcpfunctions',
+  'dotnet-google-cloud-functions',
+  'dotnet-maui',
+  'dotnet-uwp',
+  'dotnet-winforms',
+  'dotnet-wpf',
+  'dotnet-xamarin',
+  'php',
+  'php-laravel',
+  'php-monolog',
+  'php-symfony',
+  'php-symfony2',
+  'powershell',
+  'react-native',
+  'ruby',
+  'rust',
+  'unity',
+];
+
 // List of platforms that have performance onboarding checklist content
 export const withPerformanceOnboarding: Set<PlatformKey> = new Set([
   'javascript',
@@ -205,62 +300,97 @@ export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
   'elixir',
   'minidump',
   'nintendo-switch',
+  'playstation',
+  'xbox',
+]);
+
+// List of platforms that have logging onboarding checklist content
+export const withLoggingOnboarding: Set<PlatformKey> = new Set(['javascript-react']);
+
+// List of platforms that do not have logging support. We make use of this list in the product to not provide any Logging
+export const withoutLoggingSupport: Set<PlatformKey> = new Set([
+  'cocoa-objc',
+  'cocoa-swift',
+  'elixir',
+  'dotnet',
+  'php-symfony',
+  'unity',
+  'unreal',
+  'native',
 ]);
 
 export const profiling: PlatformKey[] = [
-  // mobile
   'android',
+  'apple',
   'apple-ios',
-  // go
+  'apple-macos',
+  'dotnet',
+  'dotnet-winforms',
+  'dotnet-wpf',
+  'flutter',
   'go',
-  // nodejs
-  'node',
-  'node-express',
-  'node-koa',
-  'node-connect',
-  'javascript-nextjs',
-  'javascript-remix',
-  'javascript-sveltekit',
   'javascript',
+  'javascript-angular',
+  'javascript-astro',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-nextjs',
+  'javascript-nuxt',
   'javascript-react',
-  // react-native
-  'react-native',
-  // python
-  'python',
-  'python-django',
-  'python-flask',
-  'python-fastapi',
-  'python-starlette',
-  'python-sanic',
-  'python-celery',
-  'python-bottle',
-  'python-pylons',
-  'python-pyramid',
-  'python-tornado',
-  'python-rq',
-  'python-aiohttp',
-  'python-chalice',
-  'python-falcon',
-  'python-quart',
-  'python-tryton',
-  'python-wsgi',
-  'python-serverless',
-  // rust
-  'rust',
-  // php
+  'javascript-react-router',
+  'javascript-remix',
+  'javascript-solid',
+  'javascript-solidstart',
+  'javascript-svelte',
+  'javascript-sveltekit',
+  'javascript-tanstackstart-react',
+  'javascript-vue',
+  'node',
+  'node-awslambda',
+  'node-azurefunctions',
+  'node-connect',
+  'node-express',
+  'node-fastify',
+  'node-gcpfunctions',
+  'node-hapi',
+  'node-koa',
+  'node-nestjs',
   'php',
   'php-laravel',
   'php-symfony',
-  // ruby
-  'ruby',
-  'ruby-rails',
+  'python',
+  'python-aiohttp',
+  'python-asgi',
+  'python-awslambda',
+  'python-bottle',
+  'python-celery',
+  'python-chalice',
+  'python-django',
+  'python-falcon',
+  'python-fastapi',
+  'python-flask',
+  'python-gcpfunctions',
+  'python-pylons',
+  'python-pyramid',
+  'python-quart',
+  'python-rq',
+  'python-sanic',
+  'python-serverless',
+  'python-starlette',
+  'python-tornado',
+  'python-tryton',
+  'python-wsgi',
+  'react-native',
   'ruby-rack',
+  'ruby-rails',
+  'ruby',
 ];
 
 export const releaseHealth: PlatformKey[] = [
-  // frontend
   'javascript',
   'javascript-react',
+  'javascript-react-router',
+  'javascript-remix',
   'javascript-angular',
   'javascript-angularjs',
   'javascript-astro',
@@ -269,10 +399,12 @@ export const releaseHealth: PlatformKey[] = [
   'javascript-gatsby',
   'javascript-vue',
   'javascript-nextjs',
-  'javascript-remix',
+  'javascript-nuxt',
+  'javascript-solid',
+  'javascript-solidstart',
   'javascript-svelte',
   'javascript-sveltekit',
-  // mobile
+  'javascript-tanstackstart-react',
   'android',
   'apple-ios',
   'cordova',
@@ -280,7 +412,6 @@ export const releaseHealth: PlatformKey[] = [
   'react-native',
   'flutter',
   'dart-flutter',
-  // backend
   'bun',
   'deno',
   'native',
@@ -302,8 +433,6 @@ export const releaseHealth: PlatformKey[] = [
   'python-rq',
   'python-pymongo',
   'rust',
-  // serverless
-  // desktop
   'apple-macos',
   'native',
   'native-crashpad',
@@ -311,6 +440,19 @@ export const releaseHealth: PlatformKey[] = [
   'native-qt',
   'electron',
   'javascript-electron',
+  'rust',
+  'php',
+  'php-laravel',
+  'php-symfony',
+  'dotnet',
+  'dotnet-awslambda',
+  'dotnet-gcpfunctions',
+  'dotnet-maui',
+  'dotnet-uwp',
+  'dotnet-wpf',
+  'dotnet-winforms',
+  'dotnet-xamarin',
+  'unity',
 ];
 
 // These are the backend platforms that can set up replay -- e.g. they can be set up via a linked JS framework or via JS loader.
@@ -363,10 +505,15 @@ export const replayFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',
+  'javascript-nuxt',
   'javascript-react',
+  'javascript-react-router',
   'javascript-remix',
+  'javascript-solid',
+  'javascript-solidstart',
   'javascript-svelte',
   'javascript-sveltekit',
+  'javascript-tanstackstart-react',
   'javascript-vue',
 ];
 
@@ -375,6 +522,11 @@ export const replayMobilePlatforms: PlatformKey[] = [
   'android',
   'apple-ios',
   'react-native',
+  'flutter',
+  // Old platforms
+  'java-android',
+  'cocoa-objc',
+  'cocoa-swift',
 ];
 
 // These are all the platforms that can set up replay.
@@ -391,6 +543,7 @@ export const replayPlatforms: readonly PlatformKey[] = [
 export const replayOnboardingPlatforms: readonly PlatformKey[] = [
   ...replayFrontendPlatforms.filter(p => !['javascript-backbone'].includes(p)),
   ...replayBackendPlatforms,
+  ...replayMobilePlatforms,
 ];
 
 // These are the supported replay platforms that can also be set up using the JS loader.
@@ -402,6 +555,8 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
 // Feedback platforms that show only NPM widget setup instructions (no loader)
 export const feedbackNpmPlatforms: readonly PlatformKey[] = [
   'ionic',
+  'react-native',
+  'flutter',
   ...replayFrontendPlatforms,
 ];
 
@@ -426,13 +581,11 @@ export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
   'dotnet-wpf',
   'dotnet-winforms',
   'dotnet-xamarin',
-  'flutter',
   'java',
   'java-log4j2',
   'java-logback',
   'kotlin',
   'node-koa',
-  'react-native',
   'unity',
   'unreal',
 ];
@@ -471,110 +624,25 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
   ...feedbackCrashApiPlatforms,
 ];
 
-const customMetricBackendPlatforms: readonly PlatformKey[] = [
-  'bun',
-  'dart',
-  'deno',
-  'dotnet',
-  'dotnet-aspnet',
-  'dotnet-aspnetcore',
-  'dotnet-awslambda',
-  'dotnet-gcpfunctions',
-  'dotnet-maui',
-  'dotnet-uwp',
-  'dotnet-winforms',
-  'dotnet-wpf',
-  'java',
-  'java-appengine',
-  'java-log4j',
-  'java-log4j2',
-  'java-logback',
-  'java-logging',
-  'java-spring',
-  'java-spring-boot',
-  'php',
-  'php-laravel',
-  // TODO: Enable once metrics are available for Symfony
-  // 'php-symfony',
-  'python',
-  'python-aiohttp',
-  'python-asgi',
-  'python-awslambda',
-  'python-bottle',
-  'python-celery',
-  'python-chalice',
-  'python-django',
-  'python-falcon',
-  'python-fastapi',
-  'python-flask',
-  'python-gcpfunctions',
-  'python-pymongo',
-  'python-pylons',
-  'python-pyramid',
-  'python-quart',
-  'python-rq',
-  'python-sanic',
-  'python-serverless',
-  'python-starlette',
-  'python-tornado',
-  'python-tryton',
-  'python-wsgi',
-  'rust',
-  'node',
-  'node-awslambda',
-  'node-azurefunctions',
-  'node-connect',
-  'node-express',
-  'node-gcpfunctions',
-  'node-koa',
-  'ruby',
-  'ruby-rails',
-  'ruby-rack',
-];
+const platformKeys = platforms.map(p => p.id);
 
-const customMetricFrontendPlatforms: readonly PlatformKey[] = [
-  'android',
-  'apple-ios',
-  'electron',
-  'flutter',
-  'java-android',
-  'javascript-angular',
-  'javascript-astro',
-  'javascript-backbone',
-  'javascript-capacitor',
-  'javascript-electron',
-  'javascript-ember',
-  'javascript-gatsby',
+// Feature flag platforms with gettingStartedDocs. Note backend js platforms start with 'node-'.
+export const featureFlagOnboardingPlatforms: readonly PlatformKey[] = platformKeys.filter(
+  id => id.startsWith('javascript') || id.startsWith('python')
+);
+
+// Feature flag platforms to show the issue details distribution drawer for.
+export const featureFlagDrawerPlatforms: readonly PlatformKey[] = platformKeys.filter(
+  id => id.startsWith('javascript') || id.startsWith('python')
+);
+
+export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   'javascript-nextjs',
-  'javascript-react',
   'javascript-remix',
-  'javascript-svelte',
+  'javascript-react-router',
+  'javascript-solidstart',
   'javascript-sveltekit',
-  'javascript-vue',
-  'javascript',
-  'react-native',
-  'unity',
-];
-
-// These are all the platforms that can set up custom metrics.
-export const customMetricPlatforms: readonly PlatformKey[] = [
-  ...customMetricFrontendPlatforms,
-  ...customMetricBackendPlatforms,
-];
-
-/**
- * The list of platforms for which we have created onboarding instructions.
- * Should be a subset of the list of `customMetricPlatforms`.
- */
-export const customMetricOnboardingPlatforms: readonly PlatformKey[] =
-  customMetricPlatforms.filter(
-    p =>
-      // Legacy platforms that do not have in-product docs
-      ![
-        'javascript-backbone',
-        'javascript-capacitor',
-        'javascript-electron',
-        'python-pylons',
-        'python-tryton',
-      ].includes(p)
-  );
+  'javascript-tanstackstart-react',
+  ...platformKeys.filter(id => id.startsWith('node')),
+  ...platformKeys.filter(id => id.startsWith('python')),
+]);

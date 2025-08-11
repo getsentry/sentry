@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
-import type {Event, Frame} from 'sentry/types';
+import type {Event, Frame} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import {FoldSectionKey} from 'sentry/views/issueDetails/streamline/foldSection';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 import DeprecatedLine from './frame/deprecatedLine';
@@ -15,7 +15,7 @@ export function Template({data, event}: Props) {
   const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.TEMPLATE);
   const meta = event._meta?.entries?.[entryIndex]?.data?.values;
   return (
-    <InterimSection title={t('Template')} type={FoldSectionKey.TEMPLATE}>
+    <InterimSection title={t('Template')} type={SectionKey.TEMPLATE}>
       <div className="traceback no-exception">
         <ul>
           <DeprecatedLine
@@ -25,6 +25,17 @@ export function Template({data, event}: Props) {
             components={[]}
             frameMeta={meta}
             isExpanded
+            platform={event.platform ?? 'other'}
+            hideSourceMapDebugger={false}
+            isHoverPreviewed={false}
+            threadId={undefined}
+            frameSourceResolutionResults={undefined}
+            emptySourceNotation={false}
+            hiddenFrameCount={0}
+            isANR={false}
+            lockAddress={undefined}
+            nextFrame={undefined}
+            timesRepeated={0}
           />
         </ul>
       </div>

@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
-import type {Group, Project} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {getMessage} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -35,7 +36,7 @@ export function useIssueDetailsHeader({
         Tab.EVENTS,
         Tab.MERGED,
         Tab.SIMILAR_ISSUES,
-        Tab.TAGS,
+        Tab.DISTRIBUTIONS,
       ];
     }
 
@@ -46,7 +47,7 @@ export function useIssueDetailsHeader({
         Tab.EVENTS,
         Tab.MERGED,
         Tab.SIMILAR_ISSUES,
-        Tab.TAGS,
+        Tab.DISTRIBUTIONS,
         Tab.USER_FEEDBACK,
       ];
     }

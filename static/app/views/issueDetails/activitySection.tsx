@@ -5,12 +5,14 @@ import {ActivityItem} from 'sentry/components/activity/item';
 import {Note} from 'sentry/components/activity/note';
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import ConfigStore from 'sentry/stores/configStore';
-import type {Group, GroupActivity, User} from 'sentry/types';
 import type {NoteType} from 'sentry/types/alerts';
+import type {Group, GroupActivity} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
+import type {User} from 'sentry/types/user';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import GroupActivityItem from 'sentry/views/issueDetails/groupActivityItem';
 
 type Props = {
@@ -27,7 +29,7 @@ function ActivitySection(props: Props) {
 
   const [inputId, setInputId] = useState(uniqueId());
 
-  const me = ConfigStore.get('user');
+  const me = useUser();
   const projectSlugs = group?.project ? [group.project.slug] : [];
   const noteProps = {
     minHeight: 140,
@@ -45,8 +47,14 @@ function ActivitySection(props: Props) {
           itemKey={group.id}
           onCreate={n => {
             onCreate(n, me);
+            trackAnalytics('issue_details.comment_created', {
+              organization,
+              org_streamline_only: organization.streamlineOnly ?? undefined,
+              streamline: false,
+            });
             setInputId(uniqueId());
           }}
+          source="activity"
           {...noteProps}
         />
       </ActivityItem>
@@ -64,10 +72,22 @@ function ActivitySection(props: Props) {
                 user={item.user as User}
                 dateCreated={item.dateCreated}
                 authorName={authorName}
-                onDelete={() => onDelete(item)}
+                onDelete={() => {
+                  onDelete(item);
+                  trackAnalytics('issue_details.comment_deleted', {
+                    organization,
+                    streamline: false,
+                    org_streamline_only: organization.streamlineOnly ?? undefined,
+                  });
+                }}
                 onUpdate={n => {
                   item.data.text = n.text;
                   onUpdate(item, n);
+                  trackAnalytics('issue_details.comment_updated', {
+                    organization,
+                    streamline: false,
+                    org_streamline_only: organization.streamlineOnly ?? undefined,
+                  });
                 }}
                 {...noteProps}
               />

@@ -1,5 +1,5 @@
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
-from sentry.plugins.bases.notify import NotifyPlugin
+from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.utils.http import absolute_uri
 from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
@@ -7,7 +7,7 @@ from sentry_plugins.utils import get_secret_field_config
 from .client import PagerDutyPluginClient
 
 
-class PagerDutyPlugin(CorePluginMixin, NotifyPlugin):
+class PagerDutyPlugin(CorePluginMixin, NotificationPlugin):
     description = "Send alerts to PagerDuty."
     slug = "pagerduty"
     title = "PagerDuty"

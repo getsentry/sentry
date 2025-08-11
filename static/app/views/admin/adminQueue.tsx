@@ -1,9 +1,9 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {Select} from 'sentry/components/core/select';
 import InternalStatChart from 'sentry/components/internalStatChart';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -27,14 +27,14 @@ type State = {
 export default function AdminQueue() {
   const [state, setState] = useState<State>({
     timeWindow: '1w',
-    since: new Date().getTime() / 1000 - 3600 * 24 * 7,
+    since: Date.now() / 1000 - 3600 * 24 * 7,
     resolution: '1h',
     activeTask: '',
   });
 
   const {
     data: taskList,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<string[]>(['/internal/queue/tasks/'], {
     staleTime: 0,
@@ -44,7 +44,7 @@ export default function AdminQueue() {
     return <LoadingError />;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 
@@ -61,7 +61,7 @@ export default function AdminQueue() {
     }
     setState(prevState => ({
       ...prevState,
-      since: new Date().getTime() / 1000 - seconds,
+      since: Date.now() / 1000 - seconds,
       timeWindow,
     }));
   };
@@ -75,11 +75,16 @@ export default function AdminQueue() {
   return (
     <div>
       <Header>
-        <h3>t{'Queue Overview'}</h3>
+        <h3>{t('Queue Overview')}</h3>
 
-        <ButtonBar merged active={state.timeWindow}>
+        <ButtonBar merged gap="0">
           {TIME_WINDOWS.map(r => (
-            <Button size="sm" barId={r} onClick={() => changeWindow(r)} key={r}>
+            <Button
+              size="sm"
+              priority={r === state.timeWindow ? 'primary' : 'default'}
+              onClick={() => changeWindow(r)}
+              key={r}
+            >
               {r}
             </Button>
           ))}
@@ -98,14 +103,14 @@ export default function AdminQueue() {
         </PanelBody>
       </Panel>
 
-      <h3>t{'Task Details'}</h3>
+      <h3>{t('Task Details')}</h3>
 
       <div>
         <div className="m-b-1">
-          <label>t{'Show details for task:'}</label>
-          <SelectControl
+          <label>{t('Show details for task:')}</label>
+          <Select
             name="task"
-            onChange={({value}) => changeTask(value)}
+            onChange={({value}: any) => changeTask(value)}
             value={activeTask}
             clearable
             options={taskList.map(value => ({value, label: value}))}

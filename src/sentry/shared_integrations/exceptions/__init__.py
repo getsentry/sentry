@@ -20,7 +20,10 @@ __all__ = (
     "ApiTimeoutError",
     "ApiUnauthorized",
     "ApiRateLimitedError",
+    "ApiInvalidRequestError",
     "IntegrationError",
+    "IntegrationFormError",
+    "UnsupportedResponseType",
 )
 
 
@@ -84,14 +87,15 @@ class ApiError(Exception):
             return ApiRateLimitedError(response.text, url=url)
         elif response.status_code == 409:
             return ApiConflictError(response.text, url=url)
+        elif response.status_code == 400:
+            return ApiInvalidRequestError(response.text, url=url)
 
         return cls(response.text, response.status_code, url=url)
 
 
 class _RequestHasUrl(Protocol):
     @property
-    def url(self) -> str:
-        ...
+    def url(self) -> str: ...
 
 
 class ApiHostError(ApiError):
@@ -151,6 +155,10 @@ class ApiConnectionResetError(ApiError):
     code = errno.ECONNRESET
 
 
+class ApiInvalidRequestError(ApiError):
+    code = 400
+
+
 class UnsupportedResponseType(ApiError):
     @property
     def content_type(self) -> str:
@@ -159,6 +167,23 @@ class UnsupportedResponseType(ApiError):
 
 class IntegrationError(Exception):
     pass
+
+
+class IntegrationInstallationConfigurationError(IntegrationError):
+    """
+    Error when external API access is blocked due to configuration issues
+    like permissions, visibility changes, or invalid project settings.
+    This is not a product error, but rather an integration setup issue
+    that requires user intervention.
+    """
+
+    pass
+
+
+class IntegrationResourceNotFoundError(IntegrationError):
+    """
+    Error when an external API resource is not found.
+    """
 
 
 class IntegrationProviderError(Exception):
@@ -170,7 +195,7 @@ class DuplicateDisplayNameError(IntegrationError):
 
 
 class IntegrationFormError(IntegrationError):
-    def __init__(self, field_errors: Mapping[str, Any]) -> None:
+    def __init__(self, field_errors: Mapping[str, Any] | None = None) -> None:
         error = "Invalid integration action"
         if field_errors:
             error = str(field_errors)

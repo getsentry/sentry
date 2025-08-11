@@ -6,7 +6,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 
 const PROJECT_KEY = ProjectKeysFixture()[0];
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 
 import {SdkDocumentation} from './sdkDocumentation';
 
@@ -25,6 +26,11 @@ function renderMockRequests({
   MockApiClient.addMockResponse({
     url: `/projects/${orgSlug}/${project.slug}/keys/`,
     body: [PROJECT_KEY],
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/projects/${orgSlug}/${project.slug}/keys/${PROJECT_KEY?.id}/`,
+    method: 'PUT',
   });
 
   MockApiClient.addMockResponse({
@@ -56,12 +62,14 @@ describe('Renders SDK Documentation corretly based on platform id and language',
             language: 'native',
             link: 'https://docs.sentry.io/platforms/native/guides/qt/',
           }}
-          projectSlug={project.slug}
-          projectId={project.id}
+          project={project}
           organization={organization}
           activeProductSelection={[]}
         />
-      </OnboardingContextProvider>
+      </OnboardingContextProvider>,
+      {
+        deprecatedRouterMocks: true,
+      }
     );
 
     // Renders main headings
@@ -71,7 +79,7 @@ describe('Renders SDK Documentation corretly based on platform id and language',
   });
 
   it('JavaScript', async function () {
-    const {organization, project} = initializeOrg({
+    const {organization, project, router} = initializeOrg({
       projects: [
         {
           ...initializeOrg().project,
@@ -79,6 +87,13 @@ describe('Renders SDK Documentation corretly based on platform id and language',
           platform: 'javascript',
         },
       ],
+      router: {
+        location: {
+          query: {
+            installationMode: 'manual',
+          },
+        },
+      },
     });
 
     renderMockRequests({project, orgSlug: organization.slug});
@@ -93,12 +108,15 @@ describe('Renders SDK Documentation corretly based on platform id and language',
             language: 'javascript',
             link: 'https://docs.sentry.io/platforms/javascript/',
           }}
-          projectSlug={project.slug}
-          projectId={project.id}
+          project={project}
           organization={organization}
           activeProductSelection={[]}
         />
-      </OnboardingContextProvider>
+      </OnboardingContextProvider>,
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
     // Renders main headings

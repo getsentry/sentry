@@ -1,5 +1,3 @@
-from typing import TypedDict
-
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -17,16 +15,6 @@ from sentry.api.helpers.actionable_items_helper import (
 )
 from sentry.models.eventerror import EventError
 from sentry.models.project import Project
-
-
-class ActionableItemResponse(TypedDict):
-    type: str
-    message: str
-    data: dict | None
-
-
-class SourceMapProcessingResponse(TypedDict):
-    errors: list[ActionableItemResponse]
 
 
 @region_silo_endpoint

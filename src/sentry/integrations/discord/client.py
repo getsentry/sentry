@@ -11,8 +11,9 @@ from rest_framework import status
 
 from sentry import options
 from sentry.integrations.client import ApiClient
-from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.utils.consts import DISCORD_ERROR_CODES, DISCORD_USER_ERRORS
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.shared_integrations.exceptions import ApiError
 
 # to avoid a circular import
 from sentry.utils import metrics
@@ -43,7 +44,7 @@ USER_URL = "/users/@me"
 
 
 class DiscordClient(ApiClient):
-    integration_name: str = "discord"
+    integration_name: str = IntegrationProviderSlug.DISCORD.value
     base_url: str = DISCORD_BASE_URL
     _METRICS_FAILURE_KEY: str = "sentry.integrations.discord.failure"
     _METRICS_SUCCESS_KEY: str = "sentry.integrations.discord.success"
@@ -75,7 +76,7 @@ class DiscordClient(ApiClient):
 
     def get_guild_name(self, guild_id: str) -> str:
         response = self.get(GUILD_URL.format(guild_id=guild_id), headers=self.prepare_auth_header())
-        return response["name"]  # type: ignore[index]
+        return response["name"]
 
     def get_access_token(self, code: str, url: str):
         data = {
@@ -90,8 +91,7 @@ class DiscordClient(ApiClient):
             "Content-Type": "application/x-www-form-urlencoded",
         }
         response = self.post(TOKEN_URL, json=False, data=urlencode(data), headers=headers)
-        access_token = response["access_token"]  # type: ignore[index]
-        return access_token
+        return response["access_token"]
 
     def get_user_id(self, access_token: str):
         headers = {"Authorization": f"Bearer {access_token}"}
@@ -99,8 +99,23 @@ class DiscordClient(ApiClient):
             USER_URL,
             headers=headers,
         )
-        user_id = response["id"]  # type: ignore[index]
-        return user_id
+        return response["id"]
+
+    def check_user_bot_installation_permission(self, access_token: str, guild_id: str) -> bool:
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        # We only want information about guild_id and check the user's permission in the guild, but we can't currently do that
+        # https://github.com/discord/discord-api-docs/discussions/6846
+        # TODO(iamrajjoshi): Eventually, we should use `/users/@me/guilds/{guild.id}/member`
+        # Instead, we check if the user in a member of the guild
+
+        try:
+            self.get(f"/users/@me/guilds/{guild_id}/member", headers=headers)
+        except ApiError as e:
+            if e.code == 404:
+                return False
+
+        return True
 
     def leave_guild(self, guild_id: str) -> None:
         """
@@ -216,15 +231,13 @@ class DiscordClient(ApiClient):
         )
         self.logger.info("handled discord success", extra=log_params)
 
-    def send_message(
-        self, channel_id: str, message: DiscordMessageBuilder, notification_uuid: str | None = None
-    ) -> None:
+    def send_message(self, channel_id: str, message: dict[str, object]) -> None:
         """
         Send a message to the specified channel.
         """
         self.post(
             MESSAGE_URL.format(channel_id=channel_id),
-            data=message.build(notification_uuid=notification_uuid),
+            data=message,
             timeout=5,
             headers=self.prepare_auth_header(),
         )

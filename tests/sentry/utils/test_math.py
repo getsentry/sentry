@@ -3,15 +3,6 @@ import pytest
 from sentry.utils.math import ExponentialMovingAverage, nice_int
 
 
-def linspace(start, stop, n):
-    if n == 1:
-        yield stop
-    else:
-        h = (stop - start) / (n - 1)
-        for i in range(n):
-            yield start + h * i
-
-
 @pytest.mark.parametrize(
     "start,stop,expected",
     [
@@ -44,7 +35,7 @@ def linspace(start, stop, n):
         (75001, 100001, 100000),
     ],
 )
-def test_nice_int(start, stop, expected):
+def test_nice_int(start, stop, expected) -> None:
     for x in range(start, stop):
         assert nice_int(x) == expected, "{} was rounded to {}, not {}".format(
             x, nice_int(x), expected
@@ -63,7 +54,7 @@ def test_nice_int(start, stop, expected):
         ([i for i in range(10)], 5.239),
     ],
 )
-def test_exponential_moving_average(sequence, expected):
+def test_exponential_moving_average(sequence, expected) -> None:
     avg = ExponentialMovingAverage(2 / 11)
     t = 0.0
     for i, x in enumerate(sequence):

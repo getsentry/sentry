@@ -1,4 +1,5 @@
-import type {NewQuery, Organization, Project} from 'sentry/types';
+import type {NewQuery, Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
@@ -31,14 +32,13 @@ export function getMetricRuleDiscoverUrl({
   openInDiscoverDataset,
   ...rest
 }: MetricRuleDiscoverUrlOptions) {
-  const orgSlug = organization.slug;
   const discoverView = getMetricRuleDiscoverQuery(rest);
   if (!discoverView || !rest.rule) {
     return '';
   }
 
   const {query, ...toObject} = discoverView.getResultsViewUrlTarget(
-    orgSlug,
+    organization,
     false,
     hasDatasetSelector(organization) ? openInDiscoverDataset : undefined
   );
@@ -57,7 +57,7 @@ export function getMetricRuleDiscoverQuery({
   query,
   extraQueryParams,
 }: Omit<MetricRuleDiscoverUrlOptions, 'organization' | 'openInDiscoverDataset'>) {
-  if (!projects || !projects.length || !rule) {
+  if (!projects?.length || !rule) {
     return null;
   }
 

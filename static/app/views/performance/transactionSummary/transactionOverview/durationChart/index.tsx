@@ -8,19 +8,18 @@ import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
-import type {OrganizationSummary} from 'sentry/types';
-import {browserHistory} from 'sentry/utils/browserHistory';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useRouter from 'sentry/utils/useRouter';
-
-import type {ViewProps} from '../../../types';
 import {
   SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD,
   SpanOperationBreakdownFilter,
-} from '../../filter';
+} from 'sentry/views/performance/transactionSummary/filter';
+import type {ViewProps} from 'sentry/views/performance/types';
 
 import Content from './content';
 
@@ -51,6 +50,7 @@ function DurationChart({
   end: propsEnd,
   queryExtras,
 }: Props) {
+  const navigate = useNavigate();
   const router = useRouter();
   const location = useLocation();
   const api = useApi();
@@ -72,7 +72,7 @@ function DurationChart({
       },
     };
 
-    browserHistory.push(to);
+    navigate(to);
   }
 
   const start = propsStart ? getUtcToLocalDateObject(propsStart) : null;
@@ -145,8 +145,8 @@ function DurationChart({
         queryExtras={queryExtras}
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => {
-          const stripParamsForLegend = seriesResults =>
-            seriesResults?.map(series => ({
+          const stripParamsForLegend = (seriesResults: any) =>
+            seriesResults?.map((series: any) => ({
               ...series,
               seriesName: `${parseFunction(series.seriesName)?.name}()`,
             }));

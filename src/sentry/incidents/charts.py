@@ -8,23 +8,21 @@ from django.utils import timezone
 from sentry import features
 from sentry.api import client
 from sentry.api.base import logger
-from sentry.api.serializers import serialize
 from sentry.api.utils import get_datetime_from_stats_period
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
-from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
-from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
+from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
+from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializerResponse
 from sentry.incidents.logic import translate_aggregate_field
-from sentry.incidents.models.alert_rule import AlertRule
-from sentry.incidents.models.incident import Incident
+from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
-from sentry.models.user import User
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
-from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import build_query_strings
+from sentry.users.models.user import User
 
 CRASH_FREE_SESSIONS = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
 CRASH_FREE_USERS = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
@@ -39,7 +37,9 @@ API_INTERVAL_POINTS_MIN = 150
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
 
-def incident_date_range(alert_time_window: int, incident: Incident) -> Mapping[str, str]:
+def incident_date_range(
+    alert_time_window: int, date_started: datetime, date_closed: datetime | None
+) -> Mapping[str, str]:
     """
     Retrieve the start/end for graphing an incident.
     Will show at least 150 and no more than 10,000 data points.
@@ -49,8 +49,8 @@ def incident_date_range(alert_time_window: int, incident: Incident) -> Mapping[s
     min_range = time_window_milliseconds * API_INTERVAL_POINTS_MIN
     max_range = time_window_milliseconds * API_INTERVAL_POINTS_LIMIT
     now = timezone.now()
-    start_date: datetime = incident.date_started
-    end_date: datetime = incident.date_closed if incident.date_closed else now
+    start_date: datetime = date_started
+    end_date: datetime = date_closed if date_closed else now
     incident_range = max(
         (end_date - start_date).total_seconds() * 1000, 3 * time_window_milliseconds
     )
@@ -126,9 +126,9 @@ def fetch_metric_alert_events_timeseries(
         raise
 
 
-def fetch_metric_alert_incidents(
+def fetch_metric_issue_open_periods(
     organization: Organization,
-    alert_rule: AlertRule,
+    open_period_identifier: int,
     time_period: Mapping[str, str],
     user: Optional["User"] = None,
 ) -> list[Any]:
@@ -137,8 +137,9 @@ def fetch_metric_alert_incidents(
             auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
             user=user,
             path=f"/organizations/{organization.slug}/incidents/",
+            # TODO(iamrajjoshi): Use the correct endpoint and update the params
             params={
-                "alertRule": alert_rule.id,
+                "alertRule": open_period_identifier,
                 "expand": "activities",
                 "includeSnapshots": True,
                 "project": -1,
@@ -157,8 +158,11 @@ def fetch_metric_alert_incidents(
 
 def build_metric_alert_chart(
     organization: Organization,
-    alert_rule: AlertRule,
-    selected_incident: Incident | None = None,
+    alert_rule_serialized_response: AlertRuleSerializerResponse,
+    snuba_query: SnubaQuery,
+    alert_context: AlertContext,
+    open_period_context: OpenPeriodContext | None = None,
+    selected_incident_serialized: DetailedIncidentSerializerResponse | None = None,
     period: str | None = None,
     start: str | None = None,
     end: str | None = None,
@@ -169,10 +173,6 @@ def build_metric_alert_chart(
     """
     Builds the dataset required for metric alert chart the same way the frontend would
     """
-    if alert_rule.snuba_query is None:
-        return None
-
-    snuba_query = alert_rule.snuba_query
     dataset = Dataset(snuba_query.dataset)
     query_type = SnubaQuery.Type(snuba_query.type)
     is_crash_free_alert = query_type == SnubaQuery.Type.CRASH_RATE
@@ -182,8 +182,12 @@ def build_metric_alert_chart(
         else ChartType.SLACK_METRIC_ALERT_EVENTS
     )
 
-    if selected_incident:
-        time_period = incident_date_range(snuba_query.time_window, selected_incident)
+    if open_period_context:
+        time_period = incident_date_range(
+            snuba_query.time_window,
+            open_period_context.date_started,
+            open_period_context.date_closed,
+        )
     elif start and end:
         time_period = {"start": start, "end": end}
     else:
@@ -194,18 +198,18 @@ def build_metric_alert_chart(
         }
 
     chart_data = {
-        "rule": serialize(alert_rule, user, AlertRuleSerializer()),
-        "selectedIncident": serialize(selected_incident, user, DetailedIncidentSerializer()),
-        "incidents": fetch_metric_alert_incidents(
+        "rule": alert_rule_serialized_response,
+        "selectedIncident": selected_incident_serialized,
+        "incidents": fetch_metric_issue_open_periods(
             organization,
-            alert_rule,
+            alert_context.action_identifier_id,
             time_period,
             user,
         ),
     }
 
     allow_mri = features.has(
-        "organizations:custom-metrics",
+        "organizations:insights-alerts",
         organization,
         actor=user,
     )
@@ -222,7 +226,7 @@ def build_metric_alert_chart(
     query_str = build_query_strings(subscription=subscription, snuba_query=snuba_query).query_string
     query = (
         query_str
-        if is_crash_free_alert
+        if is_crash_free_alert or dataset == Dataset.EventsAnalyticsPlatform
         else apply_dataset_query_conditions(
             SnubaQuery.Type(snuba_query.type),
             query_str,
@@ -248,6 +252,16 @@ def build_metric_alert_chart(
     else:
         if query_type == SnubaQuery.Type.PERFORMANCE and dataset == Dataset.PerformanceMetrics:
             query_params["dataset"] = "metrics"
+        elif (
+            query_type == SnubaQuery.Type.PERFORMANCE
+            and dataset == Dataset.EventsAnalyticsPlatform
+            and snuba_query.event_types == [SnubaQueryEventType.EventType.TRACE_ITEM_LOG]
+        ):
+            query_params["dataset"] = "logs"
+        elif (
+            query_type == SnubaQuery.Type.PERFORMANCE and dataset == Dataset.EventsAnalyticsPlatform
+        ):
+            query_params["dataset"] = "spans"
         elif query_type == SnubaQuery.Type.ERROR:
             query_params["dataset"] = "errors"
         else:

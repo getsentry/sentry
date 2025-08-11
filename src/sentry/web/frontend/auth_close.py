@@ -1,5 +1,4 @@
-from django.http import HttpResponse
-from rest_framework.request import Request
+from django.http import HttpRequest, HttpResponse
 
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
@@ -11,7 +10,7 @@ class AuthCloseView(BaseView):
     another window. This view loads an html page with a script that sends a message
     back to the window opener and closes the window"""
 
-    def handle(self, request: Request) -> HttpResponse:
+    def handle(self, request: HttpRequest) -> HttpResponse:
         logged_in = request.user.is_authenticated
 
         return render_to_response("sentry/auth_close.html", context={"logged_in": logged_in})

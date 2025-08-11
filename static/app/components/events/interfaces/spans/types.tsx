@@ -1,4 +1,3 @@
-import type {MRI} from 'sentry/types/metrics';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
 import type {SpanBarProps} from './spanBar';
@@ -30,32 +29,21 @@ interface SpanDatabaseAttributes {
   'db.user'?: string;
 }
 
-export interface MetricsSummaryItem {
-  count: number | null;
-  max: number | null;
-  min: number | null;
-  sum: number | null;
-  tags: Record<string, string> | null;
-}
-
-export interface MetricsSummary {
-  [mri: MRI]: MetricsSummaryItem[] | null;
-}
-
 export type RawSpanType = {
   span_id: string;
   start_timestamp: number;
   // this is essentially end_timestamp
   timestamp: number;
   trace_id: string;
-  _metrics_summary?: MetricsSummary;
   data?: SpanSourceCodeAttributes & SpanDatabaseAttributes & Record<string, any>;
   description?: string;
   exclusive_time?: number;
   hash?: string;
+  links?: SpanLink[];
   op?: string;
   origin?: string;
   parent_span_id?: string;
+  project_slug?: string;
   same_process_as_parent?: boolean;
   sentry_tags?: Record<string, string>;
   'span.averageResults'?: {
@@ -63,7 +51,7 @@ export type RawSpanType = {
     'avg(span.self_time)'?: number;
   };
   status?: string;
-  tags?: {[key: string]: string};
+  tags?: Record<string, string>;
 };
 
 export type AggregateSpanType = RawSpanType & {
@@ -101,7 +89,6 @@ export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
   'tags',
   'hash',
   'exclusive_time',
-  '_metrics_summary',
 ]);
 
 export type OrphanSpanType = RawSpanType & {
@@ -119,14 +106,14 @@ export type FetchEmbeddedChildrenState =
   | 'loading_embedded_transactions'
   | 'error_fetching_embedded_transactions';
 
-export type SpanGroupProps = {
+type SpanGroupProps = {
   isNestedSpanGroupExpanded: boolean;
   spanNestedGrouping: EnhancedSpan[] | undefined;
   toggleNestedSpanGroup: (() => void) | undefined;
   toggleSiblingSpanGroup: ((span: SpanType) => void) | undefined;
 };
 
-export type SpanSiblingGroupProps = {
+type SpanSiblingGroupProps = {
   isLastSibling: boolean;
   occurrence: number;
   spanSiblingGrouping: EnhancedSpan[] | undefined;
@@ -134,7 +121,7 @@ export type SpanSiblingGroupProps = {
 };
 
 type CommonEnhancedProcessedSpanType = {
-  continuingTreeDepths: Array<TreeDepthType>;
+  continuingTreeDepths: TreeDepthType[];
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   isEmbeddedTransactionTimeAdjusted: boolean;
   isLastSibling: boolean;
@@ -174,20 +161,20 @@ export type EnhancedProcessedSpanType =
       type: 'out_of_view';
     }
   | ({
-      continuingTreeDepths: Array<TreeDepthType>;
+      continuingTreeDepths: TreeDepthType[];
       span: SpanType;
       treeDepth: number;
       type: 'span_group_chain';
     } & SpanGroupProps)
   | ({
-      continuingTreeDepths: Array<TreeDepthType>;
+      continuingTreeDepths: TreeDepthType[];
       span: SpanType;
       treeDepth: number;
       type: 'span_group_siblings';
     } & SpanSiblingGroupProps);
 
 // map span_id to children whose parent_span_id is equal to span_id
-export type SpanChildrenLookupType = {[span_id: string]: Array<SpanType>};
+export type SpanChildrenLookupType = Record<string, SpanType[]>;
 
 export type ParsedTraceType = {
   childSpans: SpanChildrenLookupType;
@@ -213,6 +200,16 @@ export enum TickAlignment {
   CENTER = 2,
 }
 
+type AttributeValue = string | number | boolean | string[] | number[] | boolean[];
+
+type SpanLink = {
+  span_id: string;
+  trace_id: string;
+  attributes?: Record<string, AttributeValue> & {'sentry.link.type'?: AttributeValue};
+  parent_span_id?: string;
+  sampled?: boolean;
+};
+
 export type TraceContextType = {
   client_sample_rate?: number;
   count?: number;
@@ -221,6 +218,7 @@ export type TraceContextType = {
   exclusive_time?: number;
   frequency?: number;
   hash?: string;
+  links?: SpanLink[];
   op?: string;
   parent_span_id?: string;
   span_id?: string;
@@ -228,6 +226,10 @@ export type TraceContextType = {
   total?: number;
   trace_id?: string;
   type?: 'trace';
+};
+
+export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
+  span_id: string; // TODO: Remove this temporary type.
 };
 
 type SpanTreeDepth = number;
@@ -249,7 +251,7 @@ export type IndexedFusedSpan = {
 };
 
 export type FilterSpans = {
-  results: Fuse.FuseResult<IndexedFusedSpan>[];
+  results: Array<Fuse.FuseResult<IndexedFusedSpan>>;
   spanIDs: Set<string>;
 };
 
@@ -318,7 +320,7 @@ type SpanDescendantNode = {
 };
 
 type SpanMessageNode = {
-  element: JSX.Element;
+  element: React.JSX.Element;
   type: SpanTreeNodeType.MESSAGE;
 };
 

@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import EventView from 'sentry/utils/discover/eventView';
-import {getAllViews} from 'sentry/views/discover/data';
+import {getAllViews} from 'sentry/views/discover/results/data';
 import {
   handleCreateQuery,
   handleDeleteQuery,
@@ -20,7 +20,7 @@ describe('SavedQueries API helpers', () => {
   errorsView.id = '1'; // set id manually as errorsView.id is undefined
   const yAxis = ['count()', 'failure_count()'];
 
-  let mockCall;
+  let mockCall: jest.Mock;
 
   afterEach(() => {
     MockApiClient.clearMockResponses();

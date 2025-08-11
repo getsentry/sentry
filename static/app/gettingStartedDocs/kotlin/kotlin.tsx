@@ -1,14 +1,13 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
@@ -67,7 +66,7 @@ sentry {
   includeSourceContext = true
 
   org = "${params.organization.slug}"
-  projectName = "${params.projectSlug}"
+  projectName = "${params.project.slug}"
   authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }`;
 
@@ -85,7 +84,7 @@ const getMavenInstallSnippet = (params: Params) => `
 
         <org>${params.organization.slug}</org>
 
-        <project>${params.projectSlug}</project>
+        <project>${params.project.slug}</project>
 
         <!-- in case you're self hosting, provide the URL here -->
         <!--<url>http://localhost:8000/</url>-->
@@ -114,10 +113,10 @@ const getConfigureSnippet = (params: Params) => `
 import io.sentry.Sentry
 
 Sentry.init { options ->
-  options.dsn = "${params.dsn}"${
+  options.dsn = "${params.dsn.public}"${
     params.isPerformanceSelected
       ? `
-  // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+  // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
   // We recommend adjusting this value in production.
   options.tracesSampleRate = 1.0`
       : ''
@@ -139,7 +138,7 @@ try {
 const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
     tct(
-      "Sentry supports Kotlin for both JVM and Android. This wizard guides you through set up in the JVM scenario. If you're interested in [strong:Android], head over to the [gettingStartedWithAndroidLink:Getting Started] for that SDK instead. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong2:Spring Boot, Spring, Logback, JUL, or Log4j2], head over to our [gettingStartedWithJavaLink:Getting Started for Sentry Java].",
+      "Sentry supports Kotlin for both JVM and Android. This wizard guides you through set up in the JVM scenario. If you're interested in [strong:Android], head over to the [gettingStartedWithAndroidLink:Getting Started] for that SDK instead. At its core, Sentry for Java provides a raw client for sending events to Sentry. If you use [strong:Spring Boot, Spring, Logback, JUL, or Log4j2], head over to our [gettingStartedWithJavaLink:Getting Started for Sentry Java].",
       {
         gettingStartedWithAndroidLink: (
           <ExternalLink href="https://docs.sentry.io/platforms/android/" />
@@ -148,7 +147,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           <ExternalLink href="https://docs.sentry.io/platforms/java/" />
         ),
         strong: <strong />,
-        strong2: <strong />,
       }
     ),
   install: params => [
@@ -161,9 +159,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       configurations: [
         {
           description: tct(
-            'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Auth Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
+            'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
             {
-              link: <Link to="/settings/auth-tokens/" />,
+              link: <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />,
             }
           ),
           language: 'bash',
@@ -263,14 +261,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       name: t('Examples'),
       description: t('Check out our sample applications.'),
       link: 'https://github.com/getsentry/sentry-java/tree/main/sentry-samples',
-    },
-    {
-      id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
-      description: t(
-        'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
-      ),
-      link: 'https://docs.sentry.io/platforms/java/tracing/',
     },
   ],
 };

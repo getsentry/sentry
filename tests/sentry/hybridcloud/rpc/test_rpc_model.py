@@ -1,9 +1,9 @@
 from collections import deque
 
 from sentry.hybridcloud.rpc import RpcModel
-from sentry.models.authenticator import Authenticator
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.models.authenticator import Authenticator
 from sentry.users.services.user.service import user_service
 
 
@@ -29,7 +29,7 @@ class RpcModelTest(TestCase):
 
     def test_rpc_model_equals_method(self) -> None:
         orm_user = self.create_user()
-        Authenticator.objects.create(user=orm_user, type=1)
+        Authenticator.objects.create(user=orm_user, type=1, config={})
 
         user1 = user_service.get_user(orm_user.id)
         user2 = user_service.get_user(orm_user.id)

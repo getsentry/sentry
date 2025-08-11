@@ -5,6 +5,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import selectEvent from 'sentry-test/selectEvent';
 
 import ModalStore from 'sentry/stores/modalStore';
+import {IssueAlertFilterType} from 'sentry/types/alerts';
+import {IssueCategory} from 'sentry/types/group';
 import RuleNode from 'sentry/views/alerts/rules/issue/ruleNode';
 
 describe('RuleNode', () => {
@@ -21,7 +23,7 @@ describe('RuleNode', () => {
     enabled: true,
   };
 
-  const formNode = label => ({
+  const formNode = (label: string) => ({
     label,
     id: 'sentry.rules.form_mock',
     enabled: true,
@@ -108,7 +110,7 @@ describe('RuleNode', () => {
     },
   };
 
-  const renderRuleNode = (node, data = {}, org = organization) => {
+  const renderRuleNode = (node: any, data = {}, org = organization) => {
     return render(
       <RuleNode
         index={index}
@@ -130,7 +132,7 @@ describe('RuleNode', () => {
     );
   };
 
-  const labelReplacer = (label, values) => {
+  const labelReplacer = (label: string, values: any) => {
     return label.replace(/{\w+}/gm, placeholder => values[placeholder]);
   };
 
@@ -269,5 +271,71 @@ describe('RuleNode', () => {
     expect(onPropertyChange).toHaveBeenCalledTimes(2);
     expect(onPropertyChange).toHaveBeenCalledWith(index, 'targetType', 'Team');
     expect(onPropertyChange).toHaveBeenCalledWith(index, 'targetIdentifier', '');
+  });
+
+  describe('issue category field', () => {
+    it('remove deprecated category options', async () => {
+      renderRuleNode(
+        {
+          label: `The issue's category is equal to {value}`,
+          name: 'Issue Category',
+          formFields: {
+            value: {
+              type: 'choice',
+              choices: [
+                [1, IssueCategory.ERROR],
+                [2, IssueCategory.PERFORMANCE],
+                [3, IssueCategory.DB_QUERY],
+              ],
+            },
+          },
+        },
+        {
+          id: IssueAlertFilterType.ISSUE_CATEGORY,
+          value: 1,
+        },
+        OrganizationFixture({features: ['issue-taxonomy']})
+      );
+
+      await userEvent.click(await screen.findByText('error'));
+
+      // Should show error and db_query options, but not performance
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'db_query'})
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'error'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'performance'})
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it('renders a banner if the selected category is deprecated', async () => {
+    renderRuleNode(
+      {
+        label: 'Issue Category',
+        name: 'Issue Category',
+        formFields: {
+          value: {
+            type: 'choice',
+            choices: [
+              [1, IssueCategory.ERROR],
+              [2, IssueCategory.PERFORMANCE],
+            ],
+          },
+        },
+      },
+      {
+        id: IssueAlertFilterType.ISSUE_CATEGORY,
+        value: 2,
+      },
+      OrganizationFixture({features: ['issue-taxonomy']})
+    );
+
+    await screen.findByText(
+      'Issue categories have been recently updated. Make a new selection to save changes.'
+    );
   });
 });

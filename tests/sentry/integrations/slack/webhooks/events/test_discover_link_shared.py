@@ -7,10 +7,10 @@ import pytest
 import responses
 from slack_sdk.web import SlackResponse
 
-from sentry.integrations.slack.unfurl import Handler, LinkType, make_type_coercer
-from sentry.models.identity import Identity, IdentityStatus
+from sentry.integrations.slack.unfurl.types import Handler, LinkType, make_type_coercer
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.identity import Identity, IdentityStatus
 
 from . import LINK_SHARED_EVENT, BaseEventTest
 
@@ -156,7 +156,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
 
         return self.mock_post.call_args[1]
 
-    def test_share_discover_links_unlinked_user_sdk(self):
+    def test_share_discover_links_unlinked_user_sdk(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
         with self.feature("organizations:discover-basic"):
@@ -175,7 +175,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         assert [button["text"]["text"] for button in blocks[1]["elements"]] == ["Link", "Cancel"]
 
     @responses.activate
-    def test_share_discover_links_unlinked_user_no_channel(self):
+    def test_share_discover_links_unlinked_user_no_channel(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
         with self.feature("organizations:discover-basic"):
@@ -188,7 +188,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
             assert resp.status_code == 200, resp.content
             assert len(responses.calls) == 0
 
-    def test_share_discover_links_unlinked_user_no_channel_sdk(self):
+    def test_share_discover_links_unlinked_user_no_channel_sdk(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
         with self.feature("organizations:discover-basic"):
@@ -196,7 +196,7 @@ class DiscoverLinkSharedEvent(BaseEventTest):
             assert resp.status_code == 200, resp.content
             assert len(self.mock_post.mock_calls) == 0
 
-    def test_share_discover_links_linked_user_sdk(self):
+    def test_share_discover_links_linked_user_sdk(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
             Identity.objects.create(

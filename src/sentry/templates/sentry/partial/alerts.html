@@ -2,10 +2,9 @@
 {% load sentry_assets %}
 
 {% block css %}
-{% if show_login_banner %}
+{% if show_login_banner or show_partner_login_banner %}
 <style type="text/css">
   .alert-banner {
-    background: rgb(255, 219, 74);
     padding-top: 0.75rem;
     padding-bottom: 0.75rem;
     display: flex;
@@ -13,6 +12,7 @@
     border-radius: 4px;
     margin-bottom: 4px;
   }
+
   .alert-message {
     margin-left: 1rem;
     margin-right: 1rem;
@@ -25,8 +25,24 @@
     font-size: 16px;
     font-family: Rubik;
   }
+
+  /* Default alert banner color */
+  .alert-banner.default {
+    background: rgb(255, 219, 74);
+    color: #3e3446;
+  }
+  .alert-banner.default a {
+    color: #2562d4;
+  }
+
+  /* Partner login banner color */
+  .alert-banner.partner {
+    background: #6c5fc7;
+    color: white;
+  }
+
   @media only screen and (max-width: 1025px) {
-    .alert-banner {
+    .alert-banner.default {
       display: none;
     }
   }
@@ -74,14 +90,16 @@
       {% endwith %}
     {% endfor %}
   </div>
-{% elif show_login_banner %}
-  <div class="alert-banner">
+  {% elif show_partner_login_banner %}
+  <div class="alert-banner partner">
     <div class="alert-message">
-      {% if banner_choice == 0 %}
-      Session Replay is now available for mobile SDKs. Join us July 31st to learn how to watch user sessions to debug mobile issues. &nbsp<a target="_blank" href="https://sentry.io/resources/solve-mobile-bugs-with-session-replay/?utm_source=pendo&utm_medium=pendo&utm_campaign=replay-fy25q2-sessionreplayworkshop&utm_content=workshop-getting-started-mobile-replay-rsvp">Register now.</a>
-      {% elif banner_choice == 1 %}
-      Session Replay is now available for mobile SDKs. Join us July 31st to learn how to watch user sessions to debug mobile issues. &nbsp<a target="_blank" href="https://sentry.io/resources/solve-mobile-bugs-with-session-replay/?utm_source=pendo&utm_medium=pendo&utm_campaign=replay-fy25q2-sessionreplayworkshop&utm_content=workshop-getting-started-mobile-replay-rsvp">Register now.</a>
-      {% endif %}
+      Complete your registration by checking your inbox for our email and following the sign-in link.
+    </div>
+  </div>
+  {% elif show_login_banner %}
+  <div class="alert-banner default">
+    <div class="alert-message">
+      Sentry & Codecov live demos. Bi-weekly Thursdays, 10 AM PT. &nbsp<a target="_blank" href="https://sentry.io/resources/find-fix-test/">RSVP & ask anything.</a>
     </div>
   </div>
 {% endif %}

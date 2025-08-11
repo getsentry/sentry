@@ -26,6 +26,7 @@ describe('event sdk', function () {
       },
     });
 
+    await userEvent.click(screen.getByRole('button', {name: 'View SDK Section'}));
     await userEvent.hover(screen.getByText(/redacted/));
     expect(
       await screen.findByText(

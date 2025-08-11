@@ -2,14 +2,14 @@ import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import type BaseChart from 'sentry/components/charts/baseChart';
-import type {RenderProps} from 'sentry/components/charts/eventsRequest';
-import type {DateString, Organization, OrganizationSummary} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 
 import type {PerformanceWidgetContainerTypes} from './components/performanceWidgetContainer';
 import type {ChartDefinition, PerformanceWidgetSetting} from './widgetDefinitions';
 
-export enum VisualizationDataState {
+enum VisualizationDataState {
   ERROR = 'error',
   LOADING = 'loading',
   EMPTY = 'empty',
@@ -56,24 +56,22 @@ export interface WidgetDataResult {
   isErrored: boolean;
   isLoading: boolean;
 }
-export interface WidgetDataConstraint {
-  [dataKey: string]: WidgetDataResult | undefined;
-}
+export type WidgetDataConstraint = Record<string, WidgetDataResult | undefined>;
 
-export type QueryChildren = {
+type QueryChildren = {
   children: (props: any) => React.ReactNode; // TODO(k-fish): Fix any type.
 };
-export type QueryFC<T extends WidgetDataConstraint> = React.ComponentType<
+type QueryFC<T extends WidgetDataConstraint> = React.ComponentType<
   QueryChildren & {
     eventView: EventView;
     orgSlug: string;
     organization: OrganizationSummary;
     widgetData: T;
     end?: DateString;
-    environment?: Readonly<string[]>;
+    environment?: readonly string[];
     fields?: string | string[];
     period?: string | null;
-    project?: Readonly<number[]>;
+    project?: readonly number[];
     query?: string;
     referrer?: string;
     start?: DateString;
@@ -95,7 +93,7 @@ export type QueryDefinition<
   ) => S; // TODO(k-fish): Fix any type.
   enabled?: (data: T) => boolean;
 };
-export type Queries<T extends WidgetDataConstraint> = Record<
+type Queries<T extends WidgetDataConstraint> = Record<
   string,
   QueryDefinition<T, T[string]>
 >;
@@ -115,7 +113,7 @@ type Visualization<T> = {
   queryFields?: string[]; // Used to determine placeholder and loading sizes. Will also be passed to the component.
 };
 
-type Visualizations<T extends WidgetDataConstraint> = Readonly<Visualization<T>[]>; // Readonly because of index being used for React key.
+type Visualizations<T extends WidgetDataConstraint> = ReadonlyArray<Visualization<T>>; // Readonly because of index being used for React key.
 
 type HeaderActions<T> = React.ComponentType<{
   widgetData: T;
@@ -132,10 +130,7 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
   Visualizations: Visualizations<T>;
 
   chartDefinition: ChartDefinition;
-  chartHeight: number;
-
   chartSetting: PerformanceWidgetSetting;
-  containerType: PerformanceWidgetContainerTypes;
   eventView: EventView;
 
   fields: string[];
@@ -150,18 +145,21 @@ export type GenericPerformanceWidgetProps<T extends WidgetDataConstraint> = {
 
   InteractiveTitle?: InteractiveTitle<T> | null;
   Subtitle?: Subtitle<T>;
+  /**
+   * @default 200
+   */
+  chartHeight?: number;
+  /**
+   * @default 'panel'
+   */
+  containerType?: PerformanceWidgetContainerTypes;
 };
-
-export type GenericPerformanceWithData<T extends WidgetDataConstraint> =
-  GenericPerformanceWidgetProps<T> & WidgetDataProps<T>;
 
 export type WidgetDataProps<T> = {
   removeWidgetDataForKey: (dataKey: string) => void;
   setWidgetDataForKey: (dataKey: string, result?: WidgetDataResult) => void;
   widgetData: T;
 };
-
-export type EventsRequestChildrenProps = RenderProps;
 
 export type QueryDefinitionWithKey<T extends WidgetDataConstraint> = QueryDefinition<
   T,
@@ -171,7 +169,7 @@ export type QueryDefinitionWithKey<T extends WidgetDataConstraint> = QueryDefini
 export type QueryHandlerProps<T extends WidgetDataConstraint> = {
   api: Client;
   eventView: EventView;
-  queries: QueryDefinitionWithKey<T>[];
+  queries: Array<QueryDefinitionWithKey<T>>;
   queryProps: WidgetPropUnion<T>;
   children?: React.ReactNode;
 } & WidgetDataProps<T>;

@@ -33,7 +33,7 @@ describe('TwoFactorRequired', function () {
     });
   });
 
-  const {router, routerProps} = initializeOrg();
+  const {routerProps} = initializeOrg();
 
   const baseProps = {
     authenticators: null,
@@ -53,10 +53,9 @@ describe('TwoFactorRequired', function () {
     });
 
     render(
-      <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
+      <AccountSecurityWrapper>
         <TwoFactorRequired {...baseProps} />
-      </AccountSecurityWrapper>,
-      {router}
+      </AccountSecurityWrapper>
     );
 
     expect(await screen.findByText('Your current password')).toBeInTheDocument();
@@ -65,10 +64,9 @@ describe('TwoFactorRequired', function () {
 
   it('does not render when 2FA is disabled and no pendingInvite cookie', async function () {
     render(
-      <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
+      <AccountSecurityWrapper>
         <TwoFactorRequired {...baseProps} />
-      </AccountSecurityWrapper>,
-      {router}
+      </AccountSecurityWrapper>
     );
 
     expect(await screen.findByText('Your current password')).toBeInTheDocument();
@@ -82,10 +80,9 @@ describe('TwoFactorRequired', function () {
     });
 
     render(
-      <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
+      <AccountSecurityWrapper>
         <TwoFactorRequired {...baseProps} />
-      </AccountSecurityWrapper>,
-      {router}
+      </AccountSecurityWrapper>
     );
 
     expect(await screen.findByText('Your current password')).toBeInTheDocument();
@@ -109,10 +106,9 @@ describe('TwoFactorRequired', function () {
     });
 
     render(
-      <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
+      <AccountSecurityWrapper>
         <TwoFactorRequired {...baseProps} />
-      </AccountSecurityWrapper>,
-      {router}
+      </AccountSecurityWrapper>
     );
 
     expect(await screen.findByText('Your current password')).toBeInTheDocument();
@@ -128,10 +124,9 @@ describe('TwoFactorRequired', function () {
     });
 
     render(
-      <AccountSecurityWrapper {...routerProps} params={{authId: ''}}>
+      <AccountSecurityWrapper>
         <TwoFactorRequired {...baseProps} />
-      </AccountSecurityWrapper>,
-      {router}
+      </AccountSecurityWrapper>
     );
 
     expect(await screen.findByTestId('require-2fa')).toBeInTheDocument();

@@ -16,16 +16,22 @@ import useOrganization from 'sentry/utils/useOrganization';
 export default function FeedbackItemLoader() {
   const organization = useOrganization();
   const feedbackId = useCurrentFeedbackId();
-  const {issueResult, issueData, tags, eventData} = useFetchFeedbackData({feedbackId});
+  const {issueResult, issueData, eventData} = useFetchFeedbackData({feedbackId});
 
   const projectSlug = useCurrentFeedbackProject();
   useSentryAppComponentsData({projectId: projectSlug});
 
   useEffect(() => {
+    if (issueResult.isError) {
+      trackAnalytics('feedback.feedback-item-not-found', {organization, feedbackId});
+    }
+  }, [organization, issueResult.isError, feedbackId]);
+
+  useEffect(() => {
     if (issueData) {
       trackAnalytics('feedback.feedback-item-rendered', {organization});
     }
-  }, [organization, issueData]);
+  }, [issueData, organization]);
 
   // There is a case where we are done loading, but we're fetching updates
   // This happens when the user has seen a feedback, clicks around a bit, then
@@ -34,15 +40,17 @@ export default function FeedbackItemLoader() {
   // or resolved to unresolved, if something happened in another tab (or from
   // other user) to update the feedback.
 
-  return issueResult.isLoading && issueResult.isFetching ? (
+  return issueResult.isPending && issueResult.isFetching ? (
     <Placeholder height="100%" />
   ) : issueResult.isError ? (
     <FeedbackErrorDetails error={t('Unable to load feedback')} />
   ) : issueData ? (
     <ErrorBoundary
-      customComponent={<FeedbackErrorDetails error={t('Unable to load feedback')} />}
+      customComponent={() => (
+        <FeedbackErrorDetails error={t('Unable to load feedback')} />
+      )}
     >
-      <FeedbackItem eventData={eventData} feedbackItem={issueData} tags={tags} />
+      <FeedbackItem eventData={eventData} feedbackItem={issueData} />
     </ErrorBoundary>
   ) : (
     <FeedbackEmptyDetails />

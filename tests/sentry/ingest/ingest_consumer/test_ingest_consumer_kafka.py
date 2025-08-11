@@ -1,4 +1,3 @@
-import datetime
 import logging
 import random
 import time
@@ -38,30 +37,11 @@ def get_test_message(default_project):
     """
 
     def inner(type, project=default_project):
-        now = datetime.datetime.now()
         # the event id should be 32 digits
         event_id = uuid.uuid4().hex
         message_text = f"some message {event_id}"
         project_id = project.id  # must match the project id set up by the test fixtures
-        if type == "transaction":
-            event = {
-                "type": "transaction",
-                "timestamp": now.isoformat(),
-                "start_timestamp": now.isoformat(),
-                "event_id": event_id,
-                "spans": [],
-                "contexts": {
-                    "trace": {
-                        "parent_span_id": "8988cec7cc0779c1",
-                        "type": "trace",
-                        "op": "foobar",
-                        "trace_id": "a7d67cf796774551a95be6543cacd459",
-                        "span_id": "babaae0d4b7512d9",
-                        "status": "ok",
-                    }
-                },
-            }
-        elif type == "event":
+        if type == "event":
             event = {
                 "message": message_text,
                 "extra": {"the_id": event_id},
@@ -69,7 +49,7 @@ def get_test_message(default_project):
                 "event_id": event_id,
             }
         else:
-            raise ValueError(type)
+            raise AssertionError(type)
 
         em = EventManager(event, project=project)
         em.normalize()
@@ -115,9 +95,6 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     message, event_id = get_test_message(type="event")
     producer.produce(topic_event_name, message)
 
-    transaction_message, transaction_event_id = get_test_message(type="transaction")
-    producer.produce(topic_event_name, transaction_message)
-
     consumer = get_stream_processor(
         "ingest-events",
         consumer_args=["--max-batch-size=2", "--max-batch-time-ms=5000", "--processes=10"],
@@ -132,12 +109,9 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     with task_runner():
         i = 0
         while i < MAX_POLL_ITERATIONS:
-            transaction_message = eventstore.backend.get_event_by_id(
-                default_project.id, transaction_event_id
-            )
             message = eventstore.backend.get_event_by_id(default_project.id, event_id)
 
-            if transaction_message and message:
+            if message:
                 break
 
             consumer._run_once()
@@ -146,10 +120,6 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     # check that we got the messages
     assert message.data["event_id"] == event_id
     assert message.data["extra"]["the_id"] == event_id
-
-    assert transaction_message.data["event_id"] == transaction_event_id
-    assert transaction_message.data["spans"] == []
-    assert transaction_message.data["contexts"]["trace"]
 
 
 @django_db_all(transaction=True)

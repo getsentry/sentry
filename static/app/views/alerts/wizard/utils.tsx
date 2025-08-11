@@ -1,15 +1,17 @@
+import type {Organization} from 'sentry/types/organization';
 import {
-  getUseCaseFromMRI,
-  isExtractedCustomMetric,
-  parseField,
-} from 'sentry/utils/metrics/mri';
-import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
+  Dataset,
+  EventTypes,
+  SessionsAggregate,
+} from 'sentry/views/alerts/rules/metric/types';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 
 import type {MetricAlertType, WizardRuleTemplate} from './options';
 
 // A set of unique identifiers to be able to tie aggregate and dataset back to a wizard alert type
 const alertTypeIdentifiers: Record<
-  Exclude<Dataset, 'search_issues'>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
+  Exclude<Dataset, Dataset.ISSUE_PLATFORM | Dataset.REPLAYS>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
   Partial<Record<MetricAlertType, string>>
 > = {
   [Dataset.ERRORS]: {
@@ -42,6 +44,12 @@ const alertTypeIdentifiers: Record<
     crash_free_sessions: SessionsAggregate.CRASH_FREE_SESSIONS,
     crash_free_users: SessionsAggregate.CRASH_FREE_USERS,
   },
+  [Dataset.EVENTS_ANALYTICS_PLATFORM]: {
+    trace_item_throughput: 'count(span.duration)',
+    trace_item_duration: 'span.duration',
+    trace_item_failure_rate: 'failure_rate()',
+    trace_item_lcp: 'measurements.lcp',
+  },
 };
 
 /**
@@ -52,22 +60,52 @@ const alertTypeIdentifiers: Record<
 export function getAlertTypeFromAggregateDataset({
   aggregate,
   dataset,
-}: Pick<WizardRuleTemplate, 'aggregate' | 'dataset'>): MetricAlertType {
-  const {mri: mri} = parseField(aggregate) ?? {};
-
-  if (mri && getUseCaseFromMRI(mri) === 'spans') {
-    return 'custom_metrics';
-  }
-
-  if (mri && getUseCaseFromMRI(mri) === 'custom') {
-    return isExtractedCustomMetric({mri}) ? 'span_metrics' : 'custom_metrics';
-  }
-
+  eventTypes,
+  organization,
+}: Pick<WizardRuleTemplate, 'aggregate' | 'dataset'> & {
+  eventTypes?: EventTypes[];
+  organization?: Organization;
+}): MetricAlertType {
+  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const identifierForDataset = alertTypeIdentifiers[dataset];
   const matchingAlertTypeEntry = Object.entries(identifierForDataset).find(
     ([_alertType, identifier]) => identifier && aggregate.includes(identifier as string)
   );
   const alertType =
     matchingAlertTypeEntry && (matchingAlertTypeEntry[0] as MetricAlertType);
+
+  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    const traceItemType = getTraceItemTypeForDatasetAndEventType(dataset, eventTypes);
+    if (
+      organization &&
+      hasLogAlerts(organization) &&
+      traceItemType === TraceItemDataset.LOGS
+    ) {
+      return 'trace_item_logs';
+    }
+    if (organization && deprecateTransactionAlerts(organization)) {
+      return alertType ?? 'eap_metrics';
+    }
+    return 'eap_metrics';
+  }
   return alertType ? alertType : 'custom_transactions';
+}
+
+export function hasLogAlerts(organization: Organization): boolean {
+  return (
+    organization.features.includes('ourlogs-alerts') &&
+    organization.features.includes('ourlogs-enabled')
+  );
+}
+
+export function getTraceItemTypeForDatasetAndEventType(
+  dataset: Dataset,
+  eventTypes?: EventTypes[]
+) {
+  if (dataset === Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    return eventTypes?.includes(EventTypes.TRACE_ITEM_LOG)
+      ? TraceItemDataset.LOGS
+      : TraceItemDataset.SPANS;
+  }
+  return null;
 }

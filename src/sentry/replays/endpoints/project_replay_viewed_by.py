@@ -39,7 +39,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
     permission_classes = (ProjectEventPermission,)
 
     @extend_schema(
-        operation_id="Get list of user who have viewed a replay",
+        operation_id="List Users Who Have Viewed a Replay",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -95,6 +95,9 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
 
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
         """Create a replay-viewed event."""
+        if not request.user.is_authenticated:
+            return Response(status=400)
+
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
         ):

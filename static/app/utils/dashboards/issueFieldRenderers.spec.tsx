@@ -11,7 +11,13 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 
 describe('getIssueFieldRenderer', function () {
-  let location, context, project, organization, data, user;
+  let location: any,
+    context: any,
+    project: any,
+    organization: any,
+    theme: any,
+    data: any,
+    user: any;
 
   beforeEach(function () {
     context = initializeOrg({
@@ -84,43 +90,37 @@ describe('getIssueFieldRenderer', function () {
         }),
       ]);
 
-      const group = GroupFixture({project});
-      GroupStore.add([
-        {
-          ...group,
-          owners: [
-            {owner: 'user:1', type: 'suspectCommit', date_added: '2020-01-01T00:00:00'},
-          ],
-          assignedTo: {
-            email: 'test@sentry.io',
-            type: 'user',
-            id: '1',
-            name: 'Test User',
-          },
+      const group = GroupFixture({
+        project,
+        assignedTo: {
+          email: 'test@sentry.io',
+          type: 'user',
+          id: '1',
+          name: 'Test User',
         },
-      ]);
-      const renderer = getIssueFieldRenderer('assignee');
+      });
+      GroupStore.add([group]);
+      const renderer = getIssueFieldRenderer('assignee', {});
 
       render(
-        renderer!(data, {
+        renderer(data, {
           location,
           organization,
+          theme,
         }) as React.ReactElement
       );
-      expect(screen.getByText('TU')).toBeInTheDocument();
       await userEvent.hover(screen.getByText('TU'));
       expect(await screen.findByText('Assigned to Test User')).toBeInTheDocument();
-      expect(screen.getByText('Based on')).toBeInTheDocument();
-      expect(screen.getByText('commit data')).toBeInTheDocument();
     });
 
     it('can render counts', async function () {
-      const renderer = getIssueFieldRenderer('events');
+      const renderer = getIssueFieldRenderer('events', {});
 
       render(
-        renderer!(data, {
+        renderer(data, {
           location,
           organization,
+          theme,
         }) as React.ReactElement
       );
       expect(screen.getByText('3k')).toBeInTheDocument();
@@ -133,22 +133,23 @@ describe('getIssueFieldRenderer', function () {
   });
 
   it('can render links', function () {
-    const renderer = getIssueFieldRenderer('links');
+    const renderer = getIssueFieldRenderer('links', {});
 
     render(
-      renderer!(data, {
+      renderer(data, {
         location,
         organization,
+        theme,
       }) as React.ReactElement
     );
     expect(screen.getByText('ANNO-123')).toBeInTheDocument();
   });
 
   it('can render multiple links', function () {
-    const renderer = getIssueFieldRenderer('links');
+    const renderer = getIssueFieldRenderer('links', {});
 
     render(
-      renderer!(
+      renderer(
         {
           data,
           ...{
@@ -161,6 +162,7 @@ describe('getIssueFieldRenderer', function () {
         {
           location,
           organization,
+          theme,
         }
       ) as React.ReactElement
     );

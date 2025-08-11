@@ -10,12 +10,13 @@ import {getIntervalForMetricFunction} from 'sentry/views/insights/database/utils
 import {DEFAULT_INTERVAL} from 'sentry/views/insights/settings';
 
 export function getSeriesEventView(
-  search: MutableSearch | undefined,
+  search: MutableSearch | string | undefined,
   fields: string[] = [],
   pageFilters: PageFilters,
   yAxis: string[],
   topEvents?: number,
-  dataset?: DiscoverDatasets
+  dataset?: DiscoverDatasets,
+  orderby?: string | string[]
 ) {
   // Pick the highest possible interval for the given yAxis selection. Find the ideal interval for each function, then choose the largest one. This results in the lowest granularity, but best performance.
   const interval = sortBy(
@@ -36,13 +37,14 @@ export function getSeriesEventView(
   return EventView.fromNewQueryWithPageFilters(
     {
       name: '',
-      query: search?.formatString() ?? undefined,
+      query: typeof search === 'string' ? search : (search?.formatString() ?? ''),
       fields,
       yAxis,
-      dataset: dataset || DiscoverDatasets.SPANS_METRICS,
+      dataset: dataset || DiscoverDatasets.SPANS,
       interval,
       topEvents: topEvents?.toString(),
       version: 2,
+      orderby,
     },
     pageFilters
   );

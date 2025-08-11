@@ -58,10 +58,13 @@ class AuthIdentity(ReplicatedControlModel):
         app_label = "sentry"
         db_table = "sentry_authidentity"
         unique_together = (("auth_provider", "ident"), ("auth_provider", "user"))
+        indexes = [
+            models.Index(fields=["last_synced"], name="auth_identity_last_synced_idx"),
+        ]
 
     __repr__ = sane_repr("user_id", "auth_provider_id")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.ident
 
     def get_audit_log_data(self):

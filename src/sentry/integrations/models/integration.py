@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any
 
 from django.db import IntegrityError, models, router, transaction
 
@@ -9,12 +9,15 @@ from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
-from sentry.db.models import BoundedPositiveIntegerField, DefaultFieldsModel, control_silo_model
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    DefaultFieldsModelExisting,
+    control_silo_model,
+)
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.db.models.manager.base import BaseManager
+from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.models.outbox import ControlOutbox, outbox_context
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.signals import integration_added
 from sentry.types.region import find_regions_for_orgs
@@ -26,23 +29,14 @@ if TYPE_CHECKING:
         IntegrationProvider,
     )
     from sentry.models.organization import Organization
-    from sentry.models.user import User
+    from sentry.users.models.user import User
     from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 
 
-class IntegrationManager(BaseManager["Integration"]):
-    def get_active_integrations(self, organization_id: str):
-        return self.filter(
-            status=ObjectStatus.ACTIVE,
-            organizationintegration__status=ObjectStatus.ACTIVE,
-            organizationintegration__organization_id=organization_id,
-        )
-
-
 @control_silo_model
-class Integration(DefaultFieldsModel):
+class Integration(DefaultFieldsModelExisting):
     """
     An integration tied to a particular instance of a third-party provider (a single Slack
     workspace, a single GH org, etc.), which can be shared by multiple Sentry orgs.
@@ -60,8 +54,6 @@ class Integration(DefaultFieldsModel):
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), null=True
     )
-
-    objects: ClassVar[IntegrationManager] = IntegrationManager()
 
     class Meta:
         app_label = "sentry"

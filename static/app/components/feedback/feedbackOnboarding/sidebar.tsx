@@ -5,11 +5,12 @@ import {PlatformIcon} from 'platformicons';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import {Button} from 'sentry/components/button';
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
 import {CRASH_REPORT_HASH} from 'sentry/components/feedback/useFeedbackOnboarding';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
+import useDrawer from 'sentry/components/globalDrawer';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {FeedbackOnboardingWebApiBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
@@ -32,30 +33,91 @@ import {
 } from 'sentry/data/platformCategories';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import useUrlParams from 'sentry/utils/url/useUrlParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useUrlParams from 'sentry/utils/useUrlParams';
 
-function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
+export function useFeedbackOnboardingDrawer() {
+  const organization = useOrganization();
+  const currentPanel = useLegacyStore(SidebarPanelStore);
+  const isActive = currentPanel === SidebarPanelKey.FEEDBACK_ONBOARDING;
+  const hasProjectAccess = organization.access.includes('project:read');
+
+  const {openDrawer} = useDrawer();
+
+  useEffect(() => {
+    if (isActive && hasProjectAccess) {
+      openDrawer(() => <DrawerContent />, {
+        ariaLabel: t('Getting Started with User Feedback'),
+        // Prevent the drawer from closing when the query params change
+        shouldCloseOnLocationChange: location =>
+          location.pathname !== window.location.pathname,
+      });
+    }
+  }, [isActive, hasProjectAccess, openDrawer]);
+}
+
+function DrawerContent() {
+  useEffect(() => {
+    return () => {
+      SidebarPanelStore.hidePanel();
+    };
+  }, []);
+
+  return <SidebarContent />;
+}
+
+// Used by legacy navigation
+function LegacyFeedbackOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const organization = useOrganization();
 
   const isActive = currentPanel === SidebarPanelKey.FEEDBACK_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
 
+  if (!isActive || !hasProjectAccess) {
+    return null;
+  }
+
+  return (
+    <TaskSidebarPanel
+      orientation={orientation}
+      collapsed={collapsed}
+      hidePanel={hidePanel}
+    >
+      <SidebarContent />
+    </TaskSidebarPanel>
+  );
+}
+
+function SidebarContent() {
+  const organization = useOrganization();
+
   const {allProjects, currentProject, setCurrentProject} = useCurrentProjectState({
-    currentPanel,
+    currentPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
     targetPanel: SidebarPanelKey.FEEDBACK_ONBOARDING,
     onboardingPlatforms: feedbackOnboardingPlatforms,
     allPlatforms: feedbackOnboardingPlatforms,
   });
 
+  useEffect(() => {
+    // this tracks clicks from any source: feedback index, issue details feedback tab, banner callout, etc
+    if (currentProject) {
+      trackAnalytics('feedback.list-view-setup-sidebar', {
+        organization,
+        platform: currentProject?.platform ?? 'unknown',
+      });
+    }
+  }, [currentProject, organization, setCurrentProject]);
+
   const projectSelectOptions = useMemo(() => {
-    const supportedProjectItems: SelectValue<string>[] = allProjects
+    const supportedProjectItems: Array<SelectValue<string>> = allProjects
       .sort((aProject, bProject) => {
         // if we're comparing two projects w/ or w/o feedback alphabetical sort
         if (aProject.hasNewFeedbacks === bProject.hasNewFeedbacks) {
@@ -82,26 +144,12 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
     ];
   }, [allProjects]);
 
-  useEffect(() => {
-    if (isActive && currentProject && hasProjectAccess) {
-      // this tracks clicks from any source: feedback index, issue details feedback tab, banner callout, etc
-      trackAnalytics('feedback.list-view-setup-sidebar', {
-        organization,
-        platform: currentProject?.platform ?? 'unknown',
-      });
-    }
-  }, [organization, currentProject, isActive, hasProjectAccess]);
-
-  if (!isActive || !hasProjectAccess || !currentProject) {
+  if (!currentProject) {
     return null;
   }
 
   return (
-    <TaskSidebarPanel
-      orientation={orientation}
-      collapsed={collapsed}
-      hidePanel={hidePanel}
-    >
+    <Fragment>
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Getting Started with User Feedback')}</Heading>
@@ -140,7 +188,7 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
         </HeaderActions>
         <OnboardingContent currentProject={currentProject} />
       </TaskList>
-    </TaskSidebarPanel>
+    </Fragment>
   );
 }
 
@@ -163,7 +211,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     value: PlatformKey;
     label?: ReactNode;
     textValue?: string;
-  }>(jsFrameworkSelectOptions[0]);
+  }>(jsFrameworkSelectOptions[0]!);
 
   const defaultTab = 'npm';
   const location = useLocation();
@@ -175,7 +223,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   );
 
   const currentPlatform = currentProject.platform
-    ? platforms.find(p => p.id === currentProject.platform) ?? otherPlatform
+    ? (platforms.find(p => p.id === currentProject.platform) ?? otherPlatform)
     : otherPlatform;
 
   const webBackendPlatform = replayBackendPlatforms.includes(currentPlatform.id);
@@ -195,13 +243,13 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
 
   const jsFrameworkPlatform =
     replayJsFrameworkOptions().find(p => p.id === jsFramework.value) ??
-    replayJsFrameworkOptions()[0];
+    replayJsFrameworkOptions()[0]!;
 
   const {
     isLoading,
     docs: newDocs,
     dsn,
-    cdn,
+    projectKeyId,
   } = useLoadGettingStarted({
     platform:
       showJsFrameworkInstructions && !crashReportOnboarding
@@ -223,6 +271,9 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     return <FeedbackOnboardingWebApiBanner />;
   }
 
+  const excludedPlatformOptions = ['react-native', 'flutter'];
+  const isExcluded = excludedPlatformOptions.includes(currentPlatform.id);
+
   const radioButtons = (
     <Header>
       {showRadioButtons ? (
@@ -236,6 +287,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                   {tct('I use [platformSelect]', {
                     platformSelect: (
                       <CompactSelect
+                        size="xs"
                         triggerLabel={jsFramework.label}
                         value={jsFramework.value}
                         onChange={setJsFramework}
@@ -246,30 +298,28 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
                       />
                     ),
                   })}
-                  {jsFrameworkDocs?.platformOptions &&
-                    tct('with [optionSelect]', {
-                      optionSelect: (
-                        <PlatformOptionDropdown
-                          platformOptions={jsFrameworkDocs?.platformOptions}
-                          disabled={setupMode() === 'jsLoader'}
-                        />
-                      ),
-                    })}
+                  {jsFrameworkDocs?.platformOptions && (
+                    <PlatformOptionDropdown
+                      platformOptions={jsFrameworkDocs?.platformOptions}
+                      disabled={setupMode() === 'jsLoader'}
+                    />
+                  )}
                 </PlatformSelect>
               ) : (
                 t('I use NPM or Yarn')
               ),
             ],
-            ['jsLoader', t('I use HTML templates')],
+            ['jsLoader', t('I use HTML templates (Loader Script)')],
           ]}
           value={setupMode()}
           onChange={setSetupMode}
-          disabledChoices={[['jsLoader', t('Coming soon!')]]}
           tooltipPosition={'top-start'}
         />
       ) : (
-        newDocs?.platformOptions &&
+        (newDocs?.platformOptions?.siblingOption ||
+          newDocs?.platformOptions?.packageManager) &&
         widgetPlatform &&
+        !isExcluded &&
         !crashReportOnboarding &&
         !isLoading && (
           <PlatformSelect>
@@ -298,7 +348,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     !currentPlatform ||
     !feedbackOnboardingPlatforms.includes(currentPlatform.id) ||
     !newDocs ||
-    !dsn
+    !dsn ||
+    !projectKeyId
   ) {
     return (
       <Fragment>
@@ -309,13 +360,13 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           )}
         </div>
         <div>
-          <Button
+          <LinkButton
             size="sm"
             href="https://docs.sentry.io/platforms/javascript/user-feedback/"
             external
           >
             {t('Read Docs')}
-          </Button>
+          </LinkButton>
         </div>
       </Fragment>
     );
@@ -335,7 +386,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     ) {
       return 'feedbackOnboardingNpm';
     }
-    return 'replayOnboardingJsLoader';
+    return 'feedbackOnboardingJsLoader';
   }
 
   return (
@@ -344,12 +395,11 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       <FeedbackOnboardingLayout
         docsConfig={newDocs}
         dsn={dsn}
-        cdn={cdn}
         activeProductSelection={[]}
         platformKey={currentPlatform.id}
-        projectId={currentProject.id}
-        projectSlug={currentProject.slug}
+        project={currentProject}
         configType={getConfig()}
+        projectKeyId={projectKeyId}
       />
     </Fragment>
   );
@@ -383,9 +433,9 @@ const TaskList = styled('div')`
 const Heading = styled('div')`
   display: flex;
   color: ${p => p.theme.activeText};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-size: ${p => p.theme.fontSize.xs};
   text-transform: uppercase;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   line-height: 1;
   margin-top: ${space(3)};
 `;
@@ -420,4 +470,4 @@ const StyledRadioGroup = styled(RadioGroup)`
   padding: ${space(1)} 0;
 `;
 
-export default FeedbackOnboardingSidebar;
+export default LegacyFeedbackOnboardingSidebar;

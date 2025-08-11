@@ -1,27 +1,33 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {DataZoomComponentOption, LegendComponentOption} from 'echarts';
+import type {LegendComponentOption} from 'echarts';
 import type {Location} from 'history';
 
 import type {Client} from 'sentry/api';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import type {Organization, PageFilters} from 'sentry/types';
-import type {EChartEventHandler, Series} from 'sentry/types/echarts';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import type {PageFilters} from 'sentry/types/core';
+import type {
+  EChartDataZoomHandler,
+  EChartEventHandler,
+  Series,
+} from 'sentry/types/echarts';
+import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
+import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
+import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 
-import type {DashboardFilters, Widget} from '../types';
-import {WidgetType} from '../types';
-
-import type {AugmentedEChartDataZoomHandler} from './chart';
 import WidgetCardChart from './chart';
 import {IssueWidgetCard} from './issueWidgetCard';
-import IssueWidgetQueries from './issueWidgetQueries';
-import ReleaseWidgetQueries from './releaseWidgetQueries';
-import WidgetQueries from './widgetQueries';
+import {WidgetCardDataLoader} from './widgetCardDataLoader';
 
 type Props = {
   api: Client;
@@ -29,13 +35,16 @@ type Props = {
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
+  widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
-  chartZoomOptions?: DataZoomComponentOption;
   dashboardFilters?: DashboardFilters;
+  disableZoom?: boolean;
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
+  minTableColumnWidth?: number;
   noPadding?: boolean;
+  onDataFetchStart?: () => void;
   onDataFetched?: (results: {
     pageLinks?: string;
     tableResults?: TableDataWithTitle[];
@@ -49,15 +58,18 @@ type Props = {
     type: 'legendselectchanged';
   }>;
   onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
-  onZoom?: AugmentedEChartDataZoomHandler;
+  onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
+  onWidgetTableSort?: (sort: Sort) => void;
+  onZoom?: EChartDataZoomHandler;
   renderErrorMessage?: (errorMessage?: string) => React.ReactNode;
-  showSlider?: boolean;
+  shouldResize?: boolean;
+  showConfidenceWarning?: boolean;
+  showLoadingText?: boolean;
   tableItemLimit?: number;
   windowWidth?: number;
 };
 
 export function WidgetCardChartContainer({
-  api,
   organization,
   selection,
   widget,
@@ -71,100 +83,59 @@ export function WidgetCardChartContainer({
   legendOptions,
   expandNumbers,
   onDataFetched,
-  showSlider,
   noPadding,
-  chartZoomOptions,
   onWidgetSplitDecision,
   chartGroup,
+  shouldResize,
+  widgetLegendState,
+  showConfidenceWarning,
+  minTableColumnWidth,
+  onDataFetchStart,
+  disableZoom,
+  showLoadingText,
+  onWidgetTableSort,
+  onWidgetTableResizeColumn,
 }: Props) {
   const location = useLocation();
-  const router = useRouter();
-  if (widget.widgetType === WidgetType.ISSUE) {
-    return (
-      <IssueWidgetQueries
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        limit={tableItemLimit}
-        onDataFetched={onDataFetched}
-        dashboardFilters={dashboardFilters}
-      >
-        {({tableResults, errorMessage, loading}) => {
-          return (
-            <Fragment>
-              {typeof renderErrorMessage === 'function'
-                ? renderErrorMessage(errorMessage)
-                : null}
-              <LoadingScreen loading={loading} />
-              <IssueWidgetCard
-                transformedResults={tableResults?.[0].data ?? []}
-                loading={loading}
-                errorMessage={errorMessage}
-                widget={widget}
-                location={location}
-                selection={selection}
-              />
-            </Fragment>
-          );
-        }}
-      </IssueWidgetQueries>
-    );
+  const theme = useTheme();
+
+  function keepLegendState({
+    selected,
+  }: {
+    selected: Record<string, boolean>;
+    type: 'legendselectchanged';
+  }) {
+    widgetLegendState.setWidgetSelectionState(selected, widget);
   }
 
-  if (widget.widgetType === WidgetType.RELEASE) {
-    return (
-      <ReleaseWidgetQueries
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        limit={widget.limit ?? tableItemLimit}
-        onDataFetched={onDataFetched}
-        dashboardFilters={dashboardFilters}
-      >
-        {({tableResults, timeseriesResults, errorMessage, loading}) => {
-          return (
-            <Fragment>
-              {typeof renderErrorMessage === 'function'
-                ? renderErrorMessage(errorMessage)
-                : null}
-              <WidgetCardChart
-                timeseriesResults={timeseriesResults}
-                tableResults={tableResults}
-                errorMessage={errorMessage}
-                loading={loading}
-                location={location}
-                widget={widget}
-                selection={selection}
-                router={router}
-                organization={organization}
-                isMobile={isMobile}
-                windowWidth={windowWidth}
-                expandNumbers={expandNumbers}
-                onZoom={onZoom}
-                showSlider={showSlider}
-                noPadding={noPadding}
-                chartZoomOptions={chartZoomOptions}
-                chartGroup={chartGroup}
-              />
-            </Fragment>
-          );
-        }}
-      </ReleaseWidgetQueries>
-    );
+  function getErrorOrEmptyMessage(
+    errorMessage: string | undefined,
+    timeseriesResults: Series[] | undefined,
+    tableResults: TableDataWithTitle[] | undefined,
+    widgetType: DisplayType
+  ) {
+    // non-chart widgets need to look at tableResults
+    const results =
+      widgetType === DisplayType.BIG_NUMBER || widgetType === DisplayType.TABLE
+        ? tableResults
+        : timeseriesResults;
+
+    return errorMessage
+      ? errorMessage
+      : results === undefined || results?.length === 0
+        ? t('No data found')
+        : undefined;
   }
 
   return (
-    <WidgetQueries
-      api={api}
-      organization={organization}
+    <WidgetCardDataLoader
       widget={widget}
-      selection={selection}
-      limit={tableItemLimit}
-      onDataFetched={onDataFetched}
       dashboardFilters={dashboardFilters}
+      selection={selection}
+      onDataFetched={onDataFetched}
       onWidgetSplitDecision={onWidgetSplitDecision}
+      onDataFetchStart={onDataFetchStart}
+      tableItemLimit={tableItemLimit}
     >
       {({
         tableResults,
@@ -172,58 +143,119 @@ export function WidgetCardChartContainer({
         errorMessage,
         loading,
         timeseriesResultsTypes,
+        confidence,
+        sampleCount,
+        isSampled,
       }) => {
+        // Bind timeseries to widget for ability to control each widget's legend individually
+        const modifiedTimeseriesResults =
+          WidgetLegendNameEncoderDecoder.modifyTimeseriesNames(widget, timeseriesResults);
+
+        const errorOrEmptyMessage = loading
+          ? errorMessage
+          : getErrorOrEmptyMessage(
+              errorMessage,
+              modifiedTimeseriesResults,
+              tableResults,
+              widget.displayType
+            );
+
+        if (widget.widgetType === WidgetType.ISSUE) {
+          return (
+            <Fragment>
+              {typeof renderErrorMessage === 'function'
+                ? renderErrorMessage(errorOrEmptyMessage)
+                : null}
+              <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
+              <IssueWidgetCard
+                tableResults={tableResults}
+                loading={loading}
+                errorMessage={errorOrEmptyMessage}
+                widget={widget}
+                location={location}
+                selection={selection}
+                theme={theme}
+                organization={organization}
+                onWidgetTableResizeColumn={onWidgetTableResizeColumn}
+              />
+            </Fragment>
+          );
+        }
+
         return (
           <Fragment>
             {typeof renderErrorMessage === 'function'
-              ? renderErrorMessage(errorMessage)
+              ? renderErrorMessage(errorOrEmptyMessage)
               : null}
             <WidgetCardChart
-              timeseriesResults={timeseriesResults}
+              disableZoom={disableZoom}
+              timeseriesResults={modifiedTimeseriesResults}
               tableResults={tableResults}
-              errorMessage={errorMessage}
+              errorMessage={errorOrEmptyMessage}
               loading={loading}
               location={location}
               widget={widget}
               selection={selection}
-              router={router}
               organization={organization}
               isMobile={isMobile}
               windowWidth={windowWidth}
-              onZoom={onZoom}
-              onLegendSelectChanged={onLegendSelectChanged}
-              legendOptions={legendOptions}
               expandNumbers={expandNumbers}
-              showSlider={showSlider}
-              noPadding={noPadding}
-              chartZoomOptions={chartZoomOptions}
+              onZoom={onZoom}
               timeseriesResultsTypes={timeseriesResultsTypes}
+              noPadding={noPadding}
               chartGroup={chartGroup}
+              shouldResize={shouldResize}
+              onLegendSelectChanged={
+                onLegendSelectChanged ? onLegendSelectChanged : keepLegendState
+              }
+              legendOptions={
+                legendOptions
+                  ? legendOptions
+                  : {selected: widgetLegendState.getWidgetSelectionState(widget)}
+              }
+              widgetLegendState={widgetLegendState}
+              showConfidenceWarning={showConfidenceWarning}
+              confidence={confidence}
+              sampleCount={sampleCount}
+              minTableColumnWidth={minTableColumnWidth}
+              isSampled={isSampled}
+              showLoadingText={showLoadingText}
+              theme={theme}
+              onWidgetTableSort={onWidgetTableSort}
+              onWidgetTableResizeColumn={onWidgetTableResizeColumn}
             />
           </Fragment>
         );
       }}
-    </WidgetQueries>
+    </WidgetCardDataLoader>
   );
 }
 
-export default WidgetCardChartContainer;
-
-const StyledTransparentLoadingMask = styled(props => (
+const StyledTransparentLoadingMask = styled((props: any) => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
 ))`
   display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
   justify-content: center;
   align-items: center;
+  pointer-events: none;
 `;
 
-export function LoadingScreen({loading}: {loading: boolean}) {
+function LoadingScreen({
+  loading,
+  showLoadingText,
+}: {
+  loading: boolean;
+  showLoadingText?: boolean;
+}) {
   if (!loading) {
     return null;
   }
   return (
     <StyledTransparentLoadingMask visible={loading}>
       <LoadingIndicator mini />
+      {showLoadingText && <p>{t('Turning data into pixels - almost ready')}</p>}
     </StyledTransparentLoadingMask>
   );
 }

@@ -4,7 +4,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProfileEventEvidence} from 'sentry/components/events/profileEventEvidence';
-import {IssueCategory, IssueType} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/group';
 
 describe('ProfileEventEvidence', function () {
   const defaultProps = {
@@ -18,6 +18,7 @@ describe('ProfileEventEvidence', function () {
           framePackage: 'something.dll',
           transactionId: 'transaction-id',
           transactionName: 'SomeTransaction',
+          templateName: 'profile',
         },
       },
       contexts: {
@@ -27,7 +28,6 @@ describe('ProfileEventEvidence', function () {
       },
     }),
     group: GroupFixture({
-      issueCategory: IssueCategory.PROFILE,
       issueType: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
     }),
     projectSlug: 'project-slug',
@@ -60,7 +60,7 @@ describe('ProfileEventEvidence', function () {
 
     expect(screen.getByRole('button', {name: 'View Transaction'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/project-slug:transaction-id/?referrer=issue'
+      '/organizations/org-slug/traces/trace/trace-id/?referrer=issue&statsPeriod=14d'
     );
   });
 });

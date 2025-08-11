@@ -1,10 +1,13 @@
 import {type RefObject, useCallback} from 'react';
 import {focusSafely, getFocusableTreeWalker} from '@react-aria/focus';
 import {useGridListItem} from '@react-aria/gridlist';
+import {isMac} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {FocusableElement, Node} from '@react-types/shared';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useKeyboardSelection} from 'sentry/components/searchQueryBuilder/hooks/useKeyboardSelection';
+import {findNearestFreeTextKey} from 'sentry/components/searchQueryBuilder/utils';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 
 function isInputElement(target: EventTarget): target is HTMLInputElement {
@@ -12,6 +15,69 @@ function isInputElement(target: EventTarget): target is HTMLInputElement {
 }
 
 const noop = () => {};
+
+function focusNextGridCell({
+  walker,
+  wrapperRef,
+  state,
+  item,
+}: {
+  item: Node<ParseResultToken>;
+  state: ListState<ParseResultToken>;
+  walker: TreeWalker;
+  wrapperRef: RefObject<HTMLElement | null>;
+}) {
+  const nextFocusableChild = walker.nextSibling();
+  if (nextFocusableChild) {
+    focusSafely(nextFocusableChild as FocusableElement);
+  } else {
+    // Focus the next token
+    const el = wrapperRef.current?.querySelector(
+      `[data-key="${state.collection.getKeyAfter(item.key)}"]`
+    );
+
+    if (el) {
+      const newWalker = getFocusableTreeWalker(el);
+      const firstChild = newWalker.firstChild();
+
+      if (firstChild) {
+        (firstChild as HTMLElement).focus();
+      }
+    }
+  }
+}
+
+function focusPreviousGridCell({
+  walker,
+  wrapperRef,
+  state,
+  item,
+}: {
+  item: Node<ParseResultToken>;
+  state: ListState<ParseResultToken>;
+  walker: TreeWalker;
+  wrapperRef: RefObject<HTMLElement | null>;
+}) {
+  const previousFocusableChild = walker.previousSibling();
+
+  if (previousFocusableChild) {
+    focusSafely(previousFocusableChild as FocusableElement);
+  } else {
+    // Focus the previous token
+    const el = wrapperRef.current?.querySelector(
+      `[data-key="${state.collection.getKeyBefore(item.key)}"]`
+    );
+
+    if (el) {
+      const newWalker = getFocusableTreeWalker(el);
+      const lastChild = newWalker.lastChild();
+
+      if (lastChild) {
+        (lastChild as HTMLElement).focus();
+      }
+    }
+  }
+}
 
 /**
  * Modified version of React Aria's useGridListItem to support the search component.
@@ -26,10 +92,11 @@ const noop = () => {};
 export function useQueryBuilderGridItem(
   item: Node<ParseResultToken>,
   state: ListState<ParseResultToken>,
-  ref: RefObject<FocusableElement>
+  ref: RefObject<FocusableElement | null>
 ) {
   const {wrapperRef} = useSearchQueryBuilder();
   const {rowProps, gridCellProps} = useGridListItem({node: item}, state, ref);
+  const {selectInDirection} = useKeyboardSelection();
 
   // When focus is inside the input, we want to handle some things differently.
   // Returns true if the default behavior should be used, false if not.
@@ -86,61 +153,74 @@ export function useQueryBuilderGridItem(
       // If there are no other sibling cells, focus the first grid cell of the
       // next token.
       if (e.key === 'ArrowRight') {
-        const nextFocusableChild = walker.nextSibling();
-        if (nextFocusableChild) {
-          e.preventDefault();
-          e.stopPropagation();
-          focusSafely(nextFocusableChild as FocusableElement);
-        } else {
-          e.preventDefault();
-          e.stopPropagation();
+        e.preventDefault();
+        e.stopPropagation();
 
-          // Focus the next token
-          const el = wrapperRef.current?.querySelector(
-            `[data-key="${state.collection.getKeyAfter(item.key)}"]`
-          );
-
-          if (el) {
-            const newWalker = getFocusableTreeWalker(el);
-            const firstChild = newWalker.firstChild();
-
-            if (firstChild) {
-              (firstChild as HTMLElement).focus();
-            }
-          }
+        // On Mac, Cmd+ArrowRight should move focus all the way to the right
+        if (isMac() && e.metaKey) {
+          state.selectionManager.setFocusedKey(state.collection.getLastKey());
+          return;
         }
+
+        if (e.shiftKey) {
+          selectInDirection({
+            state,
+            beginNewSelectionFromKey: item.key,
+            direction: 'right',
+          });
+          return;
+        }
+
+        // Option/Ctrl + ArrowRight should skip focus over to the next free text token
+        if (isMac() ? e.altKey : e.ctrlKey) {
+          const nextKey = state.collection.getKeyAfter(item.key);
+          if (nextKey) {
+            state.selectionManager.setFocusedKey(
+              findNearestFreeTextKey(state, nextKey, 'right') ?? nextKey
+            );
+          }
+          return;
+        }
+
+        focusNextGridCell({walker, wrapperRef, state, item});
       }
       // On ArrowRight, we want to focus the previous grid cell if there is one.
       // If there are no previous sibling cells, focus the last grid cell of the
       // previous token.
       if (e.key === 'ArrowLeft') {
-        const previousFocusableChild = walker.previousSibling();
+        e.preventDefault();
+        e.stopPropagation();
 
-        if (previousFocusableChild) {
-          e.preventDefault();
-          e.stopPropagation();
-          focusSafely(previousFocusableChild as FocusableElement);
-        } else {
-          e.preventDefault();
-          e.stopPropagation();
-
-          // Focus the previous token
-          const el = wrapperRef.current?.querySelector(
-            `[data-key="${state.collection.getKeyBefore(item.key)}"]`
-          );
-
-          if (el) {
-            const newWalker = getFocusableTreeWalker(el);
-            const lastChild = newWalker.lastChild();
-
-            if (lastChild) {
-              (lastChild as HTMLElement).focus();
-            }
-          }
+        // On Mac, Cmd+ArrowLeft should move focus all the way to the left
+        if (isMac() && e.metaKey) {
+          state.selectionManager.setFocusedKey(state.collection.getFirstKey());
+          return;
         }
+
+        if (e.shiftKey) {
+          selectInDirection({
+            state,
+            beginNewSelectionFromKey: item.key,
+            direction: 'left',
+          });
+          return;
+        }
+
+        // Option/Ctrl + ArrowLeft should skip focus over to the next free text token
+        if (isMac() ? e.altKey : e.ctrlKey) {
+          const previousKey = state.collection.getKeyBefore(item.key);
+          if (previousKey) {
+            state.selectionManager.setFocusedKey(
+              findNearestFreeTextKey(state, previousKey, 'left') ?? previousKey
+            );
+          }
+          return;
+        }
+
+        focusPreviousGridCell({walker, wrapperRef, state, item});
       }
     },
-    [handleInputKeyDown, item.key, state.collection, wrapperRef]
+    [handleInputKeyDown, item, selectInDirection, state, wrapperRef]
   );
 
   const onKeyDown = useCallback(

@@ -1,18 +1,20 @@
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import ClippedBox from 'sentry/components/clippedBox';
 import Confirm from 'sentry/components/confirm';
-import Link from 'sentry/components/links/link';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import recreateRoute from 'sentry/utils/recreateRoute';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import {LoaderScript} from 'sentry/views/settings/project/projectKeys/list/loaderScript';
 import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
 
@@ -24,7 +26,7 @@ type Props = {
   orgId: string;
   project: Project;
   projectId: string;
-} & Pick<RouteComponentProps<{}, {}>, 'routes' | 'location' | 'params'>;
+} & Pick<RouteComponentProps, 'routes' | 'location' | 'params'>;
 
 function KeyRow({
   data,
@@ -43,6 +45,8 @@ function KeyRow({
   const platform = project.platform || 'other';
   const isBrowserJavaScript = platform === 'javascript';
   const isJsPlatform = platform.startsWith('javascript');
+  const showOtlp =
+    useOTelFriendlyUI() && project.features.includes('relay-otel-endpoint');
 
   return (
     <Panel>
@@ -57,9 +61,9 @@ function KeyRow({
           )}
         </Title>
         <Controls>
-          <Button to={editUrl} size="xs">
+          <LinkButton to={editUrl} size="xs">
             {t('Configure')}
-          </Button>
+          </LinkButton>
           <Confirm
             disabled={!hasWriteAccess}
             onConfirm={data.isActive ? handleDisable : handleEnable}
@@ -95,6 +99,7 @@ function KeyRow({
           <ProjectKeyCredentials
             projectId={`${data.projectId}`}
             data={data}
+            showOtlp={showOtlp}
             showMinidump={!isJsPlatform}
             showUnreal={!isJsPlatform}
             showSecurityEndpoint={!isJsPlatform}

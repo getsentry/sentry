@@ -1,6 +1,9 @@
+import {ThemeFixture} from 'sentry-fixture/theme';
+
 import {getGroupReleaseChartMarkers} from 'sentry/components/group/releaseChart';
-import type {TimeseriesValue} from 'sentry/types';
-import theme from 'sentry/utils/theme';
+import type {TimeseriesValue} from 'sentry/types/core';
+
+const theme = ThemeFixture();
 
 it('should set marker before first bucket', () => {
   const data: TimeseriesValue[] = [
@@ -20,6 +23,6 @@ it('should set marker before first bucket', () => {
   const markers = getGroupReleaseChartMarkers(theme as any, data, firstSeen, lastSeen)!.data!;
 
   expect((markers[0] as any).displayValue).toBe(new Date(firstSeen).getTime());
-  expect(markers[0].coord![0]).toBe(1659533400000);
-  expect(markers[1].coord![0]).toBe(new Date(lastSeen).getTime());
+  expect(markers[0]!.coord![0]).toBe(1659533400000);
+  expect(markers[1]!.coord![0]).toBe(new Date(lastSeen).getTime());
 });

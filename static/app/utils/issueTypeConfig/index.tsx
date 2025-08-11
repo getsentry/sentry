@@ -1,11 +1,19 @@
 import {t} from 'sentry/locale';
-import {IssueCategory, IssueType} from 'sentry/types';
+import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import cronConfig from 'sentry/utils/issueTypeConfig/cronConfig';
+import dbQueryConfig from 'sentry/utils/issueTypeConfig/dbQueryConfig';
 import {
   errorConfig,
   getErrorHelpResource,
 } from 'sentry/utils/issueTypeConfig/errorConfig';
+import feedbackConfig from 'sentry/utils/issueTypeConfig/feedbackConfig';
+import frontendConfig from 'sentry/utils/issueTypeConfig/frontendConfig';
+import httpClientConfig from 'sentry/utils/issueTypeConfig/httpClientConfig';
+import metricConfig from 'sentry/utils/issueTypeConfig/metricConfig';
+import metricIssueConfig from 'sentry/utils/issueTypeConfig/metricIssueConfig';
+import mobileConfig from 'sentry/utils/issueTypeConfig/mobileConfig';
+import outageConfig from 'sentry/utils/issueTypeConfig/outageConfig';
 import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
 import replayConfig from 'sentry/utils/issueTypeConfig/replayConfig';
 import type {
@@ -13,6 +21,7 @@ import type {
   IssueTypeConfig,
 } from 'sentry/utils/issueTypeConfig/types';
 import uptimeConfig from 'sentry/utils/issueTypeConfig/uptimeConfig';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 type Config = Record<IssueCategory, IssueCategoryConfigMapping>;
 
@@ -27,37 +36,72 @@ type GetConfigForIssueTypeParams = {eventOccurrenceType: number} | IssueCategory
 const BASE_CONFIG: IssueTypeConfig = {
   actions: {
     archiveUntilOccurrence: {enabled: true},
-    delete: {enabled: false},
+    delete: {enabled: true},
     deleteAndDiscard: {enabled: false},
     merge: {enabled: false},
     ignore: {enabled: false},
+    resolve: {enabled: true},
     resolveInRelease: {enabled: true},
     share: {enabled: false},
   },
-  attachments: {enabled: false},
+  defaultTimePeriod: {sinceFirstSeen: true},
+  header: {
+    filterBar: {enabled: true, fixedEnvironment: false},
+    graph: {enabled: true, type: 'discover-events'},
+    tagDistribution: {enabled: true},
+    occurrenceSummary: {enabled: false},
+  },
+  customCopy: {
+    resolution: t('Resolved'),
+    eventUnits: t('Events'),
+  },
+  pages: {
+    landingPage: Tab.DETAILS,
+    events: {enabled: true},
+    openPeriods: {enabled: false},
+    checkIns: {enabled: false},
+    uptimeChecks: {enabled: false},
+    attachments: {enabled: false},
+    userFeedback: {enabled: false},
+    replays: {enabled: false},
+    tagsTab: {enabled: true},
+  },
   autofix: false,
-  events: {enabled: true},
+  eventAndUserCounts: {enabled: true},
+  detector: {enabled: false},
+  logLevel: {enabled: false},
   mergedIssues: {enabled: false},
+  performanceDurationRegression: {enabled: false},
+  profilingDurationRegression: {enabled: false},
   regression: {enabled: false},
-  replays: {enabled: false},
   showFeedbackWidget: false,
-  stats: {enabled: true},
   similarIssues: {enabled: false},
+  spanEvidence: {enabled: false},
+  stacktrace: {enabled: true},
+  stats: {enabled: true},
   tags: {enabled: true},
-  userFeedback: {enabled: false},
   discover: {enabled: true},
   evidence: {title: t('Evidence')},
   resources: null,
   usesIssuePlatform: true,
+  issueSummary: {enabled: false},
+  useOpenPeriodChecks: false,
 };
 
 const issueTypeConfig: Config = {
   [IssueCategory.ERROR]: errorConfig,
   [IssueCategory.PERFORMANCE]: performanceConfig,
-  [IssueCategory.PROFILE]: performanceConfig,
   [IssueCategory.CRON]: cronConfig,
   [IssueCategory.REPLAY]: replayConfig,
   [IssueCategory.UPTIME]: uptimeConfig,
+  [IssueCategory.METRIC_ALERT]: metricIssueConfig,
+  [IssueCategory.OUTAGE]: outageConfig,
+  [IssueCategory.FEEDBACK]: feedbackConfig,
+  [IssueCategory.FRONTEND]: frontendConfig,
+  [IssueCategory.HTTP_CLIENT]: httpClientConfig,
+  [IssueCategory.DB_QUERY]: dbQueryConfig,
+  [IssueCategory.MOBILE]: mobileConfig,
+  [IssueCategory.METRIC]: metricConfig,
 };
 
 /**
@@ -103,11 +147,16 @@ export const getIssueCategoryAndTypeFromOccurrenceType = (
 export const getConfigForIssueType = (
   params: GetConfigForIssueTypeParams,
   project: Project
-) => {
+): IssueTypeConfig => {
   const {issueCategory, issueType, title} =
     'eventOccurrenceType' in params
-      ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType as number)
+      ? getIssueCategoryAndTypeFromOccurrenceType(params.eventOccurrenceType)
       : params;
+
+  const refinedIssueType: IssueType | undefined = issueType?.replace(
+    '_experimental',
+    ''
+  ) as IssueType | undefined;
 
   const categoryMap = issueTypeConfig[issueCategory];
 
@@ -116,7 +165,8 @@ export const getConfigForIssueType = (
   }
 
   const categoryConfig = categoryMap._categoryDefaults;
-  const overrideConfig = issueType ? categoryMap[issueType] : {};
+
+  const overrideConfig = refinedIssueType ? categoryMap[refinedIssueType] : {};
   const errorResourceConfig = shouldShowCustomErrorResourceConfig(params, project)
     ? getErrorHelpResource({title: title!, project})
     : null;

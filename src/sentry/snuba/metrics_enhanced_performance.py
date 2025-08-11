@@ -11,7 +11,7 @@ from snuba_sdk import Column, Condition
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.search.events.types import EventsResponse, ParamsType, SnubaParams
+from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import discover, transactions
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics_performance import histogram_query as metrics_histogram_query
@@ -19,19 +19,18 @@ from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.metrics_performance import timeseries_query as metrics_timeseries_query
 from sentry.snuba.metrics_performance import top_events_timeseries as metrics_top_events_timeseries
 from sentry.snuba.query_sources import QuerySource
+from sentry.snuba.types import DatasetQuery
 from sentry.utils.snuba import SnubaTSResult
 
 
 def query(
     selected_columns: list[str],
     query: str,
-    params: ParamsType,
-    snuba_params: SnubaParams | None = None,
+    snuba_params: SnubaParams,
     equations: list[str] | None = None,
     orderby: list[str] | None = None,
     offset: int | None = None,
     limit: int = 50,
-    referrer: str | None = None,
     auto_fields: bool = False,
     auto_aggregations: bool = False,
     include_equation_fields: bool = False,
@@ -48,7 +47,11 @@ def query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     fallback_to_transactions: bool = False,
-):
+    query_source: QuerySource | None = None,
+    debug: bool = False,
+    *,
+    referrer: str,
+) -> EventsResponse:
     metrics_compatible = not equations
     dataset_reason = discover.DEFAULT_DATASET_REASON
 
@@ -57,24 +60,25 @@ def query(
             result = metrics_query(
                 selected_columns,
                 query,
-                params,
-                snuba_params,
-                equations,
-                orderby,
-                offset,
-                limit,
-                referrer,
-                auto_fields,
-                auto_aggregations,
-                use_aggregate_conditions,
-                allow_metric_aggregates,
-                conditions,
-                functions_acl,
-                transform_alias_to_input_format,
-                has_metrics,
-                use_metrics_layer,
-                on_demand_metrics_enabled,
+                snuba_params=snuba_params,
+                equations=equations,
+                orderby=orderby,
+                offset=offset,
+                limit=limit,
+                referrer=referrer,
+                auto_fields=auto_fields,
+                auto_aggregations=auto_aggregations,
+                use_aggregate_conditions=use_aggregate_conditions,
+                allow_metric_aggregates=allow_metric_aggregates,
+                conditions=conditions,
+                functions_acl=functions_acl,
+                transform_alias_to_input_format=transform_alias_to_input_format,
+                has_metrics=has_metrics,
+                use_metrics_layer=use_metrics_layer,
+                on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
+                query_source=query_source,
+                debug=debug,
             )
             result["meta"]["datasetReason"] = dataset_reason
 
@@ -90,16 +94,15 @@ def query(
 
     # Either metrics failed, or this isn't a query we can enhance with metrics
     if not metrics_compatible:
-        dataset: types.ModuleType = discover
+        dataset_query: DatasetQuery = discover.query
         if fallback_to_transactions:
-            dataset = transactions
+            dataset_query = transactions.query
             sentry_sdk.set_tag("performance.dataset", "transactions")
         else:
             sentry_sdk.set_tag("performance.dataset", "discover")
-        results = dataset.query(
+        results = dataset_query(
             selected_columns,
             query,
-            params,
             snuba_params=snuba_params,
             equations=equations,
             orderby=orderby,
@@ -113,6 +116,8 @@ def query(
             functions_acl=functions_acl,
             transform_alias_to_input_format=transform_alias_to_input_format,
             has_metrics=has_metrics,
+            query_source=query_source,
+            debug=debug,
         )
         results["meta"]["isMetricsData"] = False
         results["meta"]["isMetricsExtractedData"] = False
@@ -120,16 +125,18 @@ def query(
 
         return results
 
-    return {}
+    return {
+        "data": [],
+        "meta": {"fields": {}},
+    }
 
 
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: ParamsType,
+    snuba_params: SnubaParams,
     rollup: int,
     referrer: str,
-    snuba_params: SnubaParams | None = None,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
     comparison_delta: timedelta | None = None,
@@ -139,6 +146,8 @@ def timeseries_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type=None,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -147,17 +156,13 @@ def timeseries_query(
     equations, columns = categorize_columns(selected_columns)
     metrics_compatible = not equations
 
-    if len(params) == 0 and snuba_params is not None:
-        params = snuba_params.filter_params
-
     if metrics_compatible:
         try:
             return metrics_timeseries_query(
                 selected_columns,
                 query,
-                params,
+                snuba_params,
                 rollup,
-                snuba_params=snuba_params,
                 referrer=referrer,
                 zerofill_results=zerofill_results,
                 allow_metric_aggregates=allow_metric_aggregates,
@@ -167,6 +172,7 @@ def timeseries_query(
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
+                transform_alias_to_input_format=transform_alias_to_input_format,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery:
@@ -178,12 +184,16 @@ def timeseries_query(
 
     # This isn't a query we can enhance with metrics
     if not metrics_compatible:
-        sentry_sdk.set_tag("performance.dataset", "discover")
-        return discover.timeseries_query(
+        dataset: types.ModuleType = discover
+        if fallback_to_transactions:
+            dataset = transactions
+            sentry_sdk.set_tag("performance.dataset", "transactions")
+        else:
+            sentry_sdk.set_tag("performance.dataset", "discover")
+        return dataset.timeseries_query(
             selected_columns,
             query,
-            params,
-            snuba_params=snuba_params,
+            snuba_params,
             rollup=rollup,
             referrer=referrer,
             zerofill_results=zerofill_results,
@@ -191,17 +201,20 @@ def timeseries_query(
             functions_acl=functions_acl,
             has_metrics=has_metrics,
             query_source=query_source,
+            transform_alias_to_input_format=transform_alias_to_input_format,
         )
     return SnubaTSResult(
         {
             "data": (
-                discover.zerofill([], params["start"], params["end"], rollup, ["time"])
+                discover.zerofill(
+                    [], snuba_params.start_date, snuba_params.end_date, rollup, ["time"]
+                )
                 if zerofill_results
                 else []
             ),
         },
-        params["start"],
-        params["end"],
+        snuba_params.start_date,
+        snuba_params.end_date,
         rollup,
     )
 
@@ -210,14 +223,12 @@ def top_events_timeseries(
     timeseries_columns: list[str],
     selected_columns: list[str],
     user_query: str,
-    params: ParamsType,
+    snuba_params: SnubaParams,
     orderby: list[str],
     rollup: int,
     limit: int,
     organization: Organization,
-    snuba_params: SnubaParams | None = None,
     equations: list[str] | None = None,
-    referrer: str | None = None,
     top_events: EventsResponse | None = None,
     allow_empty: bool = True,
     zerofill_results: bool = True,
@@ -226,14 +237,15 @@ def top_events_timeseries(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
+    fallback_to_transactions: bool = False,
+    transform_alias_to_input_format: bool = False,
+    *,
+    referrer: str,
 ) -> SnubaTSResult | dict[str, Any]:
     metrics_compatible = False
     equations, _ = categorize_columns(selected_columns)
     if not equations:
         metrics_compatible = True
-
-    if len(params) == 0 and snuba_params is not None:
-        params = snuba_params.filter_params
 
     if metrics_compatible:
         try:
@@ -241,14 +253,12 @@ def top_events_timeseries(
                 timeseries_columns,
                 selected_columns,
                 user_query,
-                params,
+                snuba_params,
                 orderby,
                 rollup,
                 limit,
                 organization,
-                snuba_params,
                 equations,
-                referrer,
                 top_events,
                 allow_empty,
                 zerofill_results,
@@ -257,6 +267,8 @@ def top_events_timeseries(
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
                 query_source=query_source,
+                transform_alias_to_input_format=transform_alias_to_input_format,
+                referrer=referrer,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery:
@@ -268,36 +280,43 @@ def top_events_timeseries(
 
     # This isn't a query we can enhance with metrics
     if not metrics_compatible:
-        sentry_sdk.set_tag("performance.dataset", "discover")
-        return discover.top_events_timeseries(
+        dataset: types.ModuleType = discover
+        if fallback_to_transactions:
+            dataset = transactions
+            sentry_sdk.set_tag("performance.dataset", "transactions")
+        else:
+            sentry_sdk.set_tag("performance.dataset", "discover")
+        return dataset.top_events_timeseries(
             timeseries_columns,
             selected_columns,
             user_query,
-            params,
+            snuba_params,
             orderby,
             rollup,
             limit,
             organization,
-            snuba_params,
             equations,
-            referrer,
             top_events,
             allow_empty,
             zerofill_results,
             include_other,
             functions_acl,
             query_source=query_source,
+            transform_alias_to_input_format=transform_alias_to_input_format,
+            referrer=referrer,
         )
     return SnubaTSResult(
         {
             "data": (
-                discover.zerofill([], params["start"], params["end"], rollup, ["time"])
+                discover.zerofill(
+                    [], snuba_params.start_date, snuba_params.end_date, rollup, ["time"]
+                )
                 if zerofill_results
                 else []
             ),
         },
-        params["start"],
-        params["end"],
+        snuba_params.start_date,
+        snuba_params.end_date,
         rollup,
     )
 
@@ -305,14 +324,12 @@ def top_events_timeseries(
 def histogram_query(
     fields,
     user_query,
-    params,
+    snuba_params,
     num_buckets,
-    snuba_params=None,
     precision=0,
     min_value=None,
     max_value=None,
     data_filter=None,
-    referrer=None,
     group_by=None,
     order_by=None,
     limit_by=None,
@@ -322,6 +339,9 @@ def histogram_query(
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type=None,
+    query_source: QuerySource | None = None,
+    *,
+    referrer: str,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -334,14 +354,12 @@ def histogram_query(
             return metrics_histogram_query(
                 fields,
                 user_query,
-                params,
-                num_buckets,
                 snuba_params,
+                num_buckets,
                 precision,
                 min_value,
                 max_value,
                 data_filter,
-                referrer,
                 group_by,
                 order_by,
                 limit_by,
@@ -349,6 +367,8 @@ def histogram_query(
                 extra_conditions,
                 normalize_results,
                 use_metrics_layer,
+                query_source=query_source,
+                referrer=referrer,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery:
@@ -364,19 +384,19 @@ def histogram_query(
         return discover.histogram_query(
             fields,
             user_query,
-            params,
-            num_buckets,
             snuba_params,
+            num_buckets,
             precision,
             min_value,
             max_value,
             data_filter,
-            referrer,
             group_by,
             order_by,
             limit_by,
             histogram_rows,
             extra_conditions,
             normalize_results,
+            query_source=query_source,
+            referrer=referrer,
         )
     return {}

@@ -1,9 +1,12 @@
 """
-    This list is tracking old api endpoints that don't correctly implement pagination.
-    The goal is to eventually add pagination for all and shrink this list.
-    DO NOT ADD ANY NEW APIS
+This list is tracking old api endpoints that don't correctly implement pagination.
+The goal is to eventually add pagination for all and shrink this list.
+DO NOT ADD ANY NEW APIS
 """
+
 SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
+    "ProjectUptimeAlertCheckIndexEndpoint",
+    "OrganizationUptimeStatsEndpoint",
     "ApiTokensEndpoint",
     "AssistantEndpoint",
     "AuthenticatorIndexEndpoint",
@@ -15,7 +18,6 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "GitlabIssueSearchEndpoint",
     "GroupEventsEndpoint",
     "GroupIntegrationsEndpoint",
-    "GroupParticipantsEndpoint",
     "GroupSimilarIssuesEmbeddingsEndpoint",
     "GroupStatsEndpoint",
     "GroupTagsEndpoint",
@@ -26,11 +28,11 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "JiraSearchEndpoint",
     "JiraServerSearchEndpoint",
     "KeyTransactionEndpoint",
-    "OrgAuthTokensEndpoint",
     "OrganizationAccessRequestDetailsEndpoint",
     "OrganizationAlertRuleAvailableActionIndexEndpoint",
     "OrganizationApiKeyIndexEndpoint",
     "OrganizationAuthProvidersEndpoint",
+    "OrganizationAuthTokensEndpoint",
     "OrganizationDeriveCodeMappingsEndpoint",
     "OrganizationEnvironmentsEndpoint",
     "OrganizationEventsFacetsEndpoint",
@@ -79,7 +81,6 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "ProjectIssuesResolvedInReleaseEndpoint",
     "ProjectMemberIndexEndpoint",
     "ProjectMonitorStatsEndpoint",
-    "ProjectPlatformsEndpoint",
     "ProjectPluginsEndpoint",
     "ProjectReleaseSetupCompletionEndpoint",
     "ProjectRuleStatsIndexEndpoint",
@@ -91,6 +92,7 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "ProjectUsersEndpoint",
     "ReleaseThresholdEndpoint",
     "SentryAppRequestsEndpoint",
+    "SentryAppWebhookRequestsEndpoint",
     "SentryAppsStatsEndpoint",
     "SentryInternalAppTokensEndpoint",
     "TeamGroupsOldEndpoint",
@@ -103,7 +105,8 @@ SENTRY_API_PAGINATION_ALLOWLIST_DO_NOT_MODIFY = {
     "UserPermissionsConfigEndpoint",
     "UserPermissionsEndpoint",
     "UserRolesEndpoint",
-    "UserSocialIdentitiesIndexEndpoint",
     "UserSubscriptionsEndpoint",
     "UserUserRolesEndpoint",
+    "VstsSearchEndpoint",
+    "OrganizationWorkflowStatsEndpoint",
 }

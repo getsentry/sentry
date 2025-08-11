@@ -7,16 +7,16 @@ from sentry.integrations.notifications import get_integrations_by_channel_by_rec
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.types import ExternalProviders
-from sentry.models.user import User
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import DummyNotification
 from sentry.testutils.silo import control_silo_test
 from sentry.types.actor import Actor
+from sentry.users.models.user import User
 
 
 @control_silo_test
 class TestNotificationUtilities(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.notification = DummyNotification(self.organization)
 
@@ -41,10 +41,10 @@ class TestNotificationUtilities(TestCase):
     ):
         assert actual == {Actor.from_orm_user(k): v for (k, v) in expected.items()}
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         integrations_by_channel_by_recipient = get_integrations_by_channel_by_recipient(
             self.notification.organization,
-            [self.user],
+            [Actor.from_object(self.user)],
             ExternalProviders.SLACK,
         )
 
@@ -53,22 +53,22 @@ class TestNotificationUtilities(TestCase):
             {self.user: {self.external_user_id_1: self.api_integration}},
         )
 
-    def test_matching_idp_and_identity_external_id(self):
+    def test_matching_idp_and_identity_external_id(self) -> None:
         """
         Test that rows where identity.external_id is equal to idp.external_id are excluded.
         """
         integrations_by_channel_by_recipient = get_integrations_by_channel_by_recipient(
             self.notification.organization,
-            [self.user_2],
+            [Actor.from_object(self.user_2)],
             ExternalProviders.SLACK,
         )
 
         self._assert_integrations_are(integrations_by_channel_by_recipient, {self.user_2: {}})
 
-    def test_multiple(self):
+    def test_multiple(self) -> None:
         integrations_by_channel_by_recipient = get_integrations_by_channel_by_recipient(
             self.notification.organization,
-            [self.user, self.user_2],
+            [Actor.from_object(self.user), Actor.from_object(self.user_2)],
             ExternalProviders.SLACK,
         )
 

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.integrations.models.integration import Integration
 from sentry.models.apiapplication import ApiApplication
@@ -19,7 +19,7 @@ class ProcessControlOutboxTest(TestCase):
     identifier = 1
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
-    def test_process_integration_updatess(self, mock_maybe_process):
+    def test_process_integration_updates(self, mock_maybe_process: MagicMock) -> None:
         process_integration_updates(
             object_identifier=self.identifier, region_name=_TEST_REGION.name
         )
@@ -28,7 +28,7 @@ class ProcessControlOutboxTest(TestCase):
         )
 
     @patch("sentry.receivers.outbox.control.maybe_process_tombstone")
-    def test_process_api_application_updates(self, mock_maybe_process):
+    def test_process_api_application_updates(self, mock_maybe_process: MagicMock) -> None:
         process_api_application_updates(
             object_identifier=self.identifier, region_name=_TEST_REGION.name
         )
@@ -36,8 +36,8 @@ class ProcessControlOutboxTest(TestCase):
             ApiApplication, self.identifier, region_name=_TEST_REGION.name
         )
 
-    @patch("sentry.receivers.outbox.control.region_caching_service")
-    def test_process_sentry_app_updates(self, mock_caching):
+    @patch("sentry.sentry_apps.tasks.sentry_apps.region_caching_service")
+    def test_process_sentry_app_updates(self, mock_caching: MagicMock) -> None:
         org = self.create_organization()
         sentry_app = self.create_sentry_app()
         install = self.create_sentry_app_installation(slug=sentry_app.slug, organization=org)
@@ -48,7 +48,10 @@ class ProcessControlOutboxTest(TestCase):
             slug=sentry_app.slug, organization=org_two
         )
 
-        process_sentry_app_updates(object_identifier=sentry_app.id, region_name=_TEST_REGION.name)
+        with self.tasks():
+            process_sentry_app_updates(
+                object_identifier=sentry_app.id, region_name=_TEST_REGION.name
+            )
         mock_caching.clear_key.assert_any_call(
             key=f"app_service.get_installation:{install.id}", region_name=_TEST_REGION.name
         )
@@ -60,5 +63,13 @@ class ProcessControlOutboxTest(TestCase):
         )
         mock_caching.clear_key.assert_any_call(
             key=f"app_service.get_by_application_id:{sentry_app.application_id}",
+            region_name=_TEST_REGION.name,
+        )
+        mock_caching.clear_key.assert_any_call(
+            key=f"app_service.get_installed_for_organization:{org.id}",
+            region_name=_TEST_REGION.name,
+        )
+        mock_caching.clear_key.assert_any_call(
+            key=f"app_service.get_installed_for_organization:{org_two.id}",
             region_name=_TEST_REGION.name,
         )

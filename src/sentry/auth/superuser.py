@@ -13,11 +13,13 @@ from __future__ import annotations
 
 import ipaddress
 import logging
+from collections.abc import Container
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Never, TypeIs, overload
 
 import orjson
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.core.signing import BadSignature
 from django.http import HttpRequest
 from django.utils import timezone as django_timezone
@@ -26,10 +28,15 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.api.exceptions import SentryAPIException
+from sentry.api.exceptions import DataSecrecyError, SentryAPIException
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
 from sentry.auth.services.auth.model import RpcAuthState
 from sentry.auth.system import is_system_auth
+from sentry.data_secrecy.data_secrecy_logic import should_allow_superuser_access
+from sentry.models.organization import Organization
+from sentry.organizations.services.organization import RpcUserOrganizationContext
+from sentry.types.request import _HttpRequestWithUser, _RequestWithUser
+from sentry.users.models.user import User
 from sentry.utils import metrics
 from sentry.utils.auth import has_completed_sso
 from sentry.utils.settings import is_self_hosted
@@ -78,7 +85,15 @@ SUPERUSER_SCOPES = settings.SENTRY_SCOPES.union({"org:superuser"})
 SUPERUSER_READONLY_SCOPES = settings.SENTRY_READONLY_SCOPES.union({"org:superuser"})
 
 
-def get_superuser_scopes(auth_state: RpcAuthState, user: Any) -> set[str]:
+def get_superuser_scopes(
+    auth_state: RpcAuthState,
+    user: Any,
+    organization_context: Organization | RpcUserOrganizationContext,
+) -> set[str]:
+
+    if not should_allow_superuser_access(organization_context):
+        raise DataSecrecyError()
+
     superuser_scopes = SUPERUSER_SCOPES
     if (
         not is_self_hosted()
@@ -91,7 +106,7 @@ def get_superuser_scopes(auth_state: RpcAuthState, user: Any) -> set[str]:
 
 
 def superuser_has_permission(
-    request: HttpRequest | Request, permissions: frozenset[str] | None = None
+    request: HttpRequest, permissions: Container[str] | None = None
 ) -> bool:
     """
     This is used in place of is_active_superuser() in APIs / permission classes.
@@ -126,14 +141,22 @@ def superuser_has_permission(
     return request.method == "GET" or request.method == "OPTIONS"
 
 
-def is_active_superuser(request: HttpRequest | Request) -> bool:
+@overload
+def is_active_superuser(request: Request) -> TypeIs[_RequestWithUser]: ...
+
+
+@overload
+def is_active_superuser(request: HttpRequest) -> TypeIs[_HttpRequestWithUser]: ...
+
+
+def is_active_superuser(request: HttpRequest) -> bool:
     if is_system_auth(getattr(request, "auth", None)):
         return True
     su = getattr(request, "superuser", None) or Superuser(request)
     return su.is_active
 
 
-class SuperuserAccessSerializer(serializers.Serializer):
+class SuperuserAccessSerializer(serializers.Serializer[Never]):
     superuserAccessCategory = serializers.ChoiceField(choices=SUPERUSER_ACCESS_CATEGORIES)
     superuserReason = serializers.CharField(min_length=4, max_length=128)
 
@@ -142,12 +165,6 @@ class SuperuserAccessFormInvalidJson(SentryAPIException):
     status_code = status.HTTP_400_BAD_REQUEST
     code = "invalid-superuser-access-json"
     message = "The request contains invalid json"
-
-
-class EmptySuperuserAccessForm(SentryAPIException):
-    status_code = status.HTTP_400_BAD_REQUEST
-    code = "empty-superuser-access-form"
-    message = "The request contains an empty superuser access form data"
 
 
 class Superuser(ElevatedMode):
@@ -179,7 +196,7 @@ class Superuser(ElevatedMode):
         self._populate(current_datetime=current_datetime)
 
     @staticmethod
-    def _needs_validation():
+    def _needs_validation() -> bool:
         self_hosted = is_self_hosted()
         logger.info(
             "superuser.needs-validation",
@@ -397,8 +414,8 @@ class Superuser(ElevatedMode):
 
     def set_logged_in(
         self,
-        user,
-        current_datetime=None,
+        user: User | AnonymousUser,
+        current_datetime: datetime | None = None,
         prefilled_su_modal=None,
     ) -> None:
         """
@@ -445,13 +462,6 @@ class Superuser(ElevatedMode):
                     tags={"reason": SuperuserAccessFormInvalidJson.code},
                 )
                 raise SuperuserAccessFormInvalidJson()
-            except AttributeError:
-                metrics.incr(
-                    "superuser.failure",
-                    sample_rate=1.0,
-                    tags={"reason": EmptySuperuserAccessForm.code},
-                )
-                raise EmptySuperuserAccessForm()
 
         su_access_info = SuperuserAccessSerializer(data=su_access_json)
 

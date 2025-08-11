@@ -25,11 +25,9 @@ from sentry.sentry_metrics.querying.units import (
     UnitFamily,
     get_unit_family_and_unit,
 )
-from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.pytest.fixtures import django_db_all
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -40,7 +38,7 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 
 @freeze_time(MOCK_DATETIME)
 class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         release_1 = self.create_release(
@@ -949,8 +947,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_meta[0]["has_more"]
         assert second_meta[0]["order"] == "DESC"
 
-    def test_query_with_custom_set(self):
-        mri = "s:custom/User.Click.2@none"
+    def test_query_with_custom_set(self) -> None:
+        mri = "s:transactions/User.Click.2@none"
         for user in ("marco", "marco", "john"):
             self.store_metric(
                 self.project.organization.id,
@@ -979,126 +977,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["series"] == [None, 2, None]
         assert data[0][0]["totals"] == 2
 
-    def test_query_with_one_metric_blocked_for_one_project(self):
-        mri = "d:custom/page_size@byte"
+        mri = "d:transactions/page_size@byte"
 
         project_1 = self.create_project()
         project_2 = self.create_project()
-
-        block_metric(mri, [project_1])
-
-        for project, value in ((project_1, 10.0), (project_2, 15.0)):
-            self.store_metric(
-                self.project.organization.id,
-                project.id,
-                mri,
-                {},
-                self.ts(self.now()),
-                value,
-            )
-
-        query_1 = self.mql("sum", mri)
-
-        results = self.run_query(
-            mql_queries=[MQLQuery(query_1)],
-            start=self.now() - timedelta(minutes=30),
-            end=self.now() + timedelta(hours=1, minutes=30),
-            interval=3600,
-            organization=self.project.organization,
-            projects=[project_1, project_2],
-            environments=[],
-            referrer="metrics.data.api",
-        )
-        data = results["data"]
-        assert len(data) == 1
-        assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, self.to_reference_unit(15.0, "byte"), None]
-        assert data[0][0]["totals"] == self.to_reference_unit(15.0, "byte")
-
-    def test_query_with_one_metric_blocked_for_all_projects(self):
-        mri = "d:custom/page_load@millisecond"
-
-        project_1 = self.create_project()
-        project_2 = self.create_project()
-
-        block_metric(mri, [project_1, project_2])
-
-        for project, value in ((project_1, 10.0), (project_2, 15.0)):
-            self.store_metric(
-                self.project.organization.id,
-                project.id,
-                mri,
-                {},
-                self.ts(self.now()),
-                value,
-            )
-
-        query_1 = self.mql("sum", mri)
-
-        results = self.run_query(
-            mql_queries=[MQLQuery(query_1)],
-            start=self.now() - timedelta(minutes=30),
-            end=self.now() + timedelta(hours=1, minutes=30),
-            interval=3600,
-            organization=self.project.organization,
-            projects=[project_1, project_2],
-            environments=[],
-            referrer="metrics.data.api",
-        )
-        data = results["data"]
-        assert len(data) == 1
-        assert data[0][0]["series"] == [None, None, None]
-        assert data[0][0]["totals"] is None
-
-    def test_query_with_two_metrics_and_one_blocked_for_a_project(self):
-        mri_1 = "d:custom/page_load@millisecond"
-        mri_2 = "d:custom/app_load@millisecond"
-
-        project_1 = self.create_project()
-        project_2 = self.create_project()
-
-        block_metric(mri_1, [project_1, project_2])
-
-        for project, mri in ((project_1, mri_1), (project_2, mri_2)):
-            self.store_metric(
-                self.project.organization.id,
-                project.id,
-                mri,
-                {},
-                self.ts(self.now()),
-                10.0,
-            )
-
-        query_1 = self.mql("sum", mri_1)
-        query_2 = self.mql("sum", mri_2)
-
-        results = self.run_query(
-            mql_queries=[MQLQuery(query_1), MQLQuery(query_2)],
-            start=self.now() - timedelta(minutes=30),
-            end=self.now() + timedelta(hours=1, minutes=30),
-            interval=3600,
-            organization=self.project.organization,
-            projects=[project_1, project_2],
-            environments=[],
-            referrer="metrics.data.api",
-        )
-        data = results["data"]
-        assert len(data) == 2
-        assert len(data[0][0]["series"]) == 3
-        assert data[0][0]["series"] == [None, None, None]
-        assert data[0][0]["totals"] is None
-        assert data[1][0]["by"] == {}
-        assert data[1][0]["series"] == [None, self.to_reference_unit(10.0), None]
-        assert data[1][0]["totals"] == self.to_reference_unit(10.0)
-
-    def test_query_with_one_tag_blocked_for_one_project(self):
-        mri = "d:custom/page_size@byte"
-
-        project_1 = self.create_project()
-        project_2 = self.create_project()
-
-        # Blocking a tag should not affect the querying, since we do not want to filter out the tag.
-        block_tags_of_metric(mri, {"transaction"}, [project_1])
 
         for project, value in ((project_1, 10.0), (project_2, 15.0)):
             self.store_metric(
@@ -1149,12 +1031,12 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    def test_query_with_different_namespaces(self):
+    def test_query_with_different_namespaces(self) -> None:
         query_1 = self.mql(
             "min",
             TransactionMRI.DURATION.value,
         )
-        query_2 = self.mql("max", "d:custom/app_load@millisecond")
+        query_2 = self.mql("max", "d:sessions/app_load@millisecond")
 
         with pytest.raises(InvalidMetricsQueryError):
             self.run_query(
@@ -1172,9 +1054,9 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    def test_query_with_different_metric_types(self):
-        query_1 = self.mql("count", "c:custom/page_click@none")
-        query_2 = self.mql("max", "d:custom/app_load@millisecond")
+    def test_query_with_different_metric_types(self) -> None:
+        query_1 = self.mql("count", "c:transactions/page_click@none")
+        query_2 = self.mql("max", "d:transactions/app_load@millisecond")
 
         with pytest.raises(InvalidMetricsQueryError):
             self.run_query(
@@ -1192,9 +1074,11 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    def test_query_with_different_group_bys(self):
-        query_1 = self.mql("min", "d:custom/page_click@none", group_by="transaction, environment")
-        query_2 = self.mql("max", "d:custom/app_load@millisecond", group_by="transaction")
+    def test_query_with_different_group_bys(self) -> None:
+        query_1 = self.mql(
+            "min", "d:transactions/page_click@none", group_by="transaction, environment"
+        )
+        query_2 = self.mql("max", "d:transactions/app_load@millisecond", group_by="transaction")
 
         with pytest.raises(InvalidMetricsQueryError):
             self.run_query(
@@ -1214,9 +1098,9 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    def test_query_with_complex_group_by(self):
-        query_1 = self.mql("min", "d:custom/page_click@none", group_by="environment")
-        query_2 = self.mql("max", "d:custom/app_load@millisecond", group_by="transaction")
+    def test_query_with_complex_group_by(self) -> None:
+        query_1 = self.mql("min", "d:transactions/page_click@none", group_by="environment")
+        query_2 = self.mql("max", "d:transactions/app_load@millisecond", group_by="transaction")
 
         with pytest.raises(InvalidMetricsQueryError):
             self.run_query(
@@ -1236,7 +1120,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 referrer="metrics.data.api",
             )
 
-    def test_query_with_basic_formula(self):
+    def test_query_with_basic_formula(self) -> None:
         query_1 = self.mql("count", TransactionMRI.DURATION.value)
         query_2 = self.mql("sum", TransactionMRI.DURATION.value)
 
@@ -1260,7 +1144,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["series"] == [None, 4.0, 3.0]
         assert data[0][0]["totals"] == 3.5
 
-    def test_query_with_complex_formula(self):
+    def test_query_with_complex_formula(self) -> None:
         query_1 = self.mql("count", TransactionMRI.DURATION.value)
         query_2 = self.mql("sum", TransactionMRI.DURATION.value)
 
@@ -1289,7 +1173,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["series"] == [None, 136.0, 127.0]
         assert data[0][0]["totals"] == 226.0
 
-    def test_query_with_formula_and_group_by(self):
+    def test_query_with_formula_and_group_by(self) -> None:
         query_1 = self.mql("count", TransactionMRI.DURATION.value)
         query_2 = self.mql("sum", TransactionMRI.DURATION.value)
 
@@ -1323,14 +1207,14 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_query[2]["series"] == [None, 5.0, 4.0]
         assert first_query[2]["totals"] == 18.0
 
-    def test_query_with_formula_and_filter(self):
+    def test_query_with_formula_and_filter(self) -> None:
         query_1 = self.mql("count", TransactionMRI.DURATION.value, filters="platform:android")
         query_2 = self.mql("sum", TransactionMRI.DURATION.value, filters="platform:ios")
 
         results = self.run_query(
             mql_queries=[
                 MQLQuery(
-                    "($query_2 + $query_1) by (platform, transaction)",
+                    "($query_2 + $query_1) by (transaction)",
                     order=QueryOrder.DESC,
                     query_1=MQLQuery(query_1),
                     query_2=MQLQuery(query_2),
@@ -1346,17 +1230,14 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         )
         data = results["data"]
         assert len(data) == 1
-        assert len(data[0]) == 2
-        assert data[0][0]["by"] == {"platform": "ios", "transaction": "/hello"}
-        assert data[0][0]["series"] == [None, 6.0, 3.0]
-        assert data[0][0]["totals"] == 9.0
-        assert data[0][1]["by"] == {"platform": "android", "transaction": "/hello"}
-        assert data[0][1]["series"] == [None, 1.0, 1.0]
-        assert data[0][1]["totals"] == 2.0
+        assert len(data[0]) == 1
+        assert data[0][0]["by"] == {"transaction": "/hello"}
+        assert data[0][0]["series"] == [None, 7.0, 4.0]
+        assert data[0][0]["totals"] == 11.0
 
-    def test_query_with_basic_formula_and_coercible_units(self):
-        mri_1 = "d:custom/page_load@nanosecond"
-        mri_2 = "d:custom/image_load@microsecond"
+    def test_query_with_basic_formula_and_coercible_units(self) -> None:
+        mri_1 = "d:transactions/page_load@nanosecond"
+        mri_2 = "d:transactions/image_load@microsecond"
         for mri, value in ((mri_1, 20), (mri_1, 10), (mri_2, 15), (mri_2, 5)):
             self.store_metric(
                 self.project.organization.id,
@@ -1411,143 +1292,9 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             assert meta[0][1]["unit"] == "nanosecond"
             assert meta[0][1]["scaling_factor"] is None
 
-    @django_db_all(reset_sequences=True)
-    def test_span_metrics_with_coercible_units(self):
-
-        configs = [
-            {
-                "spanAttribute": "my_duration_nano",
-                "aggregates": ["count", "p50", "p75", "p95", "p99"],
-                "unit": "nanosecond",
-                "tags": [],
-                "conditions": [
-                    {"value": ""},
-                ],
-            },
-            {
-                "spanAttribute": "my_duration_micro",
-                "aggregates": ["count", "p50", "p75", "p95", "p99"],
-                "unit": "microsecond",
-                "tags": [],
-                "conditions": [
-                    {"value": ""},
-                ],
-            },
-        ]
-        objects = []
-        for config in configs:
-            o = self.create_span_attribute_extraction_config(
-                dictionary=config, user_id=self.user.id, project=self.project
-            )
-            objects.append(o)
-
-        mri_1 = f"d:custom/span_attribute_{objects[0].conditions.all().get().id}@none"
-        mri_2 = f"d:custom/span_attribute_{objects[1].conditions.all().get().id}@none"
-        for mri, value in ((mri_1, 20), (mri_1, 10), (mri_2, 15), (mri_2, 5)):
-            self.store_metric(
-                self.project.organization.id,
-                self.project.id,
-                mri,
-                {},
-                self.ts(self.now()),
-                value,
-            )
-
-        for formula, expected_result, expected_unit_family in (
-            # (($query_2 * 1000) + 10000.0)
-            ("($query_2 + 10)", 30000.0, UnitFamily.DURATION.value),
-            # (($query_2 * 1000) + (10 * 2) * 1000)
-            ("($query_2 + (10 * 2))", 40000.0, UnitFamily.DURATION.value),
-            # (10000.0 + ($query_2 * 1000))
-            ("(10 + $query_2)", 30000.0, UnitFamily.DURATION.value),
-            # (($query_2 + 1000) + (10000.0 + 20000.0))
-            ("($query_2 + (10 + 20))", 50000.0, UnitFamily.DURATION.value),
-            # ((10000.0 + 20000.0) + ($query_2 + 1000))
-            ("((10 + 20) + $query_2)", 50000.0, UnitFamily.DURATION.value),
-            # ($query_2 * 1000 + 10000.0) + ($query_2 * 1000)
-            ("($query_2 + 10) + $query_2", 50000.0, UnitFamily.DURATION.value),
-            # ($query_2 * 1000 + 10000.0) + $query_1
-            ("($query_2 + 10) + $query_1", 30015.0, UnitFamily.DURATION.value),
-            # ($query_1 + 10) + ($query_2 * 1000)
-            ("($query_1 + 10) + $query_2", 20025.0, UnitFamily.DURATION.value),
-        ):
-            query_1 = self.mql("avg", mri_1)
-            query_2 = self.mql("sum", mri_2)
-
-            results = self.run_query(
-                mql_queries=[
-                    MQLQuery(formula, query_1=MQLQuery(query_1), query_2=MQLQuery(query_2))
-                ],
-                start=self.now() - timedelta(minutes=30),
-                end=self.now() + timedelta(hours=1, minutes=30),
-                interval=3600,
-                organization=self.project.organization,
-                projects=[self.project],
-                environments=[],
-                referrer="metrics.data.api",
-            )
-            data = results["data"]
-            assert len(data) == 1
-            assert data[0][0]["by"] == {}
-            assert data[0][0]["series"] == [None, expected_result, None]
-            assert data[0][0]["totals"] == expected_result
-            meta = results["meta"]
-            assert len(meta) == 1
-            assert meta[0][1]["unit_family"] == expected_unit_family
-            assert meta[0][1]["unit"] == "nanosecond"
-            assert meta[0][1]["scaling_factor"] is None
-
-    @django_db_all(reset_sequences=True)
-    def test_span_metrics_count_span_duration(self):
-        config = {
-            "spanAttribute": "span.duration",
-            "aggregates": ["count"],
-            "unit": "millisecond",
-            "tags": [],
-            "conditions": [
-                {"value": ""},
-            ],
-        }
-
-        o = self.create_span_attribute_extraction_config(
-            dictionary=config, user_id=self.user.id, project=self.project
-        )
-
-        mri_1 = f"c:custom/span_attribute_{o.conditions.all().get().id}@none"
-        for mri, value in ((mri_1, 1), (mri_1, 1)):
-            self.store_metric(
-                self.project.organization.id,
-                self.project.id,
-                mri,
-                {},
-                self.ts(self.now()),
-                value,
-            )
-
-        query_1 = self.mql("sum", mri_1)
-
-        results = self.run_query(
-            mql_queries=[MQLQuery(query_1)],
-            start=self.now() - timedelta(minutes=30),
-            end=self.now() + timedelta(hours=1, minutes=30),
-            interval=3600,
-            organization=self.project.organization,
-            projects=[self.project],
-            environments=[],
-            referrer="metrics.data.api",
-        )
-        data = results["data"]
-        assert len(data) == 1
-        assert data[0][0]["by"] == {}
-        assert data[0][0]["series"] == [None, 2.0, None]
-        meta = results["meta"]
-        assert len(meta) == 1
-        assert meta[0][1]["unit"] is None
-        assert meta[0][1]["scaling_factor"] is None
-
-    def test_query_with_basic_formula_and_non_coercible_units(self):
-        mri_1 = "d:custom/page_load@nanosecond"
-        mri_2 = "d:custom/page_size@byte"
+    def test_query_with_basic_formula_and_non_coercible_units(self) -> None:
+        mri_1 = "d:transactions/page_load@nanosecond"
+        mri_2 = "d:transactions/page_size@byte"
         for mri, value in ((mri_1, 20), (mri_2, 15)):
             self.store_metric(
                 self.project.organization.id,
@@ -1586,9 +1333,9 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["unit"] is None
         assert meta[0][1]["scaling_factor"] is None
 
-    def test_query_with_basic_formula_and_unitless_aggregates(self):
-        mri_1 = "d:custom/page_load@nanosecond"
-        mri_2 = "d:custom/load_time@microsecond"
+    def test_query_with_basic_formula_and_unitless_aggregates(self) -> None:
+        mri_1 = "d:transactions/page_load@nanosecond"
+        mri_2 = "d:transactions/load_time@microsecond"
         for mri, value in ((mri_1, 20), (mri_2, 15)):
             self.store_metric(
                 self.project.organization.id,
@@ -1627,9 +1374,9 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["unit"] is None
         assert meta[0][1]["scaling_factor"] is None
 
-    def test_query_with_basic_formula_and_unknown_units(self):
-        mri_1 = "d:custom/cost@bananas"
-        mri_2 = "d:custom/speed@mangos"
+    def test_query_with_basic_formula_and_unknown_units(self) -> None:
+        mri_1 = "d:transactions/cost@bananas"
+        mri_2 = "d:transactions/speed@mangos"
         for mri, value in ((mri_1, 20), (mri_2, 15)):
             self.store_metric(
                 self.project.organization.id,
@@ -1668,9 +1415,9 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["unit"] is None
         assert meta[0][1]["scaling_factor"] is None
 
-    def test_query_with_basic_formula_and_coefficient_operators(self):
-        mri_1 = "d:custom/page_load@nanosecond"
-        mri_2 = "d:custom/load_time@microsecond"
+    def test_query_with_basic_formula_and_coefficient_operators(self) -> None:
+        mri_1 = "d:transactions/page_load@nanosecond"
+        mri_2 = "d:transactions/load_time@microsecond"
         for mri, value in ((mri_1, 20), (mri_2, 15)):
             self.store_metric(
                 self.project.organization.id,

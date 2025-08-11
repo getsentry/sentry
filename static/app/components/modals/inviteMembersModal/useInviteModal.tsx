@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import type {
   InviteRow,
+  InviteStatus,
   NormalizedInvite,
 } from 'sentry/components/modals/inviteMembersModal/types';
 import {t} from 'sentry/locale';
@@ -13,15 +14,23 @@ import useApi from 'sentry/utils/useApi';
 
 interface Props {
   organization: Organization;
-  initialData?: Partial<InviteRow>[];
+  initialData?: Array<Partial<InviteRow>>;
   source?: string;
 }
+
 function defaultInvite(): InviteRow {
   return {
     emails: new Set<string>(),
     teams: new Set<string>(),
     role: 'member',
   };
+}
+
+function canInvite(organization: Organization) {
+  return (
+    organization.access?.includes('member:write') ||
+    (organization.allowMemberInvite && organization.access?.includes('member:invite'))
+  );
 }
 
 function useLogInviteModalOpened({
@@ -37,7 +46,7 @@ function useLogInviteModalOpened({
     trackAnalytics('invite_modal.opened', {
       organization,
       modal_session: sessionId,
-      can_invite: organization.access?.includes('member:write'),
+      can_invite: canInvite(organization),
       source,
     });
   }, [organization, sessionId, source]);
@@ -45,7 +54,7 @@ function useLogInviteModalOpened({
 
 export default function useInviteModal({organization, initialData, source}: Props) {
   const api = useApi();
-  const willInvite = organization.access?.includes('member:write');
+  const willInvite = canInvite(organization);
 
   /**
    * Used for analytics tracking of the modals usage.
@@ -126,12 +135,11 @@ export default function useInviteModal({organization, initialData, source}: Prop
 
         // Use the email error message if available. This inconsistently is
         // returned as either a list of errors for the field, or a single error.
-        const emailError =
-          !errorResponse || !errorResponse.email
-            ? false
-            : Array.isArray(errorResponse.email)
-              ? errorResponse.email[0]
-              : errorResponse.email;
+        const emailError = errorResponse?.email
+          ? Array.isArray(errorResponse.email)
+            ? errorResponse.email[0]
+            : errorResponse.email
+          : false;
 
         const orgLevelError = errorResponse?.organization;
         const error = orgLevelError || emailError || t('Could not invite user');
@@ -152,11 +160,33 @@ export default function useInviteModal({organization, initialData, source}: Prop
     [api, organization, willInvite]
   );
 
-  const sendInvites = useCallback(async () => {
-    setState(prev => ({...prev, sendingInvites: true}));
-    await Promise.all(invites.map(sendInvite));
-    setState(prev => ({...prev, sendingInvites: false, complete: true}));
+  const removeSentInvites = useCallback(() => {
+    setState(prev => {
+      const emails = prev.pendingInvites[0]!.emails;
+      const filteredEmails = Array.from(emails).filter(
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        email => !prev.inviteStatus[email]?.sent
+      );
+      return {
+        ...prev,
+        pendingInvites: [
+          {
+            ...prev.pendingInvites[0]!,
+            emails: new Set(filteredEmails),
+          },
+        ],
+      };
+    });
+  }, []);
 
+  useEffect(() => {
+    const statuses = Object.values<InviteStatus>(state.inviteStatus);
+    const sentCount = statuses.filter(i => i.sent).length;
+    const errorCount = statuses.filter(i => i.error).length;
+    // Don't track if no invites have been sent or invites are still sending
+    if ((sentCount === 0 && errorCount === 0) || state.sendingInvites) {
+      return;
+    }
     trackAnalytics(
       willInvite ? 'invite_modal.invites_sent' : 'invite_modal.requests_sent',
       {
@@ -164,7 +194,14 @@ export default function useInviteModal({organization, initialData, source}: Prop
         modal_session: sessionId.current,
       }
     );
-  }, [organization, invites, sendInvite, willInvite]);
+  }, [organization, state.inviteStatus, state.sendingInvites, willInvite]);
+
+  const sendInvites = useCallback(async () => {
+    setState(prev => ({...prev, sendingInvites: true}));
+    await Promise.all(invites.map(sendInvite));
+    removeSentInvites();
+    setState(prev => ({...prev, sendingInvites: false, complete: true}));
+  }, [invites, sendInvite, removeSentInvites]);
 
   const addInviteRow = useCallback(() => {
     setState(prev => ({
@@ -176,7 +213,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
   const setEmails = useCallback((emails: string[], index: number) => {
     setState(prev => {
       const pendingInvites = [...prev.pendingInvites];
-      pendingInvites[index] = {...pendingInvites[index], emails: new Set(emails)};
+      pendingInvites[index] = {...pendingInvites[index]!, emails: new Set(emails)};
 
       return {...prev, pendingInvites};
     });
@@ -185,7 +222,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
   const setTeams = useCallback((teams: string[], index: number) => {
     setState(prev => {
       const pendingInvites = [...prev.pendingInvites];
-      pendingInvites[index] = {...pendingInvites[index], teams: new Set(teams)};
+      pendingInvites[index] = {...pendingInvites[index]!, teams: new Set(teams)};
 
       return {...prev, pendingInvites};
     });
@@ -194,9 +231,15 @@ export default function useInviteModal({organization, initialData, source}: Prop
   const setRole = useCallback((role: string, index: number) => {
     setState(prev => {
       const pendingInvites = [...prev.pendingInvites];
-      pendingInvites[index] = {...pendingInvites[index], role};
+      pendingInvites[index] = {...pendingInvites[index]!, role};
 
       return {...prev, pendingInvites};
+    });
+  }, []);
+
+  const setInviteStatus = useCallback((inviteStatus: InviteStatus) => {
+    setState(prev => {
+      return {...prev, inviteStatus};
     });
   }, []);
 
@@ -219,6 +262,7 @@ export default function useInviteModal({organization, initialData, source}: Prop
     setEmails,
     setRole,
     setTeams,
+    setInviteStatus,
     willInvite,
     complete: state.complete,
     inviteStatus: state.inviteStatus,

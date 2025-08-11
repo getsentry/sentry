@@ -1,5 +1,5 @@
-import {Button} from 'sentry/components/button';
 import CommandLine from 'sentry/components/commandLine';
+import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
 import {IconRefresh} from 'sentry/icons';

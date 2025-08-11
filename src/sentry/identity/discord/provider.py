@@ -1,11 +1,7 @@
-from typing import Any
-
 from sentry.auth.provider import Provider
+from sentry.integrations.types import IntegrationProviderSlug
 
 
 class DiscordIdentityProvider(Provider):
-    key = "discord"
+    key = IntegrationProviderSlug.DISCORD.value
     name = "Discord"
-
-    def __init__(self, **config: Any) -> None:
-        super().__init__("discord", **config)

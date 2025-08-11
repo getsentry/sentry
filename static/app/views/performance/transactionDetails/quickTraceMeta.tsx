@@ -2,14 +2,14 @@ import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import {ExternalLink} from 'sentry/components/core/link';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {Hovercard} from 'sentry/components/hovercard';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Placeholder from 'sentry/components/placeholder';
 import QuickTrace from 'sentry/components/quickTrace';
 import {t} from 'sentry/locale';
-import type {AvatarProject} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {AvatarProject} from 'sentry/types/project';
 import {getConfigurePerformanceDocsLink} from 'sentry/utils/docs';
 import type {
   QuickTraceQueryChildrenProps,
@@ -20,8 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {MetaData} from './styles';
 import {TraceLink} from './traceLink';
 
-interface Props
-  extends Pick<React.ComponentProps<typeof QuickTrace>, 'errorDest' | 'transactionDest'> {
+interface Props extends Pick<React.ComponentProps<typeof QuickTrace>, 'errorDest'> {
   anchor: 'left' | 'right';
   event: Event;
   location: Location;
@@ -37,13 +36,12 @@ export default function QuickTraceMeta({
   traceMeta,
   anchor,
   errorDest,
-  transactionDest,
   project,
 }: Props) {
   const organization = useOrganization();
   const features = ['performance-view'];
 
-  const noFeatureMessage = t('Requires performance monitoring.');
+  const noFeatureMessage = t('Requires tracing.');
 
   const docsLink = getConfigurePerformanceDocsLink(project);
 
@@ -80,7 +78,6 @@ export default function QuickTraceMeta({
             organization={organization}
             anchor={anchor}
             errorDest={errorDest}
-            transactionDest={transactionDest}
           />
         </ErrorBoundary>
       );

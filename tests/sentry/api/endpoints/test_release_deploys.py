@@ -2,15 +2,18 @@ import datetime
 
 from django.urls import reverse
 
+from sentry.models.apitoken import ApiToken
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class ReleaseDeploysListTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project(name="foo")
         release = Release.objects.create(
             organization_id=project.organization_id,
@@ -71,7 +74,7 @@ class ReleaseDeploysListTest(APITestCase):
         assert response.data[0]["environment"] == "staging"
         assert response.data[1]["environment"] == "production"
 
-    def test_with_project(self):
+    def test_with_project(self) -> None:
         project = self.create_project(name="bar")
         project2 = self.create_project(name="baz")
 
@@ -138,7 +141,7 @@ class ReleaseDeploysListTest(APITestCase):
 
 
 class ReleaseDeploysCreateTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         self.org = self.create_organization()
         self.org.save()
@@ -149,7 +152,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         self.create_member(teams=[team], user=user, organization=self.org)
         self.login_as(user=user)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         release = Release.objects.create(organization_id=self.org.id, version="1", total_deploys=0)
         release.add_project(self.project)
 
@@ -187,7 +190,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         )
         assert rpe.last_deploy_id == deploy.id
 
-    def test_with_project_slugs(self):
+    def test_with_project_slugs(self) -> None:
         project_bar = self.create_project(organization=self.org, name="bar")
         release = Release.objects.create(organization_id=self.org.id, version="1", total_deploys=0)
         release.add_project(self.project)
@@ -238,7 +241,61 @@ class ReleaseDeploysCreateTest(APITestCase):
         )
         assert rpe.last_deploy_id == deploy.id
 
-    def test_with_project_ids(self):
+    def test_with_multiple_projects(self) -> None:
+        """
+        Test that when a release is associated with multiple projects the user is still able to create
+        a deploy to only one project
+        """
+        project_bar = self.create_project(organization=self.org, name="bar")
+        release = Release.objects.create(organization_id=self.org.id, version="1", total_deploys=0)
+        release.add_project(self.project)
+        release.add_project(project_bar)
+
+        environment = Environment.objects.create(organization_id=self.org.id, name="production")
+
+        url = reverse(
+            "sentry-api-0-organization-release-deploys",
+            kwargs={
+                "organization_id_or_slug": self.org.slug,
+                "version": release.version,
+            },
+        )
+
+        response = self.client.post(
+            url,
+            data={
+                "name": "foo_bar",
+                "environment": "production",
+                "url": "https://www.example.com",
+                "projects": [project_bar.slug],
+            },
+        )
+        assert response.status_code == 201, response.content
+        assert response.data["name"] == "foo_bar"
+        assert response.data["url"] == "https://www.example.com"
+        assert response.data["environment"] == "production"
+
+        deploy = Deploy.objects.get(id=response.data["id"])
+
+        assert deploy.name == "foo_bar"
+        assert deploy.environment_id == environment.id
+        assert deploy.url == "https://www.example.com"
+        assert deploy.release == release
+
+        release = Release.objects.get(id=release.id)
+        assert release.total_deploys == 1
+        assert release.last_deploy_id == deploy.id
+
+        assert not ReleaseProjectEnvironment.objects.filter(
+            project=self.project, release=release, environment=environment
+        ).exists()
+
+        rpe = ReleaseProjectEnvironment.objects.get(
+            project=project_bar, release=release, environment=environment
+        )
+        assert rpe.last_deploy_id == deploy.id
+
+    def test_with_project_ids(self) -> None:
         project_bar = self.create_project(organization=self.org, name="bar")
         release = Release.objects.create(organization_id=self.org.id, version="1", total_deploys=0)
         release.add_project(self.project)
@@ -289,7 +346,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         )
         assert rpe.last_deploy_id == deploy.id
 
-    def test_with_invalid_project_slug(self):
+    def test_with_invalid_project_slug(self) -> None:
         bar_project = self.create_project(organization=self.org, name="bar")
         release = Release.objects.create(organization_id=self.org.id, version="1", total_deploys=0)
         release.add_project(self.project)
@@ -316,7 +373,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         assert "Invalid projects" in response.data["detail"]["message"]
         assert 0 == Deploy.objects.count()
 
-    def test_environment_validation_failure(self):
+    def test_environment_validation_failure(self) -> None:
         release = Release.objects.create(
             organization_id=self.org.id, version="123", total_deploys=0
         )
@@ -335,3 +392,61 @@ class ReleaseDeploysCreateTest(APITestCase):
         )
         assert response.status_code == 400, response.content
         assert 0 == Deploy.objects.count()
+
+    def test_api_token_with_project_releases_scope(self):
+        """
+        Test that tokens with `project:releases` scope can create deploys for only one project
+        when the release is associated with multiple projects.
+        """
+        # Create a second project
+        project_bar = self.create_project(organization=self.org, name="bar")
+
+        # Create a release for both projects
+        release = Release.objects.create(organization_id=self.org.id, version="1", total_deploys=0)
+        release.add_project(self.project)
+        release.add_project(project_bar)
+
+        # Create API token with project:releases scope
+        user = self.create_user(is_staff=False, is_superuser=False)
+
+        # Add user to the organization - they need to be a member to use the API
+        self.create_member(user=user, organization=self.org)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            api_token = ApiToken.objects.create(user=user, scope_list=["project:releases"])
+
+        url = reverse(
+            "sentry-api-0-organization-release-deploys",
+            kwargs={
+                "organization_id_or_slug": self.org.slug,
+                "version": release.version,
+            },
+        )
+
+        # Create deploy for only one project (project_bar)
+        response = self.client.post(
+            url,
+            data={
+                "name": "single_project_deploy",
+                "environment": "production",
+                "url": "https://www.example.com",
+                "projects": [project_bar.slug],  # Only one project specified
+            },
+            HTTP_AUTHORIZATION=f"Bearer {api_token.token}",
+        )
+
+        assert response.status_code == 201, response.content
+        assert response.data["name"] == "single_project_deploy"
+        assert response.data["environment"] == "production"
+
+        environment = Environment.objects.get(name="production", organization_id=self.org.id)
+
+        # Verify ReleaseProjectEnvironment was created only for project_bar
+        assert ReleaseProjectEnvironment.objects.filter(
+            project=project_bar, release=release, environment=environment
+        ).exists()
+
+        # Verify ReleaseProjectEnvironment was NOT created for self.project
+        assert not ReleaseProjectEnvironment.objects.filter(
+            project=self.project, release=release, environment=environment
+        ).exists()

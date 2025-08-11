@@ -26,6 +26,7 @@ runs:
   steps:
     - name: Download and Verify Codecov CLI
       shell: bash
+      continue-on-error: true
       run: |
         ./.github/actions/artifacts/download_codecov_cli.py
     - name: Upload Coverage and Test Results

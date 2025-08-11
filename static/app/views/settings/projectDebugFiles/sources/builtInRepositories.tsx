@@ -85,11 +85,11 @@ function BuiltInRepositories({
           {({hasAccess}) => (
             <StyledSelectField
               disabledReason={
-                !hasAccess
-                  ? t(
+                hasAccess
+                  ? undefined
+                  : t(
                       'You do not have permission to edit built-in repositories configurations.'
                     )
-                  : undefined
               }
               disabled={!hasAccess}
               name="builtinSymbolSources"
@@ -106,7 +106,7 @@ function BuiltInRepositories({
                   value: source.sentry_key,
                   label: source.name,
                 }))}
-              getValue={value => (value === null ? [] : value)}
+              getValue={(value: any) => (value === null ? [] : value)}
               flexibleControlStateSize
               multiple
             />

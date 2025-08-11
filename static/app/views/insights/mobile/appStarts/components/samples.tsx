@@ -1,13 +1,14 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import SubregionSelector from 'sentry/views/insights/common/views/spans/selectors/subregionSelector';
 import {EventSamples} from 'sentry/views/insights/mobile/appStarts/components/eventSamples';
 import {SpanOpSelector} from 'sentry/views/insights/mobile/appStarts/components/spanOpSelector';
 import {SpanOperationTable} from 'sentry/views/insights/mobile/appStarts/components/tables/spanOperationTable';
@@ -21,7 +22,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 const EVENT = 'event';
 const SPANS = 'spans';
 
-export function SamplesTables({transactionName}) {
+export function SamplesTables({transactionName}: any) {
   const [sampleType, setSampleType] = useState<typeof EVENT | typeof SPANS>(SPANS);
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
   const organization = useOrganization();
@@ -83,6 +84,7 @@ export function SamplesTables({transactionName}) {
             clearSpansTableCursor
             moduleName={ModuleName.APP_START}
           />
+          <SubregionSelector />
         </FiltersContainer>
         <SegmentedControl
           onChange={value => {
@@ -92,7 +94,7 @@ export function SamplesTables({transactionName}) {
             });
             setSampleType(value);
           }}
-          defaultValue={SPANS}
+          value={sampleType}
           aria-label={t('Sample Type Selection')}
         >
           <SegmentedControl.Item key={SPANS}>{t('By Spans')}</SegmentedControl.Item>

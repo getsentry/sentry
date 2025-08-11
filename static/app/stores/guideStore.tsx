@@ -11,7 +11,6 @@ import HookStore from 'sentry/stores/hookStore';
 import ModalStore from 'sentry/stores/modalStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 
 import type {StrictStoreDefinition} from './types';
 
@@ -86,11 +85,10 @@ function isForceEnabled() {
 }
 
 interface GuideStoreDefinition extends StrictStoreDefinition<GuideStoreState> {
-  browserHistoryListener: null | (() => void);
   closeGuide(dismissed?: boolean): void;
 
   fetchSucceeded(data: GuidesServerData): void;
-  modalStoreListener: null | Function;
+  modalStoreListener: null | ReturnType<typeof ModalStore.listen>;
   nextStep(): void;
   onURLChange(): void;
   recordCue(guide: string): void;
@@ -98,7 +96,6 @@ interface GuideStoreDefinition extends StrictStoreDefinition<GuideStoreState> {
   setActiveOrganization(data: Organization): void;
   setForceHide(forceHide: boolean): void;
   teardown(): void;
-  toStep(step: number): void;
   unregisterAnchor(target: string): void;
   updateCurrentGuide(dismissed?: boolean): void;
   updatePrevGuide(nextGuide: Guide | null): void;
@@ -106,7 +103,6 @@ interface GuideStoreDefinition extends StrictStoreDefinition<GuideStoreState> {
 
 const storeConfig: GuideStoreDefinition = {
   state: {...defaultState},
-  browserHistoryListener: null,
   modalStoreListener: null,
 
   init() {
@@ -116,7 +112,6 @@ const storeConfig: GuideStoreDefinition = {
     this.state = {...defaultState, forceShow: isForceEnabled()};
 
     window.addEventListener('load', this.onURLChange, false);
-    this.browserHistoryListener = browserHistory.listen(() => this.onURLChange());
 
     // Guides will show above modals, but are not interactable because
     // of the focus trap, so we force them to be hidden while a modal is open.
@@ -134,9 +129,6 @@ const storeConfig: GuideStoreDefinition = {
   teardown() {
     window.removeEventListener('load', this.onURLChange);
 
-    if (this.browserHistoryListener) {
-      this.browserHistoryListener();
-    }
     if (this.modalStoreListener) {
       this.modalStoreListener();
     }
@@ -174,11 +166,12 @@ const storeConfig: GuideStoreDefinition = {
     // map server guide state (i.e. seen status) with guide content
     const guides = guidesContent.reduce((acc: Guide[], content) => {
       const serverGuide = data.find(guide => guide.guide === content.guide);
-      serverGuide &&
+      if (serverGuide) {
         acc.push({
           ...content,
           ...serverGuide,
         });
+      }
       return acc;
     }, []);
 
@@ -210,11 +203,6 @@ const storeConfig: GuideStoreDefinition = {
 
   nextStep() {
     this.state = {...this.state, currentStep: this.state.currentStep + 1};
-    this.trigger(this.state);
-  },
-
-  toStep(step: number) {
-    this.state = {...this.state, currentStep: step};
     this.trigger(this.state);
   },
 
@@ -297,8 +285,8 @@ const storeConfig: GuideStoreDefinition = {
     const nextGuide =
       guideOptions.length > 0
         ? {
-            ...guideOptions[0],
-            steps: guideOptions[0].steps.filter(
+            ...guideOptions[0]!,
+            steps: guideOptions[0]!.steps.filter(
               step =>
                 anchors.has(step.target) ||
                 guideOptions[0]?.expectedTargets?.includes(step.target)

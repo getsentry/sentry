@@ -1,11 +1,10 @@
 import logging
 import re
 import zoneinfo
-from collections.abc import Mapping
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, overload
 
-from dateutil.parser import ParserError, parse
+from dateutil.parser import parse
 from django.http.request import HttpRequest
 from django.utils.timezone import is_aware, make_aware
 
@@ -30,13 +29,11 @@ def ensure_aware(value: datetime) -> datetime:
 
 
 @overload
-def to_datetime(value: None) -> None:
-    ...
+def to_datetime(value: None) -> None: ...
 
 
 @overload
-def to_datetime(value: float | int) -> datetime:
-    ...
+def to_datetime(value: float | int) -> datetime: ...
 
 
 def to_datetime(value: float | int | None) -> datetime | None:
@@ -79,6 +76,14 @@ def parse_date(datestr: str, timestr: str) -> datetime | None:
             return None
 
 
+@overload  # TODO: deprecate
+def parse_timestamp(value: None) -> None: ...
+
+
+@overload
+def parse_timestamp(value: datetime | int | float | str | bytes) -> datetime: ...
+
+
 def parse_timestamp(value: datetime | int | float | str | bytes | None) -> datetime | None:
     # TODO(mitsuhiko): merge this code with coreapis date parser
     if not value:
@@ -88,13 +93,9 @@ def parse_timestamp(value: datetime | int | float | str | bytes | None) -> datet
     elif isinstance(value, (int, float)):
         return datetime.fromtimestamp(value, UTC)
 
-    try:
-        if isinstance(value, bytes):
-            value = value.decode()
-        return parse(value, ignoretz=True).replace(tzinfo=UTC)
-    except (ParserError, ValueError):
-        logger.exception("parse_timestamp")
-        return None
+    if isinstance(value, bytes):
+        value = value.decode()
+    return parse(value, ignoretz=True).replace(tzinfo=UTC)
 
 
 def parse_stats_period(period: str) -> timedelta | None:
@@ -138,32 +139,38 @@ def get_interval_from_range(date_range: timedelta, high_fidelity: bool) -> str:
 
 def get_rollup_from_request(
     request: HttpRequest,
-    params: Mapping[str, Any],
+    date_range: timedelta,
     default_interval: None | str,
     error: Exception,
     top_events: int = 0,
+    allow_interval_over_range: bool = True,
 ) -> int:
-    date_range = params["end"] - params["start"]
-
     if default_interval is None:
         default_interval = get_interval_from_range(date_range, False)
 
     interval = parse_stats_period(request.GET.get("interval", default_interval))
     if interval is None:
         interval = timedelta(hours=1)
-    validate_interval(interval, error, date_range, top_events)
+    validate_interval(interval, error, date_range, top_events, allow_interval_over_range)
 
     return int(interval.total_seconds())
 
 
 def validate_interval(
-    interval: timedelta, error: Exception, date_range: timedelta, top_events: int
+    interval: timedelta,
+    error: Exception,
+    date_range: timedelta,
+    top_events: int,
+    allow_interval_over_range: bool = True,
 ) -> None:
     if interval.total_seconds() <= 0:
         raise error.__class__("Interval cannot result in a zero duration.")
 
     # When top events are present, there can be up to 5x as many points
     max_rollup_points = MAX_ROLLUP_POINTS if top_events == 0 else MAX_ROLLUP_POINTS / top_events
+
+    if not allow_interval_over_range and interval.total_seconds() > date_range.total_seconds():
+        raise error.__class__("Interval cannot be larger than the date range.")
 
     if date_range.total_seconds() / interval.total_seconds() > max_rollup_points:
         raise error
@@ -187,3 +194,17 @@ def outside_retention_with_modified_start(
     start = max(start, now - timedelta(days=retention))
 
     return start > end, start
+
+
+def get_timezone_choices() -> list[tuple[str, str]]:
+    build_results = []
+    for tz in AVAILABLE_TIMEZONES:
+        now = datetime.now(zoneinfo.ZoneInfo(tz))
+        offset = now.strftime("%z")
+        build_results.append((int(offset), tz, f"(UTC{offset}) {tz}"))
+    build_results.sort()
+
+    results: list[tuple[str, str]] = []
+    for item in build_results:
+        results.append(item[1:])
+    return results

@@ -1,8 +1,8 @@
-import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
-import {Tooltip} from 'sentry/components/tooltip';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
-import type {IntegrationWithConfig} from 'sentry/types';
+import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import AddIntegration from './addIntegration';
@@ -31,7 +31,7 @@ export function AddIntegrationButton({
   ...buttonProps
 }: AddIntegrationButtonProps) {
   const label =
-    buttonText ?? reinstall
+    (buttonText ?? reinstall)
       ? t('Enable')
       : installStatus === 'Disabled'
         ? t('Reinstall')

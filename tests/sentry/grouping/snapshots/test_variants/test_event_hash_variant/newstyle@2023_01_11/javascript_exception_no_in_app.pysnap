@@ -1,68 +1,71 @@
 ---
+created: '2025-04-25T21:22:08.287079+00:00'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
+  contributing component: null
   component:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+        stacktrace (ignored because it contains no in-app frames)
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function*
               "dispatchInteractiveEvent"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function*
               "interactiveUpdates"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function*
               "interactiveUpdates$1"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function*
               "performSyncWork"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function*
               "performWork"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function*
               "performWorkOnRoot"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function*
               "renderRoot"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function*
               "replayUnitOfWork"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function*
               "invokeGuardedCallback"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function* (trimmed javascript function)
               "invokeGuardedCallbackDev"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             filename*
               "index.js"
             function* (trimmed javascript function)
               "sentryWrapped"
-          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
+          frame (marked out of app by the client)
             filename*
               "react-dom.development.js"
             function* (trimmed javascript function)
@@ -74,6 +77,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "c0f3f7d6deb17aec9d07259ac684fad0"
+  contributing component: exception
   component:
     system*
       exception*

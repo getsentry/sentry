@@ -9,19 +9,17 @@ from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.splunk.plugin import SplunkPlugin
 
 
+def test_conf_key() -> None:
+    assert SplunkPlugin().conf_key == "splunk"
+
+
 class SplunkPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
         return SplunkPlugin()
 
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "splunk"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("splunk", self.plugin)
-
     @responses.activate
-    def test_simple_notification(self):
+    def test_simple_notification(self) -> None:
         responses.add(responses.POST, "https://splunk.example.com:8088/services/collector")
 
         self.plugin.set_option("token", "12345678-1234-1234-1234-1234567890AB", self.project)
@@ -32,7 +30,7 @@ class SplunkPluginTest(PluginTestCase):
             data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
         )
         with self.options({"system.url-prefix": "http://example.com"}):
-            self.plugin.post_process(event)
+            self.plugin.post_process(event=event)
 
         request = responses.calls[0].request
         payload = orjson.loads(request.body)
@@ -41,7 +39,7 @@ class SplunkPluginTest(PluginTestCase):
         assert headers["Authorization"] == "Splunk 12345678-1234-1234-1234-1234567890AB"
 
     @responses.activate
-    def test_dont_reraise_error(self):
+    def test_dont_reraise_error(self) -> None:
         responses.add(
             responses.POST, "https://splunk.example.com:8088/services/collector", status=404
         )
@@ -54,13 +52,13 @@ class SplunkPluginTest(PluginTestCase):
             data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
         )
         with self.options({"system.url-prefix": "http://example.com"}):
-            self.plugin.post_process(event)
+            self.plugin.post_process(event=event)
 
         resp = responses.calls[0].response
         assert resp.status_code == 404
 
     @responses.activate
-    def test_reraise_error(self):
+    def test_reraise_error(self) -> None:
         responses.add(
             responses.POST, "https://splunk.example.com:8088/services/collector", status=500
         )
@@ -74,9 +72,9 @@ class SplunkPluginTest(PluginTestCase):
         )
         with self.options({"system.url-prefix": "http://example.com"}):
             with pytest.raises(ApiError):
-                self.plugin.post_process(event)
+                self.plugin.post_process(event=event)
 
-    def test_http_payload(self):
+    def test_http_payload(self) -> None:
         event = self.store_event(
             data={
                 "request": {
@@ -93,7 +91,7 @@ class SplunkPluginTest(PluginTestCase):
         assert result["event"]["request_method"] == "POST"
         assert result["event"]["request_referer"] == "http://example.com/foo"
 
-    def test_error_payload(self):
+    def test_error_payload(self) -> None:
         event = self.store_event(
             data={
                 "exception": {"values": [{"type": "ValueError", "value": "foo bar"}]},
@@ -107,7 +105,7 @@ class SplunkPluginTest(PluginTestCase):
         assert result["event"]["exception_type"] == "ValueError"
         assert result["event"]["exception_value"] == "foo bar"
 
-    def test_csp_payload(self):
+    def test_csp_payload(self) -> None:
         event = self.store_event(
             data={
                 "csp": {
@@ -128,7 +126,7 @@ class SplunkPluginTest(PluginTestCase):
         assert result["event"]["csp_blocked_uri"] == "http://example.com/style.css"
         assert result["event"]["csp_effective_directive"] == "style-src"
 
-    def test_user_payload(self):
+    def test_user_payload(self) -> None:
         event = self.store_event(
             data={"user": {"id": "1", "email": "foo@example.com", "ip_address": "127.0.0.1"}},
             project_id=self.project.id,

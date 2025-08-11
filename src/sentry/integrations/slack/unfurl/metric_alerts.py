@@ -11,16 +11,32 @@ from django.db.models import Q
 from django.http.request import HttpRequest, QueryDict
 
 from sentry import features
+from sentry.api.serializers import serialize
 from sentry.incidents.charts import build_metric_alert_chart
+from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
+from sentry.incidents.endpoints.serializers.incident import (
+    DetailedIncidentSerializer,
+    DetailedIncidentSerializerResponse,
+)
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
+from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
+from sentry.integrations.messaging.metrics import (
+    MessagingInteractionEvent,
+    MessagingInteractionType,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
+from sentry.integrations.slack.spec import SlackMessagingSpec
+from sentry.integrations.slack.unfurl.types import (
+    Handler,
+    UnfurlableUrl,
+    UnfurledUrl,
+    make_type_coercer,
+)
 from sentry.models.organization import Organization
-from sentry.models.user import User
-
-from . import Handler, UnfurlableUrl, UnfurledUrl, make_type_coercer
+from sentry.users.models.user import User
 
 map_incident_args = make_type_coercer(
     {
@@ -36,6 +52,18 @@ map_incident_args = make_type_coercer(
 
 def unfurl_metric_alerts(
     request: HttpRequest,
+    integration: Integration,
+    links: list[UnfurlableUrl],
+    user: User | None = None,
+) -> UnfurledUrl:
+    event = MessagingInteractionEvent(
+        MessagingInteractionType.UNFURL_METRIC_ALERTS, SlackMessagingSpec(), user=user
+    )
+    with event.capture():
+        return _unfurl_metric_alerts(integration, links, user)
+
+
+def _unfurl_metric_alerts(
     integration: Integration,
     links: list[UnfurlableUrl],
     user: User | None = None,
@@ -103,10 +131,21 @@ def unfurl_metric_alerts(
         chart_url = None
         if features.has("organizations:metric-alert-chartcuterie", org):
             try:
+                alert_rule_serialized_response = serialize(alert_rule, user, AlertRuleSerializer())
+                incident_serialized_response: DetailedIncidentSerializerResponse = serialize(
+                    selected_incident, None, DetailedIncidentSerializer()
+                )
                 chart_url = build_metric_alert_chart(
                     organization=org,
-                    alert_rule=alert_rule,
-                    selected_incident=selected_incident,
+                    alert_rule_serialized_response=alert_rule_serialized_response,
+                    snuba_query=alert_rule.snuba_query,
+                    alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+                    open_period_context=(
+                        OpenPeriodContext.from_incident(selected_incident)
+                        if selected_incident
+                        else None
+                    ),
+                    selected_incident_serialized=incident_serialized_response,
                     period=link.args["period"],
                     start=link.args["start"],
                     end=link.args["end"],
@@ -150,7 +189,7 @@ customer_domain_metric_alerts_link_regex = re.compile(
     r"^https?\://(?P<org_slug>[^/]+?)\.(?#url_prefix)[^/]+/alerts/rules/details/(?P<alert_rule_id>\d+)"
 )
 
-handler = Handler(
+metric_alert_handler = Handler(
     fn=unfurl_metric_alerts,
     matcher=[metric_alerts_link_regex, customer_domain_metric_alerts_link_regex],
     arg_mapper=map_metric_alert_query_args,

@@ -2,7 +2,7 @@ import {Fragment, type ReactNode} from 'react';
 import type {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import {IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,11 +17,12 @@ export interface QueryFieldProps {
   attributes?: UseDraggableArguments['attributes'];
   canDelete?: boolean;
   canDrag?: boolean;
+  disabled?: boolean;
   fieldValidationError?: ReactNode;
-  forwardRef?: React.Ref<HTMLDivElement>;
   isDragging?: boolean;
   listeners?: DraggableSyntheticListeners;
   onDelete?: () => void;
+  ref?: React.Ref<HTMLDivElement>;
   style?: React.CSSProperties;
 }
 
@@ -30,7 +31,7 @@ export function QueryField({
   onChange,
   fieldOptions,
   value,
-  forwardRef,
+  ref,
   listeners,
   attributes,
   canDelete,
@@ -38,9 +39,10 @@ export function QueryField({
   style,
   fieldValidationError,
   isDragging,
+  disabled,
 }: QueryFieldProps) {
   return (
-    <QueryFieldWrapper ref={forwardRef} style={style}>
+    <QueryFieldWrapper ref={ref} style={style}>
       {isDragging ? null : (
         <Fragment>
           {canDrag && (
@@ -58,6 +60,7 @@ export function QueryField({
             fieldValue={value}
             fieldOptions={fieldOptions}
             onChange={onChange}
+            disabled={disabled}
             filterPrimaryOptions={option => option.value.kind !== FieldValueKind.FUNCTION}
           />
           {fieldValidationError ? fieldValidationError : null}
@@ -69,6 +72,7 @@ export function QueryField({
               icon={<IconDelete />}
               title={t('Remove group')}
               aria-label={t('Remove group')}
+              disabled={disabled}
             />
           )}
         </Fragment>
@@ -78,7 +82,7 @@ export function QueryField({
 }
 
 const DragAndReorderButton = styled(Button)`
-  height: ${p => p.theme.form.md.height}px;
+  height: ${p => p.theme.form.md.height};
 `;
 
 const QueryFieldWrapper = styled('div')`

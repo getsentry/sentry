@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 
 import sentry_sdk
-from django.utils.datastructures import MultiValueDict
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -64,7 +63,7 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
         },
         examples=SessionExamples.QUERY_SESSIONS,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Returns a time series of release health session statistics for projects bound to an organization.
 
@@ -82,9 +81,7 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
 
         def data_fn(offset: int, limit: int) -> SessionsQueryResult:
             with self.handle_query_errors():
-                with sentry_sdk.start_span(
-                    op="sessions.endpoint", description="build_sessions_query"
-                ):
+                with sentry_sdk.start_span(op="sessions.endpoint", name="build_sessions_query"):
                     request_limit = None
                     if request.GET.get("per_page") is not None:
                         request_limit = limit
@@ -119,15 +116,10 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
         except NoProjects:
             raise NoProjects("No projects available")  # give it a description
 
-        # HACK to prevent front-end crash when release health is sessions-based:
-        query_params = MultiValueDict(request.GET)
-        if not release_health.backend.is_metrics_based() and request.GET.get("interval") == "10s":
-            query_params["interval"] = "1m"
-
         query_config = release_health.backend.sessions_query_config(organization)
 
         return QueryDefinition(
-            query=query_params,
+            query=request.GET,
             params=params,
             offset=offset,
             limit=limit,

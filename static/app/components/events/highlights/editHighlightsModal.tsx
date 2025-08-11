@@ -3,8 +3,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import type {InputProps} from 'sentry/components/core/input';
+import {InputGroup} from 'sentry/components/core/input/inputGroup';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
@@ -17,12 +19,11 @@ import {
   getHighlightContextData,
   getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
-import type {InputProps} from 'sentry/components/input';
-import {InputGroup} from 'sentry/components/inputGroup';
 import {IconAdd, IconInfo, IconSearch, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMutateProject from 'sentry/utils/useMutateProject';
@@ -240,6 +241,7 @@ function EditContextHighlightSection({
   );
   const ctxData: Record<string, string[]> = getOrderedContextItems(event).reduce(
     (acc, {alias, value}) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[alias] = Object.keys(value).filter(k => k !== 'type');
       return acc;
     },
@@ -336,7 +338,7 @@ export default function EditHighlightsModal({
 
   const organization = useOrganization();
 
-  const {mutate: saveHighlights, isLoading} = useMutateProject({
+  const {mutate: saveHighlights, isPending} = useMutateProject({
     organization,
     project,
     onSuccess: closeModal,
@@ -405,7 +407,7 @@ export default function EditHighlightsModal({
           <IconInfo />
           <div>{t('Changes are applied to all issues for this project')}</div>
         </FooterInfo>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <Button
             onClick={() => {
               trackAnalytics('highlights.edit_modal.cancel_clicked', {organization});
@@ -430,7 +432,7 @@ export default function EditHighlightsModal({
             </Button>
           )}
           <Button
-            disabled={isLoading}
+            disabled={isPending}
             onClick={() => {
               trackAnalytics('highlights.edit_modal.save_clicked', {organization});
               saveHighlights({highlightContext, highlightTags});
@@ -438,7 +440,7 @@ export default function EditHighlightsModal({
             priority="primary"
             size="sm"
           >
-            {isLoading ? t('Saving...') : t('Apply to Project')}
+            {isPending ? t('Saving...') : t('Apply to Project')}
           </Button>
         </ButtonBar>
       </Footer>
@@ -466,7 +468,7 @@ const modalBodyCss = css`
 `;
 
 const Title = styled('h3')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
 `;
 
 const Subtitle = styled('div')`
@@ -479,7 +481,7 @@ const Subtitle = styled('div')`
 `;
 
 const SubtitleText = styled('h4')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin-bottom: 0;
 `;
 
@@ -499,11 +501,11 @@ const EditHighlightPreview = styled('div')<{columnCount: number}>`
   grid-template-columns: repeat(${p => p.columnCount}, minmax(0, 1fr));
   align-items: start;
   margin: 0 -${space(1.5)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const EmptyHighlightMessage = styled('div')<{extraMargin?: boolean}>`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   color: ${p => p.theme.subText};
   grid-column: 1 / -1;
   text-align: center;
@@ -542,7 +544,7 @@ const EditPreviewColumn = styled(EditHighlightColumn)`
 `;
 
 const EditPreviewContextItem = styled(ContextCardContent)`
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   grid-column: span 2;
   &:nth-child(4n-2) {
     background-color: ${p => p.theme.backgroundSecondary};
@@ -558,7 +560,7 @@ const EditPreviewTagItem = styled(EventTagsTreeRow)`
 const EditTagContainer = styled('div')`
   display: grid;
   grid-template-columns: 26px 1fr;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   align-items: center;
 `;
 
@@ -597,7 +599,7 @@ const HighlightKey = styled('p')<{disabled?: boolean}>`
 
 const ContextType = styled('p')`
   grid-column: span 2;
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   text-transform: capitalize;
   margin-bottom: ${space(0.25)};
 `;

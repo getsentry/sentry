@@ -1,6 +1,9 @@
 from unittest.mock import MagicMock, patch
 
-from sentry.issues.escalating_group_forecast import ONE_EVENT_FORECAST, EscalatingGroupForecast
+from sentry.issues.escalating.escalating_group_forecast import (
+    ONE_EVENT_FORECAST,
+    EscalatingGroupForecast,
+)
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
@@ -22,33 +25,27 @@ class HandleIgnoredTest(TestCase):
         add_group_to_inbox(self.group, GroupInboxReason.NEW)
 
     def test_ignored_forever(self) -> None:
-        status_details = handle_ignored(self.group_ids, self.group_list, {}, self.user, self.user)
+        status_details = handle_ignored(self.group_list, {}, self.user)
         assert status_details == {}
         assert not GroupInbox.objects.filter(group=self.group).exists()
         assert not GroupSnooze.objects.filter(group=self.group).exists()
 
     def test_ignored_duration(self) -> None:
-        status_details = handle_ignored(
-            self.group_ids, self.group_list, {"ignoreDuration": 30}, self.user, self.user
-        )
+        status_details = handle_ignored(self.group_list, {"ignoreDuration": 30}, self.user)
         assert status_details is not None
         assert not GroupInbox.objects.filter(group=self.group).exists()
         snooze = GroupSnooze.objects.filter(group=self.group).get()
         assert snooze.until == status_details.get("ignoreUntil")
 
     def test_ignored_count(self) -> None:
-        status_details = handle_ignored(
-            self.group_ids, self.group_list, {"ignoreCount": 50}, self.user, self.user
-        )
+        status_details = handle_ignored(self.group_list, {"ignoreCount": 50}, self.user)
         assert status_details is not None
         assert not GroupInbox.objects.filter(group=self.group).exists()
         snooze = GroupSnooze.objects.filter(group=self.group).get()
         assert snooze.count == status_details.get("ignoreCount")
 
     def test_ignored_user_count(self) -> None:
-        status_details = handle_ignored(
-            self.group_ids, self.group_list, {"ignoreUserCount": 100}, self.user, self.user
-        )
+        status_details = handle_ignored(self.group_list, {"ignoreUserCount": 100}, self.user)
         assert status_details is not None
         assert not GroupInbox.objects.filter(group=self.group).exists()
         snooze = GroupSnooze.objects.filter(group=self.group).get()
@@ -58,8 +55,8 @@ class HandleIgnoredTest(TestCase):
 
 
 class HandleArchiveUntilEscalating(TestCase):
-    @patch("sentry.issues.forecasts.query_groups_past_counts", return_value={})
-    @patch("sentry.issues.forecasts.generate_and_save_missing_forecasts.delay")
+    @patch("sentry.issues.escalating.forecasts.query_groups_past_counts", return_value={})
+    @patch("sentry.issues.escalating.forecasts.generate_and_save_missing_forecasts.delay")
     def test_archive_until_escalating_no_counts(
         self,
         mock_generate_and_save_missing_forecasts: MagicMock,
@@ -83,7 +80,7 @@ class HandleArchiveUntilEscalating(TestCase):
         assert fetched_forecast and fetched_forecast.forecast == ONE_EVENT_FORECAST
         assert mock_generate_and_save_missing_forecasts.call_count == 1
 
-    @patch("sentry.issues.forecasts.query_groups_past_counts")
+    @patch("sentry.issues.escalating.forecasts.query_groups_past_counts")
     def test_archive_until_escalating_with_counts(
         self, mock_query_groups_past_counts: MagicMock
     ) -> None:
@@ -112,7 +109,7 @@ class HandleArchiveUntilEscalating(TestCase):
         assert fetched_forecast.group_id == self.group.id
         assert fetched_forecast.forecast == [100] * 14
 
-    @patch("sentry.issues.forecasts.query_groups_past_counts", return_value={})
+    @patch("sentry.issues.escalating.forecasts.query_groups_past_counts", return_value={})
     @patch("sentry.signals.issue_archived.send_robust")
     def test_archive_until_escalating_analytics(
         self, mock_query_groups_past_counts: MagicMock, mock_send_robust: MagicMock

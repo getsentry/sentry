@@ -2,22 +2,22 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, SelectValue, TagCollection} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {TagCollection} from 'sentry/types/group';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery, WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {BuildStep} from 'sentry/views/dashboards/widgetBuilder/buildSteps/buildStep';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {
   getResultsLimit,
   SortDirection,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
-
-import {BuildStep} from '../buildStep';
 
 import {SortBySelectors} from './sortBySelectors';
 
@@ -28,7 +28,6 @@ interface Props {
   displayType: DisplayType;
   onLimitChange: (newLimit: number) => void;
   onSortByChange: (newSortBy: string) => void;
-  organization: Organization;
   queries: WidgetQuery[];
   tags: TagCollection;
   widgetType: WidgetType;
@@ -54,12 +53,12 @@ export function SortByStep({
 
   if (datasetConfig.disableSortOptions) {
     ({disableSort, disableSortDirection, disableSortReason} =
-      datasetConfig.disableSortOptions(queries[0]));
+      datasetConfig.disableSortOptions(queries[0]!));
   }
 
-  const orderBy = queries[0].orderby;
+  const orderBy = queries[0]!.orderby;
   const strippedOrderBy = trimStart(orderBy, '-');
-  const maxLimit = getResultsLimit(queries.length, queries[0].aggregates.length);
+  const maxLimit = getResultsLimit(queries.length, queries[0]!.aggregates.length);
 
   const isTimeseriesChart = [
     DisplayType.LINE,
@@ -99,7 +98,7 @@ export function SortByStep({
                 disabled={disableSortDirection && disableSort}
                 name="resultsLimit"
                 menuPlacement="auto"
-                options={[...Array(maxLimit).keys()].map(resultLimit => {
+                options={[...new Array(maxLimit).keys()].map(resultLimit => {
                   const value = resultLimit + 1;
                   return {
                     label: tn('Limit to %s result', 'Limit to %s results', value),
@@ -115,11 +114,11 @@ export function SortByStep({
           <SortBySelectors
             displayType={displayType}
             widgetType={widgetType}
-            hasGroupBy={isTimeseriesChart && !!queries[0].columns.length}
+            hasGroupBy={isTimeseriesChart && !!queries[0]!.columns.length}
             disableSortReason={disableSortReason}
             disableSort={disableSort}
             disableSortDirection={disableSortDirection}
-            widgetQuery={queries[0]}
+            widgetQuery={queries[0]!}
             values={{
               sortDirection:
                 orderBy[0] === '-'
@@ -140,6 +139,6 @@ export function SortByStep({
   );
 }
 
-const ResultsLimitSelector = styled(SelectControl)`
+const ResultsLimitSelector = styled(Select)`
   margin-bottom: ${space(1)};
 `;

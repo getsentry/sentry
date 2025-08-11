@@ -11,6 +11,7 @@ import {HybridFilter} from 'sentry/components/organizations/hybridFilter';
 const props = {
   searchable: true,
   multiple: true,
+  checkboxPosition: 'trailing' as const,
   options: [
     {value: 'one', label: 'Option One'},
     {value: 'two', label: 'Option Two'},
@@ -63,8 +64,8 @@ describe('ProjectPageFilter', function () {
     // Clicking on the checkboxes in Option One & Option Two _adds_ the options to the
     // current selection state (multiple selection mode)
     await userEvent.click(screen.getByRole('button', {expanded: false}));
-    await fireEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
-    await fireEvent.click(screen.getByRole('checkbox', {name: 'Select Option Two'}));
+    fireEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
+    fireEvent.click(screen.getByRole('checkbox', {name: 'Select Option Two'}));
     expect(screen.getByRole('checkbox', {name: 'Select Option One'})).toBeChecked();
     expect(screen.getByRole('checkbox', {name: 'Select Option Two'})).toBeChecked();
 
@@ -92,10 +93,10 @@ describe('ProjectPageFilter', function () {
       which: 17,
       ctrlKey: true,
     };
-    await fireEvent.keyDown(screen.getByRole('grid'), ctrlKeyOpts); // Press & hold Ctrl
+    fireEvent.keyDown(screen.getByRole('grid'), ctrlKeyOpts); // Press & hold Ctrl
     await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
-    await fireEvent.click(screen.getByRole('row', {name: 'Option Two'}));
-    await fireEvent.keyUp(screen.getByRole('grid'), ctrlKeyOpts); // Release Ctrl
+    fireEvent.click(screen.getByRole('row', {name: 'Option Two'}));
+    fireEvent.keyUp(screen.getByRole('grid'), ctrlKeyOpts); // Release Ctrl
     expect(screen.getByRole('checkbox', {name: 'Select Option One'})).not.toBeChecked();
     expect(screen.getByRole('checkbox', {name: 'Select Option Two'})).not.toBeChecked();
 
@@ -110,7 +111,7 @@ describe('ProjectPageFilter', function () {
 
     // Open the menu, select Option One
     await userEvent.click(screen.getByRole('button', {expanded: false}));
-    await fireEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
+    fireEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
 
     // Press Cancel
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
@@ -140,7 +141,7 @@ describe('ProjectPageFilter', function () {
     expect(screen.queryByRole('button', {name: 'Reset'})).not.toBeInTheDocument();
 
     // Select Option Two, Reset button shows up
-    await fireEvent.click(screen.getByRole('checkbox', {name: 'Select Option Two'}));
+    fireEvent.click(screen.getByRole('checkbox', {name: 'Select Option Two'}));
     expect(screen.getByRole('checkbox', {name: 'Select Option Two'})).toBeChecked();
     expect(screen.getByRole('button', {name: 'Reset'})).toBeInTheDocument();
 
@@ -181,7 +182,7 @@ describe('ProjectPageFilter', function () {
     // focused to activate it. With RTL, however, onChange events aren't fired on Space
     // key press (https://github.com/testing-library/react-testing-library/issues/122),
     // so we'll have to simulate a click event instead.
-    await fireEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
+    fireEvent.click(screen.getByRole('checkbox', {name: 'Select Option One'}));
     expect(screen.getByRole('checkbox', {name: 'Select Option One'})).toBeChecked();
 
     // Click "Apply" button, onChange is called

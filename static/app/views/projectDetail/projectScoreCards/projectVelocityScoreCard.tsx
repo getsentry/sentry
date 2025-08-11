@@ -1,242 +1,218 @@
-import {Fragment} from 'react';
-
-import {fetchAnyReleaseExistence} from 'sentry/actionCreators/projects';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import {Button} from 'sentry/components/core/button';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import ScoreCard from 'sentry/components/scoreCard';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
-import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
+import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import MissingReleasesButtons from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
 
-import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
+import {ActionWrapper} from './actionWrapper';
 
 const API_LIMIT = 1000;
 
 type Release = {date: string; version: string};
 
-type Props = DeprecatedAsyncComponent['props'] & {
+const useReleaseCount = (props: Props) => {
+  const {organization, selection, isProjectStabilized, query} = props;
+
+  const isEnabled = isProjectStabilized;
+  const {projects, environments, datetime} = selection;
+  const {period} = datetime;
+
+  const {start: previousStart} = parseStatsPeriod(
+    getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: true})
+      .statsPeriod!
+  );
+
+  const {start: previousEnd} = parseStatsPeriod(
+    getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: false})
+      .statsPeriod!
+  );
+
+  const commonQuery = {
+    environment: environments,
+    project: projects[0],
+    query,
+  };
+
+  const currentQuery = useApiQuery<Release[]>(
+    [
+      `/organizations/${organization.slug}/releases/stats/`,
+      {
+        query: {
+          ...commonQuery,
+          ...normalizeDateTimeParams(datetime),
+        },
+      },
+    ],
+    {staleTime: Infinity, enabled: isEnabled}
+  );
+
+  const isPreviousPeriodEnabled = shouldFetchPreviousPeriod({
+    start: datetime.start,
+    end: datetime.end,
+    period: datetime.period,
+  });
+
+  const previousQuery = useApiQuery<Release[]>(
+    [
+      `/organizations/${organization.slug}/releases/stats/`,
+      {
+        query: {
+          ...commonQuery,
+          start: previousStart,
+          end: previousEnd,
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      enabled: isEnabled && isPreviousPeriodEnabled,
+    }
+  );
+
+  const allReleases = [...(currentQuery.data ?? []), ...(previousQuery.data ?? [])];
+
+  const isAllTimePeriodEnabled =
+    !currentQuery.isPending &&
+    !currentQuery.error &&
+    !previousQuery.isPending &&
+    !previousQuery.error &&
+    allReleases.length === 0;
+
+  const allTimeQuery = useApiQuery<Release[]>(
+    [
+      `/organizations/${organization.slug}/releases/stats/`,
+      {
+        query: {
+          ...commonQuery,
+          statsPeriod: '90d',
+          per_page: 1,
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      enabled: isEnabled && isAllTimePeriodEnabled,
+    }
+  );
+
+  return {
+    data: currentQuery.data,
+    previousData: previousQuery.data,
+    allTimeData: allTimeQuery.data,
+    isLoading:
+      currentQuery.isPending ||
+      (previousQuery.isPending && isPreviousPeriodEnabled) ||
+      (allTimeQuery.isPending && isAllTimePeriodEnabled),
+    error: currentQuery.error || previousQuery.error || allTimeQuery.error,
+    refetch: () => {
+      currentQuery.refetch();
+      previousQuery.refetch();
+      allTimeQuery.refetch();
+    },
+  };
+};
+
+type Props = {
   isProjectStabilized: boolean;
   organization: Organization;
   selection: PageFilters;
   query?: string;
 };
 
-type State = DeprecatedAsyncComponent['state'] & {
-  currentReleases: Release[] | null;
-  noReleaseEver: boolean;
-  previousReleases: Release[] | null;
-};
+function ProjectVelocityScoreCard(props: Props) {
+  const {organization} = props;
 
-class ProjectVelocityScoreCard extends DeprecatedAsyncComponent<Props, State> {
-  shouldRenderBadRequests = true;
+  const {
+    data: currentReleases,
+    previousData: previousReleases,
+    allTimeData: allTimeReleases,
+    isLoading,
+    error,
+    refetch,
+  } = useReleaseCount(props);
 
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      currentReleases: null,
-      previousReleases: null,
-      noReleaseEver: false,
-    };
-  }
+  const noReleaseEver =
+    [...(currentReleases ?? []), ...(previousReleases ?? []), ...(allTimeReleases ?? [])]
+      .length === 0;
 
-  getEndpoints() {
-    const {organization, selection, isProjectStabilized, query} = this.props;
+  const cardTitle = t('Number of Releases');
 
-    if (!isProjectStabilized) {
-      return [];
-    }
+  const cardHelp = t('The number of releases for this project.');
 
-    const {projects, environments, datetime} = selection;
-    const {period} = datetime;
-    const commonQuery = {
-      environment: environments,
-      project: projects[0],
-      query,
-    };
-    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [
-      [
-        'currentReleases',
-        `/organizations/${organization.slug}/releases/stats/`,
-        {
-          includeAllArgs: true,
-          method: 'GET',
-          query: {
-            ...commonQuery,
-            ...normalizeDateTimeParams(datetime),
-          },
-        },
-      ],
-    ];
+  const Title = <Widget.WidgetTitle title={cardTitle} />;
 
-    if (
-      shouldFetchPreviousPeriod({
-        start: datetime.start,
-        end: datetime.end,
-        period: datetime.period,
-      })
-    ) {
-      const {start: previousStart} = parseStatsPeriod(
-        getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: true})
-          .statsPeriod!
-      );
-
-      const {start: previousEnd} = parseStatsPeriod(
-        getPeriod({period, start: undefined, end: undefined}, {shouldDoublePeriod: false})
-          .statsPeriod!
-      );
-
-      endpoints.push([
-        'previousReleases',
-        `/organizations/${organization.slug}/releases/stats/`,
-        {
-          query: {
-            ...commonQuery,
-            start: previousStart,
-            end: previousEnd,
-          },
-        },
-      ]);
-    }
-
-    return endpoints;
-  }
-
-  /**
-   * If our releases are empty, determine if we had a release in the last 90 days (empty message differs then)
-   */
-  async onLoadAllEndpointsSuccess() {
-    const {currentReleases, previousReleases} = this.state;
-    const {organization, selection, isProjectStabilized} = this.props;
-
-    if (!isProjectStabilized) {
-      return;
-    }
-
-    if ([...(currentReleases ?? []), ...(previousReleases ?? [])].length !== 0) {
-      this.setState({noReleaseEver: false});
-      return;
-    }
-
-    this.setState({loading: true});
-
-    const hasOlderReleases = await fetchAnyReleaseExistence(
-      this.api,
-      organization.slug,
-      selection.projects[0]
-    );
-
-    this.setState({noReleaseEver: !hasOlderReleases, loading: false});
-  }
-
-  get cardTitle() {
-    return t('Number of Releases');
-  }
-
-  get cardHelp() {
-    return this.trend
-      ? t(
-          'The number of releases for this project and how it has changed since the last period.'
-        )
-      : t('The number of releases for this project.');
-  }
-
-  get trend() {
-    const {currentReleases, previousReleases} = this.state;
-
-    if (!defined(currentReleases) || !defined(previousReleases)) {
-      return null;
-    }
-
-    return currentReleases.length - previousReleases.length;
-  }
-
-  get trendStatus(): React.ComponentProps<typeof ScoreCard>['trendStatus'] {
-    if (!this.trend) {
-      return undefined;
-    }
-
-    return this.trend > 0 ? 'good' : 'bad';
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    const {selection, isProjectStabilized, query} = this.props;
-
-    if (
-      prevProps.selection !== selection ||
-      prevProps.isProjectStabilized !== isProjectStabilized ||
-      prevProps.query !== query
-    ) {
-      this.remountComponent();
-    }
-  }
-
-  renderLoading() {
-    return this.renderBody();
-  }
-
-  renderMissingFeatureCard() {
-    const {organization} = this.props;
+  if (!isLoading && noReleaseEver) {
     return (
-      <ScoreCard
-        title={this.cardTitle}
-        help={this.cardHelp}
-        score={<MissingReleasesButtons organization={organization} />}
+      <Widget
+        Title={<Widget.WidgetTitle title={cardTitle} />}
+        Actions={
+          <Widget.WidgetToolbar>
+            <Widget.WidgetDescription description={cardHelp} />
+          </Widget.WidgetToolbar>
+        }
+        Visualization={
+          <ActionWrapper>
+            <MissingReleasesButtons organization={organization} />
+          </ActionWrapper>
+        }
       />
     );
   }
 
-  renderScore() {
-    const {currentReleases, loading} = this.state;
-
-    if (loading || !defined(currentReleases)) {
-      return '\u2014';
-    }
-
-    return currentReleases.length === API_LIMIT
-      ? `${API_LIMIT - 1}+`
-      : currentReleases.length;
-  }
-
-  renderTrend() {
-    const {loading, currentReleases} = this.state;
-
-    if (loading || !defined(this.trend) || currentReleases?.length === API_LIMIT) {
-      return null;
-    }
-
+  if (isLoading || !defined(currentReleases)) {
     return (
-      <Fragment>
-        {this.trend >= 0 ? (
-          <IconArrow direction="up" size="xs" />
-        ) : (
-          <IconArrow direction="down" size="xs" />
-        )}
-        {Math.abs(this.trend)}
-      </Fragment>
-    );
-  }
-
-  renderBody() {
-    const {noReleaseEver} = this.state;
-
-    if (noReleaseEver) {
-      return this.renderMissingFeatureCard();
-    }
-
-    return (
-      <ScoreCard
-        title={this.cardTitle}
-        help={this.cardHelp}
-        score={this.renderScore()}
-        trend={this.renderTrend()}
-        trendStatus={this.trendStatus}
+      <Widget
+        Title={Title}
+        Visualization={<BigNumberWidgetVisualization.LoadingPlaceholder />}
       />
     );
   }
+
+  if (error) {
+    return (
+      <Widget
+        Title={Title}
+        Actions={
+          <Widget.WidgetToolbar>
+            <Button size="xs" onClick={refetch}>
+              {t('Retry')}
+            </Button>
+          </Widget.WidgetToolbar>
+        }
+        Visualization={<Widget.WidgetError error={error} />}
+      />
+    );
+  }
+
+  return (
+    <Widget
+      Title={Title}
+      Actions={
+        <Widget.WidgetToolbar>
+          <Widget.WidgetDescription description={cardHelp} />
+        </Widget.WidgetToolbar>
+      }
+      Visualization={
+        <BigNumberWidgetVisualization
+          value={currentReleases?.length}
+          previousPeriodValue={previousReleases?.length}
+          field="count()"
+          maximumValue={API_LIMIT}
+          type="number"
+          unit={null}
+          preferredPolarity="+"
+        />
+      }
+    />
+  );
 }
 
 export default ProjectVelocityScoreCard;

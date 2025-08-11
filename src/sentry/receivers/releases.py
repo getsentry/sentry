@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.integrations.analytics import IntegrationResolveCommitEvent, IntegrationResolvePREvent
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import Group, GroupStatus
@@ -71,7 +72,7 @@ def remove_resolved_link(link):
             )
 
 
-def resolved_in_commit(instance, created, **kwargs):
+def resolved_in_commit(instance: Commit, created, **kwargs):
     current_datetime = timezone.now()
 
     groups = instance.find_referenced_groups()
@@ -87,6 +88,9 @@ def resolved_in_commit(instance, created, **kwargs):
         if link.group_id not in group_ids:
             remove_resolved_link(link)
 
+    if len(groups) == 0:
+        return
+
     try:
         repo = Repository.objects.get(id=instance.repository_id)
     except Repository.DoesNotExist:
@@ -96,11 +100,11 @@ def resolved_in_commit(instance, created, **kwargs):
         with in_test_hide_transaction_boundary():
             user_list = list(instance.author.find_users())
     else:
-        user_list = ()
+        user_list = []
 
     acting_user: RpcUser | None = None
 
-    self_assign_issue: str = "0"
+    self_assign_issue = "0"
     if user_list:
         acting_user = user_list[0]
         with in_test_hide_transaction_boundary():
@@ -173,16 +177,16 @@ def resolved_in_commit(instance, created, **kwargs):
             if repo is not None:
                 if repo.integration_id is not None:
                     analytics.record(
-                        "integration.resolve.commit",
-                        provider=repo.provider,
-                        id=repo.integration_id,
-                        organization_id=repo.organization_id,
+                        IntegrationResolveCommitEvent(
+                            provider=repo.provider,
+                            id=repo.integration_id,
+                            organization_id=repo.organization_id,
+                        )
                     )
-                user = user_list[0] if user_list else None
 
                 issue_resolved.send_robust(
                     organization_id=repo.organization_id,
-                    user=user,
+                    user=user_list[0] if user_list else None,
                     group=group,
                     project=group.project,
                     resolution_type="with_commit",
@@ -190,7 +194,7 @@ def resolved_in_commit(instance, created, **kwargs):
                 )
 
 
-def resolved_in_pull_request(instance, created, **kwargs):
+def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
     groups = instance.find_referenced_groups()
 
     # Delete GroupLinks where message may have changed
@@ -204,6 +208,9 @@ def resolved_in_pull_request(instance, created, **kwargs):
         if link.group_id not in group_ids:
             remove_resolved_link(link)
 
+    if len(groups) == 0:
+        return
+
     try:
         repo = Repository.objects.get(id=instance.repository_id)
     except Repository.DoesNotExist:
@@ -211,7 +218,7 @@ def resolved_in_pull_request(instance, created, **kwargs):
     if instance.author:
         user_list = list(instance.author.find_users())
     else:
-        user_list = ()
+        user_list = []
 
     for group in groups:
         try:
@@ -246,10 +253,11 @@ def resolved_in_pull_request(instance, created, **kwargs):
         else:
             if repo is not None and repo.integration_id is not None:
                 analytics.record(
-                    "integration.resolve.pr",
-                    provider=repo.provider,
-                    id=repo.integration_id,
-                    organization_id=repo.organization_id,
+                    IntegrationResolvePREvent(
+                        provider=repo.provider,
+                        id=repo.integration_id,
+                        organization_id=repo.organization_id,
+                    )
                 )
 
 

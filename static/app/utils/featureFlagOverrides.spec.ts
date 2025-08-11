@@ -6,12 +6,49 @@ import localStorageWrapper from 'sentry/utils/localStorage';
 const LOCALSTORAGE_KEY = 'feature-flag-overrides';
 
 describe('FeatureFlagOverrides', () => {
-  let organization;
+  let organization: any;
   beforeEach(() => {
     localStorage.clear();
 
     organization = OrganizationFixture({
       features: ['enable-issues', 'enable-profiling', 'enable-replay'],
+    });
+  });
+
+  describe('getFlagMap', () => {
+    it('should convert `organization.features` into the shape of FlagMap', () => {
+      localStorageWrapper.setItem(
+        LOCALSTORAGE_KEY,
+        '{"enable-issues":false,"enable-profiling":true}'
+      );
+      const inst = new FeatureFlagOverrides();
+
+      expect(organization.features).toEqual([
+        'enable-issues',
+        'enable-profiling',
+        'enable-replay',
+      ]);
+
+      expect(inst.getFlagMap(organization)).toEqual({
+        'enable-issues': true,
+        'enable-profiling': true,
+        'enable-replay': true,
+      });
+    });
+  });
+
+  describe('getOverrides', () => {
+    it('should return the FlapMap of everything that is manually overridden', () => {
+      localStorageWrapper.setItem(
+        LOCALSTORAGE_KEY,
+        '{"enable-issues":false,"enable-profiling":true}'
+      );
+      const inst = new FeatureFlagOverrides();
+
+      expect(inst.getStoredOverrides()).toEqual({
+        'enable-issues': false,
+        'enable-profiling': true,
+      });
     });
   });
 
@@ -39,12 +76,12 @@ describe('FeatureFlagOverrides', () => {
       const inst = new FeatureFlagOverrides();
 
       inst.setStoredOverride('enable-replay', false);
-      expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toEqual(
+      expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe(
         '{"enable-issues":true,"enable-profiling":false,"enable-replay":false}'
       );
 
       inst.setStoredOverride('enable-replay', true);
-      expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toEqual(
+      expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe(
         '{"enable-issues":true,"enable-profiling":false,"enable-replay":true}'
       );
     });
@@ -54,41 +91,9 @@ describe('FeatureFlagOverrides', () => {
       const inst = new FeatureFlagOverrides();
 
       inst.setStoredOverride('enable-issues', false);
-      expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toEqual(
+      expect(localStorageWrapper.getItem(LOCALSTORAGE_KEY)).toBe(
         '{"enable-issues":false}'
       );
-    });
-  });
-
-  describe('getFeatureFlagMap', () => {
-    it('should combine & remove features that are disabled locally', () => {
-      localStorageWrapper.setItem(
-        LOCALSTORAGE_KEY,
-        '{"enable-issues":false,"enable-profiling":true}'
-      );
-      const inst = new FeatureFlagOverrides();
-
-      expect(inst.getFeatureFlagMap(organization)).toEqual({
-        'enable-issues': {value: true, override: false},
-        'enable-profiling': {value: true, override: true},
-        'enable-replay': {value: true, override: undefined},
-      });
-    });
-
-    it('should combine & add features that are listed locally, but not in the org', () => {
-      localStorageWrapper.setItem(
-        LOCALSTORAGE_KEY,
-        '{"enable-issues":false,"secret-new-feature":true,"local-only-feature":false}'
-      );
-      const inst = new FeatureFlagOverrides();
-
-      expect(inst.getFeatureFlagMap(organization)).toEqual({
-        'enable-issues': {value: true, override: false},
-        'enable-profiling': {value: true, override: undefined},
-        'enable-replay': {value: true, override: undefined},
-        'secret-new-feature': {value: undefined, override: true},
-        'local-only-feature': {value: undefined, override: false},
-      });
     });
   });
 
@@ -100,6 +105,20 @@ describe('FeatureFlagOverrides', () => {
       );
       const inst = new FeatureFlagOverrides();
 
+      // The original values
+      expect(organization.features).toEqual([
+        'enable-issues',
+        'enable-profiling',
+        'enable-replay',
+      ]);
+
+      // The overridden values
+      expect(inst.getStoredOverrides()).toEqual({
+        'enable-issues': false,
+        'enable-profiling': true,
+      });
+
+      // The combined values
       expect(inst.getEnabledFeatureFlagList(organization)).toEqual([
         'enable-profiling',
         'enable-replay',
@@ -138,20 +157,6 @@ describe('FeatureFlagOverrides', () => {
       inst.loadOrg(organization);
 
       expect(organization.features).toEqual([
-        'enable-profiling',
-        'enable-replay',
-        'secret-new-feature',
-      ]);
-
-      expect(inst.getFeatureFlagMap(organization)).toEqual({
-        'enable-issues': {value: true, override: false},
-        'enable-profiling': {value: true, override: undefined},
-        'enable-replay': {value: true, override: undefined},
-        'secret-new-feature': {value: undefined, override: true},
-        'local-only-feature': {value: undefined, override: false},
-      });
-
-      expect(inst.getEnabledFeatureFlagList(organization)).toEqual([
         'enable-profiling',
         'enable-replay',
         'secret-new-feature',

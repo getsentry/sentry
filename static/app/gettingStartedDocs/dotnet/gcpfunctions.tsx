@@ -1,20 +1,19 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportGenericInstallStep,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {csharpFeedbackOnboarding} from 'sentry/gettingStartedDocs/dotnet/dotnet';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -59,7 +58,7 @@ public class Function : IHttpFunction
 const getConfigureJsonSnippet = (params: Params) => `
 {
   "Sentry": {
-    "Dsn": "${params.dsn}",
+    "Dsn": "${params.dsn.public}",
     // Sends Cookies, User Id when one is logged on and user IP address to sentry. It's turned off by default.
     "SendDefaultPii": true,
     // When configuring for the first time, to see what the SDK is doing:
@@ -68,7 +67,7 @@ const getConfigureJsonSnippet = (params: Params) => `
     "MaxRequestBodySize": "Always"${
       params.isPerformanceSelected
         ? `,
-    // Set TracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+    // Set TracesSampleRate to 1.0 to capture 100% of transactions for tracing.
     // We recommend adjusting this value in production.
     "TracesSampleRate": 1`
         : ''
@@ -127,10 +126,9 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Then, add Sentry to the [functionCode:Function] class through [functionStartupCode:FunctionsStartup]:',
+        'Then, add Sentry to the [code:Function] class through [code:FunctionsStartup]:',
         {
-          functionCode: <code />,
-          functionStartupCode: <code />,
+          code: <code />,
         }
       ),
       configurations: [
@@ -143,8 +141,8 @@ const onboarding: OnboardingConfig = {
           description: (
             <p>
               {tct(
-                "Additionally, you'll need to set up your [sentryCode:Sentry] settings on [appsettingsCode:appsettings.json]:",
-                {sentryCode: <code />, appsettingsCode: <code />}
+                "Additionally, you'll need to set up your [code:Sentry] settings on [code:appsettings.json]:",
+                {code: <code />}
               )}
             </p>
           ),
@@ -222,9 +220,7 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: csharpFeedbackOnboarding,
-  customMetricsOnboarding: getDotnetMetricsOnboarding({
-    packageName: 'Sentry.Google.Cloud.Functions',
-  }),
+
   crashReportOnboarding,
 };
 

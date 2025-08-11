@@ -1,138 +1,117 @@
 import {AutofixRootCauseData} from 'sentry-fixture/autofixRootCauseData';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
 
 describe('AutofixRootCause', function () {
+  beforeEach(function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/autofix/update/',
+      method: 'POST',
+      body: {success: true},
+    });
+  });
+
+  afterEach(function () {
+    MockApiClient.clearMockResponses();
+    jest.clearAllTimers();
+  });
+
   const defaultProps = {
     causes: [AutofixRootCauseData()],
     groupId: '1',
     rootCauseSelection: null,
     runId: '101',
-    repos: [],
-  };
+  } satisfies React.ComponentProps<typeof AutofixRootCause>;
 
-  it('can select a relevant code snippet', async function () {
-    const mockSelectFix = MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
-      method: 'POST',
-    });
-
+  it('can view a relevant code snippet', async function () {
     render(<AutofixRootCause {...defaultProps} />);
 
-    // Displays all root cause and code context info
-    expect(screen.getByText('This is the title of a root cause.')).toBeInTheDocument();
-    expect(
-      screen.getByText('This is the description of a root cause.')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Relevant Code #1: This is the title of a relevant code snippet.')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('This is the description of a relevant code snippet.')
-    ).toBeInTheDocument();
+    // Wait for initial render and animations
+    await waitFor(
+      () => {
+        expect(screen.getByText('Root Cause')).toBeInTheDocument();
+      },
+      {timeout: 2000}
+    );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Find a Fix'}));
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(defaultProps.causes[0]!.root_cause_reproduction![0]!.title)
+        ).toBeInTheDocument();
+      },
+      {timeout: 2000}
+    );
 
-    expect(mockSelectFix).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: {
-          run_id: '101',
-          payload: {
-            type: 'select_root_cause',
-            cause_id: '100',
-          },
-        },
-      })
+    await userEvent.click(screen.getByTestId('autofix-root-cause-timeline-item-0'));
+
+    // Wait for code snippet to appear with increased timeout for animation
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(
+            defaultProps.causes[0]!.root_cause_reproduction![0]!.code_snippet_and_analysis
+          )
+        ).toBeInTheDocument();
+      },
+      {timeout: 2000}
     );
   });
 
-  it('can provide a custom root cause', async function () {
-    const mockSelectFix = MockApiClient.addMockResponse({
-      url: '/issues/1/autofix/update/',
-      method: 'POST',
-    });
-
-    render(<AutofixRootCause {...defaultProps} />);
-
-    await userEvent.click(
-      screen.getByRole('button', {name: 'Provide your own root cause'})
-    );
-    await userEvent.keyboard('custom root cause');
-    await userEvent.click(
-      screen.getByRole('button', {
-        name: 'Find a Fix',
-        description: 'Find a Fix',
-      })
-    );
-
-    expect(mockSelectFix).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        data: {
-          run_id: '101',
-          payload: {
-            type: 'select_root_cause',
-            custom_root_cause: 'custom root cause',
-          },
-        },
-      })
-    );
-  });
-
-  it('shows graceful error state when there are no causes', function () {
+  it('shows graceful error state when there are no causes', async function () {
     render(
       <AutofixRootCause
         {...{
           ...defaultProps,
           causes: [],
+          terminationReason: 'The error comes from outside the codebase.',
         }}
       />
     );
 
-    // Displays all root cause and code context info
-    expect(
-      screen.getByText('Autofix was not able to find a root cause. Maybe try again?')
-    ).toBeInTheDocument();
+    // Wait for error state to render
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(
+            'No root cause found. The error comes from outside the codebase.'
+          )
+        ).toBeInTheDocument();
+      },
+      {timeout: 2000}
+    );
   });
 
-  it('shows hyperlink when matching GitHub repo available', function () {
+  it('shows selected root cause when rootCauseSelection is provided', async function () {
+    const selectedCause = AutofixRootCauseData();
     render(
       <AutofixRootCause
         {...{
           ...defaultProps,
-          repos: [
-            {
-              default_branch: 'main',
-              external_id: 'id',
-              name: 'owner/repo',
-              provider: 'integrations:github',
-              url: 'https://github.com/test_owner/test_repo',
-            },
-          ],
+          rootCauseSelection: {
+            cause_id: selectedCause.id,
+          },
         }}
       />
     );
 
-    expect(screen.queryByRole('link', {name: 'GitHub'})).toBeInTheDocument();
-    expect(screen.queryByRole('link', {name: 'GitHub'})).toHaveAttribute(
-      'href',
-      'https://github.com/test_owner/test_repo/blob/main/src/file.py'
-    );
-  });
-
-  it('shows no hyperlink when no matching GitHub repo available', function () {
-    render(
-      <AutofixRootCause
-        {...{
-          ...defaultProps,
-          repos: [],
-        }}
-      />
+    // Wait for selected root cause to render
+    await waitFor(
+      () => {
+        expect(screen.getByText('Root Cause')).toBeInTheDocument();
+      },
+      {timeout: 2000}
     );
 
-    expect(screen.queryByRole('link', {name: 'GitHub'})).not.toBeInTheDocument();
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText(selectedCause.root_cause_reproduction![0]!.title)
+        ).toBeInTheDocument();
+      },
+      {timeout: 2000}
+    );
   });
 });

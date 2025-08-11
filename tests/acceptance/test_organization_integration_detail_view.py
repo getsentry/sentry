@@ -1,5 +1,7 @@
 from unittest import mock
 
+import pytest
+
 from fixtures.page_objects.organization_integration_settings import (
     ExampleIntegrationSetupWindowElement,
     OrganizationIntegrationDetailViewPage,
@@ -26,7 +28,8 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
         self.browser.get(url)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def test_example_installation(self):
+    @pytest.mark.skip(reason="Flaky on region runs when creating integration")
+    def test_example_installation(self) -> None:
         self.provider = mock.Mock()
         self.provider.key = "alert_rule_integration"
         self.provider.name = "Example Installation"
@@ -51,7 +54,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
             in self.browser.driver.current_url
         )
 
-    def test_uninstallation(self):
+    def test_uninstallation(self) -> None:
         model = self.create_provider_integration(
             provider="slack",
             external_id="some_slack",

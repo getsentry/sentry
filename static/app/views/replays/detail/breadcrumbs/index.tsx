@@ -1,23 +1,22 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import type {ListRowProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, List as ReactVirtualizedList} from 'react-virtualized';
 
+import {Flex} from 'sentry/components/core/layout/flex';
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
-import useVirtualizedInspector from 'sentry/views/replays/detail//useVirtualizedInspector';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import BreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/breadcrumbFilters';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
 import useScrollToCurrentItem from 'sentry/views/replays/detail/breadcrumbs/useScrollToCurrentItem';
-import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
-import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import NoRowRenderer from 'sentry/views/replays/detail/noRowRenderer';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
+import useVirtualizedInspector from 'sentry/views/replays/detail/useVirtualizedInspector';
 import useVirtualizedList from 'sentry/views/replays/detail/useVirtualizedList';
 
 // Ensure this object is created once as it is an input to
@@ -27,13 +26,11 @@ const cellMeasurer = {
   minHeight: 53,
 };
 
-function Breadcrumbs() {
-  const {currentTime, replay} = useReplayContext();
+export default function Breadcrumbs() {
+  const replay = useReplayReader();
+  const {currentTime} = useReplayContext();
   const {onClickTimestamp} = useCrumbHandlers();
-
-  const {data: frameToExtraction, isFetching: isFetchingExtractions} = useExtractDomNodes(
-    {replay}
-  );
+  const [showSnippetSet, setShowSnippetSet] = useState<Set<number>>(new Set());
 
   const startTimestampMs = replay?.getStartTimestampMs() ?? 0;
   const frames = replay?.getChapterFrames();
@@ -75,15 +72,16 @@ function Breadcrumbs() {
     ref: listRef,
   });
 
-  // Need to refresh the item dimensions as DOM data gets loaded
-  useEffect(() => {
-    if (!isFetchingExtractions) {
-      updateList();
-    }
-  }, [isFetchingExtractions, updateList]);
+  const handleShowSnipppet = useCallback((index: number) => {
+    setShowSnippetSet(prev => {
+      const newSet = new Set(prev);
+      newSet.add(index);
+      return newSet;
+    });
+  }, []);
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
-    const item = (items || [])[index];
+    const item = (items || [])[index]!;
 
     return (
       <CellMeasurer
@@ -96,24 +94,25 @@ function Breadcrumbs() {
         <BreadcrumbRow
           index={index}
           frame={item}
-          extraction={frameToExtraction?.get(item)}
           startTimestampMs={startTimestampMs}
           style={style}
           expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
           onClick={() => {
             onClickTimestamp(item);
           }}
+          updateDimensions={updateList}
           onInspectorExpanded={handleInspectorExpanded}
+          showSnippet={showSnippetSet.has(index)}
+          allowShowSnippet
+          onShowSnippet={handleShowSnipppet}
         />
       </CellMeasurer>
     );
   };
 
   return (
-    <FluidHeight>
-      <FilterLoadingIndicator isLoading={isFetchingExtractions}>
-        <BreadcrumbFilters frames={frames} {...filterProps} />
-      </FilterLoadingIndicator>
+    <Flex direction="column" wrap="nowrap">
+      <BreadcrumbFilters frames={frames} {...filterProps} />
       <TabItemContainer data-test-id="replay-details-breadcrumbs-tab">
         {frames ? (
           <AutoSizer onResize={updateList}>
@@ -156,8 +155,6 @@ function Breadcrumbs() {
           />
         ) : null}
       </TabItemContainer>
-    </FluidHeight>
+    </Flex>
   );
 }
-
-export default Breadcrumbs;

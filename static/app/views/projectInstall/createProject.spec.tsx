@@ -1,5 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {MOCK_RESP_VERBOSE} from 'sentry-fixture/ruleConditions';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -12,10 +12,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {tct} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
-import type {Organization as TOrganization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -24,14 +23,9 @@ function renderFrameworkModalMockRequests({
   organization,
   teamSlug,
 }: {
-  organization: TOrganization;
+  organization: Organization;
   teamSlug: string;
 }) {
-  MockApiClient.addMockResponse({
-    url: `/projects/${organization.slug}/rule-conditions/`,
-    body: [],
-  });
-
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/teams/`,
     body: [TeamFixture({slug: teamSlug})],
@@ -47,6 +41,15 @@ function renderFrameworkModalMockRequests({
     body: [],
   });
 
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+    body: [
+      OrganizationIntegrationsFixture({
+        name: "Moo Deng's Workspace",
+      }),
+    ],
+  });
+
   const projectCreationMockRequest = MockApiClient.addMockResponse({
     url: `/teams/${organization.slug}/${teamSlug}/projects/`,
     method: 'POST',
@@ -56,7 +59,7 @@ function renderFrameworkModalMockRequests({
   const experimentalprojectCreationMockRequest = MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/experimental/projects/`,
     method: 'POST',
-    body: {slug: 'testProj', team_slug: 'testTeam'},
+    body: {slug: 'testProj', team: {slug: 'testTeam'}},
   });
 
   return {projectCreationMockRequest, experimentalprojectCreationMockRequest};
@@ -79,10 +82,12 @@ describe('CreateProject', function () {
     TeamStore.loadUserTeams([teamNoAccess]);
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/rule-conditions/`,
-      body: {},
-      // Not required for these tests
-      statusCode: 500,
+      url: `/organizations/org-slug/integrations/?integrationType=messaging`,
+      body: [
+        OrganizationIntegrationsFixture({
+          name: "Moo Deng's Workspace",
+        }),
+      ],
     });
   });
 
@@ -201,11 +206,7 @@ describe('CreateProject', function () {
     expect(frameWorkModalMockRequests.projectCreationMockRequest).toHaveBeenCalledTimes(
       1
     );
-    expect(addSuccessMessage).toHaveBeenCalledWith(
-      tct('Created project [project]', {
-        project: 'testProj',
-      })
-    );
+    expect(addSuccessMessage).toHaveBeenCalledWith('Created project testProj');
   });
 
   it('should display error message on proj creation failure', async function () {
@@ -242,11 +243,7 @@ describe('CreateProject', function () {
     expect(frameWorkModalMockRequests.projectCreationMockRequest).toHaveBeenCalledTimes(
       1
     );
-    expect(addErrorMessage).toHaveBeenCalledWith(
-      tct('Failed to create project [project]', {
-        project: 'apple-ios',
-      })
-    );
+    expect(addErrorMessage).toHaveBeenCalledWith('Failed to create project apple-ios');
   });
 
   it('should display success message when using member endpoint', async function () {
@@ -274,17 +271,14 @@ describe('CreateProject', function () {
       frameWorkModalMockRequests.experimentalprojectCreationMockRequest
     ).toHaveBeenCalledTimes(1);
     expect(addSuccessMessage).toHaveBeenCalledWith(
-      tct('Created [project] under new team [team]', {
-        project: 'testProj',
-        team: '#testTeam',
-      })
+      'Created testProj under new team #testTeam'
     );
   });
 
   it('does not render framework selection modal if vanilla js is NOT selected', async function () {
     const {organization} = initializeOrg({
       organization: {
-        features: ['onboarding-sdk-selection', 'team-roles'],
+        features: ['team-roles'],
         access: ['project:read', 'project:write'],
         allowMemberProjectCreation: true,
       },
@@ -324,11 +318,7 @@ describe('CreateProject', function () {
   });
 
   it('renders framework selection modal if vanilla js is selected', async function () {
-    const {organization} = initializeOrg({
-      organization: {
-        features: ['onboarding-sdk-selection'],
-      },
-    });
+    const {organization} = initializeOrg();
 
     const frameWorkModalMockRequests = renderFrameworkModalMockRequests({
       organization,
@@ -372,8 +362,12 @@ describe('CreateProject', function () {
       TeamStore.loadUserTeams([teamWithAccess]);
 
       MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/rule-conditions/`,
-        body: MOCK_RESP_VERBOSE,
+        url: `/organizations/${organization.slug}/integrations/?integrationType=messaging`,
+        body: [
+          OrganizationIntegrationsFixture({
+            name: "Moo Deng's Workspace",
+          }),
+        ],
       });
     });
 
@@ -406,8 +400,60 @@ describe('CreateProject', function () {
       await userEvent.clear(screen.getByTestId('range-input'));
       expect(getSubmitButton()).toBeDisabled();
 
+      await userEvent.click(
+        screen.getByRole('checkbox', {
+          name: 'Notify via integration (Slack, Discord, MS Teams, etc.)',
+        })
+      );
+      expect(getSubmitButton()).toBeDisabled();
+
       await userEvent.click(screen.getByText("I'll create my own alerts later"));
       expect(getSubmitButton()).toBeEnabled();
+    });
+
+    it('should create an issue alert rule by default', async function () {
+      const {projectCreationMockRequest} = renderFrameworkModalMockRequests({
+        organization,
+        teamSlug: teamWithAccess.slug,
+      });
+      render(<CreateProject />, {organization});
+      expect(screen.getByLabelText(/Alert me on high priority issues/i)).toBeChecked();
+      await userEvent.click(screen.getByTestId('platform-javascript-react'));
+      await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+      expect(projectCreationMockRequest).toHaveBeenCalledWith(
+        `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+        expect.objectContaining({
+          data: {
+            default_rules: true,
+            name: 'javascript-react',
+            origin: 'ui',
+            platform: 'javascript-react',
+          },
+        })
+      );
+    });
+
+    it('should NOT create alerts if the user opt out', async function () {
+      const {projectCreationMockRequest} = renderFrameworkModalMockRequests({
+        organization,
+        teamSlug: teamWithAccess.slug,
+      });
+      render(<CreateProject />, {organization});
+      await userEvent.click(screen.getByText(/create my own alerts later/i));
+      expect(screen.getByLabelText(/create my own alerts later/i)).toBeChecked();
+      await userEvent.click(screen.getByTestId('platform-javascript-react'));
+      await userEvent.click(screen.getByRole('button', {name: 'Create Project'}));
+      expect(projectCreationMockRequest).toHaveBeenCalledWith(
+        `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+        expect.objectContaining({
+          data: {
+            default_rules: false,
+            name: 'javascript-react',
+            origin: 'ui',
+            platform: 'javascript-react',
+          },
+        })
+      );
     });
   });
 });

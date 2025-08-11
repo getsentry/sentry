@@ -1,21 +1,23 @@
 from __future__ import annotations
 
 import functools
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from django.urls import reverse
 
 from sentry.constants import DataCategory
 from sentry.testutils.cases import APITestCase, OutcomesSnubaTest
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.datetime import freeze_time, isoformat_z
+from sentry.utils.dates import floor_to_utc_day
 from sentry.utils.outcomes import Outcome
 
 
 class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
+    _now = datetime.now(UTC).replace(hour=12, minute=27, second=28, microsecond=0)
+
     def setUp(self):
         super().setUp()
-        self.now = datetime(2021, 3, 14, 12, 27, 28, tzinfo=timezone.utc)
 
         self.login_as(user=self.user)
 
@@ -45,7 +47,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         self.store_outcomes(
             {
                 "org_id": self.org.id,
-                "timestamp": self.now - timedelta(hours=1),
+                "timestamp": self._now - timedelta(hours=1),
                 "project_id": self.project.id,
                 "outcome": Outcome.ACCEPTED,
                 "reason": "none",
@@ -57,7 +59,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         self.store_outcomes(
             {
                 "org_id": self.org.id,
-                "timestamp": self.now - timedelta(hours=1),
+                "timestamp": self._now - timedelta(hours=1),
                 "project_id": self.project.id,
                 "outcome": Outcome.ACCEPTED,
                 "reason": "none",
@@ -69,7 +71,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         self.store_outcomes(
             {
                 "org_id": self.org.id,
-                "timestamp": self.now - timedelta(hours=1),
+                "timestamp": self._now - timedelta(hours=1),
                 "project_id": self.project.id,
                 "outcome": Outcome.RATE_LIMITED,
                 "reason": "smart_rate_limit",
@@ -80,7 +82,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         self.store_outcomes(
             {
                 "org_id": self.org.id,
-                "timestamp": self.now - timedelta(hours=1),
+                "timestamp": self._now - timedelta(hours=1),
                 "project_id": self.project2.id,
                 "outcome": Outcome.RATE_LIMITED,
                 "reason": "smart_rate_limit",
@@ -97,18 +99,18 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         )
         return self.client.get(url, query, format="json")
 
-    def test_empty_request(self):
+    def test_empty_request(self) -> None:
         response = self.do_request({})
         assert response.status_code == 400, response.content
         assert response.data == {"detail": 'At least one "field" is required.'}
 
-    def test_inaccessible_project(self):
+    def test_inaccessible_project(self) -> None:
         response = self.do_request({"project": [self.project3.id]})
 
         assert response.status_code == 403, response.content
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
-    def test_no_projects_available(self):
+    def test_no_projects_available(self) -> None:
         response = self.do_request(
             {
                 "groupBy": ["project"],
@@ -126,7 +128,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             "detail": "No projects available",
         }
 
-    def test_unknown_field(self):
+    def test_unknown_field(self) -> None:
         response = self.do_request(
             {
                 "field": ["summ(qarntenty)"],
@@ -140,33 +142,37 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             "detail": 'Invalid field: "summ(qarntenty)"',
         }
 
-    def test_no_end_param(self):
+    def test_no_end_param(self) -> None:
         response = self.do_request(
-            {"field": ["sum(quantity)"], "interval": "1d", "start": "2021-03-14T00:00:00Z"}
+            {
+                "field": ["sum(quantity)"],
+                "interval": "1d",
+                "start": floor_to_utc_day(self._now).isoformat(),
+            }
         )
 
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "start and end are both required"}
 
-    @freeze_time(datetime(2021, 3, 14, 12, 27, 28, tzinfo=timezone.utc))
-    def test_future_request(self):
+    @freeze_time(_now)
+    def test_future_request(self) -> None:
         response = self.do_request(
             {
                 "field": ["sum(quantity)"],
                 "interval": "1h",
                 "category": ["error"],
-                "start": "2021-03-14T15:30:00",
-                "end": "2021-03-14T16:30:00",
+                "start": self._now.replace(hour=15, minute=30, second=0).isoformat(),
+                "end": self._now.replace(hour=16, minute=30, second=0).isoformat(),
             }
         )
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": "2021-03-14T12:00:00Z",
-            "end": "2021-03-14T17:00:00Z",
+            "start": isoformat_z(self._now.replace(hour=12, minute=0, second=0)),
+            "end": isoformat_z(self._now.replace(hour=17, minute=0, second=0)),
             "projects": [],
         }
 
-    def test_unknown_category(self):
+    def test_unknown_category(self) -> None:
         response = self.do_request(
             {
                 "field": ["sum(quantity)"],
@@ -181,7 +187,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             "detail": 'Invalid category: "scoobydoo"',
         }
 
-    def test_unknown_outcome(self):
+    def test_unknown_outcome(self) -> None:
         response = self.do_request(
             {
                 "field": ["sum(quantity)"],
@@ -197,7 +203,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             "detail": 'Invalid outcome: "scoobydoo"',
         }
 
-    def test_resolution_invalid(self):
+    def test_resolution_invalid(self) -> None:
         self.login_as(user=self.user)
         make_request = functools.partial(
             self.client.get,
@@ -212,8 +218,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 400, response.content
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
-    def test_attachment_filter_only(self):
+    @freeze_time(_now)
+    def test_attachment_filter_only(self) -> None:
         response = self.do_request(
             {
                 "project": [-1],
@@ -229,8 +235,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             "detail": "if filtering by attachment no other category may be present"
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
-    def test_user_all_accessible(self):
+    @freeze_time(_now)
+    def test_user_all_accessible(self) -> None:
         response = self.do_request(
             {
                 "project": self.project.id,
@@ -256,13 +262,13 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200
         assert response.data == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
             "projects": [],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
-    def test_no_project_access(self):
+    @freeze_time(_now)
+    def test_no_project_access(self) -> None:
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.organization, role="member", teams=[])
 
@@ -281,8 +287,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         assert response.status_code == 403, response.content
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
-    def test_open_membership_semantics(self):
+    @freeze_time(_now)
+    def test_open_membership_semantics(self) -> None:
         self.org.flags.allow_joinleave = True
         self.org.save()
         response = self.do_request(
@@ -299,8 +305,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200
         assert response.data == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
             "projects": [
                 {
                     "id": self.project.id,
@@ -343,8 +349,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
-    def test_org_simple(self):
+    @freeze_time(_now)
+    def test_org_simple(self) -> None:
         make_request = functools.partial(
             self.client.get,
             reverse("sentry-api-0-organization-stats-summary", args=[self.org.slug]),
@@ -359,8 +365,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": "2021-03-12T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=2)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
             "projects": [
                 {
                     "id": self.project.id,
@@ -416,8 +422,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
-    def test_org_multiple_fields(self):
+    @freeze_time(_now)
+    def test_org_multiple_fields(self) -> None:
         make_request = functools.partial(
             self.client.get,
             reverse("sentry-api-0-organization-stats-summary", args=[self.org.slug]),
@@ -432,8 +438,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": "2021-03-12T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=2)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
             "projects": [
                 {
                     "id": self.project.id,
@@ -493,8 +499,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
-    def test_org_project_totals_per_project(self):
+    @freeze_time(_now)
+    def test_org_project_totals_per_project(self) -> None:
         make_request = functools.partial(
             self.client.get,
             reverse("sentry-api-0-organization-stats-summary", args=[self.org.slug]),
@@ -510,8 +516,10 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response_per_group.status_code == 200, response_per_group.content
         assert response_per_group.data == {
-            "start": "2021-03-13T12:00:00Z",
-            "end": "2021-03-14T13:00:00Z",
+            "start": isoformat_z(
+                (self._now - timedelta(days=1)).replace(hour=12, minute=0, second=0)
+            ),
+            "end": isoformat_z(self._now.replace(hour=13, minute=0, second=0)),
             "projects": [
                 {
                     "id": self.project.id,
@@ -554,8 +562,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
-    def test_project_filter(self):
+    @freeze_time(_now)
+    def test_project_filter(self) -> None:
         make_request = functools.partial(
             self.client.get,
             reverse("sentry-api-0-organization-stats-summary", args=[self.org.slug]),
@@ -572,8 +580,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
             "projects": [
                 {
                     "id": self.project.id,
@@ -597,8 +605,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
-    def test_reason_filter(self):
+    @freeze_time(_now)
+    def test_reason_filter(self) -> None:
         make_request = functools.partial(
             self.client.get,
             reverse("sentry-api-0-organization-stats-summary", args=[self.org.slug]),
@@ -615,8 +623,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
             "projects": [
                 {
                     "id": self.project.id,
@@ -661,8 +669,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
-    def test_outcome_filter(self):
+    @freeze_time(_now)
+    def test_outcome_filter(self) -> None:
         make_request = functools.partial(
             self.client.get,
             reverse("sentry-api-0-organization-stats-summary", args=[self.org.slug]),
@@ -678,8 +686,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         )
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
             "projects": [
                 {
                     "id": self.project.id,
@@ -697,8 +705,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-    @freeze_time("2021-03-14T12:27:28.303Z")
-    def test_category_filter(self):
+    @freeze_time(_now)
+    def test_category_filter(self) -> None:
         make_request = functools.partial(
             self.client.get,
             reverse("sentry-api-0-organization-stats-summary", args=[self.org.slug]),
@@ -713,8 +721,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         )
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-15T00:00:00Z",
+            "start": isoformat_z(floor_to_utc_day(self._now) - timedelta(days=1)),
+            "end": isoformat_z(floor_to_utc_day(self._now) + timedelta(days=1)),
             "projects": [
                 {
                     "id": self.project.id,
@@ -738,7 +746,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-    def test_download(self):
+    def test_download(self) -> None:
         req: dict[str, Any] = {
             "statsPeriod": "2d",
             "interval": "1d",

@@ -12,7 +12,8 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import StreamGroup from 'sentry/components/stream/group';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import type {Group, Member} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Member} from 'sentry/types/organization';
 
 type Props = {
   error: string | null;
@@ -55,12 +56,11 @@ function PreviewTable({
       );
     }
     const memberList = indexMembersByProject(members);
-    return previewGroups.map((id, index) => {
+    return previewGroups.map(id => {
       const group = GroupStore.get(id) as Group | undefined;
 
       return (
         <StreamGroup
-          index={index}
           key={id}
           id={id}
           hasGuideAnchor={false}
@@ -100,13 +100,13 @@ function PreviewTable({
 
   return (
     <Fragment>
-      <Panel>
+      <PanelContainer>
         <GroupListHeader
           withChart={false}
           withColumns={['assignee', 'event', 'lastTriggered', 'users']}
         />
         <PanelBody>{renderBody()}</PanelBody>
-      </Panel>
+      </PanelContainer>
       {renderPagination()}
     </Fragment>
   );
@@ -114,6 +114,10 @@ function PreviewTable({
 
 const StyledPagination = styled(Pagination)`
   margin-top: 0;
+`;
+
+const PanelContainer = styled(Panel)`
+  container-type: inline-size;
 `;
 
 export default PreviewTable;

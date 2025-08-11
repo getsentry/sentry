@@ -1,10 +1,10 @@
 import moment from 'moment-timezone';
 
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
-import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types/core';
+import type {DataCategory, IntervalPeriod} from 'sentry/types/core';
+import {shouldUse24Hours} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-
-import {formatUsageWithUnits} from '../utils';
+import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
 
 /**
  * Avoid changing "MMM D" format as X-axis labels on UsageChart are naively
@@ -12,6 +12,7 @@ import {formatUsageWithUnits} from '../utils';
  */
 export const FORMAT_DATETIME_DAILY = 'MMM D';
 export const FORMAT_DATETIME_HOURLY = 'MMM D LT';
+export const FORMAT_DATETIME_HOURLY_24H = 'MMM D HH:mm';
 
 /**
  * Used to generate X-axis data points and labels for UsageChart
@@ -24,39 +25,44 @@ export const FORMAT_DATETIME_HOURLY = 'MMM D LT';
 export function getDateFromMoment(
   m: moment.Moment,
   interval: IntervalPeriod = '1d',
-  useUtc: boolean = false
+  useUtc = false,
+  use24Hours = shouldUse24Hours()
 ) {
+  // Convert interval to days
   const days = parsePeriodToHours(interval) / 24;
+
+  // For intervals >= 1 day, use daily format
   if (days >= 1) {
-    return useUtc
-      ? moment.utc(m).format(FORMAT_DATETIME_DAILY)
-      : m.format(FORMAT_DATETIME_DAILY);
+    const format = FORMAT_DATETIME_DAILY;
+    return useUtc ? moment.utc(m).format(format) : m.format(format);
   }
 
+  // For sub-daily intervals, use hourly format
   const parsedInterval = parseStatsPeriod(interval);
   const datetime = useUtc ? moment(m).utc() : moment(m).local();
 
-  return parsedInterval
-    ? `${datetime.format(FORMAT_DATETIME_HOURLY)} - ${datetime
-        .add(parsedInterval.period as any, parsedInterval.periodLength as any)
-        .format('LT (Z)')}`
-    : datetime.format(FORMAT_DATETIME_HOURLY);
-}
+  const intervalFormat = use24Hours ? FORMAT_DATETIME_HOURLY_24H : FORMAT_DATETIME_HOURLY;
 
-export function getDateFromUnixTimestamp(timestamp: number) {
-  const date = moment.unix(timestamp);
-  return getDateFromMoment(date);
+  return parsedInterval
+    ? `${datetime.format(intervalFormat)} - ${datetime
+        .add(parsedInterval.period, parsedInterval.periodLength)
+        .format(use24Hours ? 'HH:mm (Z)' : 'LT (Z)')}`
+    : datetime.format(intervalFormat);
 }
 
 export function getXAxisDates(
   dateStart: moment.MomentInput,
   dateEnd: moment.MomentInput,
-  dateUtc: boolean = false,
+  dateUtc = false,
   interval: IntervalPeriod = '1d'
 ): string[] {
   const range: string[] = [];
-  const start = moment(dateStart).startOf('h');
-  const end = moment(dateEnd).startOf('h');
+  let startOfUnit: moment.unitOfTime.StartOf = 'h';
+  if (interval <= '6h') {
+    startOfUnit = 'm';
+  }
+  const start = moment(dateStart).startOf(startOfUnit);
+  const end = moment(dateEnd).startOf(startOfUnit);
 
   if (!start.isValid() || !end.isValid()) {
     return range;
@@ -69,72 +75,69 @@ export function getXAxisDates(
 
   while (!start.isAfter(end)) {
     range.push(getDateFromMoment(start, interval, dateUtc));
-    start.add(period as any, periodLength as any); // FIXME(ts): Something odd with momentjs types
+    start.add(period, periodLength);
   }
 
   return range;
 }
 
-export function getTooltipFormatter(dataCategory: DataCategoryInfo['plural']) {
-  return (val: number = 0) =>
-    formatUsageWithUnits(val, dataCategory, {useUnitScaling: true});
+export function getTooltipFormatter(dataCategory: DataCategory) {
+  return (val = 0) => formatUsageWithUnits(val, dataCategory, {useUnitScaling: true});
 }
 
 const MAX_NUMBER_OF_LABELS = 10;
 
 /**
+ * Determines which X-axis labels should be visible based on data period and intervals.
  *
  * @param dataPeriod - Quantity of hours covered by the data
- * @param numBars - Quantity of data points covered by the dataPeriod
+ * @param intervals - Intervals to be displayed on the X-axis
+ * @returns An object containing an array indicating visibility of each X-axis label
  */
-export function getXAxisLabelInterval(dataPeriod: number, numBars: number) {
-  return dataPeriod > 7 * 24
-    ? getLabelIntervalLongPeriod(dataPeriod, numBars)
-    : getLabelIntervalShortPeriod(dataPeriod, numBars);
-}
-
-/**
- * @param dataPeriod - Quantity of hours covered by data, expected 7+ days
- */
-function getLabelIntervalLongPeriod(dataPeriod: number, numBars: number) {
-  const days = dataPeriod / 24;
-  if (days <= 7) {
-    throw new Error('This method should be used for periods > 7 days');
+export function getXAxisLabelVisibility(dataPeriod: number, intervals: string[]) {
+  if (dataPeriod <= 24) {
+    return {
+      xAxisLabelVisibility: new Array(intervals.length).fill(false),
+    };
   }
 
-  // Use 1 tick per day
-  let numTicks = days;
-  let numLabels = numTicks;
+  const uniqueLabels: Set<string> = new Set();
+  const labelToPositionMap: Map<string, number> = new Map();
+  const labelVisibility: boolean[] = new Array(intervals.length).fill(false);
 
-  const daysBetweenLabels = [2, 4, 7, 14];
-  const daysBetweenTicks = [1, 2, 7, 7];
+  // Collect unique labels and their positions
+  intervals.forEach((label, index) => {
+    if (index === 0 || label.slice(0, 6) !== intervals[index - 1]!.slice(0, 6)) {
+      uniqueLabels.add(label);
+      labelToPositionMap.set(label, index);
+    }
+  });
 
-  for (let i = 0; i < daysBetweenLabels.length && numLabels > MAX_NUMBER_OF_LABELS; i++) {
-    numLabels = numTicks / daysBetweenLabels[i];
-    numTicks = days / daysBetweenTicks[i];
+  const totalUniqueLabels = uniqueLabels.size;
+
+  // Determine which labels should be visible
+  if (totalUniqueLabels <= MAX_NUMBER_OF_LABELS) {
+    uniqueLabels.forEach(label => {
+      const position = labelToPositionMap.get(label);
+      if (position !== undefined) {
+        labelVisibility[position] = true;
+      }
+    });
+    return {xAxisLabelVisibility: labelVisibility};
   }
 
-  return {
-    xAxisTickInterval: numBars / numTicks - 1,
-    xAxisLabelInterval: numBars / numLabels - 1,
-  };
-}
+  const interval = Math.floor(totalUniqueLabels / MAX_NUMBER_OF_LABELS);
 
-/**
- * @param dataPeriod - Quantity of hours covered by data, expected <7 days
- */
-function getLabelIntervalShortPeriod(dataPeriod: number, numBars: number) {
-  const days = dataPeriod / 24;
-  if (days > 7) {
-    throw new Error('This method should be used for periods <= 7 days');
-  }
+  let i = 0;
+  uniqueLabels.forEach(label => {
+    if (i % interval === 0) {
+      const position = labelToPositionMap.get(label);
+      if (position !== undefined) {
+        labelVisibility[position] = true;
+      }
+    }
+    i++;
+  });
 
-  // Use 1 tick/label per day, since it's guaranteed to be 7 or less
-  const numTicks = days;
-  const interval = numBars / numTicks;
-
-  return {
-    xAxisTickInterval: interval - 1,
-    xAxisLabelInterval: interval - 1,
-  };
+  return {xAxisLabelVisibility: labelVisibility};
 }

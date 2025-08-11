@@ -1,13 +1,14 @@
-from sentry.models.organization import OrganizationStatus
+from collections.abc import Sequence
+
+from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.organizations.services.organization_actions.impl import (
     update_organization_with_outbox_message,
 )
 
-from ..base import ModelDeletionTask, ModelRelation
 
-
-class OrganizationDeletionTask(ModelDeletionTask):
-    def should_proceed(self, instance):
+class OrganizationDeletionTask(ModelDeletionTask[Organization]):
+    def should_proceed(self, instance: Organization) -> bool:
         """
         Only delete organizations that haven't been undeleted.
         """
@@ -16,7 +17,7 @@ class OrganizationDeletionTask(ModelDeletionTask):
             OrganizationStatus.DELETION_IN_PROGRESS,
         }
 
-    def get_child_relations(self, instance):
+    def get_child_relations(self, instance: Organization) -> list[BaseRelation]:
         from sentry.deletions.defaults.discoversavedquery import DiscoverSavedQueryDeletionTask
         from sentry.discover.models import DiscoverSavedQuery, TeamKeyTransaction
         from sentry.incidents.models.alert_rule import AlertRule
@@ -33,9 +34,10 @@ class OrganizationDeletionTask(ModelDeletionTask):
         from sentry.models.repository import Repository
         from sentry.models.team import Team
         from sentry.models.transaction_threshold import ProjectTransactionThreshold
+        from sentry.workflow_engine.models import Workflow
 
         # Team must come first
-        relations = [ModelRelation(Team, {"organization_id": instance.id})]
+        relations: list[BaseRelation] = [ModelRelation(Team, {"organization_id": instance.id})]
 
         model_list = (
             OrganizationMember,
@@ -62,10 +64,11 @@ class OrganizationDeletionTask(ModelDeletionTask):
                 task=DiscoverSavedQueryDeletionTask,
             )
         )
+        relations.append(ModelRelation(Workflow, {"organization_id": instance.id}))
 
         return relations
 
-    def mark_deletion_in_progress(self, instance_list):
+    def mark_deletion_in_progress(self, instance_list: Sequence[Organization]) -> None:
         from sentry.models.organization import OrganizationStatus
 
         for instance in instance_list:

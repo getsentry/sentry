@@ -24,7 +24,7 @@ const PRISM_LANGUAGE_MAP: Record<string, string> = Object.fromEntries(
     return [
       [lang, lang], // map the full language name to itself
       ...(Array.isArray(value.alias) // map aliases to full language name
-        ? value.alias.map(alias => [alias, lang])
+        ? value.alias.map((alias: any) => [alias, lang])
         : [[value.alias, lang]]),
     ];
   })
@@ -47,6 +47,7 @@ const EXTRA_LANGUAGE_ALIASES: Record<string, string> = {
   jbuilder: 'ruby',
   ru: 'ruby',
   rake: 'ruby',
+  rabl: 'ruby',
 
   // JS
   cjs: 'javascript',
@@ -55,6 +56,27 @@ const EXTRA_LANGUAGE_ALIASES: Record<string, string> = {
   bundle: 'javascript',
   vue: 'javascript',
   svelte: 'javascript',
+  'js?': 'javascript',
+  'ts?': 'typescript',
+  'tsx?': 'tsx',
+  mts: 'typescript',
+
+  // Clojure
+  clj: 'clojure',
+  cljc: 'clojure',
+  cljs: 'clojure',
+
+  // Php
+  php5: 'php',
+  phtml: 'php',
+
+  // Various
+  // Flutter ARB file .arb is a JSON file
+  arb: 'json',
+  ps1: 'powershell',
+  jinja: 'jinja2',
+  // Godot Script - e.g: "file": "res://script_with_errors.gd"
+  gd: 'gdscript',
 };
 
 export const getPrismLanguage = (lang: string) => {
@@ -77,7 +99,7 @@ export async function loadPrismLanguage(
     onLoad,
     suppressExistenceWarning,
   }: {
-    onError?: (error) => void;
+    onError?: (error: any) => void;
     onLoad?: () => void;
     suppressExistenceWarning?: boolean;
   }
@@ -86,7 +108,7 @@ export async function loadPrismLanguage(
     const language: string | undefined = getPrismLanguage(lang);
 
     // Short-circuit if language already loaded
-    if (Prism.languages[language]) {
+    if (Prism.languages[language!]) {
       onLoad?.();
       return;
     }

@@ -1,20 +1,22 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportGenericInstallStep,
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
 type Params = DocsParams;
@@ -30,13 +32,19 @@ import (
 
 // To initialize Sentry's handler, you need to initialize Sentry itself beforehand
 if err := sentry.Init(sentry.ClientOptions{
-  Dsn: "${params.dsn}",${
+  Dsn: "${params.dsn.public}",${
     params.isPerformanceSelected
       ? `
   // Set TracesSampleRate to 1.0 to capture 100%
-  // of transactions for performance monitoring.
+  // of transactions for tracing.
   // We recommend adjusting this value in production,
   TracesSampleRate: 1.0,`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
+  // Enable structured logs to Sentry
+  EnableLogs: true,`
       : ''
   }
 }); err != nil {
@@ -110,9 +118,9 @@ if err := http.ListenAndServe(":3000", nil); err != nil {
   panic(err)
 }`;
 
-const getBeforeSendSnippet = params => `
+const getBeforeSendSnippet = (params: any) => `
 sentry.Init(sentry.ClientOptions{
-  Dsn: "${params.dsn}",
+  Dsn: "${params.dsn.public}",
   BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
     if hint.Context != nil {
       if req, ok := hint.Context.Value(sentry.RequestContextKey).(*http.Request); ok {
@@ -156,8 +164,8 @@ const onboarding: OnboardingConfig = {
               <strong>{t('Options')}</strong>
               <p>
                 {tct(
-                  '[sentryHttpCode:sentryhttp] accepts a struct of [optionsCode:Options] that allows you to configure how the handler will behave.',
-                  {sentryHttpCode: <code />, optionsCode: <code />}
+                  '[code:sentryhttp] accepts a struct of [code:Options] that allows you to configure how the handler will behave.',
+                  {code: <code />}
                 )}
               </p>
               {t('Currently it respects 3 options:')}
@@ -174,24 +182,21 @@ const onboarding: OnboardingConfig = {
         <Fragment>
           <p>
             {tct(
-              "[sentryHttpCode:sentryhttp] attaches an instance of [sentryHubLink:*sentry.Hub] to the request's context, which makes it available throughout the rest of the request's lifetime. You can access it by using the [getHubFromContextCode:sentry.GetHubFromContext()] method on the request itself in any of your proceeding middleware and routes. And it should be used instead of the global [captureMessageCode:sentry.CaptureMessage], [captureExceptionCode:sentry.CaptureException], or any other calls, as it keeps the separation of data between the requests.",
+              "[code:sentryhttp] attaches an instance of [sentryHubLink:*sentry.Hub] to the request's context, which makes it available throughout the rest of the request's lifetime. You can access it by using the [code:sentry.GetHubFromContext()] method on the request itself in any of your proceeding middleware and routes. And it should be used instead of the global [code:sentry.CaptureMessage], [code:sentry.CaptureException], or any other calls, as it keeps the separation of data between the requests.",
               {
-                sentryHttpCode: <code />,
+                code: <code />,
                 sentryHubLink: (
                   <ExternalLink href="https://pkg.go.dev/github.com/getsentry/sentry-go#Hub" />
                 ),
-                getHubFromContextCode: <code />,
-                captureMessageCode: <code />,
-                captureExceptionCode: <code />,
               }
             )}
           </p>
-          <AlertWithoutMarginBottom>
+          <Alert type="info" showIcon={false}>
             {tct(
-              "Keep in mind that [sentryHubCode:*sentry.Hub] won't be available in middleware attached before [sentryHttpCode:sentryhttp]!",
-              {sentryHttpCode: <code />, sentryHubCode: <code />}
+              "Keep in mind that [code:*sentry.Hub] won't be available in middleware attached before [code:sentryhttp]!",
+              {code: <code />}
             )}
-          </AlertWithoutMarginBottom>
+          </Alert>
         </Fragment>
       ),
       configurations: [
@@ -214,6 +219,22 @@ const onboarding: OnboardingConfig = {
     },
   ],
   verify: () => [],
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/go/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const crashReportOnboarding: OnboardingConfig = {
@@ -235,10 +256,7 @@ const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   crashReportOnboarding,
+  feedbackOnboardingJsLoader,
 };
 
 export default docs;
-
-const AlertWithoutMarginBottom = styled(Alert)`
-  margin-bottom: 0;
-`;

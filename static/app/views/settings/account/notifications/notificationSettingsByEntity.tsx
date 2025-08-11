@@ -1,9 +1,10 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 
-import {Button} from 'sentry/components/button';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Button} from 'sentry/components/core/button';
+import {Select} from 'sentry/components/core/select';
+import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -19,7 +20,7 @@ import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useRouter from 'sentry/utils/useRouter';
 
-import type {NotificationOptionsObject} from './constants';
+import type {NotificationOptionsObject, NotificationSettingsType} from './constants';
 import {NOTIFICATION_SETTING_FIELDS} from './fields2';
 import {OrganizationSelectHeader} from './organizationSelectHeader';
 
@@ -56,17 +57,20 @@ function NotificationSettingsByEntity({
   )?.id;
 
   const orgId =
-    router.location?.query?.organizationId ?? orgFromSubdomain ?? organizations[0]?.id;
+    router.location?.query?.organizationId ??
+    orgFromSubdomain ??
+    (organizations.length === 1 ? organizations[0]?.id : undefined);
   let organization = organizations.find(({id}) => id === orgId);
-  if (!organization) {
+
+  if (!organization && organizations.length === 1) {
     organization = organizations[0];
   }
-  const orgSlug = organization.slug;
+  const orgSlug = organization?.slug;
 
   // loads all the projects for an org
   const {
     data: projects,
-    isLoading,
+    isPending,
     isSuccess,
     isError,
     refetch,
@@ -74,14 +78,14 @@ function NotificationSettingsByEntity({
     [
       `/organizations/${orgSlug}/projects/`,
       {
-        host: organization.links.regionUrl,
+        host: organization?.links?.regionUrl,
         query: {
           all_projects: '1',
           collapse: ['latestDeploys', 'unusedFeatures'],
         },
       },
     ],
-    {staleTime: Infinity}
+    {staleTime: Infinity, enabled: Boolean(organization)}
   );
 
   // always loading all projects even though we only need it sometimes
@@ -112,7 +116,8 @@ function NotificationSettingsByEntity({
     handleAddNotificationOption(data);
   };
 
-  const valueOptions = NOTIFICATION_SETTING_FIELDS[notificationType].choices;
+  const valueOptions =
+    NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType].choices;
 
   const renderOverrides = () => {
     const matchedOptions = notificationOptions.filter(
@@ -140,7 +145,7 @@ function NotificationSettingsByEntity({
               disableLink
             />
           </div>
-          <SelectControl
+          <Select
             placeholder={t('Value\u2026')}
             value={option.value}
             name={`${entity.id}-value`}
@@ -167,7 +172,7 @@ function NotificationSettingsByEntity({
   };
 
   const entityOptions = entities
-    .filter(({id}) => {
+    .filter(({id}: any) => {
       const match = notificationOptions.find(
         option =>
           option.scopeType === entityType &&
@@ -176,7 +181,7 @@ function NotificationSettingsByEntity({
       );
       return !match;
     })
-    .map(obj => {
+    .map((obj: any) => {
       const entity = entityById[obj.id];
       const idBadgeProps =
         entityType === 'project'
@@ -197,7 +202,7 @@ function NotificationSettingsByEntity({
         ),
       };
     })
-    .sort((a, b) => a.label.localeCompare(b.label));
+    .sort((a: any, b: any) => a.label.localeCompare(b.label));
 
   // Group options when displaying projects
   const groupedEntityOptions =
@@ -206,13 +211,13 @@ function NotificationSettingsByEntity({
           {
             label: t('My Projects'),
             options: entityOptions.filter(
-              project => (entityById[project.value] as Project).isMember
+              (project: any) => (entityById[project.value] as Project).isMember
             ),
           },
           {
             label: t('All Projects'),
             options: entityOptions.filter(
-              project => !(entityById[project.value] as Project).isMember
+              (project: any) => !(entityById[project.value] as Project).isMember
             ),
           },
         ]
@@ -232,49 +237,61 @@ function NotificationSettingsByEntity({
             t('Settings for Organizations')
           )}
         </StyledPanelHeader>
-        <ControlItem>
-          {/* TODO: enable search for sentry projects */}
-          <SelectControl
-            placeholder={
-              entityType === 'project'
-                ? t('Project\u2026')
-                : t('Sentry Organization\u2026')
-            }
-            name={entityType}
-            options={groupedEntityOptions}
-            onChange={({value}: {value: string}) => {
-              setSelectedEntityId(value);
-            }}
-            value={selectedEntityId}
-          />
-          <SelectControl
-            placeholder={t('Value\u2026')}
-            value={selectedValue}
-            name="value"
-            choices={valueOptions}
-            onChange={({value}: {value: string}) => {
-              setSelectedValue(value as Value);
-            }}
-          />
-          <Button
-            disabled={!selectedEntityId || !selectedValue}
-            priority="primary"
-            onClick={handleAdd}
-            icon={<IconAdd />}
-            aria-label={t('Add override')}
-          />
-        </ControlItem>
-        {isLoading && (
+        {!organization && entityType === 'project' ? (
           <PanelBody>
-            <LoadingIndicator />
+            <EmptyStateWarning withIcon={false}>
+              {t('Select an organization to continue')}
+            </EmptyStateWarning>
           </PanelBody>
+        ) : (
+          <Fragment>
+            <ControlItem>
+              {/* TODO: enable search for sentry projects */}
+              <Select
+                placeholder={
+                  entityType === 'project'
+                    ? t('Project\u2026')
+                    : t('Sentry Organization\u2026')
+                }
+                name={entityType}
+                options={groupedEntityOptions}
+                onChange={({value}: {value: string}) => {
+                  setSelectedEntityId(value);
+                }}
+                value={selectedEntityId}
+              />
+              <Select
+                placeholder={t('Value\u2026')}
+                value={selectedValue}
+                name="value"
+                choices={valueOptions}
+                onChange={({value}: {value: string}) => {
+                  setSelectedValue(value as Value);
+                }}
+              />
+              <Button
+                disabled={!selectedEntityId || !selectedValue}
+                priority="primary"
+                onClick={handleAdd}
+                icon={<IconAdd />}
+                aria-label={t('Add override')}
+              />
+            </ControlItem>
+            {isPending && entityType === 'project' && (
+              <PanelBody>
+                <LoadingIndicator />
+              </PanelBody>
+            )}
+            {isError && entityType === 'project' && (
+              <PanelBody>
+                <LoadingError onRetry={refetch} />
+              </PanelBody>
+            )}
+            {(isSuccess || entityType === 'organization') && (
+              <StyledPanelBody>{renderOverrides()}</StyledPanelBody>
+            )}
+          </Fragment>
         )}
-        {isError && (
-          <PanelBody>
-            <LoadingError onRetry={refetch} />
-          </PanelBody>
-        )}
-        {isSuccess && <StyledPanelBody>{renderOverrides()}</StyledPanelBody>}
       </Panel>
     </MinHeight>
   );

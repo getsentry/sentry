@@ -1,4 +1,3 @@
-
 !static
 !src
 !src/sentry
@@ -13,13 +12,12 @@
 !jest.config.js
 !now.json
 !package.json
-!biome.json
 !stylelint.config.js
 !tsconfig.json
 !config
 !config/tsconfig.build.json
 !webpack.config.js
-!yarn.lock
+!pnpm-lock.yaml
 !tests
 !fixtures
 !fixtures/integration-docs

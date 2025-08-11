@@ -8,10 +8,12 @@ from urllib.parse import parse_qs, urlparse, urlsplit
 from requests import PreparedRequest
 
 from sentry.integrations.client import ApiClient
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.integrations.utils import get_query_hash
+from sentry.integrations.source_code_management.repository import RepositoryClient
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.models.repository import Repository
-from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 from sentry.utils.patch_set import patch_to_file_changes
@@ -37,7 +39,6 @@ class BitbucketAPIPath:
 
     repository = "/2.0/repositories/{repo}"
     repositories = "/2.0/repositories/{username}"
-    repository_commit = "/2.0/repositories/{repo}/commit/{sha}"
     repository_commits = "/2.0/repositories/{repo}/commits/{revision}"
     repository_diff = "/2.0/repositories/{repo}/diff/{spec}"
     repository_hook = "/2.0/repositories/{repo}/hooks/{uid}"
@@ -46,16 +47,16 @@ class BitbucketAPIPath:
     source = "/2.0/repositories/{repo}/src/{sha}/{path}"
 
 
-class BitbucketApiClient(ApiClient):
+class BitbucketApiClient(ApiClient, RepositoryClient):
     """
     The API Client for the Bitbucket Integration
 
     NOTE: repo is the fully qualified slug containing 'username/repo_slug'
     """
 
-    integration_name = "bitbucket"
+    integration_name = IntegrationProviderSlug.BITBUCKET.value
 
-    def __init__(self, integration: RpcIntegration):
+    def __init__(self, integration: RpcIntegration | Integration):
         self.base_url = integration.metadata["base_url"]
         self.shared_secret = integration.metadata["shared_secret"]
         # subject is probably the clientKey
@@ -68,6 +69,8 @@ class BitbucketApiClient(ApiClient):
         )
 
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        assert prepared_request.url is not None
+        assert prepared_request.method is not None
         path = prepared_request.url[len(self.base_url) :]
         url_params = dict(parse_qs(urlsplit(path).query))
         path = path.split("?")[0]
@@ -86,9 +89,6 @@ class BitbucketApiClient(ApiClient):
 
     def get_issue(self, repo, issue_id):
         return self.get(BitbucketAPIPath.issue.format(repo=repo, issue_id=issue_id))
-
-    def get_issues(self, repo):
-        return self.get(BitbucketAPIPath.issues.format(repo=repo))
 
     def create_issue(self, repo, data):
         return self.post(path=BitbucketAPIPath.issues.format(repo=repo), data=data)
@@ -148,7 +148,7 @@ class BitbucketApiClient(ApiClient):
         # where start_sha is oldest and end_sha is most recent
         # see
         # https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/commits/%7Brevision%7D
-        commits = []
+        commits: list[dict[str, Any]] = []
         done = False
 
         url = BitbucketAPIPath.repository_commits.format(repo=repo, revision=end_sha)
@@ -170,7 +170,7 @@ class BitbucketApiClient(ApiClient):
 
         return self.zip_commit_data(repo, commits)
 
-    def check_file(self, repo: Repository, path: str, version: str) -> BaseApiResponseX:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         return self.head_cached(
             path=BitbucketAPIPath.source.format(
                 repo=repo.name,
@@ -178,3 +178,17 @@ class BitbucketApiClient(ApiClient):
                 path=path,
             ),
         )
+
+    def get_file(
+        self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
+    ) -> str:
+        response = self.get_cached(
+            path=BitbucketAPIPath.source.format(
+                repo=repo.name,
+                sha=ref,
+                path=path,
+            ),
+            allow_redirects=True,
+            raw_response=True,
+        )
+        return response.text

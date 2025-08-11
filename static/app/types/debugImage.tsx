@@ -95,18 +95,18 @@ export type CandidateDownload =
   | CandidateDownloadOtherStatus;
 
 interface ImageCandidateBase {
-  location: string;
   source: string;
+  location?: string;
   source_name?: string;
 }
 
 type InternalSource = {
   dateCreated: string;
   filename: string;
-  location: string;
   prettyFileType: string;
   size: number;
   symbolType: SymbolType;
+  location?: string;
 };
 
 export interface ImageCandidateOk extends ImageCandidateBase {
@@ -132,7 +132,6 @@ interface ImageCandidateOthers extends ImageCandidateBase {
     | CandidateDownloadNotFoundStatus
     | CandidateDownloadDeletedStatus
     | CandidateDownloadOtherStatus;
-  location: string;
   source: string;
   source_name?: string;
 }
@@ -149,6 +148,7 @@ export enum ImageStatus {
   UNUSED = 'unused',
   MISSING = 'missing',
   MALFORMED = 'malformed',
+  UNSUPPORTED = 'unsupported',
   FETCHING_FAILED = 'fetching_failed',
   TIMEOUT = 'timeout',
   OTHER = 'other',
@@ -158,7 +158,7 @@ export type Image = {
   features: ImageFeatures;
   type: string;
   arch?: string;
-  candidates?: Array<ImageCandidate>;
+  candidates?: ImageCandidate[];
   code_file?: string | null;
   code_id?: string;
   debug_file?: string;
@@ -170,3 +170,10 @@ export type Image = {
   unwind_status?: ImageStatus | null;
   uuid?: string;
 };
+
+export interface ImageWithCombinedStatus extends Image {
+  /**
+   * This is not returned from any API but is derived from debug and unwind status
+   */
+  status: ImageStatus;
+}

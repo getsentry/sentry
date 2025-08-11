@@ -8,8 +8,7 @@ import {
 import selectEvent from 'sentry-test/selectEvent';
 
 import Form from 'sentry/components/forms/form';
-
-import FormModel from '../model';
+import FormModel from 'sentry/components/forms/model';
 
 import BooleanField from './booleanField';
 import CheckboxField from './checkboxField';
@@ -48,6 +47,12 @@ describe('Field accessibility', function () {
         <SeparatorField />
         <HiddenField name="hidden" defaultValue="itsHidden" />
         <TextField label="My Text Input" help="This is a text input" name="myTextInput" />
+        <TextField
+          hideLabel
+          label="My hidden label Text Input"
+          help="This is a text input where the label is not visible"
+          name="myTextInputHideLabel"
+        />
         <NumberField
           label="My Number Input"
           help="This is a number input"
@@ -129,6 +134,11 @@ describe('Field accessibility', function () {
     await userEvent.type(textInput, 'testing');
     expect(textInput).toHaveValue('testing');
     expect(model.getValue('myTextInput')).toBe('testing');
+
+    // Text Input using `hideLabel`
+    expect(
+      screen.getByRole('textbox', {name: 'My hidden label Text Input'})
+    ).toBeInTheDocument();
 
     // Number field
     const numberInput = screen.getByRole('spinbutton', {name: 'My Number Input'});

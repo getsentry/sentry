@@ -8,6 +8,7 @@ import datetime
 from collections.abc import Collection, Generator, Mapping
 from typing import TYPE_CHECKING, Any, Optional, Union
 
+from django.http.request import HttpRequest
 from pydantic.fields import Field
 
 from sentry.hybridcloud.rpc import RpcModel
@@ -22,7 +23,7 @@ if TYPE_CHECKING:
 class RpcApiKey(RpcModel):
     id: int = -1
     organization_id: int = -1
-    key: str = ""
+    key: str = Field(repr=False, default="")
     status: int = 0
     allowed_origins: list[str] = Field(default_factory=list)
     label: str = ""
@@ -35,11 +36,12 @@ class RpcApiToken(RpcModel):
     organization_id: int | None = None
     application_id: int | None = None
     application_is_active: bool = False
-    token: str = ""
-    hashed_token: str | None = None
+    token: str = Field(repr=False, default="")
+    hashed_token: str | None = Field(repr=False, default=None)
     expires_at: datetime.datetime | None = None
     allowed_origins: list[str] = Field(default_factory=list)
     scope_list: list[str] = Field(default_factory=list)
+    scoping_organization_id: int | None = None
 
 
 class RpcMemberSsoState(RpcModel):
@@ -61,6 +63,7 @@ class AuthenticatedToken(RpcModel):
     user_id: int | None = None  # only relevant for ApiToken
     organization_id: int | None = None
     application_id: int | None = None  # only relevant for ApiToken
+    project_id: int | None = None  # only relevant for ProjectKey
 
     def token_has_org_access(self, organization_id: int) -> bool:
         return self.kind == "api_token" and self.organization_id == organization_id
@@ -72,12 +75,14 @@ class AuthenticatedToken(RpcModel):
         from sentry.models.apikey import ApiKey
         from sentry.models.apitoken import ApiToken
         from sentry.models.orgauthtoken import OrgAuthToken
+        from sentry.models.projectkey import ProjectKey
 
         return {
             "system": frozenset([SystemToken]),
             "api_token": frozenset([ApiToken, ApiTokenReplica]),
             "org_auth_token": frozenset([OrgAuthToken, OrgAuthTokenReplica]),
             "api_key": frozenset([ApiKey, ApiKeyReplica]),
+            "project_key": frozenset((ProjectKey,)),
         }
 
     @classmethod
@@ -108,9 +113,10 @@ class AuthenticatedToken(RpcModel):
             user_id=getattr(token, "user_id", None),
             organization_id=getattr(token, "organization_id", None),
             application_id=getattr(token, "application_id", None),
+            project_id=getattr(token, "project_id", None),
         )
 
-    def get_audit_log_data(self) -> Mapping[str, Any]:
+    def get_audit_log_data(self) -> dict[str, Any]:
         return self.audit_log_data
 
     def get_allowed_origins(self) -> list[str]:
@@ -142,44 +148,24 @@ class AuthenticationContext(RpcModel):
         return self.user or AnonymousUser()
 
     @contextlib.contextmanager
-    def applied_to_request(self, request: Any = None) -> Generator[Any, None, None]:
+    def applied_to_request[T: HttpRequest](self, request: T) -> Generator[T]:
         """
         Some code still reaches for the global 'env' object when determining user or auth behaviors.  This bleeds the
         current request context into that code, but makes it difficult to carry RPC authentication context in an
         isolated, controlled way.  This method allows for a context handling an RPC or inter silo behavior to assume
         the correct user and auth context provided explicitly in a context.
         """
-        from sentry.app import env
+        old_user = request.user
+        old_auth = request.auth
 
-        if request is None:
-            request = env.request
-
-        if request is None:
-            # Contexts that lack a request
-            # Note -- if a request is setup in the env after this context manager, you run the risk of bugs.
-            yield request
-            return
-
-        has_user = hasattr(request, "user")
-        has_auth = hasattr(request, "auth")
-
-        old_user = getattr(request, "user", None)
-        old_auth = getattr(request, "auth", None)
-        request.user = self._get_user()
+        request.user = self._get_user()  # type: ignore[assignment]  # RpcUser vs. User
         request.auth = self.auth
 
         try:
             yield request
         finally:
-            if has_user:
-                request.user = old_user
-            else:
-                delattr(request, "user")
-
-            if has_auth:
-                request.auth = old_auth
-            else:
-                delattr(request, "auth")
+            request.user = old_user
+            request.auth = old_auth
 
 
 class RpcAuthProviderFlags(RpcModel):
@@ -200,7 +186,13 @@ class RpcAuthProvider(RpcModel):
         return hash((self.id, self.organization_id, self.provider))
 
     def get_audit_log_data(self) -> dict[str, Any]:
-        return {"provider": self.provider, "config": self.config}
+        provider = self.provider
+        # NOTE(isabella): for both standard fly SSO and fly-non-partner SSO, we should record the
+        # provider as "fly" in the audit log entry data; the only difference between the two is
+        # that the latter can be disabled by customers
+        if "fly" in self.provider:
+            provider = "fly"
+        return {"provider": provider, "config": self.config}
 
     def get_provider(self) -> "Provider":
         from sentry.auth import manager

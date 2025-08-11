@@ -3,13 +3,15 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
-import {Button} from 'sentry/components/button';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {Organization, OrgAuthToken, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {OrgAuthToken} from 'sentry/types/user';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
   setApiQueryData,
@@ -58,7 +60,7 @@ function TokenList({
 
   const hasProjects = projectIds.length > 0;
 
-  const {data: projects, isLoading: isLoadingProjects} = useApiQuery<Project[]>(
+  const {data: projects, isPending: isLoadingProjects} = useApiQuery<Project[]>(
     [apiEndpoint, {query: {query: idQueryParams}}],
     {
       staleTime: 0,
@@ -97,7 +99,7 @@ export function OrganizationAuthTokensIndex({
   const queryClient = useQueryClient();
 
   const {
-    isLoading,
+    isPending,
     isError,
     data: tokenList,
     refetch: refetchTokenList,
@@ -108,8 +110,8 @@ export function OrganizationAuthTokensIndex({
     }
   );
 
-  const {mutate: handleRevokeToken, isLoading: isRevoking} = useMutation<
-    {},
+  const {mutate: handleRevokeToken, isPending: isRevoking} = useMutation<
+    unknown,
     RequestError,
     RevokeTokenQueryVariables
   >({
@@ -144,26 +146,29 @@ export function OrganizationAuthTokensIndex({
   });
 
   const createNewToken = (
-    <Button
+    <LinkButton
       priority="primary"
       size="sm"
       to={`/settings/${organization.slug}/auth-tokens/new-token/`}
       data-test-id="create-token"
     >
       {t('Create New Token')}
-    </Button>
+    </LinkButton>
   );
 
   return (
     <Access access={['org:write']}>
       {({hasAccess}) => (
         <Fragment>
-          <SentryDocumentTitle title={t('Auth Tokens')} />
-          <SettingsPageHeader title={t('Auth Tokens')} action={createNewToken} />
+          <SentryDocumentTitle
+            title={t('Organization Tokens')}
+            orgSlug={organization.slug}
+          />
+          <SettingsPageHeader title={t('Organization Tokens')} action={createNewToken} />
 
           <TextBlock>
             {t(
-              'Organization Auth Tokens can be used in many places to interact with Sentry programatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
+              'Organization Tokens can be used in many places to interact with Sentry programatically. For example, they can be used for sentry-cli, bundler plugins or similar uses cases.'
             )}
           </TextBlock>
           <TextBlock>
@@ -176,20 +181,20 @@ export function OrganizationAuthTokensIndex({
           </TextBlock>
 
           <ResponsivePanelTable
-            isLoading={isLoading || isError}
-            isEmpty={!isLoading && !tokenList?.length}
+            isLoading={isPending || isError}
+            isEmpty={!isPending && !tokenList?.length}
             loader={
               isError ? (
                 <LoadingError
-                  message={t('Failed to load auth tokens for the organization.')}
+                  message={t('Failed to load organization tokens.')}
                   onRetry={refetchTokenList}
                 />
               ) : undefined
             }
             emptyMessage={t("You haven't created any authentication tokens yet.")}
-            headers={[t('Auth token'), t('Created'), t('Last access'), '']}
+            headers={[t('Token'), t('Created'), t('Last access'), '']}
           >
-            {!isError && !isLoading && !!tokenList?.length && (
+            {!isError && !isPending && !!tokenList?.length && (
               <TokenList
                 organization={organization}
                 tokenList={tokenList}
@@ -211,11 +216,11 @@ export function tokenPreview(tokenLastCharacters: string, tokenPrefix = '') {
 export default withOrganization(OrganizationAuthTokensIndex);
 
 const ResponsivePanelTable = styled(PanelTable)`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr 1fr;
 
     > *:nth-child(4n + 2),
-    *:nth-child(4n + 3) {
+    > *:nth-child(4n + 3) {
       display: none;
     }
   }

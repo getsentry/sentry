@@ -1,5 +1,6 @@
 import {buildStacktraceLinkQuery} from 'sentry/components/events/interfaces/frame/useStacktraceLink';
-import type {CodecovResponse, Event, Frame} from 'sentry/types';
+import type {Event, Frame} from 'sentry/types/event';
+import type {CodecovResponse} from 'sentry/types/integrations';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 

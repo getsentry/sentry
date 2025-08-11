@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping
-from typing import TYPE_CHECKING, Any, TypeGuard
+from typing import TYPE_CHECKING, Any, TypedDict, TypeGuard
 
 from django.db.models import Subquery
 
@@ -29,7 +29,7 @@ from sentry.users.services.user.model import RpcUser
 if TYPE_CHECKING:
     from sentry.models.group import Group
     from sentry.models.team import Team
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -74,10 +74,15 @@ def validate(type: NotificationSettingEnum, value: NotificationSettingsOptionEnu
     return value in VALID_VALUES_FOR_KEY.get(type, {})
 
 
+class SubscriptionDetails(TypedDict, total=False):
+    disabled: bool
+    reason: str
+
+
 def get_subscription_from_attributes(
-    attrs: Mapping[str, Any]
-) -> tuple[bool, Mapping[str, str | bool] | None]:
-    subscription_details: Mapping[str, str | bool] | None = None
+    attrs: Mapping[str, Any],
+) -> tuple[bool, SubscriptionDetails | None]:
+    subscription_details: SubscriptionDetails | None = None
     is_disabled, is_subscribed, subscription = attrs["subscription"]
     if is_disabled:
         subscription_details = {"disabled": True}
@@ -112,7 +117,7 @@ def get_reason_context(extra_context: Mapping[str, Any]) -> MutableMapping[str, 
 def recipient_is_user(
     recipient: Actor | Team | RpcUser | User,
 ) -> TypeGuard[Actor | RpcUser | User]:
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
     if isinstance(recipient, Actor) and recipient.is_user:
         return True

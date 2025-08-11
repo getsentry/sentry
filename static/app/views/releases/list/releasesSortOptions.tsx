@@ -1,21 +1,10 @@
 import styled from '@emotion/styled';
 
+import {ReleasesSortOption} from 'sentry/constants/releases';
 import {t} from 'sentry/locale';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
 import ReleasesDropdown from './releasesDropdown';
-
-export enum ReleasesSortOption {
-  CRASH_FREE_USERS = 'crash_free_users',
-  CRASH_FREE_SESSIONS = 'crash_free_sessions',
-  USERS_24_HOURS = 'users_24h',
-  SESSIONS_24_HOURS = 'sessions_24h',
-  SESSIONS = 'sessions',
-  DATE = 'date',
-  BUILD = 'build',
-  SEMVER = 'semver',
-  ADOPTION = 'adoption',
-}
 
 type Props = {
   environments: string[];
@@ -64,7 +53,7 @@ export default ReleasesSortOptions;
 
 const StyledReleasesDropdown = styled(ReleasesDropdown)`
   z-index: 2;
-  @media (max-width: ${p => p.theme.breakpoints.large}) {
+  @media (max-width: ${p => p.theme.breakpoints.lg}) {
     order: 2;
   }
 `;

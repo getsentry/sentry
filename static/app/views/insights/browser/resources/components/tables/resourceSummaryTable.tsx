@@ -1,16 +1,19 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import Link from 'sentry/components/links/link';
+import {Link} from 'sentry/components/core/link';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import type {
+  GridColumnHeader,
+  GridColumnOrder,
+} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useResourcePagesQuery} from 'sentry/views/insights/browser/resources/queries/useResourcePageQuery';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/insights/browser/resources/settings';
@@ -27,41 +30,45 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
 
 const {
   RESOURCE_RENDER_BLOCKING_STATUS,
   SPAN_SELF_TIME,
   HTTP_RESPONSE_CONTENT_LENGTH,
   TRANSACTION,
-} = SpanMetricsField;
+  USER_GEO_SUBREGION,
+} = SpanFields;
 
-type Row = {
-  'avg(http.response_content_length)': number;
-  'avg(span.self_time)': number;
-  'resource.render_blocking_status': '' | 'non-blocking' | 'blocking';
-  'spm()': number;
-  transaction: string;
-};
+type Row = Pick<
+  SpanResponse,
+  | 'avg(http.response_content_length)'
+  | 'avg(span.self_time)'
+  | 'epm()'
+  | 'resource.render_blocking_status'
+  | 'transaction'
+>;
 
 type Column = GridColumnHeader<keyof Row>;
 
 function ResourceSummaryTable() {
+  const navigate = useNavigate();
   const location = useLocation();
   const {groupId} = useParams();
   const sort = useResourceSummarySort();
   const filters = useResourceModuleFilters();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
-  const {data, isLoading, pageLinks} = useResourcePagesQuery(groupId, {
+  const {data, isPending, pageLinks} = useResourcePagesQuery(groupId!, {
     sort,
     cursor,
+    subregions: filters[USER_GEO_SUBREGION],
     renderBlockingStatus: filters[RESOURCE_RENDER_BLOCKING_STATUS],
   });
 
-  const columnOrder: GridColumnOrder<keyof Row>[] = [
+  const columnOrder: Array<GridColumnOrder<keyof Row>> = [
     {key: 'transaction', width: COL_WIDTH_UNDEFINED, name: 'Found on page'},
     {
-      key: 'spm()',
+      key: 'epm()',
       width: COL_WIDTH_UNDEFINED,
       name: getThroughputTitle('http'),
     },
@@ -84,7 +91,7 @@ function ResourceSummaryTable() {
 
   const renderBodyCell = (col: Column, row: Row) => {
     const {key} = col;
-    if (key === 'spm()') {
+    if (key === 'epm()') {
       return <ThroughputCell rate={row[key]} unit={RESOURCE_THROUGHPUT_UNIT} />;
     }
     if (key === 'avg(span.self_time)') {
@@ -124,11 +131,11 @@ function ResourceSummaryTable() {
                 <TitleWrapper>{t('Example')}</TitleWrapper>
                 <FullSpanDescription
                   group={groupId}
-                  language="http"
+                  moduleName={ModuleName.RESOURCE}
                   filters={{
-                    [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]:
+                    [SpanFields.RESOURCE_RENDER_BLOCKING_STATUS]:
                       row[RESOURCE_RENDER_BLOCKING_STATUS],
-                    [SpanIndexedField.TRANSACTION]: row[TRANSACTION],
+                    [SpanFields.TRANSACTION]: row[TRANSACTION],
                   }}
                 />
               </Fragment>
@@ -153,7 +160,7 @@ function ResourceSummaryTable() {
   };
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [QueryParameterNames.PAGES_CURSOR]: newCursor},
     });
@@ -163,11 +170,11 @@ function ResourceSummaryTable() {
     <Fragment>
       <GridEditable
         data={data || []}
-        isLoading={isLoading}
+        isLoading={isPending}
         columnOrder={columnOrder}
         columnSortBy={[
           {
-            key: sort.field,
+            key: sort.field as keyof Row,
             order: sort.kind,
           },
         ]}
@@ -185,15 +192,6 @@ function ResourceSummaryTable() {
     </Fragment>
   );
 }
-
-export const getActionName = (transactionOp: string) => {
-  switch (transactionOp) {
-    case 'ui.action.click':
-      return 'Click';
-    default:
-      return transactionOp;
-  }
-};
 
 const TitleWrapper = styled('div')`
   margin-bottom: ${space(1)};

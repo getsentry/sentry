@@ -1,11 +1,11 @@
-import {Component} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -14,24 +14,20 @@ import type {
   Event,
   EventGroupComponent,
   EventGroupVariant,
-} from 'sentry/types';
-import {EventGroupVariantType} from 'sentry/types';
+} from 'sentry/types/event';
+import {EventGroupVariantType} from 'sentry/types/event';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 import GroupingComponent from './groupingComponent';
 import {hasNonContributingComponent} from './utils';
 
-type Props = {
+interface GroupingVariantProps {
   event: Event;
   showGroupingConfig: boolean;
   variant: EventGroupVariant;
-};
+}
 
-type State = {
-  showNonContributing: boolean;
-};
-
-type VariantData = [string, React.ReactNode][];
+type VariantData = Array<[string, React.ReactNode]>;
 
 function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
   if ('matched_rule' in variant) {
@@ -48,36 +44,40 @@ function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
     ]);
   }
   if ('values' in variant) {
-    data.push([t('Fingerprint values'), variant.values]);
+    data.push([
+      t('Fingerprint values'),
+      <TextWithQuestionTooltip key="fingerprint-values">
+        {variant.values?.join(', ') || ''}
+      </TextWithQuestionTooltip>,
+    ]);
   }
   if ('client_values' in variant) {
     data.push([
       t('Client fingerprint values'),
       <TextWithQuestionTooltip key="type">
-        {variant.client_values}
-        <QuestionTooltip
-          size="xs"
-          position="top"
-          title={t(
-            'The client sent a fingerprint that was overridden by a server-side fingerprinting rule.'
-          )}
-        />
+        {variant.client_values?.join(', ') || ''}
+        {'matched_rule' in variant && ( // Only display override tooltip if overriding actually happened
+          <QuestionTooltip
+            size="xs"
+            position="top"
+            title={t(
+              'The client sent a fingerprint that was overridden by a server-side fingerprinting rule.'
+            )}
+          />
+        )}
       </TextWithQuestionTooltip>,
     ]);
   }
 }
 
-class GroupVariant extends Component<Props, State> {
-  state: State = {
-    showNonContributing: false,
-  };
+function GroupingVariant({event, showGroupingConfig, variant}: GroupingVariantProps) {
+  const [showNonContributing, setShowNonContributing] = useState(false);
 
-  getVariantData(): [VariantData, EventGroupComponent | undefined] {
-    const {event, variant, showGroupingConfig} = this.props;
+  const getVariantData = (): [VariantData, EventGroupComponent | undefined] => {
     const data: VariantData = [];
     let component: EventGroupComponent | undefined;
 
-    if (!this.state.showNonContributing && variant.hash === null) {
+    if (!showNonContributing && variant.hash === null) {
       return [data, component];
     }
 
@@ -105,92 +105,30 @@ class GroupVariant extends Component<Props, State> {
     switch (variant.type) {
       case EventGroupVariantType.COMPONENT:
         component = variant.component;
-        data.push([
-          t('Type'),
-          <TextWithQuestionTooltip key="type">
-            {variant.type}
-            <QuestionTooltip
-              size="xs"
-              position="top"
-              title={t(
-                'Uses a complex grouping algorithm taking event data into account'
-              )}
-            />
-          </TextWithQuestionTooltip>,
-        ]);
+
         if (showGroupingConfig && variant.config?.id) {
           data.push([t('Grouping Config'), variant.config.id]);
         }
         break;
       case EventGroupVariantType.CUSTOM_FINGERPRINT:
-        data.push([
-          t('Type'),
-          <TextWithQuestionTooltip key="type">
-            {variant.type}
-            <QuestionTooltip
-              size="xs"
-              position="top"
-              title={t('Overrides the default grouping by a custom fingerprinting rule')}
-            />
-          </TextWithQuestionTooltip>,
-        ]);
         addFingerprintInfo(data, variant);
         break;
       case EventGroupVariantType.BUILT_IN_FINGERPRINT:
-        data.push([
-          t('Type'),
-          <TextWithQuestionTooltip key="type">
-            {variant.type}
-            <QuestionTooltip
-              size="xs"
-              position="top"
-              title={t(
-                'Overrides the default grouping by a Sentry defined fingerprinting rule'
-              )}
-            />
-          </TextWithQuestionTooltip>,
-        ]);
         addFingerprintInfo(data, variant);
         break;
       case EventGroupVariantType.SALTED_COMPONENT:
         component = variant.component;
-        data.push([
-          t('Type'),
-          <TextWithQuestionTooltip key="type">
-            {variant.type}
-            <QuestionTooltip
-              size="xs"
-              position="top"
-              title={t(
-                'Uses a complex grouping algorithm taking event data and a fingerprint into account'
-              )}
-            />
-          </TextWithQuestionTooltip>,
-        ]);
         addFingerprintInfo(data, variant);
         if (showGroupingConfig && variant.config?.id) {
           data.push([t('Grouping Config'), variant.config.id]);
         }
         break;
-      case EventGroupVariantType.PERFORMANCE_PROBLEM:
+      case EventGroupVariantType.PERFORMANCE_PROBLEM: {
         const spansToHashes = Object.fromEntries(
           event.entries
             .find((c): c is EntrySpans => c.type === 'spans')
             ?.data?.map((span: RawSpanType) => [span.span_id, span.hash]) ?? []
         );
-        data.push([
-          t('Type'),
-          <TextWithQuestionTooltip key="type">
-            {variant.type}
-            <QuestionTooltip
-              size="xs"
-              position="top"
-              title={t(
-                'Uses the evidence from performance issue detection to generate a fingerprint.'
-              )}
-            />
-          </TextWithQuestionTooltip>,
-        ]);
 
         data.push(['Performance Issue Type', variant.key]);
         data.push(['Span Operation', variant.evidence.op]);
@@ -207,6 +145,7 @@ class GroupVariant extends Component<Props, State> {
           [...new Set(variant.evidence?.offender_span_ids?.map(id => spansToHashes[id]))],
         ]);
         break;
+      }
       default:
         break;
     }
@@ -217,17 +156,32 @@ class GroupVariant extends Component<Props, State> {
         <GroupingTree key={component.id}>
           <GroupingComponent
             component={component}
-            showNonContributing={this.state.showNonContributing}
+            showNonContributing={showNonContributing}
           />
         </GroupingTree>,
       ]);
     }
 
     return [data, component];
-  }
+  };
 
-  renderTitle() {
-    const {variant} = this.props;
+  const renderContributionToggle = () => {
+    return (
+      <SegmentedControl
+        aria-label={t('Filter by contribution')}
+        size="xs"
+        value={showNonContributing ? 'all' : 'relevant'}
+        onChange={key => setShowNonContributing(key === 'all')}
+      >
+        <SegmentedControl.Item key="relevant">
+          {t('Contributing values')}
+        </SegmentedControl.Item>
+        <SegmentedControl.Item key="all">{t('All values')}</SegmentedControl.Item>
+      </SegmentedControl>
+    );
+  };
+
+  const renderTitle = () => {
     const isContributing = variant.hash !== null;
 
     let title: string;
@@ -254,48 +208,27 @@ class GroupVariant extends Component<Props, State> {
         </VariantTitle>
       </Tooltip>
     );
-  }
+  };
 
-  renderContributionToggle() {
-    const {showNonContributing} = this.state;
+  const [data, component] = getVariantData();
+  return (
+    <VariantWrapper>
+      <Header>
+        {renderTitle()}
+        {hasNonContributingComponent(component) && renderContributionToggle()}
+      </Header>
 
-    return (
-      <SegmentedControl
-        aria-label={t('Filter by contribution')}
-        size="xs"
-        value={showNonContributing ? 'all' : 'relevant'}
-        onChange={key => this.setState({showNonContributing: key === 'all'})}
-      >
-        <SegmentedControl.Item key="relevant">
-          {t('Contributing values')}
-        </SegmentedControl.Item>
-        <SegmentedControl.Item key="all">{t('All values')}</SegmentedControl.Item>
-      </SegmentedControl>
-    );
-  }
-
-  render() {
-    const [data, component] = this.getVariantData();
-
-    return (
-      <VariantWrapper>
-        <Header>
-          {this.renderTitle()}
-          {hasNonContributingComponent(component) && this.renderContributionToggle()}
-        </Header>
-
-        <KeyValueList
-          data={data.map(d => ({
-            key: d[0],
-            subject: d[0],
-            value: d[1],
-          }))}
-          isContextData
-          shouldSort={false}
-        />
-      </VariantWrapper>
-    );
-  }
+      <KeyValueList
+        data={data.map(d => ({
+          key: d[0],
+          subject: d[0],
+          value: d[1],
+        }))}
+        isContextData
+        shouldSort={false}
+      />
+    </VariantWrapper>
+  );
 }
 
 const VariantWrapper = styled('div')`
@@ -307,19 +240,19 @@ const Header = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(2)};
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     display: block;
   }
 `;
 
 const VariantTitle = styled('h5')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   margin: 0;
   display: flex;
   align-items: center;
 `;
 
-const ContributionIcon = styled(({isContributing, ...p}) =>
+const ContributionIcon = styled(({isContributing, ...p}: any) =>
   isContributing ? (
     <IconCheckmark size="sm" isCircled color="successText" {...p} />
   ) : (
@@ -341,10 +274,10 @@ const TextWithQuestionTooltip = styled('div')`
 `;
 
 const Hash = styled('span')`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     ${p => p.theme.overflowEllipsis};
     width: 210px;
   }
 `;
 
-export default GroupVariant;
+export default GroupingVariant;

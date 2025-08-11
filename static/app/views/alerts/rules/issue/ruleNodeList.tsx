@@ -2,7 +2,7 @@ import type React from 'react';
 import {Component, Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
@@ -16,14 +16,13 @@ import type {
 import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {AlertRuleComparisonType} from 'sentry/views/alerts/rules/metric/types';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   COMPARISON_INTERVAL_CHOICES,
   COMPARISON_TYPE_CHOICE_VALUES,
   COMPARISON_TYPE_CHOICES,
 } from 'sentry/views/alerts/utils/constants';
-
-import {AlertRuleComparisonType} from '../metric/types';
 
 import RuleNode from './ruleNode';
 
@@ -143,6 +142,7 @@ const groupSelectOptions = (actions: IssueAlertRuleActionTemplate[]) => {
     .filter(([_, values]) => values.length)
     .map(([key, values]) => {
       return {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         label: groupLabels[key],
         options: createSelectOptions(values),
       };
@@ -161,7 +161,7 @@ class RuleNodeList extends Component<Props> {
     itemIdx: number
   ): IssueAlertConfiguration[keyof IssueAlertConfiguration][number] | null => {
     const {nodes, items, organization, onPropertyChange} = this.props;
-    const node = nodes?.find(n => {
+    const node = nodes?.find((n: any) => {
       if ('sentryAppInstallationUuid' in n) {
         // Match more than just the id for sentryApp actions, they share the same id
         return (
@@ -184,7 +184,7 @@ class RuleNodeList extends Component<Props> {
       return node;
     }
 
-    const item = items[itemIdx];
+    const item = items[itemIdx]!;
 
     let changeAlertNode: IssueAlertGenericConditionConfig = {
       ...(node as IssueAlertGenericConditionConfig),
@@ -211,6 +211,7 @@ class RuleNodeList extends Component<Props> {
         ...changeAlertNode,
         label: changeAlertNode.label.replace(
           '{comparisonType}',
+          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
           COMPARISON_TYPE_CHOICE_VALUES[item.comparisonType]
         ),
       };
@@ -262,9 +263,9 @@ class RuleNodeList extends Component<Props> {
       incompatibleBanner,
     } = this.props;
 
-    const enabledNodes = nodes ? nodes.filter(({enabled}) => enabled) : [];
+    const enabledNodes = nodes ? nodes.filter(({enabled}: any) => enabled) : [];
 
-    let options;
+    let options: any[];
     if (selectType === 'grouped') {
       options = groupSelectOptions(enabledNodes);
       if (additionalAction) {
@@ -306,10 +307,12 @@ class RuleNodeList extends Component<Props> {
         <StyledSelectControl
           placeholder={placeholder}
           value={null}
-          onChange={obj => {
-            additionalAction && obj === additionalAction.option
-              ? additionalAction.onClick()
-              : onAddRow(obj.value);
+          onChange={(obj: any) => {
+            if (additionalAction && obj === additionalAction.option) {
+              additionalAction.onClick();
+            } else {
+              onAddRow(obj.value);
+            }
           }}
           options={options}
           disabled={disabled}
@@ -321,7 +324,7 @@ class RuleNodeList extends Component<Props> {
 
 export default RuleNodeList;
 
-const StyledSelectControl = styled(SelectControl)`
+const StyledSelectControl = styled(Select)`
   width: 100%;
 `;
 
@@ -330,7 +333,7 @@ const RuleNodes = styled('div')`
   margin-bottom: ${space(1)};
   gap: ${space(1)};
 
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     grid-auto-flow: row;
   }
 `;

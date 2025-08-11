@@ -1,7 +1,8 @@
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import type {ExceptionType, Group, Project} from 'sentry/types';
-import type {Event} from 'sentry/types/event';
-import type {StackType} from 'sentry/types/stacktrace';
+import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
+import type {Event, ExceptionType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {StackView} from 'sentry/types/stacktrace';
 
 import {Content} from './content';
@@ -9,28 +10,22 @@ import RawContent from './rawContent';
 
 type Props = {
   event: Event;
-  hasHierarchicalGrouping: boolean;
-  newestFirst: boolean;
   projectSlug: Project['slug'];
-  stackType: StackType;
+  values: ExceptionType['values'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
   meta?: Record<any, any>;
-  stackView?: StackView;
   threadId?: number;
-} & Pick<ExceptionType, 'values'>;
+};
 
 export function ExceptionContent({
-  stackView,
-  stackType,
   projectSlug,
   values,
   event,
-  newestFirst,
-  hasHierarchicalGrouping,
   groupingCurrentLevel,
   meta,
   threadId,
 }: Props) {
+  const {stackView, stackType, isNewestFramesFirst} = useStacktraceContext();
   return (
     <ErrorBoundary mini>
       {stackView === StackView.RAW ? (
@@ -47,9 +42,8 @@ export function ExceptionContent({
           stackView={stackView}
           values={values}
           projectSlug={projectSlug}
-          newestFirst={newestFirst}
+          newestFirst={isNewestFramesFirst}
           event={event}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta}
           threadId={threadId}

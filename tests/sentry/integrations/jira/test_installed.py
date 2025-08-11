@@ -10,7 +10,13 @@ from rest_framework import status
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.utils import AtlassianConnectValidationError, get_query_hash
+from sentry.integrations.project_management.metrics import ProjectManagementFailuresReason
+from sentry.integrations.types import EventLifecycleOutcome
+from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectValidationError,
+    get_query_hash,
+)
+from sentry.testutils.asserts import assert_count_of_metric, assert_halt_metric
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.http import absolute_uri
@@ -69,16 +75,21 @@ class JiraInstalledTest(APITestCase):
             body=RS256_PUB_KEY,
         )
 
-    def test_missing_body(self):
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
+    def test_missing_body(self, mock_record_failure: MagicMock) -> None:
         self.get_error_response(
             extra_headers=dict(HTTP_AUTHORIZATION="JWT anexampletoken"),
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    def test_missing_token(self):
+        mock_record_failure.assert_called_with(
+            ProjectManagementFailuresReason.INSTALLATION_STATE_MISSING
+        )
+
+    def test_missing_token(self) -> None:
         self.get_error_response(**self.body(), status_code=status.HTTP_409_CONFLICT)
 
-    def test_invalid_token(self):
+    def test_invalid_token(self) -> None:
         self.get_error_response(
             **self.body(),
             extra_headers=dict(HTTP_AUTHORIZATION="invalid"),
@@ -90,7 +101,7 @@ class JiraInstalledTest(APITestCase):
         side_effect=AtlassianConnectValidationError(),
     )
     @responses.activate
-    def test_no_claims(self, mock_authenticate_asymmetric_jwt):
+    def test_no_claims(self, mock_authenticate_asymmetric_jwt: MagicMock) -> None:
         self.add_response()
 
         self.get_error_response(
@@ -99,8 +110,9 @@ class JiraInstalledTest(APITestCase):
             status_code=status.HTTP_409_CONFLICT,
         )
 
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry_sdk.set_tag")
-    def test_with_shared_secret(self, mock_set_tag: MagicMock):
+    def test_with_shared_secret(self, mock_set_tag: MagicMock, mock_record_event) -> None:
         self.get_success_response(
             **self.body(),
             extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_secret()),
@@ -109,10 +121,11 @@ class JiraInstalledTest(APITestCase):
 
         mock_set_tag.assert_any_call("integration_id", integration.id)
         assert integration.status == ObjectStatus.ACTIVE
+        mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
     @patch("sentry_sdk.set_tag")
     @responses.activate
-    def test_with_key_id(self, mock_set_tag: MagicMock):
+    def test_with_key_id(self, mock_set_tag: MagicMock) -> None:
         self.add_response()
 
         self.get_success_response(
@@ -123,3 +136,24 @@ class JiraInstalledTest(APITestCase):
 
         mock_set_tag.assert_any_call("integration_id", integration.id)
         assert integration.status == ObjectStatus.ACTIVE
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_with_invalid_key_id(self, mock_record_event: MagicMock) -> None:
+        self.get_error_response(
+            **self.body(),
+            extra_headers=dict(
+                HTTP_AUTHORIZATION="JWT "
+                + self._jwt_token("RS256", RS256_KEY, headers={"kid": "fake-kid"})
+            ),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        # SLO metric asserts
+        # ENSURE_CONTROL_SILO (success) -> VERIFY_INSTALLATION (halt) -> GET_CONTROL_RESPONSE (success)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 3)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.HALTED, 1)
+        assert_count_of_metric(mock_record_event, EventLifecycleOutcome.SUCCESS, 2)
+        assert_halt_metric(
+            mock_record_event,
+            "JWT contained invalid key_id (kid)",
+        )

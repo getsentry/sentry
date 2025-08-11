@@ -5,9 +5,9 @@ from selenium.webdriver.common.by import By
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.types import ExternalProviders
-from sentry.models.identity import Identity, IdentityStatus
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
+from sentry.users.models.identity import Identity, IdentityStatus
 
 
 @no_silo_test
@@ -62,14 +62,15 @@ class SlackLinkTeamTest(AcceptanceTestCase):
         )
         self.path = linking_url.path
 
-    def test_link_team(self):
+    def test_link_team(self) -> None:
         self.login_as(self.user)
         self.browser.get(self.path)
         self.browser.wait_until_not(".loading")
         self.browser.click('[name="team"]')
         self.browser.click(f'[value="{self.team.id}"]')
         self.browser.click('[type="submit"]')
-        self.browser.wait_until_not(".loading")
+        # Ensure we get to the next page before checking for the ExternalActor
+        self.browser.wait_until_test_id("back-to-slack")
 
         assert ExternalActor.objects.filter(
             team_id=self.team.id,
@@ -80,7 +81,7 @@ class SlackLinkTeamTest(AcceptanceTestCase):
             external_id="CXXXXXXX9",
         ).exists()
 
-    def test_link_team_as_team_admin(self):
+    def test_link_team_as_team_admin(self) -> None:
         self.create_team(organization=self.org, name="Team Two")
         self.create_team(organization=self.org, name="Team Three")
         self.login_as(self.team_admin_user)
@@ -95,7 +96,8 @@ class SlackLinkTeamTest(AcceptanceTestCase):
 
         self.browser.click(f'[value="{self.team.id}"]')
         self.browser.click('[type="submit"]')
-        self.browser.wait_until_not(".loading")
+        # Ensure we get to the next page before checking for the ExternalActor
+        self.browser.wait_until_test_id("back-to-slack")
 
         assert ExternalActor.objects.filter(
             team_id=self.team.id,

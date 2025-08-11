@@ -1,32 +1,32 @@
 import type {Organization} from 'sentry/types/organization';
-import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
-import type {ReplayRecord} from 'sentry/views/replays/types';
-
+import {AutogroupNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/autogroup';
+import {ErrorNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/error';
+import {MissingInstrumentationNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/missingInstrumentation';
+import {SpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/index';
+import {TransactionNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/index';
 import {
+  isAutogroupedNode,
+  isEAPErrorNode,
+  isEAPSpanNode,
   isMissingInstrumentationNode,
-  isNoDataNode,
-  isParentAutogroupedNode,
-  isSiblingAutogroupedNode,
   isSpanNode,
   isTraceErrorNode,
   isTransactionNode,
-} from '../../guards';
-import type {TraceTree, TraceTreeNode} from '../../traceModels/traceTree';
-import {ErrorNodeDetails} from '../details/error';
-import {MissingInstrumentationNodeDetails} from '../details/missingInstrumentation';
-import {NoDataDetails} from '../details/noData';
-import {ParentAutogroupNodeDetails} from '../details/parentAutogroup';
-import {SiblingAutogroupNodeDetails} from '../details/siblingAutogroup';
-import {SpanNodeDetails} from '../details/span/index';
-import {TransactionNodeDetails} from '../details/transaction/index';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 export interface TraceTreeNodeDetailsProps<T> {
-  manager: VirtualizedViewManager;
+  manager: VirtualizedViewManager | null;
   node: T;
   onParentClick: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   onTabScrollToNode: (node: TraceTreeNode<any>) => void;
   organization: Organization;
-  replayRecord: ReplayRecord | null;
+  replay: ReplayRecord | null;
+  traceId: string;
+  hideNodeActions?: boolean;
 }
 
 export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
@@ -34,28 +34,20 @@ export function TraceTreeNodeDetails(props: TraceTreeNodeDetailsProps<any>) {
     return <TransactionNodeDetails {...props} />;
   }
 
-  if (isSpanNode(props.node)) {
+  if (isSpanNode(props.node) || isEAPSpanNode(props.node)) {
     return <SpanNodeDetails {...props} />;
   }
 
-  if (isTraceErrorNode(props.node)) {
+  if (isTraceErrorNode(props.node) || isEAPErrorNode(props.node)) {
     return <ErrorNodeDetails {...props} />;
   }
 
-  if (isParentAutogroupedNode(props.node)) {
-    return <ParentAutogroupNodeDetails {...props} />;
-  }
-
-  if (isSiblingAutogroupedNode(props.node)) {
-    return <SiblingAutogroupNodeDetails {...props} />;
+  if (isAutogroupedNode(props.node)) {
+    return <AutogroupNodeDetails {...props} />;
   }
 
   if (isMissingInstrumentationNode(props.node)) {
     return <MissingInstrumentationNodeDetails {...props} />;
-  }
-
-  if (isNoDataNode(props.node)) {
-    return <NoDataDetails {...props} />;
   }
 
   throw new Error('Unknown clicked node type');

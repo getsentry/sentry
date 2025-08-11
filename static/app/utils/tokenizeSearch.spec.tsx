@@ -194,11 +194,19 @@ describe('utils/tokenizeSearch', function () {
           ],
         },
       },
+      {
+        name: 'should handle explicit tags keys containing colons when quoted',
+        string: 'tags["foo:bar",string]:asdf',
+        object: {
+          tokens: [
+            {type: TokenType.FILTER, key: 'tags["foo:bar",string]', value: 'asdf'},
+          ],
+        },
+      },
     ];
 
     for (const {name, string, object} of cases) {
-      // eslint-disable-next-line jest/valid-title
-      it(name, () => expect(new MutableSearch(string)).toEqual(object));
+      it(`${name}`, () => expect(new MutableSearch(string)).toEqual(object));
     }
   });
 
@@ -207,58 +215,56 @@ describe('utils/tokenizeSearch', function () {
       const results = new MutableSearch([]);
 
       results.addStringFilter('a:a');
-      expect(results.formatString()).toEqual('a:a');
+      expect(results.formatString()).toBe('a:a');
 
       results.addFilterValues('b', ['b']);
-      expect(results.formatString()).toEqual('a:a b:b');
+      expect(results.formatString()).toBe('a:a b:b');
 
       results.addFilterValues('c', ['c1', 'c2']);
-      expect(results.formatString()).toEqual('a:a b:b c:c1 c:c2');
+      expect(results.formatString()).toBe('a:a b:b c:c1 c:c2');
 
       results.addFilterValues('d', ['d']);
-      expect(results.formatString()).toEqual('a:a b:b c:c1 c:c2 d:d');
+      expect(results.formatString()).toBe('a:a b:b c:c1 c:c2 d:d');
 
       results.addFilterValues('e', ['e1*e2\\e3']);
-      expect(results.formatString()).toEqual('a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3"');
+      expect(results.formatString()).toBe('a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3"');
 
       results.addStringFilter('d:d2');
-      expect(results.formatString()).toEqual(
-        'a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3" d:d2'
-      );
+      expect(results.formatString()).toBe('a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\e3" d:d2');
     });
 
     it('adds individual values to query object', function () {
       const results = new MutableSearch([]);
 
       results.addFilterValue('e', 'e1*e2\\e3');
-      expect(results.formatString()).toEqual('e:"e1\\*e2\\e3"');
+      expect(results.formatString()).toBe('e:"e1\\*e2\\e3"');
     });
 
     it('add text searches to query object', function () {
       const results = new MutableSearch(['a:a']);
 
       results.addFreeText('b');
-      expect(results.formatString()).toEqual('a:a b');
+      expect(results.formatString()).toBe('a:a b');
       expect(results.freeText).toEqual(['b']);
 
       results.addFreeText('c');
-      expect(results.formatString()).toEqual('a:a b c');
+      expect(results.formatString()).toBe('a:a b c');
       expect(results.freeText).toEqual(['b', 'c']);
 
       results.addStringFilter('d:d').addFreeText('e');
-      expect(results.formatString()).toEqual('a:a b c d:d e');
+      expect(results.formatString()).toBe('a:a b c d:d e');
       expect(results.freeText).toEqual(['b', 'c', 'e']);
 
       results.freeText = ['x', 'y'];
-      expect(results.formatString()).toEqual('a:a d:d x y');
+      expect(results.formatString()).toBe('a:a d:d x y');
       expect(results.freeText).toEqual(['x', 'y']);
 
       results.freeText = ['a b c'];
-      expect(results.formatString()).toEqual('a:a d:d "a b c"');
+      expect(results.formatString()).toBe('a:a d:d "a b c"');
       expect(results.freeText).toEqual(['a b c']);
 
       results.freeText = ['invalid literal for int() with base'];
-      expect(results.formatString()).toEqual(
+      expect(results.formatString()).toBe(
         'a:a d:d "invalid literal for int() with base"'
       );
       expect(results.freeText).toEqual(['invalid literal for int() with base']);
@@ -268,10 +274,10 @@ describe('utils/tokenizeSearch', function () {
       const results = new MutableSearch(['x', 'a:a', 'y']);
 
       results.addOp('OR');
-      expect(results.formatString()).toEqual('x a:a y OR');
+      expect(results.formatString()).toBe('x a:a y OR');
 
       results.addFreeText('z');
-      expect(results.formatString()).toEqual('x a:a y OR z');
+      expect(results.formatString()).toBe('x a:a y OR z');
 
       results
         .addOp('(')
@@ -279,21 +285,21 @@ describe('utils/tokenizeSearch', function () {
         .addOp('AND')
         .addStringFilter('c:c')
         .addOp(')');
-      expect(results.formatString()).toEqual('x a:a y OR z ( b:b AND c:c )');
+      expect(results.formatString()).toBe('x a:a y OR z ( b:b AND c:c )');
     });
 
     it('adds tags to query', function () {
       const results = new MutableSearch(['tag:value']);
 
       results.addStringFilter('new:too');
-      expect(results.formatString()).toEqual('tag:value new:too');
+      expect(results.formatString()).toBe('tag:value new:too');
     });
 
     it('setTag() replaces tags', function () {
       const results = new MutableSearch(['tag:value']);
 
       results.setFilterValues('tag', ['too']);
-      expect(results.formatString()).toEqual('tag:too');
+      expect(results.formatString()).toBe('tag:too');
     });
 
     it('setTag() replaces tags in OR', function () {
@@ -306,11 +312,11 @@ describe('utils/tokenizeSearch', function () {
       ]);
 
       results.setFilterValues('transaction', ['def']);
-      expect(results.formatString()).toEqual('transaction:def');
+      expect(results.formatString()).toBe('transaction:def');
 
       results = new MutableSearch(['(transaction:xyz', 'OR', 'transaction:abc)']);
       results.setFilterValues('transaction', ['def']);
-      expect(results.formatString()).toEqual('transaction:def');
+      expect(results.formatString()).toBe('transaction:def');
     });
 
     it('does not remove boolean operators after setting tag values', function () {
@@ -329,7 +335,7 @@ describe('utils/tokenizeSearch', function () {
       ]);
 
       results.setFilterValues('transaction', ['def']);
-      expect(results.formatString()).toEqual(
+      expect(results.formatString()).toBe(
         '( start:xyz AND end:abc ) OR ( start:abc AND end:xyz ) transaction:def'
       );
     });
@@ -337,43 +343,43 @@ describe('utils/tokenizeSearch', function () {
     it('removes tags from query object', function () {
       let results = new MutableSearch(['x', 'a:a', 'b:b']);
       results.removeFilter('a');
-      expect(results.formatString()).toEqual('x b:b');
+      expect(results.formatString()).toBe('x b:b');
 
       results = new MutableSearch(['a:a']);
       results.removeFilter('a');
-      expect(results.formatString()).toEqual('');
+      expect(results.formatString()).toBe('');
 
       results = new MutableSearch(['x', 'a:a', 'a:a2']);
       results.removeFilter('a');
-      expect(results.formatString()).toEqual('x');
+      expect(results.formatString()).toBe('x');
 
       results = new MutableSearch(['a:a', 'OR', 'b:b']);
       results.removeFilter('a');
-      expect(results.formatString()).toEqual('b:b');
+      expect(results.formatString()).toBe('b:b');
 
       results = new MutableSearch(['a:a', 'OR', 'a:a1', 'AND', 'b:b']);
       results.removeFilter('a');
-      expect(results.formatString()).toEqual('b:b');
+      expect(results.formatString()).toBe('b:b');
 
       results = new MutableSearch(['(a:a', 'OR', 'b:b)']);
       results.removeFilter('a');
-      expect(results.formatString()).toEqual('b:b');
+      expect(results.formatString()).toBe('b:b');
 
       results = new MutableSearch(['(a:a', 'OR', 'b:b', 'OR', 'y)']);
       results.removeFilter('a');
-      expect(results.formatString()).toEqual('( b:b OR y )');
+      expect(results.formatString()).toBe('( b:b OR y )');
 
       results = new MutableSearch(['(a:a', 'OR', '(b:b1', 'OR', '(c:c', 'OR', 'b:b2)))']);
       results.removeFilter('b');
-      expect(results.formatString()).toEqual('( a:a OR c:c )');
+      expect(results.formatString()).toBe('( a:a OR c:c )');
 
       results = new MutableSearch(['(((a:a', 'OR', 'b:b1)', 'OR', 'c:c)', 'OR', 'b:b2)']);
       results.removeFilter('b');
-      expect(results.formatString()).toEqual('( ( a:a OR c:c ) )');
+      expect(results.formatString()).toBe('( ( a:a OR c:c ) )');
 
       results = new MutableSearch(['a:a', '(b:b1', 'OR', 'b:b2', 'OR', 'b:b3)', 'c:c']);
       results.removeFilter('b');
-      expect(results.formatString()).toEqual('a:a c:c');
+      expect(results.formatString()).toBe('a:a c:c');
     });
 
     it('can return the tag keys', function () {
@@ -502,11 +508,82 @@ describe('utils/tokenizeSearch', function () {
         object: new MutableSearch(['release:4.9.0 build (0.0.01)', 'error.handled:0']),
         string: 'release:"4.9.0 build (0.0.01)" error.handled:0',
       },
+      {
+        name: 'should not enclose the entire query in quotes if there are no spaces in brackets shorthand',
+        object: new MutableSearch(['transaction:[alpha,beta]']),
+        string: 'transaction:[alpha,beta]',
+      },
+      {
+        name: 'should not enclose the entire query in quotes if there are quotes around args',
+        object: new MutableSearch(['transaction:["alpha","beta"]']),
+        string: 'transaction:["alpha","beta"]',
+      },
+      {
+        name: 'should not enclose the entire query in quotes if some args are quoted in brackets',
+        object: new MutableSearch(['transaction:["alpha",beta]']),
+        string: 'transaction:["alpha",beta]',
+      },
+      {
+        name: 'should not enclose the entire query in quotes if there are spaces in quoted args',
+        object: new MutableSearch(['transaction:["this has a space",thisdoesnot]']),
+        string: 'transaction:["this has a space",thisdoesnot]',
+      },
+      {
+        name: 'should preserve quotes around bracket expressions when parsing and formatting',
+        object: new MutableSearch(['message:"[filtered]"']),
+        string: 'message:"[filtered]"',
+      },
+      {
+        name: 'should preserve quotes around bracket expressions when parsing and formatting',
+        object: new MutableSearch(['message:"[Filtered]"']),
+        string: 'message:"[Filtered]"',
+      },
+      {
+        name: 'should not add quotes to unquoted bracket expressions',
+        object: new MutableSearch(['message:[Test]']),
+        string: 'message:[Test]',
+      },
+      {
+        name: 'should not add quotes to unquoted bracket expressions',
+        object: new MutableSearch(['message:[test]']),
+        string: 'message:[test]',
+      },
+      {
+        name: 'should not add quotes to unquoted bracket expressions',
+        object: new MutableSearch(['message:[test,[test2]]']),
+        string: 'message:[test,[test2]]',
+      },
+      {
+        name: 'should preserve brackets within quoted strings when flattening',
+        object: new MutableSearch(['message:["[test]",test,[test2]]']),
+        string: 'message:["[test]",test,[test2]]',
+      },
+      {
+        name: 'should correctly handle nested brackets with quoted brackets inside',
+        object: new MutableSearch(['message:[test,"[nested]",other]']),
+        string: 'message:[test,"[nested]",other]',
+      },
+      {
+        name: 'should handle escaped quotes in array syntax correctly',
+        object: new MutableSearch(['message:["value with \\" escaped quote",other]']),
+        string: 'message:["value with \\" escaped quote",other]',
+      },
+      {
+        name: 'should handle complex escape sequences in array syntax correctly',
+        object: new MutableSearch([
+          'message:["value with \\\\\\" complex escape",other]',
+        ]),
+        string: 'message:["value with \\\\\\" complex escape",other]',
+      },
+      {
+        name: 'should leave escaped brackets as is',
+        object: new MutableSearch(['message:"[test, "[Filtered]"]"']),
+        string: 'message:"[test, "[Filtered]"]"',
+      },
     ];
 
     for (const {name, string, object} of cases) {
-      // eslint-disable-next-line jest/valid-title
-      it(name, () => expect(object.formatString()).toEqual(string));
+      it(`${name}`, () => expect(object.formatString()).toEqual(string));
     }
   });
 });

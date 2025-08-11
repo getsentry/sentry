@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import moment from 'moment-timezone';
 
-import Datetime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import autoCompleteFilter from 'sentry/components/dropdownAutoComplete/autoCompleteFilter';
 import type {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
@@ -18,14 +18,15 @@ import TimeRangeItemLabel from './timeRangeItemLabel';
 type PeriodUnit = 's' | 'm' | 'h' | 'd' | 'w';
 type RelativePeriodUnit = Exclude<PeriodUnit, 's'>;
 
-export type RelativeUnitsMapping = {
-  [Unit: string]: {
+type RelativeUnitsMapping = Record<
+  string,
+  {
     convertToDaysMultiplier: number;
     label: (num: number) => string;
     momentUnit: moment.unitOfTime.DurationConstructor;
     searchKey: string;
-  };
-};
+  }
+>;
 
 const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
@@ -69,7 +70,7 @@ const parseStatsPeriodString = (statsPeriodString: string) => {
     throw new Error('Invalid stats period');
   }
 
-  const value = parseInt(result[1], 10);
+  const value = parseInt(result[1]!, 10);
   const unit = result[2] as RelativePeriodUnit;
 
   return {
@@ -94,7 +95,7 @@ export function parseStatsPeriod(
 ): {end: string; start: string} {
   const {value, unit} = parseStatsPeriodString(statsPeriod);
 
-  const momentUnit = SUPPORTED_RELATIVE_PERIOD_UNITS[unit].momentUnit;
+  const momentUnit = SUPPORTED_RELATIVE_PERIOD_UNITS[unit]!.momentUnit;
 
   const format = outputFormat === null ? undefined : outputFormat;
 
@@ -118,6 +119,7 @@ export function getRelativeSummary(
 ): string {
   try {
     const defaultRelativePeriodString =
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       relativeOptions?.[relative] ?? DEFAULT_RELATIVE_PERIODS[relative];
 
     if (defaultRelativePeriodString) {
@@ -126,7 +128,7 @@ export function getRelativeSummary(
 
     const {value, unit} = parseStatsPeriodString(relative);
 
-    return SUPPORTED_RELATIVE_PERIOD_UNITS[unit].label(value);
+    return SUPPORTED_RELATIVE_PERIOD_UNITS[unit]!.label(value);
   } catch {
     return 'Invalid period';
   }
@@ -143,6 +145,8 @@ export function getAbsoluteSummary(
   end: DateString,
   utc?: boolean | null
 ) {
+  // XXX: These are NOT used for display purpose but only to determine if the
+  // dates are at the start or end of the day
   const startTimeFormatted = getFormattedDate(start, 'HH:mm:ss', {local: true});
   const endTimeFormatted = getFormattedDate(end, 'HH:mm:ss', {local: true});
 
@@ -152,9 +156,9 @@ export function getAbsoluteSummary(
 
   return (
     <Fragment>
-      <Datetime date={start} dateOnly={showDateOnly} utc={!!utc} />
+      <DateTime date={start} dateOnly={showDateOnly} utc={!!utc} />
       {'–'}
-      <Datetime date={end} dateOnly={showDateOnly} utc={!!utc} />
+      <DateTime date={end} dateOnly={showDateOnly} utc={!!utc} />
     </Fragment>
   );
 }
@@ -189,7 +193,7 @@ function timePeriodIsWithinLimit<T extends RelativeUnitsMapping>({
     return true;
   }
 
-  const daysMultiplier = supportedPeriods[unit].convertToDaysMultiplier;
+  const daysMultiplier = supportedPeriods[unit]!.convertToDaysMultiplier;
   const numberOfDays = amount * daysMultiplier;
 
   return numberOfDays <= maxDays;
@@ -246,7 +250,7 @@ export const _timeRangeAutoCompleteFilter = function <T extends RelativeUnitsMap
         })
       )
       .map((unit, index) =>
-        makeItem(userSuppliedAmount, unit, supportedPeriods[unit].label, index)
+        makeItem(userSuppliedAmount, unit, supportedPeriods[unit]!.label, index)
       );
   }
 
@@ -257,7 +261,7 @@ export const _timeRangeAutoCompleteFilter = function <T extends RelativeUnitsMap
         return unit === userSuppliedUnits;
       }
 
-      return supportedPeriods[unit].searchKey.startsWith(userSuppliedUnits);
+      return supportedPeriods[unit]!.searchKey.startsWith(userSuppliedUnits);
     });
 
     if (
@@ -273,7 +277,7 @@ export const _timeRangeAutoCompleteFilter = function <T extends RelativeUnitsMap
         makeItem(
           userSuppliedAmount,
           matchingUnit,
-          supportedPeriods[matchingUnit].label,
+          supportedPeriods[matchingUnit]!.label,
           0
         ),
       ];
@@ -313,7 +317,7 @@ export function getArbitraryRelativePeriod(arbitraryPeriod?: string | null) {
 
   // Get the custom period label ("8D" --> "8 Days")
   const {value, unit} = parseStatsPeriodString(arbitraryPeriod);
-  return {[arbitraryPeriod]: SUPPORTED_RELATIVE_PERIOD_UNITS[unit].label(value)};
+  return {[arbitraryPeriod]: SUPPORTED_RELATIVE_PERIOD_UNITS[unit]!.label(value)};
 }
 
 /**

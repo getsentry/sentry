@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.db import router, transaction
-from django.db.models import F, Q
+from django.db.models import Exists, F, OuterRef, Q
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -12,60 +12,34 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.bases.organizationmember import MemberAndStaffPermission
+from sentry.api.endpoints.organization_member.utils import (
+    ERR_RATE_LIMITED,
+    ROLE_CHOICES,
+    MemberConflictValidationError,
+)
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberSerializer
 from sentry.api.serializers.models.organization_member.response import OrganizationMemberResponse
-from sentry.api.validators import AllowedEmailField
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_member_examples import OrganizationMemberExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
 from sentry.integrations.models.external_actor import ExternalActor
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmemberinvite import OrganizationMemberInvite
 from sentry.models.team import Team, TeamStatus
 from sentry.roles import organization_roles, team_roles
 from sentry.search.utils import tokenize_query
 from sentry.signals import member_invited
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.users.api.parsers.email import AllowedEmailField
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 from . import get_allowed_org_roles, save_team_assignments
-
-ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
-
-# Required to explicitly define roles w/ descriptions because OrganizationMemberSerializer
-# has the wrong descriptions, includes deprecated admin, and excludes billing
-ROLE_CHOICES = [
-    ("billing", "Can manage payment and compliance details."),
-    (
-        "member",
-        "Can view and act on events, as well as view most other data within the organization.",
-    ),
-    (
-        "manager",
-        """Has full management access to all teams and projects. Can also manage
-        the organization's membership.""",
-    ),
-    (
-        "owner",
-        """Has unrestricted access to the organization, its data, and its
-        settings. Can add, modify, and delete projects and members, as well as
-        make billing and plan changes.""",
-    ),
-    (
-        "admin",
-        """Can edit global integrations, manage projects, and add/remove teams.
-        They automatically assume the Team Admin role for teams they join.
-        Note: This role can no longer be assigned in Business and Enterprise plans. Use `TeamRoles` instead.
-        """,
-    ),
-]
-
-
-class MemberConflictValidationError(serializers.ValidationError):
-    pass
 
 
 @extend_schema_serializer(
@@ -85,12 +59,12 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
         help_text="The organization-level role of the new member. Roles include:",  # choices will follow in the docs
     )
     teams = serializers.ListField(
-        required=False, allow_null=False, default=[]
+        required=False, allow_null=False, default=list
     )  # deprecated, use teamRoles
     teamRoles = serializers.ListField(
         required=False,
         allow_null=True,
-        default=[],
+        default=list,
         child=serializers.JSONField(),
         help_text="""The team and team-roles assigned to the member. Team roles can be either:
         - `contributor` - Can view and act on issues. Depending on organization settings, they can also add team members.
@@ -119,8 +93,11 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
             Q(email=email) | Q(user_id__in=[u.id for u in users]),
             organization=self.context["organization"],
         )
+        approved_queryset = queryset.filter(invite_status=InviteStatus.APPROVED.value)
 
-        if queryset.filter(invite_status=InviteStatus.APPROVED.value).exists():
+        if approved_queryset.exists():
+            if approved_queryset.filter(user_id__isnull=True).exists():
+                raise MemberConflictValidationError("The user %s has already been invited" % email)
             raise MemberConflictValidationError("The user %s is already a member" % email)
 
         if not self.context.get("allow_existing_invite_request"):
@@ -131,12 +108,17 @@ class OrganizationMemberRequestSerializer(serializers.Serializer):
                 raise MemberConflictValidationError(
                     "There is an existing invite request for %s" % email
                 )
+
         return email
 
     def validate_role(self, role):
         return self.validate_orgRole(role)
 
     def validate_orgRole(self, role):
+        if role == "billing" and features.has(
+            "organizations:invite-billing", self.context["organization"]
+        ):
+            return role
         role_obj = next((r for r in self.context["allowed_roles"] if r.id == role), None)
         if role_obj is None:
             raise serializers.ValidationError(
@@ -183,6 +165,20 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=40, window=1),
+            RateLimitCategory.USER: RateLimit(limit=40, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+        },
+        "POST": {
+            RateLimitCategory.IP: RateLimit(limit=40, window=1),
+            RateLimitCategory.USER: RateLimit(limit=40, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+        },
+    }
+
     permission_classes = (MemberAndStaffPermission,)
     owner = ApiOwner.ENTERPRISE
 
@@ -201,17 +197,25 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         },
         examples=OrganizationMemberExamples.LIST_ORG_MEMBERS,
     )
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         List all organization members.
 
-        Response includes pending invites that are approved by organization admins but waiting to be accepted by the invitee.
+        Response includes pending invites that are approved by organization owners or managers but waiting to be accepted by the invitee.
         """
-        queryset = OrganizationMember.objects.filter(
-            Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
-            organization=organization,
-            invite_status=InviteStatus.APPROVED.value,
-        ).order_by("id")
+        queryset = (
+            OrganizationMember.objects.filter(
+                Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
+                organization=organization,
+                invite_status=InviteStatus.APPROVED.value,
+            )
+            .filter(
+                ~Exists(
+                    OrganizationMemberInvite.objects.filter(organization_member_id=OuterRef("id"))
+                )
+            )
+            .order_by("id")
+        )
 
         query = request.GET.get("query")
         if query:
@@ -273,12 +277,12 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                     else:
                         queryset = queryset.exclude(user_id__in=externalactor_user_ids)
                 elif key == "query":
-                    value = " ".join(value)
+                    value_s = " ".join(value)
                     query_user_ids = user_service.get_many_ids(
-                        filter=dict(query=value, organization_id=organization.id)
+                        filter=dict(query=value_s, organization_id=organization.id)
                     )
                     queryset = queryset.filter(
-                        Q(user_id__in=query_user_ids) | Q(email__icontains=value)
+                        Q(user_id__in=query_user_ids) | Q(email__icontains=value_s)
                     )
                 else:
                     queryset = queryset.none()
@@ -314,13 +318,22 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         """
         Add or invite a member to an organization.
         """
-        if not features.has("organizations:invite-members", organization, actor=request.user):
+        assigned_org_role = (
+            request.data.get("orgRole")
+            or request.data.get("role")
+            or organization_roles.get_default().id
+        )
+        billing_bypass = assigned_org_role == "billing" and features.has(
+            "organizations:invite-billing", organization
+        )
+        if not billing_bypass and not features.has(
+            "organizations:invite-members", organization, actor=request.user
+        ):
             return Response(
                 {"organization": "Your organization is not allowed to invite members"}, status=403
             )
 
-        allowed_roles = get_allowed_org_roles(request, organization)
-        assigned_org_role = request.data.get("orgRole") or request.data.get("role")
+        allowed_roles = get_allowed_org_roles(request, organization, creating_org_invite=True)
 
         # We allow requests from integration tokens to invite new members as the member role only
         if not allowed_roles and request.access.is_integration_token:
@@ -360,10 +373,37 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             )
             return Response({"detail": ERR_RATE_LIMITED}, status=429)
 
-        if (
-            ("teamRoles" in result and result["teamRoles"])
-            or ("teams" in result and result["teams"])
-        ) and not organization_roles.get(assigned_org_role).is_team_roles_allowed:
+        is_member = not request.access.has_scope("member:admin") and (
+            request.access.has_scope("member:invite")
+        )
+        # if Open Team Membership is disabled and Member Invites are enabled, members can only invite members to teams they are in
+        members_can_only_invite_to_members_teams = (
+            not organization.flags.allow_joinleave and not organization.flags.disable_member_invite
+        )
+        has_teams = bool(result.get("teamRoles") or result.get("teams"))
+
+        if is_member and members_can_only_invite_to_members_teams and has_teams:
+            requester_teams = set(
+                OrganizationMember.objects.filter(
+                    organization=organization,
+                    user_id=request.user.id,
+                    user_is_active=True,
+                ).values_list("teams__slug", flat=True)
+            )
+            team_slugs = list(
+                set(
+                    [team.slug for team, _ in result.get("teamRoles", [])]
+                    + [team.slug for team in result.get("teams", [])]
+                )
+            )
+            # ensure that the requester is a member of all teams they are trying to assign
+            if not requester_teams.issuperset(team_slugs):
+                return Response(
+                    {"detail": "You cannot assign members to teams you are not a member of."},
+                    status=400,
+                )
+
+        if has_teams and not organization_roles.get(assigned_org_role).is_team_roles_allowed:
             return Response(
                 {
                     "email": f"The user with a '{assigned_org_role}' role cannot have team-level permissions."

@@ -7,6 +7,7 @@ import {
   List as ReactVirtualizedList,
   WindowScroller,
 } from 'react-virtualized';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import differenceWith from 'lodash/differenceWith';
@@ -44,19 +45,24 @@ import type WaterfallModel from './waterfallModel';
 type PropType = ScrollbarManagerChildrenProps & {
   dragProps: DragManagerChildrenProps;
   filterSpans: FilterSpans | undefined;
+  isEmbedded: boolean;
   operationNameFilters: ActiveOperationFilter;
   organization: Organization;
   spanContextProps: SpanContext.SpanContextProps;
   spans: EnhancedProcessedSpanType[];
-  traceViewHeaderRef: React.RefObject<HTMLDivElement>;
-  traceViewRef: React.RefObject<HTMLDivElement>;
+  theme: Theme;
+  traceViewHeaderRef: React.RefObject<HTMLDivElement | null>;
+  traceViewRef: React.RefObject<HTMLDivElement | null>;
   waterfallModel: WaterfallModel;
   focusedSpanIds?: Set<string>;
 };
 
 type StateType = {
   headerPos: number;
-  spanRows: Record<string, {spanRow: React.RefObject<HTMLDivElement>; treeDepth: number}>;
+  spanRows: Record<
+    string,
+    {spanRow: React.RefObject<HTMLDivElement | null>; treeDepth: number}
+  >;
 };
 
 const listRef = createRef<ReactVirtualizedList>();
@@ -287,7 +293,7 @@ class SpanTree extends Component<PropType> {
     isCurrentSpanFilteredOut: boolean;
     isCurrentSpanHidden: boolean;
     outOfViewSpansAbove: EnhancedProcessedSpanType[];
-  }): JSX.Element | null {
+  }): React.JSX.Element | null {
     const {
       isCurrentSpanHidden,
       outOfViewSpansAbove,
@@ -304,7 +310,7 @@ class SpanTree extends Component<PropType> {
     const showHiddenSpansMessage = !isCurrentSpanHidden && numOfSpansOutOfViewAbove > 0;
 
     if (showHiddenSpansMessage) {
-      firstHiddenSpanId = getSpanID(outOfViewSpansAbove[0].span);
+      firstHiddenSpanId = getSpanID(outOfViewSpansAbove[0]!.span);
       messages.push(
         <span key={`spans-out-of-view-${firstHiddenSpanId}`}>
           <strong>{numOfSpansOutOfViewAbove}</strong> {t('spans out of view')}
@@ -317,7 +323,7 @@ class SpanTree extends Component<PropType> {
       !isCurrentSpanFilteredOut && numOfFilteredSpansAbove > 0;
 
     if (showFilteredSpansMessage) {
-      firstHiddenSpanId = getSpanID(filteredSpansAbove[0].span);
+      firstHiddenSpanId = getSpanID(filteredSpansAbove[0]!.span);
       if (!isCurrentSpanHidden) {
         if (numOfFilteredSpansAbove === 1) {
           messages.push(
@@ -547,7 +553,10 @@ class SpanTree extends Component<PropType> {
 
         const isLast = payload.isLastSibling;
         const isRoot = type === 'root_span';
-        const spanBarColor: string = pickBarColor(getSpanOperation(span));
+        const spanBarColor: string = pickBarColor(
+          getSpanOperation(span),
+          this.props.theme
+        );
         const numOfSpanChildren = payload.numOfSpanChildren;
 
         acc.outOfViewSpansAbove = [];
@@ -565,7 +574,7 @@ class SpanTree extends Component<PropType> {
           toggleSiblingSpanGroup = payload.toggleSiblingSpanGroup;
         }
 
-        let groupType;
+        let groupType: any;
         if (toggleSpanGroup) {
           groupType = GroupType.DESCENDANTS;
         } else if (toggleSiblingSpanGroup) {
@@ -588,6 +597,7 @@ class SpanTree extends Component<PropType> {
         acc.spanTree.push({
           type: SpanTreeNodeType.SPAN,
           props: {
+            theme: this.props.theme,
             getCurrentLeftPos,
             onDragStart,
             onScroll,
@@ -657,6 +667,7 @@ class SpanTree extends Component<PropType> {
     return (
       <SpanRow
         {...props}
+        key={props.key}
         spanTree={spanTree}
         spanContextProps={this.props.spanContextProps}
         cache={this.cache}
@@ -679,7 +690,7 @@ class SpanTree extends Component<PropType> {
 
   addSpanRowToState = (
     spanId: string,
-    spanRow: React.RefObject<HTMLDivElement>,
+    spanRow: React.RefObject<HTMLDivElement | null>,
     treeDepth: number
   ) => {
     this.setState((prevState: StateType) => {
@@ -698,7 +709,7 @@ class SpanTree extends Component<PropType> {
     });
   };
 
-  isSpanRowVisible = (spanRow: React.RefObject<HTMLDivElement>) => {
+  isSpanRowVisible = (spanRow: React.RefObject<HTMLDivElement | null>) => {
     const {traceViewHeaderRef} = this.props;
 
     if (!spanRow.current || !traceViewHeaderRef.current) {
@@ -758,8 +769,9 @@ class SpanTree extends Component<PropType> {
     }
 
     const limitExceededMessage = this.generateLimitExceededMessage();
-    limitExceededMessage &&
+    if (limitExceededMessage) {
       spanTree.push({type: SpanTreeNodeType.MESSAGE, element: limitExceededMessage});
+    }
 
     return (
       <TraceViewContainer ref={this.props.traceViewRef}>
@@ -771,7 +783,7 @@ class SpanTree extends Component<PropType> {
                   autoHeight
                   isScrolling={isScrolling}
                   onScroll={onChildScroll}
-                  scrollTop={scrollTop}
+                  scrollTop={this.props.isEmbedded ? 0 : scrollTop}
                   deferredMeasurementCache={this.cache}
                   height={height}
                   width={width}
@@ -792,7 +804,7 @@ class SpanTree extends Component<PropType> {
 type SpanRowProps = ListRowProps & {
   addSpanRowToState: (
     spanId: string,
-    spanRow: React.RefObject<HTMLDivElement>,
+    spanRow: React.RefObject<HTMLDivElement | null>,
     treeDepth: number
   ) => void;
   cache: CellMeasurerCache;
@@ -815,7 +827,7 @@ function SpanRow(props: SpanRowProps) {
   } = props;
 
   const rowRef = useRef<HTMLDivElement>(null);
-  const spanNode = spanTree[index];
+  const spanNode = spanTree[index]!;
 
   useEffect(() => {
     // Gap spans do not have IDs, so we can't really store them. This should not be a big deal, since
@@ -836,7 +848,7 @@ function SpanRow(props: SpanRowProps) {
     node: SpanTreeNode,
     extraProps: {
       cellMeasurerCache: CellMeasurerCache;
-      listRef: React.RefObject<ReactVirtualizedList>;
+      listRef: React.RefObject<ReactVirtualizedList | null>;
       measure: () => void;
     } & SpanContext.SpanContextProps
   ) => {

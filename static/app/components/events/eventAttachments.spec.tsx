@@ -1,3 +1,4 @@
+import {ConfigFixture} from 'sentry-fixture/config';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 
@@ -12,25 +13,28 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
+import ConfigStore from 'sentry/stores/configStore';
 
 describe('EventAttachments', function () {
-  const {router, organization, project} = initializeOrg({
+  const {organization, project} = initializeOrg({
     organization: {
       features: ['event-attachments'],
       orgRole: 'member',
       attachmentsRole: 'member',
     },
-  } as any);
+  });
   const event = EventFixture({metadata: {stripped_crash: false}});
 
   const props = {
-    projectSlug: project.slug,
+    group: undefined,
+    project,
     event,
   };
 
   const attachmentsUrl = `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`;
 
   beforeEach(() => {
+    ConfigStore.loadInitialData(ConfigFixture());
     MockApiClient.clearMockResponses();
   });
 
@@ -41,7 +45,6 @@ describe('EventAttachments', function () {
     });
     const strippedCrashEvent = {...event, metadata: {stripped_crash: true}};
     render(<EventAttachments {...props} event={strippedCrashEvent} />, {
-      router,
       organization,
     });
 
@@ -51,12 +54,12 @@ describe('EventAttachments', function () {
 
     expect(screen.getByRole('link', {name: 'View crashes'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/issues/1/attachments/?types=event.minidump&types=event.applecrashreport'
+      '/organizations/org-slug/issues/1/attachments/?attachmentFilter=onlyCrash'
     );
 
     expect(screen.getByRole('link', {name: 'configure limit'})).toHaveAttribute(
       'href',
-      `/settings/org-slug/projects/${props.projectSlug}/security-and-privacy/`
+      `/settings/org-slug/projects/${project.slug}/security-and-privacy/`
     );
 
     expect(
@@ -77,7 +80,9 @@ describe('EventAttachments', function () {
         {...props}
         event={{...event, metadata: {stripped_crash: false}}}
       />,
-      {router, organization}
+      {
+        organization,
+      }
     );
 
     // No loading state to wait for
@@ -87,13 +92,13 @@ describe('EventAttachments', function () {
   });
 
   it('displays message when user lacks permission to preview an attachment', async function () {
-    const {router: newRouter, organization: orgWithWrongAttachmentRole} = initializeOrg({
+    const {organization: orgWithWrongAttachmentRole} = initializeOrg({
       organization: {
         features: ['event-attachments'],
         orgRole: 'member',
         attachmentsRole: 'admin',
       },
-    } as any);
+    });
     const attachment = EventAttachmentFixture({
       name: 'some_file.txt',
       headers: {
@@ -113,7 +118,6 @@ describe('EventAttachments', function () {
     });
 
     render(<EventAttachments {...props} />, {
-      router: newRouter,
       organization: orgWithWrongAttachmentRole,
     });
 
@@ -140,11 +144,13 @@ describe('EventAttachments', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/events/1/attachments/1/?download',
+      url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/1/?download`,
       body: 'file contents',
     });
 
-    render(<EventAttachments {...props} />, {router, organization});
+    render(<EventAttachments {...props} />, {
+      organization,
+    });
 
     expect(await screen.findByText('Attachments (1)')).toBeInTheDocument();
 
@@ -171,12 +177,14 @@ describe('EventAttachments', function () {
       method: 'DELETE',
     });
 
-    render(<EventAttachments {...props} />, {router, organization});
+    render(<EventAttachments {...props} />, {
+      organization,
+    });
     renderGlobalModal();
 
     expect(await screen.findByText('Attachments (2)')).toBeInTheDocument();
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]!);
     await userEvent.click(
       within(screen.getByRole('dialog')).getByRole('button', {name: /delete/i})
     );
@@ -184,7 +192,7 @@ describe('EventAttachments', function () {
     // Should make the delete request and remove the attachment optimistically
     await waitFor(() => {
       expect(deleteMock).toHaveBeenCalled();
-      expect(screen.queryByTestId('pic_1.png')).not.toBeInTheDocument();
     });
+    expect(screen.queryByTestId('pic_1.png')).not.toBeInTheDocument();
   });
 });

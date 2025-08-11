@@ -5,6 +5,7 @@ import getCurrentScreenName from 'sentry/utils/replays/getCurrentScreenName';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
+import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
 
 const START_DATE = new Date('2022-06-15T00:40:00.111Z');
 const NAVIGATION_DATE_1 = new Date('2022-06-15T00:46:00.333Z');
@@ -31,7 +32,7 @@ const [NAV_FRAME_1, NAV_FRAME_2] = hydrateBreadcrumbs(replayRecord, [
 
 describe('getCurrentScreenName', () => {
   it('should return the screen name based on the closest navigation crumb', () => {
-    const frames = [PAGELOAD_FRAME, NAV_FRAME_1, NAV_FRAME_2];
+    const frames = [PAGELOAD_FRAME, NAV_FRAME_1, NAV_FRAME_2] as BreadcrumbFrame[];
 
     const offsetMS = 0; // at the beginning
     const screenName = getCurrentScreenName(

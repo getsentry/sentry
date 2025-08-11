@@ -6,7 +6,7 @@ from sentry.runner.commands.presenters.presenterdelegator import PresenterDelega
 
 @pytest.mark.django_db
 @responses.activate
-def test_contains_attributes():
+def test_contains_attributes() -> None:
     expected_methods = [
         "set",
         "unset",
@@ -18,6 +18,6 @@ def test_contains_attributes():
         "flush",
     ]
 
-    presenter_delegator = PresenterDelegator("options-automator")
+    presenter_delegator = PresenterDelegator("options-automator", dry_run=True)
     for method_name in expected_methods:
         assert hasattr(presenter_delegator, method_name)

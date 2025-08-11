@@ -1,9 +1,11 @@
+import sentry_sdk
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics
+from sentry.analytics.events.codeowners_created import CodeOwnersCreated
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -11,9 +13,12 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import projectcodeowners as projectcodeowners_serializers
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
+from sentry.issues.ownership.grammar import (
+    convert_codeowners_syntax,
+    create_schema_from_issue_owners,
+)
 from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
-from sentry.ownership.grammar import convert_codeowners_syntax, create_schema_from_issue_owners
 
 from . import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
 
@@ -104,13 +109,17 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
             project_codeowners = serializer.save()
             self.track_response_code("create", status.HTTP_201_CREATED)
             user_id = getattr(request.user, "id", None) or None
-            analytics.record(
-                "codeowners.created",
-                user_id=user_id,
-                organization_id=project.organization_id,
-                project_id=project.id,
-                codeowners_id=project_codeowners.id,
-            )
+            try:
+                analytics.record(
+                    CodeOwnersCreated(
+                        user_id=user_id,
+                        organization_id=project.organization_id,
+                        project_id=project.id,
+                        codeowners_id=project_codeowners.id,
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
 
             expand = ["ownershipSyntax", "errors", "hasTargetingContext"]
 

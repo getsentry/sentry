@@ -6,12 +6,6 @@ import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
 
-import WidgetArea from 'sentry-images/dashboard/widget-area.svg';
-import WidgetBar from 'sentry-images/dashboard/widget-bar.svg';
-import WidgetBigNumber from 'sentry-images/dashboard/widget-big-number.svg';
-import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
-import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
-
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import type {Fidelity} from 'sentry/components/charts/utils';
 import {
@@ -20,15 +14,14 @@ import {
   SIX_HOURS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
-import CircleIndicator from 'sentry/components/circleIndicator';
 import {normalizeDateTimeString} from 'sentry/components/organizations/pageFilters/parse';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
@@ -48,11 +41,7 @@ import {
 } from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import {getMetricDisplayType, getMetricsUrl} from 'sentry/utils/metrics';
-import {parseField} from 'sentry/utils/metrics/mri';
-import type {MetricsWidget} from 'sentry/utils/metrics/types';
-import {decodeList} from 'sentry/utils/queryString';
-import theme from 'sentry/utils/theme';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import type {
   DashboardDetails,
   DashboardFilters,
@@ -66,9 +55,7 @@ import {
   WidgetType,
 } from 'sentry/views/dashboards/types';
 
-import ThresholdsHoverWrapper from './widgetBuilder/buildSteps/thresholdsStep/thresholdsHoverWrapper';
 import type {ThresholdsConfig} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
-import {ThresholdMaxKeys} from './widgetBuilder/buildSteps/thresholdsStep/thresholdsStep';
 
 export type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
@@ -116,7 +103,7 @@ export function eventViewFromWidget(
 
 export function getThresholdUnitSelectOptions(
   dataType: string
-): {label: string; value: string}[] {
+): Array<{label: string; value: string}> {
   if (dataType === 'duration') {
     return Object.keys(DURATION_UNITS)
       .map(unit => ({label: unit, value: unit}))
@@ -137,61 +124,16 @@ export function hasThresholdMaxValue(thresholdsConfig: ThresholdsConfig): boolea
   return Object.keys(thresholdsConfig.max_values).length > 0;
 }
 
-function normalizeUnit(value: number, unit: string, dataType: string): number {
+export function normalizeUnit(value: number, unit: string, dataType: string): number {
   const multiplier =
     dataType === 'rate'
-      ? RATE_UNIT_MULTIPLIERS[unit]
+      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        RATE_UNIT_MULTIPLIERS[unit]
       : dataType === 'duration'
-        ? DURATION_UNITS[unit]
+        ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+          DURATION_UNITS[unit]
         : 1;
   return value * multiplier;
-}
-
-export function getColoredWidgetIndicator(
-  thresholds: ThresholdsConfig,
-  tableData: TableDataWithTitle[]
-): React.ReactNode {
-  const tableMeta = {...tableData[0].meta};
-  const fields = Object.keys(tableMeta);
-  const field = fields[0];
-  const dataType = tableMeta[field];
-  const dataUnit = tableMeta.units?.[field];
-  const dataRow = tableData[0].data[0];
-
-  if (!dataRow) {
-    return null;
-  }
-
-  const data = Number(dataRow[field]);
-  const normalizedData = dataUnit ? normalizeUnit(data, dataUnit, dataType) : data;
-
-  const {max_values} = thresholds;
-
-  let color = theme.red300;
-
-  const yellowMax = max_values[ThresholdMaxKeys.MAX_2];
-  const normalizedYellowMax =
-    thresholds.unit && yellowMax
-      ? normalizeUnit(yellowMax, thresholds.unit, dataType)
-      : yellowMax;
-  if (normalizedYellowMax && normalizedData <= normalizedYellowMax) {
-    color = theme.yellow300;
-  }
-
-  const greenMax = max_values[ThresholdMaxKeys.MAX_1];
-  const normalizedGreenMax =
-    thresholds.unit && greenMax
-      ? normalizeUnit(greenMax, thresholds.unit, dataType)
-      : greenMax;
-  if (normalizedGreenMax && normalizedData <= normalizedGreenMax) {
-    color = theme.green300;
-  }
-
-  return (
-    <ThresholdsHoverWrapper thresholds={thresholds} tableData={tableData}>
-      <CircleIndicator color={color} size={12} />
-    </ThresholdsHoverWrapper>
-  );
 }
 
 function coerceStringToArray(value?: string | string[] | null) {
@@ -203,6 +145,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
     const queryNames = coerceStringToArray(query.queryNames);
     const queryConditions = coerceStringToArray(query.queryConditions);
     const queryFields = coerceStringToArray(query.queryFields);
+    const widgetType = decodeScalar(query.widgetType);
     const queries: WidgetQuery[] = [];
     if (
       queryConditions &&
@@ -213,7 +156,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
       const {columns, aggregates} = getColumnsAndAggregates(queryFields);
       queryConditions.forEach((condition, index) => {
         queries.push({
-          name: queryNames[index],
+          name: queryNames[index]!,
           conditions: condition,
           fields: queryFields,
           columns,
@@ -229,7 +172,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
           interval: string;
           title: string;
         }),
-        widgetType: WidgetType.DISCOVER,
+        widgetType: widgetType ? (widgetType as WidgetType) : WidgetType.DISCOVER,
         queries,
       };
       return newWidget;
@@ -238,35 +181,24 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
   return undefined;
 }
 
-export function miniWidget(displayType: DisplayType): string {
-  switch (displayType) {
-    case DisplayType.BAR:
-      return WidgetBar;
-    case DisplayType.AREA:
-    case DisplayType.TOP_N:
-      return WidgetArea;
-    case DisplayType.BIG_NUMBER:
-      return WidgetBigNumber;
-    case DisplayType.TABLE:
-      return WidgetTable;
-    case DisplayType.LINE:
-    default:
-      return WidgetLine;
-  }
-}
-
 export function getWidgetInterval(
-  displayType: DisplayType,
+  widget: Widget,
   datetimeObj: Partial<PageFilters['datetime']>,
-  widgetInterval?: string,
+  widgetIntervalOverride?: string,
   fidelity?: Fidelity
 ): string {
   // Don't fetch more than 66 bins as we're plotting on a small area.
   const MAX_BIN_COUNT = 66;
 
-  // Bars charts are daily totals to aligned with discover. It also makes them
-  // usefully different from line/area charts until we expose the interval control, or remove it.
-  let interval = displayType === 'bar' ? '1d' : widgetInterval;
+  let interval =
+    widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS
+      ? // For span based widgets, we want to permit non 1d bar charts.
+        undefined
+      : // Bars charts are daily totals to aligned with discover. It also makes them
+        // usefully different from line/area charts until we expose the interval control, or remove it.
+        widget.displayType === 'bar'
+        ? '1d'
+        : widgetIntervalOverride;
   if (!interval) {
     // Default to 5 minutes
     interval = '5m';
@@ -281,13 +213,18 @@ export function getWidgetInterval(
     if (selectedRange > SIX_HOURS && selectedRange <= TWENTY_FOUR_HOURS) {
       interval = '1h';
     }
-    return displayType === 'bar' ? '1d' : interval;
+    return widget.displayType === 'bar' ? '1d' : interval;
   }
 
   // selectedRange is in minutes, desiredPeriod is in hours
   // convert desiredPeriod to minutes
   if (selectedRange / (desiredPeriod * 60) > MAX_BIN_COUNT) {
-    const highInterval = getInterval(datetimeObj, 'high');
+    const highInterval = getInterval(
+      datetimeObj,
+      widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS
+        ? 'spans'
+        : 'high'
+    );
     // Only return high fidelity interval if desired interval is higher fidelity
     if (desiredPeriod < parsePeriodToHours(highInterval)) {
       return highInterval;
@@ -309,17 +246,19 @@ export function getFieldsFromEquations(fields: string[]): string[] {
 
 export function getWidgetDiscoverUrl(
   widget: Widget,
+  dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
   organization: Organization,
-  index: number = 0,
-  isMetricsData: boolean = false
+  index = 0,
+  isMetricsData = false
 ) {
-  const eventView = eventViewFromWidget(widget.title, widget.queries[index], selection);
+  const eventView = eventViewFromWidget(widget.title, widget.queries[index]!, selection);
   const discoverLocation = eventView.getResultsViewUrlTarget(
-    organization.slug,
+    organization,
     false,
     hasDatasetSelector(organization) && widget.widgetType
-      ? WIDGET_TYPE_TO_SAVED_QUERY_DATASET[widget.widgetType]
+      ? // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        WIDGET_TYPE_TO_SAVED_QUERY_DATASET[widget.widgetType]
       : undefined
   );
 
@@ -327,7 +266,7 @@ export function getWidgetDiscoverUrl(
   const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
   discoverLocation.query.yAxis = [
     ...new Set(
-      widget.queries[0].aggregates.filter(aggregate => yAxisOptions.includes(aggregate))
+      widget.queries[0]!.aggregates.filter(aggregate => yAxisOptions.includes(aggregate))
     ),
   ].slice(0, 3);
 
@@ -336,32 +275,42 @@ export function getWidgetDiscoverUrl(
     case DisplayType.BAR:
       discoverLocation.query.display = DisplayModes.BAR;
       break;
-    case DisplayType.TOP_N:
+    case DisplayType.TOP_N: {
       discoverLocation.query.display = DisplayModes.TOP5;
       // Last field is used as the yAxis
-      const aggregates = widget.queries[0].aggregates;
+      const aggregates = widget.queries[0]!.aggregates;
       discoverLocation.query.yAxis = aggregates[aggregates.length - 1];
-      if (aggregates.slice(0, -1).includes(aggregates[aggregates.length - 1])) {
+      if (aggregates.slice(0, -1).includes(aggregates[aggregates.length - 1]!)) {
         discoverLocation.query.field = aggregates.slice(0, -1);
       }
       break;
+    }
     default:
       break;
   }
 
   // Equation fields need to have their terms explicitly selected as columns in the discover table
-  const fields = discoverLocation.query.field;
-  const query = widget.queries[0];
+  const fields =
+    Array.isArray(discoverLocation.query.field) || !discoverLocation.query.field
+      ? discoverLocation.query.field
+      : [discoverLocation.query.field];
+
+  const query = widget.queries[0]!;
   const queryFields = defined(query.fields)
     ? query.fields
     : [...query.columns, ...query.aggregates];
-  const equationFields = getFieldsFromEquations(queryFields);
+
   // Updates fields by adding any individual terms from equation fields as a column
-  equationFields.forEach(term => {
+  getFieldsFromEquations(queryFields).forEach(term => {
     if (Array.isArray(fields) && !fields.includes(term)) {
       fields.unshift(term);
     }
   });
+  discoverLocation.query.field = fields;
+  discoverLocation.query.query = applyDashboardFilters(
+    query.conditions,
+    dashboardFilters
+  );
 
   if (isMetricsData) {
     discoverLocation.query.fromMetric = 'true';
@@ -376,6 +325,7 @@ export function getWidgetDiscoverUrl(
 
 export function getWidgetIssueUrl(
   widget: Widget,
+  dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
   organization: Organization
 ) {
@@ -385,7 +335,7 @@ export function getWidgetIssueUrl(
       ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
       : {statsPeriod: period};
   const issuesLocation = `/organizations/${organization.slug}/issues/?${qs.stringify({
-    query: widget.queries?.[0]?.conditions,
+    query: applyDashboardFilters(widget.queries?.[0]?.conditions, dashboardFilters),
     sort: widget.queries?.[0]?.orderby,
     ...datetime,
     project: selection.projects,
@@ -396,6 +346,7 @@ export function getWidgetIssueUrl(
 
 export function getWidgetReleasesUrl(
   _widget: Widget,
+  dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
   organization: Organization
 ) {
@@ -406,44 +357,11 @@ export function getWidgetReleasesUrl(
       : {statsPeriod: period};
   const releasesLocation = `/organizations/${organization.slug}/releases/?${qs.stringify({
     ...datetime,
+    query: applyDashboardFilters('', dashboardFilters),
     project: selection.projects,
     environment: selection.environments,
   })}`;
   return releasesLocation;
-}
-
-export function getWidgetMetricsUrl(
-  _widget: Widget,
-  selection: PageFilters,
-  organization: Organization
-) {
-  const {start, end, utc, period} = selection.datetime;
-  const datetime =
-    start && end
-      ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
-      : {statsPeriod: period};
-
-  // ensures that My Projects selection is properly handled
-  const project = selection.projects.length ? selection.projects : [0];
-
-  const metricsLocation = getMetricsUrl(organization.slug, {
-    ...datetime,
-    project,
-    environment: selection.environments,
-    widgets: _widget.queries.map(query => {
-      const parsed = parseField(query.aggregates[0]);
-
-      return {
-        mri: parsed?.mri,
-        aggregation: parsed?.aggregation,
-        groupBy: query.columns,
-        query: query.conditions ?? '',
-        displayType: getMetricDisplayType(_widget.displayType),
-      } satisfies Partial<MetricsWidget>;
-    }),
-  });
-
-  return metricsLocation;
 }
 
 export function flattenErrors(
@@ -452,7 +370,7 @@ export function flattenErrors(
 ): FlatValidationError {
   if (typeof data === 'string') {
     update.error = data;
-  } else {
+  } else if (defined(data)) {
     Object.keys(data).forEach((key: string) => {
       const value = data[key];
       if (typeof value === 'string') {
@@ -512,12 +430,6 @@ export function isCustomMeasurementWidget(widget: Widget) {
   );
 }
 
-export function getCustomMeasurementQueryParams() {
-  return {
-    dataset: 'metrics',
-  };
-}
-
 export function isWidgetUsingTransactionName(widget: Widget) {
   return (
     widget.widgetType === WidgetType.DISCOVER &&
@@ -529,9 +441,11 @@ export function isWidgetUsingTransactionName(widget: Widget) {
         }
         return acc;
       }, []);
-      const transactionSelected = [...aggregateArgs, ...columns, ...(fields ?? [])].some(
-        field => field === 'transaction'
-      );
+      const transactionSelected = [
+        ...aggregateArgs,
+        ...columns,
+        ...(fields ?? []),
+      ].includes('transaction');
       const transactionUsedInFilter = parseSearch(conditions)?.some(
         parsedCondition =>
           parsedCondition.type === Token.FILTER &&
@@ -542,10 +456,14 @@ export function isWidgetUsingTransactionName(widget: Widget) {
   );
 }
 
-export function hasSavedPageFilters(dashboard: DashboardDetails) {
+export function hasSavedPageFilters(
+  dashboard: Pick<
+    DashboardDetails,
+    'projects' | 'environment' | 'period' | 'start' | 'end' | 'utc'
+  >
+) {
   return !(
-    dashboard.projects &&
-    dashboard.projects.length === 0 &&
+    (dashboard.projects === undefined || dashboard.projects.length === 0) &&
     dashboard.environment === undefined &&
     dashboard.start === undefined &&
     dashboard.end === undefined &&
@@ -643,7 +561,7 @@ export function getCurrentPageFilters(
           ? [Number(project)]
           : project.map(Number),
     environment:
-      typeof environment === 'string' ? [environment] : environment ?? undefined,
+      typeof environment === 'string' ? [environment] : (environment ?? undefined),
     period: statsPeriod as string | undefined,
     start: defined(start) ? normalizeDateTimeString(start as string) : undefined,
     end: defined(end) ? normalizeDateTimeString(end as string) : undefined,
@@ -683,8 +601,8 @@ export function connectDashboardCharts(groupName: string) {
   connect?.(groupName);
 }
 
-export function hasDatasetSelector(organization: Organization): boolean {
-  return organization.features.includes('performance-discover-dataset-selector');
+export function hasDatasetSelector(_organization: Organization): boolean {
+  return true;
 }
 
 export function appendQueryDatasetParam(
@@ -692,7 +610,44 @@ export function appendQueryDatasetParam(
   queryDataset?: SavedQueryDatasets
 ) {
   if (hasDatasetSelector(organization) && queryDataset) {
-    return {queryDataset: queryDataset};
+    return {queryDataset};
   }
   return {};
+}
+
+/**
+ * Checks if the widget is using the performance_score aggregate
+ */
+export function isUsingPerformanceScore(widget: Widget) {
+  if (widget.queries.length === 0) {
+    return false;
+  }
+  return widget.queries.some(_doesWidgetUsePerformanceScore);
+}
+
+function _doesWidgetUsePerformanceScore(query: WidgetQuery) {
+  if (query.conditions?.includes('performance_score')) {
+    return true;
+  }
+  if (query.aggregates.some(aggregate => aggregate.includes('performance_score'))) {
+    return true;
+  }
+
+  return false;
+}
+
+export const performanceScoreTooltip = t('peformance_score is not supported in Discover');
+
+export function applyDashboardFilters(
+  baseQuery: string | undefined,
+  dashboardFilters: DashboardFilters | undefined
+): string | undefined {
+  const dashboardFilterConditions = dashboardFiltersToString(dashboardFilters);
+  if (dashboardFilterConditions) {
+    if (baseQuery) {
+      return `(${baseQuery}) ${dashboardFilterConditions}`;
+    }
+    return dashboardFilterConditions;
+  }
+  return baseQuery;
 }

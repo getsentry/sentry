@@ -1,10 +1,12 @@
-import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import type {RouteContextInterface} from 'sentry/types/legacyReactRouter';
 import {useParams} from 'sentry/utils/useParams';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
-import {RouteContext} from 'sentry/views/routeContext';
+import {useTestRouteContext} from 'sentry/utils/useRouteContext';
+import {TestRouteContext} from 'sentry/views/routeContext';
 
 const mockUsingCustomerDomain = jest.fn();
 const mockCustomerDomain = jest.fn();
@@ -27,28 +29,23 @@ jest.mock('sentry/constants', () => {
 describe('useParams', () => {
   describe('when the path has no params', () => {
     it('returns an empty object', () => {
-      let params;
+      let params: any;
       function HomePage() {
         params = useParams();
         return null;
       }
 
-      const memoryHistory = createMemoryHistory();
-      memoryHistory.push('/?hello');
+      const routeContext: RouteContextInterface = {
+        location: LocationFixture(),
+        params: {},
+        router: RouterFixture(),
+        routes: [],
+      };
 
       render(
-        <Router
-          history={memoryHistory}
-          render={props => {
-            return (
-              <RouteContext.Provider value={props}>
-                <RouterContext {...props} />
-              </RouteContext.Provider>
-            );
-          }}
-        >
-          <Route path="/" component={HomePage} />
-        </Router>
+        <TestRouteContext value={routeContext}>
+          <HomePage />
+        </TestRouteContext>
       );
 
       expect(params).toEqual({});
@@ -57,28 +54,23 @@ describe('useParams', () => {
 
   describe('when the path has some params', () => {
     it('returns an object of the URL params', () => {
-      let params;
+      let params: any;
       function HomePage() {
         params = useParams();
         return null;
       }
 
-      const memoryHistory = createMemoryHistory();
-      memoryHistory.push('/sentry');
+      const routeContext: RouteContextInterface = {
+        location: LocationFixture(),
+        params: {slug: 'sentry'},
+        router: RouterFixture(),
+        routes: [],
+      };
 
       render(
-        <Router
-          history={memoryHistory}
-          render={props => {
-            return (
-              <RouteContext.Provider value={props}>
-                <RouterContext {...props} />
-              </RouteContext.Provider>
-            );
-          }}
-        >
-          <Route path="/:slug" component={HomePage} />
-        </Router>
+        <TestRouteContext value={routeContext}>
+          <HomePage />
+        </TestRouteContext>
       );
       expect(params).toEqual({slug: 'sentry'});
     });
@@ -93,11 +85,11 @@ describe('useParams', () => {
       mockUsingCustomerDomain.mockReturnValue(true);
       mockCustomerDomain.mockReturnValue('albertos-apples');
 
-      let originalParams;
-      let useParamsValue;
+      let originalParams: any;
+      let useParamsValue: any;
 
       function Component() {
-        const {params} = useRouteContext();
+        const {params} = useTestRouteContext()!;
         originalParams = params;
         useParamsValue = useParams();
         return (
@@ -105,22 +97,17 @@ describe('useParams', () => {
         );
       }
 
-      const memoryHistory = createMemoryHistory();
-      memoryHistory.push('/issues/?hello');
+      const routeContext: RouteContextInterface = {
+        location: LocationFixture(),
+        params: {},
+        router: RouterFixture(),
+        routes: [],
+      };
 
       render(
-        <Router
-          history={memoryHistory}
-          render={props => {
-            return (
-              <RouteContext.Provider value={props}>
-                <RouterContext {...props} />
-              </RouteContext.Provider>
-            );
-          }}
-        >
-          <Route path="/issues/" component={Component} />
-        </Router>
+        <TestRouteContext value={routeContext}>
+          <Component />
+        </TestRouteContext>
       );
 
       expect(
@@ -136,11 +123,11 @@ describe('useParams', () => {
       mockUsingCustomerDomain.mockReturnValue(false);
       mockCustomerDomain.mockReturnValue(undefined);
 
-      let originalParams;
-      let useParamsValue;
+      let originalParams: any;
+      let useParamsValue: any;
 
       function Component() {
-        const {params} = useRouteContext();
+        const {params} = useTestRouteContext()!;
         originalParams = params;
         useParamsValue = useParams();
         return (
@@ -148,22 +135,17 @@ describe('useParams', () => {
         );
       }
 
-      const memoryHistory = createMemoryHistory();
-      memoryHistory.push('/issues/?hello');
+      const routeContext: RouteContextInterface = {
+        location: LocationFixture(),
+        params: {},
+        router: RouterFixture(),
+        routes: [],
+      };
 
       render(
-        <Router
-          history={memoryHistory}
-          render={props => {
-            return (
-              <RouteContext.Provider value={props}>
-                <RouterContext {...props} />
-              </RouteContext.Provider>
-            );
-          }}
-        >
-          <Route path="/issues/" component={Component} />
-        </Router>
+        <TestRouteContext value={routeContext}>
+          <Component />
+        </TestRouteContext>
       );
 
       expect(

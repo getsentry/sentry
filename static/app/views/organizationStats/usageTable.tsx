@@ -1,20 +1,23 @@
 import {Component} from 'react';
-import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
-import {Button, LinkButton} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import IdBadge from 'sentry/components/idBadge';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {DataCategoryInfo, Project} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import type {DataCategoryInfo} from 'sentry/types/core';
+import type {WithRouterProps} from 'sentry/types/legacyReactRouter';
+import type {Project} from 'sentry/types/project';
+// eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
@@ -29,10 +32,12 @@ type Props = {
   isEmpty?: boolean;
   isError?: boolean;
   isLoading?: boolean;
-} & WithRouterProps<{}, {}>;
+  showStoredOutcome?: boolean;
+} & WithRouterProps;
 
 export type TableStat = {
   accepted: number;
+  accepted_stored: number;
   filtered: number;
   invalid: number;
   project: Project;
@@ -43,7 +48,7 @@ export type TableStat = {
 };
 
 class UsageTable extends Component<Props> {
-  getErrorMessage = errorMessage => {
+  getErrorMessage = (errorMessage: any) => {
     if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
       return (
         <EmptyMessage
@@ -69,8 +74,9 @@ class UsageTable extends Component<Props> {
   }
 
   renderTableRow(stat: TableStat & {project: Project}) {
-    const {dataCategory} = this.props;
-    const {project, total, accepted, filtered, invalid, rate_limited} = stat;
+    const {dataCategory, showStoredOutcome} = this.props;
+    const {project, total, accepted, accepted_stored, filtered, invalid, rate_limited} =
+      stat;
 
     return [
       <CellProject key={0}>
@@ -97,6 +103,15 @@ class UsageTable extends Component<Props> {
           dataCategory.plural,
           getFormatUsageOptions(dataCategory.plural)
         )}
+        {showStoredOutcome && (
+          <SubText>
+            {`(${formatUsageWithUnits(
+              accepted_stored,
+              dataCategory.plural,
+              getFormatUsageOptions(dataCategory.plural)
+            )})`}
+          </SubText>
+        )}
       </CellStat>,
       <CellStat key={3}>
         {formatUsageWithUnits(
@@ -120,7 +135,7 @@ class UsageTable extends Component<Props> {
         )}
       </CellStat>,
       <CellStat key={6}>
-        <ButtonBar gap={1}>
+        <ButtonBar>
           <Button
             icon={<IconGraph type="bar" />}
             title="Go to project level stats"
@@ -167,8 +182,7 @@ export default withSentryRouter(UsageTable);
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: repeat(7, auto);
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: 1fr repeat(6, minmax(0, auto));
   }
 `;
@@ -188,4 +202,9 @@ const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
+`;
+
+const SubText = styled('span')`
+  color: ${p => p.theme.subText};
+  margin-left: ${space(0.5)};
 `;

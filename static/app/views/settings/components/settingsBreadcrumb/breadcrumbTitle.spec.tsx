@@ -1,4 +1,3 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import BreadcrumbTitle from './breadcrumbTitle';
@@ -15,18 +14,11 @@ describe('BreadcrumbTitle', function () {
   ];
 
   it('renders settings breadcrumbs and replaces title', function () {
-    const {router} = initializeOrg({
-      router: {
-        routes: testRoutes,
-      },
-    } as any);
-
     render(
       <BreadcrumbProvider>
         <SettingsBreadcrumb routes={testRoutes} params={{}} route={{}} />
         <BreadcrumbTitle routes={testRoutes} title="Last Title" />
-      </BreadcrumbProvider>,
-      {router}
+      </BreadcrumbProvider>
     );
 
     const crumbs = screen.getAllByRole('link');
@@ -36,12 +28,6 @@ describe('BreadcrumbTitle', function () {
   });
 
   it('cleans up routes', () => {
-    const {router} = initializeOrg({
-      router: {
-        routes: testRoutes,
-      },
-    } as any);
-
     let upOneRoutes = testRoutes.slice(0, -1);
 
     const {rerender} = render(
@@ -49,8 +35,7 @@ describe('BreadcrumbTitle', function () {
         <SettingsBreadcrumb routes={testRoutes} params={{}} route={{}} />
         <BreadcrumbTitle routes={upOneRoutes} title="Second Title" />
         <BreadcrumbTitle routes={testRoutes} title="Last Title" />
-      </BreadcrumbProvider>,
-      {router}
+      </BreadcrumbProvider>
     );
 
     const crumbs = screen.getAllByRole('link');

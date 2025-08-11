@@ -1,7 +1,7 @@
 import {Children, type ReactNode, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import useExpandedState from 'sentry/components/structuredEventData/useExpandedState';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -12,6 +12,7 @@ interface Props {
   closeTag: string;
   openTag: string;
   path: string;
+  noBasePadding?: boolean;
   prefix?: ReactNode;
 }
 
@@ -21,6 +22,7 @@ export function CollapsibleValue({
   openTag,
   path,
   prefix = null,
+  noBasePadding,
 }: Props) {
   const {collapse, expand, isExpanded: isInitiallyExpanded} = useExpandedState({path});
   const [isExpanded, setIsExpanded] = useState(isInitiallyExpanded);
@@ -32,7 +34,7 @@ export function CollapsibleValue({
 
   // Toggle buttons get placed to the left of the open tag, but if this is the
   // base level there is no room for it. So we add padding in this case.
-  const baseLevelPadding = isBaseLevel && shouldShowToggleButton;
+  const baseLevelPadding = isBaseLevel && shouldShowToggleButton && !noBasePadding;
 
   return (
     <CollapsibleDataContainer data-base-with-toggle={baseLevelPadding}>
@@ -61,6 +63,7 @@ export function CollapsibleValue({
       {shouldShowToggleButton && !isExpanded ? (
         <NumItemsButton
           size="zero"
+          priority="transparent"
           onClick={() => {
             expand();
             setIsExpanded(true);
@@ -95,22 +98,28 @@ const NumItemsButton = styled(Button)`
   border: none;
   padding: 0 2px;
   border-radius: 2px;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   box-shadow: none;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.subText};
   margin: 0 ${space(0.5)};
+
+  height: 18px;
+  min-height: 18px;
 `;
 
 const ToggleButton = styled(Button)`
   position: absolute;
   left: -${space(3)};
-  top: 2px;
+  top: ${p => (p.theme.isChonk ? '0px' : '2px')};
   border-radius: 2px;
   align-items: center;
   justify-content: center;
   background: none;
   border: none;
+  height: 18px;
+  width: 18px;
+  min-height: 18px;
 
   &[data-base-with-toggle='true'] {
     left: 0;

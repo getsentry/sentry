@@ -2,44 +2,33 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {Alert} from 'sentry/components/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-
-import {useReplayContext} from './replayContext';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
 interface Props {
   processingErrors: readonly string[];
   className?: string;
 }
 
-export default function ReplayProcessingError({className, processingErrors}: Props) {
-  const {replay} = useReplayContext();
+export default function ReplayProcessingError({className}: Props) {
+  const replay = useReplayReader();
   const {sdk} = replay?.getReplay() || {};
 
   useEffect(() => {
     Sentry.withScope(scope => {
       scope.setLevel('warning');
       scope.setFingerprint(['replay-processing-error']);
-      sdk && scope.setTag('sdk.version', sdk.version);
-      processingErrors.forEach(error => {
-        Sentry.metrics.increment(`replay.processing-error`, 1, {
-          tags: {
-            'sdk.version': sdk?.version ?? 'unknown',
-            // There are only 2 different error types
-            type:
-              error.toLowerCase() === 'missing meta frame'
-                ? 'missing-meta-frame'
-                : 'insufficient-replay-frames',
-          },
-        });
-      });
+      if (sdk) {
+        scope.setTag('sdk.version', sdk.version);
+      }
     });
-  }, [processingErrors, sdk]);
+  }, [sdk]);
 
   return (
-    <StyledAlert type="error" showIcon className={className}>
+    <StyledAlert type="error" className={className}>
       <Heading>{t('Replay Not Found')}</Heading>
       <p>{t('The replay you are looking for was not found.')}</p>
       <p>{t('The replay might be missing events or metadata.')}</p>
@@ -68,12 +57,11 @@ export default function ReplayProcessingError({className, processingErrors}: Pro
 }
 
 const StyledAlert = styled(Alert)`
-  margin: 0;
   height: 100%;
 `;
 
 const Heading = styled('h1')`
-  font-size: ${p => p.theme.fontSizeLarge};
+  font-size: ${p => p.theme.fontSize.lg};
   line-height: 1.4;
   margin-bottom: ${space(1)};
 `;

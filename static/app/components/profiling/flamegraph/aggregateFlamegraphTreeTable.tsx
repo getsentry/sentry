@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
@@ -204,14 +204,14 @@ export function AggregateFlamegraphTreeTable({
   const fixedRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
     useCallback(
       (
-        r,
+        r: any,
         {
           handleRowClick,
           handleRowMouseEnter,
           handleExpandTreeNode,
           handleRowKeyDown,
           selectedNodeIndex,
-        }
+        }: any
       ) => {
         return (
           <CallTreeTableRow
@@ -259,14 +259,14 @@ export function AggregateFlamegraphTreeTable({
   const dynamicRenderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] =
     useCallback(
       (
-        r,
+        r: any,
         {
           handleRowClick,
           handleRowMouseEnter,
           handleExpandTreeNode,
           handleRowKeyDown,
           selectedNodeIndex,
-        }
+        }: any
       ) => {
         return (
           <CallTreeTableRow

@@ -3,7 +3,7 @@ import math
 import zoneinfo
 from collections import defaultdict
 from datetime import datetime
-from typing import DefaultDict, cast
+from typing import cast
 
 import sentry_sdk
 from django.utils import timezone
@@ -36,6 +36,9 @@ from sentry.tasks.summaries.utils import (
     project_key_performance_issues,
     user_project_ownership,
 )
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import reports_tasks
+from sentry.taskworker.retry import Retry
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
@@ -58,6 +61,7 @@ HOUR_TO_SEND_REPORT = 16
     max_retries=5,
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(namespace=reports_tasks, retry=Retry(times=5)),
 )
 @retry
 def schedule_organizations(timestamp: float | None = None, duration: int | None = None) -> None:
@@ -120,6 +124,10 @@ def schedule_organizations(timestamp: float | None = None, duration: int | None 
     max_retries=5,
     acks_late=True,
     silo_mode=SiloMode.REGION,
+    taskworker_config=TaskworkerConfig(
+        namespace=reports_tasks,
+        retry=Retry(times=5),
+    ),
 )
 @retry
 def prepare_summary_data(
@@ -211,10 +219,14 @@ def build_summary_data(
                 type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_ESCALATING.value),
                 datetime__gte=ctx.start,
             )
-            deduped_groups_by_activity_type: DefaultDict[ActivityType, set] = defaultdict(set)
+            deduped_groups_by_activity_type: defaultdict[ActivityType, dict[Group, bool]]
+            deduped_groups_by_activity_type = defaultdict(dict)
 
             for activity in regressed_or_escalated_groups_today:
-                deduped_groups_by_activity_type[ActivityType(activity.type)].add(activity.group)
+                if activity.group is None:
+                    continue
+
+                deduped_groups_by_activity_type[ActivityType(activity.type)][activity.group] = True
 
                 if (
                     activity.type == ActivityType.SET_ESCALATING.value
@@ -223,9 +235,7 @@ def build_summary_data(
                 ):
                     # if a group is already in the regressed set but we now see it in escalating, remove from regressed and add to escalating
                     # this means the group regressed and then later escalated, and we only want to list it once
-                    deduped_groups_by_activity_type[ActivityType.SET_REGRESSION].remove(
-                        activity.group
-                    )
+                    del deduped_groups_by_activity_type[ActivityType.SET_REGRESSION][activity.group]
 
             for activity_type, groups in deduped_groups_by_activity_type.items():
                 for group in list(groups)[:3]:

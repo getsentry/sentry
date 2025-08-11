@@ -4,16 +4,19 @@ import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {ExternalLink} from 'sentry/components/core/link';
+import {Select} from 'sentry/components/core/select';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
 import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import {uniqueId} from 'sentry/utils/guid';
@@ -22,11 +25,12 @@ import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleMod
 import ActionSpecificTargetSelector from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionSpecificTargetSelector';
 import ActionTargetSelector from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionTargetSelector';
 import DeleteActionButton from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/deleteActionButton';
-import type {
-  Action,
-  ActionType,
-  MetricActionTemplate,
-  Trigger,
+import {
+  type Action,
+  type ActionType,
+  AlertRuleComparisonType,
+  type MetricActionTemplate,
+  type Trigger,
 } from 'sentry/views/alerts/rules/metric/types';
 import {
   ActionLabel,
@@ -37,6 +41,7 @@ import {
 
 type Props = {
   availableActions: MetricActionTemplate[] | null;
+  comparisonType: AlertRuleComparisonType;
   currentProject: string;
   disabled: boolean;
   error: boolean;
@@ -54,7 +59,7 @@ type Props = {
  * @param actionConfig
  * @param dateCreated kept to maintain order of unsaved actions
  */
-const getCleanAction = (actionConfig, dateCreated?: string): Action => {
+const getCleanAction = (actionConfig: any, dateCreated?: string): Action => {
   return {
     unsavedId: uniqueId(),
     unsavedDateCreated: dateCreated ?? new Date().toISOString(),
@@ -131,9 +136,9 @@ class ActionsPanel extends PureComponent<Props> {
     value: string
   ) {
     const {triggers, onChange} = this.props;
-    const {actions} = triggers[triggerIndex];
+    const {actions} = triggers[triggerIndex]!;
     const newAction = {
-      ...actions[index],
+      ...actions[index]!,
       [key]: value,
     };
 
@@ -142,44 +147,34 @@ class ActionsPanel extends PureComponent<Props> {
 
   conditionallyRenderHelpfulBanner(triggerIndex: number, index: number) {
     const {triggers} = this.props;
-    const {actions} = triggers[triggerIndex];
+    const {actions} = triggers[triggerIndex]!;
     const newAction = {...actions[index]};
     if (newAction.type === 'slack') {
       return (
-        <MarginlessAlert
+        <FooterAlert
           type="info"
-          showIcon
           trailingItems={
-            <Button
-              href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
-              external
-              size="xs"
-            >
+            <ExternalLink href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error">
               {t('Learn More')}
-            </Button>
+            </ExternalLink>
           }
         >
           {t('Having rate limiting problems? Enter a channel or user ID.')}
-        </MarginlessAlert>
+        </FooterAlert>
       );
     }
     if (newAction.type === 'discord') {
       return (
-        <MarginlessAlert
+        <FooterAlert
           type="info"
-          showIcon
           trailingItems={
-            <Button
-              href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts"
-              external
-              size="xs"
-            >
+            <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter-features/discord/#issue-alerts">
               {t('Learn More')}
-            </Button>
+            </ExternalLink>
           }
         >
           {t('Note that you must enter a Discord channel ID, not a channel name.')}
-        </MarginlessAlert>
+        </FooterAlert>
       );
     }
     return null;
@@ -204,7 +199,7 @@ class ActionsPanel extends PureComponent<Props> {
 
   handleDeleteAction = (triggerIndex: number, index: number) => {
     const {triggers, onChange} = this.props;
-    const {actions} = triggers[triggerIndex];
+    const {actions} = triggers[triggerIndex]!;
 
     onChange(triggerIndex, triggers, removeAtArrayIndex(actions, index));
   };
@@ -216,10 +211,10 @@ class ActionsPanel extends PureComponent<Props> {
   ) => {
     const {triggers, onChange} = this.props;
     // Convert saved action to unsaved by removing id
-    const {id: _, ...action} = triggers[triggerIndex].actions[index];
+    const {id: _, ...action} = triggers[triggerIndex]!.actions[index]!;
     action.unsavedId = uniqueId();
-    triggers[value.value].actions.push(action);
-    onChange(value.value, triggers, triggers[value.value].actions);
+    triggers[value.value]!.actions.push(action);
+    onChange(value.value, triggers, triggers[value.value]!.actions);
     this.handleDeleteAction(triggerIndex, index);
   };
 
@@ -229,7 +224,7 @@ class ActionsPanel extends PureComponent<Props> {
     value: SelectValue<ActionType>
   ) => {
     const {triggers, onChange, availableActions} = this.props;
-    const {actions} = triggers[triggerIndex];
+    const {actions} = triggers[triggerIndex]!;
     const actionConfig = availableActions?.find(
       availableAction => getActionUniqueKey(availableAction) === value.value
     );
@@ -240,7 +235,7 @@ class ActionsPanel extends PureComponent<Props> {
     }
 
     const existingDateCreated =
-      actions[index].dateCreated ?? actions[index].unsavedDateCreated;
+      actions[index]!.dateCreated ?? actions[index]!.unsavedDateCreated;
     const newAction: Action = getCleanAction(actionConfig, existingDateCreated);
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
   };
@@ -251,9 +246,9 @@ class ActionsPanel extends PureComponent<Props> {
     value: SelectValue<keyof typeof TargetLabel>
   ) => {
     const {triggers, onChange} = this.props;
-    const {actions} = triggers[triggerIndex];
+    const {actions} = triggers[triggerIndex]!;
     const newAction = {
-      ...actions[index],
+      ...actions[index]!,
       targetType: value.value,
       targetIdentifier: '',
     };
@@ -267,9 +262,9 @@ class ActionsPanel extends PureComponent<Props> {
     value: SelectValue<keyof typeof PriorityOptions>
   ) => {
     const {triggers, onChange} = this.props;
-    const {actions} = triggers[triggerIndex];
+    const {actions} = triggers[triggerIndex]!;
     const newAction = {
-      ...actions[index],
+      ...actions[index]!,
       priority: value.value,
     };
 
@@ -284,12 +279,12 @@ class ActionsPanel extends PureComponent<Props> {
   updateParentFromSentryAppRule = (
     triggerIndex: number,
     actionIndex: number,
-    formData: {[key: string]: string}
+    formData: Record<string, string>
   ): void => {
     const {triggers, onChange} = this.props;
-    const {actions} = triggers[triggerIndex];
+    const {actions} = triggers[triggerIndex]!;
     const newAction = {
-      ...actions[actionIndex],
+      ...actions[actionIndex]!,
       ...formData,
     };
 
@@ -309,6 +304,7 @@ class ActionsPanel extends PureComponent<Props> {
       organization,
       projects,
       triggers,
+      comparisonType,
     } = this.props;
 
     const project = projects.find(({slug}) => slug === currentProject);
@@ -316,14 +312,15 @@ class ActionsPanel extends PureComponent<Props> {
       value: getActionUniqueKey(availableAction),
       label: getFullActionTitle(availableAction),
     }));
-    const hasPriorityFlag = organization.features.includes(
-      'integrations-custom-alert-priorities'
-    );
 
     const levels = [
       {value: 0, label: 'Critical Status'},
       {value: 1, label: 'Warning Status'},
     ];
+
+    // NOTE: we don't support warning triggers for anomaly detection alerts yet
+    // once we do, this can be deleted
+    const anomalyDetectionLevels = [{value: 0, label: 'Critical Status'}];
 
     // Create single array of unsaved and saved trigger actions
     // Sorted by date created ascending
@@ -352,13 +349,13 @@ class ActionsPanel extends PureComponent<Props> {
         {loading && <LoadingIndicator />}
         {actions.map(({action, actionIdx, triggerIndex, availableAction}) => {
           const actionDisabled =
-            triggers[triggerIndex].actions[actionIdx]?.disabled || disabled;
+            triggers[triggerIndex]!.actions[actionIdx]?.disabled || disabled;
           return (
             <div key={action.id ?? action.unsavedId}>
               <RuleRowContainer>
                 <PanelItemGrid>
                   <PanelItemSelects>
-                    <SelectControl
+                    <Select
                       name="select-level"
                       aria-label={t('Select a status level')}
                       isDisabled={disabled || loading}
@@ -369,9 +366,13 @@ class ActionsPanel extends PureComponent<Props> {
                         actionIdx
                       )}
                       value={triggerIndex}
-                      options={levels}
+                      options={
+                        comparisonType === AlertRuleComparisonType.DYNAMIC
+                          ? anomalyDetectionLevels
+                          : levels
+                      }
                     />
-                    <SelectControl
+                    <Select
                       name="select-action"
                       aria-label={t('Select an Action')}
                       isDisabled={disabled || loading}
@@ -386,12 +387,13 @@ class ActionsPanel extends PureComponent<Props> {
                     />
 
                     {availableAction && availableAction.allowedTargetTypes.length > 1 ? (
-                      <SelectControl
+                      <Select
                         isDisabled={disabled || loading}
                         value={action.targetType}
                         options={availableAction?.allowedTargetTypes?.map(
                           allowedType => ({
                             value: allowedType,
+                            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                             label: TargetLabel[allowedType],
                           })
                         )}
@@ -424,7 +426,7 @@ class ActionsPanel extends PureComponent<Props> {
                                   actionIdx
                                 )}
                                 resetValues={
-                                  triggers[triggerIndex].actions[actionIdx] || {}
+                                  triggers[triggerIndex]!.actions[actionIdx] || {}
                                 }
                               />
                             ),
@@ -459,14 +461,14 @@ class ActionsPanel extends PureComponent<Props> {
                         'inputChannelId'
                       )}
                     />
-                    {hasPriorityFlag &&
-                    availableAction &&
+                    {availableAction &&
                     (availableAction.type === 'opsgenie' ||
                       availableAction.type === 'pagerduty') ? (
-                      <SelectControl
+                      <Select
                         isDisabled={disabled || loading}
                         value={action.priority}
                         placeholder={
+                          // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                           DefaultPriorities[availableAction.type][triggerIndex]
                         }
                         options={PriorityOptions[availableAction.type].map(priority => ({
@@ -547,7 +549,7 @@ const RuleRowContainer = styled('div')`
 
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(3)} 0;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const PerformActionsListItem = styled(StyledListItem)`
@@ -555,13 +557,12 @@ const PerformActionsListItem = styled(StyledListItem)`
   line-height: 1.3;
 `;
 
-const MarginlessAlert = styled(Alert)`
+const FooterAlert = styled(Alert)`
   border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
-  border: 1px ${p => p.theme.border} solid;
-  border-top-width: 0;
-  margin: 0;
-  padding: ${space(1)} ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
+  margin-top: -1px; /* remove double border on panel bottom */
+  a {
+    white-space: nowrap;
+  }
 `;
 
 export default withOrganization(ActionsPanelWithSpace);

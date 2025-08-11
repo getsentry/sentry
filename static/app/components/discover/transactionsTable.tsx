@@ -1,13 +1,14 @@
-import {Fragment, PureComponent} from 'react';
+import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
-import {LinkButton} from 'sentry/components/button';
-import SortLink from 'sentry/components/gridEditable/sortLink';
-import Link from 'sentry/components/links/link';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -29,7 +30,7 @@ import {GridCell, GridCellNumber} from 'sentry/views/performance/styles';
 import type {TrendsDataEvents} from 'sentry/views/performance/trends/types';
 
 type Props = {
-  columnOrder: TableColumn<React.ReactText>[];
+  columnOrder: Array<TableColumn<string | number>>;
   eventView: EventView;
   isLoading: boolean;
   location: Location;
@@ -45,27 +46,39 @@ type Props = {
     ) => LocationDescriptor
   >;
   handleCellAction?: (
-    c: TableColumn<React.ReactText>
-  ) => (a: Actions, v: React.ReactText) => void;
+    c: TableColumn<string | number>
+  ) => (a: Actions, v: string | number) => void;
   referrer?: string;
   titles?: string[];
 };
 
-class TransactionsTable extends PureComponent<Props> {
-  getTitles() {
-    const {eventView, titles} = this.props;
+function TransactionsTable(props: Props) {
+  const {
+    eventView,
+    titles,
+    tableData,
+    columnOrder,
+    organization,
+    location,
+    generateLink,
+    handleCellAction,
+    useAggregateAlias,
+    isLoading,
+    referrer,
+  } = props;
+  const theme = useTheme();
+
+  const getTitles = () => {
     return titles ?? eventView.getFields();
-  }
+  };
 
-  renderHeader() {
-    const {tableData, columnOrder} = this.props;
-
+  const renderHeader = () => {
     const tableMeta = tableData?.meta;
     const generateSortLink = () => undefined;
-    const tableTitles = this.getTitles();
+    const tableTitles = getTitles();
 
     const headers = tableTitles.map((title, index) => {
-      const column = columnOrder[index];
+      const column = columnOrder[index]!;
       const align: Alignments = fieldAlignment(column.name, column.type, tableMeta);
 
       if (column.key === 'span_ops_breakdown.relative') {
@@ -111,39 +124,29 @@ class TransactionsTable extends PureComponent<Props> {
     });
 
     return headers;
-  }
+  };
 
-  renderRow(
+  const renderRow = (
     row: TableDataRow,
     rowIndex: number,
-    columnOrder: TableColumn<React.ReactText>[],
+    colOrder: Array<TableColumn<string | number>>,
     tableMeta: MetaType
-  ): React.ReactNode[] {
-    const {
-      eventView,
-      organization,
-      location,
-      generateLink,
-      handleCellAction,
-      titles,
-      useAggregateAlias,
-      referrer,
-    } = this.props;
+  ): React.ReactNode[] => {
     const fields = eventView.getFields();
 
     if (titles?.length) {
       // Slice to match length of given titles
-      columnOrder = columnOrder.slice(0, titles.length);
+      colOrder = colOrder.slice(0, titles.length);
     }
 
-    const resultsRow = columnOrder.map((column, index) => {
+    const resultsRow = colOrder.map((column, index) => {
       const field = String(column.key);
       // TODO add a better abstraction for this in fieldRenderers.
       const fieldName = useAggregateAlias ? getAggregateAlias(field) : field;
       const fieldType = tableMeta[fieldName];
 
       const fieldRenderer = getFieldRenderer(field, tableMeta, useAggregateAlias);
-      let rendered = fieldRenderer(row, {organization, location});
+      let rendered = fieldRenderer(row, {organization, location, theme});
 
       const target = generateLink?.[field]?.(organization, row, location);
 
@@ -162,7 +165,7 @@ class TransactionsTable extends PureComponent<Props> {
       } else if (target && !isEmptyObject(target)) {
         if (fields[index] === 'replayId') {
           rendered = (
-            <ViewReplayLink replayId={row.replayId} to={target}>
+            <ViewReplayLink replayId={row.replayId!} to={target}>
               {rendered}
             </ViewReplayLink>
           );
@@ -199,16 +202,15 @@ class TransactionsTable extends PureComponent<Props> {
     });
 
     return resultsRow;
-  }
+  };
 
-  renderResults() {
-    const {isLoading, tableData, columnOrder} = this.props;
+  const renderResults = () => {
     let cells: React.ReactNode[] = [];
 
     if (isLoading) {
       return cells;
     }
-    if (!tableData || !tableData.meta || !tableData.data) {
+    if (!tableData?.meta || !tableData.data) {
       return cells;
     }
 
@@ -217,49 +219,48 @@ class TransactionsTable extends PureComponent<Props> {
       if (!tableData.meta) {
         return;
       }
-      cells = cells.concat(this.renderRow(row, i, columnOrder, tableData.meta));
+      // @ts-expect-error TS(2345): Argument of type 'TableDataRow | TrendsTransaction... Remove this comment to see the full error message
+      cells = cells.concat(renderRow(row, i, columnOrder, tableData.meta, theme));
     });
     return cells;
-  }
+  };
 
-  render() {
-    const {isLoading, tableData} = this.props;
+  const hasResults = tableData?.meta && tableData.data?.length > 0;
 
-    const hasResults = tableData?.meta && tableData.data?.length > 0;
+  // Custom set the height so we don't have layout shift when results are loaded.
+  const loader = <LoadingIndicator style={{margin: '70px auto'}} />;
 
-    // Custom set the height so we don't have layout shift when results are loaded.
-    const loader = <LoadingIndicator style={{margin: '70px auto'}} />;
-
-    return (
-      <VisuallyCompleteWithData
-        id="TransactionsTable"
-        hasData={hasResults}
+  return (
+    <VisuallyCompleteWithData
+      id="TransactionsTable"
+      hasData={hasResults}
+      isLoading={isLoading}
+    >
+      <PanelTable
+        data-test-id="transactions-table"
+        isEmpty={!hasResults}
+        emptyMessage={
+          eventView.query
+            ? t('No transactions found for this filter.')
+            : t('No transactions found.')
+        }
+        headers={renderHeader()}
         isLoading={isLoading}
+        disablePadding
+        loader={loader}
       >
-        <PanelTable
-          data-test-id="transactions-table"
-          isEmpty={!hasResults}
-          emptyMessage={t('No transactions found')}
-          headers={this.renderHeader()}
-          isLoading={isLoading}
-          disablePadding
-          loader={loader}
-        >
-          {this.renderResults()}
-        </PanelTable>
-      </VisuallyCompleteWithData>
-    );
-  }
+        {renderResults()}
+      </PanelTable>
+    </VisuallyCompleteWithData>
+  );
 }
 
 function getProfileAnalyticsHandler(organization: Organization, referrer?: string) {
   return () => {
-    let source;
-    if (referrer === 'performance.transactions_summary') {
-      source = 'performance.transactions_summary.overview';
-    } else {
-      source = 'discover.transactions_table';
-    }
+    const source =
+      referrer === 'performance.transactions_summary'
+        ? ('performance.transactions_summary.overview' as const)
+        : ('discover.transactions_table' as const);
     trackAnalytics('profiling_views.go_to_flamegraph', {
       organization,
       source,

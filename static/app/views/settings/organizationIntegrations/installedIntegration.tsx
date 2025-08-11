@@ -3,20 +3,18 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
-import {Button} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {
-  Integration,
-  IntegrationProvider,
-  ObjectStatus,
-  Organization,
-} from 'sentry/types';
+import type {ObjectStatus} from 'sentry/types/core';
+import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {getIntegrationStatus} from 'sentry/utils/integrationUtil';
 
@@ -69,9 +67,9 @@ export default class InstalledIntegration extends Component<Props> {
 
     const message = (
       <Fragment>
-        <Alert type="error" showIcon>
-          {t('Deleting this integration has consequences!')}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error">{t('Deleting this integration has consequences!')}</Alert>
+        </Alert.Container>
         {body}
       </Fragment>
     );
@@ -87,9 +85,9 @@ export default class InstalledIntegration extends Component<Props> {
     const {body, actionText} = integration.provider.aspects.disable_dialog || {};
     const message = (
       <Fragment>
-        <Alert type="error" showIcon>
-          {t('This integration cannot be removed in Sentry')}
-        </Alert>
+        <Alert.Container>
+          <Alert type="error">{t('This integration cannot be removed in Sentry')}</Alert>
+        </Alert.Container>
         {body}
       </Fragment>
     );
@@ -147,7 +145,7 @@ export default class InstalledIntegration extends Component<Props> {
                       size="sm"
                     />
                   )}
-                  <StyledButton
+                  <StyledLinkButton
                     borderless
                     icon={<IconSettings />}
                     disabled={!allowMemberConfiguration && disableAction}
@@ -155,7 +153,7 @@ export default class InstalledIntegration extends Component<Props> {
                     data-test-id="integration-configure-button"
                   >
                     {t('Configure')}
-                  </StyledButton>
+                  </StyledLinkButton>
                 </Tooltip>
               </div>
               <div>
@@ -196,7 +194,11 @@ export default class InstalledIntegration extends Component<Props> {
 }
 
 const StyledButton = styled(Button)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
+`;
+
+const StyledLinkButton = styled(LinkButton)`
+  color: ${p => p.theme.subText};
 `;
 
 const IntegrationItemBox = styled('div')`
@@ -235,7 +237,7 @@ function IntegrationStatus(
           ? t('This integration can be disabled by clicking the Uninstall button')
           : status === 'disabled'
             ? t('This integration has been disconnected from the external provider')
-            : t('This integration is pending deletion.')
+            : t('Deletion takes a few minutes to complete.')
       }
     >
       {inner}
@@ -246,14 +248,14 @@ function IntegrationStatus(
 const StyledIntegrationStatus = styled(IntegrationStatus)`
   display: flex;
   align-items: center;
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-weight: light;
   text-transform: capitalize;
   &:before {
     content: '|';
     color: ${p => p.theme.gray200};
     margin-right: ${space(1)};
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
   }
 `;
 

@@ -2,7 +2,7 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconPanel} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -128,7 +128,7 @@ export default function Detail({
 }
 
 const CloseButton = styled(Button)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   &:hover {
     color: ${p => p.theme.gray400};
   }
@@ -136,7 +136,7 @@ const CloseButton = styled(Button)`
 `;
 
 const PanelButton = styled(Button)`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   &:hover {
     color: ${p => p.theme.gray400};
   }

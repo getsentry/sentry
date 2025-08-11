@@ -1,12 +1,15 @@
+"""DO NOT USE ME. USE django.contrib.postgres.fields.array.ArrayField
+
+I am only here for migration compatibility
+"""
+
 from __future__ import annotations
 
 import ast
 
-from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
 
 from sentry.db.models.utils import Creator
-from sentry.db.postgres.lookups.array_element_contains import ArrayElementContainsLookup
 from sentry.utils import json
 
 
@@ -71,6 +74,3 @@ class ArrayField(models.Field):
                     assert "\\" not in value, "Unexpected ArrayField format"
                     value = value[1:-1].split(",")
         return [self.of.to_python(x) for x in value]
-
-
-DjangoArrayField.register_lookup(ArrayElementContainsLookup)

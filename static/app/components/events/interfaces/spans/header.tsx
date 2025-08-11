@@ -1,4 +1,5 @@
 import {Component, Fragment, PureComponent} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {
@@ -19,13 +20,11 @@ import {
   pickBarColor,
   rectOfContent,
 } from 'sentry/components/performance/waterfall/utils';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import toPercent from 'sentry/utils/number/toPercent';
-import theme from 'sentry/utils/theme';
 import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
 
 import {
@@ -50,14 +49,16 @@ type PropType = {
   dragProps: DragManagerChildrenProps;
   event: EventTransaction | AggregateEventTransaction;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-  minimapInteractiveRef: React.RefObject<HTMLDivElement>;
+  isEmbedded: boolean;
+  minimapInteractiveRef: React.RefObject<HTMLDivElement | null>;
   operationNameFilters: ActiveOperationFilter;
   organization: Organization;
   rootSpan: RawSpanType;
   spans: EnhancedProcessedSpanType[];
+  theme: Theme;
   trace: ParsedTraceType;
-  traceViewHeaderRef: React.RefObject<HTMLDivElement>;
-  virtualScrollBarContainerRef: React.RefObject<HTMLDivElement>;
+  traceViewHeaderRef: React.RefObject<HTMLDivElement | null>;
+  virtualScrollBarContainerRef: React.RefObject<HTMLDivElement | null>;
 };
 
 type State = {
@@ -82,7 +83,6 @@ class TraceViewHeader extends Component<PropType, State> {
     if (minimapInteractiveRef.current) {
       const minimapWidth = minimapInteractiveRef.current.getBoundingClientRect().width;
       if (minimapWidth !== this.state.minimapWidth) {
-        // eslint-disable-next-line react/no-did-update-set-state
         this.setState({
           minimapWidth,
         });
@@ -175,10 +175,7 @@ class TraceViewHeader extends Component<PropType, State> {
     );
   }
 
-  renderFog(
-    dragProps: DragManagerChildrenProps,
-    hasProfileMeasurementsChart: boolean = false
-  ) {
+  renderFog(dragProps: DragManagerChildrenProps, hasProfileMeasurementsChart = false) {
     return (
       <Fragment>
         <Fog
@@ -377,7 +374,7 @@ class TraceViewHeader extends Component<PropType, State> {
     });
   }
 
-  renderSecondaryHeader(hasProfileMeasurementsChart: boolean = false) {
+  renderSecondaryHeader(hasProfileMeasurementsChart = false) {
     const {event} = this.props;
 
     const hasMeasurements = Object.keys(event.measurements ?? {}).length > 0;
@@ -438,11 +435,7 @@ class TraceViewHeader extends Component<PropType, State> {
     const handleStartWindowSelection = (event: React.MouseEvent<HTMLDivElement>) => {
       const target = event.target;
 
-      if (
-        target instanceof Element &&
-        target.getAttribute &&
-        target.getAttribute('data-ignore')
-      ) {
+      if (target instanceof Element && target.getAttribute?.('data-ignore')) {
         // ignore this event if we need to
         return;
       }
@@ -463,11 +456,11 @@ class TraceViewHeader extends Component<PropType, State> {
             'metadata' in profiles.data &&
             profiles.data.metadata.platform === 'android' &&
             // Check that this profile has measurements
-            'measurements' in profiles?.data &&
+            'measurements' in profiles.data &&
             defined(profiles.data.measurements?.cpu_usage) &&
             // Check that this profile has enough data points
             getDataPoints(
-              profiles.data.measurements!.cpu_usage,
+              profiles.data.measurements.cpu_usage,
               transactionDuration * MS_PER_S
             ).length >= MIN_DATA_POINTS;
 
@@ -475,6 +468,7 @@ class TraceViewHeader extends Component<PropType, State> {
             <HeaderContainer
               ref={this.props.traceViewHeaderRef}
               hasProfileMeasurementsChart={hasProfileMeasurementsChart}
+              isEmbedded={this.props.isEmbedded}
             >
               <DividerHandlerManager.Consumer>
                 {dividerHandlerChildrenProps => {
@@ -504,6 +498,7 @@ class TraceViewHeader extends Component<PropType, State> {
                         }}
                       />
                       <ActualMinimap
+                        theme={this.props.theme}
                         spans={this.props.spans}
                         generateBounds={this.props.generateBounds}
                         dividerPosition={dividerPosition}
@@ -584,6 +579,7 @@ class ActualMinimap extends PureComponent<{
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   rootSpan: RawSpanType;
   spans: EnhancedProcessedSpanType[];
+  theme: Theme;
 }> {
   renderRootSpan(): React.ReactNode {
     const {spans, generateBounds} = this.props;
@@ -595,7 +591,10 @@ class ActualMinimap extends PureComponent<{
         case 'span_group_chain': {
           const {span} = payload;
 
-          const spanBarColor: string = pickBarColor(getSpanOperation(span));
+          const spanBarColor: string = pickBarColor(
+            getSpanOperation(span),
+            this.props.theme
+          );
 
           const bounds = generateBounds({
             startTimestamp: span.start_timestamp,
@@ -608,7 +607,9 @@ class ActualMinimap extends PureComponent<{
               key={`${payload.type}-${i}`}
               style={{
                 backgroundColor:
-                  payload.type === 'span_group_chain' ? theme.blue300 : spanBarColor,
+                  payload.type === 'span_group_chain'
+                    ? this.props.theme.blue300
+                    : spanBarColor,
                 left: spanLeft,
                 width: spanWidth,
               }}
@@ -633,7 +634,7 @@ class ActualMinimap extends PureComponent<{
                 return (
                   <MinimapSpanBar
                     style={{
-                      backgroundColor: theme.blue300,
+                      backgroundColor: this.props.theme.blue300,
                       left: spanLeft,
                       width: spanWidth,
                       minWidth: 0,
@@ -715,9 +716,9 @@ const TimeAxis = styled('div')<{hasProfileMeasurementsChart: boolean}>`
   border-top: 1px solid ${p => p.theme.border};
   height: ${TIME_AXIS_HEIGHT}px;
   background-color: ${p => p.theme.background};
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: 10px;
-  ${p => p.theme.fontWeightNormal};
+  ${p => p.theme.fontWeight.normal};
   font-variant-numeric: tabular-nums;
   overflow: hidden;
 `;
@@ -750,7 +751,7 @@ const TickText = styled('span')<{align: TickAlignment}>`
       }
 
       default: {
-        throw Error(`Invalid tick alignment: ${align}`);
+        throw new Error(`Invalid tick alignment: ${align}`);
       }
     }
   }};
@@ -801,12 +802,15 @@ const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
   }};
 `;
 
-export const HeaderContainer = styled('div')<{hasProfileMeasurementsChart: boolean}>`
+const HeaderContainer = styled('div')<{
+  hasProfileMeasurementsChart: boolean;
+  isEmbedded: boolean;
+}>`
   width: 100%;
   position: sticky;
   left: 0;
-  top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
-  z-index: ${p => p.theme.zIndex.traceView.minimapContainer};
+  top: 0;
+  z-index: ${p => (p.isEmbedded ? 'initial' : p.theme.zIndex.traceView.minimapContainer)};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};
   height: ${p =>

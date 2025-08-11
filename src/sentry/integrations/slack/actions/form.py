@@ -9,12 +9,10 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.utils import (
-    SLACK_RATE_LIMITED_MESSAGE,
-    strip_channel_name,
-    validate_channel_id,
-)
+from sentry.integrations.slack.utils.channel import strip_channel_name, validate_slack_entity_id
+from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
+from sentry.utils.forms import set_field_choices
 
 logger = logging.getLogger("sentry.rules")
 
@@ -27,16 +25,15 @@ class SlackNotifyServiceForm(forms.Form):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         # NOTE: Workspace maps directly to the integration ID
-        workspace_list = [(i.id, i.name) for i in kwargs.pop("integrations")]
+        self._workspace_list = [(i.id, i.name) for i in kwargs.pop("integrations")]
         self.channel_transformer = kwargs.pop("channel_transformer")
 
         super().__init__(*args, **kwargs)
 
-        if workspace_list:
-            self.fields["workspace"].initial = workspace_list[0][0]
+        if self._workspace_list:
+            self.fields["workspace"].initial = self._workspace_list[0][0]
 
-        self.fields["workspace"].choices = workspace_list
-        self.fields["workspace"].widget.choices = self.fields["workspace"].choices
+        set_field_choices(self.fields["workspace"], self._workspace_list)
 
         # XXX(meredith): When this gets set to True, it lets the RuleSerializer
         # know to only save if and when we have the channel_id. The rule will get saved
@@ -68,8 +65,9 @@ class SlackNotifyServiceForm(forms.Form):
             # default to "#" if they have the channel name without the prefix
             channel_prefix = self.data["channel"][0] if self.data["channel"][0] == "@" else "#"
 
-        cleaned_data: dict[str, Any] = super().clean()
-        assert cleaned_data is not None
+        cleaned_data = super().clean()
+        if cleaned_data is None:
+            return None
 
         workspace = cleaned_data.get("workspace")
         if not workspace:
@@ -79,10 +77,10 @@ class SlackNotifyServiceForm(forms.Form):
 
         if channel_id:
             try:
-                validate_channel_id(
-                    self.data["channel"],
+                validate_slack_entity_id(
                     integration_id=workspace,
-                    input_channel_id=channel_id,
+                    input_name=self.data["channel"],
+                    input_id=channel_id,
                 )
             except ValidationError as e:
                 params = {"channel": self.data.get("channel"), "channel_id": channel_id}
@@ -138,7 +136,7 @@ class SlackNotifyServiceForm(forms.Form):
         if channel_id is None and workspace is not None:
             params = {
                 "channel": channel,
-                "workspace": dict(self.fields["workspace"].choices).get(int(workspace)),
+                "workspace": dict(self._workspace_list).get(int(workspace)),
             }
             raise forms.ValidationError(
                 self._format_slack_error_message(

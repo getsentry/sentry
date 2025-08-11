@@ -1,19 +1,19 @@
 from django.test import override_settings
 
-from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
+from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.silo.base import SiloMode
-from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 
 
 class TeamTest(TestCase):
-    def test_global_member(self):
+    def test_global_member(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
@@ -21,7 +21,7 @@ class TeamTest(TestCase):
         OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
         assert list(team.member_set.all()) == [member]
 
-    def test_inactive_global_member(self):
+    def test_inactive_global_member(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
@@ -29,7 +29,7 @@ class TeamTest(TestCase):
 
         assert list(team.member_set.all()) == []
 
-    def test_active_basic_member(self):
+    def test_active_basic_member(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
@@ -38,7 +38,7 @@ class TeamTest(TestCase):
 
         assert member in team.member_set.all()
 
-    def test_teamless_basic_member(self):
+    def test_teamless_basic_member(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
@@ -47,7 +47,7 @@ class TeamTest(TestCase):
 
         assert member not in team.member_set.all()
 
-    def test_get_projects(self):
+    def test_get_projects(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
@@ -57,7 +57,7 @@ class TeamTest(TestCase):
         assert {_.id for _ in projects} == {project.id}
 
     @override_settings(SENTRY_USE_SNOWFLAKE=False)
-    def test_without_snowflake(self):
+    def test_without_snowflake(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
@@ -66,7 +66,7 @@ class TeamTest(TestCase):
 
 
 class TeamDeletionTest(TestCase):
-    def test_hybrid_cloud_deletion(self):
+    def test_hybrid_cloud_deletion(self) -> None:
         org = self.create_organization()
         team = self.create_team(org)
         base_params = {

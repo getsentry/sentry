@@ -1,17 +1,17 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
 
-import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/core/button';
+import {Button} from 'sentry/components/core/button';
 import FormContext from 'sentry/components/forms/formContext';
 import type {FormOptions} from 'sentry/components/forms/model';
-import FormModel from 'sentry/components/forms/model';
+import FormModel, {fieldIsRequiredMessage} from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 
 type RenderProps = {
   model: FormModel;
@@ -31,7 +31,7 @@ export interface FormProps
     | 'onSubmitError'
     | 'onSubmitSuccess'
   > {
-  additionalFieldProps?: {[key: string]: any};
+  additionalFieldProps?: Record<string, any>;
   cancelLabel?: string;
   children?: React.ReactNode | RenderFunc;
   className?: string;
@@ -78,6 +78,35 @@ export interface FormProps
   submitDisabled?: boolean;
   submitLabel?: string;
   submitPriority?: ButtonProps['priority'];
+}
+
+function getSubmitButtonTitle(form: FormModel) {
+  if (form.isFormIncomplete) {
+    return t('Required fields must be filled out');
+  }
+
+  if (!form.isError) {
+    return undefined;
+  }
+
+  const errors = form.getErrors();
+  const hasRequiredFieldError = [...errors].some(
+    ([_field, message]) => message === fieldIsRequiredMessage
+  );
+
+  if (hasRequiredFieldError) {
+    const allRequiredFieldErrors = [...errors].every(
+      ([_field, message]) => message === fieldIsRequiredMessage
+    );
+
+    if (allRequiredFieldErrors) {
+      return t('Required fields must be filled out');
+    }
+
+    return t('Required fields must be filled out and inputs must be valid');
+  }
+
+  return t('Fields must contain valid inputs');
 }
 
 function Form({
@@ -135,7 +164,7 @@ function Form({
     return resolvedModel;
   });
 
-  // Reset form model on un,out
+  // Reset form model on unmount
   useEffect(
     () => () => {
       if (!preventFormResetOnUnmount) {
@@ -151,7 +180,7 @@ function Form({
   );
 
   const handleSubmitSuccess = useCallback(
-    data => {
+    (data: any) => {
       formModel.submitSuccess(data);
       onSubmitSuccess?.(data, formModel);
     },
@@ -159,7 +188,7 @@ function Form({
   );
 
   const handleSubmitError = useCallback(
-    error => {
+    (error: any) => {
       formModel.submitError(error);
       onSubmitError?.(error, formModel);
     },
@@ -167,7 +196,7 @@ function Form({
   );
 
   const handleSubmit = useCallback(
-    e => {
+    (e: any) => {
       if (!skipPreventDefault) {
         e.preventDefault();
       }
@@ -199,17 +228,17 @@ function Form({
     ]
   );
 
-  const shouldShowFooter = typeof hideFooter !== 'undefined' ? !hideFooter : !saveOnBlur;
+  const shouldShowFooter = typeof hideFooter === 'undefined' ? !saveOnBlur : !hideFooter;
 
   return (
-    <FormContext.Provider value={contextData}>
+    <FormContext value={contextData}>
       <form
         onSubmit={handleSubmit}
         className={className ?? 'form-stacked'}
         data-test-id={dataTestId}
       >
         <div>
-          {isRenderFunc<RenderFunc>(children) ? children({model: formModel}) : children}
+          {typeof children === 'function' ? children({model: formModel}) : children}
         </div>
 
         {shouldShowFooter && (
@@ -237,9 +266,11 @@ function Form({
               <Observer>
                 {() => (
                   <Button
+                    title={getSubmitButtonTitle(formModel)}
                     data-test-id="form-submit"
                     priority={submitPriority ?? 'primary'}
                     disabled={
+                      formModel.isFormIncomplete ||
                       formModel.isError ||
                       formModel.isSaving ||
                       submitDisabled ||
@@ -255,7 +286,7 @@ function Form({
           </StyledFooter>
         )}
       </form>
-    </FormContext.Provider>
+    </FormContext>
   );
 }
 
@@ -272,22 +303,22 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
 
   ${p =>
     !p.saveOnBlur &&
-    `
-  ${Panel} & {
-    margin-top: 0;
-    padding-right: ${space(2)}
-  }
+    css`
+      ${Panel} & {
+        margin-top: 0;
+        padding-right: ${space(2)};
+      }
 
-  /* Better padding with form inside of a modal */
-  [role='document'] & {
-    padding-right: 30px;
-    margin-left: -30px;
-    margin-right: -30px;
-    margin-bottom: -30px;
-    margin-top: 16px;
-    padding-bottom: 16px;
-  }
-  `};
+      /* Better padding with form inside of a modal */
+      [role='document'] & {
+        padding-right: 30px;
+        margin-left: -30px;
+        margin-right: -30px;
+        margin-bottom: -30px;
+        margin-top: 16px;
+        padding-bottom: 16px;
+      }
+    `};
 `;
 
 const DefaultButtons = styled('div')`

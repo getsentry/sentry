@@ -8,9 +8,8 @@ import {
 describe('Dashboards > Utils', () => {
   describe('calculateColumnDepths', () => {
     it('returns 0s when layouts is empty', () => {
-      const layout = [];
       const expectedColumnDepths = [0, 0, 0, 0, 0, 0];
-      const columnDepths = calculateColumnDepths(layout);
+      const columnDepths = calculateColumnDepths([]);
 
       expect(columnDepths).toEqual(expectedColumnDepths);
     });

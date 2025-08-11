@@ -3,8 +3,8 @@ import type {PopperProps} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import Radio from 'sentry/components/radio';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Radio} from 'sentry/components/core/radio';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {space} from 'sentry/styles/space';
 
 interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -15,7 +15,7 @@ interface BaseRadioGroupProps<C extends string> {
   /**
    * The choices availiable in the group
    */
-  choices: RadioOption<C>[];
+  choices: Array<RadioOption<C>>;
   /**
    * Labels the radio group.
    */
@@ -26,11 +26,12 @@ interface BaseRadioGroupProps<C extends string> {
   /**
    * An array of [choice id, disabled reason]
    */
-  disabledChoices?: [C, React.ReactNode?][];
+  disabledChoices?: Array<[C, React.ReactNode?]>;
   /**
    * Switch the radio items to flow left to right, instead of vertically.
    */
   orientInline?: boolean;
+  tooltipIsHoverable?: boolean;
   tooltipPosition?: PopperProps<any>['placement'];
 }
 
@@ -45,9 +46,12 @@ export type RadioOption<C extends string = string> = [
 
 export interface RadioGroupProps<C extends string = string>
   extends BaseRadioGroupProps<C>,
-    Omit<ContainerProps, 'onChange'> {}
+    Omit<ContainerProps, 'onChange'> {
+  name?: string;
+}
 
 function RadioGroup<C extends string>({
+  name: groupName,
   value,
   disabled: groupDisabled,
   disabledChoices = [],
@@ -56,6 +60,7 @@ function RadioGroup<C extends string>({
   onChange,
   orientInline,
   tooltipPosition,
+  tooltipIsHoverable,
   ...props
 }: RadioGroupProps<C>) {
   return (
@@ -81,15 +86,15 @@ function RadioGroup<C extends string>({
             disabled={!disabledChoiceReason}
             title={disabledChoiceReason}
             position={tooltipPosition}
+            isHoverable={tooltipIsHoverable}
           >
             <RadioLineItem index={index} aria-checked={value === id} disabled={disabled}>
               <Radio
-                aria-label={name?.toString()}
+                name={groupName}
+                aria-label={name?.toString()} // eslint-disable-line @typescript-eslint/no-base-to-string
                 disabled={disabled}
                 checked={value === id}
-                onChange={(e: React.FormEvent<HTMLInputElement>) =>
-                  !disabled && onChange(id, e)
-                }
+                onChange={e => !disabled && onChange(id, e)}
               />
               <RadioLineText disabled={disabled}>{name}</RadioLineText>
               {description && (
@@ -121,12 +126,12 @@ export const RadioLineItem = styled('label', {shouldForwardProp})<{
   disabled?: boolean;
 }>`
   display: grid;
-  gap: 0.25em 0.5em;
+  gap: 0 ${space(0.75)};
   grid-template-columns: max-content auto;
   align-items: center;
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   outline: none;
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   margin: 0;
 `;
 
@@ -135,7 +140,7 @@ const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`
 `;
 
 const Description = styled('div')`
-  color: ${p => p.theme.gray300};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeRelativeSmall};
   line-height: 1.4em;
 `;

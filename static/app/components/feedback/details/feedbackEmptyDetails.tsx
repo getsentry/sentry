@@ -5,7 +5,7 @@ import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
-const FeedbackEmptyDetails = styled(props => (
+const FeedbackEmptyDetails = styled((props: any) => (
   <FluidHeight {...props}>
     <StyledEmptyMessage
       icon={<IconMail size="xl" />}
@@ -18,7 +18,7 @@ const FeedbackEmptyDetails = styled(props => (
 `;
 
 const StyledEmptyMessage = styled(EmptyMessage)`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 export default FeedbackEmptyDetails;

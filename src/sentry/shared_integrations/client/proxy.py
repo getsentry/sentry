@@ -102,8 +102,8 @@ def infer_org_integration(
 
 
 def get_proxy_url() -> str:
-    control_address: str = settings.SENTRY_CONTROL_ADDRESS
-    return urljoin(control_address, PROXY_BASE_PATH)
+    assert settings.SENTRY_CONTROL_ADDRESS is not None
+    return urljoin(settings.SENTRY_CONTROL_ADDRESS, PROXY_BASE_PATH)
 
 
 class IntegrationProxyClient(ApiClient):
@@ -233,6 +233,7 @@ class IntegrationProxyClient(ApiClient):
         if self.keyid:
             prepared_request.headers[PROXY_KEYID_HEADER] = str(self.keyid)
         prepared_request.headers[PROXY_BASE_URL_HEADER] = base_url
+        assert settings.SENTRY_SUBNET_SECRET is not None
         prepared_request.headers[PROXY_SIGNATURE_HEADER] = encode_subnet_signature(
             secret=settings.SENTRY_SUBNET_SECRET,
             base_url=base_url,
@@ -241,11 +242,4 @@ class IntegrationProxyClient(ApiClient):
             request_body=request_body,
         )
         prepared_request.url = url
-        logger.info(
-            "prepare_proxy_request",
-            extra={
-                "destination": prepared_request.url,
-                "organization_integration_id": self.org_integration_id,
-            },
-        )
         return prepared_request

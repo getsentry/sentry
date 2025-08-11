@@ -1,5 +1,4 @@
 import {lazy, Suspense, useCallback, useEffect, useRef} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -11,37 +10,42 @@ import {openCommandPalette} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
+import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
+import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
 import {DEPLOY_PREVIEW_CONFIG, EXPERIMENTAL_SPA} from 'sentry/constants';
 import AlertStore from 'sentry/stores/alertStore';
 import ConfigStore from 'sentry/stores/configStore';
+import GuideStore from 'sentry/stores/guideStore';
 import HookStore from 'sentry/stores/hookStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
+import {DemoToursProvider} from 'sentry/utils/demoMode/demoTours';
 import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
+import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import useApi from 'sentry/utils/useApi';
 import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
-import type {InstallWizardProps} from 'sentry/views/admin/installWizard';
 import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
+import LastKnownRouteContextProvider from 'sentry/views/lastKnownRouteContextProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
-
-import SystemAlerts from './systemAlerts';
+import RouteAnalyticsContextProvider from 'sentry/views/routeAnalyticsContextProvider';
+import ExplorerPanel from 'sentry/views/seerExplorer/explorerPanel';
+import {useExplorerPanel} from 'sentry/views/seerExplorer/useExplorerPanel';
 
 type Props = {
   children: React.ReactNode;
-} & RouteComponentProps<{orgId?: string}, {}>;
+} & RouteComponentProps<{orgId?: string}>;
 
-const InstallWizard = lazy(
-  () => import('sentry/views/admin/installWizard')
-  // TODO(TS): DeprecatedAsyncComponent prop types are doing something weird
-) as unknown as React.ComponentType<InstallWizardProps>;
+const InstallWizard = lazy(() => import('sentry/views/admin/installWizard'));
 const NewsletterConsent = lazy(() => import('sentry/views/newsletterConsent'));
 const BeaconConsent = lazy(() => import('sentry/views/beaconConsent'));
 
@@ -54,30 +58,34 @@ function App({children, params}: Props) {
   const api = useApi();
   const user = useUser();
   const config = useLegacyStore(ConfigStore);
+  const {visible: isModalOpen} = useGlobalModal();
+  const preloadData = shouldPreloadData(config);
 
   // Command palette global-shortcut
   useHotkeys(
-    [
-      {
-        match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
-        includeInputs: true,
-        callback: () => openCommandPalette(),
-      },
-    ],
-    []
+    isModalOpen
+      ? []
+      : [
+          {
+            match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+            callback: () => openCommandPalette(),
+          },
+        ]
   );
 
-  // Theme toggle global shortcut
+  // Seer explorer panel hook and hotkeys
+  const {isOpen: isExplorerPanelOpen, toggleExplorerPanel} = useExplorerPanel();
+
   useHotkeys(
-    [
-      {
-        match: ['command+shift+l', 'ctrl+shift+l'],
-        includeInputs: true,
-        callback: () =>
-          ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light'),
-      },
-    ],
-    [config.theme]
+    isModalOpen
+      ? []
+      : [
+          {
+            match: ['command+/', 'ctrl+/'],
+            callback: () => toggleExplorerPanel(),
+            includeInputs: true,
+          },
+        ]
   );
 
   /**
@@ -126,12 +134,22 @@ function App({children, params}: Props) {
     }
 
     if (!isOrgSlugValid) {
-      window.location.replace(sentryUrl);
+      testableWindowLocation.replace(sentryUrl);
       return;
     }
   }, [orgId, sentryUrl, isOrgSlugValid]);
 
+  // Update guide store on location change
+  const location = useLocation();
+  useEffect(() => GuideStore.onURLChange(), [location]);
+
   useEffect(() => {
+    // Skip loading organization-related data before the user is logged in,
+    // because it triggers a 401 error in the UI.
+    if (!preloadData) {
+      return undefined;
+    }
+
     loadOrganizations();
     checkInternalHealth();
 
@@ -160,7 +178,7 @@ function App({children, params}: Props) {
 
     // When the app is unloaded clear the organizationst list
     return () => OrganizationsStore.load([]);
-  }, [loadOrganizations, checkInternalHealth, config.messages, user]);
+  }, [loadOrganizations, checkInternalHealth, config.messages, user, preloadData]);
 
   function clearUpgrade() {
     ConfigStore.set('needsUpgrade', false);
@@ -228,26 +246,44 @@ function App({children, params}: Props) {
     return children;
   }
 
+  const renderOrganizationContextProvider = useCallback(
+    (content: React.ReactNode) => {
+      // Skip loading organization-related data before the user is logged in,
+      // because it triggers a 401 error in the UI.
+      if (!preloadData) {
+        return content;
+      }
+      return <OrganizationContextProvider>{content}</OrganizationContextProvider>;
+    },
+    [preloadData]
+  );
+
   // Used to restore focus to the container after closing the modal
   const mainContainerRef = useRef<HTMLDivElement>(null);
   const handleModalClose = useCallback(() => mainContainerRef.current?.focus?.(), []);
 
   return (
     <Profiler id="App" onRender={onRenderCallback}>
-      <OrganizationContextProvider>
-        <AsyncSDKIntegrationContextProvider>
-          <GlobalDrawer>
-            <GlobalFeedbackForm>
-              <MainContainer tabIndex={-1} ref={mainContainerRef}>
-                <GlobalModal onClose={handleModalClose} />
-                <SystemAlerts className="messages-container" />
-                <Indicators className="indicators-container" />
-                <ErrorBoundary>{renderBody()}</ErrorBoundary>
-              </MainContainer>
-            </GlobalFeedbackForm>
-          </GlobalDrawer>
-        </AsyncSDKIntegrationContextProvider>
-      </OrganizationContextProvider>
+      <UserTimezoneProvider>
+        <LastKnownRouteContextProvider>
+          <RouteAnalyticsContextProvider>
+            {renderOrganizationContextProvider(
+              <AsyncSDKIntegrationContextProvider>
+                <GlobalFeedbackForm>
+                  <MainContainer tabIndex={-1} ref={mainContainerRef}>
+                    <DemoToursProvider>
+                      <GlobalModal onClose={handleModalClose} />
+                      <ExplorerPanel isVisible={isExplorerPanelOpen} />
+                      <Indicators className="indicators-container" />
+                      <ErrorBoundary>{renderBody()}</ErrorBoundary>
+                    </DemoToursProvider>
+                  </MainContainer>
+                </GlobalFeedbackForm>
+              </AsyncSDKIntegrationContextProvider>
+            )}
+          </RouteAnalyticsContextProvider>
+        </LastKnownRouteContextProvider>
+      </UserTimezoneProvider>
     </Profiler>
   );
 }
@@ -259,5 +295,4 @@ const MainContainer = styled('div')`
   flex-direction: column;
   min-height: 100vh;
   outline: none;
-  padding-top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
 `;

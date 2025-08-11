@@ -1,5 +1,4 @@
-import {Button} from 'sentry/components/button';
-import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -8,6 +7,8 @@ import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 
 type ProfileEvidenceProps = {event: Event; projectSlug: string};
 
@@ -26,19 +27,18 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
             key: 'Transaction Name',
             value: evidenceData.transactionName,
             actionButton: traceSlug ? (
-              <Button
+              <LinkButton
                 size="xs"
                 to={generateLinkToEventInTraceView({
                   traceSlug,
                   timestamp: evidenceData.timestamp,
                   eventId: evidenceData.transactionId,
-                  projectSlug,
                   location: {...location, query: {...location.query, referrer: 'issue'}},
                   organization,
                 })}
               >
                 {t('View Transaction')}
-              </Button>
+              </LinkButton>
             ) : null,
           },
         ]
@@ -50,12 +50,12 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
             key: 'Profile ID',
             value: evidenceData.profileId,
             actionButton: (
-              <Button
+              <LinkButton
                 size="xs"
                 to={generateProfileFlamechartRouteWithHighlightFrame({
+                  organization,
                   profileId: evidenceData.profileId,
                   projectSlug,
-                  orgSlug: organization.slug,
                   frameName: evidenceData.frameName,
                   framePackage: evidenceData.framePackage,
                   query: {
@@ -65,7 +65,7 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
                 icon={<IconProfiling />}
               >
                 {t('View Profile')}
-              </Button>
+              </LinkButton>
             ),
           },
         ]
@@ -78,8 +78,8 @@ export function ProfileEventEvidence({event, projectSlug}: ProfileEvidenceProps)
   ];
 
   return (
-    <EventDataSection title="Function Evidence" type="evidence">
+    <InterimSection title={t('Function Evidence')} type={SectionKey.EVIDENCE}>
       <KeyValueList data={keyValueListData} shouldSort={false} />
-    </EventDataSection>
+    </InterimSection>
   );
 }

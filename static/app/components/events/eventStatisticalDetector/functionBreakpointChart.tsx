@@ -3,11 +3,13 @@ import * as Sentry from '@sentry/react';
 
 import {ChartType} from 'sentry/chartcuterie/types';
 import Chart from 'sentry/components/events/eventStatisticalDetector/lineChart';
-import {DataSection} from 'sentry/components/events/styles';
+import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
+import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
+import {InterimSection} from 'sentry/views/issueDetails/streamline/interimSection';
 import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 
 import {RELATIVE_DAYS_WINDOW} from './consts';
@@ -82,13 +84,16 @@ function EventFunctionBreakpointChartInner({
   } as NormalizedTrendsTransaction;
 
   return (
-    <DataSection>
+    <InterimSection
+      type={SectionKey.REGRESSION_BREAKPOINT_CHART}
+      title={t('Regression Breakpoint Chart')}
+    >
       <Chart
         percentileData={functionStats}
         evidenceData={normalizedOccurrenceEvent}
         datetime={datetime}
         chartType={ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION}
       />
-    </DataSection>
+    </InterimSection>
   );
 }

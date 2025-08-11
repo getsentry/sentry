@@ -1,61 +1,57 @@
-import {Fragment} from 'react';
-import type {RouteComponentProps} from 'react-router';
+import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 import moment from 'moment-timezone';
 
-import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/alert';
-import {getInterval} from 'sentry/components/charts/utils';
+import {Alert} from 'sentry/components/core/alert';
+import {Button} from 'sentry/components/core/button';
+import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
-import {Tooltip} from 'sentry/components/tooltip';
-import {t, tct} from 'sentry/locale';
+import {IconClose} from 'sentry/icons';
+import {t, tct, tctCode} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {RuleActionsCategories} from 'sentry/types/alerts';
-import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {findExtractionRuleCondition} from 'sentry/utils/metrics/extractionRules';
-import {formatMRIField, parseField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
+import AnomalyDetectionFeedbackBanner from 'sentry/views/alerts/rules/metric/details/anomalyDetectionFeedbackBanner';
 import {ErrorMigrationWarning} from 'sentry/views/alerts/rules/metric/details/errorMigrationWarning';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {Dataset, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertRuleComparisonType,
+  Dataset,
+  TimePeriod,
+} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
-import {getFormattedSpanMetricField} from 'sentry/views/alerts/rules/metric/utils/getFormattedSpanMetric';
-import {isSpanMetricAlert} from 'sentry/views/alerts/rules/metric/utils/isSpanMetricAlert';
+import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
-import type {Incident} from 'sentry/views/alerts/types';
+import type {Anomaly, Incident} from 'sentry/views/alerts/types';
 import {AlertRuleStatus} from 'sentry/views/alerts/types';
 import {alertDetailsLink} from 'sentry/views/alerts/utils';
-import {useMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
-
-import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
-import {isCustomMetricAlert} from '../utils/isCustomMetricAlert';
+import {DEPRECATED_TRANSACTION_ALERTS} from 'sentry/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 import type {TimePeriodType} from './constants';
-import {
-  API_INTERVAL_POINTS_LIMIT,
-  SELECTOR_RELATIVE_PERIODS,
-  TIME_WINDOWS,
-} from './constants';
+import {SELECTOR_RELATIVE_PERIODS} from './constants';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
 import {MetricDetailsSidebar} from './sidebar';
+import {getFilter, getPeriodInterval} from './utils';
 
-interface MetricDetailsBodyProps extends RouteComponentProps<{}, {}> {
-  api: Client;
-  location: Location;
-  organization: Organization;
+interface MetricDetailsBodyProps {
   timePeriod: TimePeriodType;
+  anomalies?: Anomaly[];
   incidents?: Incident[];
   project?: Project;
   rule?: MetricRule;
@@ -63,73 +59,27 @@ interface MetricDetailsBodyProps extends RouteComponentProps<{}, {}> {
 }
 
 export default function MetricDetailsBody({
-  api,
   project,
   rule,
   incidents,
-  organization,
   timePeriod,
   selectedIncident,
-  location,
-  router,
+  anomalies,
 }: MetricDetailsBodyProps) {
-  const {data: metricExtractionRules} = useMetricsExtractionRules(
-    {
-      orgId: organization.slug,
-      projectId: project?.slug,
-    },
-    {enabled: isSpanMetricAlert(rule?.aggregate)}
-  );
-
-  function getPeriodInterval() {
-    const startDate = moment.utc(timePeriod.start);
-    const endDate = moment.utc(timePeriod.end);
-    const timeWindow = rule?.timeWindow;
-    const startEndDifferenceMs = endDate.diff(startDate);
-
-    if (
-      timeWindow &&
-      (startEndDifferenceMs < API_INTERVAL_POINTS_LIMIT * timeWindow * 60 * 1000 ||
-        // Special case 7 days * 1m interval over the api limit
-        startEndDifferenceMs === TIME_WINDOWS[TimePeriod.SEVEN_DAYS])
-    ) {
-      return `${timeWindow}m`;
-    }
-
-    return getInterval({start: timePeriod.start, end: timePeriod.end}, 'high');
-  }
-
-  function getFilter(): string[] | null {
-    if (!rule) {
-      return null;
-    }
-
-    const {aggregate, dataset, query} = rule;
-
-    if (isSpanMetricAlert(aggregate)) {
-      const mri = parseField(aggregate)!.mri;
-      const usedCondition = findExtractionRuleCondition(mri, metricExtractionRules || []);
-      const fullQuery = usedCondition?.value
-        ? query
-          ? `(${usedCondition.value}) AND (${query})`
-          : usedCondition.value
-        : query;
-      return fullQuery.trim().split(' ');
-    }
-
-    if (isCrashFreeAlert(dataset) || isCustomMetricAlert(aggregate)) {
-      return query.trim().split(' ');
-    }
-
-    const eventType = extractEventTypeFilterFromRule(rule);
-    return (query ? `(${eventType}) AND (${query.trim()})` : eventType).split(' ');
-  }
+  const theme = useTheme();
+  const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [showTransactionsDeprecationAlert, setShowTransactionsDeprecationAlert] =
+    useState(
+      organization.features.includes('performance-transaction-deprecation-banner')
+    );
 
   const handleTimePeriodChange = (datetime: ChangeData) => {
     const {start, end, relative} = datetime;
 
     if (start && end) {
-      return router.push({
+      return navigate({
         ...location,
         query: {
           start: moment(start).utc().format(),
@@ -138,7 +88,7 @@ export default function MetricDetailsBody({
       });
     }
 
-    return router.push({
+    return navigate({
       ...location,
       query: {
         period: relative,
@@ -167,12 +117,16 @@ export default function MetricDetailsBody({
   const {dataset, aggregate, query} = rule;
 
   const eventType = extractEventTypeFilterFromRule(rule);
-  const queryWithTypeFilter = (
-    query ? `(${query}) AND (${eventType})` : eventType
-  ).trim();
+  const queryWithTypeFilter =
+    dataset === Dataset.EVENTS_ANALYTICS_PLATFORM
+      ? query
+      : (query ? `(${query}) AND (${eventType})` : eventType).trim();
   const relativeOptions = {
     ...SELECTOR_RELATIVE_PERIODS,
     ...(rule.timeWindow > 1 ? {[TimePeriod.FOURTEEN_DAYS]: t('Last 14 days')} : {}),
+    ...(rule.detectionType === AlertRuleComparisonType.DYNAMIC
+      ? {[TimePeriod.TWENTY_EIGHT_DAYS]: t('Last 28 days')}
+      : {}),
   };
 
   const isSnoozed = rule.snooze;
@@ -182,40 +136,70 @@ export default function MetricDetailsBody({
     isOnDemandMetricAlert(dataset, aggregate, query) &&
     shouldShowOnDemandMetricAlertUI(organization);
 
-  let formattedAggregate = aggregate;
-  if (isCustomMetricAlert(aggregate)) {
-    formattedAggregate = formatMRIField(aggregate);
-  }
-  if (isSpanMetricAlert(aggregate)) {
-    formattedAggregate = getFormattedSpanMetricField(aggregate, metricExtractionRules);
-  }
+  const formattedAggregate = aggregate;
+
+  const ruleType =
+    rule &&
+    getAlertTypeFromAggregateDataset({
+      aggregate: rule.aggregate,
+      dataset: rule.dataset,
+      eventTypes: rule.eventTypes,
+      organization,
+    });
+
+  const deprecateTransactionsAlertsWarning =
+    ruleType && DEPRECATED_TRANSACTION_ALERTS.includes(ruleType);
 
   return (
     <Fragment>
       {selectedIncident?.alertRule.status === AlertRuleStatus.SNAPSHOT && (
         <StyledLayoutBody>
-          <StyledAlert type="warning" showIcon>
+          <Alert type="warning">
             {t('Alert Rule settings have been updated since this alert was triggered.')}
-          </StyledAlert>
+          </Alert>
         </StyledLayoutBody>
       )}
       <Layout.Body>
         <Layout.Main>
           {isSnoozed && (
-            <Alert showIcon>
-              {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
-                ? tct(
-                    "[creator] muted this alert so these notifications won't be sent in the future.",
-                    {creator: rule.snoozeCreatedBy}
-                  )
-                : tct(
-                    "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
-                    {
-                      creator: rule.snoozeCreatedBy,
-                      forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
-                    }
-                  )}
-            </Alert>
+            <Alert.Container>
+              <Alert type="warning">
+                {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
+                  ? tct(
+                      "[creator] muted this alert so these notifications won't be sent in the future.",
+                      {creator: rule.snoozeCreatedBy}
+                    )
+                  : tct(
+                      "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
+                      {
+                        creator: rule.snoozeCreatedBy,
+                        forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
+                      }
+                    )}
+              </Alert>
+            </Alert.Container>
+          )}
+          {deprecateTransactionsAlertsWarning && showTransactionsDeprecationAlert && (
+            <Alert.Container>
+              <Alert
+                type="warning"
+                trailingItems={
+                  <StyledCloseButton
+                    icon={<IconClose size="sm" />}
+                    aria-label={t('Close')}
+                    onClick={() => {
+                      setShowTransactionsDeprecationAlert(false);
+                    }}
+                    size="zero"
+                    borderless
+                  />
+                }
+              >
+                {tctCode(
+                  'The transaction dataset is being deprecated. Please use Span alerts instead. Spans are a superset of transactions, you can isolate transactions by using the [code:is_transaction:true] filter.'
+                )}
+              </Alert>
+            </Alert.Container>
           )}
           <StyledSubHeader>
             <StyledTimeRangeSelector
@@ -226,7 +210,12 @@ export default function MetricDetailsBody({
               relativeOptions={relativeOptions}
               showAbsolute={false}
               disallowArbitraryRelativeRanges
-              triggerLabel={relativeOptions[timePeriod.period ?? '']}
+              triggerLabel={
+                timePeriod.custom
+                  ? timePeriod.label
+                  : // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+                    relativeOptions[timePeriod.period ?? '']
+              }
             />
             {selectedIncident && (
               <Tooltip
@@ -245,26 +234,34 @@ export default function MetricDetailsBody({
             )}
           </StyledSubHeader>
 
-          <ErrorMigrationWarning project={project} rule={rule} />
+          {selectedIncident?.alertRule.detectionType ===
+            AlertRuleComparisonType.DYNAMIC && (
+            <AnomalyDetectionFeedbackBanner
+              // unique key to force re-render when incident changes
+              key={selectedIncident.id}
+              id={selectedIncident.id}
+              organization={organization}
+              selectedIncident={selectedIncident}
+            />
+          )}
 
-          {/* TODO: add activation start/stop into chart */}
+          <ErrorMigrationWarning project={project} rule={rule} />
           <MetricChart
-            api={api}
             rule={rule}
             incidents={incidents}
+            anomalies={anomalies}
             timePeriod={timePeriod}
-            selectedIncident={selectedIncident}
             formattedAggregate={formattedAggregate}
-            organization={organization}
             project={project}
-            interval={getPeriodInterval()}
+            interval={getPeriodInterval(timePeriod, rule)}
             query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
-            filter={getFilter()}
+            filter={getFilter(rule)}
             isOnDemandAlert={isOnDemandMetricAlert(dataset, aggregate, query)}
+            theme={theme}
           />
           <DetailWrapper>
             <ActivityWrapper>
-              <MetricHistory incidents={incidents} activations={rule.activations} />
+              <MetricHistory incidents={incidents} />
               {[Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
                 <RelatedIssues
                   organization={organization}
@@ -281,7 +278,7 @@ export default function MetricDetailsBody({
                   }
                 />
               )}
-              {dataset === Dataset.TRANSACTIONS && (
+              {[Dataset.TRANSACTIONS, Dataset.GENERIC_METRICS].includes(dataset) && (
                 <RelatedTransactions
                   organization={organization}
                   location={location}
@@ -309,7 +306,7 @@ const DetailWrapper = styled('div')`
   display: flex;
   flex: 1;
 
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     flex-direction: column-reverse;
   }
 `;
@@ -317,13 +314,9 @@ const DetailWrapper = styled('div')`
 const StyledLayoutBody = styled(Layout.Body)`
   flex-grow: 0;
   padding-bottom: 0 !important;
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     grid-template-columns: auto;
   }
-`;
-
-const StyledAlert = styled(Alert)`
-  margin: 0;
 `;
 
 const ActivityWrapper = styled('div')`
@@ -345,4 +338,15 @@ const StyledSubHeader = styled('div')`
 
 const StyledTimeRangeSelector = styled(TimeRangeSelector)`
   margin-right: ${space(1)};
+`;
+
+const StyledCloseButton = styled(Button)`
+  background-color: transparent;
+  transition: opacity 0.1s linear;
+
+  &:hover,
+  &:focus {
+    background-color: transparent;
+    opacity: 1;
+  }
 `;

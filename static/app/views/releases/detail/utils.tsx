@@ -8,20 +8,25 @@ import MarkLine from 'sentry/components/charts/components/markLine';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
+import type {Series} from 'sentry/types/echarts';
 import type {
   Commit,
   CommitFile,
   FilesByRepository,
-  ReleaseProject,
-  ReleaseWithHealth,
   Repository,
-} from 'sentry/types';
-import {ReleaseComparisonChartType} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+} from 'sentry/types/integrations';
+import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
+import {ReleaseComparisonChartType} from 'sentry/types/release';
 import {decodeList} from 'sentry/utils/queryString';
-
-import {getReleaseBounds, getReleaseParams, isMobileRelease} from '../utils';
-import {commonTermsDescription, SessionTerm} from '../utils/sessionTerm';
+import {
+  getReleaseBounds,
+  getReleaseParams,
+  isMobileRelease,
+} from 'sentry/views/releases/utils';
+import {
+  commonTermsDescription,
+  SessionTerm,
+} from 'sentry/views/releases/utils/sessionTerm';
 
 type CommitsByRepository = Record<string, Commit[]>;
 
@@ -36,18 +41,18 @@ export function getFilesByRepository(fileList: CommitFile[]) {
       filesByRepository[repoName] = {};
     }
 
-    if (!filesByRepository[repoName].hasOwnProperty(filename)) {
-      filesByRepository[repoName][filename] = {
+    if (!filesByRepository[repoName]!.hasOwnProperty(filename)) {
+      filesByRepository[repoName]![filename] = {
         authors: {},
         types: new Set(),
       };
     }
 
     if (author.email) {
-      filesByRepository[repoName][filename].authors[author.email] = author;
+      filesByRepository[repoName]![filename]!.authors![author.email] = author;
     }
 
-    filesByRepository[repoName][filename].types.add(type);
+    filesByRepository[repoName]![filename]!.types!.add(type);
 
     return filesByRepository;
   }, {});
@@ -64,7 +69,7 @@ export function getCommitsByRepository(commitList: Commit[]): CommitsByRepositor
       commitsByRepository[repositoryName] = [];
     }
 
-    commitsByRepository[repositoryName].push(commit);
+    commitsByRepository[repositoryName]!.push(commit);
 
     return commitsByRepository;
   }, {});
@@ -76,31 +81,22 @@ export function getCommitsByRepository(commitList: Commit[]): CommitsByRepositor
 
 type GetQueryProps = {
   location: Location;
-  activeRepository?: Repository;
   perPage?: number;
 };
 
-export function getQuery({location, perPage = 40, activeRepository}: GetQueryProps) {
+export function getQuery({location, perPage = 40}: GetQueryProps) {
   const query = {
     ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
     per_page: perPage,
   };
 
-  if (!activeRepository) {
-    return query;
-  }
-
-  return {
-    ...query,
-    repo_id: activeRepository.externalId,
-    repo_name: activeRepository.name,
-  };
+  return query;
 }
 
 /**
  * Get repositories to render according to the activeRepository
  */
-export function getReposToRender(repos: Array<string>, activeRepository?: Repository) {
+export function getReposToRender(repos: string[], activeRepository?: Repository) {
   if (!activeRepository) {
     return repos;
   }
@@ -143,7 +139,9 @@ export const releaseComparisonChartTitles = {
   [ReleaseComparisonChartType.FAILURE_RATE]: t('Failure Rate'),
 };
 
-export const releaseComparisonChartHelp = {
+export const releaseComparisonChartHelp: Partial<
+  Record<ReleaseComparisonChartType, string>
+> = {
   [ReleaseComparisonChartType.CRASH_FREE_SESSIONS]:
     commonTermsDescription[SessionTerm.CRASH_FREE_SESSIONS],
   [ReleaseComparisonChartType.CRASH_FREE_USERS]:
@@ -180,11 +178,10 @@ function generateReleaseMarkLine(
       label: {
         position: 'insideEndBottom',
         formatter: hideLabel ? '' : title,
-        // @ts-expect-error weird echart types
-        font: 'Rubik',
+        fontFamily: 'Rubik',
         fontSize: 14,
-        color: theme.chartLabel,
-        backgroundColor: theme.chartOther,
+        color: theme.tokens.content.muted,
+        backgroundColor: theme.tokens.background.secondary,
       },
       data: [
         {

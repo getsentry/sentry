@@ -1,6 +1,6 @@
 import {useContext} from 'react';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconOpen} from 'sentry/icons';
 import type {Integration} from 'sentry/types/integrations';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -17,10 +17,10 @@ type Props = {
 };
 
 type ButtonProps = {
-  disabled?;
-  priority?;
-  size?;
-  style?;
+  disabled?: any;
+  priority?: any;
+  size?: any;
+  style?: any;
 } | null;
 
 function IntegrationButton({
@@ -33,17 +33,14 @@ function IntegrationButton({
   const organization = useOrganization();
   const {provider, type, installStatus, analyticsParams, modalParams} =
     useContext(IntegrationContext) ?? {};
-  if (!provider || !type) return null;
+  if (!provider || !type) {
+    return null;
+  }
   const {metadata} = provider;
 
   if (!userHasAccess) {
     return (
-      <RequestIntegrationButton
-        organization={organization}
-        name={provider.name}
-        slug={provider.slug}
-        type={type}
-      />
+      <RequestIntegrationButton name={provider.name} slug={provider.slug} type={type} />
     );
   }
   if (provider.canAdd) {
@@ -61,7 +58,7 @@ function IntegrationButton({
   }
   if (metadata.aspects.externalInstall) {
     return (
-      <Button
+      <LinkButton
         icon={externalInstallText ? null : <IconOpen />}
         href={metadata.aspects.externalInstall.url}
         onClick={onExternalClick}
@@ -71,7 +68,7 @@ function IntegrationButton({
         {externalInstallText
           ? externalInstallText
           : metadata.aspects.externalInstall.buttonText}
-      </Button>
+      </LinkButton>
     );
   }
   return null;

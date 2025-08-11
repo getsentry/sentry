@@ -12,6 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore.base import TAG_KEY_RE
+from sentry.tagstore.types import TagValue
 
 
 def validate_sort_field(field_name: str) -> str:
@@ -48,20 +49,25 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
 
         try:
             # still used by events v1 which doesn't require global views
-            filter_params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params = self.get_snuba_params(request, organization, check_global_views=False)
         except NoProjects:
-            paginator = SequencePaginator([])
+            paginator: SequencePaginator[TagValue] = SequencePaginator([])
         else:
             with handle_query_errors():
-                environment_ids = None
-                if "environment_objects" in filter_params:
-                    environment_ids = [env.id for env in filter_params["environment_objects"]]
-                paginator = tagstore.backend.get_tag_value_paginator_for_projects(
-                    filter_params["project_id"],
-                    environment_ids,
+                # Flags are stored on the same table as tags but on a different column. Ideally
+                # both could be queried in a single request. But at present we're not sure if we
+                # want to treat tags and flags as the same or different and in which context.
+                if request.GET.get("useFlagsBackend") == "1":
+                    backend = tagstore.flag_backend
+                else:
+                    backend = tagstore.backend
+
+                paginator = backend.get_tag_value_paginator_for_projects(
+                    snuba_params.project_ids,
+                    snuba_params.environment_ids,
                     key,
-                    filter_params["start"],
-                    filter_params["end"],
+                    snuba_params.start_date,
+                    snuba_params.end_date,
                     dataset=dataset,
                     query=request.GET.get("query"),
                     order_by=validate_sort_field(request.GET.get("sort", "-last_seen")),

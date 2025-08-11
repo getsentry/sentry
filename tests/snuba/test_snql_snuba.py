@@ -35,12 +35,13 @@ class SnQLTest(TestCase, SnubaTestCase):
                     "datetime": ts.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                     "data": {"received": time.mktime(ts.timetuple())},
                 },
+                {},
             )
         )
         return event_id
 
     @mock.patch("sentry.utils.metrics.incr")
-    def test_basic(self, mock_metrics_incr) -> None:
+    def test_basic(self, mock_metrics_incr: mock.MagicMock) -> None:
         now = datetime.now()
         self._insert_event_for_time(now)
 
@@ -69,7 +70,7 @@ class SnQLTest(TestCase, SnubaTestCase):
             "snql.sdk.api.new_referrers", tags={"referrer": "referrer_not_in_enum"}
         )
 
-    def test_cache(self):
+    def test_cache(self) -> None:
         """Minimal test to verify if use_cache works"""
         results = snuba.raw_snql_query(
             Request(

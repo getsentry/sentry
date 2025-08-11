@@ -9,21 +9,30 @@ from typing import Any, TypedDict
 from django.utils import timezone
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.issues.forecasts import generate_and_save_forecasts
+from sentry.issues.escalating.forecasts import generate_and_save_forecasts
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.project import Project
-from sentry.models.user import User
 from sentry.signals import issue_archived
 from sentry.snuba.referrer import Referrer
 from sentry.types.group import GroupSubStatus
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+IGNORED_CONDITION_FIELDS = {
+    "ignoreDuration",
+    "snoozeDuration",
+    "ignoreCount",
+    "ignoreWindow",
+    "ignoreUserCount",
+    "ignoreUserWindow",
+}
 
 
 class IgnoredStatusDetails(TypedDict, total=False):
@@ -37,7 +46,7 @@ class IgnoredStatusDetails(TypedDict, total=False):
 
 def handle_archived_until_escalating(
     group_list: Sequence[Group],
-    acting_user: User | None,
+    acting_user: RpcUser | User | None,
     projects: Sequence[Project],
     sender: Any,
 ) -> dict[str, bool]:
@@ -77,11 +86,9 @@ def handle_archived_until_escalating(
 
 
 def handle_ignored(
-    group_ids: Sequence[Group],
     group_list: Sequence[Group],
     status_details: dict[str, Any],
-    acting_user: User | None,
-    user: User | RpcUser,
+    acting_user: RpcUser | User | None,
 ) -> IgnoredStatusDetails:
     """
     Handle issues that are ignored and create a snooze for them.
@@ -91,7 +98,7 @@ def handle_ignored(
     Returns: a dict with the statusDetails for ignore conditions.
     """
     metrics.incr("group.ignored", skip_internal=True)
-    for group in group_ids:
+    for group in group_list:
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED, user=acting_user)
 
     new_status_details: IgnoredStatusDetails = {}
@@ -124,7 +131,7 @@ def handle_ignored(
                     "user_count": ignore_user_count,
                     "user_window": ignore_user_window,
                     "state": state,
-                    "actor_id": user.id if user.is_authenticated else None,
+                    "actor_id": acting_user.id if acting_user else None,
                 },
             )
 
@@ -132,9 +139,11 @@ def handle_ignored(
                 substatus=GroupSubStatus.UNTIL_CONDITION_MET, status=GroupStatus.IGNORED
             )
             with in_test_hide_transaction_boundary():
-                serialized_user = user_service.serialize_many(
-                    filter=dict(user_ids=[user.id]), as_user=serialize_generic_user(user)
-                )
+                if acting_user:
+                    serialized_user = user_service.serialize_many(
+                        filter=dict(user_ids=[acting_user.id]),
+                        as_user=serialize_generic_user(acting_user),
+                    )
             new_status_details = IgnoredStatusDetails(
                 ignoreCount=ignore_count,
                 ignoreUntil=ignore_until,
@@ -144,6 +153,6 @@ def handle_ignored(
                 actor=serialized_user[0] if serialized_user else None,
             )
     else:
-        GroupSnooze.objects.filter(group__in=group_ids).delete()
+        GroupSnooze.objects.filter(group__in=[group.id for group in group_list]).delete()
 
     return new_status_details

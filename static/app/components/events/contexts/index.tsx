@@ -8,6 +8,7 @@ import useProjects from 'sentry/utils/useProjects';
 
 type Props = {
   event: Event;
+  disableCollapsePersistence?: boolean;
   group?: Group;
 };
 
@@ -29,15 +30,28 @@ export interface ContextItem {
   value: ContextValue;
 }
 
-export function getOrderedContextItems(event): ContextItem[] {
+export function getOrderedContextItems(event: Event): ContextItem[] {
   const {user, contexts} = event;
   const {data: customUserData, ...userContext} = user ?? {};
 
-  const {feedback, response, ...otherContexts} = contexts ?? {};
-  const orderedContext: [ContextItem['alias'], ContextValue][] = [
+  // hide `flags` in the contexts section since we display this
+  // info in the feature flag section below
+  const {
+    feedback,
+    response,
+    browser,
+    runtime,
+    os,
+    flags: _,
+    ...otherContexts
+  } = contexts ?? {};
+  const orderedContext: Array<[ContextItem['alias'], ContextValue]> = [
     ['response', response],
     ['feedback', feedback],
-    ['user', {...userContext, ...customUserData}],
+    ['user', {...userContext, ...(customUserData as any)}],
+    ['browser', browser],
+    ['runtime', runtime],
+    ['os', os],
     ...Object.entries(otherContexts),
   ];
   // For these context aliases, use the alias as 'type' rather than 'value.type'
@@ -60,7 +74,7 @@ export function getOrderedContextItems(event): ContextItem[] {
       return !isInvalid;
     })
     .map<ContextItem>(([alias, ctx]) => ({
-      alias: alias,
+      alias,
       type: overrideTypesWithAliases.has(alias) ? alias : ctx?.type,
       value: ctx,
     }));
@@ -68,7 +82,7 @@ export function getOrderedContextItems(event): ContextItem[] {
   return items;
 }
 
-export function EventContexts({event, group}: Props) {
+export function EventContexts({event, group, disableCollapsePersistence}: Props) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === event.projectID);
   const {contexts, sdk} = event;
@@ -80,10 +94,17 @@ export function EventContexts({event, group}: Props) {
     if (usingOtel() && span) {
       const rootSpan = Sentry.getRootSpan(span);
       rootSpan.setAttribute('otel_event', true);
-      rootSpan.setAttribute('otel_sdk', sdk?.name);
-      rootSpan.setAttribute('otel_sdk_version', sdk?.version);
+      rootSpan.setAttribute('otel_sdk', sdk?.name ?? undefined);
+      rootSpan.setAttribute('otel_sdk_version', sdk?.version ?? undefined);
     }
   }, [usingOtel, sdk]);
 
-  return <ContextDataSection event={event} group={group} project={project} />;
+  return (
+    <ContextDataSection
+      event={event}
+      group={group}
+      project={project}
+      disableCollapsePersistence={disableCollapsePersistence}
+    />
+  );
 }

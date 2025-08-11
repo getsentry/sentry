@@ -1,15 +1,16 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   getCrashReportApiIntroduction,
   getCrashReportInstallDescription,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
+import {appleProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/apple';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
 type Params = DocsParams;
@@ -29,17 +30,22 @@ import Sentry
 func applicationDidFinishLaunching(_ aNotification: Notification) {
 
     SentrySDK.start { options in
-        options.dsn = "${params.dsn}"
-        options.debug = true // Enabling debug when first installing is always helpful${
+        options.dsn = "${params.dsn.public}"
+        options.debug = true // Enabling debug when first installing is always helpful
+
+        // Adds IP for users.
+        // For more information, visit: https://docs.sentry.io/platforms/apple/data-management/data-collected/
+        options.sendDefaultPii = true${
           params.isPerformanceSelected
             ? `
 
-        // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+        // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
         // We recommend adjusting this value in production.
         options.tracesSampleRate = 1.0`
             : ''
         }${
-          params.isProfilingSelected
+          params.isProfilingSelected &&
+          params.profilingOptions?.defaultProfilingMode !== 'continuous'
             ? `
 
         // Sample rate for profiling, applied on top of TracesSampleRate.
@@ -47,6 +53,20 @@ func applicationDidFinishLaunching(_ aNotification: Notification) {
         options.profilesSampleRate = 1.0`
             : ''
         }
+    }${
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode === 'continuous'
+        ? `
+
+    // Manually call startProfiler and stopProfiler
+    // to profile the code in between
+    SentrySDK.startProfiler()
+    // this code will be profiled
+    //
+    // Calls to stopProfiler are optional - if you don't stop the profiler, it will keep profiling
+    // your application until the process exits or stopProfiler is called.
+    SentrySDK.stopProfiler()`
+        : ''
     }
 
     return true
@@ -59,17 +79,22 @@ import Sentry
 struct SwiftUIApp: App {
     init() {
         SentrySDK.start { options in
-            options.dsn = "${params.dsn}"
-            options.debug = true // Enabling debug when first installing is always helpful${
+            options.dsn = "${params.dsn.public}"
+            options.debug = true // Enabling debug when first installing is always helpful
+
+            // Adds IP for users.
+            // For more information, visit: https://docs.sentry.io/platforms/apple/data-management/data-collected/
+            options.sendDefaultPii = true${
               params.isPerformanceSelected
                 ? `
 
-            // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+            // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
             // We recommend adjusting this value in production.
             options.tracesSampleRate = 1.0`
                 : ''
             }${
-              params.isProfilingSelected
+              params.isProfilingSelected &&
+              params.profilingOptions?.defaultProfilingMode !== 'continuous'
                 ? `
 
             // Sample rate for profiling, applied on top of TracesSampleRate.
@@ -77,6 +102,17 @@ struct SwiftUIApp: App {
             options.profilesSampleRate = 1.0`
                 : ''
             }
+        }${
+          params.isProfilingSelected &&
+          params.profilingOptions?.defaultProfilingMode === 'continuous'
+            ? `
+
+        // Manually call startProfiler and stopProfiler
+        // to profile the code in between
+        SentrySDK.startProfiler()
+        // do some work here
+        SentrySDK.stopProfiler()`
+            : ''
         }
     }
 }`;
@@ -215,14 +251,6 @@ const onboarding: OnboardingConfig = {
       description: t('Learn about our first class integration with SwiftUI.'),
       link: 'https://docs.sentry.io/platforms/apple/tracing/instrumentation/swiftui-instrumentation/',
     },
-    {
-      id: 'profiling',
-      name: t('Profiling'),
-      description: t(
-        'Collect and analyze performance profiles from real user devices in production.'
-      ),
-      link: 'https://docs.sentry.io/platforms/apple/profiling/',
-    },
   ],
 };
 
@@ -278,7 +306,7 @@ userFeedback.name = @"John Doe";
               code: `import Sentry
 
 SentrySDK.start { options in
-    options.dsn = "${params.dsn}"
+    options.dsn = "${params.dsn.public}"
     options.onCrashedLastRun = { event in
         // capture user feedback
     }
@@ -292,7 +320,7 @@ SentrySDK.start { options in
               code: `@import Sentry;
 
 [SentrySDK startWithConfigureOptions:^(SentryOptions *options) {
-    options.dsn = @"${params.dsn}";
+    options.dsn = @"${params.dsn.public}";
     options.onCrashedLastRun = ^void(SentryEvent * _Nonnull event) {
         // capture user feedback
     };
@@ -312,6 +340,7 @@ const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: appleFeedbackOnboarding,
   crashReportOnboarding: appleFeedbackOnboarding,
+  profilingOnboarding: appleProfilingOnboarding,
 };
 
 export default docs;

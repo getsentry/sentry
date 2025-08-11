@@ -17,7 +17,7 @@ from sentry.processing.backpressure.memory import (
     iter_cluster_memory_usage,
     query_rabbitmq_memory_usage,
 )
-from sentry.processing.backpressure.topology import PROCESSING_SERVICES
+from sentry.processing.backpressure.topology import ProcessingServices
 from sentry.utils import redis
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ class RabbitMq:
 Service = Union[Redis, RabbitMq, None]
 
 
-def check_service_memory(service: Service) -> Generator[ServiceMemory, None, None]:
+def check_service_memory(service: Service) -> Generator[ServiceMemory]:
     """
     This queries the given [`Service`] and returns the [`ServiceMemory`]
     for each of the individual servers that comprise the service.
@@ -54,7 +54,7 @@ def load_service_definitions() -> dict[str, Service]:
     services: dict[str, Service] = {}
     for name, definition in settings.SENTRY_PROCESSING_SERVICES.items():
         if cluster_id := definition.get("redis"):
-            _is_clsuter, cluster, _config = redis.get_dynamic_cluster_from_options(
+            _is_cluster, cluster, _config = redis.get_dynamic_cluster_from_options(
                 setting=f"SENTRY_PROCESSING_SERVICES[{name}]",
                 config={"cluster": cluster_id},
             )
@@ -70,10 +70,10 @@ def load_service_definitions() -> dict[str, Service]:
 
 
 def assert_all_services_defined(services: dict[str, Service]) -> None:
-    for name in PROCESSING_SERVICES:
-        if name not in services:
+    for name in ProcessingServices:
+        if name.value not in services:
             raise ValueError(
-                f"The `{name}` Service is missing from `settings.SENTRY_PROCESSING_SERVICES`."
+                f"The `{name.value}` Service is missing from `settings.SENTRY_PROCESSING_SERVICES`."
             )
 
 
@@ -85,10 +85,12 @@ def check_service_health(services: Mapping[str, Service]) -> MutableMapping[str,
         reasons = []
 
         logger.info("Checking service `%s` (configured high watermark: %s):", name, high_watermark)
+        memory = None
         try:
             for memory in check_service_memory(service):
                 if memory.percentage >= high_watermark:
                     reasons.append(memory)
+                logger.info("Checking node: %s:%s", memory.host, memory.port)
                 logger.info(
                     "  name: %s, used: %s, available: %s, percentage: %s",
                     memory.name,
@@ -101,6 +103,14 @@ def check_service_health(services: Mapping[str, Service]) -> MutableMapping[str,
                 scope.set_tag("service", name)
                 sentry_sdk.capture_exception(e)
             unhealthy_services[name] = e
+            host = memory.host if memory else "unknown"
+            port = memory.port if memory else "unknown"
+            logger.exception(
+                "Error while processing node %s:%s for service %s",
+                host,
+                port,
+                service,
+            )
         else:
             unhealthy_services[name] = reasons
 

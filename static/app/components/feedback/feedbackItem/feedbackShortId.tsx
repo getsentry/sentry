@@ -3,18 +3,17 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import queryString from 'query-string';
 
-import {Flex} from 'sentry/components/container/flex';
+import {Flex} from 'sentry/components/core/layout';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import useCurrentFeedbackProject from 'sentry/components/feedback/useCurrentFeedbackProject';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
+import {makeFeedbackPathname} from 'sentry/views/userFeedback/pathnames';
 
 interface Props {
   feedbackItem: FeedbackIssue;
@@ -45,7 +44,10 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
   // or other options are passed, which breaks the copy-paste.
   const feedbackUrl =
     window.location.origin +
-    normalizeUrl(`/organizations/${organization.slug}/feedback/`) +
+    makeFeedbackPathname({
+      path: '/',
+      organization,
+    }) +
     queryString.stringifyUrl({
       url: '?',
       query: {
@@ -64,15 +66,14 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
     text: feedbackItem.shortId,
   });
 
+  const {onClick: handleCopyMarkdown} = useCopyToClipboard({
+    text: `[${feedbackItem.shortId}](${feedbackUrl})`,
+    successMessage: t('Copied Markdown Feedback Link to clipboard'),
+  });
+
   return (
-    <Flex
-      gap={space(1)}
-      align="center"
-      className={className}
-      style={style}
-      css={hideDropdown}
-    >
-      <Flex gap={space(0.75)} align="center">
+    <Flex gap="md" align="center" className={className} style={style} css={hideDropdown}>
+      <Flex gap="sm" align="center">
         {feedbackItem.project ? (
           <ProjectBadge
             project={feedbackItem.project}
@@ -103,6 +104,11 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
             key: 'copy-short-id',
             label: t('Copy Short-ID'),
             onAction: handleCopyShortId,
+          },
+          {
+            key: 'copy-markdown-link',
+            label: t('Copy Markdown Link'),
+            onAction: handleCopyMarkdown,
           },
         ]}
       />

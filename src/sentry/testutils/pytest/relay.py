@@ -8,6 +8,7 @@ import time
 from os import environ, path
 from urllib.parse import urlparse
 
+import ephemeral_port_reserve
 import pytest
 import requests
 
@@ -47,7 +48,7 @@ def _remove_container_if_exists(docker_client, container_name):
             pass  # could not remove the container nothing to do about it
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def relay_server_setup(live_server, tmpdir_factory):
     prefix = "test_relay_config_{}_".format(
         datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f")
@@ -65,10 +66,10 @@ def relay_server_setup(live_server, tmpdir_factory):
     template_path = _get_template_dir()
     sources = ["config.yml", "credentials.json"]
 
-    # NOTE: if we ever need to start the test relay server at various ports here's where we need to change
-    relay_port = 33331
+    relay_port = ephemeral_port_reserve.reserve(ip="127.0.0.1", port=33331)
 
     redis_db = TEST_REDIS_DB
+    use_old_devservices = environ.get("USE_OLD_DEVSERVICES", "0") == "1"
     from sentry.relay import projectconfig_cache
     from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 
@@ -80,8 +81,8 @@ def relay_server_setup(live_server, tmpdir_factory):
     template_vars = {
         "SENTRY_HOST": f"http://host.docker.internal:{port}/",
         "RELAY_PORT": relay_port,
-        "KAFKA_HOST": "sentry_kafka",
-        "REDIS_HOST": "sentry_redis",
+        "KAFKA_HOST": "sentry_kafka" if use_old_devservices else "kafka",
+        "REDIS_HOST": "sentry_redis" if use_old_devservices else "redis",
         "REDIS_DB": redis_db,
     }
 
@@ -106,7 +107,7 @@ def relay_server_setup(live_server, tmpdir_factory):
     options = {
         "image": RELAY_TEST_IMAGE,
         "ports": {"%s/tcp" % relay_port: relay_port},
-        "network": "sentry",
+        "network": "sentry" if use_old_devservices else "devservices",
         "detach": True,
         "name": container_name,
         "volumes": {config_path: {"bind": "/etc/relay"}},
@@ -153,7 +154,10 @@ def relay_server(relay_server_setup, settings):
     else:
         raise ValueError("relay did not start in time")
 
-    return {"url": relay_server_setup["url"]}
+    try:
+        yield {"url": relay_server_setup["url"]}
+    finally:
+        container.stop(timeout=10)
 
 
 def adjust_settings_for_relay_tests(settings):

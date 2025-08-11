@@ -1,28 +1,49 @@
-import SelectField from 'sentry/components/deprecatedforms/selectField';
-import SelectAsyncControl from 'sentry/components/forms/controls/selectAsyncControl';
+import {
+  SelectAsync,
+  type SelectAsyncControlProps,
+} from 'sentry/components/core/select/async';
+import {
+  SelectField,
+  type SelectFieldProps,
+} from 'sentry/components/deprecatedforms/selectField';
+import withFormContext from 'sentry/components/deprecatedforms/withFormContext';
 
+export interface SelectAsyncFieldProps
+  extends SelectFieldProps,
+    Omit<SelectAsyncControlProps, 'value' | 'onQuery' | 'onResults'> {
+  onQuery?: SelectAsyncControlProps['onQuery'];
+  onResults?: SelectAsyncControlProps['onResults'];
+}
+
+/**
+ * @deprecated Do not use this
+ */
 class SelectAsyncField extends SelectField {
   static defaultProps = {
     ...SelectField.defaultProps,
     placeholder: 'Start typing to search for an issue',
   };
 
-  onResults = data => {
+  onResults = (data: any) => {
     const {name} = this.props;
     const results = data?.[name];
 
-    return results?.map(({id, text}) => ({value: id, label: text})) || [];
+    return results?.map(({id, text}: any) => ({value: id, label: text})) || [];
   };
 
-  onQuery = query =>
+  onQuery = (
     // Used by legacy integrations
-    ({autocomplete_query: query, autocomplete_field: this.props.name});
+    query: any
+  ) => ({
+    autocomplete_query: query,
+    autocomplete_field: this.props.name,
+  });
 
   getField() {
     // Callers should be able to override all props except onChange
     // FormField calls props.onChange via `setValue`
     return (
-      <SelectAsyncControl
+      <SelectAsync
         id={this.getId()}
         onResults={this.onResults}
         onQuery={this.onQuery}
@@ -34,4 +55,9 @@ class SelectAsyncField extends SelectField {
   }
 }
 
-export default SelectAsyncField;
+/**
+ * @deprecated Do not use this
+ */
+export default withFormContext(SelectAsyncField) as React.ComponentType<
+  Omit<SelectAsyncFieldProps, 'formContext'>
+>;

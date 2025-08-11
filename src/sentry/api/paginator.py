@@ -2,9 +2,9 @@ import bisect
 import functools
 import logging
 import math
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Protocol
 from urllib.parse import quote
 
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
@@ -410,11 +410,17 @@ def reverse_bisect_left(a, x, lo=0, hi=None):
     return lo
 
 
-class SequencePaginator:
-    def __init__(self, data, reverse=False, max_limit=MAX_LIMIT, on_results=None):
-        self.scores, self.values = (
-            map(list, zip(*sorted(data, reverse=reverse))) if data else ([], [])
-        )
+class SequencePaginator[T]:
+    def __init__(
+        self,
+        data: Iterable[tuple[int, T]],
+        reverse: bool = False,
+        max_limit: int = MAX_LIMIT,
+        on_results=None,
+    ):
+        data = sorted(data, reverse=reverse)
+        self.scores = [score for score, _ in data]
+        self.values = [value for _, value in data]
         self.reverse = reverse
         self.search = functools.partial(
             reverse_bisect_left if reverse else bisect.bisect_left, self.scores
@@ -537,7 +543,7 @@ class GenericOffsetPaginator:
             prev=Cursor(0, max(0, offset - limit), True, offset > 0),
             next=Cursor(0, max(0, offset + limit), False, has_more),
         )
-        # TODO use Cursor.value as the `end` argument to data_fn() so that
+        # TODO: use Cursor.value as the `end` argument to data_fn() so that
         # subsequent pages returned using these cursors are using the same end
         # date for queries, this should stop drift from new incoming events.
 
@@ -582,13 +588,13 @@ class CombinedQuerysetPaginator:
 
     multiplier = 1000000  # Use microseconds for date keys.
     using_dates = False
-    model_key_map = {}
 
     def __init__(self, intermediaries, desc=False, on_results=None, case_insensitive=False):
         self.desc = desc
         self.intermediaries = intermediaries
         self.on_results = on_results
         self.case_insensitive = case_insensitive
+        self.model_key_map = {}
         for intermediary in list(self.intermediaries):
             if intermediary.is_empty:
                 self.intermediaries.remove(intermediary)
@@ -610,7 +616,7 @@ class CombinedQuerysetPaginator:
             ), "When sorting by a date, it must be the key used on all intermediaries"
 
     def key_from_item(self, item):
-        return self.model_key_map.get(type(item))[0]
+        return self.model_key_map[type(item)][0]
 
     def _prep_value(self, item, key, for_prev):
         """
@@ -658,10 +664,10 @@ class CombinedQuerysetPaginator:
         def _sort_combined_querysets(item):
             sort_keys = []
             sort_keys.append(self.get_item_key(item))
-            if len(self.model_key_map.get(type(item))) > 1:
+            if len(self.model_key_map[type(item)]) > 1:
                 # XXX: This doesn't do anything - it just uses a column name as the sort key. It should be pulling the
                 # value of the other keys out instead.
-                sort_keys.extend(iter(self.model_key_map.get(type(item))[1:]))
+                sort_keys.extend(iter(self.model_key_map[type(item)][1:]))
             sort_keys.append(type(item).__name__)
             return tuple(sort_keys)
 
@@ -737,7 +743,7 @@ class ChainPaginator:
         if offset < 0:
             raise BadPaginationError("Pagination offset cannot be negative")
 
-        results = []
+        results: list[object] = []
         # note: we shouldn't use itertools.islice(itertools.chain.from_iterable(self.sources))
         # because source may be a QuerySet which is much more efficient to slice directly
         for source in self.sources:
@@ -765,10 +771,14 @@ class ChainPaginator:
         return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
 
 
+class Callback(Protocol):
+    def __call__(self, limit: int, offset: int) -> list[Any]: ...
+
+
 class CallbackPaginator:
     def __init__(
         self,
-        callback: Callable[[int, int], Sequence[Any]],
+        callback: Callback,
         on_results: Callable[[Sequence[Any]], Any] | None = None,
     ):
         self.offset = 0

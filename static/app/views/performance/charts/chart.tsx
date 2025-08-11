@@ -14,7 +14,6 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import useRouter from 'sentry/utils/useRouter';
 
 type Props = {
   data: Series[];
@@ -34,7 +33,7 @@ type Props = {
 };
 
 // adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
-export function computeAxisMax(data: Series[]) {
+function computeAxisMax(data: Series[]) {
   // assumes min is 0
   const valuesDict = data.map(value => value.data.map(point => point.value));
   const maxValue = max(valuesDict.map(max)) as number;
@@ -77,14 +76,13 @@ function Chart({
   chartColors,
   isLineChart,
 }: Props) {
-  const router = useRouter();
   const theme = useTheme();
 
   if (!data || data.length <= 0) {
     return null;
   }
 
-  const colors = chartColors ?? theme.charts.getColorPalette(4);
+  const colors = chartColors ?? theme.chart.getColorPalette(4);
 
   const durationOnly = data.every(
     value => aggregateOutputType(value.seriesName) === 'duration'
@@ -117,7 +115,7 @@ function Chart({
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
-                aggregateOutputType(data[0].seriesName),
+                aggregateOutputType(data[0]!.seriesName),
                 undefined,
                 durationUnit
               );
@@ -136,7 +134,7 @@ function Chart({
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
-                aggregateOutputType(data[0].seriesName),
+                aggregateOutputType(data[0]!.seriesName),
                 undefined,
                 durationUnit
               );
@@ -153,7 +151,7 @@ function Chart({
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
-                aggregateOutputType(data[1].seriesName),
+                aggregateOutputType(data[1]!.seriesName),
                 undefined,
                 durationUnit
               );
@@ -195,12 +193,12 @@ function Chart({
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0], colors[1]] as string[],
+    colors: [colors[0], colors[1]],
     tooltip: {
-      valueFormatter: (value, seriesName) => {
+      valueFormatter: (value: any, seriesName: any) => {
         return tooltipFormatter(
           value,
-          aggregateOutputType(data?.length ? data[0].seriesName : seriesName)
+          aggregateOutputType(data?.length ? data[0]!.seriesName : seriesName)
         );
       },
       nameFormatter(value: string) {
@@ -231,7 +229,6 @@ function Chart({
 
   return (
     <ChartZoom
-      router={router}
       period={statsPeriod}
       start={start}
       end={end}

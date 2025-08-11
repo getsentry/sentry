@@ -1,25 +1,28 @@
 ---
+created: '2025-04-25T21:22:09.959580+00:00'
+creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: "a728cdf5d62c8e017c35c3fe04051b6e"
+  contributing component: exception
   component:
     app*
       exception*
         stacktrace*
-          frame*
+          frame* (marked in-app by the client)
             filename*
               "server.php"
             context-line*
               "require_once __DIR__.'/public/index.php';"
-          frame (non app frame)
+          frame (marked out of app by the client)
             filename*
               "pipeline.php"
             function* (anonymous class method)
               "run"
             context-line*
               "return $callable($passable);"
-          frame (marked out of app by stack trace rule (path:**/vendor/** -app))
+          frame (marked out of app by the client)
             filename*
               "pipeline.php"
             function*
@@ -33,6 +36,7 @@ app:
 --------------------------------------------------------------------------
 system:
   hash: "63c67781779781d9b0a442a5b2bdb976"
+  contributing component: exception
   component:
     system*
       exception*

@@ -12,7 +12,7 @@ const durationFormatter = makeFormatter('nanoseconds', 0);
 function asSeries(
   seriesName: string,
   color: string | undefined,
-  data: {timestamp: number; value: number}[]
+  data: Array<{timestamp: number; value: number}>
 ) {
   return {
     data: data.map(p => ({
@@ -38,7 +38,7 @@ function getTooltipFormatter(label: string, baseline: number) {
 
 interface BaseSparklineChartProps {
   name: string;
-  points: {timestamp: number; value: number}[];
+  points: Array<{timestamp: number; value: number}>;
   chartProps?: Partial<LineChartProps>;
   color?: string;
 }

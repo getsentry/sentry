@@ -6,4 +6,4 @@ class ChannelName(Enum):
     FLY_NON_PARTNER = "fly-non-partner"
 
 
-SPONSOR_OAUTH_NAME = {ChannelName.FLY_IO: "Fly.io", ChannelName.FLY_NON_PARTNER: "Fly.non-partner"}
+SPONSOR_OAUTH_NAME = {ChannelName.FLY_IO: "Fly.io", ChannelName.FLY_NON_PARTNER: "Fly.io"}

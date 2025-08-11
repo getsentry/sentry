@@ -1,6 +1,9 @@
-import type {ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
+import type {Theme} from '@emotion/react';
+import styled from '@emotion/styled';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import CrumbErrorTitle from 'sentry/components/replays/breadcrumbs/errorTitle';
 import SelectorList from 'sentry/components/replays/breadcrumbs/selectorList';
 import {
@@ -25,10 +28,13 @@ import {
   IconWifi,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {explodeSlug} from 'sentry/utils';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {
   BreadcrumbFrame,
+  ClickFrame,
+  ConsoleFrame,
   DeviceBatteryFrame,
   DeviceConnectivityFrame,
   DeviceOrientationFrame,
@@ -37,23 +43,30 @@ import type {
   MultiClickFrame,
   MutationFrame,
   NavFrame,
+  NavigationFrame,
+  RawBreadcrumbFrame,
   ReplayFrame,
+  RequestFrame,
+  ResourceFrame,
+  ScrollFrame,
   SlowClickFrame,
+  SwipeFrame,
   TapFrame,
   WebVitalFrame,
 } from 'sentry/utils/replays/types';
 import {
   getFrameOpOrCategory,
+  isCLSFrame,
   isDeadClick,
   isDeadRageClick,
   isRageClick,
 } from 'sentry/utils/replays/types';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import type {Color} from 'sentry/utils/theme';
 import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
+import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 
 interface Details {
-  color: Color;
+  colorGraphicsToken: keyof Theme['tokens']['graphics'];
   description: ReactNode;
   icon: ReactNode;
   tabKey: TabKey;
@@ -67,30 +80,30 @@ const DEVICE_CONNECTIVITY_MESSAGE: Record<string, string> = {
   ethernet: t('Device connected to ethernet'),
 };
 
-const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
+const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   'replay.init': (frame: BreadcrumbFrame) => ({
-    color: 'gray300',
+    colorGraphicsToken: 'muted',
     description: stripURLOrigin(frame.message ?? ''),
     tabKey: TabKey.CONSOLE,
     title: 'Replay Start',
     icon: <IconInfo size="xs" />,
   }),
   navigation: (frame: NavFrame) => ({
-    color: 'green300',
-    description: stripURLOrigin((frame as NavFrame).data.to),
+    colorGraphicsToken: 'success',
+    description: stripURLOrigin(frame.data.to),
     tabKey: TabKey.NETWORK,
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
   }),
   feedback: (frame: FeedbackFrame) => ({
-    color: 'purple300',
-    description: frame.data.projectSlug,
+    colorGraphicsToken: 'promotion',
+    description: frame.message,
     tabKey: TabKey.BREADCRUMBS,
     title: defaultTitle(frame),
     icon: <IconMegaphone size="xs" />,
   }),
   issue: (frame: ErrorFrame) => ({
-    color: 'red300',
+    colorGraphicsToken: 'danger',
     description: frame.message,
     tabKey: TabKey.ERRORS,
     title: <CrumbErrorTitle frame={frame} />,
@@ -100,7 +113,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     const node = frame.data.node;
     if (isDeadClick(frame)) {
       return {
-        color: isDeadRageClick(frame) ? 'red300' : 'yellow300',
+        colorGraphicsToken: isDeadRageClick(frame) ? 'danger' : 'warning',
         description: tct(
           'Click on [selector] did not cause a visible effect within [timeout] ms',
           {
@@ -114,7 +127,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
       };
     }
     return {
-      color: 'yellow300',
+      colorGraphicsToken: 'warning',
       description: tct(
         'Click on [selector] took [duration] ms to have a visible effect',
         {
@@ -130,7 +143,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
   'ui.multiClick': (frame: MultiClickFrame) => {
     if (isRageClick(frame)) {
       return {
-        color: 'red300',
+        colorGraphicsToken: 'danger',
         description: tct('Rage clicked [clickCount] times on [selector]', {
           clickCount: frame.data.clickCount,
           selector: stringifyNodeAttributes(frame.data.node),
@@ -142,7 +155,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     }
 
     return {
-      color: 'yellow300',
+      colorGraphicsToken: 'warning',
       description: tct('[clickCount] clicks on [selector]', {
         clickCount: frame.data.clickCount,
         selector: stringifyNodeAttributes(frame.data.node),
@@ -153,10 +166,10 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     };
   },
   'replay.mutations': (frame: MutationFrame) => ({
-    color: 'yellow300',
+    colorGraphicsToken: 'warning',
     description: frame.data.limit
       ? tct(
-          'Significant mutations detected [count]. Replay is now stopped to prevent poor performance for your customer. [link]',
+          'Significant mutations detected: [count]. Replay is now stopped to prevent poor performance for your customer. [link]',
           {
             count: frame.data.count,
             link: (
@@ -167,7 +180,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
           }
         )
       : tct(
-          'Significant mutations detected [count]. This can slow down the Replay SDK, impacting your customers. [link]',
+          'Significant mutations detected: [count]. This can slow down the Replay SDK, impacting your customers. [link]',
           {
             count: frame.data.count,
             link: (
@@ -182,7 +195,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     icon: <IconWarning size="xs" />,
   }),
   'replay.hydrate-error': () => ({
-    color: 'red300',
+    colorGraphicsToken: 'danger',
     description: t(
       'There was a conflict between the server rendered html and the first client render.'
     ),
@@ -190,92 +203,106 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: 'Hydration Error',
     icon: <IconFire size="xs" />,
   }),
-  'ui.click': frame => ({
-    color: 'purple300',
+  'ui.click': (frame: ClickFrame) => ({
+    colorGraphicsToken: 'accent',
     description: <SelectorList frame={frame} />,
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Click',
     icon: <IconCursorArrow size="xs" />,
   }),
+  'ui.swipe': (frame: SwipeFrame) => ({
+    colorGraphicsToken: 'accent',
+    description: frame.data,
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'User Swipe',
+    icon: <IconTap size="xs" />,
+  }),
+  'ui.scroll': (frame: ScrollFrame) => ({
+    colorGraphicsToken: 'accent',
+    description: frame.data,
+    tabKey: TabKey.BREADCRUMBS,
+    title: 'User Scroll',
+    icon: <IconTap size="xs" />,
+  }),
   'ui.tap': (frame: TapFrame) => ({
-    color: 'purple300',
+    colorGraphicsToken: 'accent',
     description: frame.message,
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Tap',
     icon: <IconTap size="xs" />,
   }),
   'ui.input': () => ({
-    color: 'purple300',
+    colorGraphicsToken: 'accent',
     description: t('User Action'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Input',
     icon: <IconInput size="xs" />,
   }),
   'ui.keyDown': () => ({
-    color: 'purple300',
+    colorGraphicsToken: 'accent',
     description: t('User Action'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'User KeyDown',
     icon: <IconKeyDown size="xs" />,
   }),
   'ui.blur': () => ({
-    color: 'purple300',
+    colorGraphicsToken: 'accent',
     description: t('The user is preoccupied with another browser, tab, or window'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'Window Blur',
     icon: <IconFocus isFocused={false} size="xs" />,
   }),
   'ui.focus': () => ({
-    color: 'purple300',
+    colorGraphicsToken: 'accent',
     description: t('The user is currently focused on your application,'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'Window Focus',
     icon: <IconFocus size="xs" />,
   }),
   'app.foreground': () => ({
-    color: 'purple300',
+    colorGraphicsToken: 'accent',
     description: t('The user is currently focused on your application'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'App in Foreground',
     icon: <IconFocus size="xs" />,
   }),
   'app.background': () => ({
-    color: 'purple300',
+    colorGraphicsToken: 'accent',
     description: t('The user is preoccupied with another app or activity'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'App in Background',
     icon: <IconFocus isFocused={false} size="xs" />,
   }),
-  console: frame => ({
-    color: 'gray300',
+  console: (frame: ConsoleFrame) => ({
+    colorGraphicsToken: 'muted',
     description: frame.message ?? '',
     tabKey: TabKey.CONSOLE,
     title: 'Console',
     icon: <IconFix size="xs" />,
   }),
-  'navigation.navigate': frame => ({
-    color: 'green300',
+  'navigation.navigate': (frame: NavigationFrame) => ({
+    colorGraphicsToken: 'success',
     description: stripURLOrigin(frame.description),
     tabKey: TabKey.NETWORK,
     title: 'Page Load',
     icon: <IconLocation size="xs" />,
   }),
-  'navigation.reload': frame => ({
-    color: 'green300',
+  'navigation.reload': (frame: NavigationFrame) => ({
+    colorGraphicsToken: 'success',
     description: stripURLOrigin(frame.description),
     tabKey: TabKey.NETWORK,
     title: 'Reload',
     icon: <IconLocation size="xs" />,
   }),
-  'navigation.back_forward': frame => ({
-    color: 'green300',
+  'navigation.back_forward': (frame: NavigationFrame) => ({
+    colorGraphicsToken: 'success',
     description: stripURLOrigin(frame.description),
     tabKey: TabKey.NETWORK,
     title: 'Navigate Back/Forward',
     icon: <IconLocation size="xs" />,
   }),
-  'navigation.push': frame => ({
-    color: 'green300',
+  'navigation.push': (frame: NavigationFrame) => ({
+    colorGraphicsToken: 'success',
     description: stripURLOrigin(frame.description),
     tabKey: TabKey.NETWORK,
     title: 'Navigation',
@@ -285,124 +312,127 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     switch (frame.data.rating) {
       case 'good':
         return {
-          color: 'green300',
-          description: tct('Good [value]ms', {
+          colorGraphicsToken: 'success',
+          description: tct('[value][unit] (Good)', {
             value: frame.data.value.toFixed(2),
+            unit: isCLSFrame(frame) ? '' : 'ms',
           }),
           tabKey: TabKey.NETWORK,
-          title: toTitleCase(explodeSlug(frame.description)),
+          title: WebVitalTitle(frame),
           icon: <IconHappy size="xs" />,
         };
       case 'needs-improvement':
         return {
-          color: 'yellow300',
-          description: tct('Meh [value]ms', {
+          colorGraphicsToken: 'warning',
+          description: tct('[value][unit] (Meh)', {
             value: frame.data.value.toFixed(2),
+            unit: isCLSFrame(frame) ? '' : 'ms',
           }),
           tabKey: TabKey.NETWORK,
-          title: toTitleCase(explodeSlug(frame.description)),
+          title: WebVitalTitle(frame),
           icon: <IconMeh size="xs" />,
         };
       default:
         return {
-          color: 'red300',
-          description: tct('Poor [value]ms', {
+          colorGraphicsToken: 'danger',
+          description: tct('[value][unit] (Poor)', {
             value: frame.data.value.toFixed(2),
+            unit: isCLSFrame(frame) ? '' : 'ms',
           }),
           tabKey: TabKey.NETWORK,
-          title: toTitleCase(explodeSlug(frame.description)),
+          title: WebVitalTitle(frame),
           icon: <IconSad size="xs" />,
         };
     }
   },
   memory: () => ({
-    color: 'gray300',
+    colorGraphicsToken: 'muted',
     description: undefined,
     tabKey: TabKey.MEMORY,
     title: 'Memory',
     icon: <IconInfo size="xs" />,
   }),
   paint: () => ({
-    color: 'gray300',
+    colorGraphicsToken: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: 'Paint',
     icon: <IconInfo size="xs" />,
   }),
-  'resource.css': frame => ({
-    color: 'gray300',
+  'resource.css': (frame: ResourceFrame) => ({
+    colorGraphicsToken: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
-  'resource.fetch': frame => ({
-    color: 'gray300',
+  'resource.fetch': (frame: RequestFrame) => ({
+    colorGraphicsToken: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
-  'resource.iframe': frame => ({
-    color: 'gray300',
+  'resource.iframe': (frame: ResourceFrame) => ({
+    colorGraphicsToken: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
-  'resource.img': frame => ({
-    color: 'gray300',
+  'resource.img': (frame: ResourceFrame) => ({
+    colorGraphicsToken: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
-  'resource.link': frame => ({
-    color: 'gray300',
+  'resource.link': (frame: ResourceFrame) => ({
+    colorGraphicsToken: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
-  'resource.other': frame => ({
-    color: 'gray300',
+  'resource.other': (frame: ResourceFrame) => ({
+    colorGraphicsToken: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
-  'resource.script': frame => ({
-    color: 'gray300',
+  'resource.script': (frame: ResourceFrame) => ({
+    colorGraphicsToken: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
-  'resource.xhr': frame => ({
-    color: 'gray300',
+  'resource.xhr': (frame: RequestFrame) => ({
+    colorGraphicsToken: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
-  'resource.http': frame => ({
-    color: 'gray300',
+  'resource.http': (frame: RequestFrame) => ({
+    colorGraphicsToken: 'muted',
     description: undefined,
     tabKey: TabKey.NETWORK,
     title: frame.description,
     icon: <IconSort size="xs" rotated />,
   }),
   'device.connectivity': (frame: DeviceConnectivityFrame) => ({
-    color: 'pink300',
+    colorGraphicsToken: 'promotion',
     description: DEVICE_CONNECTIVITY_MESSAGE[frame.data.state],
     tabKey: TabKey.BREADCRUMBS,
     title: 'Device Connectivity',
     icon: <IconWifi size="xs" />,
   }),
   'device.battery': (frame: DeviceBatteryFrame) => ({
-    color: 'pink300',
+    colorGraphicsToken: 'promotion',
     description: tct('Device was at [percent]% battery and [charging]', {
-      percent: frame.data.level,
+      percent: Math.round(frame.data.level),
       charging: frame.data.charging ? 'charging' : 'not charging',
     }),
     tabKey: TabKey.BREADCRUMBS,
@@ -410,7 +440,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     icon: <IconLightning size="xs" />,
   }),
   'device.orientation': (frame: DeviceOrientationFrame) => ({
-    color: 'pink300',
+    colorGraphicsToken: 'promotion',
     description: tct('Device orientation was changed to [orientation]', {
       orientation: frame.data.position,
     }),
@@ -420,11 +450,11 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
   }),
 };
 
-const MAPPER_DEFAULT = (frame): Details => ({
-  color: 'gray300',
-  description: frame.message ?? '',
-  tabKey: TabKey.CONSOLE,
-  title: defaultTitle(frame),
+const MAPPER_DEFAULT = (frame: any): Details => ({
+  colorGraphicsToken: 'muted',
+  description: frame.message ?? frame.data ?? '',
+  tabKey: TabKey.BREADCRUMBS,
+  title: toTitleCase(defaultTitle(frame)),
   icon: <IconTerminal size="xs" />,
 });
 
@@ -438,19 +468,23 @@ export default function getFrameDetails(frame: ReplayFrame): Details {
   }
 }
 
-function defaultTitle(frame: ReplayFrame) {
+export function defaultTitle(frame: ReplayFrame | RawBreadcrumbFrame) {
   // Override title for User Feedback frames
-  if ('message' in frame && frame.message === 'User Feedback') {
+  if (
+    'message' in frame &&
+    typeof frame.message === 'string' &&
+    frame.category === 'feedback'
+  ) {
     return t('User Feedback');
   }
-  if ('category' in frame) {
+  if ('category' in frame && frame.category) {
     const [type, action] = frame.category.split('.');
     return `${type} ${action || ''}`.trim();
   }
-  if ('message' in frame) {
-    return frame.message as string; // TODO(replay): Included for backwards compat
+  if ('message' in frame && frame.message) {
+    return frame.message; // TODO(replay): Included for backwards compat
   }
-  return frame.description ?? '';
+  return 'description' in frame ? (frame.description ?? '') : '';
 }
 
 function stringifyNodeAttributes(node: SlowClickFrame['data']['node']) {
@@ -468,3 +502,41 @@ function stringifyNodeAttributes(node: SlowClickFrame['data']['node']) {
       : ''
   }`;
 }
+
+function WebVitalTitle(frame: WebVitalFrame) {
+  const vitalDefinition = function () {
+    switch (frame.description) {
+      case 'cumulative-layout-shift':
+        return 'Cumulative Layout Shift (CLS) is the sum of individual layout shift scores for every unexpected element shift during the rendering process. ';
+      case 'interaction-to-next-paint':
+        return "Interaction to Next Paint (INP) is a metric that assesses a page's overall responsiveness to user interactions by observing the latency of all user interactions that occur throughout the lifespan of a user's visit to a page. ";
+      case 'largest-contentful-paint':
+        return 'Largest Contentful Paint (LCP) measures the render time for the largest content to appear in the viewport. ';
+      default:
+        return '';
+    }
+  };
+  return (
+    <Title>
+      {t('Web Vital: ') + toTitleCase(explodeSlug(frame.description))}
+      <QuestionTooltip
+        isHoverable
+        size={'xs'}
+        title={
+          <Fragment>
+            {vitalDefinition()}
+            <ExternalLink href={`${MODULE_DOC_LINK}/web-vitals-concepts/`}>
+              {t('Learn more about web vitals here.')}
+            </ExternalLink>
+          </Fragment>
+        }
+      />
+    </Title>
+  );
+}
+
+const Title = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+`;

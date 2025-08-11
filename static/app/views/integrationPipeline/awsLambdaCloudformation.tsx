@@ -4,7 +4,8 @@ import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/actions/button';
+import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import List from 'sentry/components/list';
@@ -13,6 +14,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {uniqueId} from 'sentry/utils/guid';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 import FooterWithButtons from './components/footerWithButtons';
 import HeaderWithHelp from './components/headerWithHelp';
@@ -116,7 +118,7 @@ export default class AwsLambdaCloudformation extends Component<Props, State> {
     // this is needed so we don't restart the pipeline loading from the original
     // OrganizationIntegrationSetupView route
     const newUrl = `${origin}/extensions/aws_lambda/setup/?${qs.stringify(data)}`;
-    window.location.assign(newUrl);
+    testableWindowLocation.assign(newUrl);
   };
 
   validateAccountNumber = (value: string) => {
@@ -200,6 +202,7 @@ export default class AwsLambdaCloudformation extends Component<Props, State> {
           <ListItem>
             <h3>{t("Add Sentry's CloudFormation")}</h3>
             <StyledButton
+              size="xs"
               priority="primary"
               onClick={this.trackOpenCloudFormation}
               external
@@ -283,6 +286,6 @@ const StyledList = styled(List)`
   padding: 100px 50px 50px 50px;
 `;
 
-const StyledButton = styled(Button)`
+const StyledButton = styled(LinkButton)`
   margin-bottom: 20px;
 `;

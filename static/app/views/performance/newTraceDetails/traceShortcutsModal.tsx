@@ -1,47 +1,29 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import tracingKeyboardShortcuts from 'sentry-images/spot/tracing-keyboard-shortcuts.svg';
 
-import {type ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
-import {IconKeyDown} from 'sentry/icons';
+import {type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
-import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 
-export function TraceShortcuts() {
-  const organization = useOrganization();
-  const onOpenShortcutsClick = useCallback(() => {
-    traceAnalytics.trackViewShortcuts(organization);
-    openModal(props => <TraceShortcutsModal {...props} />);
-  }, [organization]);
-
-  return (
-    <Button size="xs" onClick={onOpenShortcutsClick} aria-label={t('Trace Shortcuts')}>
-      <IconKeyDown />
-    </Button>
-  );
-}
-
-const KEYBOARD_SHORTCUTS: [string, string][] = [
+const KEYBOARD_SHORTCUTS: Array<[string, string]> = [
   ['\u2191 / \u2193', t('Navigate up or down')],
   ['\u2190 / \u2192', t('Collapse or expand')],
   [t('Shift') + ' + \u2191 / \u2193', t('Jump to first/last element')],
 ];
 
-const TIMELINE_SHORTCUTS: [string, string][] = [
+const TIMELINE_SHORTCUTS: Array<[string, string]> = [
   [t('Cmd / Ctrl + Scroll'), t('Zoom in/out at cursor')],
   [t('Shift + Scroll'), t('Scroll horizontally')],
   [t('Double click'), t('Zoom to fill')],
 ];
 
-function TraceShortcutsModal({Header, Body}: ModalRenderProps) {
+export function TraceShortcutsModal({Header, Body}: ModalRenderProps) {
   return (
     <Fragment>
       <Header closeButton>
-        <h2>{t('Keyboard controls')}</h2>
+        <h2>{t('Shortcuts')}</h2>
       </Header>
       <Body>
         <ShortcutsLayout>
@@ -86,7 +68,7 @@ const Shortcuts = styled('ul')`
   list-style-type: none;
   margin-bottom: 0;
   padding: 0;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 
   &:not(:last-child) {
     margin: 0 0 ${space(3)} 0;

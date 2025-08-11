@@ -1,7 +1,7 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {Select} from 'sentry/components/core/select';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PolicySelector from 'sentry/components/policySelector';
 import SelectMembers from 'sentry/components/selectMembers';
@@ -53,7 +53,7 @@ class MemberTeamFields extends Component<Props> {
     this.handleChange('targetType', optionRecord.value);
   };
 
-  handleChangeActorId = (optionRecord: OptionRecord & {[key: string]: any}) => {
+  handleChangeActorId = (optionRecord: OptionRecord & Record<string, any>) => {
     this.handleChange('targetIdentifier', optionRecord.value);
   };
 
@@ -75,7 +75,7 @@ class MemberTeamFields extends Component<Props> {
     const policySelected = ruleData.targetType === policyValue;
 
     const selectControlStyles = {
-      control: provided => ({
+      control: (provided: any) => ({
         ...provided,
         minHeight: '28px',
         height: '28px',
@@ -85,7 +85,7 @@ class MemberTeamFields extends Component<Props> {
     return (
       <PanelItemGrid>
         <SelectWrapper>
-          <SelectControl
+          <Select
             isClearable={false}
             isDisabled={disabled || loading}
             value={ruleData.targetType}

@@ -1,17 +1,18 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getJavaMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -23,6 +24,11 @@ export enum SpringVersion {
 export enum PackageManager {
   GRADLE = 'gradle',
   MAVEN = 'maven',
+}
+
+export enum YesNo {
+  YES = 'yes',
+  NO = 'no',
 }
 
 const platformOptions = {
@@ -49,6 +55,19 @@ const platformOptions = {
       {
         label: t('Maven'),
         value: PackageManager.MAVEN,
+      },
+    ],
+  },
+  opentelemetry: {
+    label: t('OpenTelemetry'),
+    items: [
+      {
+        label: t('With OpenTelemetry'),
+        value: YesNo.YES,
+      },
+      {
+        label: t('Without OpenTelemetry'),
+        value: YesNo.NO,
       },
     ],
   },
@@ -79,7 +98,7 @@ sentry {
   includeSourceContext = true
 
   org = "${params.organization.slug}"
-  projectName = "${params.projectSlug}"
+  projectName = "${params.project.slug}"
   authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }`;
 
@@ -92,8 +111,8 @@ const getMavenInstallSnippet = (params: Params) => `
       <version>${
         params.sourcePackageRegistries?.isLoading
           ? t('\u2026loading')
-          : params.sourcePackageRegistries?.data?.['sentry.java.maven-plugin']?.version ??
-            '0.0.4'
+          : (params.sourcePackageRegistries?.data?.['sentry.java.maven-plugin']
+              ?.version ?? '0.0.4')
       }</version>
       <extensions>true</extensions>
       <configuration>
@@ -102,7 +121,7 @@ const getMavenInstallSnippet = (params: Params) => `
 
         <org>${params.organization.slug}</org>
 
-        <project>${params.projectSlug}</project>
+        <project>${params.project.slug}</project>
 
         <!-- in case you're self hosting, provide the URL here -->
         <!--<url>http://localhost:8000/</url>-->
@@ -127,12 +146,25 @@ const getMavenInstallSnippet = (params: Params) => `
   ...
 </build>`;
 
+const getOpenTelemetryRunSnippet = (params: Params) => `
+SENTRY_AUTO_INIT=false java -javaagent:sentry-opentelemetry-agent-${getPackageVersion(params, 'sentry.java.opentelemetry-agent', '8.0.0')}.jar -jar your-application.jar
+`;
+
+const getOpenTelemetryApplicationServerSnippet = (params: Params) => `
+JAVA_OPTS="$\{JAVA_OPTS} -javaagent:/somewhere/sentry-opentelemetry-agent-${getPackageVersion(params, 'sentry.java.opentelemetry-agent', '8.0.0')}.jar"
+`;
+
 const getJavaConfigSnippet = (params: Params) => `
 import io.sentry.spring${
   params.platformOptions.springVersion === SpringVersion.V6 ? '.jakarta' : ''
 }.EnableSentry;
 
-@EnableSentry(dsn = "${params.dsn}")
+@EnableSentry(
+  dsn = "${params.dsn.public}",
+  // Add data like request headers and IP for users,
+  // see https://docs.sentry.io/platforms/java/guides/spring/data-management/data-collected/ for more info
+  sendDefaultPii = true
+)
 @Configuration
 class SentryConfiguration {
 }`;
@@ -144,7 +176,10 @@ import io.sentry.spring${
 import org.springframework.core.Ordered
 
 @EnableSentry(
-  dsn = "${params.dsn}",
+  dsn = "${params.dsn.public}",
+  // Add data like request headers and IP for users,
+  // see https://docs.sentry.io/platforms/java/guides/spring/data-management/data-collected/ for more info
+  sendDefaultPii = true,
   exceptionResolverOrder = Ordered.LOWEST_PRECEDENCE
 )`;
 
@@ -167,6 +202,22 @@ try {
 } catch (e: Exception) {
   Sentry.captureException(e)
 }`;
+
+const getSentryPropertiesSnippet = (params: Params) =>
+  `${
+    params.isLogsSelected
+      ? `
+# Enable sending logs to Sentry
+logs.enabled=true`
+      : ''
+  }${
+    params.isPerformanceSelected
+      ? `
+# Set traces-sample-rate to 1.0 to capture 100% of transactions for tracing.
+# We recommend adjusting this value in production.
+traces-sample-rate=1.0`
+      : ''
+  }`;
 
 const onboarding: OnboardingConfig<PlatformOptions> = {
   introduction: () =>
@@ -192,9 +243,11 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           description: (
             <p>
               {tct(
-                'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Auth Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
+                'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
                 {
-                  link: <Link to="/settings/auth-tokens/" />,
+                  link: (
+                    <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />
+                  ),
                 }
               )}
             </p>
@@ -241,6 +294,37 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                   </p>
                 ),
                 code: getMavenInstallSnippet(params),
+              },
+            ]
+          : []),
+        ...(params.platformOptions.opentelemetry === YesNo.YES
+          ? [
+              {
+                description: tct(
+                  "When running your application, please add our [code:sentry-opentelemetry-agent] to the [code:java] command. In case you are using an application server to run your [code:.WAR] file, please add it to the [code:JAVA_OPTS] of your application server. You can download the latest version of the [code:sentry-opentelemetry-agent.jar] from [linkMC:MavenCentral]. It's also available as a [code:ZIP] containing the [code:JAR] used on this page on [linkGH:GitHub].",
+                  {
+                    code: <code />,
+                    linkMC: (
+                      <ExternalLink href="https://search.maven.org/artifact/io.sentry/sentry-opentelemetry-agent" />
+                    ),
+                    linkGH: (
+                      <ExternalLink href="https://github.com/getsentry/sentry-java/releases/" />
+                    ),
+                  }
+                ),
+                language: 'bash',
+                code: getOpenTelemetryRunSnippet(params),
+              },
+            ]
+          : []),
+        ...(params.platformOptions.opentelemetry === YesNo.YES
+          ? [
+              {
+                description: t(
+                  'In case of an application server, adding the Agent might look more like the following:'
+                ),
+                language: 'bash',
+                code: getOpenTelemetryApplicationServerSnippet(params),
               },
             ]
           : []),
@@ -302,7 +386,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
                   code: getJavaConfigSnippet(params),
                 },
                 {
-                  language: 'java',
+                  language: 'kotlin',
                   label: 'Kotlin',
                   value: 'kotlin',
                   code: getKotlinConfigSnippet(params),
@@ -311,6 +395,25 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             },
           ],
         },
+        ...(params.isPerformanceSelected || params.isLogsSelected
+          ? [
+              {
+                type: StepType.CONFIGURE,
+                description: tct(
+                  'Add a [code:sentry.properties] file to enable additional features:',
+                  {
+                    code: <code />,
+                  }
+                ),
+                configurations: [
+                  {
+                    language: 'properties',
+                    code: getSentryPropertiesSnippet(params),
+                  },
+                ],
+              },
+            ]
+          : []),
       ],
     },
   ],
@@ -330,7 +433,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
               code: getJavaVerifySnippet(),
             },
             {
-              language: 'java',
+              language: 'kotlin',
               label: 'Kotlin',
               value: 'kotlin',
               code: getKotlinVerifySnippet(),
@@ -361,14 +464,6 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       description: t('Check out our sample applications.'),
       link: 'https://github.com/getsentry/sentry-java/tree/main/sentry-samples',
     },
-    {
-      id: 'performance-monitoring',
-      name: t('Performance Monitoring'),
-      description: t(
-        'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
-      ),
-      link: 'https://docs.sentry.io/platforms/java/guides/spring/tracing/',
-    },
   ],
 };
 
@@ -377,7 +472,7 @@ const docs: Docs<PlatformOptions> = {
   platformOptions,
   crashReportOnboarding: feedbackOnboardingCrashApiJava,
   replayOnboardingJsLoader,
-  customMetricsOnboarding: getJavaMetricsOnboarding(),
+  feedbackOnboardingJsLoader,
 };
 
 export default docs;

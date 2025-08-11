@@ -9,6 +9,7 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.project_release_files import ReleaseFilesMixin
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.release import Release
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @region_silo_endpoint
@@ -16,6 +17,19 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
+    }
+
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=40, window=1),
+            RateLimitCategory.USER: RateLimit(limit=40, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+        },
+        "POST": {
+            RateLimitCategory.IP: RateLimit(limit=40, window=1),
+            RateLimitCategory.USER: RateLimit(limit=40, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=40, window=1),
+        },
     }
 
     def get(self, request: Request, organization, version) -> Response:
@@ -51,6 +65,9 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
 
         Unlike other API requests, files must be uploaded using the
         traditional multipart/form-data content-type.
+
+        Requests to this endpoint should use the region-specific domain
+        eg. `us.sentry.io` or `de.sentry.io`
 
         The optional 'name' attribute should reflect the absolute path
         that this file will be referenced as. For example, in the case of

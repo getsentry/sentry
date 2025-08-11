@@ -4,7 +4,7 @@ from django.db.models.signals import post_save
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
-    DefaultFieldsModel,
+    DefaultFieldsModelExisting,
     FlexibleForeignKey,
     region_silo_model,
 )
@@ -12,7 +12,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 
 
 @region_silo_model
-class RepositoryProjectPathConfig(DefaultFieldsModel):
+class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
     __relocation_scope__ = RelocationScope.Excluded
 
     repository = FlexibleForeignKey("sentry.Repository")
@@ -28,17 +28,24 @@ class RepositoryProjectPathConfig(DefaultFieldsModel):
     source_root = models.TextField()
     default_branch = models.TextField(null=True)
     # Indicates if Sentry created this mapping
-    automatically_generated = models.BooleanField(default=False)
+    automatically_generated = models.BooleanField(default=False, db_default=False)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_repositoryprojectpathconfig"
         unique_together = (("project", "stack_root"),)
 
+    def __repr__(self) -> str:
+        return (
+            f"RepositoryProjectPathConfig(repo={self.repository.name}, "
+            + f"branch={self.default_branch}, "
+            + f"stack_root={self.stack_root}, "
+            + f"source_root={self.source_root})"
+        )
 
-def process_resource_change(instance, **kwargs):
+
+def process_resource_change(instance: RepositoryProjectPathConfig, **kwargs):
     from sentry.models.group import Group
-    from sentry.models.organization import Organization
     from sentry.models.project import Project
     from sentry.tasks.codeowners import update_code_owners_schema
     from sentry.utils.cache import cache
@@ -50,11 +57,11 @@ def process_resource_change(instance, **kwargs):
         try:
             update_code_owners_schema.apply_async(
                 kwargs={
-                    "organization": instance.project.organization,
-                    "projects": [instance.project],
+                    "organization": instance.project.organization_id,
+                    "projects": [instance.project_id],
                 }
             )
-        except (Project.DoesNotExist, Organization.DoesNotExist):
+        except Project.DoesNotExist:
             pass
 
     def _clear_commit_context_cache():

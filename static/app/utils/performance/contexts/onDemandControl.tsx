@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import {useCallback, useState} from 'react';
 import type {Location} from 'history';
 
-import SwitchButton from 'sentry/components/switchButton';
+import {Switch} from 'sentry/components/core/switch';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -104,6 +104,12 @@ export function isOnDemandMetricWidget(widget: Widget): boolean {
 const doesWidgetHaveReleaseConditions = (widget: Widget) =>
   widget.queries.some(q => q.conditions.includes('release:'));
 
+/**
+ * Check the extraction state for any widgets exceeding spec limit / cardinality limit etc.
+ */
+const doesWidgetHaveDisabledOnDemand = (widget: Widget) =>
+  widget.queries.some(q => q.onDemand?.some(d => !d.enabled));
+
 export const shouldUseOnDemandMetrics = (
   organization: Organization,
   widget: Widget,
@@ -118,6 +124,10 @@ export const shouldUseOnDemandMetrics = (
   }
 
   if (doesWidgetHaveReleaseConditions(widget)) {
+    return false;
+  }
+
+  if (doesWidgetHaveDisabledOnDemand(widget)) {
     return false;
   }
 
@@ -148,7 +158,7 @@ export function ToggleOnDemand() {
       }}
     >
       {t('On-demand metrics')}
-      <SwitchButton isActive={onDemand.forceOnDemand} size="sm" toggle={toggle} />
+      <Switch checked={onDemand.forceOnDemand} size="sm" onChange={toggle} />
     </FlexContainer>
   );
 }

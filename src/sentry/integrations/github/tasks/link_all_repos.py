@@ -1,6 +1,13 @@
 import logging
+from typing import Any
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.metrics import (
+    LinkAllReposHaltReason,
+    SCMIntegrationInteractionEvent,
+    SCMIntegrationInteractionType,
+)
 from sentry.organizations.services.organization import organization_service
 from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
@@ -9,7 +16,9 @@ from sentry.plugins.providers.integration_repository import (
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
-from sentry.utils import metrics
+from sentry.taskworker.config import TaskworkerConfig
+from sentry.taskworker.namespaces import integrations_control_tasks
+from sentry.taskworker.retry import Retry
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +36,11 @@ def get_repo_config(repo, integration_id):
     queue="integrations.control",
     max_retries=3,
     silo_mode=SiloMode.CONTROL,
+    taskworker_config=TaskworkerConfig(
+        namespace=integrations_control_tasks,
+        retry=Retry(times=3),
+        processing_deadline_duration=60,
+    ),
 )
 @retry(exclude=(RepoExistsError, KeyError))
 def link_all_repos(
@@ -34,50 +48,60 @@ def link_all_repos(
     integration_id: int,
     organization_id: int,
 ):
-    integration = integration_service.get_integration(integration_id=integration_id)
-    if not integration:
-        logger.error(
-            "%s.link_all_repos.integration_missing",
-            integration_key,
-            extra={"organization_id": organization_id},
+
+    with SCMIntegrationInteractionEvent(
+        interaction_type=SCMIntegrationInteractionType.LINK_ALL_REPOS,
+        provider_key=integration_key,
+    ).capture() as lifecycle:
+        lifecycle.add_extra("organization_id", organization_id)
+        integration = integration_service.get_integration(
+            integration_id=integration_id, status=ObjectStatus.ACTIVE
         )
-        metrics.incr("github.link_all_repos.error", tags={"type": "missing_integration"})
-        return
-
-    rpc_org = organization_service.get(id=organization_id)
-    if rpc_org is None:
-        logger.error(
-            "%s.link_all_repos.organization_missing",
-            integration_key,
-            extra={"organization_id": organization_id},
-        )
-        metrics.incr(
-            f"{integration_key}.link_all_repos.error",
-            tags={"type": "missing_organization"},
-        )
-        return
-
-    installation = integration.get_installation(organization_id=organization_id)
-
-    client = installation.get_client()
-
-    try:
-        repositories = client.get_repositories(fetch_max_pages=True)
-    except ApiError as e:
-        if installation.is_rate_limited_error(e):
+        if not integration:
+            lifecycle.record_failure(str(LinkAllReposHaltReason.MISSING_INTEGRATION))
             return
 
-        metrics.incr(f"{integration_key}.link_all_repos.api_error")
-        raise
+        rpc_org = organization_service.get(id=organization_id)
+        if rpc_org is None:
+            lifecycle.record_failure(str(LinkAllReposHaltReason.MISSING_ORGANIZATION))
+            return
 
-    integration_repo_provider = get_integration_repository_provider(integration)
+        installation = integration.get_installation(organization_id=organization_id)
 
-    for repo in repositories:
+        client = installation.get_client()
+
         try:
-            config = get_repo_config(repo, integration_id)
-            integration_repo_provider.create_repository(repo_config=config, organization=rpc_org)
-        except KeyError:
-            continue
-        except RepoExistsError:
-            metrics.incr("sentry.integration_repo_provider.repo_exists")
-            continue
+            repositories = client.get_repos()
+        except ApiError as e:
+            if installation.is_rate_limited_error(e):
+                lifecycle.record_halt(str(LinkAllReposHaltReason.RATE_LIMITED))
+                return
+
+            raise
+
+        integration_repo_provider = get_integration_repository_provider(integration)
+
+        repo_configs: list[dict[str, Any]] = []
+        missing_repos = []
+        for repo in repositories:
+            try:
+                repo_configs.append(get_repo_config(repo, integration_id))
+            except KeyError:
+                missing_repos.append(repo)
+                continue
+
+        try:
+            integration_repo_provider.create_repositories(
+                configs=repo_configs, organization=rpc_org
+            )
+        except RepoExistsError as e:
+            lifecycle.record_halt(
+                str(LinkAllReposHaltReason.REPOSITORY_NOT_CREATED),
+                {"missing_repos": e.repos, "integration_id": integration_id},
+            )
+
+        if missing_repos:
+            lifecycle.record_halt(
+                str(LinkAllReposHaltReason.REPOSITORY_NOT_CREATED),
+                {"missing_repos": missing_repos, "integration_id": integration_id},
+            )

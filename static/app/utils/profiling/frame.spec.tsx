@@ -61,7 +61,7 @@ describe('Frame', () => {
           },
           'node'
         ).module
-      ).toBe(undefined);
+      ).toBeUndefined();
     });
     it.each([
       ['node:internal/crypto/hash', 'node:internal/crypto'],
@@ -92,5 +92,33 @@ describe('Frame', () => {
         ).module
       ).toBe(expected);
     });
+  });
+
+  it('formats getSourceLocation', () => {
+    const frame = new Frame(
+      {
+        key: 0,
+        name: 'testFunction',
+        file: 'test.js',
+        line: 10,
+        column: 5,
+      },
+      'javascript'
+    );
+    expect(frame.getSourceLocation()).toBe('test.js:10:5');
+  });
+
+  it('formats getSourceLocation when file is unknown', () => {
+    const frame = new Frame(
+      {
+        key: 0,
+        name: 'testFunction',
+        file: undefined,
+        line: undefined,
+        column: undefined,
+      },
+      'javascript'
+    );
+    expect(frame.getSourceLocation()).toBe('<unknown>:<unknown line>:<unknown column>');
   });
 });

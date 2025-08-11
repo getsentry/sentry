@@ -14,7 +14,7 @@ type Props = {
   project: Project;
 };
 
-export default function useExternalIssueData({group, event, project}: Props) {
+export default function useHasLinkedIssues({group, event, project}: Props) {
   const organization = useOrganization();
   const issueTrackingFilter = useIssueTrackingFilter();
   const components = useSentryAppComponentsStore({componentType: 'issue-link'});
@@ -23,7 +23,8 @@ export default function useExternalIssueData({group, event, project}: Props) {
   const renderSentryAppIssues = (): ExternalIssueComponent[] => {
     return components
       .map<ExternalIssueComponent | null>(component => {
-        const {sentryApp, error: disabled} = component;
+        const {sentryApp} = component;
+        const disabled = Boolean(component.error);
         const installation = sentryAppInstallations.find(
           i => i.app.uuid === sentryApp.uuid
         );

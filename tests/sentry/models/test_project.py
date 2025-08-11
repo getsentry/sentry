@@ -1,14 +1,16 @@
 from collections.abc import Iterable
-from unittest.mock import patch
+from unittest import skip
+from unittest.mock import MagicMock, patch
 
+from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
+from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import ExternalProviders
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
-from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.options.project_template_option import ProjectTemplateOption
-from sentry.models.options.user_option import UserOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -18,23 +20,24 @@ from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.rule import Rule
-from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.models.user import User
-from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
+from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import SnubaQuery
-from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
+from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
+from sentry.workflow_engine.models import Detector
 
 
 class ProjectTest(APITestCase, TestCase):
-    def test_member_set_simple(self):
+    def test_member_set_simple(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
@@ -44,7 +47,7 @@ class ProjectTest(APITestCase, TestCase):
 
         assert list(project.member_set.all()) == [member]
 
-    def test_inactive_global_member(self):
+    def test_inactive_global_member(self) -> None:
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
@@ -53,7 +56,7 @@ class ProjectTest(APITestCase, TestCase):
 
         assert list(project.member_set.all()) == []
 
-    def test_transfer_to_organization(self):
+    def test_transfer_to_organization(self) -> None:
         from_org = self.create_organization()
         team = self.create_team(organization=from_org)
         to_org = self.create_organization()
@@ -78,7 +81,6 @@ class ProjectTest(APITestCase, TestCase):
             slug="test-monitor",
             organization_id=from_org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
 
@@ -87,7 +89,6 @@ class ProjectTest(APITestCase, TestCase):
             slug="test-monitor-also",
             organization_id=from_org.id,
             project_id=project.id,
-            type=MonitorType.CRON_JOB,
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
         monitor_env_new = MonitorEnvironment.objects.create(
@@ -102,7 +103,6 @@ class ProjectTest(APITestCase, TestCase):
             slug="test-monitor-other",
             organization_id=from_org.id,
             project_id=project_other.id,
-            type=MonitorType.CRON_JOB,
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
 
@@ -111,7 +111,6 @@ class ProjectTest(APITestCase, TestCase):
             slug="test-monitor",
             organization_id=to_org.id,
             project_id=self.create_project(name="other-project").id,
-            type=MonitorType.CRON_JOB,
             config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
         )
 
@@ -153,7 +152,7 @@ class ProjectTest(APITestCase, TestCase):
         assert existing_monitor.organization_id == to_org.id
         assert existing_monitor.project_id == monitor_to.project_id
 
-    def test_transfer_to_organization_slug_collision(self):
+    def test_transfer_to_organization_slug_collision(self) -> None:
         from_org = self.create_organization()
         team = self.create_team(organization=from_org)
         project = self.create_project(teams=[team], slug="matt")
@@ -173,7 +172,7 @@ class ProjectTest(APITestCase, TestCase):
         assert Project.objects.filter(organization=to_org).count() == 2
         assert Project.objects.filter(organization=from_org).count() == 0
 
-    def test_transfer_to_organization_releases(self):
+    def test_transfer_to_organization_releases(self) -> None:
         from_org = self.create_organization()
         team = self.create_team(organization=from_org)
         to_org = self.create_organization()
@@ -230,7 +229,7 @@ class ProjectTest(APITestCase, TestCase):
         ).exists()
         assert not ReleaseProject.objects.filter(project=project, release=release).exists()
 
-    def test_transfer_to_organization_alert_rules(self):
+    def test_transfer_to_organization_alert_rules(self) -> None:
         from_org = self.create_organization()
         from_user = self.create_user()
         self.create_member(user=from_user, role="member", organization=from_org)
@@ -298,7 +297,7 @@ class ProjectTest(APITestCase, TestCase):
         assert rule4.owner_user_id
         assert rule4.owner_team_id is None
 
-    def test_transfer_to_organization_external_issues(self):
+    def test_transfer_to_organization_external_issues(self) -> None:
         from_org = self.create_organization()
         to_org = self.create_organization()
 
@@ -352,7 +351,7 @@ class ProjectTest(APITestCase, TestCase):
         assert other_ext_issue.organization_id == from_org.id
         assert other_group_link.project_id == other_project.id
 
-    def test_get_absolute_url(self):
+    def test_get_absolute_url(self) -> None:
         url = self.project.get_absolute_url()
         assert (
             url
@@ -366,32 +365,54 @@ class ProjectTest(APITestCase, TestCase):
         )
 
     @with_feature("system:multi-region")
-    def test_get_absolute_url_customer_domains(self):
+    def test_get_absolute_url_customer_domains(self) -> None:
         url = self.project.get_absolute_url()
         assert (
             url == f"http://{self.organization.slug}.testserver/issues/?project={self.project.id}"
         )
 
-    def test_get_next_short_id_simple(self):
+    def test_get_next_short_id_simple(self) -> None:
         with patch("sentry.models.Counter.increment", return_value=1231):
             assert self.project.next_short_id() == 1231
 
-    def test_next_short_id_increments_by_one_if_no_delta_passed(self):
+    def test_next_short_id_increments_by_one_if_no_delta_passed(self) -> None:
         assert self.project.next_short_id() == 1
         assert self.project.next_short_id() == 2
 
-    def test_get_next_short_id_increments_by_delta_value(self):
+    def test_get_next_short_id_increments_by_delta_value(self) -> None:
         assert self.project.next_short_id() == 1
         assert self.project.next_short_id(delta=2) == 3
 
-    def test_add_team(self):
+    def test_add_team(self) -> None:
         team = self.create_team(organization=self.organization)
         assert self.project.add_team(team)
 
         teams = self.project.teams.all()
         assert team.id in {t.id for t in teams}
 
-    def test_remove_team_clears_alerts(self):
+    @patch("sentry.models.project.locks.get")
+    def test_lock_is_acquired_when_creating_project(self, mock_lock: MagicMock) -> None:
+        # self.organization is cached property, which means it will be created
+        # only if it is accessed, so we need to simulate access and all potential mock
+        # calls before resetting the mock
+        assert self.organization
+        # Ensure the mock starts clean before the save operation
+        mock_lock.reset_mock()
+        Project.objects.create(organization=self.organization)
+        assert mock_lock.call_count == 1
+
+    @patch("sentry.models.project.locks.get")
+    def test_lock_is_not_acquired_when_updating_project(self, mock_lock: MagicMock) -> None:
+        # self.project is cached property, which means it will be created
+        # only if it is accessed, so we need to simulate access and all potential mock
+        # calls before resetting the mock
+        assert self.project
+        # Ensure the mock starts clean before the save operation
+        mock_lock.reset_mock()
+        self.project.save()
+        assert mock_lock.call_count == 0
+
+    def test_remove_team_clears_alerts(self) -> None:
         team = self.create_team(organization=self.organization)
         assert self.project.add_team(team)
 
@@ -409,6 +430,14 @@ class ProjectTest(APITestCase, TestCase):
         assert alert_rule.team_id is None
         assert alert_rule.user_id is None
 
+    def test_project_detector(self) -> None:
+        project = self.create_project()
+        assert not Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
+
+        with self.feature({"organizations:workflow-engine-issue-alert-dual-write": True}):
+            project = self.create_project()
+            assert Detector.objects.filter(project=project, type=ErrorGroupType.slug).exists()
+
 
 class ProjectOptionsTests(TestCase):
     """
@@ -424,7 +453,7 @@ class ProjectOptionsTests(TestCase):
     If a project has an option set, it will override the template option.
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.option_key = "sentry:test_data"
         self.project = self.create_project()
@@ -438,31 +467,32 @@ class ProjectOptionsTests(TestCase):
         self.project_template.delete()
         self.project.delete()
 
-    def test_get_option(self):
+    def test_get_option(self) -> None:
         assert self.project.get_option(self.option_key) is None
         ProjectOption.objects.set_value(self.project, self.option_key, True)
         assert self.project.get_option(self.option_key) is True
 
-    def test_get_template_option(self):
+    @skip("Template feature is not active at the moment")
+    def test_get_template_option(self) -> None:
         assert self.project.get_option(self.option_key) is None
         ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
         assert self.project.get_option(self.option_key) == "test"
 
-    def test_get_option__override_template(self):
+    def test_get_option__override_template(self) -> None:
         assert self.project.get_option(self.option_key) is None
         ProjectOption.objects.set_value(self.project, self.option_key, True)
         ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
 
         assert self.project.get_option(self.option_key) is True
 
-    def test_get_option__without_template(self):
+    def test_get_option__without_template(self) -> None:
         self.project.template = None
         assert self.project.get_option(self.option_key) is None
         ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
 
         assert self.project.get_option(self.option_key) is None
 
-    def test_get_option__without_template_and_value(self):
+    def test_get_option__without_template_and_value(self) -> None:
         self.project.template = None
         assert self.project.get_option(self.option_key) is None
 
@@ -473,7 +503,7 @@ class ProjectOptionsTests(TestCase):
 
 
 class CopyProjectSettingsTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -530,31 +560,14 @@ class CopyProjectSettingsTest(TestCase):
         for rule, other_rule in zip(rules, self.rules):
             assert rule.label == other_rule.label
 
-    def assert_settings_not_copied(self, project, teams=()):
-        for key in self.options_dict.keys():
-            assert project.get_option(key) is None
-
-        project_teams = ProjectTeam.objects.filter(project_id=project.id, team__in=teams)
-        assert len(project_teams) == len(teams)
-
-        project_envs = EnvironmentProject.objects.filter(project_id=project.id)
-        assert len(project_envs) == 0
-
-        assert not ProjectOwnership.objects.filter(project_id=project.id).exists()
-
-        # default rule
-        rules = Rule.objects.filter(project_id=project.id)
-        assert len(rules) == 1
-        assert rules[0].label == "Send a notification for new issues"
-
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project(fire_project_created=True)
 
         assert project.copy_settings_from(self.other_project.id)
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
 
-    def test_copy_with_previous_settings(self):
+    def test_copy_with_previous_settings(self) -> None:
         project = self.create_project(fire_project_created=True)
         project.update_option("sentry:resolve_age", 200)
         ProjectTeam.objects.create(team=self.create_team(), project=project)
@@ -579,14 +592,14 @@ class FilterToSubscribedUsersTest(TestCase):
         expected_recipients = {Actor.from_object(user) for user in expected_users}
         assert actual_recipients == expected_recipients
 
-    def test(self):
+    def test(self) -> None:
         self.run_test([self.user], {self.user})
 
-    def test_global_enabled(self):
+    def test_global_enabled(self) -> None:
         user = self.create_user()
         self.run_test({user}, {user})
 
-    def test_global_disabled(self):
+    def test_global_disabled(self) -> None:
         user = self.create_user()
         NotificationSettingOption.objects.create(
             user_id=user.id,
@@ -597,7 +610,7 @@ class FilterToSubscribedUsersTest(TestCase):
         )
         self.run_test({user}, set())
 
-    def test_project_enabled(self):
+    def test_project_enabled(self) -> None:
         user = self.create_user()
 
         # disable default
@@ -618,7 +631,7 @@ class FilterToSubscribedUsersTest(TestCase):
         )
         self.run_test({user}, {user})
 
-    def test_project_disabled(self):
+    def test_project_disabled(self) -> None:
         user = self.create_user()
         NotificationSettingOption.objects.create(
             user_id=user.id,
@@ -629,7 +642,7 @@ class FilterToSubscribedUsersTest(TestCase):
         )
         self.run_test({user}, set())
 
-    def test_mixed(self):
+    def test_mixed(self) -> None:
         user_global_enabled = self.create_user()
         user_global_disabled = self.create_user()
         NotificationSettingOption.objects.create(
@@ -675,7 +688,7 @@ class FilterToSubscribedUsersTest(TestCase):
 
 
 class ProjectDeletionTest(TestCase):
-    def test_hybrid_cloud_deletion(self):
+    def test_hybrid_cloud_deletion(self) -> None:
         proj = self.create_project()
         user = self.create_user()
         proj_id = proj.id

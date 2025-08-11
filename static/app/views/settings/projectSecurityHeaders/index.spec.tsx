@@ -7,6 +7,13 @@ describe('ProjectSecurityHeaders', function () {
   const {organization, project} = initializeOrg();
   const keysUrl = `/projects/${organization.slug}/${project.slug}/keys/`;
 
+  const initialRouterConfig = {
+    location: {
+      pathname: `/settings/${organization.slug}/projects/${project.slug}/settings/security-headers/`,
+    },
+    route: '/settings/:orgId/projects/:projectId/settings/security-headers/',
+  };
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -19,14 +26,12 @@ describe('ProjectSecurityHeaders', function () {
   it('renders', async function () {
     render(<ProjectSecurityHeaders />, {
       organization,
+      initialRouterConfig,
     });
-
-    // Renders the loading indication initially
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
     // Heading
     expect(
-      await screen.findByText('Security Header Reports', {selector: 'h4'})
+      await screen.findByText('Security Header Reports', {selector: 'h1'})
     ).toBeInTheDocument();
   });
 
@@ -39,6 +44,7 @@ describe('ProjectSecurityHeaders', function () {
     });
     render(<ProjectSecurityHeaders />, {
       organization,
+      initialRouterConfig,
     });
 
     expect(

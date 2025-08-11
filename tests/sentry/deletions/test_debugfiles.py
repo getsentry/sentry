@@ -1,12 +1,12 @@
+from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
-from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
 class DeleteDebugFilesTest(TransactionTestCase, HybridCloudTestMixin):
-    def test_simple(self):
+    def test_simple(self) -> None:
         dif = self.create_dif_file()
         dif2 = self.create_dif_file()
 

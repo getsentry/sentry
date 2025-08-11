@@ -23,43 +23,51 @@ import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
+import {Accordion} from 'sentry/views/performance/landing/widgets/components/accordion';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
+import {
+  GrowLink,
+  RightAlignedCell,
+  Subtitle,
+  WidgetEmptyStateWarning,
+} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import {transformDiscoverToList} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToList';
+import {transformEventsRequestToStackedArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToStackedBars';
+import type {
+  GenericPerformanceWidgetProps,
+  PerformanceWidgetProps,
+  QueryDefinition,
+  WidgetDataResult,
+} from 'sentry/views/performance/landing/widgets/types';
+import {
+  eventsRequestQueryProps,
+  getMEPParamsIfApplicable,
+  QUERY_LIMIT_PARAM,
+} from 'sentry/views/performance/landing/widgets/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
 
-import {Accordion} from '../components/accordion';
-import {GenericPerformanceWidget} from '../components/performanceWidget';
-import {
-  GrowLink,
-  RightAlignedCell,
-  Subtitle,
-  WidgetEmptyStateWarning,
-} from '../components/selectableList';
-import {transformDiscoverToList} from '../transforms/transformDiscoverToList';
-import {transformEventsRequestToStackedArea} from '../transforms/transformEventsToStackedBars';
-import type {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {
-  eventsRequestQueryProps,
-  getMEPParamsIfApplicable,
-  QUERY_LIMIT_PARAM,
-} from '../utils';
-
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToStackedArea>;
   list: WidgetDataResult & ReturnType<typeof transformDiscoverToList>;
 };
 
+type ComponentData = React.ComponentProps<
+  GenericPerformanceWidgetProps<DataType>['Visualizations'][0]['component']
+>;
+
 export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
+  const theme = useTheme();
   const location = useLocation();
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const {ContainerActions, organization, InteractiveTitle, fields} = props;
   const {setPageError} = usePageAlert();
-  const theme = useTheme();
 
-  const colors = [...theme.charts.getColorPalette(5)].reverse();
+  const colors = [...theme.chart.getColorPalette(5)].reverse();
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -146,6 +154,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
           return (
             <EventsRequest
               {...pick(prunedProvided, eventsRequestQueryProps)}
+              includeAllArgs={false}
               limit={5}
               includePrevious={false}
               includeTransformedData
@@ -178,17 +187,17 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
     chart: chartQuery,
   };
 
-  const assembleAccordionItems = provided =>
+  const assembleAccordionItems = (provided: ComponentData) =>
     getHeaders(provided).map(header => ({header, content: getAreaChart(provided)}));
 
-  const getAreaChart = provided => {
-    const durationUnit = getDurationUnit(provided.widgetData.chart.data);
+  const getAreaChart = (provided: ComponentData) => {
+    const durationUnit = getDurationUnit(provided.widgetData.chart.data ?? []);
     return (
       <StackedAreaChart
         {...provided.widgetData.chart}
-        {...provided}
+        {...(provided as any)}
         colors={colors}
-        series={provided.widgetData.chart.data}
+        series={provided.widgetData.chart.data ?? []}
         animation
         isGroupedByDate
         showTimeInTooltip
@@ -198,7 +207,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
-                aggregateOutputType(provided.widgetData.chart.data[0].seriesName),
+                aggregateOutputType(provided.widgetData.chart.data?.[0].seriesName),
                 undefined,
                 durationUnit
               );
@@ -217,7 +226,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
     );
   };
 
-  const getHeaders = provided =>
+  const getHeaders = (provided: ComponentData) =>
     provided.widgetData.list.data.map((listItem, i) => {
       const transaction = (listItem.transaction as string | undefined) ?? '';
 
@@ -228,7 +237,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
             location,
           })
         : transactionSummaryRouteWithQuery({
-            orgSlug: props.organization.slug,
+            organization: props.organization,
             projectID: listItem['project.id'] as string,
             transaction,
             query: props.eventView.generateQueryStringObject(),
@@ -236,7 +245,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
           });
 
       const displayedField = 'count()';
-      const rightValue = listItem[displayedField];
+      const rightValue = listItem[displayedField]!;
 
       return (
         <Fragment key={i}>

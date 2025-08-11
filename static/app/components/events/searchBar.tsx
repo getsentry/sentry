@@ -2,10 +2,10 @@ import {useEffect, useMemo} from 'react';
 import memoize from 'lodash/memoize';
 import omit from 'lodash/omit';
 
-import {fetchSpanFieldValues, fetchTagValues} from 'sentry/actionCreators/tags';
+import {fetchTagValues} from 'sentry/actionCreators/tags';
+import SmartSearchBar from 'sentry/components/deprecatedSmartSearchBar';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {defaultConfig} from 'sentry/components/searchSyntax/parser';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
 import type {TagCollection} from 'sentry/types/group';
 import {SavedSearchType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -25,7 +25,7 @@ import {
 } from 'sentry/utils/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
 import useApi from 'sentry/utils/useApi';
-import withTags from 'sentry/utils/withTags';
+import useTags from 'sentry/utils/useTags';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 
 import {
@@ -39,7 +39,7 @@ import {
   STATIC_SPAN_TAGS,
 } from './searchBarFieldConstants';
 
-const getFunctionTags = (fields: Readonly<Field[]> | undefined) => {
+const getFunctionTags = (fields: readonly Field[] | undefined) => {
   if (!fields?.length) {
     return [];
   }
@@ -49,6 +49,7 @@ const getFunctionTags = (fields: Readonly<Field[]> | undefined) => {
       !isEquation(item.field) &&
       !isCustomMeasurement(item.field)
     ) {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[item.field] = {key: item.field, name: item.field, kind: FieldKind.FUNCTION};
     }
 
@@ -65,6 +66,7 @@ const getMeasurementTags = (
     | undefined
 ) => {
   const measurementsWithKind = Object.keys(measurements).reduce((tags, key) => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     tags[key] = {
       ...measurements[key],
       kind: FieldKind.MEASUREMENT,
@@ -77,6 +79,7 @@ const getMeasurementTags = (
   }
 
   return Object.keys(customMeasurements).reduce((tags, key) => {
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     tags[key] = {
       ...customMeasurements[key],
       kind: FieldKind.MEASUREMENT,
@@ -98,19 +101,19 @@ const getSearchConfigFromCustomPerformanceMetrics = (
     numericKeys: [...defaultConfig.numericKeys],
   };
   Object.keys(customPerformanceMetrics).forEach(metricName => {
-    const {fieldType} = customPerformanceMetrics[metricName];
+    const {fieldType} = customPerformanceMetrics[metricName]!;
     switch (fieldType) {
       case 'size':
-        searchConfigMap.sizeKeys.push(metricName);
+        searchConfigMap.sizeKeys!.push(metricName);
         break;
       case 'duration':
-        searchConfigMap.durationKeys.push(metricName);
+        searchConfigMap.durationKeys!.push(metricName);
         break;
       case 'percentage':
-        searchConfigMap.percentageKeys.push(metricName);
+        searchConfigMap.percentageKeys!.push(metricName);
         break;
       default:
-        searchConfigMap.numericKeys.push(metricName);
+        searchConfigMap.numericKeys!.push(metricName);
     }
   });
   const searchConfig = {
@@ -134,10 +137,9 @@ export const getHasTag = (tags: TagCollection) => ({
 
 export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
   organization: Organization;
-  tags: TagCollection;
   customMeasurements?: CustomMeasurementCollection;
   dataset?: DiscoverDatasets;
-  fields?: Readonly<Field[]>;
+  fields?: readonly Field[];
   includeSessionTagsValues?: boolean;
   includeTransactions?: boolean;
   /**
@@ -146,16 +148,15 @@ export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, '
   maxMenuHeight?: number;
   maxSearchItems?: React.ComponentProps<typeof SmartSearchBar>['maxSearchItems'];
   omitTags?: string[];
-  projectIds?: number[] | Readonly<number[]>;
+  projectIds?: number[] | readonly number[];
   savedSearchType?: SavedSearchType;
   supportedTags?: TagCollection | undefined;
 };
 
-function SearchBar(props: SearchBarProps) {
+export default function SearchBar(props: SearchBarProps) {
   const {
     maxSearchItems,
     organization,
-    tags,
     omitTags,
     fields,
     projectIds,
@@ -168,10 +169,12 @@ function SearchBar(props: SearchBarProps) {
   } = props;
 
   const api = useApi();
+  const tags = useTags();
 
   const functionTags = useMemo(() => getFunctionTags(fields), [fields]);
   const tagsWithKind = useMemo(() => {
     return Object.keys(tags).reduce((acc, key) => {
+      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
       acc[key] = {
         ...tags[key],
         kind: FieldKind.TAG,
@@ -190,7 +193,7 @@ function SearchBar(props: SearchBarProps) {
   // with data when ready
   const getEventFieldValues = memoize(
     (tag, query, endpointParams): Promise<string[]> => {
-      const projectIdStrings = (projectIds as Readonly<number>[])?.map(String);
+      const projectIdStrings = (projectIds as Array<Readonly<number>>)?.map(String);
 
       if (isAggregateField(tag.key) || isMeasurement(tag.key)) {
         // We can't really auto suggest values for aggregate fields
@@ -204,29 +207,20 @@ function SearchBar(props: SearchBarProps) {
         return Promise.resolve(DEVICE_CLASS_TAG_VALUES);
       }
 
-      const fetchPromise =
-        dataset === DiscoverDatasets.SPANS_INDEXED
-          ? fetchSpanFieldValues({
-              api,
-              orgSlug: organization.slug,
-              fieldKey: tag.key,
-              search: query,
-              projectIds: projectIdStrings,
-              endpointParams,
-            })
-          : fetchTagValues({
-              api,
-              orgSlug: organization.slug,
-              tagKey: tag.key,
-              search: query,
-              projectIds: projectIdStrings,
-              endpointParams,
-              // allows searching for tags on transactions as well
-              includeTransactions: includeTransactions,
-              // allows searching for tags on sessions as well
-              includeSessions: includeSessionTagsValues,
-              dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,
-            });
+      const fetchPromise = fetchTagValues({
+        api,
+        orgSlug: organization.slug,
+        tagKey: tag.key,
+        search: query,
+        projectIds: projectIdStrings,
+        endpointParams,
+        // allows searching for tags on transactions as well
+        includeTransactions,
+        // allows searching for tags on sessions as well
+        includeSessions: includeSessionTagsValues,
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        dataset: dataset ? DiscoverDatasetsToDatasetMap[dataset] : undefined,
+      });
 
       return fetchPromise.then(
         results => results.filter(({name}) => defined(name)).map(({name}) => name),
@@ -305,5 +299,3 @@ function SearchBar(props: SearchBarProps) {
     </Measurements>
   );
 }
-
-export default withTags(SearchBar);

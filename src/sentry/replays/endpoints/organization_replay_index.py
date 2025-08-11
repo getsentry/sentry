@@ -71,15 +71,6 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
         # header. This allows us to quickly test and compare multiple data sources without
         # interacting with a feature flagging system.
         preferred_source = request.headers.get("X-Preferred-Data-Source")
-        if preferred_source not in ("scalar", "aggregated", "materialized-view"):
-            # If the feature flag has been enabled we'll default to the materialized-view data
-            # source if none was provided. This would be the common path for users using the
-            # Javascript web application.
-            if features.has("organizations:session-replay-materialized-view", organization):
-                preferred_source = "materialized-view"
-            else:
-                preferred_source = "scalar"
-
         preferred_source = cast(PREFERRED_SOURCE, preferred_source)
 
         headers = {}
@@ -92,22 +83,19 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
             except InvalidSearchQuery as e:
                 raise ParseError(str(e))
 
-            # Sort must be optional string.
-            sort = filter_params.get("sort")
+            # Sort is optionally specified.
+            sort = (
+                filter_params.get("orderBy")
+                or filter_params.get("sortBy")
+                or filter_params.get("sort")
+            )
             if not isinstance(sort, str):
                 sort = None
 
-            start = filter_params["start"]
-            end = filter_params["end"]
-            if start is None or end is None:
-                # It's not possible to reach this point but the type hint is wrong so I have
-                # to do this for completeness sake.
-                return Response({"detail": "Missing start or end period."}, status=400)
-
             response = query_replays_collection_paginated(
                 project_ids=filter_params["project_id"],
-                start=start,
-                end=end,
+                start=filter_params["start"],
+                end=filter_params["end"],
                 environment=filter_params.get("environment") or [],
                 sort=sort,
                 fields=request.query_params.getlist("field"),

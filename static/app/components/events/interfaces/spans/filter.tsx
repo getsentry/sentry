@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -36,7 +37,7 @@ function Filter({
   toggleOperationNameFilter,
 }: Props) {
   const organization = useOrganization();
-
+  const theme = useTheme();
   const checkedQuantity =
     operationNameFilter.type === 'no_filter'
       ? 0
@@ -53,14 +54,16 @@ function Filter({
       [...operationNameCounts].map(([operationName, operationCount]) => ({
         value: operationName,
         label: operationName,
-        leadingItems: <OperationDot backgroundColor={pickBarColor(operationName)} />,
+        leadingItems: (
+          <OperationDot backgroundColor={pickBarColor(operationName, theme)} />
+        ),
         trailingItems: <OperationCount>{operationCount}</OperationCount>,
       })),
-    [operationNameCounts]
+    [operationNameCounts, theme]
   );
 
-  function onChange(selectedOpts) {
-    const mappedValues = selectedOpts.map(opt => opt.value);
+  function onChange(selectedOpts: any) {
+    const mappedValues = selectedOpts.map((opt: any) => opt.value);
 
     // Send a single analytics event if user clicked on the "Clear" button
     if (selectedOpts.length === 0) {
@@ -84,11 +87,12 @@ function Filter({
         toggleOperationNameFilter(opt.value);
 
         // Don't send individual analytics events if user clicked on the "Clear" button
-        selectedOpts.length !== 0 &&
+        if (selectedOpts.length !== 0) {
           trackAnalytics('performance_views.event_details.filter_by_op', {
             organization,
             operation: opt.label,
           });
+        }
       }
     });
   }

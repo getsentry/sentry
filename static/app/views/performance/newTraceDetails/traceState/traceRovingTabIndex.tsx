@@ -1,14 +1,14 @@
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
-import type {TraceTree, TraceTreeNode} from '../traceModels/traceTree';
-
-export interface TraceRovingTabIndexState {
+interface TraceRovingTabIndexState {
   index: number | null;
   items: number | null;
   node: TraceTreeNode<TraceTree.NodeValue> | null;
 }
 
-export type TraceRovingTabIndexAction =
+type TraceRovingTabIndexAction =
   | {
       index: number | null;
       items: number;
@@ -21,7 +21,6 @@ export type TraceRovingTabIndexAction =
       node: TraceTreeNode<TraceTree.NodeValue>;
       type: 'set roving index';
     }
-  | {type: 'clear'}
   | {type: 'clear roving index'}
   | {items: number; type: 'set roving count'};
 
@@ -41,7 +40,6 @@ export function traceRovingTabIndexReducer(
     case 'set roving index':
       return {...state, node: action.node, index: action.index};
     case 'clear roving index':
-    case 'clear':
       return {...state, index: null, node: null};
     default:
       traceReducerExhaustiveActionCheck(action);

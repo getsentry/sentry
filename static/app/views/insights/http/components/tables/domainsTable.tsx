@@ -1,49 +1,49 @@
+import {type Theme, useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
-import type {GridColumnHeader} from 'sentry/components/gridEditable';
-import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
+import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {DomainCell} from 'sentry/views/insights/http/components/tables/domainCell';
-import {ModuleName, type SpanMetricsResponse} from 'sentry/views/insights/types';
+import {ModuleName, type SpanResponse} from 'sentry/views/insights/types';
 
 type Row = Pick<
-  SpanMetricsResponse,
+  SpanResponse,
   | 'project'
   | 'project.id'
   | 'span.domain'
-  | 'spm()'
+  | 'epm()'
   | 'http_response_rate(3)'
   | 'http_response_rate(4)'
   | 'http_response_rate(5)'
   | 'avg(span.self_time)'
   | 'sum(span.self_time)'
-  | 'time_spent_percentage()'
 >;
 
 type Column = GridColumnHeader<
   | 'span.domain'
   | 'project'
-  | 'spm()'
+  | 'epm()'
   | 'http_response_rate(3)'
   | 'http_response_rate(4)'
   | 'http_response_rate(5)'
   | 'avg(span.self_time)'
-  | 'time_spent_percentage()'
+  | 'sum(span.self_time)'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -58,7 +58,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'spm()',
+    key: 'epm()',
     name: `${t('Requests')} ${RATE_UNIT_TITLE[RateUnit.PER_MINUTE]}`,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -83,7 +83,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'time_spent_percentage()',
+    key: 'sum(span.self_time)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
   },
@@ -91,11 +91,11 @@ const COLUMN_ORDER: Column[] = [
 
 const SORTABLE_FIELDS = [
   'avg(span.self_time)',
-  'spm()',
+  'epm()',
   'http_response_rate(3)',
   'http_response_rate(4)',
   'http_response_rate(5)',
-  'time_spent_percentage()',
+  'sum(span.self_time)',
 ] as const;
 
 type ValidSort = Sort & {
@@ -119,11 +119,12 @@ interface Props {
 
 export function DomainsTable({response, sort}: Props) {
   const {data, isLoading, meta, pageLinks} = response;
+  const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-
+  const theme = useTheme();
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    browserHistory.push({
+    navigate({
       pathname,
       query: {...query, [QueryParameterNames.DOMAINS_CURSOR]: newCursor},
     });
@@ -156,7 +157,7 @@ export function DomainsTable({response, sort}: Props) {
               sortParameterName: QueryParameterNames.DOMAINS_SORT,
             }),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization),
+            renderBodyCell(column, row, meta, location, organization, theme),
         }}
       />
       <Pagination
@@ -179,7 +180,8 @@ function renderBodyCell(
   row: Row,
   meta: EventsMetaType | undefined,
   location: Location,
-  organization: Organization
+  organization: Organization,
+  theme: Theme
 ) {
   if (column.key === 'span.domain') {
     return (
@@ -202,6 +204,7 @@ function renderBodyCell(
       location,
       organization,
       unit: meta.units?.[column.key],
+      theme,
     }
   );
 }

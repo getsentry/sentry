@@ -13,11 +13,23 @@ import {
 import {makeCloseButton} from 'sentry/components/globalModal/components';
 import TagStore from 'sentry/stores/tagStore';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import ColumnEditModal from 'sentry/views/discover/table/columnEditModal';
 
-const stubEl = styled(p => p.children);
+const stubEl = styled((p: any) => p.children);
 
-function mountModal({columns, onApply, customMeasurements}, initialData) {
+function mountModal(
+  {
+    columns,
+    onApply,
+    customMeasurements,
+    dataset,
+  }: Pick<
+    React.ComponentProps<typeof ColumnEditModal>,
+    'columns' | 'onApply' | 'customMeasurements' | 'dataset'
+  >,
+  initialData: ReturnType<typeof initializeOrg>
+) {
   return render(
     <ColumnEditModal
       CloseButton={makeCloseButton(() => {})}
@@ -30,8 +42,8 @@ function mountModal({columns, onApply, customMeasurements}, initialData) {
       closeModal={jest.fn()}
       measurementKeys={null}
       customMeasurements={customMeasurements}
-    />,
-    {router: initialData.router}
+      dataset={dataset}
+    />
   );
 }
 
@@ -39,32 +51,35 @@ function mountModal({columns, onApply, customMeasurements}, initialData) {
 const findAllQueryFields = () => screen.findAllByTestId('queryField');
 
 // Get the nth label (value) within the row of the column editor.
-const findAllQueryFieldNthCell = async nth =>
+const findAllQueryFieldNthCell = async (nth: number) =>
   (await findAllQueryFields())
     .map(f => within(f).getAllByTestId('label')[nth])
     .filter(Boolean);
 
 const getAllQueryFields = () => screen.getAllByTestId('queryField');
-const getAllQueryFieldsNthCell = nth =>
+const getAllQueryFieldsNthCell = (nth: number) =>
   getAllQueryFields()
     .map(f => within(f).getAllByTestId('label')[nth])
     .filter(Boolean);
 
-const openMenu = async (row, column = 0) => {
+const openMenu = async (row: number, column = 0) => {
   const queryFields = await screen.findAllByTestId('queryField');
-  const queryField = queryFields[row];
+  const queryField = queryFields[row]!;
   expect(queryField).toBeInTheDocument();
 
   const labels = within(queryField).queryAllByTestId('label');
   if (labels.length > 0) {
-    await userEvent.click(labels[column]);
+    await userEvent.click(labels[column]!);
   } else {
     // For test adding a new column, no existing label.
     await userEvent.click(screen.getByText('(Required)'));
   }
 };
 
-const selectByLabel = async (label, options) => {
+const selectByLabel = async (
+  label: string,
+  options: {at: number; control?: boolean; name?: string}
+) => {
   await openMenu(options.at);
   const menuOptions = screen.getAllByTestId('menu-list-item-label'); // TODO: Can likely switch to menuitem role and match against label
   const opt = menuOptions.find(e => e.textContent?.includes(label));
@@ -127,7 +142,7 @@ describe('Discover -> ColumnEditModal', function () {
         initialData
       );
       // Should have fields equal to the columns.
-      expect((await findAllQueryFieldNthCell(0)).map(el => el.textContent)).toEqual([
+      expect((await findAllQueryFieldNthCell(0)).map(el => el!.textContent)).toEqual([
         'event.type',
         'browser.name',
         'count()',
@@ -153,7 +168,10 @@ describe('Discover -> ColumnEditModal', function () {
       mountModal(
         {
           columns: [
-            {kind: 'function', function: ['count_unique', 'user-defined']},
+            {
+              kind: 'function',
+              function: ['count_unique', 'user-defined', undefined, undefined],
+            },
             {kind: 'field', field: 'user-def'},
           ],
           onApply: jest.fn(),
@@ -162,12 +180,12 @@ describe('Discover -> ColumnEditModal', function () {
         initialData
       );
 
-      expect((await findAllQueryFieldNthCell(0)).map(el => el.textContent)).toEqual([
+      expect((await findAllQueryFieldNthCell(0)).map(el => el!.textContent)).toEqual([
         'count_unique(…)',
         'user-def',
       ]);
 
-      expect(getAllQueryFieldsNthCell(1).map(el => el.textContent)).toEqual([
+      expect(getAllQueryFieldsNthCell(1).map(el => el!.textContent)).toEqual([
         'user-defined',
       ]);
     });
@@ -195,7 +213,7 @@ describe('Discover -> ColumnEditModal', function () {
         initialData
       );
 
-      expect((await findAllQueryFieldNthCell(0)).map(el => el.textContent)).toEqual([
+      expect((await findAllQueryFieldNthCell(0)).map(el => el!.textContent)).toEqual([
         'project',
         'count',
       ]);
@@ -214,7 +232,7 @@ describe('Discover -> ColumnEditModal', function () {
         initialData
       );
 
-      expect((await findAllQueryFieldNthCell(0)).map(el => el.textContent)).toEqual([
+      expect((await findAllQueryFieldNthCell(0)).map(el => el!.textContent)).toEqual([
         'project',
         'count',
       ]);
@@ -226,9 +244,12 @@ describe('Discover -> ColumnEditModal', function () {
       mountModal(
         {
           columns: [
-            {kind: 'function', function: ['count', 'id']},
-            {kind: 'function', function: ['count_unique', 'title']},
-            {kind: 'function', function: ['percentile', 'transaction.duration', '0.66']},
+            {kind: 'function', function: ['count', 'id', undefined, undefined]},
+            {kind: 'function', function: ['count_unique', 'title', undefined, undefined]},
+            {
+              kind: 'function',
+              function: ['percentile', 'transaction.duration', '0.66', undefined],
+            },
           ],
           onApply: jest.fn(),
           customMeasurements: {},
@@ -238,7 +259,7 @@ describe('Discover -> ColumnEditModal', function () {
 
       const queryFields = await findAllQueryFields();
 
-      const countRow = queryFields[0];
+      const countRow = queryFields[0]!;
 
       expect(
         within(countRow)
@@ -246,7 +267,7 @@ describe('Discover -> ColumnEditModal', function () {
           .map(el => el.textContent)
       ).toEqual(['count()']);
 
-      const percentileRow = queryFields[2];
+      const percentileRow = queryFields[2]!;
 
       expect(
         within(percentileRow)
@@ -258,7 +279,7 @@ describe('Discover -> ColumnEditModal', function () {
   });
 
   describe('function & column selection', function () {
-    let onApply;
+    let onApply!: jest.Mock;
     beforeEach(function () {
       onApply = jest.fn();
     });
@@ -266,7 +287,7 @@ describe('Discover -> ColumnEditModal', function () {
     it('restricts column choices', async function () {
       mountModal(
         {
-          columns: [columns[0]],
+          columns: [columns[0]!],
           onApply,
           customMeasurements: {},
         },
@@ -287,7 +308,7 @@ describe('Discover -> ColumnEditModal', function () {
     it('shows no options for parameterless functions', async function () {
       mountModal(
         {
-          columns: [columns[0]],
+          columns: [columns[0]!],
           onApply,
           customMeasurements: {},
         },
@@ -301,7 +322,7 @@ describe('Discover -> ColumnEditModal', function () {
     it('shows additional inputs for multi-parameter functions', async function () {
       mountModal(
         {
-          columns: [columns[0]],
+          columns: [columns[0]!],
           onApply,
           customMeasurements: {},
         },
@@ -321,7 +342,7 @@ describe('Discover -> ColumnEditModal', function () {
     it('handles scalar field parameters', async function () {
       mountModal(
         {
-          columns: [columns[0]],
+          columns: [columns[0]!],
           onApply,
           customMeasurements: {},
         },
@@ -345,7 +366,7 @@ describe('Discover -> ColumnEditModal', function () {
     it('handles parameter overrides', async function () {
       mountModal(
         {
-          columns: [columns[0]],
+          columns: [columns[0]!],
           onApply,
           customMeasurements: {},
         },
@@ -362,7 +383,7 @@ describe('Discover -> ColumnEditModal', function () {
     it('clears unused parameters', async function () {
       mountModal(
         {
-          columns: [columns[0]],
+          columns: [columns[0]!],
           onApply,
           customMeasurements: {},
         },
@@ -389,7 +410,7 @@ describe('Discover -> ColumnEditModal', function () {
     it('clears all unused parameters', async function () {
       mountModal(
         {
-          columns: [columns[0]],
+          columns: [columns[0]!],
           onApply,
           customMeasurements: {},
         },
@@ -416,7 +437,7 @@ describe('Discover -> ColumnEditModal', function () {
     it('clears all unused parameters with count_if to two parameter function', async function () {
       mountModal(
         {
-          columns: [columns[0]],
+          columns: [columns[0]!],
           onApply,
           customMeasurements: {},
         },
@@ -443,7 +464,7 @@ describe('Discover -> ColumnEditModal', function () {
     it('clears all unused parameters with count_if to one parameter function', async function () {
       mountModal(
         {
-          columns: [columns[0]],
+          columns: [columns[0]!],
           onApply,
           customMeasurements: {},
         },
@@ -470,7 +491,7 @@ describe('Discover -> ColumnEditModal', function () {
     it('clears all unused parameters with count_if to parameterless function', async function () {
       mountModal(
         {
-          columns: [columns[0]],
+          columns: [columns[0]!],
           onApply,
           customMeasurements: {},
         },
@@ -511,7 +532,7 @@ describe('Discover -> ColumnEditModal', function () {
       await userEvent.hover(await screen.findByTestId('arithmeticErrorWarning'));
       expect(await screen.findByText('Division by 0 is not allowed')).toBeInTheDocument();
 
-      const input = screen.getAllByRole('textbox')[0];
+      const input = screen.getAllByRole('textbox')[0]!;
       expect(input).toHaveValue('1 / 0');
 
       await userEvent.clear(input);
@@ -545,7 +566,7 @@ describe('Discover -> ColumnEditModal', function () {
         initialData
       );
 
-      const input = screen.getAllByRole('textbox')[2]; // The numeric input
+      const input = screen.getAllByRole('textbox')[2]!; // The numeric input
       expect(input).toHaveValue(initialColumnVal);
       await userEvent.clear(input);
       await userEvent.click(document.body); // Unfocusing the input should revert it to the previous value
@@ -560,10 +581,60 @@ describe('Discover -> ColumnEditModal', function () {
         },
       ]);
     });
+
+    it('chooses the correct default parameters for the errors dataset', async function () {
+      mountModal(
+        {
+          columns: [
+            {
+              kind: 'function',
+              function: ['count', '', undefined, undefined],
+            },
+          ],
+          onApply,
+          customMeasurements: {},
+          dataset: DiscoverDatasets.ERRORS,
+        },
+        initialData
+      );
+
+      expect(await screen.findByText('count()')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByText('count()'));
+      await userEvent.click(screen.getByText(/count_if/));
+
+      expect(screen.getByText('event.type')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('error')).toBeInTheDocument();
+    });
+
+    it('chooses the correct default count_if parameters for the transactions dataset', async function () {
+      mountModal(
+        {
+          columns: [
+            {
+              kind: 'function',
+              function: ['count', '', undefined, undefined],
+            },
+          ],
+          onApply,
+          customMeasurements: {},
+          dataset: DiscoverDatasets.TRANSACTIONS,
+        },
+        initialData
+      );
+
+      expect(await screen.findByText('count()')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByText('count()'));
+      await userEvent.click(screen.getByText(/count_if/));
+
+      expect(screen.getByText('transaction.duration')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('300')).toBeInTheDocument();
+    });
   });
 
   describe('equation automatic update', function () {
-    let onApply;
+    let onApply!: jest.Mock;
     beforeEach(function () {
       onApply = jest.fn();
     });
@@ -573,11 +644,11 @@ describe('Discover -> ColumnEditModal', function () {
           columns: [
             {
               kind: 'function',
-              function: ['count_unique', 'user'],
+              function: ['count_unique', 'user', undefined, undefined],
             },
             {
               kind: 'function',
-              function: ['p95', ''],
+              function: ['p95', '', undefined, undefined],
             },
             {
               kind: 'equation',
@@ -608,7 +679,7 @@ describe('Discover -> ColumnEditModal', function () {
           columns: [
             {
               kind: 'function',
-              function: ['count_unique', 'user'],
+              function: ['count_unique', 'user', undefined, undefined],
             },
             {
               kind: 'equation',
@@ -745,7 +816,7 @@ describe('Discover -> ColumnEditModal', function () {
     it('allows rows to be added, async but only up to 20', async function () {
       mountModal(
         {
-          columns: [columns[0]],
+          columns: [columns[0]!],
           onApply: jest.fn(),
           customMeasurements: {},
         },
@@ -766,7 +837,7 @@ describe('Discover -> ColumnEditModal', function () {
     it('allows rows to be removed, async but not the last one', async function () {
       mountModal(
         {
-          columns: [columns[0], columns[1]],
+          columns: [columns[0]!, columns[1]!],
           onApply: jest.fn(),
           customMeasurements: {},
         },
@@ -789,8 +860,8 @@ describe('Discover -> ColumnEditModal', function () {
       mountModal(
         {
           columns: [
-            columns[0],
-            columns[1],
+            columns[0]!,
+            columns[1]!,
             {
               kind: 'equation',
               field: '5 + 5',
@@ -806,7 +877,7 @@ describe('Discover -> ColumnEditModal', function () {
 
       expect(await screen.findAllByTestId('queryField')).toHaveLength(2);
 
-      expect(screen.queryByRole('button', {name: 'Remove column'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Remove column'})).toBeInTheDocument();
       expect(screen.queryAllByRole('button', {name: 'Drag to reorder'})).toHaveLength(2);
     });
     it('handles equations being deleted', async function () {
@@ -817,8 +888,8 @@ describe('Discover -> ColumnEditModal', function () {
               kind: 'equation',
               field: '1 / 0',
             },
-            columns[0],
-            columns[1],
+            columns[0]!,
+            columns[1]!,
           ],
           onApply: jest.fn(),
           customMeasurements: {},
@@ -841,7 +912,7 @@ describe('Discover -> ColumnEditModal', function () {
     it('reflects added and removed columns', async function () {
       mountModal(
         {
-          columns: [columns[0], columns[1]],
+          columns: [columns[0]!, columns[1]!],
           onApply,
           customMeasurements: {},
         },
@@ -872,7 +943,7 @@ describe('Discover -> ColumnEditModal', function () {
           Footer={stubEl()}
           Body={stubEl()}
           organization={initialData.organization}
-          columns={[columns[0]]}
+          columns={[columns[0]!]}
           onApply={() => undefined}
           closeModal={() => undefined}
           measurementKeys={[]}
@@ -903,7 +974,7 @@ describe('Discover -> ColumnEditModal', function () {
       );
       expect(screen.getByText('event.type')).toBeInTheDocument();
       await userEvent.click(screen.getByText('event.type'));
-      await userEvent.type(screen.getAllByText('event.type')[0], 'custom');
+      await userEvent.type(screen.getAllByText('event.type')[0]!, 'custom');
       expect(screen.getByText('measurements.custom.kibibyte')).toBeInTheDocument();
     });
   });

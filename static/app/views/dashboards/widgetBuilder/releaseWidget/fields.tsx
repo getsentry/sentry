@@ -1,12 +1,13 @@
 import invert from 'lodash/invert';
 
+import type {SelectValue} from 'sentry/types/core';
+import {SessionStatus} from 'sentry/types/organization';
 import type {
-  SelectValue,
   SessionAggregationColumn,
   SessionsMeta,
   SessionsOperation,
-} from 'sentry/types';
-import {SessionField, SessionStatus} from 'sentry/types';
+} from 'sentry/types/sessions';
+import {SessionField} from 'sentry/types/sessions';
 import {defined} from 'sentry/utils';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -63,7 +64,6 @@ export const FIELD_TO_METRICS_EXPRESSION = {
   'crash_free_rate(user)': SessionMetric.USER_CRASH_FREE_RATE,
   'crash_rate(session)': SessionMetric.SESSION_CRASH_RATE,
   'crash_rate(user)': SessionMetric.USER_CRASH_RATE,
-  project: 'project_id',
 };
 
 export const METRICS_EXPRESSION_TO_FIELD = invert(FIELD_TO_METRICS_EXPRESSION);

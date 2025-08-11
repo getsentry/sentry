@@ -9,7 +9,7 @@ import type {Organization as TOrganization} from 'sentry/types/organization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {datasetSupportedTags} from 'sentry/views/alerts/wizard/options';
 
-const selectNthAutocompleteItem = async index => {
+const selectNthAutocompleteItem = async (index: number) => {
   await userEvent.click(screen.getByTestId('smart-search-input'), {delay: null});
 
   const items = await screen.findAllByTestId('search-autocomplete-item');
@@ -23,14 +23,14 @@ const selectNthAutocompleteItem = async index => {
   await userEvent.click(item, {delay: null});
 };
 
-async function setQuery(query) {
+async function setQuery(query: string) {
   const input = screen.getByTestId('smart-search-input');
   await userEvent.click(input, {delay: null});
   await userEvent.paste(query, {delay: null});
 }
 
 describe('Events > SearchBar', function () {
-  let tagValuesMock;
+  let tagValuesMock: any;
   let organization: TOrganization;
   let props: React.ComponentProps<typeof SearchBar>;
 

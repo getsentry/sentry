@@ -1,11 +1,13 @@
+from collections.abc import Mapping
 from datetime import datetime
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
 
-from django.http import HttpRequest, QueryDict, StreamingHttpResponse
+from django.http import QueryDict, StreamingHttpResponse
 from django.test import override_settings
 from pytest import raises
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
@@ -13,11 +15,12 @@ from sentry.api.base import Endpoint, EndpointSiloLimit
 from sentry.api.exceptions import SuperuserRequired
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.permissions import SuperuserPermission
+from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.models.apikey import ApiKey
 from sentry.silo.base import FunctionSiloLimit, SiloMode
-from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.response import close_streaming_response, is_streaming_response
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
 from sentry.types.region import subdomain_is_region
@@ -32,7 +35,7 @@ def reraise(self, e: Exception):
 
 
 class DummyEndpoint(Endpoint):
-    permission_classes = ()
+    permission_classes: tuple[type[BasePermission], ...] = ()
 
     def get(self, request):
         return Response({"ok": True})
@@ -54,31 +57,17 @@ class DummyErroringEndpoint(Endpoint):
     # `as_view` requires that any init args passed to it match attributes already on the
     # class, so even though they're really meant to be instance attributes, we have to
     # add them here as class attributes first
-    error = NotImplementedError()
-    handler_context_arg = None
-    scope_arg = None
-
-    def __init__(
-        self,
-        *args,
-        error: Exception,
-        handler_context_arg=None,
-        scope_arg=None,
-        **kwargs,
-    ):
-        # The error which will be thrown when a GET request is made
-        self.error = error
-        # The argumets which will be passed on to `Endpoint.handle_exception` via `super`
-        self.handler_context_arg = handler_context_arg
-        self.scope_arg = scope_arg
-
-        super().__init__(*args, **kwargs)
+    error: Exception = NotImplementedError()
+    handler_context_arg: Mapping[str, Any] | None = None
+    scope_arg: Scope | None = None
 
     def get(self, request):
         raise self.error
 
-    def handle_exception(self, request, exc, handler_context=None, scope=None):
-        return super().handle_exception(request, exc, self.handler_context_arg, self.scope_arg)
+    def handle_exception_with_details(self, request, exc, handler_context=None, scope=None):
+        return super().handle_exception_with_details(
+            request, exc, self.handler_context_arg, self.scope_arg
+        )
 
 
 class DummyPaginationEndpoint(Endpoint):
@@ -123,7 +112,7 @@ _dummy_streaming_endpoint = DummyPaginationStreamingEndpoint.as_view()
 
 @all_silo_test
 class EndpointTest(APITestCase):
-    def test_basic_cors(self):
+    def test_basic_cors(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
             apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
@@ -151,7 +140,7 @@ class EndpointTest(APITestCase):
         assert "Access-Control-Allow-Credentials" not in response
 
     @override_options({"system.base-hostname": "example.com"})
-    def test_allow_credentials_subdomain(self):
+    def test_allow_credentials_subdomain(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
             apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
@@ -179,7 +168,7 @@ class EndpointTest(APITestCase):
         assert response["Access-Control-Allow-Credentials"] == "true"
 
     @override_options({"system.base-hostname": "example.com"})
-    def test_allow_credentials_root_domain(self):
+    def test_allow_credentials_root_domain(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
             apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
@@ -208,7 +197,7 @@ class EndpointTest(APITestCase):
 
     @override_options({"system.base-hostname": "example.com"})
     @override_settings(ALLOWED_CREDENTIAL_ORIGINS=["http://docs.example.org"])
-    def test_allow_credentials_allowed_domain(self):
+    def test_allow_credentials_allowed_domain(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
             apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
@@ -236,7 +225,7 @@ class EndpointTest(APITestCase):
         assert response["Access-Control-Allow-Credentials"] == "true"
 
     @override_options({"system.base-hostname": "acme.com"})
-    def test_allow_credentials_incorrect(self):
+    def test_allow_credentials_incorrect(self) -> None:
         org = self.create_organization()
         with assume_test_silo_mode(SiloMode.CONTROL):
             apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
@@ -250,7 +239,21 @@ class EndpointTest(APITestCase):
             response.render()
             assert "Access-Control-Allow-Credentials" not in response
 
-    def test_invalid_cors_without_auth(self):
+    @override_options({"system.base-hostname": "acme.com"})
+    def test_disallow_credentials_when_two_origins(self) -> None:
+        org = self.create_organization()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
+
+        request = self.make_request(method="GET")
+        request.META["HTTP_ORIGIN"] = "http://evil.com, http://acme.com"
+        request.META["HTTP_AUTHORIZATION"] = self.create_basic_auth_header(apikey.key)
+
+        response = _dummy_endpoint(request)
+        response.render()
+        assert "Access-Control-Allow-Credentials" not in response
+
+    def test_invalid_cors_without_auth(self) -> None:
         request = self.make_request(method="GET")
         request.META["HTTP_ORIGIN"] = "http://example.com"
 
@@ -260,7 +263,7 @@ class EndpointTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
-    def test_valid_cors_without_auth(self):
+    def test_valid_cors_without_auth(self) -> None:
         request = self.make_request(method="GET")
         request.META["HTTP_ORIGIN"] = "http://example.com"
 
@@ -272,7 +275,7 @@ class EndpointTest(APITestCase):
         assert response["Access-Control-Allow-Origin"] == "http://example.com"
 
     # XXX(dcramer): The default setting needs to allow requests to work or it will be a regression
-    def test_cors_not_configured_is_valid(self):
+    def test_cors_not_configured_is_valid(self) -> None:
         request = self.make_request(method="GET")
         request.META["HTTP_ORIGIN"] = "http://example.com"
 
@@ -293,7 +296,7 @@ class EndpointTest(APITestCase):
         )
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
 
-    def test_update_token_access_record_is_called(self):
+    def test_update_token_access_record_is_called(self) -> None:
         token_str = generate_token(self.organization.slug, "")
         token_hashed = hash_token(token_str)
         token = self.create_org_auth_token(
@@ -318,7 +321,7 @@ class EndpointTest(APITestCase):
         assert isinstance(token.date_last_used, datetime)
 
     @mock.patch("sentry.api.base.Endpoint.convert_args")
-    def test_method_not_allowed(self, mock_convert_args):
+    def test_method_not_allowed(self, mock_convert_args: MagicMock) -> None:
         request = self.make_request(method="POST")
         # Run this particular test in monolith mode to prevent RPC interactions
         with assume_test_silo_mode(SiloMode.MONOLITH):
@@ -339,7 +342,7 @@ class EndpointHandleExceptionTest(APITestCase):
         mock_endpoint = DummyErroringEndpoint.as_view(error=Exception("nope"))
         response = mock_endpoint(self.make_request(method="GET"))
 
-        # The endpoint should pass along the response generated by `APIView.handle_exception`
+        # The endpoint should pass along the response generated by `APIView.handle_exception_with_details`
         assert response == mock_super_handle_exception.return_value
 
     @mock.patch("rest_framework.views.APIView.handle_exception", new=reraise)
@@ -399,30 +402,34 @@ class EndpointHandleExceptionTest(APITestCase):
 
 
 class CursorGenerationTest(APITestCase):
-    def test_serializes_params(self):
+    def test_serializes_params(self) -> None:
         request = self.make_request(method="GET", path="/api/0/organizations/")
         request.GET = QueryDict("member=1&cursor=foo")
         endpoint = Endpoint()
-        result = endpoint.build_cursor_link(request, "next", "1492107369532:0:0")
+        result = endpoint.build_cursor_link(
+            request, "next", Cursor.from_string("1492107369532:0:0")
+        )
 
         assert result == (
             "<http://testserver/api/0/organizations/?member=1&cursor=1492107369532:0:0>;"
-            ' rel="next"; results="true"; cursor="1492107369532:0:0"'
+            ' rel="next"; results="false"; cursor="1492107369532:0:0"'
         )
 
-    def test_preserves_ssl_proto(self):
+    def test_preserves_ssl_proto(self) -> None:
         request = self.make_request(method="GET", path="/api/0/organizations/", secure_scheme=True)
         request.GET = QueryDict("member=1&cursor=foo")
         endpoint = Endpoint()
         with override_options({"system.url-prefix": "https://testserver"}):
-            result = endpoint.build_cursor_link(request, "next", "1492107369532:0:0")
+            result = endpoint.build_cursor_link(
+                request, "next", Cursor.from_string("1492107369532:0:0")
+            )
 
         assert result == (
             "<https://testserver/api/0/organizations/?member=1&cursor=1492107369532:0:0>;"
-            ' rel="next"; results="true"; cursor="1492107369532:0:0"'
+            ' rel="next"; results="false"; cursor="1492107369532:0:0"'
         )
 
-    def test_handles_customer_domains(self):
+    def test_handles_customer_domains(self) -> None:
         request = self.make_request(
             method="GET", path="/api/0/organizations/", secure_scheme=True, subdomain="bebe"
         )
@@ -434,24 +441,28 @@ class CursorGenerationTest(APITestCase):
                 "system.organization-url-template": "https://{hostname}",
             }
         ):
-            result = endpoint.build_cursor_link(request, "next", "1492107369532:0:0")
+            result = endpoint.build_cursor_link(
+                request, "next", Cursor.from_string("1492107369532:0:0")
+            )
 
         assert result == (
             "<https://bebe.testserver/api/0/organizations/?member=1&cursor=1492107369532:0:0>;"
-            ' rel="next"; results="true"; cursor="1492107369532:0:0"'
+            ' rel="next"; results="false"; cursor="1492107369532:0:0"'
         )
 
-    def test_unicode_path(self):
+    def test_unicode_path(self) -> None:
         request = self.make_request(method="GET", path="/api/0/organizations/üuuuu/")
         endpoint = Endpoint()
-        result = endpoint.build_cursor_link(request, "next", "1492107369532:0:0")
+        result = endpoint.build_cursor_link(
+            request, "next", Cursor.from_string("1492107369532:0:0")
+        )
 
         assert result == (
             "<http://testserver/api/0/organizations/%C3%BCuuuu/?&cursor=1492107369532:0:0>;"
-            ' rel="next"; results="true"; cursor="1492107369532:0:0"'
+            ' rel="next"; results="false"; cursor="1492107369532:0:0"'
         )
 
-    def test_encodes_url(self):
+    def test_encodes_url(self) -> None:
         endpoint = Endpoint()
         request = self.make_request(method="GET", path="/foo/bar/lol:what/")
 
@@ -463,81 +474,47 @@ class CursorGenerationTest(APITestCase):
 
 
 class PaginateTest(APITestCase):
-    def setUp(self):
-        super().setUp()
-        self.request = self.make_request(method="GET")
-        self.view = DummyPaginationEndpoint().as_view()
+    view = staticmethod(DummyPaginationEndpoint().as_view())
 
-    def test_success(self):
-        response = self.view(self.request)
+    def test_success(self) -> None:
+        response = self.view(self.make_request())
         assert response.status_code == 200, response.content
         assert (
             response["Link"]
             == '<http://testserver/?&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://testserver/?&cursor=0:100:0>; rel="next"; results="false"; cursor="0:100:0"'
         )
 
-    def test_invalid_per_page(self):
-        self.request.GET = {"per_page": "nope"}
-        response = self.view(self.request)
+    def test_invalid_cursor(self) -> None:
+        request = self.make_request(GET={"cursor": "no:no:no"})
+        response = self.view(request)
         assert response.status_code == 400
 
-    def test_invalid_cursor(self):
-        self.request.GET = {"cursor": "no:no:no"}
-        response = self.view(self.request)
+    def test_non_int_per_page(self) -> None:
+        request = self.make_request(GET={"per_page": "nope"})
+        response = self.view(request)
         assert response.status_code == 400
 
-    def test_per_page_out_of_bounds(self):
-        self.request.GET = {"per_page": "101"}
-        response = self.view(self.request)
+    def test_per_page_too_low(self) -> None:
+        request = self.make_request(GET={"per_page": "0"})
+        response = self.view(request)
         assert response.status_code == 400
 
-    def test_custom_response_type(self):
-        response = _dummy_streaming_endpoint(self.request)
+    def test_per_page_too_high(self) -> None:
+        request = self.make_request(GET={"per_page": "101"})
+        response = self.view(request)
+        assert response.status_code == 400
+
+    def test_custom_response_type(self) -> None:
+        response = _dummy_streaming_endpoint(self.make_request())
         assert response.status_code == 200
-        assert isinstance(response, StreamingHttpResponse)
+        assert is_streaming_response(response)
         assert response.has_header("content-type")
-
-
-class EndpointJSONBodyTest(APITestCase):
-    def setUp(self):
-        super().setUp()
-
-        self.request = HttpRequest()
-        self.request.method = "GET"
-        self.request.META["CONTENT_TYPE"] = "application/json"
-
-    def test_json(self):
-        self.request._body = b'{"foo":"bar"}'
-
-        Endpoint().load_json_body(self.request)
-
-        assert self.request.json_body == {"foo": "bar"}
-
-    def test_invalid_json(self):
-        self.request._body = b"hello"
-
-        Endpoint().load_json_body(self.request)
-
-        assert not self.request.json_body
-
-    def test_empty_request_body(self):
-        self.request._body = b""
-
-        Endpoint().load_json_body(self.request)
-
-        assert not self.request.json_body
-
-    def test_non_json_content_type(self):
-        self.request.META["CONTENT_TYPE"] = "text/plain"
-
-        Endpoint().load_json_body(self.request)
-
-        assert not self.request.json_body
+        close_streaming_response(response)
 
 
 @all_silo_test(regions=create_test_regions("us", "eu"))
 class CustomerDomainTest(APITestCase):
-    def test_resolve_region(self):
+    def test_resolve_region(self) -> None:
         def request_with_subdomain(subdomain):
             request = self.make_request(method="GET")
             request.subdomain = subdomain
@@ -574,15 +551,15 @@ class EndpointSiloLimitTest(APITestCase):
                         DecoratedEndpoint.as_view()(request)
                     # TODO: Make work with EndpointWithDecoratedMethod
 
-    def test_with_active_mode(self):
+    def test_with_active_mode(self) -> None:
         self._test_active_on(SiloMode.REGION, SiloMode.REGION, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.CONTROL, True)
 
-    def test_with_inactive_mode(self):
+    def test_with_inactive_mode(self) -> None:
         self._test_active_on(SiloMode.REGION, SiloMode.CONTROL, False)
         self._test_active_on(SiloMode.CONTROL, SiloMode.REGION, False)
 
-    def test_with_monolith_mode(self):
+    def test_with_monolith_mode(self) -> None:
         self._test_active_on(SiloMode.REGION, SiloMode.MONOLITH, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.MONOLITH, True)
 
@@ -600,27 +577,27 @@ class FunctionSiloLimitTest(APITestCase):
                 with raises(FunctionSiloLimit.AvailabilityError):
                     decorated_function()
 
-    def test_with_active_mode(self):
+    def test_with_active_mode(self) -> None:
         self._test_active_on(SiloMode.REGION, SiloMode.REGION, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.CONTROL, True)
 
-    def test_with_inactive_mode(self):
+    def test_with_inactive_mode(self) -> None:
         self._test_active_on(SiloMode.REGION, SiloMode.CONTROL, False)
         self._test_active_on(SiloMode.CONTROL, SiloMode.REGION, False)
 
-    def test_with_monolith_mode(self):
+    def test_with_monolith_mode(self) -> None:
         self._test_active_on(SiloMode.REGION, SiloMode.MONOLITH, True)
         self._test_active_on(SiloMode.CONTROL, SiloMode.MONOLITH, True)
 
 
 class SuperuserPermissionTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.request = self.make_request(user=self.user, method="GET")
         self.superuser_permission_view = DummySuperuserPermissionEndpoint().as_view()
         self.superuser_or_any_permission_view = DummySuperuserOrAnyPermissionEndpoint().as_view()
 
-    def test_superuser_exception_raised(self):
+    def test_superuser_exception_raised(self) -> None:
         response = self.superuser_permission_view(self.request)
         response_detail = response.data["detail"]
 
@@ -629,7 +606,38 @@ class SuperuserPermissionTest(APITestCase):
         assert response_detail["message"] == SuperuserRequired.message
 
     @mock.patch("sentry.api.permissions.is_active_superuser", return_value=True)
-    def test_superuser_or_any_no_exception_raised(self, mock_is_active_superuser):
+    def test_superuser_or_any_no_exception_raised(
+        self, mock_is_active_superuser: MagicMock
+    ) -> None:
         response = self.superuser_or_any_permission_view(self.request)
 
         assert response.status_code == 200, response.content
+
+
+class RequestAccessTest(APITestCase):
+    """Tests for ensuring request.access is properly set before being accessed."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.org = self.create_organization()
+        self.user = self.create_user()
+        self.create_member(user=self.user, organization=self.org)
+        self.request = self.make_request(user=self.user, method="GET")
+
+    def test_access_property_set_before_convert_args(self) -> None:
+        """Test that request.access is available during convert_args"""
+
+        class AccessUsingEndpoint(Endpoint):
+            permission_classes = ()
+
+            def convert_args(self, request, *args, **kwargs):
+                # This should not raise an AttributeError
+                assert request.access is not None
+                return (args, kwargs)
+
+            def get(self, request):
+                return Response({"ok": True})
+
+        response = AccessUsingEndpoint.as_view()(self.request)
+        assert response.status_code == 200
+        assert response.data == {"ok": True}

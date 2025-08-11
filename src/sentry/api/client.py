@@ -4,6 +4,7 @@ from typing import TypeAlias
 
 import orjson
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.urls import resolve
 from rest_framework.test import APIRequestFactory, force_authenticate
 
@@ -17,10 +18,10 @@ class ApiError(Exception):
         self.status_code = status_code
         self.body = body
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"status={self.status_code} body={self.body}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<ApiError: {self}>"
 
 
@@ -79,14 +80,13 @@ class ApiClient:
                 mock_request.superuser = Superuser(mock_request)
         else:
             mock_request.auth = auth
-            mock_request.user = user
+            mock_request.user = user or AnonymousUser()
             mock_request.is_sudo = lambda: is_sudo
             mock_request.session = {}
             mock_request.superuser = Superuser(mock_request)
 
         if "*" not in settings.ALLOWED_HOSTS:
             mock_request.META["HTTP_HOST"] = settings.ALLOWED_HOSTS[0]
-        mock_request.is_superuser = lambda: mock_request.superuser.is_active
 
         if request:
             # superuser checks require access to IP

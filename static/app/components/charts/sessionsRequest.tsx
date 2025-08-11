@@ -9,14 +9,14 @@ import type {
   Organization,
   SessionApiResponse,
   SessionFieldWithOperation,
-} from 'sentry/types';
+} from 'sentry/types/organization';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
 
 const propNamesToIgnore = ['api', 'children', 'organization'];
 const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_value, key) => propNamesToIgnore.includes(key));
 
-export type SessionsRequestRenderProps = {
+type SessionsRequestRenderProps = {
   errored: boolean;
   loading: boolean;
   reloading: boolean;

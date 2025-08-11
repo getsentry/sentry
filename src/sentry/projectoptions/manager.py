@@ -15,8 +15,11 @@ class WellKnownProjectOption:
                     epoch = 1
                 else:
                     epoch = project.get_option("sentry:option-epoch") or 1
+            # Find where in the ordered epoch list the project's epoch would go
             idx = bisect.bisect(self._epoch_default_list, epoch)
             if idx > 0:
+                # Return the value corresponding to the highest epoch which doesn't exceed the
+                # project epoch
                 return self.epoch_defaults[self._epoch_default_list[idx - 1]]
         return self.default
 

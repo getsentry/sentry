@@ -1,4 +1,4 @@
-import type {Actor} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
 import {
   type CombinedAlerts,
   CombinedAlertType,
@@ -15,6 +15,9 @@ export function hasActiveIncident(rule: CombinedMetricIssueAlerts): boolean {
 
 export function getActor(rule: CombinedAlerts): Actor | null {
   if (rule.type === CombinedAlertType.UPTIME) {
+    return rule.owner;
+  }
+  if (rule.type === CombinedAlertType.CRONS) {
     return rule.owner;
   }
 

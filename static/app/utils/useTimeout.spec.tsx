@@ -2,7 +2,6 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import useTimeout from './useTimeout';
 
-// biome-ignore lint/correctness/useHookAtTopLevel: not a hook
 jest.useFakeTimers();
 
 describe('useTimeout', () => {

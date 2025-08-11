@@ -1,12 +1,7 @@
-import type {
-  EntryException,
-  Event,
-  ExceptionValue,
-  PlatformKey,
-  StacktraceType,
-  Thread,
-} from 'sentry/types';
+import type {EntryException, Event, ExceptionValue, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/project';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 
 /** All platforms that always use Debug Files. */
 const DEBUG_FILE_PLATFORMS: Set<PlatformKey> = new Set([
@@ -26,7 +21,7 @@ const MAYBE_DEBUG_FILE_PLATFORMS: Set<PlatformKey> = new Set(['csharp', 'java'])
  * Debug Files for proper processing, as those Debug Files could have been uploaded *after*
  * the Event was ingested.
  */
-export function displayReprocessEventAction(event?: Event): boolean {
+export function displayReprocessEventAction(event: Event | null): boolean {
   if (!event) {
     return false;
   }
@@ -38,7 +33,10 @@ export function displayReprocessEventAction(event?: Event): boolean {
   }
 
   const hasDebugImages = (event?.entries ?? []).some(
-    entry => entry.type === EntryType.DEBUGMETA && entry.data.images.length > 0
+    entry =>
+      entry.type === EntryType.DEBUGMETA &&
+      Array.isArray(entry.data?.images) &&
+      entry.data.images.length > 0
   );
 
   // Otherwise, check alternative platforms if they actually have Debug Files
@@ -100,12 +98,13 @@ function getStackTracePlatforms(
   )?.data ?? {}) as StacktraceType;
 
   Object.keys(stackTraceEntry).forEach(key =>
+    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     addFramePlatforms(platforms, stackTraceEntry[key])
   );
 
   // Add platforms in a thread entry
   const threadEntry = (event.entries.find(entry => entry.type === EntryType.THREADS)?.data
-    .values ?? []) as Array<Thread>;
+    .values ?? []) as Thread[];
 
   threadEntry.forEach(({stacktrace}) => addFramePlatforms(platforms, stacktrace));
 

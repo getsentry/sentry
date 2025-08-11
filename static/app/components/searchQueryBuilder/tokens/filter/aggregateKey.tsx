@@ -1,30 +1,45 @@
-import {useLayoutEffect, useRef, useState} from 'react';
+import {Fragment, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderParametersCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/parametersCombobox';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
+import {useAggregateParamVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/useAggregateParamVisual';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import type {
   AggregateFilter,
   ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
-import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 type AggregateKeyProps = {
-  filterRef: React.RefObject<HTMLDivElement>;
+  filterRef: React.RefObject<HTMLDivElement | null>;
   item: Node<ParseResultToken>;
   onActiveChange: (active: boolean) => void;
   state: ListState<ParseResultToken>;
   token: AggregateFilter;
 };
+
+export function AggregateKeyVisual({token}: {token: AggregateFilter}) {
+  const fnName = getKeyName(token.key);
+  const fnParams = useAggregateParamVisual({token});
+
+  return (
+    <Fragment>
+      <FnName>{fnName}</FnName>
+      {'('}
+      <Parameters>{fnParams}</Parameters>
+      {')'}
+    </Fragment>
+  );
+}
 
 export function AggregateKey({
   item,
@@ -59,8 +74,7 @@ export function AggregateKey({
 
   const filterButtonProps = useFilterButtonProps({state, item});
 
-  const fnName = getKeyName(token.key);
-  const fnParams = token.key.args?.text ?? '';
+  const fnName = getKeyLabel(token.key);
 
   if (isEditing) {
     return (
@@ -71,6 +85,7 @@ export function AggregateKey({
         </UnfocusedText>
         <Parameters>
           <SearchQueryBuilderParametersCombobox
+            state={state}
             token={token}
             onDelete={() => {
               filterRef.current?.focus();
@@ -105,10 +120,7 @@ export function AggregateKey({
       {...filterButtonProps}
     >
       <InteractionStateLayer />
-      <FnName>{fnName}</FnName>
-      {'('}
-      <Parameters>{fnParams}</Parameters>
-      {')'}
+      <AggregateKeyVisual token={token} />
     </KeyButton>
   );
 }

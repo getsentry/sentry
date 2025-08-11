@@ -1,15 +1,17 @@
 import type {Location, LocationDescriptor} from 'history';
 
+import type {Organization} from 'sentry/types/organization';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
-import {generateContinuousProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {
+  generateContinuousProfileFlamechartRouteWithQuery,
+  generateProfileFlamechartRouteWithQuery,
+} from 'sentry/utils/profiling/routes';
 import {
   isSpanNode,
   isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/guards';
-import type {
-  TraceTree,
-  TraceTreeNode,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
 
 function getNodeId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
   if (isTransactionNode(node)) {
@@ -26,7 +28,26 @@ function getEventId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefine
   if (isTransactionNode(node)) {
     return node.value.event_id;
   }
-  return node.parent_transaction?.value?.event_id;
+  return TraceTree.ParentTransaction(node)?.value?.event_id;
+}
+
+export function makeTransactionProfilingLink(
+  profileId: string,
+  options: {
+    organization: Organization;
+    projectSlug: string;
+  },
+  query: Location['query'] = {}
+): LocationDescriptor | null {
+  if (!options.projectSlug || !options.organization) {
+    return null;
+  }
+  return generateProfileFlamechartRouteWithQuery({
+    organization: options.organization,
+    projectSlug: options.projectSlug,
+    profileId,
+    query,
+  });
 }
 
 /**
@@ -36,23 +57,24 @@ export function makeTraceContinuousProfilingLink(
   node: TraceTreeNode<TraceTree.NodeValue>,
   profilerId: string,
   options: {
-    orgSlug: string;
+    organization: Organization;
     projectSlug: string;
     threadId: string | undefined;
     traceId: string;
   },
   query: Location['query'] = {}
 ): LocationDescriptor | null {
-  if (!options.projectSlug || !options.orgSlug) {
+  if (!options.projectSlug || !options.organization) {
     return null;
   }
 
   // We compute a time offset based on the duration of the span so that
   // users can see some context of things that occurred before and after the span.
-  const transaction = isTransactionNode(node) ? node : node.parent_transaction;
+  const transaction = isTransactionNode(node) ? node : TraceTree.ParentTransaction(node);
   if (!transaction) {
     return null;
   }
+
   let start: Date | null = getDateFromTimestamp(transaction.space[0]);
   let end: Date | null = getDateFromTimestamp(
     transaction.space[0] + transaction.space[1]
@@ -99,12 +121,12 @@ export function makeTraceContinuousProfilingLink(
     queryWithEventData.spanId = spanId;
   }
 
-  return generateContinuousProfileFlamechartRouteWithQuery(
-    options.orgSlug,
-    options.projectSlug,
+  return generateContinuousProfileFlamechartRouteWithQuery({
+    organization: options.organization,
+    projectSlug: options.projectSlug,
     profilerId,
-    start.toISOString(),
-    end.toISOString(),
-    queryWithEventData
-  );
+    start: start.toISOString(),
+    end: end.toISOString(),
+    query: queryWithEventData,
+  });
 }

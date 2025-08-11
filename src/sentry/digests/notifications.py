@@ -1,25 +1,33 @@
 from __future__ import annotations
 
-import functools
-import itertools
 import logging
 from collections import defaultdict
-from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
-from typing import Any, TypeAlias
+from collections.abc import Mapping, Sequence
+from typing import Any, NamedTuple, TypeAlias
 
-from sentry import tsdb
-from sentry.digests.types import Notification, Record
+import sentry_sdk
+
+from sentry import features, tsdb
+from sentry.digests.types import IdentifierKey, Notification, Record, RecordWithRuleObjects
 from sentry.eventstore.models import Event
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.utils.rules import get_key_from_rule_data
 from sentry.tsdb.base import TSDBModel
-from sentry.utils.pipeline import Pipeline
+from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 
 logger = logging.getLogger("sentry.digests")
 
-Digest: TypeAlias = MutableMapping["Rule", MutableMapping["Group", list[Record]]]
+Digest: TypeAlias = dict[Rule, dict[Group, list[RecordWithRuleObjects]]]
+
+
+class DigestInfo(NamedTuple):
+    digest: Digest
+    event_counts: dict[int, int]
+    user_counts: Mapping[int, int]
 
 
 def split_key(
@@ -62,135 +70,88 @@ def unsplit_key(
 def event_to_record(
     event: Event, rules: Sequence[Rule], notification_uuid: str | None = None
 ) -> Record:
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
+
     if not rules:
         logger.warning("Creating record for %s that does not contain any rules!", event)
 
+    # TODO(iamrajjoshi): The typing on this function is wrong, the type should be GroupEvent
+    # TODO(iamrajjoshi): Creating a PR to fix this
+    assert event.group is not None
+    rule_ids = []
+    identifier_key = IdentifierKey.RULE
+    if features.has("organizations:workflow-engine-ui-links", event.organization):
+        identifier_key = IdentifierKey.WORKFLOW
+        for rule in rules:
+            rule_ids.append(int(get_key_from_rule_data(rule, "workflow_id")))
+    elif should_fire_workflow_actions(event.organization, event.group.type):
+        for rule in rules:
+            rule_ids.append(int(get_key_from_rule_data(rule, "legacy_rule_id")))
+    else:
+        for rule in rules:
+            rule_ids.append(rule.id)
     return Record(
         event.event_id,
-        Notification(event, [rule.id for rule in rules], notification_uuid),
+        Notification(event, rule_ids, notification_uuid, identifier_key),
         event.datetime.timestamp(),
     )
 
 
-def fetch_state(project: Project, records: Sequence[Record]) -> Mapping[str, Any]:
-    # This reads a little strange, but remember that records are returned in
-    # reverse chronological order, and we query the database in chronological
-    # order.
-    # NOTE: This doesn't account for any issues that are filtered out later.
-    start = records[-1].datetime
-    end = records[0].datetime
+def _bind_records(
+    records: Sequence[Record], groups: dict[int, Group], rules: dict[int, Rule]
+) -> list[RecordWithRuleObjects]:
+    ret = []
+    for record in records:
+        if record.value.event.group_id is None:
+            continue
+        group = groups.get(record.value.event.group_id)
+        if group is None:
+            logger.debug("%s could not be associated with a group.", record)
+            continue
+        elif group.get_status() != GroupStatus.UNRESOLVED:
+            continue
 
-    groups = Group.objects.in_bulk(record.value.event.group_id for record in records)
-    tenant_ids = {"organization_id": project.organization_id}
-    return {
-        "project": project,
-        "groups": groups,
-        "rules": Rule.objects.in_bulk(
-            itertools.chain.from_iterable(record.value.rules for record in records)
-        ),
-        "event_counts": tsdb.backend.get_sums(
-            TSDBModel.group,
-            list(groups.keys()),
-            start,
-            end,
-            tenant_ids=tenant_ids,
-        ),
-        "user_counts": tsdb.backend.get_distinct_counts_totals(
-            TSDBModel.users_affected_by_group,
-            list(groups.keys()),
-            start,
-            end,
-            tenant_ids=tenant_ids,
-        ),
-    }
+        record.value.event.group = group
+
+        record_rules = [
+            rule
+            for rule in (rules.get(rule_id) for rule_id in record.value.rules)
+            if rule is not None
+        ]
+        ret.append(record.with_rules(record_rules))
+
+    return ret
 
 
-def attach_state(
-    project: Project,
-    groups: MutableMapping[int, Group],
-    rules: Mapping[int, Rule],
-    event_counts: Mapping[int, int],
-    user_counts: Mapping[int, int],
-) -> Mapping[str, Any]:
-    for id, group in groups.items():
-        assert group.project_id == project.id, "Group must belong to Project"
-        group.project = project
-        group.event_count = 0
-        group.user_count = 0
-
-    for id, rule in rules.items():
-        assert rule.project_id == project.id, "Rule must belong to Project"
-        rule.project = project
-
-    for id, event_count in event_counts.items():
-        groups[id].event_count = event_count
-
-    for id, user_count in user_counts.items():
-        groups[id].user_count = user_count
-
-    return {"project": project, "groups": groups, "rules": rules}
+def _group_records(
+    records: Sequence[RecordWithRuleObjects], groups: dict[int, Group], rules: dict[int, Rule]
+) -> Digest:
+    grouped: Digest = defaultdict(lambda: defaultdict(list))
+    for record in records:
+        assert record.value.event.group is not None
+        for rule in record.value.rules:
+            grouped[rule][record.value.event.group].append(record)
+    return grouped
 
 
-def rewrite_record(
-    record: Record,
-    project: Project,
-    groups: Mapping[int, Group],
-    rules: Mapping[str, Rule],
-) -> Record | None:
-    event = record.value.event
-
-    # Reattach the group to the event.
-    group = groups.get(event.group_id)
-    if group is not None:
-        event.group = group
-    else:
-        logger.debug("%s could not be associated with a group.", record)
-        return None
-
-    return Record(
-        record.key,
-        Notification(
-            event,
-            [_f for _f in [rules.get(id) for id in record.value.rules] if _f],
-            record.value.notification_uuid,
-        ),
-        record.timestamp,
-    )
-
-
-def group_records(
-    groups: MutableMapping[str, Mapping[str, MutableSequence[Record]]], record: Record
-) -> MutableMapping[str, Mapping[str, MutableSequence[Record]]]:
-    group = record.value.event.group
-    rules = record.value.rules
-    if not rules:
-        logger.debug("%s has no associated rules, and will not be added to any groups.", record)
-
-    for rule in rules:
-        groups[rule][group].append(record)
-
-    return groups
-
-
-def sort_group_contents(
-    rules: MutableMapping[str, Mapping[Group, Sequence[Record]]]
-) -> Mapping[str, Mapping[Group, Sequence[Record]]]:
-    for key, groups in rules.items():
-        rules[key] = dict(
+def _sort_digest(
+    digest: Digest, event_counts: dict[int, int], user_counts: Mapping[Any, int]
+) -> Digest:
+    # sort inner groups dict by (event_count, user_count) descending
+    for key, rule_groups in digest.items():
+        digest[key] = dict(
             sorted(
-                groups.items(),
+                rule_groups.items(),
                 # x = (group, records)
-                key=lambda x: (x[0].event_count, x[0].user_count),
+                key=lambda x: (event_counts[x[0].id], user_counts[x[0].id]),
                 reverse=True,
             )
         )
-    return rules
 
-
-def sort_rule_groups(rules: Mapping[str, Rule]) -> Mapping[str, Rule]:
+    # sort outer rules dict by number of groups (descending)
     return dict(
         sorted(
-            rules.items(),
+            digest.items(),
             # x = (rule, groups)
             key=lambda x: len(x[1]),
             reverse=True,
@@ -198,30 +159,147 @@ def sort_rule_groups(rules: Mapping[str, Rule]) -> Mapping[str, Rule]:
     )
 
 
-def check_group_state(record: Record) -> bool:
-    return record.value.event.group.get_status() == GroupStatus.UNRESOLVED
-
-
-def build_digest(
-    project: Project,
+def _build_digest_impl(
     records: Sequence[Record],
-    state: Mapping[str, Any] | None = None,
-) -> tuple[Digest | None, Sequence[str]]:
-    if not records:
-        return None, []
+    groups: dict[int, Group],
+    rules: dict[int, Rule],
+    event_counts: dict[int, int],
+    user_counts: Mapping[Any, int],
+) -> Digest:
+    # sans-io implementation details
+    bound_records = _bind_records(records, groups, rules)
+    grouped = _group_records(bound_records, groups, rules)
+    return _sort_digest(grouped, event_counts=event_counts, user_counts=user_counts)
 
-    # XXX(hack): Allow generating a mock digest without actually doing any real IO!
-    state = state or fetch_state(project, records)
 
-    pipeline = (
-        Pipeline()
-        .map(functools.partial(rewrite_record, **attach_state(**state)))
-        .filter(bool)
-        .filter(check_group_state)
-        .reduce(group_records, lambda sequence: defaultdict(lambda: defaultdict(list)))
-        .apply(sort_group_contents)
-        .apply(sort_rule_groups)
+def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[int, Rule]:
+
+    rules: dict[int, Rule] = {}
+    if not workflow_ids:
+        return rules
+
+    # Fetch all workflows in bulk
+    workflows = Workflow.objects.filter(organization_id=project.organization_id).in_bulk(
+        workflow_ids
     )
 
-    digest, logs = pipeline(records)
-    return digest, logs
+    # We are only processing the workflows in the digest if under the new flag
+    # This should be ok since we should only add workflow_ids to redis when under this flag
+    if features.has("organizations:workflow-engine-ui-links", project.organization):
+        for workflow_id, workflow in workflows.items():
+            assert (
+                workflow.organization_id == project.organization_id
+            ), "Workflow must belong to Organization"
+            rules[workflow_id] = Rule(
+                label=workflow.name,
+                id=workflow_id,
+                project_id=project.id,
+                # We need to do this so that the links are built correctly downstream
+                data={"actions": [{"workflow_id": workflow_id}]},
+            )
+    # This is if we had workflows in the digest but the flag is not enabled
+    # This can happen if we rollback the flag, but the records in the digest aren't flushed
+    else:
+        alert_rule_workflows = AlertRuleWorkflow.objects.filter(workflow_id__in=workflow_ids)
+        alert_rule_workflows_map = {awf.workflow_id: awf for awf in alert_rule_workflows}
+
+        rule_ids_to_fetch = {awf.rule_id for awf in alert_rule_workflows}
+
+        bulk_rules = Rule.objects.filter(project_id=project.id).in_bulk(rule_ids_to_fetch)
+
+        for workflow_id in workflow_ids:
+            alert_workflow = alert_rule_workflows_map.get(workflow_id)
+            if not alert_workflow:
+                logger.warning(
+                    "Workflow %s does not have a corresponding AlertRuleWorkflow entry", workflow_id
+                )
+                raise
+
+            rule = bulk_rules.get(alert_workflow.rule_id)
+            if not rule:
+                logger.warning(
+                    "Rule %s linked to Workflow %s not found or does not belong to project %s",
+                    alert_workflow.rule_id,
+                    workflow_id,
+                    project.id,
+                )
+                continue
+
+            assert rule.project_id == project.id, "Rule must belong to Project"
+
+            try:
+                rule.data["actions"][0]["legacy_rule_id"] = rule.id
+            except KeyError:
+                # This shouldn't happen, but isn't a deal breaker if it does
+                sentry_sdk.capture_exception(
+                    Exception(f"Rule {rule.id} does not have a legacy_rule_id"),
+                    level="warning",
+                )
+
+            rules[workflow_id] = rule
+    return rules
+
+
+def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
+
+    if not records:
+        return DigestInfo({}, {}, {})
+
+    # This reads a little strange, but remember that records are returned in
+    # reverse chronological order, and we query the database in chronological
+    # order.
+    # NOTE: This doesn't account for any issues that are filtered out later.
+    start = records[-1].datetime
+    end = records[0].datetime
+
+    rule_ids: set[int] = set()
+    workflow_ids: set[int] = set()
+
+    for record in records:
+        identifier_key = getattr(record.value, "identifier_key", IdentifierKey.RULE)
+        # record.value is Notification, record.value.rules is Sequence[int]
+        ids_to_add = record.value.rules
+        if identifier_key == IdentifierKey.RULE:
+            rule_ids.update(ids_to_add)
+        elif identifier_key == IdentifierKey.WORKFLOW:
+            workflow_ids.update(ids_to_add)
+
+    groups = Group.objects.in_bulk(record.value.event.group_id for record in records)
+    group_ids = list(groups)
+    rules = Rule.objects.in_bulk(rule_ids)
+
+    for rule in rules.values():
+        try:
+            rule.data["actions"][0]["legacy_rule_id"] = rule.id
+        except KeyError:
+            # This shouldn't happen, but isn't a deal breaker if it does
+            sentry_sdk.capture_exception(
+                Exception(f"Rule {rule.id} does not have a legacy_rule_id"),
+                level="warning",
+            )
+
+    rules.update(get_rules_from_workflows(project, workflow_ids))
+
+    for group_id, g in groups.items():
+        assert g.project_id == project.id, "Group must belong to Project"
+    for rule_id, rule in rules.items():
+        assert rule.project_id == project.id, "Rule must belong to Project"
+
+    tenant_ids = {"organization_id": project.organization_id}
+    event_counts = tsdb.backend.get_timeseries_sums(
+        TSDBModel.group,
+        group_ids,
+        start,
+        end,
+        tenant_ids=tenant_ids,
+    )
+    user_counts = tsdb.backend.get_distinct_counts_totals(
+        TSDBModel.users_affected_by_group,
+        group_ids,
+        start,
+        end,
+        tenant_ids=tenant_ids,
+    )
+    digest = _build_digest_impl(records, groups, rules, event_counts, user_counts)
+
+    return DigestInfo(digest, event_counts, user_counts)

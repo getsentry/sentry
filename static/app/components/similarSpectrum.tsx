@@ -1,28 +1,30 @@
 import styled from '@emotion/styled';
 
-import {t} from 'sentry/locale';
+import {SIMILARITY_SCORE_COLORS} from './similarScoreCard';
 
 type Props = {
+  highSpectrumLabel: string;
+  lowSpectrumLabel: string;
   className?: string;
 };
 
-function BaseSimilarSpectrum({className}: Props) {
+function BaseSimilarSpectrum({className, highSpectrumLabel, lowSpectrumLabel}: Props) {
   return (
     <div className={className}>
-      <span>{t('Similar')}</span>
+      <span>{highSpectrumLabel}</span>
       <SpectrumItem colorIndex={4} />
       <SpectrumItem colorIndex={3} />
       <SpectrumItem colorIndex={2} />
       <SpectrumItem colorIndex={1} />
       <SpectrumItem colorIndex={0} />
-      <span>{t('Not Similar')}</span>
+      <span>{lowSpectrumLabel}</span>
     </div>
   );
 }
 
 const SimilarSpectrum = styled(BaseSimilarSpectrum)`
   display: flex;
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 type ItemProps = {
@@ -33,7 +35,7 @@ const SpectrumItem = styled('span')<ItemProps>`
   border-radius: 2px;
   margin: 5px;
   width: 14px;
-  ${p => `background-color: ${p.theme.similarity.colors[p.colorIndex]};`};
+  ${p => `background-color: ${SIMILARITY_SCORE_COLORS[p.colorIndex]};`};
 `;
 
 export default SimilarSpectrum;

@@ -1,4 +1,4 @@
-import {forwardRef, Fragment, useContext, useEffect, useRef} from 'react';
+import {Fragment, useContext, useEffect, useRef} from 'react';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
 import {mergeProps} from '@react-aria/utils';
@@ -6,14 +6,10 @@ import type {TreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
-import Link from 'sentry/components/links/link';
-import type {MenuListItemProps} from 'sentry/components/menuListItem';
-import MenuListItem, {
-  InnerWrap as MenuListItemInnerWrap,
-} from 'sentry/components/menuListItem';
+import {ExternalLink, Link} from 'sentry/components/core/link';
+import type {MenuListItemProps} from 'sentry/components/core/menuListItem';
+import {MenuListItem} from 'sentry/components/core/menuListItem';
 import {IconChevron} from 'sentry/icons';
-import {defined} from 'sentry/utils';
-import mergeRefs from 'sentry/utils/mergeRefs';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import {DropdownMenuContext} from './list';
@@ -34,6 +30,10 @@ export interface MenuItemProps extends MenuListItemProps {
    */
   className?: string;
   /**
+   * Destination if this menu item is an external link.
+   */
+  externalHref?: string;
+  /**
    * Hide item from the dropdown menu. Note: this will also remove the item
    * from the selection manager.
    */
@@ -52,7 +52,7 @@ export interface MenuItemProps extends MenuListItemProps {
    * Function to call when user selects/clicks/taps on the menu item. The
    * item's key is passed as an argument.
    */
-  onAction?: (key: MenuItemProps['key']) => void;
+  onAction?: () => void;
   /**
    * Passed as the `menuTitle` prop onto the associated sub-menu (applicable
    * if `children` is defined and `isSubmenu` is true)
@@ -86,14 +86,11 @@ interface DropdownMenuItemProps {
    * Handler that is called when the menu should close after selecting an item
    */
   onClose?: () => void;
+  ref?: React.Ref<HTMLLIElement>;
   /**
    * Tag name for item wrapper
    */
   renderAs?: React.ElementType;
-  /**
-   * Whether to show a divider below this item
-   */
-  showDivider?: boolean;
 }
 
 /**
@@ -101,34 +98,38 @@ interface DropdownMenuItemProps {
  * Can also be used as a trigger button for a submenu. See:
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
-function BaseDropdownMenuItem(
-  {
-    node,
-    state,
-    closeOnSelect,
-    onClose,
-    showDivider,
-    renderAs = 'li',
-    ...props
-  }: DropdownMenuItemProps,
-  forwardedRef: React.Ref<HTMLLIElement>
-) {
-  const ref = useRef<HTMLLIElement | null>(null);
+function DropdownMenuItem({
+  node,
+  state,
+  closeOnSelect,
+  onClose,
+  renderAs = 'li',
+  ref,
+  ...props
+}: DropdownMenuItemProps) {
+  const innerWrapRef = useRef<HTMLDivElement | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
-  const {key, onAction, to, label, isSubmenu, trailingItems, ...itemProps} =
+  const {key, onAction, to, label, isSubmenu, trailingItems, externalHref, ...itemProps} =
     node.value ?? {};
   const {size} = node.props;
+  const {rootOverlayState} = useContext(DropdownMenuContext);
+  const isLink = to || externalHref;
 
   const actionHandler = () => {
-    if (to) {
+    if (isLink) {
+      // Close the menu after the click event has bubbled to the link
+      // Only needed on links that do not unmount the menu
+      if (closeOnSelect) {
+        requestAnimationFrame(() => rootOverlayState?.close());
+      }
       return;
     }
     if (isSubmenu) {
       state.selectionManager.toggleSelection(node.key);
       return;
     }
-    defined(key) && onAction?.(key);
+    onAction?.();
   };
 
   // Open submenu on hover
@@ -160,15 +161,6 @@ function BaseDropdownMenuItem(
   // Open submenu on arrow right key press
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
-      if (e.key === 'Enter' && to) {
-        const mouseEvent = new MouseEvent('click', {
-          ctrlKey: e.ctrlKey,
-          metaKey: e.metaKey,
-        });
-        ref.current?.querySelector(`${MenuListItemInnerWrap}`)?.dispatchEvent(mouseEvent);
-        return;
-      }
-
       if (e.key === 'ArrowRight' && isSubmenu) {
         state.selectionManager.replaceSelection(node.key);
         return;
@@ -179,7 +171,6 @@ function BaseDropdownMenuItem(
   });
 
   // Manage interactive events & create aria attributes
-  const {rootOverlayState} = useContext(DropdownMenuContext);
   const {menuItemProps, labelProps, descriptionProps} = useMenuItem(
     {
       key: node.key,
@@ -188,29 +179,54 @@ function BaseDropdownMenuItem(
         onClose?.();
         rootOverlayState?.close();
       },
-      closeOnSelect: to ? false : closeOnSelect,
+      closeOnSelect: isLink ? false : closeOnSelect,
       isDisabled,
     },
     state,
-    ref
+    innerWrapRef
   );
 
-  // Merged menu item props, class names are combined, event handlers chained,
-  // etc. See: https://react-spectrum.adobe.com/react-aria/mergeProps.html
-  const mergedProps = mergeProps(props, menuItemProps, hoverProps, keyboardProps);
+  const makeInnerWrapProps = () => {
+    if (to) {
+      return {
+        as: Link,
+        to,
+      };
+    }
+
+    if (externalHref) {
+      return {
+        as: ExternalLink,
+        href: externalHref,
+      };
+    }
+
+    return {
+      as: 'div' as const,
+      onClick: (e: React.MouseEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+      },
+    };
+  };
+  const mergedMenuItemContentProps = mergeProps(
+    props,
+    menuItemProps,
+    hoverProps,
+    keyboardProps,
+    makeInnerWrapProps(),
+    {ref: innerWrapRef, 'data-test-id': key}
+  );
   const itemLabel = node.rendered ?? label;
-  const innerWrapProps = {as: to ? Link : 'div', to};
 
   return (
     <MenuListItem
-      ref={mergeRefs([ref, forwardedRef])}
+      ref={ref}
       as={renderAs}
-      data-test-id={key}
       label={itemLabel}
       disabled={isDisabled}
       isFocused={isFocused}
-      showDivider={showDivider}
-      innerWrapProps={innerWrapProps}
+      innerWrapProps={mergedMenuItemContentProps}
       labelProps={labelProps}
       detailsProps={descriptionProps}
       trailingItems={
@@ -224,12 +240,9 @@ function BaseDropdownMenuItem(
         )
       }
       size={size}
-      {...mergedProps}
       {...itemProps}
     />
   );
 }
-
-const DropdownMenuItem = forwardRef(BaseDropdownMenuItem);
 
 export default DropdownMenuItem;

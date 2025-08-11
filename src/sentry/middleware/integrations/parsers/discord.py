@@ -9,16 +9,17 @@ from rest_framework import status
 from rest_framework.request import Request
 
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
+from sentry.integrations.discord.message_builder.base.flags import EPHEMERAL_FLAG
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.discord.views.link_identity import DiscordLinkIdentityView
 from sentry.integrations.discord.views.unlink_identity import DiscordUnlinkIdentityView
 from sentry.integrations.discord.webhooks.base import DiscordInteractionsEndpoint
+from sentry.integrations.discord.webhooks.types import DiscordResponseTypes
 from sentry.integrations.middleware.hybrid_cloud.parser import (
     BaseRequestParser,
     create_async_request_payload,
 )
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.integrations.web.discord_extension_configuration import (
     DiscordExtensionConfigurationView,
@@ -43,7 +44,10 @@ class DiscordRequestParser(BaseRequestParser):
     _discord_request: DiscordRequest | None = None
 
     # https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type
-    async_response_data = {"type": 5, "flags": 64}
+    async_response_data = {
+        "type": DiscordResponseTypes.DEFERRED_MESSAGE,
+        "data": {"flags": EPHEMERAL_FLAG},
+    }
 
     @property
     def discord_request(self) -> DiscordRequest | None:
@@ -65,7 +69,7 @@ class DiscordRequestParser(BaseRequestParser):
                 }
             )
 
-        return JsonResponse(data=self.async_response_data, status=status.HTTP_202_ACCEPTED)
+        return JsonResponse(data=self.async_response_data, status=status.HTTP_200_OK)
 
     def get_integration_from_request(self) -> Integration | None:
         if self.view_class in self.control_classes:
@@ -118,7 +122,10 @@ class DiscordRequestParser(BaseRequestParser):
 
         try:
             regions = self.get_regions_from_organizations()
-        except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
+        except Integration.DoesNotExist:
+            return self.get_default_missing_integration_response()
+
+        if len(regions) == 0:
             return self.get_default_missing_integration_response()
 
         if is_discord_interactions_endpoint and self.discord_request:

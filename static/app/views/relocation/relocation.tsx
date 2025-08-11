@@ -1,11 +1,8 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import type {MotionProps} from 'framer-motion';
 import {AnimatePresence, motion, useAnimation} from 'framer-motion';
 
-import type {ButtonProps} from 'sentry/components/button';
-import {Button} from 'sentry/components/button';
+import {Button} from 'sentry/components/core/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import LogoSentry from 'sentry/components/logoSentry';
@@ -15,6 +12,7 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import testableTransition from 'sentry/utils/testableTransition';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -23,18 +21,18 @@ import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 import Stepper from 'sentry/views/onboarding/components/stepper';
 
-import EncryptBackup from './encryptBackup';
+import {EncryptBackup} from './encryptBackup';
 import GetStarted from './getStarted';
-import InProgress from './inProgress';
-import PublicKey from './publicKey';
+import {InProgress} from './inProgress';
+import {PublicKey} from './publicKey';
 import type {MaybeUpdateRelocationState, RelocationState, StepDescriptor} from './types';
-import UploadBackup from './uploadBackup';
+import {UploadBackup} from './uploadBackup';
 
 type RouteParams = {
   step: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}>;
+type Props = RouteComponentProps<RouteParams>;
 
 function getRelocationOnboardingSteps(): StepDescriptor[] {
   return [
@@ -225,7 +223,7 @@ function RelocationOnboarding(props: Props) {
   const goNextStep = useCallback(
     (step: StepDescriptor) => {
       const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
-      const nextStep = onboardingSteps[currentStepIndex + 1];
+      const nextStep = onboardingSteps[currentStepIndex + 1]!;
 
       if (step.cornerVariant !== nextStep.cornerVariant) {
         cornerVariantControl.start('none');
@@ -237,7 +235,7 @@ function RelocationOnboarding(props: Props) {
   );
 
   if (!stepObj || stepIndex === -1) {
-    return <Redirect to={normalizeUrl(`/relocation/${onboardingSteps[0].id}/`)} />;
+    return <Redirect to={normalizeUrl(`/relocation/${onboardingSteps[0]!.id}/`)} />;
   }
 
   const headerView =
@@ -249,6 +247,7 @@ function RelocationOnboarding(props: Props) {
             numSteps={onboardingSteps.length}
             currentStepIndex={stepIndex}
             onClick={i => {
+              // @ts-expect-error TS(2538): Type 'MouseEvent<HTMLDivElement, MouseEvent>' cann... Remove this comment to see the full error message
               goToStep(onboardingSteps[i]);
             }}
           />
@@ -258,10 +257,32 @@ function RelocationOnboarding(props: Props) {
 
   const backButtonView =
     stepId === 'in-progress' ? null : (
-      <Back
-        onClick={() => goToStep(onboardingSteps[stepIndex - 1])}
+      <BackMotionDiv
         animate={stepIndex > 0 ? 'visible' : 'hidden'}
-      />
+        transition={testableTransition()}
+        variants={{
+          initial: {opacity: 0, visibility: 'hidden'},
+          visible: {
+            opacity: 1,
+            visibility: 'visible',
+            transition: testableTransition({delay: 1}),
+          },
+          hidden: {
+            opacity: 0,
+            transitionEnd: {
+              visibility: 'hidden',
+            },
+          },
+        }}
+      >
+        <Button
+          onClick={() => goToStep(onboardingSteps[stepIndex - 1]!)}
+          icon={<IconArrow direction="left" />}
+          priority="link"
+        >
+          {t('Back')}
+        </Button>
+      </BackMotionDiv>
     );
 
   const isLoading =
@@ -379,72 +400,44 @@ const LogoSvg = styled(LogoSentry)`
   color: ${p => p.theme.textColor};
 `;
 
-const OnboardingStep = styled(motion.div)`
+const OnboardingStep = styled((props: React.ComponentProps<typeof motion.div>) => (
+  <motion.div
+    initial="initial"
+    animate="animate"
+    exit="exit"
+    variants={{animate: {}}}
+    transition={testableTransition({
+      staggerChildren: 0.2,
+    })}
+    {...props}
+  />
+))`
   flex-grow: 1;
   display: flex;
   flex-direction: column;
 `;
 
-OnboardingStep.defaultProps = {
-  initial: 'initial',
-  animate: 'animate',
-  exit: 'exit',
-  variants: {animate: {}},
-  transition: testableTransition({
-    staggerChildren: 0.2,
-  }),
-};
-
 const AdaptivePageCorners = styled(PageCorners)`
   --corner-scale: 1;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
     --corner-scale: 0.5;
   }
 `;
 
 const StyledStepper = styled(Stepper)`
   justify-self: center;
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
+  @media (max-width: ${p => p.theme.breakpoints.md}) {
     display: none;
   }
 `;
 
-interface BackButtonProps extends Omit<ButtonProps, 'icon' | 'priority'> {
-  animate: MotionProps['animate'];
-  className?: string;
-}
-
-const Back = styled(({className, animate, ...props}: BackButtonProps) => (
-  <motion.div
-    className={className}
-    animate={animate}
-    transition={testableTransition()}
-    variants={{
-      initial: {opacity: 0, visibility: 'hidden'},
-      visible: {
-        opacity: 1,
-        visibility: 'visible',
-        transition: testableTransition({delay: 1}),
-      },
-      hidden: {
-        opacity: 0,
-        transitionEnd: {
-          visibility: 'hidden',
-        },
-      },
-    }}
-  >
-    <Button {...props} icon={<IconArrow direction="left" />} priority="link">
-      {t('Back')}
-    </Button>
-  </motion.div>
-))`
+const BackMotionDiv = styled(motion.div)`
   position: absolute;
   top: 40px;
   left: 20px;
 
   button {
-    font-size: ${p => p.theme.fontSizeSmall};
+    font-size: ${p => p.theme.fontSize.sm};
   }
 `;
 

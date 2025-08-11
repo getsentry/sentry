@@ -8,8 +8,8 @@ import {createContext} from 'react';
  */
 export type FormContextData = {
   form?: {
-    data: object;
-    errors: object;
+    data: Record<PropertyKey, unknown>;
+    errors: Record<PropertyKey, string>;
     onFieldChange: (name: string, value: string | number) => void;
   };
 };

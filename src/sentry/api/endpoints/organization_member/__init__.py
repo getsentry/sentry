@@ -68,8 +68,8 @@ def can_set_team_role(request: Request, team: Team, new_role: TeamRole) -> bool:
         return True
 
     access: Access = request.access
-    if not can_admin_team(access, team):
-        return False
+    if can_admin_team(access, team):
+        return True
 
     org_role = access.get_organization_role()
     if org_role and org_role.can_manage_team_role(new_role):
@@ -83,17 +83,19 @@ def can_set_team_role(request: Request, team: Team, new_role: TeamRole) -> bool:
 
 
 def can_admin_team(access: Access, team: Team) -> bool:
-    if access.has_scope("org:write"):
-        return True
-    if not access.has_team_membership(team):
-        return False
-    return access.has_team_scope(team, "team:write") or access.has_team_scope(team, "team:admin")
+
+    return access.has_team_membership(team) and (
+        access.has_team_scope(team, "team:write")
+        or access.has_scope("org:write")
+        or access.has_scope("member:write")
+    )
 
 
 def get_allowed_org_roles(
     request: Request,
     organization: Organization,
     member: OrganizationMember | None = None,
+    creating_org_invite: bool = False,
 ) -> Collection[Role]:
     """
     Get the set of org-level roles that the request is allowed to manage.
@@ -101,11 +103,15 @@ def get_allowed_org_roles(
     In order to change another member's role, the returned set must include both
     the starting role and the new role. That is, the set contains the roles that
     the request is allowed to promote someone to and to demote someone from.
+
+    If the request is to invite a new member, the member:admin scope is not required.
     """
 
     if is_active_superuser(request):
         return roles.get_all()
-    if not request.access.has_scope("member:admin"):
+
+    # The member:admin scope is not required to invite a new member (when creating_org_invite is True).
+    if not request.access.has_scope("member:admin") and not creating_org_invite:
         return ()
 
     if member is None:

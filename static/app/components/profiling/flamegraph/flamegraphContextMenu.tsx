@@ -1,10 +1,11 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/container/flex';
-import Link from 'sentry/components/links/link';
+import {Flex} from 'sentry/components/core/layout';
+import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   ProfilingContextMenu,
@@ -16,6 +17,8 @@ import {
 } from 'sentry/components/profiling/profilingContextMenu';
 import {IconChevron, IconCopy, IconGithub, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getShortEventId} from 'sentry/utils/events';
 import type {
@@ -26,13 +29,11 @@ import type {
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {isContinuousProfileReference} from 'sentry/utils/profiling/guards/profile';
 import type {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useSourceCodeLink} from 'sentry/utils/profiling/hooks/useSourceLink';
-import type {
-  ContinuousProfileGroup,
-  ProfileGroup,
-} from 'sentry/utils/profiling/profile/importProfile';
-import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -66,7 +67,7 @@ export interface FlamegraphContextMenuProps {
   onCopyFunctionNameClick: () => void;
   onCopyFunctionSource: () => void;
   onHighlightAllOccurrencesClick: () => void;
-  profileGroup: ProfileGroup | ContinuousProfileGroup | null;
+  profileGroup: ProfileGroup | null;
   disableCallOrderSort?: boolean;
   disableColorCoding?: boolean;
 }
@@ -140,7 +141,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
                 profileIds={props.hoveredNode.profileIds}
                 frameName={props.hoveredNode.frame.name}
                 framePackage={props.hoveredNode.frame.package}
-                organizationSlug={organization.slug}
+                organization={organization}
                 projectSlug={project?.slug}
                 subMenuPortalRef={props.contextMenu.subMenuRef.current}
               />
@@ -165,7 +166,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
               })}
               icon={<IconCopy size="xs" />}
             >
-              {t('Copy function name')}
+              {t('Copy Function Name')}
             </ProfilingContextMenuItemButton>
             <ProfilingContextMenuItemButton
               {...props.contextMenu.getMenuItemProps({
@@ -177,27 +178,27 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
               })}
               icon={<IconCopy size="xs" />}
             >
-              {t('Copy source location')}
+              {t('Copy Source Location')}
             </ProfilingContextMenuItemButton>
             <ProfilingContextMenuItemButton
               disabled={!sourceCodeLink.isSuccess || !sourceCodeLink.data?.sourceUrl}
               tooltip={
-                !isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
-                  ? t('Open in GitHub is not supported for this platform')
-                  : sourceCodeLink.isLoading
+                isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
+                  ? sourceCodeLink.isPending
                     ? 'Resolving link'
                     : sourceCodeLink.isSuccess &&
                         (!sourceCodeLink.data.sourceUrl ||
                           sourceCodeLink.data.config?.provider?.key !== 'github')
                       ? t('Could not find source code location in GitHub')
                       : undefined
+                  : t('Open in GitHub is not supported for this platform')
               }
               {...props.contextMenu.getMenuItemProps({
                 onClick: onOpenInGithubClick,
               })}
               icon={
-                sourceCodeLink.isLoading ? (
-                  <StyledLoadingIndicator size={10} hideMessage />
+                sourceCodeLink.isPending ? (
+                  <StyledLoadingIndicator size={10} />
                 ) : (
                   <IconGithub size="xs" />
                 )
@@ -257,7 +258,12 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
           })}
         </ProfilingContextMenuGroup>
       </ProfilingContextMenu>
-      <div ref={el => (props.contextMenu.subMenuRef.current = el)} id="sub-menu-portal" />
+      <div
+        ref={el => {
+          props.contextMenu.subMenuRef.current = el;
+        }}
+        id="sub-menu-portal"
+      />
     </Fragment>
   ) : null;
 }
@@ -387,7 +393,7 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
                 profileIds={props.hoveredNode.profileIds}
                 frameName={props.hoveredNode.frame.name}
                 framePackage={props.hoveredNode.frame.package}
-                organizationSlug={organization.slug}
+                organization={organization}
                 projectSlug={project?.slug}
                 subMenuPortalRef={props.contextMenu.subMenuRef.current}
               />
@@ -412,7 +418,7 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
               })}
               icon={<IconCopy size="xs" />}
             >
-              {t('Copy function name')}
+              {t('Copy Function Name')}
             </ProfilingContextMenuItemButton>
             <ProfilingContextMenuItemButton
               {...props.contextMenu.getMenuItemProps({
@@ -424,12 +430,12 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
               })}
               icon={<IconCopy size="xs" />}
             >
-              {t('Copy source location')}
+              {t('Copy Source Location')}
             </ProfilingContextMenuItemButton>
             <ProfilingContextMenuItemButton
               disabled={!sourceCodeLink.isSuccess || !sourceCodeLink.data?.sourceUrl}
               tooltip={
-                sourceCodeLink.isLoading
+                sourceCodeLink.isPending
                   ? 'Resolving link'
                   : sourceCodeLink.isSuccess &&
                       (!sourceCodeLink.data.sourceUrl ||
@@ -441,8 +447,8 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
                 onClick: onOpenInGithubClick,
               })}
               icon={
-                sourceCodeLink.isLoading ? (
-                  <StyledLoadingIndicator size={10} hideMessage />
+                sourceCodeLink.isPending ? (
+                  <StyledLoadingIndicator size={10} />
                 ) : (
                   <IconGithub size="xs" />
                 )
@@ -502,7 +508,12 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
           })}
         </ProfilingContextMenuGroup>
       </ProfilingContextMenu>
-      <div ref={el => (props.contextMenu.subMenuRef.current = el)} id="sub-menu-portal" />
+      <div
+        ref={el => {
+          props.contextMenu.subMenuRef.current = el;
+        }}
+        id="sub-menu-portal"
+      />
     </Fragment>
   ) : null;
 }
@@ -517,15 +528,24 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   }
 `;
 
+function makeProjectIdLookupTable(projects: Project[]): Record<number, Project> {
+  const table: Record<number, Project> = {};
+  for (const project of projects) {
+    // @ts-expect-error TS(7015): Element implicitly has an 'any' type because index... Remove this comment to see the full error message
+    table[project.id] = project;
+  }
+  return table;
+}
 function ProfileIdsSubMenu(props: {
   contextMenu: FlamegraphContextMenuProps['contextMenu'];
   frameName: string;
   framePackage: string | undefined;
-  organizationSlug: string;
-  profileIds: string[];
+  organization: Organization;
+  profileIds: Profiling.ProfileReference[];
   projectSlug: string | undefined;
   subMenuPortalRef: HTMLElement | null;
 }) {
+  const {projects} = useProjects();
   const [isOpen, _setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
@@ -540,6 +560,10 @@ function ProfileIdsSubMenu(props: {
     ],
   });
 
+  const projectLookupTable = useMemo(
+    () => makeProjectIdLookupTable(projects),
+    [projects]
+  );
   const setIsOpen: typeof _setIsOpen = useCallback(
     nextState => {
       _setIsOpen(nextState);
@@ -548,7 +572,7 @@ function ProfileIdsSubMenu(props: {
     [popper]
   );
 
-  const currentTarget = useRef<Node | null>();
+  const currentTarget = useRef<Node | null>(null);
   useEffect(() => {
     const listener = (e: MouseEvent) => {
       currentTarget.current = e.target as Node;
@@ -570,24 +594,6 @@ function ProfileIdsSubMenu(props: {
     };
   }, [props.subMenuPortalRef, setIsOpen]);
 
-  const generateFlamechartLink = useCallback(
-    (profileId: string) => {
-      // this case should never happen
-      if (!props.projectSlug) {
-        return {};
-      }
-
-      return generateProfileFlamechartRouteWithHighlightFrame({
-        orgSlug: props.organizationSlug,
-        projectSlug: props.projectSlug,
-        profileId,
-        frameName: props.frameName,
-        framePackage: props.framePackage,
-      });
-    },
-    [props.frameName, props.framePackage, props.organizationSlug, props.projectSlug]
-  );
-
   return (
     <Fragment>
       <ProfilingContextMenuItemButton
@@ -602,26 +608,59 @@ function ProfileIdsSubMenu(props: {
           setIsOpen(true);
         }}
       >
-        <Flex w="100%" justify="space-between" align="center">
-          <Flex.Item>{t('Appears in %s profiles', props.profileIds.length)}</Flex.Item>
+        <FullWidthFlex justify="between" align="center">
+          <div>{t('Appears in %s profiles', props.profileIds.length)}</div>
           <IconChevron direction="right" size="xs" />
-        </Flex>
+        </FullWidthFlex>
       </ProfilingContextMenuItemButton>
       {isOpen &&
         props.subMenuPortalRef &&
         createPortal(
-          <ProfilingContextMenu style={popper.styles.popper} css={{maxHeight: 250}}>
+          <ProfilingContextMenu
+            style={popper.styles.popper}
+            css={css`
+              max-height: 250px;
+            `}
+          >
             <ProfilingContextMenuGroup>
               <ProfilingContextMenuHeading>{t('Profiles')}</ProfilingContextMenuHeading>
-              {props.profileIds.map(profileId => {
-                const to = generateFlamechartLink(profileId);
+              {props.profileIds.map((profileId, i) => {
+                const projectSlug =
+                  typeof profileId !== 'string' && 'project_id' in profileId
+                    ? (projectLookupTable[profileId.project_id]?.slug ??
+                      props.projectSlug)
+                    : props.projectSlug;
+
+                if (!projectSlug) {
+                  return null;
+                }
+
+                const to = generateProfileRouteFromProfileReference({
+                  organization: props.organization,
+                  projectSlug,
+                  reference: profileId,
+                  frameName: props.frameName,
+                  framePackage: props.framePackage,
+                });
+
                 return (
                   <ProfilingContextMenuItemButton
-                    key={profileId}
+                    key={i}
                     {...props.contextMenu.getMenuItemProps({})}
                   >
-                    <Link to={to} css={{color: 'unset'}}>
-                      {getShortEventId(profileId)}{' '}
+                    <Link
+                      to={to}
+                      css={css`
+                        color: unset;
+                      `}
+                    >
+                      {getShortEventId(
+                        typeof profileId === 'string'
+                          ? profileId
+                          : isContinuousProfileReference(profileId)
+                            ? getShortEventId(profileId.profiler_id)
+                            : getShortEventId(profileId.profile_id)
+                      )}{' '}
                     </Link>
                   </ProfilingContextMenuItemButton>
                 );
@@ -633,3 +672,7 @@ function ProfileIdsSubMenu(props: {
     </Fragment>
   );
 }
+
+const FullWidthFlex = styled(Flex)`
+  width: 100%;
+`;

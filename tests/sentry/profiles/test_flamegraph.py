@@ -1,111 +1,102 @@
-from datetime import timedelta, timezone
+from datetime import datetime, timedelta
 
-from sentry.profiles.flamegraph import get_profiles_with_function
-from sentry.search.events.types import SnubaParams
-from sentry.testutils.cases import ProfilesSnubaTestCase
-from sentry.testutils.helpers.datetime import before_now
-from sentry.utils.samples import load_data
+from sentry.profiles.flamegraph import split_datetime_range_exponential
 
 
-class GetProfileWithFunctionTest(ProfilesSnubaTestCase):
-    def setUp(self):
-        super().setUp()
+def test_split_datetime_range_exponential_with_days() -> None:
+    start = datetime(2023, 1, 1)
+    end = datetime(2023, 1, 31)
+    initial_delta = timedelta(days=1)
+    max_chunk_delta = timedelta(days=8)
+    multiplier = 2
 
-        self.now = before_now(minutes=10)
-        self.hour_ago = (self.now - timedelta(hours=1)).replace(
-            minute=0, second=0, microsecond=0, tzinfo=timezone.utc
+    result = list(
+        split_datetime_range_exponential(start, end, initial_delta, max_chunk_delta, multiplier)
+    )
+
+    expected_chunks = [
+        (datetime(2023, 1, 1), datetime(2023, 1, 2)),  # Delta: 1 day
+        (datetime(2023, 1, 2), datetime(2023, 1, 4)),  # Delta: 2 days
+        (datetime(2023, 1, 4), datetime(2023, 1, 8)),  # Delta: 4 days
+        (datetime(2023, 1, 8), datetime(2023, 1, 16)),  # Delta: 8 days (max reached)
+        (datetime(2023, 1, 16), datetime(2023, 1, 24)),  # Delta: 8 days
+        (datetime(2023, 1, 24), datetime(2023, 1, 31)),  # Final chunk trimmed to end
+    ]
+
+    assert result == expected_chunks
+
+
+def test_split_datetime_range_exponential_with_hours() -> None:
+    start_time = datetime(2024, 5, 1, 6, 0, 0)
+    end_time = datetime(2024, 5, 2, 12, 0, 0)
+    initial_h_delta = timedelta(hours=2)
+    max_h_delta = timedelta(hours=8)
+    multiplier = 2
+
+    result = list(
+        split_datetime_range_exponential(
+            start_time, end_time, initial_h_delta, max_h_delta, multiplier
         )
+    )
 
-        for i in range(3):
-            self.store_functions(
-                [
-                    {
-                        "self_times_ns": [100 for _ in range(10)],
-                        "package": "foo",
-                        "function": "foo",
-                        "in_app": True,
-                    },
-                ],
-                project=self.project,
-                timestamp=self.hour_ago - timedelta(hours=i),
-            )
+    expected_chunks = [
+        (datetime(2024, 5, 1, 6, 0), datetime(2024, 5, 1, 8, 0)),  # Delta: 2 hours
+        (datetime(2024, 5, 1, 8, 0), datetime(2024, 5, 1, 12, 0)),  # Delta: 4 hours
+        (datetime(2024, 5, 1, 12, 0), datetime(2024, 5, 1, 20, 0)),  # Delta: 8 hours (max reached)
+        (datetime(2024, 5, 1, 20, 0), datetime(2024, 5, 2, 4, 0)),  # Delta: 8 hours
+        (datetime(2024, 5, 2, 4, 0), datetime(2024, 5, 2, 12, 0)),  # Final chunk fits perfectly
+    ]
 
-        transaction = load_data("transaction", timestamp=before_now(minutes=10))
-        transaction["transaction"] = "foobar"
+    assert result == expected_chunks
 
-        self.store_functions(
-            [
-                {
-                    "self_times_ns": [100 for _ in range(10)],
-                    "package": "foo",
-                    "function": "foo",
-                    "in_app": True,
-                },
-            ],
-            project=self.project,
-            timestamp=self.hour_ago,
-            transaction=transaction,
+
+def test_split_datetime_range_exponential_with_days_reverse() -> None:
+    start = datetime(2023, 1, 1)
+    end = datetime(2023, 1, 31)
+    initial_delta = timedelta(days=1)
+    max_chunk_delta = timedelta(days=8)
+    multiplier = 2
+
+    result = list(
+        split_datetime_range_exponential(
+            start, end, initial_delta, max_chunk_delta, multiplier, reverse=True
         )
+    )
 
-        transaction = load_data("transaction", timestamp=before_now(minutes=10))
-        transaction["transaction"] = "foobar"
-        profile_context = transaction.setdefault("contexts", {}).setdefault("profile", {})
-        profile_context["profile_id"] = "00000000000000000000000000000000"
-        self.store_functions(
-            [
-                {
-                    "self_times_ns": [100 for _ in range(10)],
-                    "package": "foo",
-                    "function": "foo",
-                    "in_app": True,
-                },
-            ],
-            project=self.project,
-            timestamp=self.hour_ago,
-            transaction=transaction,
-        )
+    expected_chunks = [
+        (datetime(2023, 1, 30), datetime(2023, 1, 31)),  # Delta: 1 day (last chunk first)
+        (datetime(2023, 1, 28), datetime(2023, 1, 30)),  # Delta: 2 days
+        (datetime(2023, 1, 24), datetime(2023, 1, 28)),  # Delta: 4 days
+        (datetime(2023, 1, 16), datetime(2023, 1, 24)),  # Delta: 8 days (max reached)
+        (datetime(2023, 1, 8), datetime(2023, 1, 16)),  # Delta: 8 days
+        (datetime(2023, 1, 1), datetime(2023, 1, 8)),  # First chunk trimmed to start
+    ]
 
-    def test_get_profile_with_function(self):
-        profile_ids = get_profiles_with_function(
-            self.organization.id,
-            self.project.id,
-            self.function_fingerprint({"package": "foo", "function": "foo"}),
-            SnubaParams(
-                organization=self.organization,
-                projects=[self.project],
-                start=before_now(days=1),
-                end=self.now,
-            ),
-            "",
-        )
-        assert len(profile_ids["profile_ids"]) == 4, profile_ids
+    assert result == expected_chunks
 
-    def test_get_profile_with_function_with_transaction_filter(self):
-        profile_ids = get_profiles_with_function(
-            self.organization.id,
-            self.project.id,
-            self.function_fingerprint({"package": "foo", "function": "foo"}),
-            SnubaParams(
-                organization=self.organization,
-                projects=[self.project],
-                start=before_now(days=1),
-                end=self.now,
-            ),
-            "transaction:foobar",
-        )
-        assert len(profile_ids["profile_ids"]) == 1, profile_ids
 
-    def test_get_profile_with_function_no_match(self):
-        profile_ids = get_profiles_with_function(
-            self.organization.id,
-            self.project.id,
-            self.function_fingerprint({"package": "foo", "function": "foo"}),
-            SnubaParams(
-                organization=self.organization,
-                projects=[self.project],
-                start=before_now(days=1),
-                end=self.now,
-            ),
-            "transaction:foo",
+def test_split_datetime_range_exponential_with_hours_reverse() -> None:
+    start_time = datetime(2024, 5, 1, 6, 0, 0)
+    end_time = datetime(2024, 5, 2, 12, 0, 0)
+    initial_h_delta = timedelta(hours=2)
+    max_h_delta = timedelta(hours=8)
+    multiplier = 2
+
+    result = list(
+        split_datetime_range_exponential(
+            start_time, end_time, initial_h_delta, max_h_delta, multiplier, reverse=True
         )
-        assert len(profile_ids["profile_ids"]) == 0, profile_ids
+    )
+
+    expected_chunks = [
+        (
+            datetime(2024, 5, 2, 10, 0),
+            datetime(2024, 5, 2, 12, 0),
+        ),  # Delta: 2 hours (last chunk first)
+        (datetime(2024, 5, 2, 6, 0), datetime(2024, 5, 2, 10, 0)),  # Delta: 4 hours
+        (datetime(2024, 5, 1, 22, 0), datetime(2024, 5, 2, 6, 0)),  # Delta: 8 hours (max reached)
+        (datetime(2024, 5, 1, 14, 0), datetime(2024, 5, 1, 22, 0)),  # Delta: 8 hours
+        (datetime(2024, 5, 1, 6, 0), datetime(2024, 5, 1, 14, 0)),  # First chunk fits perfectly
+    ]
+
+    assert result == expected_chunks

@@ -9,7 +9,8 @@ import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Release} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Release} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -18,11 +19,9 @@ type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
 type Props = {
   date: RelaxedDateType;
   dateGlobal: RelaxedDateType;
-  hasRelease: boolean;
   organization: Organization;
   projectId: string;
   projectSlug: string;
-  title: string;
   environment?: string;
   release?: Release;
 };
@@ -102,9 +101,9 @@ function SeenInfo({
   );
 }
 
-const dateTimeCss = p => css`
-  color: ${p.theme.gray300};
-  font-size: ${p.theme.fontSizeMedium};
+const dateTimeCss = (p: any) => css`
+  color: ${p.theme.subText};
+  font-size: ${p.theme.fontSize.md};
   display: flex;
   justify-content: center;
 `;
@@ -147,14 +146,14 @@ const TimeSinceWrapper = styled('div')`
 `;
 
 const StyledTimeSince = styled(TimeSince)`
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   line-height: 1.2;
 `;
 
 const StyledHovercard = styled(Hovercard)`
   width: 250px;
   ${Header} {
-    font-weight: ${p => p.theme.fontWeightNormal};
+    font-weight: ${p => p.theme.fontWeight.normal};
     border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
   ${Body} {

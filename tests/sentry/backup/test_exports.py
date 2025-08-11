@@ -1,32 +1,106 @@
 from __future__ import annotations
 
-import tempfile
 from copy import deepcopy
+from io import BytesIO
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any
 
-from sentry.backup.comparators import get_default_comparators
+from orjson import JSONDecodeError, dumps
+
+from sentry.backup.crypto import (
+    DecryptionError,
+    EncryptorDecryptorPair,
+    LocalFileDecryptor,
+    LocalFileEncryptor,
+    create_encrypted_export_tarball,
+    decrypt_encrypted_tarball,
+)
 from sentry.backup.dependencies import NormalizedModelName, get_model, get_model_name
+from sentry.backup.exports import ExportCheckpointer, ExportCheckpointerError
+from sentry.backup.helpers import Printer
 from sentry.backup.scopes import ExportScope
-from sentry.backup.validate import validate
+from sentry.backup.services.import_export.model import RpcExportOk
 from sentry.db import models
-from sentry.models.email import Email
 from sentry.models.options.option import Option
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.user import User
-from sentry.models.useremail import UserEmail
-from sentry.models.userpermission import UserPermission
-from sentry.models.userrole import UserRole, UserRoleUser
+from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.backups import (
+    NOOP_PRINTER,
     BackupTransactionTestCase,
-    ValidationError,
     export_to_encrypted_tarball,
     export_to_file,
+    generate_rsa_key_pair,
 )
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.email import Email
+from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
+from sentry.users.models.userpermission import UserPermission
+from sentry.users.models.userrole import UserRole, UserRoleUser
 from tests.sentry.backup import get_matching_exportable_models
+
+
+class FakeExportCheckpointer(ExportCheckpointer):
+    cache_hits: int = 0
+    cache_misses: int = 0
+    cache_writes: int = 0
+
+    def __init__(
+        self,
+        crypto: EncryptorDecryptorPair | None,
+        printer: Printer,
+        tmp_dir: str,
+        test_method_name: str,
+    ):
+        self.__crypto = crypto
+        self.__printer = printer
+        self.__tmp_dir = tmp_dir
+        self.__test_method_name = test_method_name
+
+    def _get_file_name(self, model_name: NormalizedModelName) -> Path:
+        if self.__crypto is None:
+            return Path(self.__tmp_dir).joinpath(
+                f"_{self.__test_method_name}.checkpoint.{str(model_name)}.json"
+            )
+        else:
+            return Path(self.__tmp_dir).joinpath(
+                f"_{self.__test_method_name}.checkpoint.{str(model_name)}.enc.tar"
+            )
+
+    def get(self, model_name: NormalizedModelName) -> RpcExportOk | None:
+        file_name = self._get_file_name(model_name)
+        try:
+            with open(file_name, "rb") as fp:
+                json_data = (
+                    decrypt_encrypted_tarball(fp, self.__crypto.decryptor)
+                    if self.__crypto is not None
+                    else fp.read()
+                )
+                parsed_json = self._parse_cached_json(json_data)
+                if parsed_json is None:
+                    self.cache_misses += 1
+                else:
+                    self.cache_hits += 1
+
+                return parsed_json
+        except (FileNotFoundError, DecryptionError, JSONDecodeError, ExportCheckpointerError):
+            self.cache_misses += 1
+            return None
+
+    def add(self, model_name: NormalizedModelName, json_export: Any) -> None:
+        file_name = self._get_file_name(model_name)
+        with open(file_name, "wb") as fp:
+            out_bytes = (
+                create_encrypted_export_tarball(json_export, self.__crypto.encryptor).getvalue()
+                if self.__crypto is not None
+                else dumps(json_export)
+            )
+            fp.write(out_bytes)
+            self.cache_writes += 1
 
 
 class ExportTestCase(BackupTransactionTestCase):
@@ -51,23 +125,32 @@ class ExportTestCase(BackupTransactionTestCase):
 
     def export(
         self,
-        tmp_dir,
+        tmp_dir: str,
         *,
         scope: ExportScope,
         filter_by: set[str] | None = None,
+        checkpointer: ExportCheckpointer | None = None,
     ) -> Any:
         tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-        return export_to_file(tmp_path, scope=scope, filter_by=filter_by)
+        return export_to_file(tmp_path, scope=scope, filter_by=filter_by, checkpointer=checkpointer)
 
     def export_and_encrypt(
         self,
-        tmp_dir,
+        tmp_dir: str,
         *,
         scope: ExportScope,
+        rsa_key_pair: tuple[bytes, bytes],
         filter_by: set[str] | None = None,
+        checkpointer: ExportCheckpointer | None = None,
     ) -> Any:
         tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.enc.tar")
-        return export_to_encrypted_tarball(tmp_path, scope=scope, filter_by=filter_by)
+        return export_to_encrypted_tarball(
+            tmp_path,
+            scope=scope,
+            filter_by=filter_by,
+            checkpointer=checkpointer,
+            rsa_key_pair=rsa_key_pair,
+        )
 
 
 class ScopingTests(ExportTestCase):
@@ -100,35 +183,138 @@ class ScopingTests(ExportTestCase):
                 f"The following models were not included in the export: ${unseen_models}; this is despite it being included in at least one of the following relocation scopes: {scope.value}"
             )
 
-    def verify_encryption_equality(
-        self, tmp_dir: str, unencrypted: Any, scope: ExportScope
-    ) -> None:
-        res = validate(
-            unencrypted,
-            self.export_and_encrypt(tmp_dir, scope=scope),
-            get_default_comparators(),
-        )
-        if res.findings:
-            raise ValidationError(res)
-
     @freeze_time("2023-10-11 18:00:00")
-    def test_user_export_scoping(self):
+    def test_user_export_scoping(self) -> None:
         self.create_exhaustive_instance(is_superadmin=True)
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            unencrypted = self.export(tmp_dir, scope=ExportScope.User)
+        with TemporaryDirectory() as tmp_dir:
+            unencrypted_checkpointer = FakeExportCheckpointer(
+                crypto=None,
+                printer=NOOP_PRINTER,
+                tmp_dir=tmp_dir,
+                test_method_name=self._testMethodName,
+            )
+            unencrypted = self.export(
+                tmp_dir, scope=ExportScope.User, checkpointer=unencrypted_checkpointer
+            )
             self.verify_model_inclusion(unencrypted, ExportScope.User)
-            assert unencrypted == self.export_and_encrypt(tmp_dir, scope=ExportScope.User)
+
+            first_pass_cache_writes = unencrypted_checkpointer.cache_writes
+            assert unencrypted_checkpointer.cache_hits == 0
+            assert unencrypted_checkpointer.cache_misses > 0
+            assert unencrypted_checkpointer.cache_misses == first_pass_cache_writes
+
+            # The following re-run of `self.export` should only use the checkpoint cache. After
+            # completion, we should have no new writes, and no new misses; only hits should be
+            # incremented.
+            self.export(tmp_dir, scope=ExportScope.User, checkpointer=unencrypted_checkpointer)
+            assert unencrypted_checkpointer.cache_hits == first_pass_cache_writes
+            assert unencrypted_checkpointer.cache_misses == first_pass_cache_writes
+            assert unencrypted_checkpointer.cache_writes == first_pass_cache_writes
+
+            rsa_key_pair = generate_rsa_key_pair()
+            (private_key_pem, public_key_pem) = rsa_key_pair
+            encrypted_checkpointer = FakeExportCheckpointer(
+                crypto=EncryptorDecryptorPair(
+                    encryptor=LocalFileEncryptor(BytesIO(public_key_pem)),
+                    decryptor=LocalFileDecryptor(BytesIO(private_key_pem)),
+                ),
+                printer=NOOP_PRINTER,
+                tmp_dir=tmp_dir,
+                test_method_name=self._testMethodName,
+            )
+            encrypted = self.export_and_encrypt(
+                tmp_dir,
+                scope=ExportScope.User,
+                rsa_key_pair=rsa_key_pair,
+                checkpointer=encrypted_checkpointer,
+            )
+            assert unencrypted == encrypted
+
+            assert encrypted_checkpointer.cache_hits == 0
+            assert encrypted_checkpointer.cache_misses == first_pass_cache_writes
+            assert encrypted_checkpointer.cache_writes == first_pass_cache_writes
+
+            # The following re-run of `self.export_and_encrypt` should only use the checkpoint
+            # cache. After completion, we should have no new writes, and no new misses; only hits
+            # should be incremented.
+            self.export_and_encrypt(
+                tmp_dir,
+                scope=ExportScope.User,
+                rsa_key_pair=rsa_key_pair,
+                checkpointer=encrypted_checkpointer,
+            )
+            assert encrypted_checkpointer.cache_hits == first_pass_cache_writes
+            assert encrypted_checkpointer.cache_misses == first_pass_cache_writes
+            assert encrypted_checkpointer.cache_writes == first_pass_cache_writes
 
     @freeze_time("2023-10-11 18:00:00")
-    def test_organization_export_scoping(self):
+    def test_organization_export_scoping(self) -> None:
         self.create_exhaustive_instance(is_superadmin=True)
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            unencrypted = self.export(tmp_dir, scope=ExportScope.Organization)
+        with TemporaryDirectory() as tmp_dir:
+            unencrypted_checkpointer = FakeExportCheckpointer(
+                crypto=None,
+                printer=NOOP_PRINTER,
+                tmp_dir=tmp_dir,
+                test_method_name=self._testMethodName,
+            )
+            unencrypted = self.export(
+                tmp_dir, scope=ExportScope.Organization, checkpointer=unencrypted_checkpointer
+            )
             self.verify_model_inclusion(unencrypted, ExportScope.Organization)
-            assert unencrypted == self.export_and_encrypt(tmp_dir, scope=ExportScope.Organization)
+
+            first_pass_cache_writes = unencrypted_checkpointer.cache_writes
+            assert unencrypted_checkpointer.cache_hits == 0
+            assert unencrypted_checkpointer.cache_misses > 0
+            assert unencrypted_checkpointer.cache_misses == first_pass_cache_writes
+
+            # The following re-run of `self.export` should only use the checkpoint cache. After
+            # completion, we should have no new writes, and no new misses; only hits should be
+            # incremented.
+            self.export(
+                tmp_dir, scope=ExportScope.Organization, checkpointer=unencrypted_checkpointer
+            )
+            assert unencrypted_checkpointer.cache_hits == first_pass_cache_writes
+            assert unencrypted_checkpointer.cache_misses == first_pass_cache_writes
+            assert unencrypted_checkpointer.cache_writes == first_pass_cache_writes
+
+            rsa_key_pair = generate_rsa_key_pair()
+            (private_key_pem, public_key_pem) = rsa_key_pair
+            encrypted_checkpointer = FakeExportCheckpointer(
+                crypto=EncryptorDecryptorPair(
+                    encryptor=LocalFileEncryptor(BytesIO(public_key_pem)),
+                    decryptor=LocalFileDecryptor(BytesIO(private_key_pem)),
+                ),
+                printer=NOOP_PRINTER,
+                tmp_dir=tmp_dir,
+                test_method_name=self._testMethodName,
+            )
+            encrypted = self.export_and_encrypt(
+                tmp_dir,
+                scope=ExportScope.Organization,
+                rsa_key_pair=rsa_key_pair,
+                checkpointer=encrypted_checkpointer,
+            )
+            assert unencrypted == encrypted
+
+            assert encrypted_checkpointer.cache_hits == 0
+            assert encrypted_checkpointer.cache_misses == first_pass_cache_writes
+            assert encrypted_checkpointer.cache_writes == first_pass_cache_writes
+
+            # The following re-run of `self.export_and_encrypt` should only use the checkpoint
+            # cache. After completion, we should have no new writes, and no new misses; only hits
+            # should be incremented.
+            self.export_and_encrypt(
+                tmp_dir,
+                scope=ExportScope.Organization,
+                rsa_key_pair=rsa_key_pair,
+                checkpointer=encrypted_checkpointer,
+            )
+            assert encrypted_checkpointer.cache_hits == first_pass_cache_writes
+            assert encrypted_checkpointer.cache_misses == first_pass_cache_writes
+            assert encrypted_checkpointer.cache_writes == first_pass_cache_writes
 
     @freeze_time("2023-10-11 18:00:00")
-    def test_config_export_scoping(self):
+    def test_config_export_scoping(self) -> None:
         self.create_exhaustive_instance(is_superadmin=True)
         admin = self.create_exhaustive_user("admin", is_admin=True)
         staff = self.create_exhaustive_user("staff", is_staff=True)
@@ -136,18 +322,130 @@ class ScopingTests(ExportTestCase):
         self.create_exhaustive_api_keys_for_user(admin)
         self.create_exhaustive_api_keys_for_user(staff)
         self.create_exhaustive_api_keys_for_user(superuser)
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            unencrypted = self.export(tmp_dir, scope=ExportScope.Config)
+        with TemporaryDirectory() as tmp_dir:
+            unencrypted_checkpointer = FakeExportCheckpointer(
+                crypto=None,
+                printer=NOOP_PRINTER,
+                tmp_dir=tmp_dir,
+                test_method_name=self._testMethodName,
+            )
+            unencrypted = self.export(
+                tmp_dir, scope=ExportScope.Config, checkpointer=unencrypted_checkpointer
+            )
             self.verify_model_inclusion(unencrypted, ExportScope.Config)
-            assert unencrypted == self.export_and_encrypt(tmp_dir, scope=ExportScope.Config)
+
+            first_pass_cache_writes = unencrypted_checkpointer.cache_writes
+            assert unencrypted_checkpointer.cache_hits == 0
+            assert unencrypted_checkpointer.cache_misses > 0
+            assert unencrypted_checkpointer.cache_misses == first_pass_cache_writes
+
+            # The following re-run of `self.export` should only use the checkpoint cache. After
+            # completion, we should have no new writes, and no new misses; only hits should be
+            # incremented.
+            self.export(tmp_dir, scope=ExportScope.Config, checkpointer=unencrypted_checkpointer)
+            assert unencrypted_checkpointer.cache_hits == first_pass_cache_writes
+            assert unencrypted_checkpointer.cache_misses == first_pass_cache_writes
+            assert unencrypted_checkpointer.cache_writes == first_pass_cache_writes
+
+            rsa_key_pair = generate_rsa_key_pair()
+            (private_key_pem, public_key_pem) = rsa_key_pair
+            encrypted_checkpointer = FakeExportCheckpointer(
+                crypto=EncryptorDecryptorPair(
+                    encryptor=LocalFileEncryptor(BytesIO(public_key_pem)),
+                    decryptor=LocalFileDecryptor(BytesIO(private_key_pem)),
+                ),
+                printer=NOOP_PRINTER,
+                tmp_dir=tmp_dir,
+                test_method_name=self._testMethodName,
+            )
+            encrypted = self.export_and_encrypt(
+                tmp_dir,
+                scope=ExportScope.Config,
+                rsa_key_pair=rsa_key_pair,
+                checkpointer=encrypted_checkpointer,
+            )
+            assert unencrypted == encrypted
+
+            assert encrypted_checkpointer.cache_hits == 0
+            assert encrypted_checkpointer.cache_misses == first_pass_cache_writes
+            assert encrypted_checkpointer.cache_writes == first_pass_cache_writes
+
+            # The following re-run of `self.export_and_encrypt` should only use the checkpoint
+            # cache. After completion, we should have no new writes, and no new misses; only hits
+            # should be incremented.
+            self.export_and_encrypt(
+                tmp_dir,
+                scope=ExportScope.Config,
+                rsa_key_pair=rsa_key_pair,
+                checkpointer=encrypted_checkpointer,
+            )
+            assert encrypted_checkpointer.cache_hits == first_pass_cache_writes
+            assert encrypted_checkpointer.cache_misses == first_pass_cache_writes
+            assert encrypted_checkpointer.cache_writes == first_pass_cache_writes
 
     @freeze_time("2023-10-11 18:00:00")
-    def test_global_export_scoping(self):
+    def test_global_export_scoping(self) -> None:
         self.create_exhaustive_instance(is_superadmin=True)
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            unencrypted = self.export(tmp_dir, scope=ExportScope.Global)
+        with TemporaryDirectory() as tmp_dir:
+            unencrypted_checkpointer = FakeExportCheckpointer(
+                crypto=None,
+                printer=NOOP_PRINTER,
+                tmp_dir=tmp_dir,
+                test_method_name=self._testMethodName,
+            )
+            unencrypted = self.export(
+                tmp_dir, scope=ExportScope.Global, checkpointer=unencrypted_checkpointer
+            )
             self.verify_model_inclusion(unencrypted, ExportScope.Global)
-            assert unencrypted == self.export_and_encrypt(tmp_dir, scope=ExportScope.Global)
+
+            first_pass_cache_writes = unencrypted_checkpointer.cache_writes
+            assert unencrypted_checkpointer.cache_hits == 0
+            assert unencrypted_checkpointer.cache_misses > 0
+            assert unencrypted_checkpointer.cache_misses == first_pass_cache_writes
+
+            # The following re-run of `self.export` should only use the checkpoint cache. After
+            # completion, we should have no new writes, and no new misses; only hits should be
+            # incremented.
+            self.export(tmp_dir, scope=ExportScope.Global, checkpointer=unencrypted_checkpointer)
+            assert unencrypted_checkpointer.cache_hits == first_pass_cache_writes
+            assert unencrypted_checkpointer.cache_misses == first_pass_cache_writes
+            assert unencrypted_checkpointer.cache_writes == first_pass_cache_writes
+
+            rsa_key_pair = generate_rsa_key_pair()
+            (private_key_pem, public_key_pem) = rsa_key_pair
+            encrypted_checkpointer = FakeExportCheckpointer(
+                crypto=EncryptorDecryptorPair(
+                    encryptor=LocalFileEncryptor(BytesIO(public_key_pem)),
+                    decryptor=LocalFileDecryptor(BytesIO(private_key_pem)),
+                ),
+                printer=NOOP_PRINTER,
+                tmp_dir=tmp_dir,
+                test_method_name=self._testMethodName,
+            )
+            encrypted = self.export_and_encrypt(
+                tmp_dir,
+                scope=ExportScope.Global,
+                rsa_key_pair=rsa_key_pair,
+                checkpointer=encrypted_checkpointer,
+            )
+            assert unencrypted == encrypted
+
+            assert encrypted_checkpointer.cache_hits == 0
+            assert encrypted_checkpointer.cache_misses == first_pass_cache_writes
+            assert encrypted_checkpointer.cache_writes == first_pass_cache_writes
+
+            # The following re-run of `self.export_and_encrypt` should only use the checkpoint
+            # cache. After completion, we should have no new writes, and no new misses; only hits
+            # should be incremented.
+            self.export_and_encrypt(
+                tmp_dir,
+                scope=ExportScope.Global,
+                rsa_key_pair=rsa_key_pair,
+                checkpointer=encrypted_checkpointer,
+            )
+            assert encrypted_checkpointer.cache_hits == first_pass_cache_writes
+            assert encrypted_checkpointer.cache_misses == first_pass_cache_writes
+            assert encrypted_checkpointer.cache_writes == first_pass_cache_writes
 
 
 # Filters should work identically in both silo and monolith modes, so no need to repeat the tests
@@ -157,11 +455,11 @@ class FilteringTests(ExportTestCase):
     Ensures that filtering operations include the correct models.
     """
 
-    def test_export_filter_users(self):
+    def test_export_filter_users(self) -> None:
         self.create_exhaustive_user("user_1")
         self.create_exhaustive_user("user_2")
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             data = self.export(tmp_dir, scope=ExportScope.User, filter_by={"user_2"})
 
             # Count users, but also count a random model naively derived from just `User` alone,
@@ -175,13 +473,13 @@ class FilteringTests(ExportTestCase):
             assert not self.exists(data, User, "username", "user_1")
             assert self.exists(data, User, "username", "user_2")
 
-    def test_export_filter_users_shared_email(self):
+    def test_export_filter_users_shared_email(self) -> None:
         self.create_exhaustive_user("user_1", email="a@example.com")
         self.create_exhaustive_user("user_2", email="b@example.com")
         self.create_exhaustive_user("user_3", email="a@example.com")
         self.create_exhaustive_user("user_4", email="b@example.com")
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             data = self.export(
                 tmp_dir,
                 scope=ExportScope.User,
@@ -197,16 +495,40 @@ class FilteringTests(ExportTestCase):
             assert self.exists(data, User, "username", "user_3")
             assert not self.exists(data, User, "username", "user_4")
 
-    def test_export_filter_users_empty(self):
+    def test_export_filter_users_empty(self) -> None:
         self.create_exhaustive_user("user_1")
         self.create_exhaustive_user("user_2")
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             data = self.export(tmp_dir, scope=ExportScope.User, filter_by=set())
 
             assert len(data) == 0
 
-    def test_export_filter_orgs_single(self):
+    def test_export_user_mismatched_email(self) -> None:
+        self.create_user(
+            email="Testing.Upper@example.com",
+            username="user_1",
+            is_staff=False,
+            is_superuser=False,
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            # Modify the generated email record to have different casing.
+            # This can happen if a useremail record is updated as we don't sync
+            # data to sentry_email on update.
+            email = Email.objects.get(email="Testing.Upper@example.com")
+            email.email = "testing.upper@example.com"
+            email.save()
+
+        with TemporaryDirectory() as tmp_dir:
+            data = self.export(tmp_dir, scope=ExportScope.User)
+
+            # Ensure email record is exported despite email casing being different.
+            assert self.count(data, User) == 1
+            assert self.count(data, UserEmail) == 1
+            assert self.count(data, Email) == 1
+            assert self.exists(data, User, "username", "user_1")
+
+    def test_export_filter_orgs_single(self) -> None:
         # Create a superadmin not in any orgs, so that we can test that `OrganizationMember`s
         # invited by users outside of their org are still properly exported.
         superadmin = self.create_exhaustive_user(
@@ -249,7 +571,7 @@ class FilteringTests(ExportTestCase):
             organization=org_c, inviter_id=c.id, role="member", email="invited-c@example.com"
         )
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             data = self.export(
                 tmp_dir,
                 scope=ExportScope.Organization,
@@ -293,7 +615,7 @@ class FilteringTests(ExportTestCase):
             # ...but not members of different orgs.
             assert not self.exists(data, OrganizationMember, "user_email", "user_a_and_c")
 
-    def test_export_filter_orgs_multiple(self):
+    def test_export_filter_orgs_multiple(self) -> None:
         # Create a superadmin not in any orgs, so that we can test that `OrganizationMember`s
         # invited by users outside of their org are still properly exported.
         superadmin = self.create_exhaustive_user(
@@ -335,7 +657,7 @@ class FilteringTests(ExportTestCase):
             organization=org_c, inviter_id=c.id, role="member", email="invited-c@example.com"
         )
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             data = self.export(
                 tmp_dir,
                 scope=ExportScope.Organization,
@@ -380,7 +702,17 @@ class FilteringTests(ExportTestCase):
             assert not self.exists(data, OrganizationMember, "user_email", "user_b_only")
             assert not self.exists(data, OrganizationMember, "email", "invited-b@example.com")
 
-    def test_export_filter_orgs_empty(self):
+    """
+    If this test fails, it's because a newly created model was given an relocation_scope
+    that is not correctly exporting the models created in backup.py
+
+    To fix this you can:
+    - Add a reference to the organization model
+    - Remove the model from the relocation scope; using RelocationScope.Excluded
+    - Reach out to #discuss-open-source on slack for customizations / more detailed support
+    """
+
+    def test_export_filter_orgs_empty(self) -> None:
         a = self.create_exhaustive_user("user_a_only")
         b = self.create_exhaustive_user("user_b_only")
         c = self.create_exhaustive_user("user_c_only")
@@ -402,7 +734,7 @@ class FilteringTests(ExportTestCase):
             organization=org_c, inviter_id=c.id, role="member", email="invited-c@example.com"
         )
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             data = self.export(
                 tmp_dir,
                 scope=ExportScope.Organization,
@@ -411,13 +743,13 @@ class FilteringTests(ExportTestCase):
 
             assert len(data) == 0
 
-    def test_export_keep_only_admin_users_in_config_scope(self):
+    def test_export_keep_only_admin_users_in_config_scope(self) -> None:
         self.create_exhaustive_user("regular")
         self.create_exhaustive_user("admin", is_admin=True)
         self.create_exhaustive_user("staff", is_staff=True)
         self.create_exhaustive_user("superuser", is_staff=True)
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             data = self.export(
                 tmp_dir,
                 scope=ExportScope.Config,
@@ -438,7 +770,7 @@ class QueryTests(ExportTestCase):
     Some models have custom export logic that requires bespoke testing.
     """
 
-    def test_export_query_for_option_model(self):
+    def test_export_query_for_option_model(self) -> None:
         # There are a number of options we specifically exclude by name, for various reasons
         # enumerated in that model's definition file.
         Option.objects.create(key="sentry:install-id", value='"excluded"')
@@ -449,7 +781,7 @@ class QueryTests(ExportTestCase):
         Option.objects.create(key="sentry:test-unfiltered", value="included")
         Option.objects.create(key="foo:bar", value='"included"')
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
+        with TemporaryDirectory() as tmp_dir:
             data = self.export(
                 tmp_dir,
                 scope=ExportScope.Config,

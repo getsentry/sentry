@@ -1,35 +1,36 @@
 import {Fragment} from 'react';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {browserHistory} from 'sentry/utils/browserHistory';
 import ViewEditDashboard from 'sentry/views/dashboards/view';
 
 describe('Dashboards > ViewEditDashboard', function () {
   const initialData = initializeOrg();
 
   it('removes widget params from url and preserves selection params', function () {
-    const location = {
-      pathname: '/',
-      query: {
-        environment: 'canary',
-        period: '7d',
-        project: '11111',
-        start: null,
-        end: null,
-        utc: null,
-        displayType: 'line',
-        interval: '5m',
-        queryConditions: '',
-        queryFields: 'count()',
-        queryNames: '',
-        queryOrderby: '',
-        title: 'test',
-        statsPeriod: '7d',
+    const router = RouterFixture({
+      location: {
+        pathname: '/',
+        query: {
+          environment: 'canary',
+          period: '7d',
+          project: '11111',
+          start: null,
+          end: null,
+          utc: null,
+          displayType: 'line',
+          interval: '5m',
+          queryConditions: '',
+          queryFields: 'count()',
+          queryNames: '',
+          queryOrderby: '',
+          title: 'test',
+          statsPeriod: '7d',
+        },
       },
-    };
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${initialData.organization.slug}/dashboards/1/visit/`,
@@ -39,8 +40,7 @@ describe('Dashboards > ViewEditDashboard', function () {
 
     render(
       <ViewEditDashboard
-        location={LocationFixture(location)}
-        organization={initialData.organization}
+        location={router.location}
         router={initialData.router}
         params={{
           orgId: initialData.organization.slug,
@@ -51,10 +51,14 @@ describe('Dashboards > ViewEditDashboard', function () {
         routeParams={{}}
       >
         <Fragment />
-      </ViewEditDashboard>
+      </ViewEditDashboard>,
+      {
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
 
-    expect(browserHistory.replace).toHaveBeenCalledWith(
+    expect(router.replace).toHaveBeenCalledWith(
       expect.objectContaining({
         pathname: '/',
         query: {

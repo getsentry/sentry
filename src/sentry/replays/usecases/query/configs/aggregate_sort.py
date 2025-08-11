@@ -3,6 +3,7 @@
 Very similar to our filtering configurations except in this module we do not need the field
 abstraction.  We can pass any valid Snuba expression and the query will be sorted by it.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -69,6 +70,7 @@ sort_config = {
 sort_config["browser"] = sort_config["browser.name"]
 sort_config["os"] = sort_config["os.name"]
 sort_config["os_name"] = sort_config["os.name"]
+sort_config["count_screens"] = sort_config["count_urls"]
 
 
 def sort_is_scalar_compatible(sort: str) -> bool:

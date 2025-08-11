@@ -8,19 +8,21 @@ import responses
 from django.utils import timezone
 
 from fixtures.github import COMPARE_COMMITS_EXAMPLE, GET_COMMIT_EXAMPLE, GET_LAST_COMMITS_EXAMPLE
+from sentry.constants import ObjectStatus
 from sentry.integrations.github.repository import GitHubRepositoryProvider
+from sentry.integrations.models.integration import Integration
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_commit_shape
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 
 
 @control_silo_test
 class GitHubAppsProviderTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         ten_hours = timezone.now() + datetime.timedelta(hours=10)
         self.integration = self.create_integration(
@@ -56,7 +58,7 @@ class GitHubAppsProviderTest(TestCase):
             )
 
     @responses.activate
-    def test_build_repository_config(self):
+    def test_build_repository_config(self) -> None:
         organization = self.create_organization()
         integration = self.create_provider_integration(provider="github", name="Example GitHub")
         integration.add_organization(organization, self.user)
@@ -76,7 +78,7 @@ class GitHubAppsProviderTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_compare_commits_no_start(self, get_jwt):
+    def test_compare_commits_no_start(self, get_jwt: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/commits?sha=abcdef",
@@ -92,7 +94,7 @@ class GitHubAppsProviderTest(TestCase):
             assert_commit_shape(commit)
 
     @responses.activate
-    def test_compare_commits_no_start_failure(self):
+    def test_compare_commits_no_start_failure(self) -> None:
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/commits?sha=abcdef",
@@ -101,9 +103,16 @@ class GitHubAppsProviderTest(TestCase):
         with pytest.raises(IntegrationError):
             self.provider.compare_commits(self.repository, None, "abcdef")
 
+    def test_compare_commits_inactive_integration(self) -> None:
+        with assume_test_silo_mode_of(Integration):
+            self.integration.update(status=ObjectStatus.DISABLED)
+
+        with pytest.raises(NotImplementedError):
+            self.provider.compare_commits(self.repository, "xyz123", "abcdef")
+
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_compare_commits(self, get_jwt):
+    def test_compare_commits(self, get_jwt: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
@@ -120,7 +129,7 @@ class GitHubAppsProviderTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_compare_commits_patchset_handling(self, get_jwt):
+    def test_compare_commits_patchset_handling(self, get_jwt: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
@@ -142,7 +151,7 @@ class GitHubAppsProviderTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
-    def test_patchset_caching(self, get_jwt):
+    def test_patchset_caching(self, get_jwt: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/commits/abcdef",
@@ -159,7 +168,7 @@ class GitHubAppsProviderTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    def test_compare_commits_failure(self):
+    def test_compare_commits_failure(self) -> None:
         responses.add(
             responses.GET,
             "https://api.github.com/repos/getsentry/example-repo/compare/xyz123...abcdef",
@@ -168,11 +177,11 @@ class GitHubAppsProviderTest(TestCase):
         with pytest.raises(IntegrationError):
             self.provider.compare_commits(self.repository, "xyz123", "abcdef")
 
-    def test_pull_request_url(self):
+    def test_pull_request_url(self) -> None:
         pull = PullRequest(key=99)
         result = self.provider.pull_request_url(self.repository, pull)
         assert result == "https://github.com/getsentry/example-repo/pull/99"
 
-    def test_repository_external_slug(self):
+    def test_repository_external_slug(self) -> None:
         result = self.provider.repository_external_slug(self.repository)
         assert result == self.repository.config["name"]

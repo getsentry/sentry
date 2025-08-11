@@ -1,5 +1,4 @@
-import type {RouteComponent} from 'react-router';
-import {createRoutes} from 'react-router';
+import type {RouteObject} from 'react-router-dom';
 
 import * as constants from 'sentry/constants';
 import {buildRoutes} from 'sentry/routes';
@@ -19,58 +18,51 @@ jest.mock('sentry/constants', () => {
   };
 });
 
-// Workaround react-router PlainRoute type not covering redirect routes.
-type RouteShape = {
-  childRoutes?: RouteShape[];
-  component?: RouteComponent;
-  from?: string;
-  path?: string;
-};
-
 type RouteMetadata = {
   leadingPath: string;
-  route: RouteShape;
+  route: RouteObject;
 };
 
-function extractRoutes(rootRoute: any): Record<string, RouteComponent> {
-  const routeTree = createRoutes(rootRoute);
-  const routeMap: Record<string, RouteComponent> = {};
+function extractRoutes(rootRoute: RouteObject[]): Set<string> {
+  const routes = new Set<string>();
 
   // A queue of routes we need to visit
-  const visitQueue: RouteMetadata[] = [{leadingPath: '', route: routeTree[0]}];
+  const visitQueue: RouteMetadata[] = [{leadingPath: '', route: rootRoute[0]!}];
   while (visitQueue.length > 0) {
     const current = visitQueue.pop();
     if (!current) {
       break;
     }
-    let leading = current.leadingPath;
-    if (current.route.path?.startsWith('/')) {
-      leading = '';
-    }
+    const leading = current.leadingPath;
 
     const currentPath = `${leading}${current.route.path ?? ''}`.replace('//', '/');
-    if (current.route.childRoutes) {
-      for (const childRoute of current.route.childRoutes ?? []) {
+    if (current.route.children) {
+      for (const childRoute of current.route.children ?? []) {
         visitQueue.push({
           leadingPath: currentPath,
           route: childRoute,
         });
       }
-    } else {
-      if (current.route.from) {
-        // Redirect routes are not relevant to us.
-        continue;
-      }
+    }
 
-      // We are on a terminal route in the tree. Add to the map of route components.
-      // We are less interested in container route components.
-      if (current.route.component) {
-        routeMap[currentPath] = current.route.component;
-      }
+    if (
+      current.route.element &&
+      (
+        current.route.element as React.ReactElement<any, React.NamedExoticComponent>
+      ).type.displayName?.endsWith('Redirect')
+    ) {
+      // Redirect routes are not relevant to us.
+      continue;
+    }
+
+    // We are on a terminal route in the tree. Add to the map of route components.
+    // We are less interested in container route components.
+    if (current.route.element) {
+      routes.add(currentPath);
     }
   }
 
-  return routeMap;
+  return routes;
 }
 
 describe('buildRoutes()', function () {
@@ -82,7 +74,7 @@ describe('buildRoutes()', function () {
 
     // Get routes for with customer domains off.
     spy.mockReturnValue(false);
-    const routeMap = extractRoutes(buildRoutes());
+    const routes = extractRoutes(buildRoutes());
 
     // Get routes with customer domains on.
     spy.mockReturnValue(true);
@@ -91,7 +83,7 @@ describe('buildRoutes()', function () {
     // All routes that exist under orgId path slugs should
     // have a sibling under customer-domains.
     const mismatch: Array<{domain: string; slug: string}> = [];
-    for (const path in routeMap) {
+    for (const path of routes) {
       // Normalize the URLs so that we know the path we're looking for.
       const domainPath = normalizeUrl(path, {forceCustomerDomain: true});
 
@@ -100,7 +92,7 @@ describe('buildRoutes()', function () {
         continue;
       }
 
-      if (!domainRoutes[domainPath]) {
+      if (!domainRoutes.has(domainPath)) {
         mismatch.push({slug: path, domain: domainPath});
       }
     }

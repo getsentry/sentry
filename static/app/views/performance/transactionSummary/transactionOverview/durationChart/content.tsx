@@ -1,5 +1,4 @@
 import {useContext, useEffect} from 'react';
-import type {InjectedRouter} from 'react-router';
 import type {Theme} from '@emotion/react';
 import type {Query} from 'history';
 
@@ -26,7 +25,6 @@ type Props = {
   loading: boolean;
   queryExtra: Query;
   reloading: boolean;
-  router: InjectedRouter;
   theme: Theme;
   series?: Series[];
   timeFrame?: {
@@ -51,7 +49,6 @@ function Content({
   legend,
   utc,
   queryExtra,
-  router,
   onLegendSelectChanged,
 }: Props) {
   const performanceAtScaleContext = useContext(PerformanceAtScaleContext);
@@ -80,7 +77,7 @@ function Content({
     );
   }
 
-  const colors = (data && theme.charts.getColorPalette(data.length - 2)) || [];
+  const colors = (data && theme.chart.getColorPalette(data.length - 1)) || [];
 
   // Create a list of series based on the order of the fields,
   // We need to flip it at the end to ensure the series stack right.
@@ -112,7 +109,7 @@ function Content({
     },
     tooltip: {
       trigger: 'axis' as const,
-      valueFormatter: (value, _label) => tooltipFormatter(value, 'duration'),
+      valueFormatter: (value: any, _label: any) => tooltipFormatter(value, 'duration'),
     },
     xAxis: timeFrame
       ? {
@@ -132,7 +129,7 @@ function Content({
   };
 
   return (
-    <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+    <ChartZoom period={period} start={start} end={end} utc={utc}>
       {zoomRenderProps => (
         <ReleaseSeries
           start={start}

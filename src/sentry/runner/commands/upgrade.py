@@ -8,6 +8,15 @@ from sentry.signals import post_upgrade
 from sentry.silo.base import SiloMode
 
 
+def _check_big_ints() -> None:
+    if not getattr(settings, "SENTRY_USE_BIG_INTS", True):
+        raise click.ClickException(
+            "It looks like you have `SENTRY_USE_BIG_INTS = False` configured.  "
+            "sentry now only supports `bigint`.  "
+            "you will want to alter your integer types in your tables and then remove the setting from your configuration"
+        )
+
+
 def _check_history() -> None:
     connection = connections["default"]
     cursor = connection.cursor()
@@ -25,11 +34,9 @@ def _check_history() -> None:
         raise click.ClickException("Could not determine migration state. Aborting")
 
     # Either of these migrations need to have been run for us to proceed.
-    # The first migration is 'pre-squash' and the other entries are squashes
     migration_heads = (
-        "0200_release_indices",
-        "0001_squashed_0200_release_indices",
-        "0001_squashed_0484_break_org_member_user_fk",
+        "0904_onboarding_task_project_id_idx",  # pre-squash
+        "0001_squashed_0904_onboarding_task_project_id_idx",  # post-squash
     )
 
     # If we haven't run all the migration up to the latest squash abort.
@@ -54,6 +61,7 @@ def _upgrade(
 ) -> None:
     from django.core.management import call_command as dj_call_command
 
+    _check_big_ints()
     _check_history()
 
     for db_conn in settings.DATABASES.keys():
@@ -75,12 +83,13 @@ def _upgrade(
         nodestore.backend.bootstrap()
 
     if create_kafka_topics:
-        from sentry.conf.types.kafka_definition import Topic
-        from sentry.utils.batching_kafka_consumer import create_topics
-        from sentry.utils.kafka_config import get_topic_definition
+        from sentry_kafka_schemas import list_topics
 
-        for topic in Topic:
-            topic_defn = get_topic_definition(topic)
+        from sentry.utils.batching_kafka_consumer import create_topics
+        from sentry.utils.kafka_config import get_topic_definition_from_name
+
+        for topic in list_topics():
+            topic_defn = get_topic_definition_from_name(topic)
             create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
 
     if repair:

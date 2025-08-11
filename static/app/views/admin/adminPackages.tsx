@@ -6,12 +6,12 @@ import {t} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Data = {
-  extensions: [key: string, value: string][];
-  modules: [key: string, value: string][];
+  extensions: Array<[key: string, value: string]>;
+  modules: Array<[key: string, value: string]>;
 };
 
 export default function AdminPackages() {
-  const {data, isLoading, isError} = useApiQuery<Data>(['/internal/packages/'], {
+  const {data, isPending, isError} = useApiQuery<Data>(['/internal/packages/'], {
     staleTime: 0,
   });
 
@@ -19,7 +19,7 @@ export default function AdminPackages() {
     return <LoadingError />;
   }
 
-  if (isLoading) {
+  if (isPending) {
     return <LoadingIndicator />;
   }
 

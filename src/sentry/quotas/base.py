@@ -15,9 +15,13 @@ from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
 
 if TYPE_CHECKING:
+    from sentry.models.organization import Organization
+    from sentry.models.organizationmember import OrganizationMember
     from sentry.models.project import Project
     from sentry.models.projectkey import ProjectKey
     from sentry.monitors.models import Monitor
+    from sentry.profiles.utils import Profile
+    from sentry.quotas.types import SeatObject
 
 
 @unique
@@ -442,17 +446,15 @@ class Quota(Service):
                 scope=QuotaScope.PROJECT,
             ),
             AbuseQuota(
-                id="pati",
-                option="project-abuse-quota.transaction-limit",
-                compat_option_org="sentry:project-transaction-limit",
-                compat_option_sentry="getsentry.rate-limit.project-transactions",
-                categories=[index_data_category("transaction", org)],
-                scope=QuotaScope.PROJECT,
-            ),
-            AbuseQuota(
                 id="paa",
                 option="project-abuse-quota.attachment-limit",
                 categories=[DataCategory.ATTACHMENT],
+                scope=QuotaScope.PROJECT,
+            ),
+            AbuseQuota(
+                id="paai",
+                option="project-abuse-quota.attachment-item-limit",
+                categories=[DataCategory.ATTACHMENT_ITEM],
                 scope=QuotaScope.PROJECT,
             ),
             AbuseQuota(
@@ -613,10 +615,30 @@ class Quota(Service):
         """
         return SeatAssignmentResult(assignable=True)
 
+    def check_assign_seat(
+        self, data_category: DataCategory, seat_object: SeatObject
+    ) -> SeatAssignmentResult:
+        """
+        Determines if an assignable seat object can be assigned a seat.
+        If it is not possible to assign a monitor a seat, a reason
+        will be included in the response.
+        """
+        return SeatAssignmentResult(assignable=True)
+
     def check_assign_monitor_seats(self, monitor: list[Monitor]) -> SeatAssignmentResult:
         """
         Determines if a list of monitor can be assigned seat. If it is not possible
         to assign a seat to all given monitors, a reason will be included in the response
+        """
+        return SeatAssignmentResult(assignable=True)
+
+    def check_assign_seats(
+        self, data_category: DataCategory, seat_objects: list[SeatObject]
+    ) -> SeatAssignmentResult:
+        """
+        Determines if a list of assignable seat objects can be assigned seat.
+        If it is not possible to assign a seat to all given objects, a reason
+        will be included in the response.
         """
         return SeatAssignmentResult(assignable=True)
 
@@ -630,9 +652,29 @@ class Quota(Service):
 
         return Outcome.ACCEPTED
 
+    def assign_seat(self, data_category: DataCategory, seat_object: SeatObject) -> int:
+        """
+        Assigns a seat to an object if possible, resulting in Outcome.ACCEPTED.
+        If the object cannot be assigned a seat it will be
+        Outcome.RATE_LIMITED.
+        """
+        from sentry.utils.outcomes import Outcome
+
+        return Outcome.ACCEPTED
+
     def disable_monitor_seat(self, monitor: Monitor) -> None:
         """
         Removes a monitor from it's assigned seat.
+        """
+
+    def disable_seat(self, data_category: DataCategory, seat_object: SeatObject) -> None:
+        """
+        Disables an assigned seat.
+        """
+
+    def remove_seat(self, data_category: DataCategory, seat_object: SeatObject) -> None:
+        """
+        Removes an assigned seat.
         """
 
     def check_accept_monitor_checkin(self, project_id: int, monitor_slug: str):
@@ -647,3 +689,62 @@ class Quota(Service):
         """
         Updates a monitor seat assignment's slug.
         """
+
+    def should_emit_profile_duration_outcome(
+        self, organization: Organization, profile: Profile
+    ) -> bool:
+        """
+        Determines if the profile duration outcome should be emitted.
+        """
+        return True
+
+    def on_role_change(
+        self,
+        organization: Organization,
+        organization_member: OrganizationMember,
+        previous_role: str,
+        new_role: str,
+    ) -> None:
+        """
+        Called when an organization member's role is changed.
+        This is used to run any Subscription logic that needs to happen when a role is changed.
+
+        Args:
+            organization: The organization the member belongs to
+            organization_member: The member whose role is being changed
+            previous_role: The member's role before the change
+            new_role: The member's new role after the change
+        """
+        pass
+
+    def has_available_reserved_budget(self, org_id: int, data_category: DataCategory) -> bool:
+        """
+        Determines if the organization has enough reserved budget for the given data category operation.
+        """
+        return True
+
+    def record_seer_run(self, org_id: int, project_id: int, data_category: DataCategory) -> None:
+        """
+        Records a seer run for an organization.
+        """
+        return
+
+    def has_profile_duration_quota(self, org_id: int, data_category: DataCategory) -> bool:
+        """
+        Determines if the organization has quota available for the given data category.
+
+        Args:
+            org_id: The ID of the organization to check
+            data_category: The data category to check quota for.
+
+        Returns:
+            bool: True if the organization has quota available, False otherwise.
+                  Always False if data category is not a profile duration category.
+        """
+        return True
+
+    def get_dashboard_limit(self, org_id: int) -> int:
+        """
+        Returns the maximum number of dashboards allowed for the organization's plan type.
+        """
+        return -1

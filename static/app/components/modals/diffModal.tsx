@@ -2,16 +2,32 @@ import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import IssueDiff from 'sentry/components/issueDiff';
+import {useDetailedProject} from 'sentry/utils/useDetailedProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = ModalRenderProps & React.ComponentProps<typeof IssueDiff>;
 
 function DiffModal({className, Body, CloseButton, ...props}: Props) {
   const organization = useOrganization();
+  const {project} = props;
+  const {data: projectData} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug: project.slug,
+  });
+  // similarity-embeddings feature is only available on project details
+  const similarityEmbeddingsProjectFeature = projectData?.features.includes(
+    'similarity-embeddings'
+  );
+
   return (
     <Body>
       <CloseButton />
-      <IssueDiff className={className} organization={organization} {...props} />
+      <IssueDiff
+        className={className}
+        organization={organization}
+        hasSimilarityEmbeddingsProjectFeature={similarityEmbeddingsProjectFeature}
+        {...props}
+      />
     </Body>
   );
 }

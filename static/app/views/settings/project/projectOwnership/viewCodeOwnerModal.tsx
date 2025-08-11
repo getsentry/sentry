@@ -1,14 +1,13 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {CodeOwner} from 'sentry/types';
+import type {CodeOwner} from 'sentry/types/integrations';
 import {getCodeOwnerIcon} from 'sentry/utils/integrationUtil';
-import theme from 'sentry/utils/theme';
 import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPanel';
 
 interface ViewCodeOwnerModalProps extends ModalRenderProps {
@@ -60,8 +59,8 @@ const BodyContainer = styled('div')`
   gap: ${space(2)};
 `;
 
-export const modalCss = css`
-  @media (min-width: ${theme.breakpoints.small}) {
+export const modalCss = (theme: Theme) => css`
+  @media (min-width: ${theme.breakpoints.sm}) {
     width: 80%;
   }
   [role='document'] {

@@ -14,13 +14,22 @@ import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnh
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import DurationChart from 'sentry/views/performance/charts/chart';
-
-import {GenericPerformanceWidget} from '../components/performanceWidget';
-import {transformDiscoverToSingleValue} from '../transforms/transformDiscoverToSingleValue';
-import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
-import type {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
-import {eventsRequestQueryProps, getMEPQueryParams, QUERY_LIMIT_PARAM} from '../utils';
+import {GenericPerformanceWidget} from 'sentry/views/performance/landing/widgets/components/performanceWidget';
+import {transformDiscoverToSingleValue} from 'sentry/views/performance/landing/widgets/transforms/transformDiscoverToSingleValue';
+import {transformEventsRequestToArea} from 'sentry/views/performance/landing/widgets/transforms/transformEventsToArea';
+import type {
+  PerformanceWidgetProps,
+  QueryDefinition,
+  WidgetDataResult,
+} from 'sentry/views/performance/landing/widgets/types';
+import {
+  eventsRequestQueryProps,
+  getMEPQueryParams,
+  QUERY_LIMIT_PARAM,
+} from 'sentry/views/performance/landing/widgets/utils';
+import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets/settings';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -33,6 +42,14 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const globalSelection = props.eventView.getPageFilters();
   const {setPageError} = usePageAlert();
   const mepSetting = useMEPSettingContext();
+  const useEap = useInsightsEap();
+
+  const queryExtras = useEap
+    ? {
+        ...getMEPQueryParams(mepSetting),
+        ...EAP_QUERY_PARAMS,
+      }
+    : getMEPQueryParams(mepSetting);
 
   if (props.fields.length !== 1) {
     throw new Error(`Single field area can only accept a single field (${props.fields})`);
@@ -41,19 +58,20 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 
   const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
-      fields: props.fields[0],
+      fields: props.fields[0]!,
       component: provided => (
         <QueryBatchNode batchProperty="yAxis" transform={unmergeIntoIndividualResults}>
           {({queryBatching}) => (
             <EventsRequest
               {...pick(provided, eventsRequestQueryProps)}
+              includeAllArgs={false}
               limit={1}
               queryBatching={queryBatching}
               includePrevious
               includeTransformedData
               partial
-              currentSeriesNames={[field]}
-              previousSeriesNames={[getPreviousSeriesName(field)]}
+              currentSeriesNames={[field!]}
+              previousSeriesNames={[getPreviousSeriesName(field!)]}
               query={provided.eventView.getQueryWithAdditionalConditions()}
               interval={getInterval(
                 {
@@ -65,7 +83,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               )}
               hideError
               onError={setPageError}
-              queryExtras={getMEPQueryParams(mepSetting)}
+              queryExtras={queryExtras}
             />
           )}
         </QueryBatchNode>
@@ -78,7 +96,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 
   const overallQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
-      fields: field,
+      fields: field!,
       component: provided => {
         const eventView = provided.eventView.clone();
 
@@ -94,7 +112,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
                 queryBatching={queryBatching}
                 eventView={eventView}
                 location={location}
-                queryExtras={getMEPQueryParams(mepSetting)}
+                queryExtras={queryExtras}
               />
             )}
           </QueryBatchNode>
@@ -132,7 +150,8 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
           {provided.widgetData?.overall?.hasData ? (
             <Fragment>
               {props.fields.map(fieldName => {
-                const value = provided.widgetData?.overall?.[fieldName];
+                const value =
+                  provided.widgetData?.overall?.[fieldName as keyof WidgetDataResult];
 
                 if (!value) {
                   return null;
@@ -140,7 +159,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 
                 return (
                   <HighlightNumber key={fieldName} color={props.chartColor}>
-                    {axisLabelFormatter(value, aggregateOutputType(fieldName))}
+                    {axisLabelFormatter(value as any, aggregateOutputType(fieldName))}
                   </HighlightNumber>
                 );
               })}
@@ -171,13 +190,13 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 
 const EventsRequest = withApi(_EventsRequest);
 export const Subtitle = styled('span')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
-export const HighlightNumber = styled('div')<{color?: string}>`
+const HighlightNumber = styled('div')<{color?: string}>`
   color: ${p => p.color};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  font-size: ${p => p.theme.fontSize.xl};
 `;
 
 const unmergeIntoIndividualResults: Transform = (response, queryDefinition) => {

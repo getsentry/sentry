@@ -1,16 +1,16 @@
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Coverage} from 'sentry/types';
+import {Coverage} from 'sentry/types/integrations';
 
 interface Props {
   isActive: boolean;
   lineNumber: number;
   children?: React.ReactNode;
-  coverage?: Coverage | '';
+  coverage?: Coverage;
 }
 
 const coverageText: Record<Coverage, string | undefined> = {
@@ -26,7 +26,11 @@ const coverageClass: Record<Coverage, string | undefined> = {
   [Coverage.NOT_APPLICABLE]: undefined,
 };
 
-function ContextLineNumber({lineNumber, isActive, coverage = ''}: Props) {
+function ContextLineNumber({
+  lineNumber,
+  isActive,
+  coverage = Coverage.NOT_APPLICABLE,
+}: Props) {
   return (
     <Wrapper className={classNames(coverageClass[coverage], isActive ? 'active' : '')}>
       <Tooltip skipWrapper title={coverageText[coverage]} delay={200}>
@@ -44,7 +48,7 @@ const Wrapper = styled('div')`
   width: 58px;
   display: inline-block;
   color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
   margin-right: ${space(1)};
 
   .line-number {

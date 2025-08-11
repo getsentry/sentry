@@ -1,5 +1,6 @@
 import chunk from 'lodash/chunk';
 
+import {ReleasesSortOption} from 'sentry/constants/releases';
 import type {NewQuery} from 'sentry/types/organization';
 import type {Release} from 'sentry/types/release';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -13,14 +14,19 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {ReleasesSortByOption} from 'sentry/views/insights/common/components/releasesSort';
 
-export function useReleases(searchTerm?: string) {
+export function useReleases(
+  searchTerm: string | undefined,
+  sortBy: ReleasesSortByOption | undefined
+) {
   const organization = useOrganization();
   const location = useLocation();
   const {selection, isReady} = usePageFilters();
   const {environments, projects} = selection;
   const api = useApi();
 
+  const activeSort = sortBy ?? ReleasesSortOption.DATE;
   const releaseResults = useApiQuery<Release[]>(
     [
       `/organizations/${organization.slug}/releases/`,
@@ -30,7 +36,10 @@ export function useReleases(searchTerm?: string) {
           per_page: 50,
           environment: environments,
           query: searchTerm,
-          sort: 'date',
+          sort: activeSort,
+          // Depending on the selected sortBy option, 'flatten' is needed or we get an error from the backend.
+          // A similar logic can be found in https://github.com/getsentry/sentry/blob/6209d6fbf55839bb7a2f93ef65decbf495a64974/static/app/views/releases/list/index.tsx#L106
+          flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
         },
       },
     ],
@@ -44,10 +53,10 @@ export function useReleases(searchTerm?: string) {
       const newQuery: NewQuery = {
         name: '',
         fields: ['release', 'count()'],
-        query: `transaction.op:ui.load ${escapeFilterValue(
+        query: `transaction.op:[ui.load,navigation] ${escapeFilterValue(
           `release:[${releases.map(r => `"${r.version}"`).join()}]`
         )}`,
-        dataset: DiscoverDatasets.METRICS,
+        dataset: DiscoverDatasets.SPANS,
         version: 2,
         projects: selection.projects,
       };
@@ -69,7 +78,7 @@ export function useReleases(searchTerm?: string) {
             query: queryKey[1]?.query,
           }) as Promise<TableData>,
         staleTime: Infinity,
-        enabled: isReady && !releaseResults.isLoading,
+        enabled: isReady && !releaseResults.isPending,
         retry: false,
       };
     }),
@@ -77,20 +86,20 @@ export function useReleases(searchTerm?: string) {
 
   const metricsFetched = releaseMetrics.every(result => result.isFetched);
 
-  const metricsStats: {[version: string]: {count: number}} = {};
+  const metricsStats: Record<string, {count: number}> = {};
   if (metricsFetched) {
     releaseMetrics.forEach(c =>
       c.data?.data?.forEach(release => {
-        metricsStats[release.release] = {count: release['count()'] as number};
+        metricsStats[release.release!] = {count: release['count()'] as number};
       })
     );
   }
 
-  const releaseStats: {
+  const releaseStats: Array<{
     dateCreated: string;
     version: string;
     count?: number;
-  }[] =
+  }> =
     releaseResults.data?.length && metricsFetched
       ? releaseResults.data.flatMap(release => {
           const releaseVersion = release.version;
@@ -109,7 +118,7 @@ export function useReleases(searchTerm?: string) {
   return {
     ...releaseResults,
     data: releaseStats,
-    isLoading: !metricsFetched || releaseResults.isLoading,
+    isLoading: !metricsFetched || releaseResults.isPending,
   };
 }
 
@@ -120,7 +129,7 @@ export function useReleaseSelection(): {
 } {
   const location = useLocation();
 
-  const {data: releases, isLoading} = useReleases();
+  const {data: releases, isLoading} = useReleases(undefined, undefined);
 
   // If there are more than 1 release, the first one should be the older one
   const primaryRelease =

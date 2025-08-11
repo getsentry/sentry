@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {CrashReportWebApiOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 
@@ -19,7 +19,7 @@ const getConfigureSnippet = (params: Params) => `
 int main(int argc, char *argv[])
 {
     sentry_options_t *options = sentry_options_new();
-    sentry_options_set_dsn(options, "${params.dsn}");
+    sentry_options_set_dsn(options, "${params.dsn.public}");
     // This is also the default-path. For further information and recommendations:
     // https://docs.sentry.io/platforms/native/configuration/options/#database-path
     sentry_options_set_database_path(options, ".sentry-native");

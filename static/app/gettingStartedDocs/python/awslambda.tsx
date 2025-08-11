@@ -1,43 +1,60 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  Docs,
-  DocsParams,
-  OnboardingConfig,
+import {Alert} from 'sentry/components/core/alert';
+import {ExternalLink} from 'sentry/components/core/link';
+import {
+  type Docs,
+  type DocsParams,
+  type OnboardingConfig,
+  type OnboardingStep,
+  StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
+import {
+  agentMonitoringOnboarding,
+  AlternativeConfiguration,
+  crashReportOnboardingPython,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {getPythonInstallConfig} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
-
-const getInstallSnippet = () => `pip install --upgrade sentry-sdk`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
 from sentry_sdk.integrations.aws_lambda import AwsLambdaIntegration
 
 sentry_sdk.init(
-    dsn="${params.dsn}",
+    dsn="${params.dsn.public}",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,
     integrations=[AwsLambdaIntegration()],${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
+    # of transactions for tracing.
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode !== 'continuous'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : ''
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
+          ? `
+    # Set profile_session_sample_rate to 1.0 to profile 100%
+    # of profile sessions.
+    profile_session_sample_rate=1.0,
+    # Set profile_lifecycle to "trace" to automatically
+    # run the profiler on when there is an active transaction
+    profile_lifecycle="trace",`
+          : ''
     }
 )
 
@@ -46,11 +63,46 @@ def my_function(event, context):
 
 const getTimeoutWarningSnippet = (params: Params) => `
 sentry_sdk.init(
-  dsn="${params.dsn}",
+  dsn="${params.dsn.public}",
   integrations=[
       AwsLambdaIntegration(timeout_warning=True),
   ],
 )`;
+
+const installStep = (): OnboardingStep => ({
+  type: StepType.INSTALL,
+  description: tct('Install [code:sentry-sdk] from PyPI with the [code:django] extra:', {
+    code: <code />,
+  }),
+  configurations: getPythonInstallConfig(),
+});
+
+const configureStep = (params: Params): OnboardingStep => ({
+  type: StepType.CONFIGURE,
+  description: t('You can use the AWS Lambda integration for the Python SDK like this:'),
+  configurations: [
+    {
+      language: 'python',
+      code: getSdkSetupSnippet(params),
+    },
+  ],
+  additionalInfo: (
+    <Fragment>
+      {params.isProfilingSelected &&
+        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
+          <Fragment>
+            <AlternativeConfiguration />
+            <br />
+          </Fragment>
+        )}
+      {tct("Check out Sentry's [link:AWS sample apps] for detailed examples.", {
+        link: (
+          <ExternalLink href="https://github.com/getsentry/examples/tree/master/aws-lambda/python" />
+        ),
+      })}
+    </Fragment>
+  ),
+});
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
@@ -62,48 +114,9 @@ const onboarding: OnboardingConfig = {
         ),
       }
     ),
-  install: (params: Params) => [
-    {
-      type: StepType.INSTALL,
-      description: tct('Install our Python SDK using [code:pip]:', {code: <code />}),
-      configurations: [
-        {
-          description: params.isProfilingSelected
-            ? tct(
-                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
-                {
-                  codeVersion: <code />,
-                  codePackage: <code />,
-                }
-              )
-            : undefined,
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-      ],
-    },
-  ],
+  install: () => [installStep()],
   configure: (params: Params) => [
-    {
-      type: StepType.CONFIGURE,
-      description: t(
-        'You can use the AWS Lambda integration for the Python SDK like this:'
-      ),
-      configurations: [
-        {
-          language: 'python',
-          code: getSdkSetupSnippet(params),
-        },
-      ],
-      additionalInfo: tct(
-        "Check out Sentry's [link:AWS sample apps] for detailed examples.",
-        {
-          link: (
-            <ExternalLink href="https://github.com/getsentry/examples/tree/master/aws-lambda/python" />
-          ),
-        }
-      ),
-    },
+    configureStep(params),
     {
       title: t('Timeout Warning'),
       description: tct(
@@ -117,8 +130,8 @@ const onboarding: OnboardingConfig = {
       configurations: [
         {
           description: tct(
-            'To enable the warning, update the SDK initialization to set [codeTimeout:timeout_warning] to [codeStatus:true]:',
-            {codeTimeout: <code />, codeStatus: <code />}
+            'To enable the warning, update the SDK initialization to set [code:timeout_warning] to [code:true]:',
+            {code: <code />}
           ),
           language: 'python',
           code: getTimeoutWarningSnippet(params),
@@ -130,7 +143,7 @@ const onboarding: OnboardingConfig = {
         },
       ],
       additionalInfo: (
-        <AlertWithMarginBottom type="info">
+        <StyledAlert type="info">
           {tct(
             'If you are using another web framework inside of AWS Lambda, the framework might catch those exceptions before we get to see them. Make sure to enable the framework specific integration as well, if one exists. See [link:Integrations] for more information.',
             {
@@ -139,24 +152,28 @@ const onboarding: OnboardingConfig = {
               ),
             }
           )}
-        </AlertWithMarginBottom>
+        </StyledAlert>
       ),
     },
   ],
   verify: () => [],
 };
 
+const profilingOnboarding: OnboardingConfig = {
+  install: () => [installStep()],
+  configure: (params: Params) => [configureStep(params)],
+  verify: () => [],
+};
+
 const docs: Docs = {
   onboarding,
-  customMetricsOnboarding: getPythonMetricsOnboarding({
-    installSnippet: getInstallSnippet(),
-  }),
   crashReportOnboarding: crashReportOnboardingPython,
+  profilingOnboarding,
+  agentMonitoringOnboarding,
 };
 
 export default docs;
 
-const AlertWithMarginBottom = styled(Alert)`
+const StyledAlert = styled(Alert)`
   margin-top: ${space(2)};
-  margin-bottom: 0;
 `;

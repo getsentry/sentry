@@ -1,9 +1,7 @@
-from __future__ import annotations
-
 from io import BytesIO
+from typing import Any
 
 import sentry_sdk
-import sentry_sdk.tracing
 from django.http import StreamingHttpResponse
 from django.http.response import HttpResponseBase
 from drf_spectacular.utils import extend_schema
@@ -19,7 +17,6 @@ from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_recording_filename
-from sentry.replays.types import ReplayRecordingSegment
 from sentry.replays.usecases.reader import download_segment, fetch_segment_metadata
 
 
@@ -32,7 +29,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
     }
 
     @extend_schema(
-        operation_id="Fetch Recording Segment",
+        operation_id="Retrieve a Recording Segment",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -41,7 +38,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
         ],
         responses={
             200: inline_sentry_response_serializer(
-                "GetReplayRecordingSegment", ReplayRecordingSegment
+                "GetReplayRecordingSegment", list[dict[str, Any]]
             ),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
@@ -81,15 +78,9 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
     def download(self, segment: RecordingSegmentStorageMeta) -> StreamingHttpResponse:
         with sentry_sdk.start_span(
             op="download_segment",
-            description="ProjectReplayRecordingSegmentDetailsEndpoint.download_segment",
+            name="ProjectReplayRecordingSegmentDetailsEndpoint.download_segment",
         ) as child_span:
-            segment_bytes = download_segment(
-                segment,
-                span=child_span,
-            )
-            if segment_bytes is None:
-                segment_bytes = b"[]"
-
+            segment_bytes = download_segment(segment, span=child_span)
             segment_reader = BytesIO(segment_bytes)
 
             response = StreamingHttpResponse(
@@ -97,7 +88,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
                 content_type="application/json",
             )
             response["Content-Length"] = len(segment_bytes)
-            response[
-                "Content-Disposition"
-            ] = f'attachment; filename="{make_recording_filename(segment)}"'
+            response["Content-Disposition"] = (
+                f'attachment; filename="{make_recording_filename(segment)}"'
+            )
             return response

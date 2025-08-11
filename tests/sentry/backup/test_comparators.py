@@ -18,13 +18,12 @@ from sentry.backup.comparators import (
     UnorderedListComparator,
     UserPasswordObfuscatingComparator,
     UUID4Comparator,
-    get_default_comparators,
 )
 from sentry.backup.dependencies import ImportKind, NormalizedModelName, PrimaryKeyMap, dependencies
 from sentry.backup.findings import ComparatorFindingKind, InstanceID
 
 
-def test_good_comparator_both_sides_existing():
+def test_good_comparator_both_sides_existing() -> None:
     cmp = DateUpdatedComparator("my_date_field")
     id = InstanceID("sentry.test", 0)
     present: Any = {
@@ -38,7 +37,7 @@ def test_good_comparator_both_sides_existing():
     assert not cmp.existence(id, present, present)
 
 
-def test_good_comparator_neither_side_existing():
+def test_good_comparator_neither_side_existing() -> None:
     cmp = DateUpdatedComparator("my_date_field")
     id = InstanceID("sentry.test", 0)
     missing: Any = {
@@ -50,7 +49,7 @@ def test_good_comparator_neither_side_existing():
     assert not cmp.existence(id, missing, missing)
 
 
-def test_bad_comparator_only_one_side_existing():
+def test_bad_comparator_only_one_side_existing() -> None:
     cmp = DateUpdatedComparator("my_date_field")
     id = InstanceID("sentry.test", 0)
     present: Any = {
@@ -92,7 +91,7 @@ def test_bad_comparator_only_one_side_existing():
     assert "my_date_field" in res[0].reason
 
 
-def test_good_comparator_both_sides_null():
+def test_good_comparator_both_sides_null() -> None:
     cmp = DateUpdatedComparator("my_date_field")
     id = InstanceID("sentry.test", 0)
     nulled: Any = {
@@ -106,7 +105,7 @@ def test_good_comparator_both_sides_null():
     assert not cmp.existence(id, nulled, nulled)
 
 
-def test_bad_comparator_only_one_side_null():
+def test_bad_comparator_only_one_side_null() -> None:
     cmp = DateUpdatedComparator("my_date_field")
     id = InstanceID("sentry.test", 0)
     present: Any = {
@@ -150,7 +149,7 @@ def test_bad_comparator_only_one_side_null():
     assert "my_date_field" in res[0].reason
 
 
-def test_good_comparator_one_side_null_other_side_missing():
+def test_good_comparator_one_side_null_other_side_missing() -> None:
     cmp = DateUpdatedComparator("my_date_field")
     id = InstanceID("sentry.test", 0)
     nulled: Any = {
@@ -174,7 +173,7 @@ def test_good_comparator_one_side_null_other_side_missing():
     assert not res
 
 
-def test_good_auto_suffix_comparator():
+def test_good_auto_suffix_comparator() -> None:
     cmp = AutoSuffixComparator("same", "suffixed")
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -198,7 +197,7 @@ def test_good_auto_suffix_comparator():
     assert not cmp.compare(id, left, right)
 
 
-def test_bad_auto_suffix_comparator():
+def test_bad_auto_suffix_comparator() -> None:
     cmp = AutoSuffixComparator("same", "suffixed")
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -240,7 +239,7 @@ def test_bad_auto_suffix_comparator():
     assert "foo-barbaz" in res[1].reason
 
 
-def test_good_auto_suffix_comparator_existence():
+def test_good_auto_suffix_comparator_existence() -> None:
     cmp = AutoSuffixComparator("auto_suffix_field")
     id = InstanceID("sentry.test", 0)
     present: Any = {
@@ -270,7 +269,7 @@ def test_good_auto_suffix_comparator_existence():
     assert "`auto_suffix_field`" in res[0].reason
 
 
-def test_good_auto_suffix_comparator_scrubbed():
+def test_good_auto_suffix_comparator_scrubbed() -> None:
     cmp = AutoSuffixComparator("same", "suffixed")
     left: Any = {
         "model": "test",
@@ -292,15 +291,15 @@ def test_good_auto_suffix_comparator_scrubbed():
     }
     cmp.scrub(left, right)
     assert left["scrubbed"]
-    assert left["scrubbed"]["AutoSuffixComparator::same"] is ScrubbedData()
-    assert left["scrubbed"]["AutoSuffixComparator::suffixed"] is ScrubbedData()
+    assert left["scrubbed"]["AutoSuffixComparator::same"] is ScrubbedData.SCRUBBED_DATA
+    assert left["scrubbed"]["AutoSuffixComparator::suffixed"] is ScrubbedData.SCRUBBED_DATA
 
     assert right["scrubbed"]
-    assert right["scrubbed"]["AutoSuffixComparator::same"] is ScrubbedData()
-    assert right["scrubbed"]["AutoSuffixComparator::suffixed"] is ScrubbedData()
+    assert right["scrubbed"]["AutoSuffixComparator::same"] is ScrubbedData.SCRUBBED_DATA
+    assert right["scrubbed"]["AutoSuffixComparator::suffixed"] is ScrubbedData.SCRUBBED_DATA
 
 
-def test_good_datetime_equality_comparator():
+def test_good_datetime_equality_comparator() -> None:
     cmp = DatetimeEqualityComparator("my_date_field")
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -322,7 +321,7 @@ def test_good_datetime_equality_comparator():
     assert not cmp.compare(id, left, right)
 
 
-def test_bad_datetime_equality_comparator():
+def test_bad_datetime_equality_comparator() -> None:
     cmp = DatetimeEqualityComparator("my_date_field")
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -355,7 +354,7 @@ def test_bad_datetime_equality_comparator():
     assert "right value (2023-06-22T00:00:00.123Z)" in res[0].reason
 
 
-def test_good_date_updated_comparator():
+def test_good_date_updated_comparator() -> None:
     cmp = DateUpdatedComparator("my_date_field")
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -377,7 +376,7 @@ def test_good_date_updated_comparator():
     assert not cmp.compare(id, left, right)
 
 
-def test_bad_date_updated_comparator():
+def test_bad_date_updated_comparator() -> None:
     cmp = DateUpdatedComparator("my_date_field")
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -410,7 +409,7 @@ def test_bad_date_updated_comparator():
     assert "right value (2023-06-22T23:00:00.001Z)" in res[0].reason
 
 
-def test_good_email_obfuscating_comparator():
+def test_good_email_obfuscating_comparator() -> None:
     cmp = EmailObfuscatingComparator("one_email", "many_emails")
     id = InstanceID("sentry.test", 0)
     model = {
@@ -428,7 +427,7 @@ def test_good_email_obfuscating_comparator():
     assert not cmp.compare(id, model, model)
 
 
-def test_bad_email_obfuscating_comparator():
+def test_bad_email_obfuscating_comparator() -> None:
     cmp = EmailObfuscatingComparator("one_email", "many_emails")
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -476,7 +475,7 @@ def test_bad_email_obfuscating_comparator():
     assert "a...@...ng.com" in res[1].reason
 
 
-def test_good_email_obfuscating_comparator_existence():
+def test_good_email_obfuscating_comparator_existence() -> None:
     cmp = EmailObfuscatingComparator("email_obfuscating_field")
     id = InstanceID("sentry.test", 0)
     present: Any = {
@@ -506,7 +505,7 @@ def test_good_email_obfuscating_comparator_existence():
     assert "`email_obfuscating_field`" in res[0].reason
 
 
-def test_good_email_obfuscating_comparator_scrubbed():
+def test_good_email_obfuscating_comparator_scrubbed() -> None:
     cmp = EmailObfuscatingComparator("one_email", "many_emails")
     left: Any = {
         "model": "test",
@@ -548,7 +547,7 @@ def test_good_email_obfuscating_comparator_scrubbed():
     ]
 
 
-def test_good_equal_or_removed_comparator_equal():
+def test_good_equal_or_removed_comparator_equal() -> None:
     cmp = EqualOrRemovedComparator("my_field")
     id = InstanceID("sentry.test", 0)
     present: Any = {
@@ -564,7 +563,7 @@ def test_good_equal_or_removed_comparator_equal():
     assert not cmp.compare(id, present, present)
 
 
-def test_good_equal_or_removed_comparator_not_equal():
+def test_good_equal_or_removed_comparator_not_equal() -> None:
     cmp = EqualOrRemovedComparator("my_field")
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -600,7 +599,7 @@ def test_good_equal_or_removed_comparator_not_equal():
     assert "bar" in res[0].reason
 
 
-def test_good_equal_or_removed_comparator_neither_side_existing():
+def test_good_equal_or_removed_comparator_neither_side_existing() -> None:
     cmp = EqualOrRemovedComparator("my_field")
     id = InstanceID("sentry.test", 0)
     missing: Any = {
@@ -612,7 +611,7 @@ def test_good_equal_or_removed_comparator_neither_side_existing():
     assert not cmp.existence(id, missing, missing)
 
 
-def test_good_equal_or_removed_comparator_only_right_side_missing():
+def test_good_equal_or_removed_comparator_only_right_side_missing() -> None:
     cmp = EqualOrRemovedComparator("my_field")
     id = InstanceID("sentry.test", 0)
     present: Any = {
@@ -633,7 +632,7 @@ def test_good_equal_or_removed_comparator_only_right_side_missing():
     assert not cmp.compare(id, present, missing)
 
 
-def test_bad_equal_or_removed_comparator_only_left_side_missing():
+def test_bad_equal_or_removed_comparator_only_left_side_missing() -> None:
     cmp = EqualOrRemovedComparator("my_field")
     id = InstanceID("sentry.test", 0)
     present: Any = {
@@ -663,7 +662,7 @@ def test_bad_equal_or_removed_comparator_only_left_side_missing():
     assert "my_field" in res[0].reason
 
 
-def test_good_equal_or_removed_comparator_both_sides_nulled():
+def test_good_equal_or_removed_comparator_both_sides_nulled() -> None:
     cmp = EqualOrRemovedComparator("my_field")
     id = InstanceID("sentry.test", 0)
     nulled: Any = {
@@ -677,7 +676,7 @@ def test_good_equal_or_removed_comparator_both_sides_nulled():
     assert not cmp.existence(id, nulled, nulled)
 
 
-def test_good_equal_or_removed_comparator_only_right_side_nulled():
+def test_good_equal_or_removed_comparator_only_right_side_nulled() -> None:
     cmp = EqualOrRemovedComparator("my_field")
     id = InstanceID("sentry.test", 0)
     present: Any = {
@@ -700,7 +699,7 @@ def test_good_equal_or_removed_comparator_only_right_side_nulled():
     assert not cmp.compare(id, present, missing)
 
 
-def test_bad_equal_or_removed_comparator_only_left_side_nulled():
+def test_bad_equal_or_removed_comparator_only_left_side_nulled() -> None:
     cmp = EqualOrRemovedComparator("my_field")
     id = InstanceID("sentry.test", 0)
     present: Any = {
@@ -732,7 +731,7 @@ def test_bad_equal_or_removed_comparator_only_left_side_nulled():
     assert "my_field" in res[0].reason
 
 
-def test_good_hash_obfuscating_comparator():
+def test_good_hash_obfuscating_comparator() -> None:
     cmp = HashObfuscatingComparator("one_hash", "many_hashes")
     id = InstanceID("sentry.test", 0)
     model: Any = {
@@ -750,7 +749,7 @@ def test_good_hash_obfuscating_comparator():
     assert not cmp.compare(id, model, model)
 
 
-def test_bad_hash_obfuscating_comparator():
+def test_bad_hash_obfuscating_comparator() -> None:
     cmp = HashObfuscatingComparator("one_hash", "many_hashes")
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -798,7 +797,7 @@ def test_bad_hash_obfuscating_comparator():
     assert "124...39c" in res[1].reason
 
 
-def test_good_hash_obfuscating_comparator_existence():
+def test_good_hash_obfuscating_comparator_existence() -> None:
     cmp = HashObfuscatingComparator("hash_obfuscating_field")
     id = InstanceID("sentry.test", 0)
     present: Any = {
@@ -828,7 +827,7 @@ def test_good_hash_obfuscating_comparator_existence():
     assert "`hash_obfuscating_field`" in res[0].reason
 
 
-def test_good_hash_obfuscating_comparator_scrubbed():
+def test_good_hash_obfuscating_comparator_scrubbed() -> None:
     cmp = HashObfuscatingComparator("one_hash", "many_hashes")
     left: Any = {
         "model": "test",
@@ -870,7 +869,7 @@ def test_good_hash_obfuscating_comparator_scrubbed():
     ]
 
 
-def test_good_foreign_key_comparator():
+def test_good_foreign_key_comparator() -> None:
     deps = dependencies()
     cmp = ForeignKeyComparator(
         {k: v.model for k, v in deps[NormalizedModelName("sentry.UserEmail")].foreign_keys.items()}
@@ -909,7 +908,7 @@ def test_good_foreign_key_comparator():
     assert not cmp.compare(id, left, right)
 
 
-def test_good_foreign_key_comparator_existence():
+def test_good_foreign_key_comparator_existence() -> None:
     deps = dependencies()
     cmp = ForeignKeyComparator(
         {k: v.model for k, v in deps[NormalizedModelName("sentry.UserEmail")].foreign_keys.items()}
@@ -951,7 +950,7 @@ def test_good_foreign_key_comparator_existence():
     assert "`user`" in res[0].reason
 
 
-def test_good_foreign_key_comparator_scrubbed():
+def test_good_foreign_key_comparator_scrubbed() -> None:
     deps = dependencies()
     cmp = ForeignKeyComparator(
         {k: v.model for k, v in deps[NormalizedModelName("sentry.UserEmail")].foreign_keys.items()}
@@ -971,13 +970,13 @@ def test_good_foreign_key_comparator_scrubbed():
     right = deepcopy(left)
     cmp.scrub(left, right)
     assert left["scrubbed"]
-    assert left["scrubbed"]["ForeignKeyComparator::user"] is ScrubbedData()
+    assert left["scrubbed"]["ForeignKeyComparator::user"] is ScrubbedData.SCRUBBED_DATA
 
     assert right["scrubbed"]
-    assert right["scrubbed"]["ForeignKeyComparator::user"] is ScrubbedData()
+    assert right["scrubbed"]["ForeignKeyComparator::user"] is ScrubbedData.SCRUBBED_DATA
 
 
-def test_bad_foreign_key_comparator_set_primary_key_maps_not_called():
+def test_bad_foreign_key_comparator_set_primary_key_maps_not_called() -> None:
     deps = dependencies()
     cmp = ForeignKeyComparator(
         {k: v.model for k, v in deps[NormalizedModelName("sentry.UserEmail")].foreign_keys.items()}
@@ -1016,7 +1015,7 @@ def test_bad_foreign_key_comparator_set_primary_key_maps_not_called():
         cmp.compare(id, left, right)
 
 
-def test_bad_foreign_key_comparator_unequal_mapping():
+def test_bad_foreign_key_comparator_unequal_mapping() -> None:
     deps = dependencies()
     cmp = ForeignKeyComparator(
         {k: v.model for k, v in deps[NormalizedModelName("sentry.UserEmail")].foreign_keys.items()}
@@ -1066,7 +1065,7 @@ def test_bad_foreign_key_comparator_unequal_mapping():
     assert "right foreign key ordinal (2)" in res[0].reason
 
 
-def test_bad_foreign_key_comparator_missing_mapping():
+def test_bad_foreign_key_comparator_missing_mapping() -> None:
     deps = dependencies()
     cmp = ForeignKeyComparator(
         {k: v.model for k, v in deps[NormalizedModelName("sentry.UserEmail")].foreign_keys.items()}
@@ -1122,7 +1121,7 @@ def test_bad_foreign_key_comparator_missing_mapping():
     assert "pk `34`" in res[1].reason
 
 
-def test_good_ignored_comparator():
+def test_good_ignored_comparator() -> None:
     cmp = IgnoredComparator("ignored_field")
     id = InstanceID("sentry.test", 0)
     model: Any = {
@@ -1137,7 +1136,7 @@ def test_good_ignored_comparator():
     assert not cmp.compare(id, model, model)
 
 
-def test_good_ignored_comparator_existence():
+def test_good_ignored_comparator_existence() -> None:
     cmp = IgnoredComparator("ignored_field")
     id = InstanceID("sentry.test", 0)
     present: Any = {
@@ -1158,7 +1157,7 @@ def test_good_ignored_comparator_existence():
     assert not res
 
 
-def test_good_ignored_comparator_scrubbed():
+def test_good_ignored_comparator_scrubbed() -> None:
     cmp = IgnoredComparator("ignored_field")
     left: Any = {
         "model": "test",
@@ -1172,15 +1171,15 @@ def test_good_ignored_comparator_scrubbed():
     right = deepcopy(left)
     cmp.scrub(left, right)
     assert left["scrubbed"]
-    assert left["scrubbed"]["IgnoredComparator::ignored_field"] is ScrubbedData()
+    assert left["scrubbed"]["IgnoredComparator::ignored_field"] is ScrubbedData.SCRUBBED_DATA
     assert left["scrubbed"].get("IgnoredComparator::other_field") is None
 
     assert right["scrubbed"]
-    assert right["scrubbed"]["IgnoredComparator::ignored_field"] is ScrubbedData()
+    assert right["scrubbed"]["IgnoredComparator::ignored_field"] is ScrubbedData.SCRUBBED_DATA
     assert right["scrubbed"].get("IgnoredComparator::other_field") is None
 
 
-def test_good_secret_hex_comparator():
+def test_good_secret_hex_comparator() -> None:
     cmp = SecretHexComparator(8, "equal", "unequal")
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -1204,7 +1203,7 @@ def test_good_secret_hex_comparator():
     assert not cmp.compare(id, left, right)
 
 
-def test_bad_secret_hex_comparator():
+def test_bad_secret_hex_comparator() -> None:
     cmp = SecretHexComparator(8, "same", "invalid_left", "invalid_right")
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -1252,7 +1251,7 @@ def test_bad_secret_hex_comparator():
     assert "bar" in res[1].reason
 
 
-def test_good_secret_hex_comparator_scrubbed():
+def test_good_secret_hex_comparator_scrubbed() -> None:
     cmp = SecretHexComparator(8, "secret_hex_field")
     left: Any = {
         "model": "test",
@@ -1272,13 +1271,13 @@ def test_good_secret_hex_comparator_scrubbed():
     }
     cmp.scrub(left, right)
     assert left["scrubbed"]
-    assert left["scrubbed"]["SecretHexComparator::secret_hex_field"] is ScrubbedData()
+    assert left["scrubbed"]["SecretHexComparator::secret_hex_field"] is ScrubbedData.SCRUBBED_DATA
 
     assert right["scrubbed"]
-    assert right["scrubbed"]["SecretHexComparator::secret_hex_field"] is ScrubbedData()
+    assert right["scrubbed"]["SecretHexComparator::secret_hex_field"] is ScrubbedData.SCRUBBED_DATA
 
 
-def test_good_subscription_id_comparator():
+def test_good_subscription_id_comparator() -> None:
     cmp = SubscriptionIDComparator("subscription_id_field")
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -1300,7 +1299,7 @@ def test_good_subscription_id_comparator():
     assert not cmp.compare(id, left, right)
 
 
-def test_bad_subscription_id_comparator():
+def test_bad_subscription_id_comparator() -> None:
     cmp = SubscriptionIDComparator("same", "invalid_left", "invalid_right")
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -1357,7 +1356,7 @@ def test_bad_subscription_id_comparator():
     assert "0/foobar" in res[2].reason
 
 
-def test_good_subscription_id_comparator_existence():
+def test_good_subscription_id_comparator_existence() -> None:
     cmp = SubscriptionIDComparator("subscription_id_field")
     id = InstanceID("sentry.test", 0)
     present: Any = {
@@ -1387,7 +1386,7 @@ def test_good_subscription_id_comparator_existence():
     assert "`subscription_id_field`" in res[0].reason
 
 
-def test_good_subscription_id_comparator_scrubbed():
+def test_good_subscription_id_comparator_scrubbed() -> None:
     cmp = SubscriptionIDComparator("subscription_id_field")
     left: Any = {
         "model": "test",
@@ -1407,13 +1406,19 @@ def test_good_subscription_id_comparator_scrubbed():
     }
     cmp.scrub(left, right)
     assert left["scrubbed"]
-    assert left["scrubbed"]["SubscriptionIDComparator::subscription_id_field"] is ScrubbedData()
+    assert (
+        left["scrubbed"]["SubscriptionIDComparator::subscription_id_field"]
+        is ScrubbedData.SCRUBBED_DATA
+    )
 
     assert right["scrubbed"]
-    assert right["scrubbed"]["SubscriptionIDComparator::subscription_id_field"] is ScrubbedData()
+    assert (
+        right["scrubbed"]["SubscriptionIDComparator::subscription_id_field"]
+        is ScrubbedData.SCRUBBED_DATA
+    )
 
 
-def test_good_unordered_list_comparator():
+def test_good_unordered_list_comparator() -> None:
     cmp = UnorderedListComparator("ordered", "unordered")
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -1437,7 +1442,7 @@ def test_good_unordered_list_comparator():
     assert not cmp.compare(id, left, right)
 
 
-def test_bad_unordered_list_comparator():
+def test_bad_unordered_list_comparator() -> None:
     cmp = UnorderedListComparator("unequal")
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -1471,7 +1476,7 @@ def test_bad_unordered_list_comparator():
     assert "['a', 'b', 'c']" in res[0].reason
 
 
-def test_good_unordered_list_comparator_existence():
+def test_good_unordered_list_comparator_existence() -> None:
     cmp = UnorderedListComparator("unordered_list_field")
     id = InstanceID("sentry.test", 0)
     present: Any = {
@@ -1501,7 +1506,7 @@ def test_good_unordered_list_comparator_existence():
     assert "`unordered_list_field`" in res[0].reason
 
 
-def test_good_unordered_list_comparator_scrubbed():
+def test_good_unordered_list_comparator_scrubbed() -> None:
     cmp = UnorderedListComparator("unordered_list_field")
     left: Any = {
         "model": "test",
@@ -1521,13 +1526,19 @@ def test_good_unordered_list_comparator_scrubbed():
     }
     cmp.scrub(left, right)
     assert left["scrubbed"]
-    assert left["scrubbed"]["UnorderedListComparator::unordered_list_field"] is ScrubbedData()
+    assert (
+        left["scrubbed"]["UnorderedListComparator::unordered_list_field"]
+        is ScrubbedData.SCRUBBED_DATA
+    )
 
     assert right["scrubbed"]
-    assert right["scrubbed"]["UnorderedListComparator::unordered_list_field"] is ScrubbedData()
+    assert (
+        right["scrubbed"]["UnorderedListComparator::unordered_list_field"]
+        is ScrubbedData.SCRUBBED_DATA
+    )
 
 
-def test_good_uuid4_comparator():
+def test_good_uuid4_comparator() -> None:
     cmp = UUID4Comparator("guid_field")
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -1549,7 +1560,7 @@ def test_good_uuid4_comparator():
     assert not cmp.compare(id, left, right)
 
 
-def test_bad_uuid4_comparator():
+def test_bad_uuid4_comparator() -> None:
     cmp = UUID4Comparator("same", "invalid_left", "invalid_right")
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -1606,7 +1617,7 @@ def test_bad_uuid4_comparator():
     assert "bar" in res[2].reason
 
 
-def test_good_uuid4_comparator_scrubbed():
+def test_good_uuid4_comparator_scrubbed() -> None:
     cmp = UUID4Comparator("guid_field")
     left: Any = {
         "model": "test",
@@ -1626,13 +1637,13 @@ def test_good_uuid4_comparator_scrubbed():
     }
     cmp.scrub(left, right)
     assert left["scrubbed"]
-    assert left["scrubbed"]["UUID4Comparator::guid_field"] is ScrubbedData()
+    assert left["scrubbed"]["UUID4Comparator::guid_field"] is ScrubbedData.SCRUBBED_DATA
 
     assert right["scrubbed"]
-    assert right["scrubbed"]["UUID4Comparator::guid_field"] is ScrubbedData()
+    assert right["scrubbed"]["UUID4Comparator::guid_field"] is ScrubbedData.SCRUBBED_DATA
 
 
-def test_good_user_password_obfuscating_comparator_claimed_user():
+def test_good_user_password_obfuscating_comparator_claimed_user() -> None:
     cmp = UserPasswordObfuscatingComparator()
     id = InstanceID("sentry.test", 0)
     model: Any = {
@@ -1649,7 +1660,7 @@ def test_good_user_password_obfuscating_comparator_claimed_user():
     assert not cmp.compare(id, model, model)
 
 
-def test_good_user_password_obfuscating_comparator_claimed_user_never_changed_password():
+def test_good_user_password_obfuscating_comparator_claimed_user_never_changed_password() -> None:
     cmp = UserPasswordObfuscatingComparator()
     id = InstanceID("sentry.test", 0)
     missing: Any = {
@@ -1678,7 +1689,7 @@ def test_good_user_password_obfuscating_comparator_claimed_user_never_changed_pa
     assert not cmp.compare(id, missing, nulled)
 
 
-def test_good_user_password_obfuscating_comparator_newly_unclaimed_user():
+def test_good_user_password_obfuscating_comparator_newly_unclaimed_user() -> None:
     cmp = UserPasswordObfuscatingComparator()
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -1706,7 +1717,9 @@ def test_good_user_password_obfuscating_comparator_newly_unclaimed_user():
     assert not cmp.compare(id, left, right)
 
 
-def test_good_user_password_obfuscating_comparator_newly_unclaimed_user_never_changed_password():
+def test_good_user_password_obfuscating_comparator_newly_unclaimed_user_never_changed_password() -> (
+    None
+):
     cmp = UserPasswordObfuscatingComparator()
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -1734,7 +1747,7 @@ def test_good_user_password_obfuscating_comparator_newly_unclaimed_user_never_ch
     assert not cmp.compare(id, left, right)
 
 
-def test_good_user_password_obfuscating_comparator_already_unclaimed_user():
+def test_good_user_password_obfuscating_comparator_already_unclaimed_user() -> None:
     cmp = UserPasswordObfuscatingComparator()
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -1762,7 +1775,7 @@ def test_good_user_password_obfuscating_comparator_already_unclaimed_user():
     assert not cmp.compare(id, left, right)
 
 
-def test_bad_user_password_obfuscating_comparator_claimed_user_password_changed():
+def test_bad_user_password_obfuscating_comparator_claimed_user_password_changed() -> None:
     cmp = UserPasswordObfuscatingComparator()
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -1801,7 +1814,7 @@ def test_bad_user_password_obfuscating_comparator_claimed_user_password_changed(
     assert "pbkdf2_sha25...+Qayg=" in res[0].reason
 
 
-def test_bad_user_password_obfuscating_comparator_newly_unclaimed_user_password_unchanged():
+def test_bad_user_password_obfuscating_comparator_newly_unclaimed_user_password_unchanged() -> None:
     cmp = UserPasswordObfuscatingComparator()
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -1839,7 +1852,9 @@ def test_bad_user_password_obfuscating_comparator_newly_unclaimed_user_password_
     assert res[0].reason.count("pbkdf2_sha25...OCTiw=") == 2
 
 
-def test_bad_user_password_obfuscating_comparator_already_unclaimed_user_password_unchanged():
+def test_bad_user_password_obfuscating_comparator_already_unclaimed_user_password_unchanged() -> (
+    None
+):
     cmp = UserPasswordObfuscatingComparator()
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -1877,7 +1892,7 @@ def test_bad_user_password_obfuscating_comparator_already_unclaimed_user_passwor
     assert res[0].reason.count("pbkdf2_sha25...OCTiw=") == 2
 
 
-def test_bad_user_password_obfuscating_comparator_impossible_newly_claimed_user():
+def test_bad_user_password_obfuscating_comparator_impossible_newly_claimed_user() -> None:
     cmp = UserPasswordObfuscatingComparator()
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -1915,7 +1930,9 @@ def test_bad_user_password_obfuscating_comparator_impossible_newly_claimed_user(
     assert "cannot claim" in res[0].reason
 
 
-def test_bad_user_password_obfuscating_comparator_unclaimed_user_last_password_change_nulled():
+def test_bad_user_password_obfuscating_comparator_unclaimed_user_last_password_change_nulled() -> (
+    None
+):
     cmp = UserPasswordObfuscatingComparator()
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -1953,7 +1970,9 @@ def test_bad_user_password_obfuscating_comparator_unclaimed_user_last_password_c
     assert "less than" in res[0].reason
 
 
-def test_bad_user_password_obfuscating_comparator_already_unclaimed_user_password_unexpired():
+def test_bad_user_password_obfuscating_comparator_already_unclaimed_user_password_unexpired() -> (
+    None
+):
     cmp = UserPasswordObfuscatingComparator()
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -1990,7 +2009,9 @@ def test_bad_user_password_obfuscating_comparator_already_unclaimed_user_passwor
     assert "`is_password_expired`" in res[0].reason
 
 
-def test_bad_user_password_obfuscating_comparator_newly_unclaimed_user_password_still_expired():
+def test_bad_user_password_obfuscating_comparator_newly_unclaimed_user_password_still_expired() -> (
+    None
+):
     cmp = UserPasswordObfuscatingComparator()
     id = InstanceID("sentry.test", 0)
     left: Any = {
@@ -2028,7 +2049,7 @@ def test_bad_user_password_obfuscating_comparator_newly_unclaimed_user_password_
     assert "False" in res[0].reason
 
 
-def test_good_user_password_obfuscating_comparator_existence():
+def test_good_user_password_obfuscating_comparator_existence() -> None:
     cmp = UserPasswordObfuscatingComparator()
     id = InstanceID("sentry.test", 0)
     present: Any = {
@@ -2058,7 +2079,7 @@ def test_good_user_password_obfuscating_comparator_existence():
     assert "`password`" in res[0].reason
 
 
-def test_good_user_password_obfuscating_comparator_scrubbed_long():
+def test_good_user_password_obfuscating_comparator_scrubbed_long() -> None:
     cmp = UserPasswordObfuscatingComparator()
     left: Any = {
         "model": "test",
@@ -2090,7 +2111,7 @@ def test_good_user_password_obfuscating_comparator_scrubbed_long():
     ]
 
 
-def test_good_user_password_obfuscating_comparator_scrubbed_medium():
+def test_good_user_password_obfuscating_comparator_scrubbed_medium() -> None:
     cmp = UserPasswordObfuscatingComparator()
     left: Any = {
         "model": "test",
@@ -2118,7 +2139,7 @@ def test_good_user_password_obfuscating_comparator_scrubbed_medium():
     assert right["scrubbed"]["UserPasswordObfuscatingComparator::password"] == ["sha1$a...4d4d"]
 
 
-def test_good_user_password_obfuscating_comparator_scrubbed_short():
+def test_good_user_password_obfuscating_comparator_scrubbed_short() -> None:
     cmp = UserPasswordObfuscatingComparator()
     left: Any = {
         "model": "test",
@@ -2144,19 +2165,3 @@ def test_good_user_password_obfuscating_comparator_scrubbed_short():
 
     assert right["scrubbed"]
     assert right["scrubbed"]["UserPasswordObfuscatingComparator::password"] == ["..."]
-
-
-def test_default_comparators(insta_snapshot):
-    serialized = []
-    defs = get_default_comparators()
-    for model_name, comparators in sorted(defs.items()):
-        serialized.append(
-            {
-                "model_name": model_name,
-                "comparators": [
-                    {"class": c.__class__.__name__, "fields": sorted(list(c.fields))}
-                    for c in comparators
-                ],
-            }
-        )
-    insta_snapshot(serialized)

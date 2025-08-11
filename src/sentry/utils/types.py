@@ -66,6 +66,7 @@ class AnyType(Type[typing.Any]):
 
 class BoolType(Type[bool]):
     "Coerce a boolean from a string"
+
     name = "boolean"
     default = False
     expected_types = (bool,)
@@ -186,33 +187,27 @@ _type_mapping: dict[type[object], Type] = {
 
 
 @typing.overload
-def type_from_value(value: int) -> IntType:
-    ...
+def type_from_value(value: int) -> IntType: ...
 
 
 @typing.overload
-def type_from_value(value: float) -> FloatType:
-    ...
+def type_from_value(value: float) -> FloatType: ...
 
 
 @typing.overload
-def type_from_value(value: bytes) -> StringType:
-    ...
+def type_from_value(value: bytes) -> StringType: ...
 
 
 @typing.overload
-def type_from_value(value: str) -> StringType:
-    ...
+def type_from_value(value: str) -> StringType: ...
 
 
 @typing.overload
-def type_from_value(value: dict) -> DictType:
-    ...
+def type_from_value(value: dict) -> DictType: ...
 
 
 @typing.overload
-def type_from_value(value: list) -> SequenceType:
-    ...
+def type_from_value(value: list) -> SequenceType: ...
 
 
 def type_from_value(value):
@@ -221,9 +216,3 @@ def type_from_value(value):
 
 
 AnyCallable = typing.Callable[..., AnyType]
-
-
-def NonNone(value: T | None) -> T:
-    """A hacked version of TS's non-null assertion operator"""
-    assert value is not None
-    return value

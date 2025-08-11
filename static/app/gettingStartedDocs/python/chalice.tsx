@@ -1,16 +1,21 @@
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  Docs,
-  DocsParams,
-  OnboardingConfig,
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  type Docs,
+  type DocsParams,
+  type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
+import {
+  agentMonitoringOnboarding,
+  AlternativeConfiguration,
+  crashReportOnboardingPython,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {
+  getPythonInstallConfig,
+  getPythonProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
-
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[chalice]'`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import sentry_sdk
@@ -19,22 +24,35 @@ from chalice import Chalice
 from sentry_sdk.integrations.chalice import ChaliceIntegration
 
 sentry_sdk.init(
-    dsn="${params.dsn}",
-    integrations=[ChaliceIntegration()],${
+    dsn="${params.dsn.public}",
+    integrations=[ChaliceIntegration()],
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
+    # of transactions for tracing.
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode !== 'continuous'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : ''
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
+          ? `
+    # Set profile_session_sample_rate to 1.0 to profile 100%
+    # of profile sessions.
+    profile_session_sample_rate=1.0,
+    # Set profile_lifecycle to "trace" to automatically
+    # run the profiler on when there is an active transaction
+    profile_lifecycle="trace",`
+          : ''
     }
 )
 
@@ -51,31 +69,16 @@ def index():
     return {"hello": "world"}`;
 
 const onboarding: OnboardingConfig = {
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentryBotteCode:chalice] extra:',
+        'Install [code:sentry-sdk] from PyPI with the [code:chalice] extra:',
         {
-          sentrySdkCode: <code />,
-          sentryBotteCode: <code />,
+          code: <code />,
         }
       ),
-      configurations: [
-        {
-          description: params.isProfilingSelected
-            ? tct(
-                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
-                {
-                  codeVersion: <code />,
-                  codePackage: <code />,
-                }
-              )
-            : undefined,
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-      ],
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[chalice]'}),
     },
   ],
   configure: (params: Params) => [
@@ -90,6 +93,10 @@ const onboarding: OnboardingConfig = {
           code: getSdkSetupSnippet(params),
         },
       ],
+      additionalInfo: params.isProfilingSelected &&
+        params.profilingOptions?.defaultProfilingMode === 'continuous' && (
+          <AlternativeConfiguration />
+        ),
     },
   ],
   verify: () => [
@@ -114,10 +121,9 @@ const onboarding: OnboardingConfig = {
 
 const docs: Docs = {
   onboarding,
-  customMetricsOnboarding: getPythonMetricsOnboarding({
-    installSnippet: getInstallSnippet(),
-  }),
+  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[chalice]'}),
   crashReportOnboarding: crashReportOnboardingPython,
+  agentMonitoringOnboarding,
 };
 
 export default docs;

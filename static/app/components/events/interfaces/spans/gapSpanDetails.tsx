@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/profiling-empty-state.svg';
 
-import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {ExternalLink} from 'sentry/components/core/link';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
@@ -31,15 +31,10 @@ import type {GapSpanType} from './types';
 
 interface GapSpanDetailsProps {
   event: Readonly<EventTransaction>;
-  resetCellMeasureCache: () => void;
   span: Readonly<GapSpanType>;
 }
 
-export function GapSpanDetails({
-  event,
-  resetCellMeasureCache,
-  span,
-}: GapSpanDetailsProps) {
+export function GapSpanDetails({event, span}: GapSpanDetailsProps) {
   const {projects} = useProjects();
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),
@@ -121,14 +116,7 @@ export function GapSpanDetails({
   // This project has received a profile before so they've already
   // set up profiling. No point showing the profiling setup again.
   if (!docsLink || project?.hasProfiles) {
-    return (
-      <InlineDocs
-        orgSlug={organization.slug}
-        platform={event.sdk?.name || ''}
-        projectSlug={event?.projectSlug ?? project?.slug ?? ''}
-        resetCellMeasureCache={resetCellMeasureCache}
-      />
-    );
+    return <InlineDocs platform={event.sdk?.name || ''} />;
   }
 
   // At this point we must have a project on a supported
@@ -143,9 +131,9 @@ export function GapSpanDetails({
             'Profiles can give you additional context on which functions are sampled at the same time of these spans.'
           )}
         </p>
-        <Button size="sm" priority="primary" href={docsLink} external>
+        <LinkButton size="sm" priority="primary" href={docsLink} external>
           {t('Set Up Profiling')}
-        </Button>
+        </LinkButton>
         <ManualInstrumentationInstruction />
       </InstructionsContainer>
     </Container>
@@ -189,7 +177,7 @@ function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewP
     : undefined;
 
   const target = generateProfileFlamechartRouteWithQuery({
-    orgSlug: organization.slug,
+    organization,
     projectSlug: event?.projectSlug ?? '',
     profileId,
     query,
@@ -198,14 +186,14 @@ function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewP
   function handleGoToProfile() {
     trackAnalytics('profiling_views.go_to_flamegraph', {
       organization,
-      source: 'performance.missing_instrumentation',
+      source: 'performance.trace_view.missing_instrumentation',
     });
   }
 
   return (
     <HeaderContainer>
       <HeaderContainer>
-        <SectionHeading>{t('Related Profile')}</SectionHeading>
+        <SectionHeading>{t('Profile')}</SectionHeading>
         <QuestionTooltip
           position="top"
           size="sm"
@@ -215,9 +203,9 @@ function ProfilePreviewHeader({canvasView, event, organization}: ProfilePreviewP
           )}
         />
       </HeaderContainer>
-      <Button size="xs" onClick={handleGoToProfile} to={target}>
+      <LinkButton size="xs" onClick={handleGoToProfile} to={target}>
         {t('View Profile')}
-      </Button>
+      </LinkButton>
     </HeaderContainer>
   );
 }
@@ -249,7 +237,7 @@ const Container = styled('div')`
   justify-content: space-between;
   flex-direction: column;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     flex-direction: row-reverse;
   }
 `;
@@ -270,15 +258,15 @@ const Image = styled('img')`
   width: 420px;
   align-self: center;
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     width: 300px;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     width: 380px;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     width: 420px;
   }
 `;
@@ -301,7 +289,7 @@ const LegendItem = styled('span')`
   align-items: center;
   gap: ${space(0.5)};
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSize.sm};
 `;
 
 const LegendMarker = styled('span')<{color: string}>`

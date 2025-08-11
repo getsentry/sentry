@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import type {HTMLMotionProps, Variants} from 'framer-motion';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
@@ -29,7 +29,7 @@ function FirstEventIndicator({children, ...props}: FirstEventIndicatorProps) {
         children({
           indicator: <Indicator firstIssue={firstIssue} {...props} />,
           firstEventButton: (
-            <Button
+            <LinkButton
               title={t("You'll need to send your first error to continue")}
               tooltipProps={{disabled: !!firstIssue}}
               disabled={!firstIssue}
@@ -37,6 +37,7 @@ function FirstEventIndicator({children, ...props}: FirstEventIndicatorProps) {
               onClick={() =>
                 trackAnalytics('growth.onboarding_take_to_error', {
                   organization: props.organization,
+                  platform: props.project.platform,
                 })
               }
               to={`/organizations/${props.organization.slug}/issues/${
@@ -46,7 +47,7 @@ function FirstEventIndicator({children, ...props}: FirstEventIndicatorProps) {
               }?referrer=onboarding-first-event-indicator`}
             >
               {t('Take me to my error')}
-            </Button>
+            </LinkButton>
           ),
         })
       }
@@ -62,7 +63,7 @@ function Indicator({firstIssue}: IndicatorProps) {
   return (
     <Container>
       <AnimatePresence>
-        {!firstIssue ? <Waiting key="waiting" /> : <Success key="received" />}
+        {firstIssue ? <Success key="received" /> : <Waiting key="waiting" />}
       </AnimatePresence>
     </Container>
   );
@@ -79,13 +80,13 @@ const StatusWrapper = styled(motion.div)`
   grid-template-columns: 1fr max-content;
   gap: ${space(1)};
   align-items: center;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   /* Keep the wrapper in the parent grids first cell for transitions */
   grid-column: 1;
   grid-row: 1;
 `;
 
-StatusWrapper.defaultProps = {
+const StatusWrapperDefaultProps = {
   initial: 'initial',
   animate: 'animate',
   exit: 'exit',
@@ -102,18 +103,22 @@ StatusWrapper.defaultProps = {
 
 function Waiting(props: HTMLMotionProps<'div'>) {
   return (
-    <StatusWrapper {...props}>
-      <AnimatedText>{t('Waiting to receive first event to continue')}</AnimatedText>
-      <WaitingIndicator />
+    <StatusWrapper {...StatusWrapperDefaultProps} {...props}>
+      <AnimatedText {...AnimatedTextDefaultProps}>
+        {t('Waiting to receive first event to continue')}
+      </AnimatedText>
+      <WaitingIndicator variants={indicatorAnimation} transition={testableTransition()} />
     </StatusWrapper>
   );
 }
 
 function Success(props: HTMLMotionProps<'div'>) {
   return (
-    <StatusWrapper {...props}>
-      <AnimatedText>{t('Event was received!')}</AnimatedText>
-      <ReceivedIndicator />
+    <StatusWrapper {...StatusWrapperDefaultProps} {...props}>
+      <AnimatedText {...AnimatedTextDefaultProps}>
+        {t('Event was received!')}
+      </AnimatedText>
+      <ReceivedIndicator size="sm" />
     </StatusWrapper>
   );
 }
@@ -126,7 +131,7 @@ const indicatorAnimation: Variants = {
 
 const AnimatedText = styled(motion.div)``;
 
-AnimatedText.defaultProps = {
+const AnimatedTextDefaultProps = {
   variants: indicatorAnimation,
   transition: testableTransition(),
 };
@@ -136,11 +141,6 @@ const WaitingIndicator = styled(motion.div)`
   ${pulsingIndicatorStyles};
 `;
 
-WaitingIndicator.defaultProps = {
-  variants: indicatorAnimation,
-  transition: testableTransition(),
-};
-
 const ReceivedIndicator = styled(IconCheckmark)`
   color: #fff;
   background: ${p => p.theme.green300};
@@ -148,10 +148,6 @@ const ReceivedIndicator = styled(IconCheckmark)`
   padding: 3px;
   margin: 0 ${space(0.25)};
 `;
-
-ReceivedIndicator.defaultProps = {
-  size: 'sm',
-};
 
 export {Indicator};
 

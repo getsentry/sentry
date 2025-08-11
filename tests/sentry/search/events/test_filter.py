@@ -27,54 +27,8 @@ from sentry.search.events.filter import (
 )
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
-from sentry.utils.snuba import OPERATOR_TO_FUNCTION
-
-
-# Helper functions to make reading the expected output from the boolean tests easier to read. #
-# a:b
-def _eq(xy):
-    return ["equals", [["ifNull", [xy[0], "''"]], xy[1]]]
-
-
-# a:b but using operators instead of functions
-def _oeq(xy):
-    return [["ifNull", [xy[0], "''"]], "=", xy[1]]
-
-
-# !a:b using operators instead of functions
-def _noeq(xy):
-    return [["ifNull", [xy[0], "''"]], "!=", xy[1]]
-
-
-# message ("foo bar baz")
-def _m(x):
-    return ["notEquals", [["positionCaseInsensitive", ["message", f"'{x}'"]], 0]]
-
-
-# message ("foo bar baz") using operators instead of functions
-def _om(x):
-    return [["positionCaseInsensitive", ["message", f"'{x}'"]], "!=", 0]
-
-
-# x OR y
-def _or(x, y):
-    return ["or", [x, y]]
-
-
-# x AND y
-def _and(x, y):
-    return ["and", [x, y]]
-
-
-# count():>1
-def _c(op, val):
-    return [OPERATOR_TO_FUNCTION[op], ["count", val]]
-
-
-# count():>1 using operators instead of functions
-def _oc(op, val):
-    return ["count", op, val]
 
 
 def with_type(type, argument):
@@ -83,7 +37,7 @@ def with_type(type, argument):
 
 
 class DiscoverFunctionTest(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.fn_wo_optionals = DiscoverFunction(
             "wo_optionals",
             required_args=[FunctionArg("arg1"), FunctionArg("arg2")],
@@ -96,17 +50,17 @@ class DiscoverFunctionTest(unittest.TestCase):
             transform="",
         )
 
-    def test_no_optional_valid(self):
+    def test_no_optional_valid(self) -> None:
         self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1", "arg2"])
 
-    def test_no_optional_not_enough_arguments(self):
+    def test_no_optional_not_enough_arguments(self) -> None:
         with pytest.raises(
             InvalidSearchQuery,
             match=r"fn_wo_optionals\(\): expected 2 argument\(s\) but got 1 argument\(s\)",
         ):
             self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1"])
 
-    def test_no_optional_too_may_arguments(self):
+    def test_no_optional_too_may_arguments(self) -> None:
         with pytest.raises(
             InvalidSearchQuery,
             match=r"fn_wo_optionals\(\): expected 2 argument\(s\) but got 3 argument\(s\)",
@@ -115,19 +69,19 @@ class DiscoverFunctionTest(unittest.TestCase):
                 "fn_wo_optionals()", ["arg1", "arg2", "arg3"]
             )
 
-    def test_optional_valid(self):
+    def test_optional_valid(self) -> None:
         self.fn_w_optionals.validate_argument_count("fn_w_optionals()", ["arg1", "arg2"])
         # because the last argument is optional, we don't need to provide it
         self.fn_w_optionals.validate_argument_count("fn_w_optionals()", ["arg1"])
 
-    def test_optional_not_enough_arguments(self):
+    def test_optional_not_enough_arguments(self) -> None:
         with pytest.raises(
             InvalidSearchQuery,
             match=r"fn_w_optionals\(\): expected at least 1 argument\(s\) but got 0 argument\(s\)",
         ):
             self.fn_w_optionals.validate_argument_count("fn_w_optionals()", [])
 
-    def test_optional_too_many_arguments(self):
+    def test_optional_too_many_arguments(self) -> None:
         with pytest.raises(
             InvalidSearchQuery,
             match=r"fn_w_optionals\(\): expected at most 2 argument\(s\) but got 3 argument\(s\)",
@@ -136,13 +90,13 @@ class DiscoverFunctionTest(unittest.TestCase):
                 "fn_w_optionals()", ["arg1", "arg2", "arg3"]
             )
 
-    def test_optional_args_have_default(self):
+    def test_optional_args_have_default(self) -> None:
         with pytest.raises(
             AssertionError, match="test: optional argument at index 0 does not have default"
         ):
             DiscoverFunction("test", optional_args=[FunctionArg("arg1")])
 
-    def test_defining_duplicate_args(self):
+    def test_defining_duplicate_args(self) -> None:
         with pytest.raises(AssertionError, match="test: argument arg1 specified more than once"):
             DiscoverFunction(
                 "test",
@@ -167,14 +121,14 @@ class DiscoverFunctionTest(unittest.TestCase):
                 transform="",
             )
 
-    def test_default_result_type(self):
+    def test_default_result_type(self) -> None:
         fn = DiscoverFunction("fn", transform="")
         assert fn.get_result_type() is None
 
         fn = DiscoverFunction("fn", transform="", default_result_type="number")
         assert fn.get_result_type() == "number"
 
-    def test_result_type_fn(self):
+    def test_result_type_fn(self) -> None:
         fn = DiscoverFunction("fn", transform="", result_type_fn=lambda *_: None)
         assert fn.get_result_type("fn()", []) is None
 
@@ -189,7 +143,7 @@ class DiscoverFunctionTest(unittest.TestCase):
         )
         assert fn.get_result_type("fn()", ["arg1"]) == "number"
 
-    def test_private_function(self):
+    def test_private_function(self) -> None:
         fn = DiscoverFunction("fn", transform="", result_type_fn=lambda *_: None, private=True)
         assert fn.is_accessible() is False
         assert fn.is_accessible(None) is False
@@ -232,15 +186,15 @@ class SemverFilterConverterTest(BaseSemverConverterTest):
     def converter(self, *args, **kwargs):
         return _semver_filter_converter(*args, **kwargs)
 
-    def test_invalid_params(self):
+    def test_invalid_params(self) -> None:
         key = SEMVER_ALIAS
         filter = SearchFilter(SearchKey(key), ">", SearchValue("1.2.3"))
         with pytest.raises(ValueError, match="organization_id is a required param"):
             _semver_filter_converter(filter, key, None)
         with pytest.raises(ValueError, match="organization_id is a required param"):
-            _semver_filter_converter(filter, key, {"something": 1})
+            _semver_filter_converter(filter, key, {"something": 1})  # type: ignore[arg-type]  # intentionally bad data
 
-    def test_invalid_query(self):
+    def test_invalid_query(self) -> None:
         key = SEMVER_ALIAS
         filter = SearchFilter(SearchKey(key), ">", SearchValue("1.2.hi"))
         with pytest.raises(
@@ -249,10 +203,10 @@ class SemverFilterConverterTest(BaseSemverConverterTest):
         ):
             _semver_filter_converter(filter, key, {"organization_id": self.organization.id})
 
-    def test_empty(self):
+    def test_empty(self) -> None:
         self.run_test(">", "1.2.3", "IN", [SEMVER_EMPTY_RELEASE])
 
-    def test(self):
+    def test(self) -> None:
         release = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test@1.2.4")
         self.run_test(">", "1.2.3", "IN", [release_2.version])
@@ -261,7 +215,7 @@ class SemverFilterConverterTest(BaseSemverConverterTest):
         self.run_test("<=", "1.2.3", "IN", [release.version])
         self.run_test("=", "1.2.4", "IN", [release_2.version])
 
-    def test_invert_query(self):
+    def test_invert_query(self) -> None:
         # Tests that flipping the query works and uses a NOT IN. Test all operators to
         # make sure the inversion works correctly.
         release = self.create_release(version="test@1.2.3")
@@ -275,7 +229,7 @@ class SemverFilterConverterTest(BaseSemverConverterTest):
             self.run_test("<=", "1.2.4", "NOT IN", [release_2.version])
             self.run_test("!=", "1.2.3", "NOT IN", [release.version])
 
-    def test_invert_fails(self):
+    def test_invert_fails(self) -> None:
         # Tests that when we invert and still receive too many records that we return
         # as many records we can using IN that are as close to the specified filter as
         # possible.
@@ -291,7 +245,7 @@ class SemverFilterConverterTest(BaseSemverConverterTest):
             self.run_test("<", "1.2.4", "IN", [release_2.version, release_1.version])
             self.run_test("<=", "1.2.3", "IN", [release_2.version, release_1.version])
 
-    def test_prerelease(self):
+    def test_prerelease(self) -> None:
         # Prerelease has weird sorting rules, where an empty string is higher priority
         # than a non-empty string. Make sure this sorting works
         release = self.create_release(version="test@1.2.3-alpha")
@@ -310,7 +264,7 @@ class SemverFilterConverterTest(BaseSemverConverterTest):
         )
         self.run_test("<", "1.2.3", "IN", [release_1.version, release.version])
 
-    def test_granularity(self):
+    def test_granularity(self) -> None:
         self.create_release(version="test@1.0.0.0")
         release_2 = self.create_release(version="test@1.2.0.0")
         release_3 = self.create_release(version="test@1.2.3.0")
@@ -327,7 +281,7 @@ class SemverFilterConverterTest(BaseSemverConverterTest):
         self.run_test(">", "1.2.3.4", "IN", [release_5.version])
         self.run_test(">", "2", "IN", [SEMVER_EMPTY_RELEASE])
 
-    def test_wildcard(self):
+    def test_wildcard(self) -> None:
         release_1 = self.create_release(version="test@1.0.0.0")
         release_2 = self.create_release(version="test@1.2.0.0")
         release_3 = self.create_release(version="test@1.2.3.0")
@@ -345,7 +299,7 @@ class SemverFilterConverterTest(BaseSemverConverterTest):
         self.run_test("=", "1.2.3.4", "IN", [release_4.version])
         self.run_test("=", "2.*", "IN", [release_5.version])
 
-    def test_multi_package(self):
+    def test_multi_package(self) -> None:
         release_1 = self.create_release(version="test@1.0.0.0")
         release_2 = self.create_release(version="test@1.2.0.0")
         release_3 = self.create_release(version="test_2@1.2.3.0")
@@ -353,7 +307,7 @@ class SemverFilterConverterTest(BaseSemverConverterTest):
         self.run_test(">=", "test@1.0", "IN", [release_1.version, release_2.version])
         self.run_test(">", "test_2@1.0", "IN", [release_3.version])
 
-    def test_projects(self):
+    def test_projects(self) -> None:
         project_2 = self.create_project()
         release_1 = self.create_release(version="test@1.0.0.0")
         release_2 = self.create_release(version="test@1.2.0.0", project=project_2)
@@ -387,18 +341,18 @@ class SemverPackageFilterConverterTest(BaseSemverConverterTest):
     def converter(self, *args, **kwargs):
         return _semver_package_filter_converter(*args, **kwargs)
 
-    def test_invalid_params(self):
+    def test_invalid_params(self) -> None:
         key = SEMVER_PACKAGE_ALIAS
         filter = SearchFilter(SearchKey(key), "=", SearchValue("sentry"))
         with pytest.raises(ValueError, match="organization_id is a required param"):
             _semver_filter_converter(filter, key, None)
         with pytest.raises(ValueError, match="organization_id is a required param"):
-            _semver_filter_converter(filter, key, {"something": 1})
+            _semver_filter_converter(filter, key, {"something": 1})  # type: ignore[arg-type]  # intentionally bad data
 
-    def test_empty(self):
+    def test_empty(self) -> None:
         self.run_test("=", "test", "IN", [SEMVER_EMPTY_RELEASE])
 
-    def test(self):
+    def test(self) -> None:
         release = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test@1.2.4")
         release_3 = self.create_release(version="test2@1.2.4")
@@ -406,7 +360,7 @@ class SemverPackageFilterConverterTest(BaseSemverConverterTest):
         self.run_test("=", "test2", "IN", [release_3.version])
         self.run_test("=", "test3", "IN", [SEMVER_EMPTY_RELEASE])
 
-    def test_projects(self):
+    def test_projects(self) -> None:
         project_2 = self.create_project()
         release_1 = self.create_release(version="test@1.0.0.0")
         release_2 = self.create_release(version="test@1.2.0.0", project=project_2)
@@ -421,6 +375,15 @@ class SemverPackageFilterConverterTest(BaseSemverConverterTest):
             project_id=[self.project.id, project_2.id],
         )
 
+    def test_in(self) -> None:
+        release_1 = self.create_release(version="foo@1.0.0.0")
+        release_2 = self.create_release(version="bar@1.2.0.0")
+        self.run_test("IN", ["foo"], "IN", [release_1.version])
+        self.run_test("IN", ["foo", "bar"], "IN", [release_1.version, release_2.version])
+        self.run_test(
+            "IN", ["foo", "bar", "notathing"], "IN", [release_1.version, release_2.version]
+        )
+
 
 class SemverBuildFilterConverterTest(BaseSemverConverterTest):
     key = SEMVER_BUILD_ALIAS
@@ -428,13 +391,13 @@ class SemverBuildFilterConverterTest(BaseSemverConverterTest):
     def converter(self, *args, **kwargs):
         return _semver_build_filter_converter(*args, **kwargs)
 
-    def test_invalid_params(self):
+    def test_invalid_params(self) -> None:
         key = SEMVER_BUILD_ALIAS
         filter = SearchFilter(SearchKey(key), "=", SearchValue("sentry"))
         with pytest.raises(ValueError, match="organization_id is a required param"):
             _semver_filter_converter(filter, key, None)
         with pytest.raises(ValueError, match="organization_id is a required param"):
-            _semver_filter_converter(filter, key, {"something": 1})
+            _semver_filter_converter(filter, key, {"something": 1})  # type: ignore[arg-type]  # intentionally bad data
 
         filter = SearchFilter(SearchKey(key), "IN", SearchValue("sentry"))
         with pytest.raises(
@@ -442,10 +405,10 @@ class SemverBuildFilterConverterTest(BaseSemverConverterTest):
         ):
             _semver_filter_converter(filter, key, {"organization_id": 1})
 
-    def test_empty(self):
+    def test_empty(self) -> None:
         self.run_test("=", "test", "IN", [SEMVER_EMPTY_RELEASE])
 
-    def test(self):
+    def test(self) -> None:
         release = self.create_release(version="test@1.2.3+123")
         release_2 = self.create_release(version="test@1.2.4+123")
         release_3 = self.create_release(version="test2@1.2.5+124")
@@ -460,7 +423,7 @@ class ParseSemverTest(unittest.TestCase):
         semver_filter = parse_semver(version, operator)
         assert semver_filter == expected
 
-    def test_invalid(self):
+    def test_invalid(self) -> None:
         with pytest.raises(
             InvalidSearchQuery,
             match=INVALID_SEMVER_MESSAGE,
@@ -477,7 +440,7 @@ class ParseSemverTest(unittest.TestCase):
         ):
             assert parse_semver("1.2.3.4", "IN") is None
 
-    def test_normal(self):
+    def test_normal(self) -> None:
         self.run_test("1", ">", SemverFilter("gt", [1, 0, 0, 0, 1, ""]))
         self.run_test("1.2", ">", SemverFilter("gt", [1, 2, 0, 0, 1, ""]))
         self.run_test("1.2.3", ">", SemverFilter("gt", [1, 2, 3, 0, 1, ""]))
@@ -486,7 +449,7 @@ class ParseSemverTest(unittest.TestCase):
         self.run_test("1.2.3-hi", "<", SemverFilter("lt", [1, 2, 3, 0, 0, "hi"]))
         self.run_test("sentry@1.2.3-hi", "<", SemverFilter("lt", [1, 2, 3, 0, 0, "hi"], "sentry"))
 
-    def test_wildcard(self):
+    def test_wildcard(self) -> None:
         self.run_test("1.*", "=", SemverFilter("exact", [1]))
         self.run_test("1.2.*", "=", SemverFilter("exact", [1, 2]))
         self.run_test("1.2.3.*", "=", SemverFilter("exact", [1, 2, 3]))
@@ -1142,7 +1105,7 @@ def _project(x):
         ),
     ],
 )
-def test_snql_boolean_search(description, query, expected_where, expected_having):
+def test_snql_boolean_search(description, query, expected_where, expected_having) -> None:
     dataset = Dataset.Discover
     params: ParamsType = {"project_id": [1]}
     query_filter = UnresolvedQuery(
@@ -1218,7 +1181,7 @@ def test_snql_boolean_search(description, query, expected_where, expected_having
         ),
     ],
 )
-def test_snql_malformed_boolean_search(description, query, expected_message):
+def test_snql_malformed_boolean_search(description, query, expected_message) -> None:
     dataset = Dataset.Discover
     params: ParamsType = {}
     query_filter = UnresolvedQuery(
@@ -1230,7 +1193,7 @@ def test_snql_malformed_boolean_search(description, query, expected_message):
 
 
 class SnQLBooleanSearchQueryTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project1 = self.create_project()
         self.project2 = self.create_project()
         self.project3 = self.create_project()
@@ -1248,13 +1211,13 @@ class SnQLBooleanSearchQueryTest(TestCase):
             dataset, params, config=QueryBuilderConfig(use_aggregate_conditions=True)
         )
 
-    def test_project_or(self):
+    def test_project_or(self) -> None:
         query = f"project:{self.project1.slug} OR project:{self.project2.slug}"
         where, having = self.query_filter.resolve_conditions(query)
         assert where == [Or(conditions=[_project(self.project1.id), _project(self.project2.id)])]
         assert having == []
 
-    def test_project_and_with_parens(self):
+    def test_project_and_with_parens(self) -> None:
         query = f"(project:{self.project1.slug} OR project:{self.project2.slug}) AND a:b"
         where, having = self.query_filter.resolve_conditions(query)
         assert where == [
@@ -1267,7 +1230,7 @@ class SnQLBooleanSearchQueryTest(TestCase):
         ]
         assert having == []
 
-    def test_project_or_with_nested_ands(self):
+    def test_project_or_with_nested_ands(self) -> None:
         query = f"(project:{self.project1.slug} AND a:b) OR (project:{self.project1.slug} AND c:d)"
         where, having = self.query_filter.resolve_conditions(query)
         assert where == [
@@ -1280,7 +1243,7 @@ class SnQLBooleanSearchQueryTest(TestCase):
         ]
         assert having == []
 
-    def test_project_not_selected(self):
+    def test_project_not_selected(self) -> None:
         with pytest.raises(
             InvalidSearchQuery,
             match=re.escape(
@@ -1290,7 +1253,7 @@ class SnQLBooleanSearchQueryTest(TestCase):
             query = f"project:{self.project1.slug} OR project:{self.project3.slug}"
             self.query_filter.resolve_conditions(query)
 
-    def test_issue_id_or(self):
+    def test_issue_id_or(self) -> None:
         query = f"issue.id:{self.group1.id} OR issue.id:{self.group2.id}"
         where, having = self.query_filter.resolve_conditions(query)
         assert where == [
@@ -1303,7 +1266,7 @@ class SnQLBooleanSearchQueryTest(TestCase):
         ]
         assert having == []
 
-    def test_issue_id_and(self):
+    def test_issue_id_and(self) -> None:
         query = f"issue.id:{self.group1.id} AND issue.id:{self.group1.id}"
         where, having = self.query_filter.resolve_conditions(query)
         assert where == [
@@ -1316,7 +1279,7 @@ class SnQLBooleanSearchQueryTest(TestCase):
         ]
         assert having == []
 
-    def test_issue_id_or_with_parens(self):
+    def test_issue_id_or_with_parens(self) -> None:
         query = f"(issue.id:{self.group1.id} AND issue.id:{self.group2.id}) OR issue.id:{self.group3.id}"
         where, having = self.query_filter.resolve_conditions(query)
         assert where == [
@@ -1334,19 +1297,19 @@ class SnQLBooleanSearchQueryTest(TestCase):
         ]
         assert having == []
 
-    def test_issue_id_and_tag(self):
+    def test_issue_id_and_tag(self) -> None:
         query = f"issue.id:{self.group1.id} AND a:b"
         where, having = self.query_filter.resolve_conditions(query)
         assert where == [And(conditions=[_cond("group_id", Op.EQ, self.group1.id), _tag("a", "b")])]
         assert having == []
 
-    def test_issue_id_or_tag(self):
+    def test_issue_id_or_tag(self) -> None:
         query = f"issue.id:{self.group1.id} OR a:b"
         where, having = self.query_filter.resolve_conditions(query)
         assert where == [Or(conditions=[_cond("group_id", Op.EQ, self.group1.id), _tag("a", "b")])]
         assert having == []
 
-    def test_issue_id_or_with_parens_and_tag(self):
+    def test_issue_id_or_with_parens_and_tag(self) -> None:
         query = f"(issue.id:{self.group1.id} AND a:b) OR issue.id:{self.group2.id}"
         where, having = self.query_filter.resolve_conditions(query)
         assert where == [
@@ -1359,7 +1322,7 @@ class SnQLBooleanSearchQueryTest(TestCase):
         ]
         assert having == []
 
-    def test_issue_id_or_with_parens_and_multiple_tags(self):
+    def test_issue_id_or_with_parens_and_multiple_tags(self) -> None:
         query = f"(issue.id:{self.group1.id} AND a:b) OR c:d"
         where, having = self.query_filter.resolve_conditions(query)
         assert where == [
@@ -1371,3 +1334,175 @@ class SnQLBooleanSearchQueryTest(TestCase):
             )
         ]
         assert having == []
+
+
+class DetectorFilterTest(TestCase):
+    """Tests for the detector filter functionality."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.project = self.create_project()
+        self.organization = self.project.organization
+
+        # Create test groups
+        self.group1 = self.create_group(project=self.project, message="Group 1")
+        self.group2 = self.create_group(project=self.project, message="Group 2")
+        self.group3 = self.create_group(project=self.project, message="Group 3")
+
+        # Import models
+        from sentry.workflow_engine.models.detector import Detector
+        from sentry.workflow_engine.models.detector_group import DetectorGroup
+
+        # Create test detectors
+        self.detector1 = Detector.objects.create(
+            project=self.project, name="Test Detector 1", type="error", config={}
+        )
+        self.detector2 = Detector.objects.create(
+            project=self.project, name="Test Detector 2", type="error", config={}
+        )
+
+        # Create DetectorGroup associations
+        self.detector_group_1 = DetectorGroup.objects.create(
+            detector=self.detector1, group=self.group1
+        )
+        self.detector_group_2 = DetectorGroup.objects.create(
+            detector=self.detector1, group=self.group2
+        )
+        # group3 is not associated with any detector
+
+    def test_detector_filter_single_detector(self) -> None:
+        """Test filtering by a single detector ID."""
+        from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
+
+        backend = EventsDatasetSnubaSearchBackend()
+
+        # Test filtering by detector1
+        results = backend.query(
+            projects=[self.project],
+            search_filters=[
+                SearchFilter(SearchKey("detector"), "=", SearchValue([self.detector1.id]))
+            ],
+            referrer=Referrer.TESTING_TEST,
+        )
+
+        # Should return groups 1 and 2 (both associated with detector_id_1)
+        assert len(results.results) == 2
+        group_ids = {group.id for group in results.results}
+        assert group_ids == {self.group1.id, self.group2.id}
+
+    def test_detector_filter_multiple_detectors(self) -> None:
+        """Test filtering by multiple detector IDs."""
+        from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
+
+        backend = EventsDatasetSnubaSearchBackend()
+
+        # Test filtering by both detector IDs
+        results = backend.query(
+            projects=[self.project],
+            search_filters=[
+                SearchFilter(
+                    SearchKey("detector"), "IN", SearchValue([self.detector1.id, self.detector2.id])
+                )
+            ],
+            referrer=Referrer.TESTING_TEST,
+        )
+
+        # Should return groups 1 and 2 (associated with detector_id_1)
+        # group3 is not associated with any detector
+        assert len(results.results) == 2
+        group_ids = {group.id for group in results.results}
+        assert group_ids == {self.group1.id, self.group2.id}
+
+    def test_detector_filter_no_matches(self) -> None:
+        """Test filtering by a detector ID that has no associated groups."""
+        from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
+
+        backend = EventsDatasetSnubaSearchBackend()
+
+        # Test filtering by detector2 (no groups associated)
+        results = backend.query(
+            projects=[self.project],
+            search_filters=[
+                SearchFilter(SearchKey("detector"), "=", SearchValue([self.detector2.id]))
+            ],
+            referrer=Referrer.TESTING_TEST,
+        )
+
+        # Should return no groups
+        assert len(results.results) == 0
+
+    def test_detector_filter_invalid_detector(self) -> None:
+        """Test filtering by an invalid detector ID."""
+        from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
+
+        backend = EventsDatasetSnubaSearchBackend()
+
+        # Test filtering by invalid detector ID
+        results = backend.query(
+            projects=[self.project],
+            search_filters=[
+                SearchFilter(
+                    SearchKey("detector"), "=", SearchValue([99999])  # Invalid detector ID
+                )
+            ],
+            referrer=Referrer.TESTING_TEST,
+        )
+
+        # Should return no groups
+        assert len(results.results) == 0
+
+    def test_detector_filter_negation(self) -> None:
+        """Test negated detector filter."""
+        from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
+
+        backend = EventsDatasetSnubaSearchBackend()
+
+        # Test negated filter - should return groups NOT associated with detector1
+        results = backend.query(
+            projects=[self.project],
+            search_filters=[
+                SearchFilter(SearchKey("detector"), "!=", SearchValue([self.detector1.id]))
+            ],
+            referrer=Referrer.TESTING_TEST,
+        )
+
+        # Should return group3 (not associated with detector_id_1)
+        assert len(results.results) == 1
+        assert results.results[0].id == self.group3.id
+
+    def test_detector_filter_with_other_filters(self) -> None:
+        """Test detector filter combined with other filters."""
+        from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
+
+        backend = EventsDatasetSnubaSearchBackend()
+
+        # Test detector filter combined with status filter (both processed in Postgres)
+        results = backend.query(
+            projects=[self.project],
+            search_filters=[
+                SearchFilter(SearchKey("detector"), "=", SearchValue([self.detector1.id])),
+                SearchFilter(SearchKey("status"), "=", SearchValue([0])),
+            ],
+            referrer=Referrer.TESTING_TEST,
+        )
+
+        # Should return groups 1 and 2 (both associated with detector1 and unresolved)
+        assert len(results.results) == 2
+        group_ids = {group.id for group in results.results}
+        assert group_ids == {self.group1.id, self.group2.id}
+
+    def test_detector_filter_empty_list(self) -> None:
+        """Test detector filter with empty list of detector IDs."""
+        from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
+
+        backend = EventsDatasetSnubaSearchBackend()
+
+        # Test filtering by empty list
+        results = backend.query(
+            projects=[self.project],
+            search_filters=[SearchFilter(SearchKey("detector"), "IN", SearchValue([]))],
+            referrer=Referrer.TESTING_TEST,
+        )
+
+        # Should return no groups
+        assert len(results.results) == 0

@@ -1,39 +1,61 @@
-import ExternalLink from 'sentry/components/links/externalLink';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  Docs,
-  DocsParams,
-  OnboardingConfig,
+import {ExternalLink} from 'sentry/components/core/link';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  type Docs,
+  type DocsParams,
+  type OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
-import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
-import {crashReportOnboardingPython} from 'sentry/gettingStartedDocs/python/python';
+import {
+  feedbackOnboardingJsLoader,
+  replayOnboardingJsLoader,
+} from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
+import {
+  agentMonitoringOnboarding,
+  AlternativeConfiguration,
+  crashReportOnboardingPython,
+  featureFlagOnboarding,
+} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';
+import {
+  getPythonInstallConfig,
+  getPythonProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/python';
 
 type Params = DocsParams;
-
-const getInstallSnippet = () => `pip install --upgrade 'sentry-sdk[falcon]'`;
 
 const getSdkSetupSnippet = (params: Params) => `
 import falcon
 import sentry_sdk
 
 sentry_sdk.init(
-    dsn="${params.dsn}",${
+    dsn="${params.dsn.public}",
+    # Add data like request headers and IP for users,
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+    send_default_pii=True,${
       params.isPerformanceSelected
         ? `
     # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
+    # of transactions for tracing.
     traces_sample_rate=1.0,`
         : ''
     }${
-      params.isProfilingSelected
+      params.isProfilingSelected &&
+      params.profilingOptions?.defaultProfilingMode !== 'continuous'
         ? `
     # Set profiles_sample_rate to 1.0 to profile 100%
     # of sampled transactions.
     # We recommend adjusting this value in production.
     profiles_sample_rate=1.0,`
-        : ''
+        : params.isProfilingSelected &&
+            params.profilingOptions?.defaultProfilingMode === 'continuous'
+          ? `
+    # Set profile_session_sample_rate to 1.0 to profile 100%
+    # of profile sessions.
+    profile_session_sample_rate=1.0,
+    # Set profile_lifecycle to "trace" to automatically
+    # run the profiler on when there is an active transaction
+    profile_lifecycle="trace",`
+          : ''
     }
 )
 `;
@@ -43,31 +65,16 @@ const onboarding: OnboardingConfig = {
     tct('The Falcon integration adds support for the [link:Falcon Web Framework].', {
       link: <ExternalLink href="https://falconframework.org/" />,
     }),
-  install: (params: Params) => [
+  install: () => [
     {
       type: StepType.INSTALL,
       description: tct(
-        'Install [sentrySdkCode:sentry-sdk] from PyPI with the [sentryFalconCode:falcon] extra:',
+        'Install [code:sentry-sdk] from PyPI with the [code:falcon] extra:',
         {
-          sentrySdkCode: <code />,
-          sentryFalconCode: <code />,
+          code: <code />,
         }
       ),
-      configurations: [
-        {
-          description: params.isProfilingSelected
-            ? tct(
-                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
-                {
-                  codeVersion: <code />,
-                  codePackage: <code />,
-                }
-              )
-            : undefined,
-          language: 'bash',
-          code: getInstallSnippet(),
-        },
-      ],
+      configurations: getPythonInstallConfig({packageName: 'sentry-sdk[falcon]'}),
     },
   ],
   configure: (params: Params) => [
@@ -88,6 +95,7 @@ api = falcon.API()
       `,
         },
       ],
+      additionalInfo: <AlternativeConfiguration />,
     },
   ],
   verify: (params: Params) => [
@@ -112,7 +120,7 @@ class HelloWorldResource:
 
 app = falcon.App()
 app.add_route('/', HelloWorldResource())
-      `,
+`,
         },
       ],
       additionalInfo: (
@@ -141,10 +149,11 @@ app.add_route('/', HelloWorldResource())
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
-  customMetricsOnboarding: getPythonMetricsOnboarding({
-    installSnippet: getInstallSnippet(),
-  }),
+  profilingOnboarding: getPythonProfilingOnboarding({basePackage: 'sentry-sdk[falcon]'}),
   crashReportOnboarding: crashReportOnboardingPython,
+  featureFlagOnboarding,
+  feedbackOnboardingJsLoader,
+  agentMonitoringOnboarding,
 };
 
 export default docs;

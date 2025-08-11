@@ -102,13 +102,6 @@ describe('sanitizePath', function () {
       ],
 
       [
-        // XXX: This should probably be an organization endpoint...
-        // ProjectAgnosticRuleConditionsEndpoint
-        '/projects/sentry/rule-conditions/',
-        '/projects/{orgSlug}/rule-conditions/',
-      ],
-
-      [
         // TeamReleaseCountEndpoint
         '/teams/sentry/search-and-storage/release-count/',
         '/teams/{orgSlug}/{teamSlug}/release-count/',
@@ -187,7 +180,7 @@ describe('sanitizePath', function () {
   }
 
   it('uses original value if placeholder type not found', () => {
-    expect(sanitizePath('/organizations/sentry/dogName/maisey')).toEqual(
+    expect(sanitizePath('/organizations/sentry/dogName/maisey')).toBe(
       '/organizations/{orgSlug}/dogName/maisey'
     );
   });

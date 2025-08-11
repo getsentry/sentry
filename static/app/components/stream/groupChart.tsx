@@ -1,13 +1,13 @@
 import {useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {t} from 'sentry/locale';
-import type {TimeseriesValue} from 'sentry/types';
+import type {TimeseriesValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import theme from 'sentry/utils/theme';
 
 function asChartPoint(point: [number, number]): {name: number | string; value: number} {
   return {
@@ -16,12 +16,12 @@ function asChartPoint(point: [number, number]): {name: number | string; value: n
   };
 }
 
-const EMPTY_STATS: ReadonlyArray<TimeseriesValue> = [];
+const EMPTY_STATS: readonly TimeseriesValue[] = [];
 
 type Props = {
-  stats: ReadonlyArray<TimeseriesValue>;
+  stats: readonly TimeseriesValue[];
   height?: number;
-  secondaryStats?: ReadonlyArray<TimeseriesValue>;
+  secondaryStats?: readonly TimeseriesValue[];
   showMarkLine?: boolean;
   showSecondaryPoints?: boolean;
 };
@@ -33,12 +33,13 @@ function GroupChart({
   showSecondaryPoints = false,
   showMarkLine = false,
 }: Props) {
+  const theme = useTheme();
   const graphOptions = useMemo<{
     colors: [string] | undefined;
     emphasisColors: [string] | undefined;
     series: Series[];
   }>(() => {
-    if (!stats || !stats.length) {
+    if (!stats?.length) {
       return {colors: undefined, emphasisColors: undefined, series: []};
     }
 
@@ -46,7 +47,7 @@ function GroupChart({
 
     const formattedMarkLine = formatAbbreviatedNumber(max);
 
-    if (showSecondaryPoints && secondaryStats && secondaryStats.length) {
+    if (showSecondaryPoints && secondaryStats?.length) {
       const series: Series[] = [
         {
           seriesName: t('Total Events'),
@@ -87,7 +88,7 @@ function GroupChart({
       },
     ];
     return {colors: [theme.gray300], emphasisColors: [theme.purple300], series};
-  }, [showSecondaryPoints, secondaryStats, showMarkLine, stats]);
+  }, [showSecondaryPoints, secondaryStats, showMarkLine, stats, theme]);
 
   return (
     <LazyRender containerHeight={showMarkLine ? 30 : height}>

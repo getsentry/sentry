@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
-import TextArea from 'sentry/components/forms/controls/textarea';
+import {Button} from 'sentry/components/core/button';
+import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import {TextArea} from 'sentry/components/core/textarea';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -13,7 +13,9 @@ import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {IssueOwnership, Organization, Project, Team} from 'sentry/types';
+import type {IssueOwnership} from 'sentry/types/group';
+import type {Organization, Team} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
@@ -109,8 +111,7 @@ class OwnerInput extends Component<Props, State> {
           );
         } else if (
           error.status === 400 &&
-          error.responseJSON.raw &&
-          error.responseJSON.raw[0].startsWith('Invalid rule owners:')
+          error.responseJSON.raw?.[0].startsWith('Invalid rule owners:')
         ) {
           addErrorMessage(
             t(
@@ -211,7 +212,7 @@ class OwnerInput extends Component<Props, State> {
           </Panel>
           <ActionBar>
             <div>{this.parseError(error)}</div>
-            <ButtonBar gap={1}>
+            <ButtonBar>
               <Button type="button" size="sm" onClick={this.props.onCancel}>
                 {t('Cancel')}
               </Button>
@@ -270,12 +271,12 @@ const StyledTextArea = styled(TextArea)`
 
 const InvalidOwners = styled('div')`
   color: ${p => p.theme.error};
-  font-weight: ${p => p.theme.fontWeightBold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   margin-top: 12px;
 `;
 
 const SyncDate = styled('div')`
-  font-weight: ${p => p.theme.fontWeightNormal};
+  font-weight: ${p => p.theme.fontWeight.normal};
   text-transform: none;
 `;
 

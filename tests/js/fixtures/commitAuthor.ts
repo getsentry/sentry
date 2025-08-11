@@ -1,4 +1,4 @@
-import {User} from 'sentry/types/user';
+import type {User} from 'sentry/types/user';
 
 export function CommitAuthorFixture(params: Partial<User> = {}): User {
   return {
@@ -38,11 +38,13 @@ export function CommitAuthorFixture(params: Partial<User> = {}): User {
       defaultIssueEvent: 'recommended',
       avatarType: 'gravatar',
       theme: 'light',
-      issueDetailsNewExperienceQ42023: false,
+      prefersIssueDetailsStreamlinedUI: false,
+      prefersStackedNavigation: false,
+      prefersNextjsInsightsOverview: false,
+      prefersChonkUI: false,
     },
     permissions: new Set(),
     canReset2fa: false,
-    experiments: [],
     flags: {newsletter_consent_prompt: false},
     identities: [],
     ...params,

@@ -18,7 +18,6 @@ describe('useLocalStorageState', () => {
     renderHook(() => {
       try {
         // @ts-expect-error force incorrect usage
-        // biome-ignore lint/correctness/useHookAtTopLevel: <explanation>
         useLocalStorageState({}, 'default value');
       } catch (err) {
         errorResult = err;
@@ -84,7 +83,7 @@ describe('useLocalStorageState', () => {
     );
 
     act(() => {
-      result.current[1](p => `${p} + new value`);
+      result.current[1]((p: string) => `${p} + new value`);
     });
 
     expect(result.current[0]).toBe('default value + new value');
@@ -117,7 +116,7 @@ describe('useLocalStorageState', () => {
     const spy = jest.spyOn(Storage.prototype, 'setItem');
 
     act(() => {
-      result.current[1](p => `${p} + new value`);
+      result.current[1]((p: string) => `${p} + new value`);
     });
 
     // Exhaust task queue because setItem is scheduled as microtask

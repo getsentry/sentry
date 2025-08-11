@@ -1,7 +1,6 @@
 from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
-from sentry.models.notificationsettingoption import NotificationSettingOption
-from sentry.models.options.user_option import UserOption
+from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.notifications.activity.note import NoteActivityNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo.base import SiloMode
@@ -9,10 +8,11 @@ from sentry.testutils.cases import ActivityTestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
+from sentry.users.models.user_option import UserOption
 
 
 class NoteTestCase(ActivityTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.email = NoteActivityNotification(
             Activity(
@@ -24,11 +24,11 @@ class NoteTestCase(ActivityTestCase):
             )
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         # Defaults: SUBSCRIBE_ONLY and self_notifications:0
         assert self.email.get_participants_with_group_subscription_reason().is_empty()
 
-    def test_allow_self_notifications(self):
+    def test_allow_self_notifications(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingOption.objects.create(
                 user_id=self.user.id,
@@ -46,7 +46,7 @@ class NoteTestCase(ActivityTestCase):
         }
         assert actual == expected
 
-    def test_disable_self_notifications(self):
+    def test_disable_self_notifications(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingOption.objects.create(
                 user_id=self.user.id,
@@ -60,7 +60,7 @@ class NoteTestCase(ActivityTestCase):
         participants = self.email.get_participants_with_group_subscription_reason()
         assert len(participants.get_participants_by_provider(ExternalProviders.EMAIL)) == 0
 
-    def test_note_with_braces(self):
+    def test_note_with_braces(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingOption.objects.create(
                 user_id=self.user.id,

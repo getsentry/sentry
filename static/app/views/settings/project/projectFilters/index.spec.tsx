@@ -92,7 +92,9 @@ describe('ProjectFilters', function () {
     for (const filter of Object.keys(FILTERS)) {
       const mock = createFilterMock(filter);
 
-      await userEvent.click(screen.getByRole('checkbox', {name: FILTERS[filter]}));
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: FILTERS[filter as keyof typeof FILTERS]})
+      );
       expect(mock).toHaveBeenCalledWith(
         getFilterEndpoint(filter),
         expect.objectContaining({
@@ -110,7 +112,7 @@ describe('ProjectFilters', function () {
 
     expect(
       await screen.findByRole('checkbox', {
-        name: 'Internet Explorer Verison 11 and lower',
+        name: 'Internet Explorer Version 11 and lower',
       })
     ).toBeChecked();
 
@@ -186,7 +188,7 @@ describe('ProjectFilters', function () {
       await screen.findByRole('textbox', {name: 'IP Addresses'}),
       'test\ntest2'
     );
-    await userEvent.tab();
+    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 
     expect(mock.mock.calls[0][0]).toBe(PROJECT_URL);
     expect(mock.mock.calls[0][1].data.options['filters:blacklisted_ips']).toBe(
@@ -226,7 +228,7 @@ describe('ProjectFilters', function () {
       screen.getByRole('textbox', {name: 'Releases'}),
       'release\nrelease2'
     );
-    await userEvent.tab();
+    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 
     expect(mock.mock.calls[0][0]).toBe(PROJECT_URL);
     expect(mock.mock.calls[0][1].data.options['filters:releases']).toBe(
@@ -237,7 +239,7 @@ describe('ProjectFilters', function () {
       screen.getByRole('textbox', {name: 'Error Message'}),
       'error\nerror2'
     );
-    await userEvent.tab();
+    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 
     expect(mock.mock.calls[1][1].data.options['filters:error_messages']).toBe(
       'error\nerror2'
@@ -279,7 +281,7 @@ describe('ProjectFilters', function () {
 
     expect(
       await screen.findByText(
-        "Minidumps, errors in the minified production build of React, and Internet Explorer's i18n errors cannot be filtered by message."
+        "Minidumps, obfuscated or minified exceptions (ProGuard, errors in the minified production build of React), and Internet Explorer's i18n errors cannot be filtered by message."
       )
     ).toBeInTheDocument();
   });

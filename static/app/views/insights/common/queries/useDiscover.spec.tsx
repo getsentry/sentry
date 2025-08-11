@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -9,11 +10,10 @@ import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  useSpanMetrics,
-  useSpansIndexed,
-} from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanIndexedField, type SpanMetricsProperty} from 'sentry/views/insights/types';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import type {SpanProperty} from 'sentry/views/insights/types';
+import {SpanFields} from 'sentry/views/insights/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
@@ -22,33 +22,16 @@ jest.mock('sentry/utils/usePageFilters');
 function Wrapper({children}: {children?: ReactNode}) {
   return (
     <QueryClientProvider client={makeTestQueryClient()}>
-      <OrganizationContext.Provider value={OrganizationFixture()}>
-        {children}
-      </OrganizationContext.Provider>
+      <OrganizationContext value={OrganizationFixture()}>{children}</OrganizationContext>
     </QueryClientProvider>
   );
 }
 
 describe('useDiscover', () => {
-  describe('useSpanMetrics', () => {
+  describe('useSpans', () => {
     const organization = OrganizationFixture();
 
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    });
+    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
     jest.mocked(useLocation).mockReturnValue(
       LocationFixture({
@@ -64,17 +47,17 @@ describe('useDiscover', () => {
       });
 
       const {result} = renderHook(
-        ({fields, enabled}) => useSpanMetrics({fields, enabled}, 'span-metrics-series'),
+        ({fields, enabled}) => useSpans({fields, enabled}, 'span-metrics-series'),
         {
           wrapper: Wrapper,
           initialProps: {
-            fields: ['spm()'] as SpanMetricsProperty[],
+            fields: ['epm()'] as SpanProperty[],
             enabled: false,
           },
         }
       );
 
-      expect(result.current.isFetching).toEqual(false);
+      expect(result.current.isFetching).toBe(false);
       expect(eventsRequest).not.toHaveBeenCalled();
     });
 
@@ -86,7 +69,7 @@ describe('useDiscover', () => {
           data: [
             {
               'span.op': 'db',
-              'spm()': 1486.3201388888888,
+              'epm()': 1486.3201388888888,
               'count()': 2140301,
             },
           ],
@@ -95,7 +78,7 @@ describe('useDiscover', () => {
 
       const {result} = renderHook(
         ({filters, fields, sorts, limit, cursor, referrer}) =>
-          useSpanMetrics(
+          useSpans(
             {
               search: MutableSearch.fromQueryObject(filters),
               fields,
@@ -114,8 +97,8 @@ describe('useDiscover', () => {
               release: '0.0.1',
               environment: undefined,
             },
-            fields: ['spm()'] as SpanMetricsProperty[],
-            sorts: [{field: 'spm()', kind: 'desc' as const}],
+            fields: ['epm()'] as SpanProperty[],
+            sorts: [{field: 'epm()', kind: 'desc' as const}],
             limit: 10,
             referrer: 'api-spec',
             cursor: undefined,
@@ -123,31 +106,32 @@ describe('useDiscover', () => {
         }
       );
 
-      expect(result.current.isLoading).toEqual(true);
+      expect(result.current.isPending).toBe(true);
 
       expect(eventsRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
           method: 'GET',
           query: {
-            dataset: 'spansMetrics',
+            dataset: 'spans',
             environment: [],
-            field: ['spm()'],
+            field: ['epm()'],
             per_page: 10,
             project: [],
-            sort: '-spm()',
+            sort: '-epm()',
             query: `span.group:221aa7ebd216 transaction:/api/details release:0.0.1`,
             referrer: 'api-spec',
+            sampling: SAMPLING_MODE.NORMAL,
             statsPeriod: '10d',
           },
         })
       );
 
-      await waitFor(() => expect(result.current.isLoading).toEqual(false));
+      await waitFor(() => expect(result.current.isPending).toBe(false));
       expect(result.current.data).toEqual([
         {
           'span.op': 'db',
-          'spm()': 1486.3201388888888,
+          'epm()': 1486.3201388888888,
           'count()': 2140301,
         },
       ]);
@@ -157,22 +141,20 @@ describe('useDiscover', () => {
   describe('useSpanIndexed', () => {
     const organization = OrganizationFixture();
 
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
+    jest.mocked(usePageFilters).mockReturnValue(
+      PageFilterStateFixture({
+        selection: {
+          datetime: {
+            period: '10d',
+            start: null,
+            end: null,
+            utc: false,
+          },
+          environments: [],
+          projects: [],
         },
-        environments: [],
-        projects: [],
-      },
-    });
+      })
+    );
 
     jest.mocked(useLocation).mockReturnValue(
       LocationFixture({
@@ -192,17 +174,17 @@ describe('useDiscover', () => {
       });
 
       const {result} = renderHook(
-        ({fields, enabled}) => useSpansIndexed({fields, enabled}, 'referrer'),
+        ({fields, enabled}) => useSpans({fields, enabled}, 'referrer'),
         {
           wrapper: Wrapper,
           initialProps: {
-            fields: [SpanIndexedField.SPAN_DESCRIPTION],
+            fields: [SpanFields.SPAN_DESCRIPTION] as SpanProperty[],
             enabled: false,
           },
         }
       );
 
-      expect(result.current.isFetching).toEqual(false);
+      expect(result.current.isFetching).toBe(false);
       expect(eventsRequest).not.toHaveBeenCalled();
     });
 
@@ -230,7 +212,7 @@ describe('useDiscover', () => {
 
       const {result} = renderHook(
         ({filters, fields, sorts, limit, cursor, referrer}) =>
-          useSpansIndexed(
+          useSpans(
             {
               search: MutableSearch.fromQueryObject(filters),
               fields,
@@ -250,10 +232,10 @@ describe('useDiscover', () => {
               release: '0.0.1',
             },
             fields: [
-              SpanIndexedField.SPAN_OP,
-              SpanIndexedField.SPAN_GROUP,
-              SpanIndexedField.SPAN_DESCRIPTION,
-            ],
+              SpanFields.SPAN_OP,
+              SpanFields.SPAN_GROUP,
+              SpanFields.SPAN_DESCRIPTION,
+            ] as SpanProperty[],
             sorts: [{field: 'span.group', kind: 'desc' as const}],
             limit: 10,
             referrer: 'api-spec',
@@ -262,14 +244,15 @@ describe('useDiscover', () => {
         }
       );
 
-      expect(result.current.isLoading).toEqual(true);
+      expect(result.current.isPending).toBe(true);
 
       expect(eventsRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
           method: 'GET',
           query: {
-            dataset: 'spansIndexed',
+            dataset: 'spans',
+            sampling: SAMPLING_MODE.NORMAL,
             environment: [],
             field: ['span.op', 'span.group', 'span.description'],
             per_page: 10,
@@ -282,7 +265,7 @@ describe('useDiscover', () => {
         })
       );
 
-      await waitFor(() => expect(result.current.isLoading).toEqual(false));
+      await waitFor(() => expect(result.current.isPending).toBe(false));
       expect(result.current.data).toEqual([
         {
           'span.group': '221aa7ebd216',

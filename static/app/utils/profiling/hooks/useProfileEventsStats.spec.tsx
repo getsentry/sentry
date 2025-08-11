@@ -12,9 +12,7 @@ const {organization} = initializeOrg();
 function TestContext({children}: {children?: ReactNode}) {
   return (
     <QueryClientProvider client={makeTestQueryClient()}>
-      <OrganizationContext.Provider value={organization}>
-        {children}
-      </OrganizationContext.Provider>
+      <OrganizationContext value={organization}>{children}</OrganizationContext>
     </QueryClientProvider>
   );
 }
@@ -25,8 +23,6 @@ describe('useProfileEvents', function () {
   });
 
   it('handles no axis', async function () {
-    const yAxes = [];
-
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {},
@@ -37,7 +33,7 @@ describe('useProfileEvents', function () {
       wrapper: TestContext,
       initialProps: {
         dataset: 'profiles' as const,
-        yAxes,
+        yAxes: [],
         referrer: '',
       },
     });
@@ -74,7 +70,7 @@ describe('useProfileEvents', function () {
       match: [
         MockApiClient.matchQuery({
           dataset: 'discover',
-          query: 'has:profile.id (transaction:foo)',
+          query: '(has:profile.id OR (has:profiler.id has:thread.id)) (transaction:foo)',
         }),
       ],
     });
@@ -135,7 +131,7 @@ describe('useProfileEvents', function () {
       match: [
         MockApiClient.matchQuery({
           dataset: 'discover',
-          query: 'has:profile.id (transaction:foo)',
+          query: '(has:profile.id OR (has:profiler.id has:thread.id)) (transaction:foo)',
         }),
       ],
     });
@@ -171,9 +167,9 @@ describe('useProfileEvents', function () {
     function TestContextUsingTransactions({children}: {children?: ReactNode}) {
       return (
         <QueryClientProvider client={makeTestQueryClient()}>
-          <OrganizationContext.Provider value={organizationUsingTransactions}>
+          <OrganizationContext value={organizationUsingTransactions}>
             {children}
-          </OrganizationContext.Provider>
+          </OrganizationContext>
         </QueryClientProvider>
       );
     }
@@ -197,7 +193,7 @@ describe('useProfileEvents', function () {
       match: [
         MockApiClient.matchQuery({
           dataset: 'discover',
-          query: 'has:profile.id (transaction:foo)',
+          query: '(has:profile.id OR (has:profiler.id has:thread.id)) (transaction:foo)',
         }),
       ],
     });

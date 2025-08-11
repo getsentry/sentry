@@ -60,22 +60,17 @@ export interface DropdownMenuListProps
   /**
    * To be displayed below the menu items
    */
-  menuFooter?: React.ReactChild;
+  menuFooter?: React.ReactNode;
   /**
    * Title to display on top of the menu
    */
-  menuTitle?: React.ReactChild;
-  /**
-   * Minimum menu width
-   */
-  minMenuWidth?: number;
+  menuTitle?: React.ReactNode;
   size?: MenuItemProps['size'];
 }
 
 function DropdownMenuList({
   closeOnSelect = true,
   onClose,
-  minMenuWidth,
   size,
   menuTitle,
   menuFooter,
@@ -140,8 +135,6 @@ function DropdownMenuList({
     [menuProps, hasFocus]
   );
 
-  const showDividers = stateCollection.some(item => !!item.props.details);
-
   // Render a single menu item
   const renderItem = (node: Node<MenuItemProps>) => {
     return (
@@ -150,7 +143,6 @@ function DropdownMenuList({
         state={state}
         onClose={onClose}
         closeOnSelect={closeOnSelect}
-        showDivider={showDividers}
       />
     );
   };
@@ -161,12 +153,11 @@ function DropdownMenuList({
       return null;
     }
 
-    const trigger = triggerProps => (
+    const trigger = (triggerProps: any) => (
       <DropdownMenuItem
         renderAs="div"
         node={node}
         state={state}
-        showDivider={showDividers}
         closeOnSelect={false}
         {...omit(triggerProps, [
           'onClick',
@@ -188,9 +179,7 @@ function DropdownMenuList({
         onClose={onClose}
         closeOnSelect={closeOnSelect}
         menuTitle={node.value.submenuTitle}
-        isDismissable={false}
         shouldCloseOnBlur={false}
-        shouldCloseOnInteractOutside={() => false}
         preventOverflowOptions={{boundary: document.body, altAxis: true}}
         renderWrapAs="li"
         position="right-start"
@@ -201,7 +190,7 @@ function DropdownMenuList({
   };
 
   // Render a collection of menu items
-  const renderCollection = (collection: Node<MenuItemProps>[]) =>
+  const renderCollection = (collection: Array<Node<MenuItemProps>>) =>
     collection.map((node, i) => {
       const isLastNode = collection.length - 1 === i;
       const showSeparator =
@@ -240,7 +229,7 @@ function DropdownMenuList({
   return (
     <FocusScope restoreFocus autoFocus>
       <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayPositionProps}>
-        <DropdownMenuContext.Provider value={contextValue}>
+        <DropdownMenuContext value={contextValue}>
           <StyledOverlay>
             {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
             <DropdownMenuListWrap
@@ -249,14 +238,13 @@ function DropdownMenuList({
               {...mergeProps(modifiedMenuProps, keyboardProps)}
               style={{
                 maxHeight: overlayPositionProps.style?.maxHeight,
-                minWidth: minMenuWidth ?? overlayPositionProps.style?.minWidth,
               }}
             >
               {renderCollection(stateCollection)}
             </DropdownMenuListWrap>
             {menuFooter}
           </StyledOverlay>
-        </DropdownMenuContext.Provider>
+        </DropdownMenuContext>
       </PositionWrapper>
     </FocusScope>
   );
@@ -272,7 +260,7 @@ const StyledOverlay = styled(Overlay)`
 const DropdownMenuListWrap = styled('ul')<{hasTitle: boolean}>`
   margin: 0;
   padding: ${space(0.5)} 0;
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
   overflow-x: hidden;
   overflow-y: auto;
 
@@ -285,8 +273,8 @@ const DropdownMenuListWrap = styled('ul')<{hasTitle: boolean}>`
 
 const MenuTitle = styled('div')`
   flex-shrink: 0;
-  font-weight: ${p => p.theme.fontWeightBold};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.sm};
   color: ${p => p.theme.headingColor};
   white-space: nowrap;
   padding: ${space(0.75)} ${space(1.5)};

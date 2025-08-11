@@ -14,7 +14,7 @@ export type ProcessedTokenResult =
   | {type: 'L_PAREN'}
   | {type: 'R_PAREN'};
 
-export function toFlattened(tokens: TokenResult<Token>[]): ProcessedTokenResult[] {
+export function toFlattened(tokens: Array<TokenResult<Token>>): ProcessedTokenResult[] {
   const flattened_result: ProcessedTokenResult[] = [];
 
   function flatten(token: TokenResult<Token>): void {
@@ -50,8 +50,8 @@ export function toFlattened(tokens: TokenResult<Token>[]): ProcessedTokenResult[
     }
   }
 
-  for (let i = 0; i < tokens.length; i++) {
-    flatten(tokens[i]);
+  for (const token of tokens) {
+    flatten(token);
   }
 
   return flattened_result;
@@ -74,14 +74,14 @@ export function insertImplicitAND(
 
   for (let i = 0; i < tokens.length; i++) {
     const next = tokens[i + 1];
-    with_implicit_and.push(tokens[i]);
+    with_implicit_and.push(tokens[i]!);
 
     // If current is not a logic boolean and next is not a logic boolean, insert an implicit AND.
     if (
       next &&
       next.type !== Token.LOGIC_BOOLEAN &&
-      tokens[i].type !== Token.LOGIC_BOOLEAN &&
-      tokens[i].type !== 'L_PAREN' &&
+      tokens[i]!.type !== Token.LOGIC_BOOLEAN &&
+      tokens[i]!.type !== 'L_PAREN' &&
       next.type !== 'R_PAREN'
     ) {
       with_implicit_and.push(AND);
@@ -91,7 +91,7 @@ export function insertImplicitAND(
   return with_implicit_and;
 }
 
-function processTokenResults(tokens: TokenResult<Token>[]): ProcessedTokenResult[] {
+function processTokenResults(tokens: Array<TokenResult<Token>>): ProcessedTokenResult[] {
   const flattened = toFlattened(tokens);
   const withImplicitAnd = insertImplicitAND(flattened);
 
@@ -103,7 +103,7 @@ function isBooleanAND(token: ProcessedTokenResult): boolean {
 }
 
 // https://en.wikipedia.org/wiki/Shunting_yard_algorithm
-export function toPostFix(tokens: TokenResult<Token>[]): ProcessedTokenResult[] {
+export function toPostFix(tokens: Array<TokenResult<Token>>): ProcessedTokenResult[] {
   const processed = processTokenResults(tokens);
 
   const result: ProcessedTokenResult[] = [];
@@ -118,9 +118,9 @@ export function toPostFix(tokens: TokenResult<Token>[]): ProcessedTokenResult[] 
           // we need to pop the AND operator from the stack and push it to the output.
           stack.length > 0 &&
           token.value === BooleanOperator.OR &&
-          stack[stack.length - 1].type === Token.LOGIC_BOOLEAN &&
-          stack[stack.length - 1].type !== 'L_PAREN' &&
-          isBooleanAND(stack[stack.length - 1])
+          stack[stack.length - 1]!.type === Token.LOGIC_BOOLEAN &&
+          stack[stack.length - 1]!.type !== 'L_PAREN' &&
+          isBooleanAND(stack[stack.length - 1]!)
         ) {
           result.push(stack.pop()!);
         }
@@ -132,7 +132,7 @@ export function toPostFix(tokens: TokenResult<Token>[]): ProcessedTokenResult[] 
         break;
       case 'R_PAREN': {
         while (stack.length > 0) {
-          const top = stack[stack.length - 1];
+          const top = stack[stack.length - 1]!;
           if (top.type === 'L_PAREN') {
             stack.pop();
             break;

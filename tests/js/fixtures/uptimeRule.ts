@@ -1,17 +1,28 @@
-import { ActorFixture } from "sentry-fixture/actor";
-import { UptimeMonitorMode, UptimeMonitorStatus, UptimeRule } from "sentry/views/alerts/rules/uptime/types";
+import {ActorFixture} from 'sentry-fixture/actor';
+
+import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
+import {
+  UptimeMonitorMode,
+  UptimeMonitorStatus,
+} from 'sentry/views/alerts/rules/uptime/types';
 
 export function UptimeRuleFixture(params: Partial<UptimeRule> = {}): UptimeRule {
   return {
     id: '1',
-    intervalSeconds: 5,
+    intervalSeconds: 60,
     mode: UptimeMonitorMode.AUTO_DETECTED_ACTIVE,
     name: 'Uptime Rule',
     owner: ActorFixture(),
     projectSlug: 'project-slug',
-    status: UptimeMonitorStatus.OK,
+    environment: 'prod',
+    uptimeStatus: UptimeMonitorStatus.OK,
+    status: 'active',
     timeoutMs: 5000,
     url: 'https://sentry.io/',
+    headers: [],
+    method: 'GET',
+    body: null,
+    traceSampling: false,
     ...params,
-  }
+  };
 }

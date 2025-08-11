@@ -1,15 +1,17 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import type {DataCategoryInfo, Organization} from 'sentry/types';
-import {Outcome} from 'sentry/types';
+import type {DataCategory} from 'sentry/types/core';
+import {DataCategoryExact, Outcome} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import type {UsageSeries} from './types';
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
 type Props = {
-  dataCategory: DataCategoryInfo['plural'];
+  dataCategory: DataCategory;
+  dataCategoryApiName: DataCategoryExact;
   organization: Organization;
   projectIds: number[];
 };
@@ -24,10 +26,15 @@ type Props = {
  * We're going with this approach for simplicity sake. By keeping the range
  * as small as possible, this call is quite fast.
  */
-function UsageStatsPerMin({dataCategory, organization, projectIds}: Props) {
+function UsageStatsPerMin({
+  organization,
+  projectIds,
+  dataCategory,
+  dataCategoryApiName,
+}: Props) {
   const {
     data: orgStats,
-    isLoading,
+    isPending,
     isError,
   } = useApiQuery<UsageSeries>(
     [
@@ -47,7 +54,7 @@ function UsageStatsPerMin({dataCategory, organization, projectIds}: Props) {
     }
   );
 
-  if (isLoading || isError || !orgStats || orgStats.intervals.length === 0) {
+  if (isPending || isError || !orgStats || orgStats.intervals.length === 0) {
     return null;
   }
 
@@ -58,14 +65,19 @@ function UsageStatsPerMin({dataCategory, organization, projectIds}: Props) {
     const lastMin = Math.max(intervals.length - 2, 0);
 
     const eventsLastMin = groups.reduce((count, group) => {
-      const {outcome, category} = group.by;
+      const {category, outcome} = group.by;
 
-      // HACK: The backend enum are singular, but the frontend enums are plural
-      if (!dataCategory.includes(`${category}`) || outcome !== Outcome.ACCEPTED) {
-        return count;
+      if (dataCategoryApiName === DataCategoryExact.SPAN_INDEXED) {
+        if (category !== DataCategoryExact.SPAN_INDEXED || outcome !== Outcome.ACCEPTED) {
+          return count;
+        }
+      } else {
+        if (dataCategoryApiName !== category || outcome !== Outcome.ACCEPTED) {
+          return count;
+        }
       }
 
-      count += group.series['sum(quantity)'][lastMin];
+      count += group.series['sum(quantity)']![lastMin]!;
       return count;
     }, 0);
 
@@ -88,5 +100,5 @@ export default UsageStatsPerMin;
 const Wrapper = styled('div')`
   display: inline-block;
   color: ${p => p.theme.success};
-  font-size: ${p => p.theme.fontSizeMedium};
+  font-size: ${p => p.theme.fontSize.md};
 `;

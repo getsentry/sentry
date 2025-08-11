@@ -4,6 +4,7 @@ import pytest
 from django.db import IntegrityError, router, transaction
 from django.db.models import QuerySet
 
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.rpc.service import RpcRemoteException
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
@@ -18,7 +19,6 @@ from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
     OrganizationSlugReservationType,
 )
-from sentry.models.outbox import outbox_context
 from sentry.services.organization import (
     OrganizationOptions,
     OrganizationProvisioningOptions,
@@ -28,6 +28,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
 from sentry.types.region import get_local_region
+from sentry.utils.security.orgauthtoken_token import hash_token
 
 
 class TestControlOrganizationProvisioningBase(TestCase):
@@ -129,8 +130,11 @@ class TestControlOrganizationProvisioning(TestControlOrganizationProvisioningBas
             )
 
         # De-register the conflicting organization to create the collision
-        with assume_test_silo_mode(SiloMode.CONTROL), outbox_context(
-            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            outbox_context(
+                transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+            ),
         ):
             OrganizationSlugReservation.objects.filter(
                 organization_id=region_only_organization.id
@@ -281,8 +285,11 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         new_user = self.create_user()
         unregistered_org = self.create_organization(slug=conflicting_slug, owner=new_user)
 
-        with assume_test_silo_mode(SiloMode.CONTROL), outbox_context(
-            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            outbox_context(
+                transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+            ),
         ):
             OrganizationSlugReservation.objects.filter(organization_id=unregistered_org.id).delete()
             assert not OrganizationSlugReservation.objects.filter(slug=conflicting_slug).exists()
@@ -320,8 +327,11 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         new_user = self.create_user()
         unregistered_org = self.create_organization(slug=desired_primary_slug, owner=new_user)
 
-        with assume_test_silo_mode(SiloMode.CONTROL), outbox_context(
-            transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            outbox_context(
+                transaction.atomic(using=router.db_for_write(OrganizationSlugReservation))
+            ),
         ):
             OrganizationSlugReservation.objects.filter(organization_id=unregistered_org.id).delete()
             assert not OrganizationSlugReservation.objects.filter(
@@ -366,3 +376,27 @@ class TestControlOrganizationProvisioningSlugUpdates(TestControlOrganizationProv
         with assume_test_silo_mode(SiloMode.REGION):
             org.refresh_from_db()
             assert org.slug == desired_slug
+
+    def test_update_slug_revokes_auth_tokens(self) -> None:
+        self.organization = self.create_organization(
+            slug="old-slug", name="org", owner=self.create_user()
+        )
+        token_str = "sntrys_abc123_xyz"
+        token = self.create_org_auth_token(
+            organization_id=self.organization.id,
+            scope_list=[],
+            name="test_token",
+            token_hashed=hash_token(token_str),
+            date_last_used=None,
+        )
+        assert token.date_deactivated is None
+        with self.feature("organizations:revoke-org-auth-on-slug-rename"):
+            control_organization_provisioning_rpc_service.update_organization_slug(
+                organization_id=self.organization.id,
+                desired_slug="new-slug",
+                require_exact=True,
+                region_name=self.region_name,
+            )
+
+            token.refresh_from_db()
+            assert token.date_deactivated is not None

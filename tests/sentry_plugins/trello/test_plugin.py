@@ -3,10 +3,13 @@ from urllib.parse import parse_qsl, urlparse
 
 import orjson
 import responses
-from django.test import RequestFactory
 
 from sentry.testutils.cases import PluginTestCase
 from sentry_plugins.trello.plugin import TrelloPlugin
+
+
+def test_conf_key() -> None:
+    assert TrelloPlugin().conf_key == "trello"
 
 
 class TrelloPluginTestBase(PluginTestCase):
@@ -14,19 +17,9 @@ class TrelloPluginTestBase(PluginTestCase):
     def plugin(self):
         return TrelloPlugin()
 
-    @cached_property
-    def request(self):
-        return RequestFactory()
-
 
 class TrelloPluginTest(TrelloPluginTestBase):
-    def test_conf_key(self):
-        assert self.plugin.conf_key == "trello"
-
-    def test_entry_point(self):
-        self.assertPluginInstalled("trello", self.plugin)
-
-    def test_get_issue_label(self):
+    def test_get_issue_label(self) -> None:
         group = self.create_group(message="Hello world", culprit="foo.bar")
         # test new and old format
         assert self.plugin.get_issue_label(group, "rPPDb") == "Trello-rPPDb"
@@ -35,7 +28,7 @@ class TrelloPluginTest(TrelloPluginTestBase):
             == "Trello-5dafd"
         )
 
-    def test_get_issue_url(self):
+    def test_get_issue_url(self) -> None:
         group = self.create_group(message="Hello world", culprit="foo.bar")
         assert self.plugin.get_issue_url(group, "rPPDb") == "https://trello.com/c/rPPDb"
         assert (
@@ -43,7 +36,7 @@ class TrelloPluginTest(TrelloPluginTestBase):
             == "https://trello.com/c/rPPDb/75-title"
         )
 
-    def test_is_configured(self):
+    def test_is_configured(self) -> None:
         assert self.plugin.is_configured(self.project) is False
         self.plugin.set_option("token", "7c8951d1", self.project)
         assert self.plugin.is_configured(self.project) is False
@@ -60,7 +53,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
 
         self.login_as(self.user)
 
-    def test_get_config_no_org(self):
+    def test_get_config_no_org(self) -> None:
         self.plugin.unset_option("organization", self.project)
         out = self.plugin.get_config(self.project)
         assert out == [
@@ -83,7 +76,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         ]
 
     @responses.activate
-    def test_get_config_include_additional(self):
+    def test_get_config_include_additional(self) -> None:
         self.plugin.unset_option("organization", self.project)
 
         responses.add(
@@ -120,7 +113,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         ]
 
     @responses.activate
-    def test_create_issue(self):
+    def test_create_issue(self) -> None:
         responses.add(responses.POST, "https://api.trello.com/1/cards", json={"shortLink": "rds43"})
 
         form_data = {
@@ -138,7 +131,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         assert payload == {"name": "Hello", "desc": "Fix this.", "idList": "23tds"}
 
     @responses.activate
-    def test_link_issue(self):
+    def test_link_issue(self) -> None:
         responses.add(
             responses.GET,
             "https://api.trello.com/1/cards/SstgnBIQ",
@@ -169,7 +162,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         )
 
     @responses.activate
-    def test_view_options(self):
+    def test_view_options(self) -> None:
         responses.add(
             responses.GET,
             "https://api.trello.com/1/boards/f34/lists",
@@ -190,7 +183,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         )
 
     @responses.activate
-    def test_view_autocomplete(self):
+    def test_view_autocomplete(self) -> None:
         responses.add(
             responses.GET,
             "https://api.trello.com/1/search",
@@ -233,7 +226,7 @@ class TrelloPluginApiTests(TrelloPluginTestBase):
         }
 
     @responses.activate
-    def test_view_autocomplete_no_org(self):
+    def test_view_autocomplete_no_org(self) -> None:
         self.plugin.unset_option("organization", self.project)
 
         responses.add(

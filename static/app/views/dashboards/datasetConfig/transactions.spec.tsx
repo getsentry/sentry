@@ -2,13 +2,17 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
+import type {Client} from 'sentry/api';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
 
 describe('TransactionsConfig', function () {
   describe('getEventsRequest', function () {
-    let api, organization, mockEventsRequest, mockEventsStatsRequest;
+    let api!: Client;
+    let organization!: ReturnType<typeof OrganizationFixture>;
+    let mockEventsRequest!: jest.Mock;
+    let mockEventsStatsRequest!: jest.Mock;
 
     beforeEach(function () {
       MockApiClient.clearMockResponses();

@@ -1,18 +1,18 @@
 import * as Sentry from '@sentry/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 
-// biome-ignore lint/correctness/useHookAtTopLevel: not a hook
 jest.useFakeTimers();
 jest.mock('sentry/utils/analytics');
 
 describe('CreateSampleEventButton', function () {
+  const router = RouterFixture();
   const org = OrganizationFixture();
   const project = ProjectFixture();
   const groupID = '123';
@@ -26,7 +26,11 @@ describe('CreateSampleEventButton', function () {
       >
         {createSampleText}
       </CreateSampleEventButton>,
-      {organization: org}
+      {
+        organization: org,
+        router,
+        deprecatedRouterMocks: true,
+      }
     );
   }
 
@@ -67,7 +71,7 @@ describe('CreateSampleEventButton', function () {
     // Wait for the api request and latestEventAvailable to resolve
     expect(sampleButton).toBeEnabled();
 
-    expect(browserHistory.push).toHaveBeenCalledWith(
+    expect(router.push).toHaveBeenCalledWith(
       `/organizations/${org.slug}/issues/${groupID}/?project=${project.id}&referrer=sample-error`
     );
   });
@@ -108,7 +112,7 @@ describe('CreateSampleEventButton', function () {
     jest.runAllTimers();
     await waitFor(() => expect(latestIssueRequest).toHaveBeenCalled());
 
-    expect(browserHistory.push).toHaveBeenCalledWith(
+    expect(router.push).toHaveBeenCalledWith(
       `/organizations/${org.slug}/issues/${groupID}/?project=${project.id}&referrer=sample-error`
     );
 

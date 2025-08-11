@@ -1,13 +1,24 @@
+import * as qs from 'query-string';
+
 import IdBadge from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import {IssueAlertActionType, RuleActionsCategories} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {TIME_WINDOW_TO_INTERVAL} from 'sentry/views/alerts/utils/timePeriods';
+import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {LOGS_QUERY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {getExploreUrl} from 'sentry/views/explore/utils';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export function getProjectOptions({
   organization,
@@ -112,4 +123,108 @@ export function shouldUseErrorsDiscoverDataset(
   }
 
   return dataset === Dataset.ERRORS;
+}
+
+export function getAlertRuleExploreUrl({
+  rule,
+  organization,
+  timePeriod,
+  projectId,
+}: {
+  organization: Organization;
+  projectId: string;
+  rule: MetricRule;
+  timePeriod: TimePeriodType;
+}) {
+  if (rule.dataset !== Dataset.EVENTS_ANALYTICS_PLATFORM) {
+    return '';
+  }
+
+  const interval =
+    TIME_WINDOW_TO_INTERVAL[rule.timeWindow as keyof typeof TIME_WINDOW_TO_INTERVAL];
+
+  return getExploreUrl({
+    organization,
+    selection: {
+      datetime: {
+        period: timePeriod.usingPeriod
+          ? timePeriod.period === '9998m'
+            ? '7d'
+            : timePeriod.period
+          : null,
+        start: timePeriod.usingPeriod ? null : timePeriod.start,
+        end: timePeriod.usingPeriod ? null : timePeriod.end,
+        utc: timePeriod.utc || null,
+      },
+      environments: rule.environment ? [rule.environment] : [],
+      projects: [parseInt(projectId, 10)],
+    },
+    interval,
+    visualize: [
+      {
+        chartType: ChartType.LINE,
+        yAxes: [rule.aggregate],
+      },
+    ],
+    query: rule.query,
+  });
+}
+
+export function getAlertRuleLogsUrl({
+  rule,
+  organization,
+  timePeriod,
+  projectId,
+}: {
+  organization: Organization;
+  projectId: string;
+  rule: MetricRule;
+  timePeriod: TimePeriodType;
+}) {
+  if (
+    rule.dataset !== Dataset.EVENTS_ANALYTICS_PLATFORM ||
+    !rule.eventTypes?.includes(EventTypes.TRACE_ITEM_LOG)
+  ) {
+    return '';
+  }
+
+  const basePath = normalizeUrl(`/organizations/${organization.slug}/explore/logs/`);
+
+  const queryParams: Record<string, any> = {
+    project: [parseInt(projectId, 10)],
+    environment: rule.environment,
+    [LOGS_QUERY_KEY]: rule.query,
+  };
+
+  if (timePeriod.usingPeriod) {
+    queryParams.statsPeriod = timePeriod.period === '9998m' ? '7d' : timePeriod.period;
+  } else {
+    queryParams.start = timePeriod.start;
+    queryParams.end = timePeriod.end;
+    queryParams.utc = timePeriod.utc;
+  }
+
+  if (rule.aggregate) {
+    const parsed = parseFunction(rule.aggregate);
+    if (parsed) {
+      queryParams.logsAggregate = parsed.name;
+      queryParams.logsAggregateParam = parsed.arguments[0];
+    }
+  }
+
+  return `${basePath}` + `?${qs.stringify(queryParams, {skipNull: true})}`;
+}
+
+export function isEapAlertType(alertType?: AlertType) {
+  if (!defined(alertType)) {
+    return false;
+  }
+  return [
+    'eap_metrics',
+    'trace_item_throughput',
+    'trace_item_duration',
+    'trace_item_failure_rate',
+    'trace_item_lcp',
+    'trace_item_logs',
+  ].includes(alertType);
 }

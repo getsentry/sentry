@@ -1,17 +1,18 @@
-import {ConfigFixture} from 'sentry-fixture/config';
+import {ThemeFixture} from 'sentry-fixture/theme';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
 
+const theme = ThemeFixture();
+
 describe('getFieldRenderer', function () {
-  let location, context, project, organization, data, user;
+  let location: any, context: any, project: any, organization: any, data: any, user: any;
 
   beforeEach(function () {
     context = initializeOrg();
@@ -77,7 +78,9 @@ describe('getFieldRenderer', function () {
 
   it('can render string fields', function () {
     const renderer = getFieldRenderer('url', {url: 'string'});
-    render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
 
     expect(screen.getByText(data.url)).toBeInTheDocument();
   });
@@ -85,21 +88,27 @@ describe('getFieldRenderer', function () {
   it('can render empty string fields', function () {
     const renderer = getFieldRenderer('url', {url: 'string'});
     data.url = '';
-    render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
 
     expect(screen.getByText('(empty string)')).toBeInTheDocument();
   });
 
   it('can render boolean fields', function () {
     const renderer = getFieldRenderer('boolValue', {boolValue: 'boolean'});
-    render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
 
     expect(screen.getByText('true')).toBeInTheDocument();
   });
 
   it('can render integer fields', function () {
     const renderer = getFieldRenderer('numeric', {numeric: 'integer'});
-    render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
 
     expect(screen.getByText(data.numeric)).toBeInTheDocument();
   });
@@ -114,7 +123,9 @@ describe('getFieldRenderer', function () {
         false
       );
 
-      render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
+      render(
+        renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      );
       expect(screen.getByText('1.2%')).toBeInTheDocument();
     });
 
@@ -127,32 +138,21 @@ describe('getFieldRenderer', function () {
         false
       );
 
-      render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
+      render(
+        renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      );
       expect(screen.getByText('<0.01%')).toBeInTheDocument();
     });
   });
 
   describe('date', function () {
-    beforeEach(function () {
-      ConfigStore.loadInitialData(
-        ConfigFixture({
-          user: UserFixture({
-            options: {
-              ...UserFixture().options,
-              timezone: 'America/Los_Angeles',
-            },
-          }),
-        })
-      );
-    });
-
     it('can render date fields', async function () {
       const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
-      render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
-
-      await waitFor(() =>
-        expect(screen.getByText('Oct 3, 2019 9:13:14 AM PDT')).toBeInTheDocument()
+      render(
+        renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
       );
+
+      await screen.findByText('Oct 3, 2019 4:13:14 PM UTC');
     });
 
     it('can render date fields using utc when query string has utc set to true', async function () {
@@ -161,37 +161,28 @@ describe('getFieldRenderer', function () {
         renderer(data, {
           location: {...location, query: {utc: 'true'}},
           organization,
+          theme,
         }) as React.ReactElement<any, any>
       );
 
-      await waitFor(() =>
-        expect(screen.getByText('Oct 3, 2019 4:13:14 PM UTC')).toBeInTheDocument()
-      );
+      await screen.findByText('Oct 3, 2019 4:13:14 PM UTC');
     });
   });
 
   it('can render null date fields', function () {
     const renderer = getFieldRenderer('nope', {nope: 'date'});
-    render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
 
     expect(screen.getByText('(no value)')).toBeInTheDocument();
   });
 
   it('can render timestamp.to_day', function () {
-    // Set timezone
-    ConfigStore.loadInitialData(
-      ConfigFixture({
-        user: UserFixture({
-          options: {
-            ...UserFixture().options,
-            timezone: 'America/Los_Angeles',
-          },
-        }),
-      })
-    );
-
     const renderer = getFieldRenderer('timestamp.to_day', {'timestamp.to_day': 'date'});
-    render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
 
     expect(screen.getByText('Sep 5, 2021')).toBeInTheDocument();
   });
@@ -199,11 +190,11 @@ describe('getFieldRenderer', function () {
   it('can render error.handled values', function () {
     const renderer = getFieldRenderer('error.handled', {'error.handled': 'boolean'});
 
-    function validate(value, expectText) {
+    function validate(value: any, expectText: any) {
       const {unmount} = render(
         renderer(
           {'error.handled': value},
-          {location, organization}
+          {location, organization, theme}
         ) as React.ReactElement<any, any>
       );
       expect(screen.getByText(expectText)).toBeInTheDocument();
@@ -232,7 +223,9 @@ describe('getFieldRenderer', function () {
   it('can render user fields with aliased user', function () {
     const renderer = getFieldRenderer('user', {user: 'string'});
 
-    render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
 
     expect(screen.getByTestId('letter_avatar-avatar')).toBeInTheDocument();
     expect(screen.getByText('text@example.com')).toBeInTheDocument();
@@ -242,7 +235,9 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('user', {user: 'string'});
 
     delete data.user;
-    render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
 
     expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
     expect(screen.getByText('(no value)')).toBeInTheDocument();
@@ -252,7 +247,9 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('release', {release: 'string'});
 
     delete data.release;
-    render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
 
     expect(screen.getByText('(no value)')).toBeInTheDocument();
   });
@@ -260,13 +257,13 @@ describe('getFieldRenderer', function () {
   it('renders release version with hyperlink', function () {
     const renderer = getFieldRenderer('release', {release: 'string'});
 
-    render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
-      router: context.router,
-    });
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
 
     expect(screen.queryByRole('link')).toHaveAttribute(
       'href',
-      `/organizations/org-slug/releases/F2520C43515BD1F0E8A6BD46233324641A370BF6/`
+      '/mock-pathname/?rd=show&rdRelease=F2520C43515BD1F0E8A6BD46233324641A370BF6&rdSource=release-version-link'
     );
     expect(screen.getByText('F2520C43515B')).toBeInTheDocument();
   });
@@ -274,9 +271,9 @@ describe('getFieldRenderer', function () {
   it('renders issue hyperlink', function () {
     const renderer = getFieldRenderer('issue', {issue: 'string'});
 
-    render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
-      router: context.router,
-    });
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
 
     expect(screen.queryByRole('link')).toHaveAttribute(
       'href',
@@ -288,9 +285,9 @@ describe('getFieldRenderer', function () {
   it('can render project as an avatar', function () {
     const renderer = getFieldRenderer('project', {project: 'string'});
 
-    render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
-      router: context.router,
-    });
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
 
     expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
     expect(screen.getByText(project.slug)).toBeInTheDocument();
@@ -301,9 +298,9 @@ describe('getFieldRenderer', function () {
 
     data = {...data, project: parseInt(project.id, 10)};
 
-    render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
-      router: context.router,
-    });
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
 
     expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
     expect(screen.getByText(project.slug)).toBeInTheDocument();
@@ -314,9 +311,9 @@ describe('getFieldRenderer', function () {
       team_key_transaction: 'boolean',
     });
 
-    render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
-      router: context.router,
-    });
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
 
     const star = screen.getByRole('button', {name: 'Toggle star for team'});
 
@@ -331,9 +328,9 @@ describe('getFieldRenderer', function () {
     });
     delete data.project;
 
-    render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
-      router: context.router,
-    });
+    render(
+      renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+    );
 
     const star = screen.getByRole('button', {name: 'Toggle star for team'});
 
@@ -352,11 +349,11 @@ describe('getFieldRenderer', function () {
         [SPAN_OP_RELATIVE_BREAKDOWN_FIELD]: 'string',
       });
 
-      render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
-        router: context.router,
-      });
+      render(
+        renderer(data, {location, organization, theme}) as React.ReactElement<any, any>
+      );
 
-      expect(getWidths()).toEqual(['13.333%', '40.000%', '20.000%', '26.667%', '0.000%']);
+      expect(getWidths()).toEqual(['13.333%', '40%', '20%', '26.667%', '0%']);
     });
 
     it('renders operation breakdowns in sorted order when a sort field is provided', function () {
@@ -368,6 +365,7 @@ describe('getFieldRenderer', function () {
         renderer(data, {
           location,
           organization,
+          theme,
           eventView: new EventView({
             sorts: [{field: 'spans.db', kind: 'desc'}],
             createdBy: UserFixture(),
@@ -384,11 +382,10 @@ describe('getFieldRenderer', function () {
             team: [],
             topEvents: undefined,
           }),
-        }) as React.ReactElement<any, any>,
-        {router: context.router}
+        }) as React.ReactElement<any, any>
       );
 
-      expect(getWidths()).toEqual(['40.000%', '13.333%', '20.000%', '26.667%', '0.000%']);
+      expect(getWidths()).toEqual(['40%', '13.333%', '20%', '26.667%', '0%']);
     });
   });
 });

@@ -67,7 +67,7 @@ class Chartcuterie(ChartRenderer):
 
         with sentry_sdk.start_span(
             op="charts.chartcuterie.generate_chart",
-            description=type(self).__name__,
+            name=type(self).__name__,
         ):
 
             # Using sentry json formatter to handle datetime objects
@@ -80,7 +80,7 @@ class Chartcuterie(ChartRenderer):
 
             if resp.status_code == 503 and settings.DEBUG:
                 logger.info(
-                    "You may need to build the chartcuterie config using `yarn build-chartcuterie-config`"
+                    "You may need to build the chartcuterie config using `pnpm build-chartcuterie-config`"
                 )
 
             if resp.status_code != 200:
@@ -90,7 +90,7 @@ class Chartcuterie(ChartRenderer):
 
         with sentry_sdk.start_span(
             op="charts.chartcuterie.upload",
-            description=type(self).__name__,
+            name=type(self).__name__,
         ):
             storage = get_storage(self.storage_options)
             storage.save(file_name, BytesIO(resp.content))

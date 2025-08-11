@@ -2,7 +2,7 @@ import * as GroupActionCreators from 'sentry/actionCreators/group';
 import GroupingStore from 'sentry/stores/groupingStore';
 
 describe('Grouping Store', function () {
-  let trigger;
+  let trigger!: jest.SpyInstance;
 
   beforeAll(function () {
     MockApiClient.asyncDelay = 1;
@@ -209,7 +209,7 @@ describe('Grouping Store', function () {
       const calls = trigger.mock.calls;
       const arg: any = calls[calls.length - 1][0];
 
-      const item = arg.similarItems.find(({issue}) => issue.id === '217');
+      const item = arg.similarItems.find(({issue}: any) => issue.id === '217');
       expect(item.aggregate.exception).toBe(0.25);
       expect(item.aggregate.message).toBe(0.7);
     });
@@ -603,7 +603,7 @@ describe('Grouping Store', function () {
       beforeEach(function () {
         MockApiClient.clearMockResponses();
         MockApiClient.addMockResponse({
-          method: 'DELETE',
+          method: 'PUT',
           url: '/organizations/org-slug/issues/groupId/hashes/',
         });
       });
@@ -705,7 +705,7 @@ describe('Grouping Store', function () {
       it('resets busy state and has same items checked after error when trying to merge', async function () {
         MockApiClient.clearMockResponses();
         MockApiClient.addMockResponse({
-          method: 'DELETE',
+          method: 'PUT',
           url: '/organizations/org-slug/issues/groupId/hashes/',
           statusCode: 500,
           body: {},

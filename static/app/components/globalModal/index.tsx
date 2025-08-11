@@ -7,6 +7,7 @@ import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {closeModal as actionCloseModal} from 'sentry/actionCreators/modal';
+import {TooltipContext} from 'sentry/components/core/tooltip';
 import {useGlobalModal} from 'sentry/components/globalModal/useGlobalModal';
 import {ROOT_ELEMENT} from 'sentry/constants';
 import ModalStore from 'sentry/stores/modalStore';
@@ -24,6 +25,11 @@ type ModalOptions = {
    * Set to `true` (the default) to show a translucent backdrop.
    */
   backdrop?: boolean;
+  /**
+   * Additional CSS which will be applied to the modal's backdrop.
+   * Allows specific control over the positioning of z-index for the entire modal
+   */
+  backdropCss?: ReturnType<typeof css>;
   /**
    * By default, the modal is closed when the backdrop is clicked or the
    * escape key is pressed. This prop allows you to modify that behavior.
@@ -51,7 +57,7 @@ type ModalOptions = {
   /**
    * Callback for when the modal is closed
    */
-  onClose?: () => void;
+  onClose?: (reason?: 'close-button' | 'backdrop-click' | 'escape-key') => void;
 };
 
 type ModalRenderProps = {
@@ -80,7 +86,7 @@ type ModalRenderProps = {
   /**
    * Reference to the modal's container.
    */
-  modalContainerRef?: React.RefObject<HTMLDivElement>;
+  modalContainerRef?: React.RefObject<HTMLDivElement | null>;
 };
 
 /**
@@ -110,16 +116,19 @@ function GlobalModal({onClose}: Props) {
 
   const closeEvents = options.closeEvents ?? 'all';
 
-  const closeModal = useCallback(() => {
-    // Option close callback, from the thing which opened the modal
-    options.onClose?.();
+  const closeModal = useCallback(
+    (reason?: 'close-button' | 'backdrop-click' | 'escape-key') => {
+      // Option close callback, from the thing which opened the modal
+      options.onClose?.(reason);
 
-    // Action creator, actually closes the modal
-    actionCloseModal();
+      // Action creator, actually closes the modal
+      actionCloseModal();
 
-    // GlobalModal onClose prop callback
-    onClose?.();
-  }, [options, onClose]);
+      // GlobalModal onClose prop callback
+      onClose?.();
+    },
+    [options, onClose]
+  );
 
   const handleEscapeClose = useCallback(
     (e: KeyboardEvent) => {
@@ -131,13 +140,13 @@ function GlobalModal({onClose}: Props) {
         return;
       }
 
-      closeModal();
+      closeModal('escape-key');
     },
     [closeModal, closeEvents]
   );
 
   const portal = getModalPortal();
-  const focusTrap = useRef<FocusTrap>();
+  const focusTrap = useRef<FocusTrap | null>(null);
   // SentryApp might be missing on tests
   if (window.SentryApp) {
     window.SentryApp.modalFocusTrap = focusTrap;
@@ -148,6 +157,7 @@ function GlobalModal({onClose}: Props) {
       preventScroll: true,
       escapeDeactivates: false,
       fallbackFocus: portal,
+      allowOutsideClick: true,
     });
     ModalStore.setFocusTrap(focusTrap.current);
   }, [portal]);
@@ -194,11 +204,15 @@ function GlobalModal({onClose}: Props) {
   // Only close when we directly click outside of the modal.
   const containerRef = useRef<HTMLDivElement>(null);
   const clickClose = (e: React.MouseEvent) =>
-    containerRef.current === e.target && allowBackdropClickClose && closeModal();
+    containerRef.current === e.target &&
+    allowBackdropClickClose &&
+    closeModal('backdrop-click');
+
+  const onCloseButtonClick = useCallback(() => closeModal('close-button'), [closeModal]);
 
   const renderedChild = renderer?.({
-    CloseButton: makeCloseButton(closeModal),
-    Header: makeClosableHeader(closeModal),
+    CloseButton: makeCloseButton(onCloseButtonClick),
+    Header: makeClosableHeader(onCloseButtonClick),
     Body: ModalBody,
     Footer: ModalFooter,
     modalContainerRef: containerRef,
@@ -208,21 +222,44 @@ function GlobalModal({onClose}: Props) {
   return createPortal(
     <Fragment>
       <Backdrop
+        data-overlay
         style={backdrop && visible ? {opacity: 0.5, pointerEvents: 'auto'} : {}}
+        css={options?.backdropCss}
       />
       <Container
         data-test-id="modal-backdrop"
         ref={containerRef}
         style={{pointerEvents: visible ? 'auto' : 'none'}}
         onClick={backdrop ? clickClose : undefined}
+        css={options?.backdropCss}
       >
-        <AnimatePresence>
-          {visible && (
-            <Modal role="dialog" aria-modal css={options.modalCss}>
-              <Content role="document">{renderedChild}</Content>
-            </Modal>
-          )}
-        </AnimatePresence>
+        <TooltipContext
+          value={{
+            // To ensure tooltips within the modal remain interactive (e.g., clickable or selectable),
+            // they need to be rendered inside the modal's DOM node.
+            container: portal,
+          }}
+        >
+          <AnimatePresence>
+            {visible && (
+              <Modal
+                role="dialog"
+                aria-modal
+                css={options.modalCss}
+                initial={{opacity: 0, y: -10}}
+                animate={{opacity: 1, y: 0}}
+                exit={{opacity: 0, y: 15}}
+                transition={testableTransition({
+                  type: 'spring',
+                  stiffness: 450,
+                  damping: 25,
+                })}
+              >
+                <Content role="document">{renderedChild}</Content>
+              </Modal>
+            )}
+          </AnimatePresence>
+        </TooltipContext>
       </Container>
     </Fragment>,
     portal
@@ -263,32 +300,22 @@ const Modal = styled(motion.div)`
   margin-top: 64px;
   padding: ${space(2)} ${space(1.5)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     margin-top: 50px;
     padding: ${space(4)} ${space(2)};
   }
 `;
 
-Modal.defaultProps = {
-  initial: {opacity: 0, y: -10},
-  animate: {opacity: 1, y: 0},
-  exit: {opacity: 0, y: 15},
-  transition: testableTransition({
-    opacity: {duration: 0.2},
-    y: {duration: 0.25},
-  }),
-};
-
 const Content = styled('div')`
   background: ${p => p.theme.background};
-  border-radius: ${p => p.theme.modalBorderRadius};
+  border-radius: ${p => p.theme.borderRadius};
   box-shadow:
     0 0 0 1px ${p => p.theme.translucentBorder},
     ${p => p.theme.dropShadowHeavy};
   position: relative;
   padding: ${space(4)} ${space(3)};
 
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
     padding: ${space(4)};
   }
 `;

@@ -1,33 +1,29 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {CompactSelect} from 'sentry/components/compactSelect';
-import SearchBar from 'sentry/components/events/searchBar';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import Pagination from 'sentry/components/pagination';
-import {t} from 'sentry/locale';
+import {SpanSearchQueryBuilder} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {browserHistory} from 'sentry/utils/browserHistory';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useProjects from 'sentry/utils/useProjects';
 import SpanMetricsTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanMetricsTable';
-import {useSpanMetricsFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
-
-import type {SetStateAction} from '../types';
+import type {SetStateAction} from 'sentry/views/performance/transactionSummary/types';
 
 import OpsFilter from './opsFilter';
 import SuspectSpansTable from './suspectSpansTable';
@@ -65,30 +61,35 @@ type Props = {
 
 function SpansContent(props: Props) {
   const {location, organization, eventView, projectId, transactionName} = props;
+  const navigate = useNavigate();
   const query = decodeScalar(location.query.query, '');
 
-  function handleChange(key: string) {
-    return function (value: string | undefined) {
-      ANALYTICS_VALUES[key]?.(organization, value);
+  const handleChange = useCallback(
+    (key: string) => {
+      return function (value: string | undefined) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        ANALYTICS_VALUES[key]?.(organization, value);
 
-      const queryParams = normalizeDateTimeParams({
-        ...(location.query || {}),
-        [key]: value,
-      });
+        const queryParams = normalizeDateTimeParams({
+          ...location.query,
+          [key]: value,
+        });
 
-      // do not propagate pagination when making a new search
-      const toOmit = ['cursor'];
-      if (!defined(value)) {
-        toOmit.push(key);
-      }
-      const searchQueryParams = omit(queryParams, toOmit);
+        // do not propagate pagination when making a new search
+        const toOmit = ['cursor'];
+        if (!defined(value)) {
+          toOmit.push(key);
+        }
+        const searchQueryParams = omit(queryParams, toOmit);
 
-      browserHistory.push({
-        ...location,
-        query: searchQueryParams,
-      });
-    };
-  }
+        navigate({
+          ...location,
+          query: searchQueryParams,
+        });
+      };
+    },
+    [location, navigate, organization]
+  );
 
   const spanOp = decodeScalar(location.query.spanOp);
   const spanGroup = decodeScalar(location.query.spanGroup);
@@ -97,6 +98,9 @@ function SpansContent(props: Props) {
   const totalsView = getTotalsView(eventView);
 
   const {projects} = useProjects();
+
+  const onSearch = useMemo(() => handleChange('query'), [handleChange]);
+  const projectIds = useMemo(() => eventView.project.slice(), [eventView]);
 
   const hasNewSpansUIFlag =
     organization.features.includes('performance-spans-new-ui') &&
@@ -124,20 +128,21 @@ function SpansContent(props: Props) {
             relativeOptions={SPAN_RELATIVE_PERIODS}
           />
         </PageFilterBar>
-        <StyledSearchBar
-          organization={organization}
-          projectIds={eventView.project}
-          query={query}
-          fields={eventView.fields}
-          onSearch={handleChange('query')}
-        />
-        <CompactSelect
-          value={sort.field}
-          options={SPAN_SORT_OPTIONS.map(opt => ({value: opt.field, label: opt.label}))}
-          onChange={opt => handleChange('sort')(opt.value)}
-          triggerProps={{prefix: sort.prefix}}
-          triggerLabel={sort.label}
-        />
+        <StyledSearchBarWrapper>
+          <SpanSearchQueryBuilder
+            projects={projectIds}
+            initialQuery={query}
+            onSearch={onSearch}
+            searchSource="transaction_spans"
+          />
+          <CompactSelect
+            value={sort.field}
+            options={SPAN_SORT_OPTIONS.map(opt => ({value: opt.field, label: opt.label}))}
+            onChange={opt => handleChange('sort')(opt.value)}
+            triggerProps={{prefix: sort.prefix}}
+            triggerLabel={sort.label}
+          />
+        </StyledSearchBarWrapper>
       </FilterActions>
       <DiscoverQuery
         eventView={totalsView}
@@ -192,33 +197,40 @@ function SpansContent(props: Props) {
 // TODO: Temporary component while we make the switch to spans only. Will fully replace the old Spans tab when GA'd
 function SpansContentV2(props: Props) {
   const {location, organization, eventView, projectId, transactionName} = props;
-  const supportedTags = useSpanMetricsFieldSupportedTags();
+  const navigate = useNavigate();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === projectId);
-  const spansQuery = decodeScalar(location.query.spansQuery);
+  const spansQuery = decodeScalar(location.query.spansQuery, '');
 
-  function handleChange(key: string) {
-    return function (value: string | undefined) {
-      ANALYTICS_VALUES[key]?.(organization, value);
+  const handleChange = useCallback(
+    (key: string) => {
+      return function (value: string | undefined) {
+        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        ANALYTICS_VALUES[key]?.(organization, value);
 
-      const queryParams = normalizeDateTimeParams({
-        ...(location.query || {}),
-        [key]: value,
-      });
+        const queryParams = normalizeDateTimeParams({
+          ...location.query,
+          [key]: value,
+        });
 
-      // do not propagate pagination when making a new search
-      const toOmit = ['cursor'];
-      if (!defined(value)) {
-        toOmit.push(key);
-      }
-      const searchQueryParams = omit(queryParams, toOmit);
+        // do not propagate pagination when making a new search
+        const toOmit = ['cursor'];
+        if (!defined(value)) {
+          toOmit.push(key);
+        }
+        const searchQueryParams = omit(queryParams, toOmit);
 
-      browserHistory.push({
-        ...location,
-        query: searchQueryParams,
-      });
-    };
-  }
+        navigate({
+          ...location,
+          query: searchQueryParams,
+        });
+      };
+    },
+    [location, navigate, organization]
+  );
+
+  const onSearch = useMemo(() => handleChange('spansQuery'), [handleChange]);
+  const projectIds = useMemo(() => eventView.project.slice(), [eventView]);
 
   return (
     <Layout.Main fullWidth>
@@ -234,16 +246,11 @@ function SpansContentV2(props: Props) {
           <EnvironmentPageFilter />
           <DatePageFilter />
         </PageFilterBar>
-        <StyledSearchBar
-          organization={organization}
-          projectIds={eventView.project}
-          query={spansQuery}
-          fields={eventView.fields}
-          placeholder={t('Search for span attributes')}
-          supportedTags={supportedTags}
-          // This dataset is separate from the query itself which is on metrics; it's for obtaining autocomplete recommendations
-          dataset={DiscoverDatasets.SPANS_INDEXED}
-          onSearch={handleChange('spansQuery')}
+        <SpanSearchQueryBuilder
+          projects={projectIds}
+          initialQuery={spansQuery}
+          onSearch={onSearch}
+          searchSource="transaction_spans"
         />
       </FilterActions>
 
@@ -268,22 +275,22 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     grid-template-columns: repeat(3, min-content);
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     grid-template-columns: auto auto 1fr auto;
   }
 `;
 
-const StyledSearchBar = styled(SearchBar)`
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
+const StyledSearchBarWrapper = styled('div')`
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
     order: 1;
     grid-column: 1/5;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.xl}) {
     order: initial;
     grid-column: auto;
   }

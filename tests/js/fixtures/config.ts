@@ -5,7 +5,7 @@ import type {Config} from 'sentry/types/system';
 export function ConfigFixture(params: Partial<Config> = {}): Config {
   return {
     theme: 'light',
-    user: UserFixture(),
+    user: params.user || UserFixture(),
     messages: [],
     languageCode: 'en',
     csrfCookieName: 'csrf-test-cookie',
@@ -26,6 +26,7 @@ export function ConfigFixture(params: Partial<Config> = {}): Config {
     isOnPremise: false,
     isSelfHosted: false,
     isSelfHostedErrorsOnly: false,
+    sentryMode: 'SAAS',
     lastOrganization: null,
     gravatarBaseUrl: 'https://gravatar.com',
     initialTrace: {
@@ -58,7 +59,7 @@ export function ConfigFixture(params: Partial<Config> = {}): Config {
     demoMode: false,
     customerDomain: null,
     links: {
-      sentryUrl: "https://sentry.io",
+      sentryUrl: 'https://sentry.io',
       organizationUrl: undefined,
       regionUrl: undefined,
     },

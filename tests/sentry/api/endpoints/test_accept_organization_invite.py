@@ -8,18 +8,17 @@ from django.urls import reverse
 
 from sentry import audit_log
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.outbox import outbox_context
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
@@ -29,7 +28,7 @@ from sentry.types.region import Region, RegionCategory
 
 @control_silo_test
 class AcceptInviteTest(TestCase, HybridCloudTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         with override_settings(SENTRY_REGION=settings.SENTRY_MONOLITH_REGION):
             self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
@@ -79,12 +78,12 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         interface.enroll(user)
         assert user.has_2fa()
 
-    def test_invalid_member_id(self):
+    def test_invalid_member_id(self) -> None:
         for path in self._get_paths([1, 2]):
             resp = self.client.get(path)
             assert resp.status_code == 400
 
-    def test_invalid_token(self):
+    def test_invalid_token(self) -> None:
         om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
@@ -92,14 +91,14 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.get(path)
             assert resp.status_code == 400
 
-    def test_invite_not_pending(self):
+    def test_invite_not_pending(self) -> None:
         user = self.create_user(email="test@gmail.com")
         om = Factories.create_member(token="abc", organization=self.organization, user=user)
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
             assert resp.status_code == 400
 
-    def test_invite_unapproved(self):
+    def test_invite_unapproved(self) -> None:
         om = Factories.create_member(
             email="newuser@example.com",
             token="abc",
@@ -110,8 +109,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.get(path)
             assert resp.status_code == 400
 
-    @override_options({"api.id-or-slug-enabled": True})
-    def test_needs_authentication(self):
+    def test_needs_authentication(self) -> None:
         om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
@@ -120,8 +118,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             assert resp.status_code == 200
             assert resp.json()["needsAuthentication"]
 
-    @override_options({"api.id-or-slug-enabled": True})
-    def test_not_needs_authentication(self):
+    def test_not_needs_authentication(self) -> None:
         self.login_as(self.user)
 
         om = Factories.create_member(
@@ -132,8 +129,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             assert resp.status_code == 200
             assert not resp.json()["needsAuthentication"]
 
-    @override_options({"api.id-or-slug-enabled": True})
-    def test_user_needs_2fa(self):
+    def test_user_needs_2fa(self) -> None:
         self._require_2fa_for_organization()
         assert not self.user.has_2fa()
 
@@ -150,8 +146,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
             self._assert_pending_invite_details_in_session(om)
 
-    @override_options({"api.id-or-slug-enabled": True})
-    def test_multi_region_organizationmember_id(self):
+    def test_multi_region_organizationmember_id(self) -> None:
         org_region_name = OrganizationMapping.objects.get(
             organization_id=self.organization.id
         ).region_name
@@ -193,7 +188,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 self._assert_pending_invite_details_in_session(om)
                 assert self.client.session["invite_organization_id"] == self.organization.id
 
-    def test_multi_region_organizationmember_id__non_monolith(self):
+    def test_multi_region_organizationmember_id__non_monolith(self) -> None:
         self._require_2fa_for_organization()
         assert not self.user.has_2fa()
 
@@ -214,8 +209,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             )
         assert resp.status_code == 400
 
-    @override_options({"api.id-or-slug-enabled": True})
-    def test_user_has_2fa(self):
+    def test_user_has_2fa(self) -> None:
         self._require_2fa_for_organization()
         self._enroll_user_in_2fa(self.user)
 
@@ -231,8 +225,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
             self._assert_pending_invite_details_not_in_session(resp)
 
-    @override_options({"api.id-or-slug-enabled": True})
-    def test_user_can_use_sso(self):
+    def test_user_can_use_sso(self) -> None:
         AuthProvider.objects.create(organization_id=self.organization.id, provider="google")
         self.login_as(self.user)
 
@@ -246,7 +239,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             assert resp.json()["hasAuthProvider"]
             assert resp.json()["ssoProvider"] == "Google"
 
-    def test_can_accept_while_authenticated(self):
+    def test_can_accept_while_authenticated(self) -> None:
         urls = self._get_urls()
 
         for i, url in enumerate(urls):
@@ -277,14 +270,15 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             assert ale.target_user == user
             assert ale.data
 
-    def test_cannot_accept_expired(self):
+    def test_cannot_accept_expired(self) -> None:
         self.login_as(self.user)
 
         om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        with assume_test_silo_mode_of(OrganizationMember), unguarded_write(
-            using=router.db_for_write(OrganizationMember)
+        with (
+            assume_test_silo_mode_of(OrganizationMember),
+            unguarded_write(using=router.db_for_write(OrganizationMember)),
         ):
             OrganizationMember.objects.filter(id=om.id).update(
                 token_expires_at=om.token_expires_at - timedelta(days=31)
@@ -299,7 +293,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             assert om.is_pending, "should not have been accepted"
             assert om.token, "should not have been accepted"
 
-    def test_cannot_accept_unapproved_invite(self):
+    def test_cannot_accept_unapproved_invite(self) -> None:
         self.login_as(self.user)
 
         om = Factories.create_member(
@@ -319,7 +313,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         assert om.is_pending
         assert om.token
 
-    def test_member_already_exists(self):
+    def test_member_already_exists(self) -> None:
         urls = self._get_urls()
 
         for i, url in enumerate(urls):
@@ -356,7 +350,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 assert not OrganizationMember.objects.filter(id=om2.id).exists()
             self.assert_org_member_mapping_not_exists(org_member=om2)
 
-    def test_can_accept_when_user_has_2fa(self):
+    def test_can_accept_when_user_has_2fa(self) -> None:
         urls = self._get_urls()
 
         for i, url in enumerate(urls):
@@ -393,7 +387,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             assert ale.target_user == user
             assert ale.data
 
-    def test_cannot_accept_when_user_needs_2fa(self):
+    def test_cannot_accept_when_user_needs_2fa(self) -> None:
         self._require_2fa_for_organization()
         self.assertFalse(self.user.has_2fa())
 
@@ -409,7 +403,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
     # TODO(hybrid-cloud): Split this test per URL in the future, as the
     #  slug-less variant will not work in Control-Silo mode since we won't
     #  know which region the org resides in and will return a 400 level error.
-    def test_2fa_cookie_deleted_after_accept(self):
+    def test_2fa_cookie_deleted_after_accept(self) -> None:
         urls = self._get_urls()
 
         for i, url in enumerate(urls):
@@ -436,7 +430,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
             self._assert_pending_invite_details_not_in_session(resp)
 
-    def test_mismatched_org_slug(self):
+    def test_mismatched_org_slug(self) -> None:
         self.login_as(self.user)
 
         om = Factories.create_member(
