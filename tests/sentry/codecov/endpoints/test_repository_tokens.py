@@ -140,13 +140,18 @@ class RepositoryTokensEndpointTest(APITestCase):
         mock_codecov_client_class.return_value = mock_codecov_client_instance
 
         url = self.reverse_url()
-        query_params = {"cursor": "cursor123", "limit": "5", "navigation": "prev"}
+        query_params = {
+            "cursor": "cursor123",
+            "limit": "5",
+            "navigation": "prev",
+            "sortBy": "-NAME",
+        }
         response = self.client.get(url, query_params)
 
         expected_variables = {
             "owner": "testowner",
             "direction": "DESC",
-            "ordering": "COMMIT_DATE",
+            "ordering": "NAME",
             "first": None,
             "last": 5,
             "before": "cursor123",
