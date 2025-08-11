@@ -15,6 +15,7 @@ from sentry.db.models import BoundedIntegerField, FlexibleForeignKey, region_sil
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.locks import locks
 from sentry.models.project import Project
+from sentry.options import UnknownOption
 from sentry.sdk_updates import get_sdk_index
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -175,9 +176,34 @@ def normalize_sdk_name(sdk_name: str) -> str | None:
 
 
 MINIMUM_SDK_VERSION_OPTIONS: dict[tuple[int, str], str] = {
+    (EventType.PROFILE.value, "sentry.cocoa"): "sdk-deprecation.profile.cocoa",
     (EventType.PROFILE_CHUNK.value, "sentry.cocoa"): "sdk-deprecation.profile-chunk.cocoa",
     (EventType.PROFILE_CHUNK.value, "sentry.python"): "sdk-deprecation.profile-chunk.python",
 }
+
+
+def get_rejected_sdk_version(event_type: int, sdk_name: str) -> Version | None:
+    parts = sdk_name.split(".", 2)
+    if len(parts) < 2:
+        return None
+
+    normalized_sdk_name = ".".join(parts[:2])
+
+    sdk_version_option = MINIMUM_SDK_VERSION_OPTIONS.get((event_type, normalized_sdk_name))
+    if sdk_version_option is None:
+        return None
+
+    try:
+        sdk_version = options.get(f"{sdk_version_option}.reject")
+    except UnknownOption:
+        sdk_version = None
+
+    if sdk_version:
+        try:
+            return parse_version(sdk_version)
+        except InvalidVersion as e:
+            sentry_sdk.capture_exception(e)
+    return None
 
 
 def get_minimum_sdk_version(event_type: int, sdk_name: str, hard_limit: bool) -> Version | None:
@@ -191,10 +217,13 @@ def get_minimum_sdk_version(event_type: int, sdk_name: str, hard_limit: bool) ->
     if sdk_version_option is None:
         return None
 
-    if hard_limit:
-        sdk_version = options.get(f"{sdk_version_option}.hard")
-    else:
-        sdk_version = options.get(sdk_version_option)
+    try:
+        if hard_limit:
+            sdk_version = options.get(f"{sdk_version_option}.hard")
+        else:
+            sdk_version = options.get(sdk_version_option)
+    except UnknownOption:
+        sdk_version = None
 
     if sdk_version:
         try:

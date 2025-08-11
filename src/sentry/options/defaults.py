@@ -3392,6 +3392,16 @@ register(
     default="8.49.0",
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "sdk-deprecation.profile-chunk.cocoa.reject",
+    default="8.49.2",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sdk-deprecation.profile.cocoa.reject",
+    default="8.49.2",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 
 # Orgs for which compression should be disabled in the chunk upload endpoint.

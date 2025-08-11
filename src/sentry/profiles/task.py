@@ -31,7 +31,12 @@ from sentry.models.eventerror import EventError
 from sentry.models.files.utils import get_profiles_storage
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.projectsdk import EventType, ProjectSDK, get_minimum_sdk_version
+from sentry.models.projectsdk import (
+    EventType,
+    ProjectSDK,
+    get_minimum_sdk_version,
+    get_rejected_sdk_version,
+)
 from sentry.objectstore.metrics import measure_storage_operation
 from sentry.profiles.java import (
     convert_android_methods_to_jvm_frames,
@@ -310,6 +315,9 @@ def _is_deprecated(profile: Profile, project: Project, organization: Organizatio
     try:
         sdk_name, sdk_version = determine_client_sdk(profile, event_type)
     except UnknownClientSDKException:
+        # unknown SDKs happen because older sdks didn't send the sdk version
+        # in the payload, so if we cant determine the client sdk, we assume
+        # it's one of the deprecated versions
         _track_outcome(
             profile=profile,
             project=project,
@@ -331,18 +339,31 @@ def _is_deprecated(profile: Profile, project: Project, organization: Organizatio
         # update the version so we can skip the update from this event
         return False
 
-    if not is_sdk_deprecated(event_type, sdk_name, sdk_version):
-        return False
+    if features.has("organizations:profiling-reject-sdks", organization) and is_sdk_rejected(
+        organization, event_type, sdk_name, sdk_version
+    ):
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.FILTERED,
+            categories=[category],
+            reason="rejected sdk",
+        )
+        return True
 
-    _track_outcome(
-        profile=profile,
-        project=project,
-        outcome=Outcome.FILTERED,
-        categories=[category],
-        reason="deprecated sdk",
-    )
+    if features.has("organizations:profiling-deprecate-sdks", organization) and is_sdk_deprecated(
+        event_type, sdk_name, sdk_version
+    ):
+        _track_outcome(
+            profile=profile,
+            project=project,
+            outcome=Outcome.FILTERED,
+            categories=[category],
+            reason="deprecated sdk",
+        )
+        return True
 
-    return features.has("organizations:profiling-deprecate-sdks", organization)
+    return False
 
 
 JS_PLATFORMS = ["javascript", "node"]
@@ -1299,6 +1320,36 @@ def is_sdk_deprecated(event_type: EventType, sdk_name: str, sdk_version: str) ->
         normalized_sdk_name = ".".join(parts[:2])
         metrics.incr(
             "process_profile.sdk.deprecated",
+            tags={"sdk_name": normalized_sdk_name},
+            sample_rate=1.0,
+        )
+
+    return True
+
+
+def is_sdk_rejected(
+    organization: Organization, event_type: EventType, sdk_name: str, sdk_version: str
+) -> bool:
+    rejected_version = get_rejected_sdk_version(event_type.value, sdk_name)
+
+    # no rejected sdk version was specified
+    if rejected_version is None:
+        return False
+
+    try:
+        version = parse_version(sdk_version)
+    except InvalidVersion:
+        return False
+
+    # satisfies the rejected sdk version
+    if version >= rejected_version:
+        return False
+
+    parts = sdk_name.split(".", 2)
+    if len(parts) >= 2:
+        normalized_sdk_name = ".".join(parts[:2])
+        metrics.incr(
+            "process_profile.sdk.rejected",
             tags={"sdk_name": normalized_sdk_name},
             sample_rate=1.0,
         )
