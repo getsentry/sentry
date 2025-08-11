@@ -537,7 +537,17 @@ def calculate_sample_rates_of_projects(
         logger.info(
             "log-project-config: rebalanced_projects for org %s",
             org_id,
-            extra={"rebalanced_projects": rebalanced_projects, "sample_rate": sample_rate},
+            extra={
+                "rebalanced_projects": [
+                    {
+                        "id": project.id,
+                        "count": project.count,
+                        "new_sample_rate": project.new_sample_rate,
+                    }
+                    for project in rebalanced_projects
+                ],
+                "sample_rate": sample_rate,
+            },
         )
 
     return rebalanced_projects
