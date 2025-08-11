@@ -106,10 +106,8 @@ SavedEntityTable.Row = styled(SimpleTable.Row, {
 `;
 
 SavedEntityTable.Cell = styled(SimpleTable.RowCell, {
-  shouldForwardProp: prop => prop !== 'hasButton' && prop !== 'gridArea',
+  shouldForwardProp: prop => prop !== 'hasButton',
 })<{
-  'data-column'?: string;
-  gridArea?: string;
   hasButton?: boolean;
 }>`
   height: 40px;
@@ -119,12 +117,6 @@ SavedEntityTable.Cell = styled(SimpleTable.RowCell, {
     p.hasButton &&
     css`
       padding: 0 ${space(0.5)};
-    `}
-
-  ${p =>
-    p.gridArea &&
-    css`
-      grid-area: ${p['data-column']};
     `}
 `;
 
