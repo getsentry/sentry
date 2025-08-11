@@ -74,7 +74,6 @@ const EXAMPLE_CARDS: MissionControlCard[] = [
     type: 'ultragroup',
     createdAt: '2024-01-23T10:15:00Z',
     priority: 13,
-    url: '/issues/?query=bad%20github%20branch%20state',
     data: {
       title: 'Bad GitHub branch state issues',
       description:
@@ -182,7 +181,7 @@ function MissionControl() {
   }, []);
 
   const handleMoveToBack = useCallback(() => {
-    if (!currentCard || isTransitioning) return;
+    if (!currentCard || isTransitioning || currentCard.type === 'welcome') return;
 
     setIsTransitioning(true);
     setDismissDirection('up');
@@ -258,8 +257,10 @@ function MissionControl() {
             }
             break;
           case 'ArrowUp':
-            event.preventDefault();
-            handleMoveToBack();
+            if (currentCard && currentCard.type !== 'welcome') {
+              event.preventDefault();
+              handleMoveToBack();
+            }
             break;
           case 'ArrowDown':
             if (currentCard?.url) {
@@ -357,7 +358,12 @@ function MissionControl() {
         <Button
           size="md"
           onClick={handleMoveToBack}
-          disabled={isActionLoading || dismissDirection !== null}
+          disabled={
+            !currentCard ||
+            currentCard.type === 'welcome' ||
+            isActionLoading ||
+            dismissDirection !== null
+          }
         >
           Move to back
           <KeyHint>↑</KeyHint>
