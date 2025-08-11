@@ -62,6 +62,8 @@ from sentry.snuba.metrics.fields.snql import (
     sum_if_column_snql,
     team_key_transaction_snql,
     tolerated_count_transaction,
+    unhandled_sessions,
+    unhandled_users,
     uniq_aggregation_on_metric,
     uniq_if_column_snql,
 )
@@ -1372,6 +1374,22 @@ DERIVED_METRICS = {
             metrics=[SessionMRI.RAW_USER.value],
             unit="users",
             snql=lambda project_ids, org_id, metric_ids, alias=None: abnormal_users(
+                org_id, metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.UNHANDLED.value,
+            metrics=[SessionMRI.RAW_SESSION.value],
+            unit="sessions",
+            snql=lambda project_ids, org_id, metric_ids, alias=None: unhandled_sessions(
+                org_id, metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.UNHANDLED_USER.value,
+            metrics=[SessionMRI.RAW_USER.value],
+            unit="users",
+            snql=lambda project_ids, org_id, metric_ids, alias=None: unhandled_users(
                 org_id, metric_ids, alias=alias
             ),
         ),

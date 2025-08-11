@@ -432,10 +432,10 @@ class SpansBuffer:
 
                 val_data = val.setdefault("data", {})
                 if isinstance(val_data, dict):
-                    val_data["__sentry_internal_span_buffer_outcome"] = outcome
+                    val_data["sentry._internal.span_buffer_segment_id_outcome"] = outcome
 
                     if old_segment_id:
-                        val_data["__sentry_internal_old_segment_id"] = old_segment_id
+                        val_data["sentry._internal.span_buffer_old_segment_id"] = old_segment_id
 
                 val["segment_id"] = segment_span_id
 
