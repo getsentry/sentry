@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 
 import testAnalyticsRepoSecretDark from 'sentry-images/features/test-analytics-repo-secret-dark.png';
 import testAnalyticsRepoSecretLight from 'sentry-images/features/test-analytics-repo-secret-light.png';
@@ -10,8 +11,6 @@ import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
 interface AddUploadTokenStepProps {
@@ -28,8 +27,8 @@ export function AddUploadTokenStep({step}: AddUploadTokenStepProps) {
   const [showFullToken, setShowFullToken] = useState(true);
   const [showWarning, setShowWarning] = useState(true);
 
-  const config = useLegacyStore(ConfigStore);
-  const isDarkMode = config.theme === 'dark';
+  const theme = useTheme();
+  const isDarkMode = theme.type === 'dark';
 
   const headerText = tct(`Step [step]: Add token as [repositorySecret]`, {
     step,

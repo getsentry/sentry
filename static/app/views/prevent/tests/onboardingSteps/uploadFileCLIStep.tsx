@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
@@ -36,8 +37,8 @@ export function UploadFileCLIStep({previousStep, step}: UploadFileCLIStepProps) 
             {tct(
               'Be sure to specify [reportType] as [testResults] and include the file you created in Step [previousStep]. This will not necessarily upload coverage reports to Sentry.',
               {
-                reportType: <PinkText>--report-type</PinkText>,
-                testResults: <PinkText>test_results</PinkText>,
+                reportType: <Text variant="promotion">--report-type</Text>,
+                testResults: <Text variant="promotion">test_results</Text>,
                 previousStep,
               }
             )}
@@ -59,8 +60,4 @@ const StyledCodeSnippet = styled(CodeSnippet)`
   code {
     text-wrap: wrap;
   }
-`;
-
-const PinkText = styled('span')`
-  color: ${p => p.theme.pink400};
 `;

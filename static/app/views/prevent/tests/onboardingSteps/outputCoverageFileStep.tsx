@@ -58,7 +58,7 @@ export function OutputCoverageFileStep({step}: OutputCoverageFileStepProps) {
               {label: 'Jest', value: 'jest'},
               {label: 'Vitest', value: 'vitest'},
               {label: 'Pytest', value: 'pytest'},
-              {label: 'PHPunit', value: 'phpunit'},
+              {label: 'PHPUnit', value: 'phpunit'},
             ]}
             value={selectedFramework}
             onChange={(option: {value: Frameworks}) => setSelectedFramework(option.value)}

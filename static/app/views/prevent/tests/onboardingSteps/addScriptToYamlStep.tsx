@@ -1,11 +1,9 @@
 import styled from '@emotion/styled';
 
-import testAnalyticsGHAWorkflowExample from 'sentry-images/features/test-analytics-gha-workflow-ex.svg';
-
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {InlineCodeSnippet} from 'sentry/views/prevent/styles';
+import {GHAWorkflowExpandable} from 'sentry/views/prevent/tests/onboardingSteps/GHAWorkflowExpandable';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
 interface AddScriptToYamlStepProps {
@@ -46,32 +44,15 @@ export function AddScriptToYamlStep({step}: AddScriptToYamlStepProps) {
           </SnippetFollowupParagraph>
         </OnboardingStep.Content>
       </OnboardingStep.Body>
-      <OnboardingStep.ExpandableDropdown
-        triggerContent={
-          <div>
-            {tct(
-              'A GitHub Actions workflow for a repository using [pytest] might look something like this:',
-              {
-                pytest: <PinkText>{t('pytest')}</PinkText>,
-              }
-            )}
-          </div>
-        }
-      >
-        <img src={testAnalyticsGHAWorkflowExample} />
-      </OnboardingStep.ExpandableDropdown>
+      <GHAWorkflowExpandable />
     </OnboardingStep.Container>
   );
 }
 
 const AddScriptsParagraph = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${p => p.theme.space.md};
 `;
 
 const SnippetFollowupParagraph = styled('div')`
-  margin-top: ${space(1.5)};
-`;
-
-const PinkText = styled('span')`
-  color: ${p => p.theme.pink400};
+  margin-top: ${p => p.theme.space.lg};
 `;

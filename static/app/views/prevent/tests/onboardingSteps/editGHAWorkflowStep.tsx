@@ -1,12 +1,10 @@
 import styled from '@emotion/styled';
 
-import testAnalyticsGHAWorkflowExample from 'sentry-images/features/test-analytics-gha-workflow-ex.svg';
-
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Link} from 'sentry/components/core/link';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {InlineCodeSnippet} from 'sentry/views/prevent/styles';
+import {GHAWorkflowExpandable} from 'sentry/views/prevent/tests/onboardingSteps/GHAWorkflowExpandable';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
 interface EditGHAWorkflowStepProps {
@@ -71,20 +69,7 @@ export function EditGHAWorkflowStep({step}: EditGHAWorkflowStepProps) {
           </Paragraph>
         </OnboardingStep.Content>
       </OnboardingStep.Body>
-      <OnboardingStep.ExpandableDropdown
-        triggerContent={
-          <div>
-            {tct(
-              'A GitHub Actions workflow for a repository using [pytest] might look something like this:',
-              {
-                pytest: <PinkText>{t('pytest')}</PinkText>,
-              }
-            )}
-          </div>
-        }
-      >
-        <img src={testAnalyticsGHAWorkflowExample} />
-      </OnboardingStep.ExpandableDropdown>
+      <GHAWorkflowExpandable />
     </OnboardingStep.Container>
   );
 }
@@ -98,13 +83,9 @@ const SubHeader = styled('div')`
 `;
 
 const TopParagraph = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const Paragraph = styled('div')`
-  margin: ${space(1)} 0;
-`;
-
-const PinkText = styled('span')`
-  color: ${p => p.theme.pink400};
+  margin: ${p => p.theme.space.md} 0;
 `;

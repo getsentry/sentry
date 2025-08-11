@@ -1,9 +1,10 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Container, Flex} from 'sentry/components/core/layout';
 import {IconChevron} from 'sentry/icons';
 
-const Container = styled('div')`
+const StepContainer = styled('div')`
   display: flex;
   flex-direction: column;
   border: 1px solid ${p => p.theme.border};
@@ -11,8 +12,7 @@ const Container = styled('div')`
 `;
 
 // this wraps Header and Content
-const Body = styled('div')`
-  display: flex;
+const Body = styled(Flex)`
   flex-direction: column;
   padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
 `;
@@ -24,7 +24,7 @@ const Header = styled('h3')`
   line-height: 31px;
 `;
 
-const Content = styled('div')`
+const Content = styled(Container)`
   margin-top: ${p => p.theme.space.xs};
 `;
 
@@ -39,36 +39,35 @@ function ExpandableDropdown({
 
   return (
     <ExpandableContentContainer>
-      <ExpandableContentTrigger>
+      <ExpandableContentTrigger onClick={() => setIsExpanded(!isExpanded)}>
         {triggerContent}
-        <IconChevron
-          direction={isExpanded ? 'up' : 'down'}
-          onClick={() => setIsExpanded(!isExpanded)}
-        />
+        <IconChevron direction={isExpanded ? 'up' : 'down'} />
       </ExpandableContentTrigger>
       {isExpanded && <ExpandedContent>{children}</ExpandedContent>}
     </ExpandableContentContainer>
   );
 }
 
-const ExpandableContentContainer = styled('div')`
+const ExpandableContentContainer = styled(Container)`
   border-top: 1px solid ${p => p.theme.border};
   margin-top: auto;
   padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
 `;
 
-const ExpandableContentTrigger = styled('div')`
-  display: flex;
+const ExpandableContentTrigger = styled(Flex)`
   justify-content: space-between;
   align-items: center;
+  :hover {
+    cursor: pointer;
+  }
 `;
 
-const ExpandedContent = styled('div')`
+const ExpandedContent = styled(Container)`
   padding-top: ${p => p.theme.space['2xl']};
 `;
 
 export const OnboardingStep = {
-  Container,
+  Container: StepContainer,
   Header,
   Content,
   Body,
