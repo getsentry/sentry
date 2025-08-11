@@ -143,7 +143,7 @@ class EventAttachment(Model):
 
         elif self.blob_path.startswith(V1_PREFIX):
             storage = get_storage()
-            with measure_storage_operation("get", "attachments") as metric_emitter:
+            with measure_storage_operation("get", "attachments", self.size) as metric_emitter:
                 compressed_blob = storage.open(self.blob_path)
                 # We want to log the compressed size here but we want to stream the payload.
                 # Accessing `.size` does additional metadata requests, for which we
