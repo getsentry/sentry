@@ -407,7 +407,7 @@ class ReleaseIssues extends Component<Props, State> {
           <GroupList
             endpointPath={path}
             queryParams={queryParams}
-            query={`release:${version}`}
+            query={`release:"${version}"`}
             canSelectGroups={false}
             queryFilterDescription={queryFilterDescription}
             withChart={withChart}
