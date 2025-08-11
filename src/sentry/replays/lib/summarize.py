@@ -10,11 +10,11 @@ from sentry import nodestore
 from sentry.constants import ObjectStatus
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
+from sentry.replays.usecases.ingest.event_parser import EventType
 from sentry.replays.usecases.ingest.event_parser import (
-    EventType,
-    parse_network_content_lengths,
-    which,
+    get_timestamp_ms as get_replay_event_timestamp_ms,
 )
+from sentry.replays.usecases.ingest.event_parser import parse_network_content_lengths, which
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
@@ -227,16 +227,18 @@ def generate_summary_logs(
     for _, segment in segment_data:
         events = json.loads(segment.tobytes().decode("utf-8"))
         for event in events:
+            event_type = which(event)
+            timestamp = get_replay_event_timestamp_ms(event, event_type)
+
             # Check if we need to yield any error messages that occurred before this event
-            while error_idx < len(error_events) and error_events[error_idx][
-                "timestamp"
-            ] < event.get("timestamp", 0):
+            while (
+                error_idx < len(error_events) and error_events[error_idx]["timestamp"] < timestamp
+            ):
                 error = error_events[error_idx]
                 yield generate_error_log_message(error)
                 error_idx += 1
 
             # Yield the current event's log message
-            event_type = which(event)
             if event_type == EventType.FEEDBACK:
                 feedback_id = event["data"]["payload"].get("data", {}).get("feedbackId")
                 feedback = fetch_feedback_details(feedback_id, project_id)
@@ -262,7 +264,7 @@ def as_log_message(event: dict[str, Any]) -> str | None:
     should be forked.
     """
     event_type = which(event)
-    timestamp = event.get("timestamp", 0.0)
+    timestamp = get_replay_event_timestamp_ms(event, event_type)
 
     try:
         match event_type:
@@ -276,20 +278,16 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 message = event["data"]["payload"]["message"]
                 return f"User rage clicked on {message} but the triggered action was slow to complete at {timestamp}"
             case EventType.NAVIGATION_SPAN:
-                timestamp_ms = timestamp * 1000
                 to = event["data"]["payload"]["description"]
-                return f"User navigated to: {to} at {timestamp_ms}"
+                return f"User navigated to: {to} at {timestamp}"
             case EventType.CONSOLE:
                 message = event["data"]["payload"]["message"]
                 return f"Logged: {message} at {timestamp}"
             case EventType.UI_BLUR:
-                # timestamp_ms = timestamp * 1000
                 return None
             case EventType.UI_FOCUS:
-                # timestamp_ms = timestamp * 1000
                 return None
             case EventType.RESOURCE_FETCH:
-                timestamp_ms = timestamp * 1000
                 payload = event["data"]["payload"]
                 method = payload["data"]["method"]
                 status_code = payload["data"]["statusCode"]
@@ -311,19 +309,17 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                     return None
 
                 if response_size is None:
-                    return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code}; took {duration} milliseconds at {timestamp_ms}'
+                    return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code}; took {duration} milliseconds at {timestamp}'
                 else:
-                    return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code} and response size {response_size}; took {duration} milliseconds at {timestamp_ms}'
+                    return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code} and response size {response_size}; took {duration} milliseconds at {timestamp}'
             case EventType.LCP:
-                timestamp_ms = timestamp * 1000
                 duration = event["data"]["payload"]["data"]["size"]
                 rating = event["data"]["payload"]["data"]["rating"]
-                return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
+                return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp}"
             case EventType.FCP:
-                timestamp_ms = timestamp * 1000
                 duration = event["data"]["payload"]["data"]["size"]
                 rating = event["data"]["payload"]["data"]["rating"]
-                return f"Application first contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
+                return f"Application first contentful paint: {duration} ms and has a {rating} rating at {timestamp}"
             case EventType.HYDRATION_ERROR:
                 return f"There was a hydration error on the page at {timestamp}"
             case EventType.RESOURCE_XHR:
