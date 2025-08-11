@@ -442,6 +442,7 @@ export type RawReplayError = {
   id: string;
   issue: string;
   ['issue.id']: number;
+  level: string;
   ['project.name']: string;
   timestamp: string;
   title: string;
@@ -457,6 +458,7 @@ export type ErrorFrame = Overwrite<
       groupShortId: string;
       label: string;
       labels: string[];
+      level: string;
       projectSlug: string;
     };
     message: string;
