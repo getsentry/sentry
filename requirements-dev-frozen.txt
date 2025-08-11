@@ -182,7 +182,7 @@ selenium==4.16.0
 sentry-arroyo==2.28.3
 sentry-cli==2.16.0
 sentry-covdefaults-disable-branch-coverage==1.0.2
-sentry-devenv==1.21.0
+sentry-devenv==1.22.0
 sentry-forked-django-stubs==5.2.2.post1
 sentry-forked-djangorestframework-stubs==3.16.1.post1
 sentry-forked-email-reply-parser==0.5.12.post1
