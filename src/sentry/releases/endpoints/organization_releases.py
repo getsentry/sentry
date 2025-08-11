@@ -363,6 +363,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             # when we filter by status, so when we fix that we should also consider the best way to
             # make this work as expected.
             order_by.append(F("date_added").desc())
+            queryset = queryset.order_by(*order_by)
             # For semver sort, don't set order_by in paginator_kwargs as it expects a string
         elif sort == "adoption":
             # sort by adoption date (most recently adopted first)
