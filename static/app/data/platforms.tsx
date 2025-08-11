@@ -413,9 +413,12 @@ export const platforms: PlatformIntegration[] = [
   {
     id: 'nintendo-switch',
     name: 'Nintendo Switch',
-    type: 'framework',
-    language: 'native',
+    type: 'console',
+    language: 'console',
     link: 'https://docs.sentry.io/platforms/nintendo-switch/',
+    iconConfig: {
+      withLanguageIcon: false,
+    },
   },
   {
     id: 'node',
@@ -524,7 +527,7 @@ export const platforms: PlatformIntegration[] = [
   },
   {
     id: 'playstation',
-    name: 'Playstation',
+    name: 'PlayStation',
     type: 'console',
     language: 'console',
     link: 'https://docs.sentry.io/platforms/playstation/',

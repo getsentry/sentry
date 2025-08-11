@@ -12,7 +12,7 @@ from sentry.testutils.silo import no_silo_test
 class AdminRelayProjectConfigsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-internal-project-config"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.owner = self.create_user(
             email="example@example.com", is_superuser=False, is_staff=True, is_active=True
@@ -52,7 +52,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         ret_val += f"?{query_string}"
         return ret_val
 
-    def test_normal_users_do_not_have_access(self):
+    def test_normal_users_do_not_have_access(self) -> None:
         """
         Request denied for non super-users
         """
@@ -63,7 +63,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
-    def test_retrieving_project_configs(self):
+    def test_retrieving_project_configs(self) -> None:
         """
         Asking for a project will return all project configs from all public
         keys in redis
@@ -78,7 +78,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         actual = response.json()
         assert actual == expected
 
-    def test_retrieving_public_key_configs(self):
+    def test_retrieving_public_key_configs(self) -> None:
         """
         Asking for a particular public key will return only the project config
         for that public key
@@ -93,7 +93,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         actual = response.json()
         assert actual == expected
 
-    def test_uncached_project(self):
+    def test_uncached_project(self) -> None:
         """
         Asking for a project that was not cached in redis will return
         an empty marker
@@ -114,7 +114,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         actual = response.json()
         assert actual != outdated
 
-    def test_inexistent_project(self):
+    def test_inexistent_project(self) -> None:
         """
         Asking for an inexistent project will return 404
         """
@@ -125,7 +125,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_inexistent_key(self):
+    def test_inexistent_key(self) -> None:
         """
         Asking for an inexistent project key will return an empty result
         """
@@ -137,26 +137,26 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
-    def test_invalidate_project_config_unauthorized(self):
+    def test_invalidate_project_config_unauthorized(self) -> None:
         url = self.get_url()
         data = {"projectId": self.project.id}
         response = self.client.post(url, data=data)
         assert response.status_code == 401
 
-    def test_invalidate_project_config_non_superuser(self):
+    def test_invalidate_project_config_non_superuser(self) -> None:
         url = self.get_url()
         data = {"projectId": self.project.id}
         self.login_as(self.user, superuser=False)
         response = self.client.post(url, data=data)
         assert response.status_code == 403
 
-    def test_invalidate_project_config_missing_project_id(self):
+    def test_invalidate_project_config_missing_project_id(self) -> None:
         url = self.get_url()
         self.login_as(self.superuser, superuser=True)
         response = self.client.post(url)
         assert response.status_code == 400
 
-    def test_invalidate_project_config_cached_project(self):
+    def test_invalidate_project_config_cached_project(self) -> None:
         url = self.get_url()
         self.login_as(self.superuser, superuser=True)
         data = {"projectId": self.proj2.id}
@@ -168,7 +168,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         response = self.client.post(url, data=data)
         assert response.status_code == 201
 
-    def test_invalidate_project_config_cached_project_sets_correct_config(self):
+    def test_invalidate_project_config_cached_project_sets_correct_config(self) -> None:
         url = self.get_url()
         self.login_as(self.superuser, superuser=True)
         data = {"projectId": self.proj2.id}
@@ -181,21 +181,21 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         assert response.status_code == 201
         assert projectconfig_cache.backend.get(self.p2_pk.public_key) != {"proj2": "config"}
 
-    def test_invalidate_project_config_uncached_project(self):
+    def test_invalidate_project_config_uncached_project(self) -> None:
         url = self.get_url()
         self.login_as(self.superuser, superuser=True)
         data = {"projectId": self.proj1.id}
         response = self.client.post(url, data=data)
         assert response.status_code == 201
 
-    def test_invalidate_project_config_uncached_project_returns_correct_config(self):
+    def test_invalidate_project_config_uncached_project_returns_correct_config(self) -> None:
         url = self.get_url()
         self.login_as(self.superuser, superuser=True)
         data = {"projectId": self.proj1.id}
         response = self.client.post(url, data=data)
         assert response.status_code == 201
 
-    def test_invalidate_project_config_with_multiple_project_keys(self):
+    def test_invalidate_project_config_with_multiple_project_keys(self) -> None:
         url = self.get_url()
         self.login_as(self.superuser, superuser=True)
 
@@ -221,7 +221,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         assert projectconfig_cache.backend.get(first_key.public_key) != {"test_proj": "config1"}
         assert projectconfig_cache.backend.get(second_key.public_key) != {"test_proj": "config2"}
 
-    def test_get_caches_uncached_project_config(self):
+    def test_get_caches_uncached_project_config(self) -> None:
         """
         Tests that making a GET request for an uncached project results
         in its configuration being cached.

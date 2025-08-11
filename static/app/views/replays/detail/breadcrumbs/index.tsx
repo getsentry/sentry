@@ -9,6 +9,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import BreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/breadcrumbFilters';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import useBreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/useBreadcrumbFilters';
@@ -26,7 +27,8 @@ const cellMeasurer = {
 };
 
 export default function Breadcrumbs() {
-  const {currentTime, replay} = useReplayContext();
+  const replay = useReplayReader();
+  const {currentTime} = useReplayContext();
   const {onClickTimestamp} = useCrumbHandlers();
   const [showSnippetSet, setShowSnippetSet] = useState<Set<number>>(new Set());
 

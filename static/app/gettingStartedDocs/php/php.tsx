@@ -1,5 +1,5 @@
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import type {
   Docs,
   DocsParams,
@@ -31,6 +31,12 @@ const getConfigureSnippet = (params: Params) => `\\Sentry\\init([
       ? `
   // Set a sampling rate for profiling - this is relative to traces_sample_rate
   'profiles_sample_rate' => 1.0,`
+      : ''
+  }${
+    params.isLogsSelected
+      ? `
+  // Enable logs to be sent to Sentry
+  'enable_logs' => true,`
       : ''
   }
 ]);`;
@@ -105,7 +111,7 @@ const onboarding: OnboardingConfig = {
         {
           description: (
             <Alert.Container>
-              <Alert type="warning">
+              <Alert type="warning" showIcon={false}>
                 {tct(
                   'In order to receive stack trace arguments in your errors, make sure to set [code:zend.exception_ignore_args: Off] in your php.ini',
                   {

@@ -35,7 +35,7 @@ type Props = {
 };
 
 export function useInfiniteRepositories({term}: Props) {
-  const {integratedOrg} = useCodecovContext();
+  const {integratedOrgId} = useCodecovContext();
   const organization = useOrganization();
 
   const {data, ...rest} = useInfiniteQuery<
@@ -45,7 +45,7 @@ export function useInfiniteRepositories({term}: Props) {
     QueryKey
   >({
     queryKey: [
-      `/organizations/${organization.slug}/prevent/owner/${integratedOrg}/repositories/`,
+      `/organizations/${organization.slug}/prevent/owner/${integratedOrgId}/repositories/`,
       {query: {term}},
     ],
     queryFn: async ({
@@ -72,16 +72,16 @@ export function useInfiniteRepositories({term}: Props) {
 
       return result as ApiResult<Repositories>;
     },
-    getNextPageParam: ([lastPage]) => {
-      return lastPage.pageInfo?.hasNextPage ? lastPage.pageInfo.endCursor : undefined;
+    getNextPageParam: ([pageData]) => {
+      return pageData.pageInfo?.hasNextPage ? pageData.pageInfo.endCursor : undefined;
     },
-    getPreviousPageParam: ([firstPage]) => {
-      return firstPage.pageInfo?.hasPreviousPage
-        ? firstPage.pageInfo.startCursor
+    getPreviousPageParam: ([pageData]) => {
+      return pageData.pageInfo?.hasPreviousPage
+        ? pageData.pageInfo.startCursor
         : undefined;
     },
     initialPageParam: undefined,
-    enabled: Boolean(integratedOrg),
+    enabled: Boolean(integratedOrgId),
   });
 
   const memoizedData = useMemo(

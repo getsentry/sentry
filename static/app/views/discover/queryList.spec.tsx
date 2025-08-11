@@ -26,6 +26,7 @@ describe('Discover > QueryList', function () {
   let duplicateMock: jest.Mock;
   let updateHomepageMock: jest.Mock;
   let eventsStatsMock: jest.Mock;
+  const refetchSavedQueries = jest.fn();
 
   const {router} = initializeOrg();
 
@@ -34,6 +35,7 @@ describe('Discover > QueryList', function () {
   });
 
   beforeEach(function () {
+    jest.resetAllMocks();
     organization = OrganizationFixture({
       features: ['discover-basic', 'discover-query'],
     });
@@ -91,6 +93,7 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         renderPrebuilt={false}
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         deprecatedRouterMocks: true,
@@ -110,6 +113,7 @@ describe('Discover > QueryList', function () {
         renderPrebuilt
         pageLinks=""
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         deprecatedRouterMocks: true,
@@ -151,6 +155,7 @@ describe('Discover > QueryList', function () {
         renderPrebuilt
         pageLinks=""
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         router,
@@ -210,6 +215,7 @@ describe('Discover > QueryList', function () {
         renderPrebuilt
         pageLinks=""
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         deprecatedRouterMocks: true,
@@ -248,6 +254,7 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         renderPrebuilt={false}
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         router,
@@ -282,6 +289,7 @@ describe('Discover > QueryList', function () {
         savedQueries={savedQueries}
         pageLinks=""
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         deprecatedRouterMocks: true,
@@ -295,6 +303,7 @@ describe('Discover > QueryList', function () {
     await userEvent.click(withinCard.getByText('Delete Query'));
 
     expect(deleteMock).toHaveBeenCalled();
+    expect(refetchSavedQueries).toHaveBeenCalled();
   });
 
   it('redirects to Discover on card click', async function () {
@@ -307,6 +316,7 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         renderPrebuilt={false}
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         router,
@@ -331,6 +341,7 @@ describe('Discover > QueryList', function () {
         renderPrebuilt={false}
         pageLinks=""
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         router,
@@ -368,6 +379,7 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         renderPrebuilt={false}
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         deprecatedRouterMocks: true,
@@ -401,6 +413,7 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         renderPrebuilt={false}
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         deprecatedRouterMocks: true,
@@ -443,6 +456,7 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         renderPrebuilt={false}
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         deprecatedRouterMocks: true,
@@ -471,6 +485,7 @@ describe('Discover > QueryList', function () {
         renderPrebuilt={false}
         pageLinks=""
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         deprecatedRouterMocks: true,
@@ -485,6 +500,80 @@ describe('Discover > QueryList', function () {
         data: expect.objectContaining({fields: ['test'], range: '14d'}),
       })
     );
+  });
+
+  it('disabled duplicate for transaction queries with deprecation flag', async function () {
+    const featuredOrganization = OrganizationFixture({
+      features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
+    });
+
+    render(
+      <QueryList
+        savedQuerySearchQuery=""
+        router={RouterFixture()}
+        organization={featuredOrganization}
+        savedQueries={[
+          DiscoverSavedQueryFixture({
+            display: DisplayModes.DEFAULT,
+            orderby: 'count()',
+            fields: ['test', 'count()'],
+            yAxis: ['count()'],
+            queryDataset: SavedQueryDatasets.TRANSACTIONS,
+          }),
+        ]}
+        pageLinks=""
+        renderPrebuilt={false}
+        location={location}
+        refetchSavedQueries={refetchSavedQueries}
+      />
+    );
+
+    const card = screen.getAllByTestId(/card-*/).at(0)!;
+    const withinCard = within(card);
+
+    await userEvent.click(withinCard.getByTestId('menu-trigger'));
+    const duplicateMenuItem = await screen.findByRole('menuitemradio', {
+      name: 'Duplicate Query',
+    });
+
+    expect(duplicateMenuItem).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('does not disable duplicate for error queries with deprecation flag', async function () {
+    const featuredOrganization = OrganizationFixture({
+      features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
+    });
+
+    render(
+      <QueryList
+        savedQuerySearchQuery=""
+        router={RouterFixture()}
+        organization={featuredOrganization}
+        savedQueries={[
+          DiscoverSavedQueryFixture({
+            display: DisplayModes.DEFAULT,
+            orderby: 'count()',
+            fields: ['test', 'count()'],
+            yAxis: ['count()'],
+            queryDataset: SavedQueryDatasets.ERRORS,
+          }),
+        ]}
+        pageLinks=""
+        renderPrebuilt={false}
+        location={location}
+        refetchSavedQueries={refetchSavedQueries}
+      />
+    );
+
+    const card = screen.getAllByTestId(/card-*/).at(0)!;
+    const withinCard = within(card);
+
+    await userEvent.click(withinCard.getByTestId('menu-trigger'));
+    const duplicateMenuItem = await screen.findByRole('menuitemradio', {
+      name: 'Duplicate Query',
+    });
+
+    expect(duplicateMenuItem).not.toHaveAttribute('aria-disabled');
   });
 
   describe('Add to Dashboard modal', () => {
@@ -508,6 +597,7 @@ describe('Discover > QueryList', function () {
           ]}
           pageLinks=""
           location={location}
+          refetchSavedQueries={refetchSavedQueries}
         />,
         {
           deprecatedRouterMocks: true,
@@ -575,6 +665,7 @@ describe('Discover > QueryList', function () {
           ]}
           pageLinks=""
           location={location}
+          refetchSavedQueries={refetchSavedQueries}
         />,
         {
           deprecatedRouterMocks: true,
@@ -620,6 +711,80 @@ describe('Discover > QueryList', function () {
         );
       });
     });
+
+    it('disables Add to Dashboard for transaction queries with deprecation flag', async function () {
+      const featuredOrganization = OrganizationFixture({
+        features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
+      });
+      render(
+        <QueryList
+          savedQuerySearchQuery=""
+          router={RouterFixture()}
+          organization={featuredOrganization}
+          renderPrebuilt={false}
+          savedQueries={[
+            DiscoverSavedQueryFixture({
+              display: DisplayModes.DEFAULT,
+              orderby: 'count()',
+              fields: ['test', 'count()'],
+              yAxis: ['count()'],
+              queryDataset: SavedQueryDatasets.TRANSACTIONS,
+            }),
+          ]}
+          pageLinks=""
+          location={location}
+          refetchSavedQueries={refetchSavedQueries}
+        />
+      );
+
+      const contextMenu = await screen.findByTestId('menu-trigger');
+      expect(contextMenu).toBeInTheDocument();
+
+      await userEvent.click(contextMenu);
+
+      const addToDashboardMenuItem = await screen.findByRole('menuitemradio', {
+        name: 'Add to Dashboard',
+      });
+
+      expect(addToDashboardMenuItem).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('does not disable Add to Dashboard for error queries with deprecation flag', async function () {
+      const featuredOrganization = OrganizationFixture({
+        features: ['dashboards-edit', 'discover-saved-queries-deprecation'],
+      });
+      render(
+        <QueryList
+          savedQuerySearchQuery=""
+          router={RouterFixture()}
+          organization={featuredOrganization}
+          renderPrebuilt={false}
+          savedQueries={[
+            DiscoverSavedQueryFixture({
+              display: DisplayModes.DEFAULT,
+              orderby: 'count()',
+              fields: ['test', 'count()'],
+              yAxis: ['count()'],
+              queryDataset: SavedQueryDatasets.ERRORS,
+            }),
+          ]}
+          pageLinks=""
+          location={location}
+          refetchSavedQueries={refetchSavedQueries}
+        />
+      );
+
+      const contextMenu = await screen.findByTestId('menu-trigger');
+      expect(contextMenu).toBeInTheDocument();
+
+      await userEvent.click(contextMenu);
+
+      const addToDashboardMenuItem = await screen.findByRole('menuitemradio', {
+        name: 'Add to Dashboard',
+      });
+
+      expect(addToDashboardMenuItem).not.toHaveAttribute('aria-disabled');
+    });
   });
 
   it('passes dataset to open modal', async function () {
@@ -643,6 +808,7 @@ describe('Discover > QueryList', function () {
         ]}
         pageLinks=""
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         deprecatedRouterMocks: true,

@@ -26,18 +26,17 @@ def save_event_feedback(event_data: Mapping[str, Any], project_id: int):
     if not isinstance(event_data, dict):
         event_data = dict(event_data)
 
+    project = Project.objects.get_from_cache(id=project_id)
+
     # Produce to issue platform
     fixed_event_data = create_feedback_issue(
-        event_data, project_id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        event_data, project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
     )
     if not fixed_event_data:
         return
 
     try:
-        # Shim to UserReport
-        # TODO: this logic should be extracted to a shim_to_userreport function
-        # which returns a report dict. After that this function can be removed
-        # and the store task can directly call feedback ingest functions.
+        # Shim to UserReport.
         feedback_context = fixed_event_data["contexts"]["feedback"]
         associated_event_id = feedback_context.get("associated_event_id")
 

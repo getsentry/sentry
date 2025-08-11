@@ -6,6 +6,7 @@ class FixabilityScoreThresholds(enum.Enum):
     HIGH = 0.66
     MEDIUM = 0.40
     LOW = 0.25
+    SUPER_LOW = 0.0
 
     def to_str(self) -> str:
         """

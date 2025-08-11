@@ -72,7 +72,7 @@ const ChonkWrap = chonkStyled('div')<{
   placement?: PopperProps<any>['placement'];
 }>`
   width: ${p => p.dimensions}px;
-  height: ${p => p.dimensions * sizeRatio}px;
+  height: ${p => (p.placement?.startsWith('left') || p.placement?.startsWith('right') ? p.dimensions : p.dimensions * sizeRatio)}px;
   position: absolute;
   transform-origin: center;
 

@@ -3,9 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {Link} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
-import ExternalLink from 'sentry/components/links/externalLink';
 import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import type {GridColumnHeader} from 'sentry/components/tables/gridEditable';
@@ -109,8 +108,8 @@ export function ScreenLoadSpansTable({
         SPAN_OP,
         SPAN_GROUP,
         SPAN_DESCRIPTION,
-        `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
-        `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
+        `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
+        `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
         'ttid_contribution_rate()',
         'ttfd_contribution_rate()',
         'count()',
@@ -126,11 +125,11 @@ export function ScreenLoadSpansTable({
     'count()': t('Total Count'),
     affects: hasTTFD ? t('Affects') : t('Affects TTID'),
     [`sum(${SPAN_SELF_TIME})`]: t('Total Time Spent'),
-    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
+    [`avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`]: t(
       'Avg Duration (%s)',
       PRIMARY_RELEASE_ALIAS
     ),
-    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
+    [`avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`]: t(
       'Avg Duration (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
@@ -352,8 +351,8 @@ export function ScreenLoadSpansTable({
         columnOrder={[
           String(SPAN_OP),
           String(SPAN_DESCRIPTION),
-          `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
-          `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
+          `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
+          `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
           ...(organization.features.includes('insights-initial-modules')
             ? ['affects']
             : []),

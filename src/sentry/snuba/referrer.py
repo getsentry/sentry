@@ -183,6 +183,7 @@ class Referrer(StrEnum):
     API_ORGANIZATION_METRICS_METADATA_FETCH_SPANS = "api.organization.metrics-metadata.fetch-spans"
     API_ORGANIZATION_METRICS_QUERY = "api.organization.metrics-query"
     API_ORGANIZATION_METRICS_EAP_QUERY = "api.organization.metrics-eap-query"
+    API_ORGANIZATION_ISSUES_COUNT = "api.organization-issues-count"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
     API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
@@ -937,6 +938,7 @@ class Referrer(StrEnum):
     REPLAYS_QUERY_BROWSE_SIMPLE_AGGREGATION = "replays.query.browse_simple_aggregation"
     REPLAYS_FILE_REFERRER = "replays.query.download_replay_segments"
     REPLAYS_SCRIPTS_DELETE_REPLAYS = "replays.scripts.delete_replays"
+    FEEDBACKS_LABEL_QUERY = "feedbacks.label_query"
     REPORTS_KEY_ERRORS = "reports.key_errors"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
     REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"
@@ -1077,6 +1079,13 @@ class Referrer(StrEnum):
     TSDB_MODELID_300_user_count_snoozes = "tsdb-modelid:300.user_count_snoozes"
     TSDB_MODELID_300_alert_event_uniq_user_frequency = (
         "tsdb-modelid:300.alert_event_uniq_user_frequency"
+    )
+    TSDB_MODELID_4_wf_batch_alert_event_frequency = "tsdb-modelid:4.wf_batch_alert_event_frequency"
+    TSDB_MODELID_4_wf_batch_alert_event_frequency_percent = (
+        "tsdb-modelid:4.wf_batch_alert_event_frequency_percent"
+    )
+    TSDB_MODELID_300_wf_batch_alert_event_uniq_user_frequency = (
+        "tsdb-modelid:300.wf_batch_alert_event_uniq_user_frequency"
     )
 
     UNKNOWN = "unknown"

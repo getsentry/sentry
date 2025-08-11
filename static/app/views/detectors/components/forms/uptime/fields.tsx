@@ -1,11 +1,10 @@
-import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import type {
-  Detector,
+  UptimeDetector,
   UptimeDetectorUpdatePayload,
 } from 'sentry/types/workflowEngine/detectors';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
 
-export interface UptimeDetectorFormData {
+interface UptimeDetectorFormData {
   body: string;
   environment: string;
   headers: Array<[string, string]>;
@@ -19,40 +18,6 @@ export interface UptimeDetectorFormData {
   url: string;
   workflowIds: string[];
 }
-
-type UptimeDetectorFormFieldName = keyof UptimeDetectorFormData;
-
-/**
- * Small helper to automatically get the type of the form field.
- */
-export function useUptimeDetectorFormField<T extends UptimeDetectorFormFieldName>(
-  name: T
-): UptimeDetectorFormData[T] {
-  const value = useFormField(name);
-  return value;
-}
-
-/**
- * Enables type-safe form field names.
- * Helps you find areas setting specific fields.
- */
-export const UPTIME_DETECTOR_FORM_FIELDS = {
-  // Core detector fields
-  name: 'name',
-  environment: 'environment',
-  projectId: 'projectId',
-  owner: 'owner',
-  workflowIds: 'workflowIds',
-
-  // Uptime fields
-  intervalSeconds: 'intervalSeconds',
-  timeoutMs: 'timeoutMs',
-  url: 'url',
-  method: 'method',
-  traceSampling: 'traceSampling',
-  headers: 'headers',
-  body: 'body',
-} satisfies Record<UptimeDetectorFormFieldName, UptimeDetectorFormFieldName>;
 
 export function uptimeFormDataToEndpointPayload(
   data: UptimeDetectorFormData
@@ -74,13 +39,8 @@ export function uptimeFormDataToEndpointPayload(
 }
 
 export function uptimeSavedDetectorToFormData(
-  detector: Detector
+  detector: UptimeDetector
 ): UptimeDetectorFormData {
-  if (detector.type !== 'uptime_domain_failure') {
-    // This should never happen
-    throw new Error('Detector type mismatch');
-  }
-
   const dataSource = detector.dataSources?.[0];
   const environment = getDetectorEnvironment(detector) ?? '';
 

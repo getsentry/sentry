@@ -1,12 +1,5 @@
-import {BuildDetailsArtifactType, type Platform} from 'sentry/views/preprod/types';
-
-export function formatBytes(bytes: number, isSi = false) {
-  if (bytes === 0) return '0 B';
-  const k = isSi ? 1000 : 1024;
-  const sizes = isSi ? ['B', 'KB', 'MB', 'GB', 'TB'] : ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
+import {BuildDetailsArtifactType} from 'sentry/views/preprod/types/buildDetailsTypes';
+import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 
 // Mapping of Launchpad platform to PlatformIcon platform
 // PlatformIcon definitions: https://sentry.sentry.io/stories/foundations/icons

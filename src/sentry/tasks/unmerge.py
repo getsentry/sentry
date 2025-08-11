@@ -11,6 +11,7 @@ from django.db import router, transaction
 from django.db.models.base import Model
 
 from sentry import analytics, eventstore, features, similarity, tsdb
+from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.culprit import generate_culprit
 from sentry.eventstore.models import BaseEvent
@@ -327,11 +328,10 @@ def repair_group_environment_data(caches, project, events):
         if first_release:
             fields["first_release"] = caches["Release"](project.organization_id, first_release)
 
-        GroupEnvironment.objects.create_or_update(
+        GroupEnvironment.objects.update_or_create(
             environment_id=caches["Environment"](project.organization_id, env_name).id,
             group_id=group_id,
             defaults=fields,
-            values=fields,
         )
 
 
@@ -380,9 +380,10 @@ def repair_group_release_data(caches, project, events):
 
 def get_event_user_from_interface(value, project):
     analytics.record(
-        "eventuser_endpoint.request",
-        project_id=project.id,
-        endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
+        EventUserEndpointRequest(
+            project_id=project.id,
+            endpoint="sentry.tasks.unmerge.get_event_user_from_interface",
+        )
     )
     return EventUser(
         user_ident=value.get("id"),

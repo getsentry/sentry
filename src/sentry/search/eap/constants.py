@@ -160,11 +160,12 @@ RESPONSE_CODE_MAP = {
     5: ["500", "501", "502", "503", "504", "505", "506", "507", "508", "509", "510", "511"],
 }
 
+SAMPLING_MODE_HIGHEST_ACCURACY: SAMPLING_MODES = "HIGHEST_ACCURACY"
 SAMPLING_MODE_MAP: dict[SAMPLING_MODES, DownsampledStorageConfig.Mode.ValueType] = {
     "BEST_EFFORT": DownsampledStorageConfig.MODE_BEST_EFFORT,
     "PREFLIGHT": DownsampledStorageConfig.MODE_PREFLIGHT,
     "NORMAL": DownsampledStorageConfig.MODE_NORMAL,
-    "HIGHEST_ACCURACY": DownsampledStorageConfig.MODE_HIGHEST_ACCURACY,
+    SAMPLING_MODE_HIGHEST_ACCURACY: DownsampledStorageConfig.MODE_HIGHEST_ACCURACY,
 }
 
 ARITHMETIC_OPERATOR_MAP: dict[str, Column.BinaryFormula.Op.ValueType] = {
@@ -177,3 +178,5 @@ ARITHMETIC_OPERATOR_MAP: dict[str, Column.BinaryFormula.Op.ValueType] = {
 META_PREFIX = "sentry._meta"
 META_FIELD_PREFIX = f"{META_PREFIX}.fields"
 META_ATTRIBUTE_PREFIX = f"{META_FIELD_PREFIX}.attributes"
+
+SENTRY_INTERNAL_PREFIXES = ["__sentry_internal", "sentry._internal."]

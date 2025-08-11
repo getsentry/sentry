@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from django.utils import timezone
@@ -16,7 +16,7 @@ def _make_url(project: Project):
 
 
 class ProjectUserReportListTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).isoformat()
         self.environment = self.create_environment(project=self.project, name="production")
@@ -55,7 +55,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
             group_id=self.event.group.id,
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -117,7 +117,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert sorted(map(lambda x: x["id"], response.data)) == sorted([str(report_1.id)])
 
-    def test_cannot_access_with_dsn_auth(self):
+    def test_cannot_access_with_dsn_auth(self) -> None:
         project = self.create_project()
         project_key = self.create_project_key(project=project)
 
@@ -127,7 +127,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 401, response.content
 
-    def test_all_reports(self):
+    def test_all_reports(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -161,7 +161,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert sorted(map(lambda x: x["id"], response.data)) == sorted([str(report_1.id)])
 
-    def test_environments(self):
+    def test_environments(self) -> None:
         self.login_as(user=self.user)
 
         base_url = _make_url(self.project)
@@ -191,7 +191,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         assert response.data == []
 
     @patch("sentry.quotas.backend.get_event_retention")
-    def test_retention(self, mock_get_event_retention):
+    def test_retention(self, mock_get_event_retention: MagicMock) -> None:
         self.login_as(user=self.user)
         retention_days = 21
         mock_get_event_retention.return_value = retention_days
@@ -209,7 +209,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     @patch("sentry.quotas.backend.get_event_retention")
-    def test_event_retention(self, mock_get_event_retention):
+    def test_event_retention(self, mock_get_event_retention: MagicMock) -> None:
         self.login_as(user=self.user)
         retention_days = 21
         mock_get_event_retention.return_value = retention_days
@@ -235,7 +235,7 @@ class ProjectUserReportListTest(APITestCase, SnubaTestCase):
 
 
 class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).isoformat()
         self.hour_ago = before_now(minutes=60).isoformat()
@@ -255,7 +255,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         url = _make_url(self.project)
@@ -279,7 +279,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert report.name == "Foo Bar"
         assert report.comments == "It broke!"
 
-    def test_with_dsn_auth(self):
+    def test_with_dsn_auth(self) -> None:
         project_key = self.create_project_key(project=self.project)
         url = _make_url(self.project)
 
@@ -298,7 +298,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         # DSN auth shouldn't return any data
         assert not response.data
 
-    def test_with_dsn_auth_invalid_project(self):
+    def test_with_dsn_auth_invalid_project(self) -> None:
         project2 = self.create_project()
         project_key = self.create_project_key(project=self.project)
 
@@ -317,7 +317,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 401, response.content
 
-    def test_already_present(self):
+    def test_already_present(self) -> None:
         self.login_as(user=self.user)
 
         UserReport.objects.create(
@@ -350,7 +350,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert report.name == "Foo Bar"
         assert report.comments == "It broke!"
 
-    def test_already_present_after_deadline(self):
+    def test_already_present_after_deadline(self) -> None:
         self.login_as(user=self.user)
 
         UserReport.objects.create(
@@ -377,7 +377,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 409, response.content
 
-    def test_after_event_deadline(self):
+    def test_after_event_deadline(self) -> None:
         self.login_as(user=self.user)
 
         url = _make_url(self.project)
@@ -394,7 +394,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 409, response.content
 
-    def test_environments(self):
+    def test_environments(self) -> None:
         self.login_as(user=self.user)
 
         url = _make_url(self.project)
@@ -416,7 +416,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         )
 
     @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
-    def test_simple_shim_to_feedback(self, mock_produce_occurrence_to_kafka):
+    def test_simple_shim_to_feedback(self, mock_produce_occurrence_to_kafka: MagicMock) -> None:
         replay_id = "b" * 32
         event_with_replay = self.store_event(
             data={
@@ -500,7 +500,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
 
     @patch("sentry.feedback.usecases.ingest.userreport.validate_user_report")
-    def test_validation_error(self, mock_validate_user_report):
+    def test_validation_error(self, mock_validate_user_report: MagicMock) -> None:
         mock_validate_user_report.return_value = (True, "data_invalid", "Data invalid")
         self.login_as(user=self.user)
         url = _make_url(self.project)
@@ -519,7 +519,7 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
         assert UserReport.objects.count() == 0
 
     @patch("sentry.feedback.usecases.ingest.userreport.is_in_feedback_denylist")
-    def test_denylist(self, mock_is_in_feedback_denylist):
+    def test_denylist(self, mock_is_in_feedback_denylist: MagicMock) -> None:
         mock_is_in_feedback_denylist.return_value = True
         self.login_as(user=self.user)
         url = _make_url(self.project)

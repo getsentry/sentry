@@ -1,82 +1,127 @@
 import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/core/alert';
+import loadingGif from 'sentry-images/spot/ai-loader.gif';
+import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
+import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
+
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
+import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {Text} from 'sentry/components/core/text';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {IconSeer, IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {ChapterList} from 'sentry/views/replays/detail/ai/chapterList';
+import {useReplaySummaryContext} from 'sentry/views/replays/detail/ai/replaySummaryContext';
+import {
+  NO_REPLAY_SUMMARY_MESSAGES,
+  ReplaySummaryStatus,
+} from 'sentry/views/replays/detail/ai/utils';
 import TabItemContainer from 'sentry/views/replays/detail/tabItemContainer';
-
-import {useFetchReplaySummary} from './useFetchReplaySummary';
 
 export default function Ai() {
   const organization = useOrganization();
-  const {replay} = useReplayContext();
-  const replayRecord = replay?.getReplay();
-  const project = useProjectFromId({project_id: replayRecord?.project_id});
   const {
-    data: summaryData,
-    isPending,
+    areAiFeaturesAllowed,
+    setupAcknowledgement,
+    isPending: isOrgSeerSetupPending,
+  } = useOrganizationSeerSetup();
+
+  const replay = useReplayReader();
+  const replayRecord = replay?.getReplay();
+  const segmentCount = replayRecord?.count_segments ?? 0;
+  const project = useProjectFromId({project_id: replayRecord?.project_id});
+  const analyticsArea = useAnalyticsArea();
+
+  const {
+    summaryData,
+    isPending: isSummaryPending,
+    isPolling,
     isError,
-    isRefetching,
-    refetch,
-  } = useFetchReplaySummary({
-    staleTime: 0,
-    enabled: Boolean(
-      replayRecord?.id &&
-        project?.slug &&
-        organization.features.includes('replay-ai-summaries') &&
-        organization.features.includes('gen-ai-features')
-    ),
-    retry: false,
-  });
+    startSummaryRequest,
+  } = useReplaySummaryContext();
 
-  const openForm = useFeedbackForm();
-
-  const feedbackButton = ({type}: {type: 'positive' | 'negative'}) => {
-    return openForm ? (
-      <Button
-        aria-label={t('Give feedback on the AI summary section')}
-        icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
-        title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
-        size={'xs'}
-        onClick={() =>
-          openForm({
-            messagePlaceholder:
-              type === 'positive'
-                ? t('What did you like about the AI summary and chapters?')
-                : t('How can we make the AI summary and chapters work better for you?'),
-            tags: {
-              ['feedback.source']: 'replay_ai_summary',
-              ['feedback.owner']: 'replay',
-              ['feedback.type']: type,
-            },
-          })
-        }
-      />
-    ) : null;
-  };
-
-  if (
-    !organization.features.includes('replay-ai-summaries') ||
-    !organization.features.includes('gen-ai-features')
-  ) {
+  if (!organization.features.includes('replay-ai-summaries') || !areAiFeaturesAllowed) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EmptySummaryContainer>
-          <Alert type="info">
-            {t('Replay AI summary is not available for this organization.')}
-          </Alert>
-        </EmptySummaryContainer>
+        <EndStateContainer>
+          <img src={replayEmptyState} height={300} alt="" />
+          <div>
+            {areAiFeaturesAllowed
+              ? t('Replay summaries are not available for this organization.')
+              : t('AI features are not available for this organization.')}
+          </div>
+        </EndStateContainer>
+      </Wrapper>
+    );
+  }
+
+  // check for org seer setup first before attempting to fetch summary
+  if (isOrgSeerSetupPending) {
+    return (
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <LoadingContainer>
+          <div>
+            <img src={loadingGif} style={{maxHeight: 400}} alt={t('Loading...')} />
+          </div>
+        </LoadingContainer>
+      </Wrapper>
+    );
+  }
+
+  // If our `replay-ai-summaries` ff is enabled and the org has gen AI ff enabled,
+  // but the org hasn't acknowledged the gen AI features, then show CTA.
+  if (!setupAcknowledgement.orgHasAcknowledged) {
+    return (
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <EndStateContainer>
+          <img src={aiBanner} alt="" />
+          <div>
+            <strong>{t('AI-Powered Replay Summaries')}</strong>
+          </div>
+          <div>
+            {t(
+              'Seer access is required to use replay summaries. Please view the Seer settings page for more information.'
+            )}
+          </div>
+          <div>
+            <LinkButton
+              size="sm"
+              priority="primary"
+              to={`/settings/${organization.slug}/seer/`}
+            >
+              {t('View Seer Settings')}
+            </LinkButton>
+          </div>
+        </EndStateContainer>
+      </Wrapper>
+    );
+  }
+
+  // checking this prevents initial flicker
+  const summaryNotComplete =
+    summaryData?.status &&
+    [ReplaySummaryStatus.NOT_STARTED, ReplaySummaryStatus.PROCESSING].includes(
+      summaryData?.status
+    );
+
+  if (isSummaryPending || isPolling || summaryNotComplete) {
+    return (
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <LoadingContainer>
+          <div>
+            <img src={loadingGif} style={{maxHeight: 400}} alt={t('Loading...')} />
+          </div>
+          <div>{t('This might take a few moments...')}</div>
+        </LoadingContainer>
       </Wrapper>
     );
   }
@@ -84,19 +129,10 @@ export default function Ai() {
   if (replayRecord?.project_id && !project) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EmptySummaryContainer>
-          <Alert type="error">{t('Project not found. Unable to load AI summary.')}</Alert>
-        </EmptySummaryContainer>
-      </Wrapper>
-    );
-  }
-
-  if (isPending || isRefetching) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <LoadingContainer>
-          <LoadingIndicator />
-        </LoadingContainer>
+        <EndStateContainer>
+          <img src={replayEmptyState} height={300} alt="" />
+          <div>{t('Project not found. Unable to load replay summary.')}</div>
+        </EndStateContainer>
       </Wrapper>
     );
   }
@@ -104,19 +140,60 @@ export default function Ai() {
   if (isError) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EmptySummaryContainer>
-          <Alert type="error">{t('Failed to load AI summary')}</Alert>
-        </EmptySummaryContainer>
+        <EndStateContainer>
+          <img src={aiBanner} alt="" />
+          <div>{t('Failed to load replay summary.')}</div>
+          <div>
+            <Button
+              priority="default"
+              type="button"
+              size="xs"
+              onClick={() => {
+                startSummaryRequest();
+                trackAnalytics('replay.ai-summary.regenerate-requested', {
+                  organization,
+                  area: analyticsArea + '.error',
+                });
+              }}
+              icon={<IconSync size="xs" />}
+            >
+              {t('Retry')}
+            </Button>
+          </div>
+        </EndStateContainer>
       </Wrapper>
     );
   }
 
-  if (!summaryData) {
+  if (!summaryData?.data) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EmptySummaryContainer>
-          <Alert type="info">{t('No summary available for this replay.')}</Alert>
-        </EmptySummaryContainer>
+        <EndStateContainer>
+          <img src={aiBanner} alt="" />
+          <div>{t('No summary available for this replay.')}</div>
+        </EndStateContainer>
+      </Wrapper>
+    );
+  }
+
+  if (
+    summaryData.data.time_ranges.length <= 1 &&
+    replay
+      ?.getChapterFrames()
+      ?.every(frame => 'category' in frame && frame.category === 'replay.init')
+  ) {
+    return (
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <EndStateContainer>
+          <img src={aiBanner} alt="" />
+          <div>
+            {
+              NO_REPLAY_SUMMARY_MESSAGES[
+                Math.floor(Math.random() * NO_REPLAY_SUMMARY_MESSAGES.length)
+              ]
+            }
+          </div>
+        </EndStateContainer>
       </Wrapper>
     );
   }
@@ -126,27 +203,28 @@ export default function Ai() {
       <Summary>
         <SummaryLeft>
           <SummaryLeftTitle>
-            <Flex align="center" gap={space(0.5)}>
+            <Flex align="center" gap="xs">
               {t('Replay Summary')}
               <IconSeer />
             </Flex>
-            <Badge type="internal">{t('Internal')}</Badge>
+            <Badge type="experimental">{t('Experimental')}</Badge>
           </SummaryLeftTitle>
           <SummaryText>{summaryData.data.summary}</SummaryText>
         </SummaryLeft>
         <SummaryRight>
-          <Flex gap={space(0.5)}>
-            {feedbackButton({type: 'positive'})}
-            {feedbackButton({type: 'negative'})}
+          <Flex gap="xs">
+            <FeedbackButton type="positive" />
+            <FeedbackButton type="negative" />
           </Flex>
           <Button
             priority="default"
             type="button"
             size="xs"
             onClick={() => {
-              refetch();
+              startSummaryRequest();
               trackAnalytics('replay.ai-summary.regenerate-requested', {
                 organization,
+                area: analyticsArea + '.finished-summary',
               });
             }}
             icon={<IconSync size="xs" />}
@@ -157,10 +235,46 @@ export default function Ai() {
       </Summary>
       <StyledTabItemContainer>
         <OverflowBody>
-          <ChapterList summaryData={summaryData} />
+          <ChapterList timeRanges={summaryData.data.time_ranges} />
+          {segmentCount > 100 && (
+            <Subtext>
+              {t(
+                'Note: this replay is too long, so we currently only summarize part of it.'
+              )}
+            </Subtext>
+          )}
         </OverflowBody>
       </StyledTabItemContainer>
     </Wrapper>
+  );
+}
+
+function FeedbackButton({type}: {type: 'positive' | 'negative'}) {
+  const openForm = useFeedbackForm();
+  if (!openForm) {
+    return null;
+  }
+
+  return (
+    <Button
+      aria-label={t('Give feedback on the replay summary section')}
+      icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
+      title={type === 'positive' ? t('I like this') : t(`I don't like this`)}
+      size={'xs'}
+      onClick={() =>
+        openForm({
+          messagePlaceholder:
+            type === 'positive'
+              ? t('What did you like about the replay summary and chapters?')
+              : t('How can we make the replay summary and chapters work better for you?'),
+          tags: {
+            ['feedback.source']: 'replay_ai_summary',
+            ['feedback.owner']: 'replay',
+            ['feedback.type']: type,
+          },
+        })
+      }
+    />
   );
 }
 
@@ -173,15 +287,13 @@ const Wrapper = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
 `;
 
-const EmptySummaryContainer = styled('div')`
-  padding: ${space(2)};
-  overflow: auto;
-`;
-
 const LoadingContainer = styled('div')`
   display: flex;
   justify-content: center;
   padding: ${space(4)};
+  overflow: auto;
+  text-align: center;
+  flex-direction: column;
 `;
 
 const Summary = styled('div')`
@@ -190,6 +302,7 @@ const Summary = styled('div')`
   padding: ${space(1)} ${space(1.5)};
   border-bottom: 1px solid ${p => p.theme.border};
   gap: ${space(4)};
+  justify-content: space-between;
 `;
 
 const SummaryLeft = styled('div')`
@@ -241,4 +354,22 @@ const StyledTabItemContainer = styled(TabItemContainer)`
 const OverflowBody = styled('section')`
   flex: 1 1 auto;
   overflow: auto;
+`;
+
+const EndStateContainer = styled('div')`
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(4)};
+  padding: ${space(2)};
+  align-items: center;
+  text-align: center;
+`;
+
+const Subtext = styled(Text)`
+  padding: ${space(2)};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSize.sm};
+  display: flex;
+  justify-content: center;
 `;

@@ -23,6 +23,7 @@ import {unreachable} from 'sentry/utils/unreachable';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
+import {detectorTypeIsUserCreateable} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
 type DetectorLinkProps = {
@@ -81,14 +82,17 @@ function DetailItem({children}: {children: React.ReactNode}) {
 }
 
 function MetricDetectorConfigDetails({detector}: {detector: MetricDetector}) {
-  const type = detector.config.detectionType;
+  const detectionType = detector.config.detectionType;
   const conditions = detector.conditionGroup?.conditions;
   if (!conditions?.length) {
     return null;
   }
 
-  const unit = getMetricDetectorSuffix(detector);
-  switch (type) {
+  const unit = getMetricDetectorSuffix(
+    detectionType,
+    detector.dataSources[0].queryObj?.snubaQuery?.aggregate || 'count()'
+  );
+  switch (detectionType) {
     case 'static': {
       const text = conditions
         .map(condition => formatCondition({condition, unit}))
@@ -112,7 +116,7 @@ function MetricDetectorConfigDetails({detector}: {detector: MetricDetector}) {
     case 'dynamic':
       return <DetailItem>{t('Dynamic')}</DetailItem>;
     default:
-      unreachable(type);
+      unreachable(detectionType);
       return null;
   }
 }
@@ -180,7 +184,8 @@ export function DetectorLink({detector, className}: DetectorLinkProps) {
       className={className}
       name={detector.name}
       link={makeMonitorDetailsPathname(org.slug, detector.id)}
-      systemCreated={!detector.createdBy}
+      systemCreated={!detectorTypeIsUserCreateable(detector.type)}
+      disabled={!detector.enabled}
       details={
         <Fragment>
           {project && (

@@ -178,14 +178,14 @@ function ReleasesPromo({organization, project}: Props) {
 curl -sL https://sentry.io/get-cli/ | bash
 
 # Setup configuration values
-SENTRY_AUTH_TOKEN=`,
+export SENTRY_AUTH_TOKEN=`,
 
       token && selectedItem
         ? `${token} # From internal integration: ${selectedItem.value.name}`
         : '<click-here-for-your-token>',
       `
-SENTRY_ORG=${organization.slug}
-SENTRY_PROJECT=${project.slug}
+export SENTRY_ORG=${organization.slug}
+export SENTRY_PROJECT=${project.slug}
 VERSION=\`sentry-cli releases propose-version\`
 
 # Workflow to create releases

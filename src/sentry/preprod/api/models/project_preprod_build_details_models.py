@@ -26,16 +26,26 @@ class BuildDetailsAppInfo(BaseModel):
 
 
 class BuildDetailsVcsInfo(BaseModel):
-    commit_id: str | None = None
-    # repo: Optional[str] = None  # Uncomment when available
-    # provider: Optional[str] = None  # Uncomment when available
-    # branch: Optional[str] = None  # Uncomment when available
+    head_sha: str | None = None
+    base_sha: str | None = None
+    provider: str | None = None
+    head_repo_name: str | None = None
+    base_repo_name: str | None = None
+    head_ref: str | None = None
+    base_ref: str | None = None
+    pr_number: int | None = None
+
+
+class BuildDetailsSizeInfo(BaseModel):
+    install_size_bytes: int
+    download_size_bytes: int
 
 
 class BuildDetailsApiResponse(BaseModel):
     state: PreprodArtifact.ArtifactState
     app_info: BuildDetailsAppInfo
     vcs_info: BuildDetailsVcsInfo
+    size_info: BuildDetailsSizeInfo | None = None
 
 
 def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> Platform:

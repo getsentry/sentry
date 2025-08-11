@@ -26,11 +26,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {ToolbarSection} from 'sentry/views/explore/components/toolbar/styles';
 import {
   useExploreFields,
   useExploreGroupBys,
   useExploreId,
-  useExploreMode,
   useExploreQuery,
   useExploreSortBys,
   useExploreVisualizes,
@@ -38,14 +38,15 @@ import {
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
+import {useSpansSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {ToolbarSection} from 'sentry/views/explore/toolbar/styles';
+import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 export function ToolbarSaveAs() {
   const {addToDashboard} = useAddToDashboard();
-  const {updateQuery, saveQuery} = useSaveQuery();
+  const {updateQuery, saveQuery} = useSpansSaveQuery();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -57,7 +58,7 @@ export function ToolbarSaveAs() {
   const visualizes = useExploreVisualizes();
   const fields = useExploreFields();
   const sortBys = useExploreSortBys();
-  const mode = useExploreMode();
+  const mode = useQueryParamsMode();
   const id = useExploreId();
   const visualizeYAxes = useMemo(
     () =>
@@ -141,6 +142,7 @@ export function ToolbarSaveAs() {
         organization,
         saveQuery,
         source: 'toolbar',
+        traceItemDataset: TraceItemDataset.SPANS,
       });
     },
   });

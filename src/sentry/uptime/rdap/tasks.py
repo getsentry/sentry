@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
             times=5,
             on=(Exception,),
         ),
+        processing_deadline_duration=30,
     ),
 )
 def fetch_subscription_rdap_info(subscription_id: int):

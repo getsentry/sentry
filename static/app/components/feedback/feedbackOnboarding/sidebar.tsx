@@ -316,7 +316,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           tooltipPosition={'top-start'}
         />
       ) : (
-        newDocs?.platformOptions &&
+        (newDocs?.platformOptions?.siblingOption ||
+          newDocs?.platformOptions?.packageManager) &&
         widgetPlatform &&
         !isExcluded &&
         !crashReportOnboarding &&
@@ -396,8 +397,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         dsn={dsn}
         activeProductSelection={[]}
         platformKey={currentPlatform.id}
-        projectId={currentProject.id}
-        projectSlug={currentProject.slug}
+        project={currentProject}
         configType={getConfig()}
         projectKeyId={projectKeyId}
       />

@@ -10,7 +10,6 @@ import ListLayout from 'sentry/components/workflowEngine/layout/list';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -41,7 +40,7 @@ export default function AutomationsList() {
       cursor: decodeScalar,
     },
   });
-  const sort = sorts[0] ?? {kind: 'desc', field: 'connectedDetectors'};
+  const sort = sorts[0] ?? {kind: 'desc', field: 'lastTriggered'};
 
   const {
     data: automations,
@@ -103,7 +102,7 @@ function TableHeader() {
   );
 
   return (
-    <Flex gap={space(2)}>
+    <Flex gap="xl">
       <ProjectPageFilter size="md" />
       <div style={{flexGrow: 1}}>
         <AutomationSearch initialQuery={initialQuery} onSearch={onSearch} />

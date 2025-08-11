@@ -3,6 +3,7 @@ import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/f
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import type {
+  ContentBlock,
   Docs,
   DocsParams,
   OnboardingConfig,
@@ -82,6 +83,12 @@ const getDynamicParts = (params: Params): string[] => {
         profilesSampleRate: 1.0`);
   }
 
+  if (params.isLogsSelected) {
+    dynamicParts.push(`
+      // Logs
+      enableLogs: true`);
+  }
+
   return dynamicParts;
 };
 
@@ -128,31 +135,26 @@ const getVerifySnippet = (isVersion5: boolean) =>
   Break the world
 </button>`;
 
-const getInstallConfig = () => [
-  {
-    language: 'bash',
-    code: [
-      {
-        label: 'npm',
-        value: 'npm',
-        language: 'bash',
-        code: 'npm install --save @sentry/svelte',
-      },
-      {
-        label: 'yarn',
-        value: 'yarn',
-        language: 'bash',
-        code: 'yarn add @sentry/svelte',
-      },
-      {
-        label: 'pnpm',
-        value: 'pnpm',
-        language: 'bash',
-        code: 'pnpm add @sentry/svelte',
-      },
-    ],
-  },
-];
+const installSnippetBlock: ContentBlock = {
+  type: 'code',
+  tabs: [
+    {
+      label: 'npm',
+      language: 'bash',
+      code: 'npm install --save @sentry/svelte',
+    },
+    {
+      label: 'yarn',
+      language: 'bash',
+      code: 'yarn add @sentry/svelte',
+    },
+    {
+      label: 'pnpm',
+      language: 'bash',
+      code: 'pnpm add @sentry/svelte',
+    },
+  ],
+};
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
@@ -165,32 +167,39 @@ const onboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'Add the Sentry SDK as a dependency using [code:npm], [code:yarn], or [code:pnpm]:',
-        {code: <code />}
-      ),
-      configurations: getInstallConfig(),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Add the Sentry SDK as a dependency using [code:npm], [code:yarn], or [code:pnpm]:',
+            {code: <code />}
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        "Initialize Sentry as early as possible in your application's lifecycle, usually your Svelte app's entry point ([code:main.ts/js]):",
-        {code: <code />}
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: tct(
+            "Initialize Sentry as early as possible in your application's lifecycle, usually your Svelte app's entry point ([code:main.ts/js]):",
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'Svelte v5',
-              value: 'svelte v5',
               language: 'javascript',
               code: getSdkSetupSnippet(params, true),
             },
             {
               label: 'Svelte v3/v4',
-              value: 'svelte v3/v4',
               language: 'javascript',
               code: getSdkSetupSnippet(params, false),
             },
@@ -206,21 +215,23 @@ const onboarding: OnboardingConfig = {
   verify: () => [
     {
       type: StepType.VERIFY,
-      description: t(
-        "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-      ),
-      configurations: [
+      content: [
         {
-          code: [
+          type: 'text',
+          text: t(
+            "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
             {
               label: 'Svelte v5',
-              value: 'svelte v5',
               language: 'html',
               code: getVerifySnippet(true),
             },
             {
               label: 'Svelte v3/v4',
-              value: 'svelte v3/v4',
               language: 'html',
               code: getVerifySnippet(false),
             },
@@ -229,29 +240,49 @@ const onboarding: OnboardingConfig = {
       ],
     },
   ],
-  nextSteps: () => [
-    {
-      id: 'svelte-features',
-      name: t('Svelte Features'),
-      description: t(
-        'Learn about our first class integration with the Svelte framework.'
-      ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/features/',
-    },
-  ],
+  nextSteps: (params: Params) => {
+    const steps = [
+      {
+        id: 'svelte-features',
+        name: t('Svelte Features'),
+        description: t(
+          'Learn about our first class integration with the Svelte framework.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/features/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const replayOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'You need a minimum version 7.27.0 of [code:@sentry/svelte] in order to use Session Replay. You do not need to install any additional packages.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
+          type: 'text',
+          text: tct(
+            'You need a minimum version 7.27.0 of [code:@sentry/svelte] in order to use Session Replay. You do not need to install any additional packages.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
@@ -289,13 +320,18 @@ const feedbackOnboarding: OnboardingConfig = {
   install: () => [
     {
       type: StepType.INSTALL,
-      description: tct(
-        'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/svelte]) installed, minimum version 7.85.0.',
+      content: [
         {
-          code: <code />,
-        }
-      ),
-      configurations: getInstallConfig(),
+          type: 'text',
+          text: tct(
+            'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/svelte]) installed, minimum version 7.85.0.',
+            {
+              code: <code />,
+            }
+          ),
+        },
+        installSnippetBlock,
+      ],
     },
   ],
   configure: (params: Params) => [
@@ -353,7 +389,7 @@ const crashReportOnboarding: OnboardingConfig = {
 };
 
 const profilingOnboarding = getJavascriptProfilingOnboarding({
-  getInstallConfig,
+  installSnippetBlock,
   docsLink:
     'https://docs.sentry.io/platforms/javascript/guides/svelte/profiling/browser-profiling/',
 });

@@ -1,4 +1,5 @@
 import {UptimeRuleFixture} from 'sentry-fixture/uptimeRule';
+import {UptimeSummaryFixture} from 'sentry-fixture/uptimeSummary';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -24,6 +25,12 @@ describe('UptimeAlertDetails', function () {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/1/checks/`,
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/uptime-summary/',
+      body: {
+        '1': UptimeSummaryFixture(),
+      },
     });
   });
 

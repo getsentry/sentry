@@ -21,7 +21,7 @@ crons_tasks = taskregistry.create_namespace("crons", app_feature="crons")
 
 deletion_tasks = taskregistry.create_namespace(
     "deletions",
-    processing_deadline_duration=60 * 6,
+    processing_deadline_duration=60 * 10,
     app_feature="shared",
 )
 
@@ -71,6 +71,10 @@ ingest_attachments_tasks = taskregistry.create_namespace(
 )
 
 ingest_errors_tasks = taskregistry.create_namespace("ingest.errors", app_feature="errors")
+
+ingest_errors_postprocess_tasks = taskregistry.create_namespace(
+    "ingest.errors.postprocess", app_feature="errors"
+)
 
 issues_tasks = taskregistry.create_namespace("issues", app_feature="issueplatform")
 

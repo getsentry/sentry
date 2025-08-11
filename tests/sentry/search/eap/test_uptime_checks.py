@@ -20,14 +20,14 @@ from sentry.search.events.types import SnubaParams
 
 
 class SearchResolverQueryTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.resolver = SearchResolver(
             params=SnubaParams(),
             config=SearchResolverConfig(),
             definitions=UPTIME_CHECK_DEFINITIONS,
         )
 
-    def test_simple_query(self):
+    def test_simple_query(self) -> None:
         where, having, _ = self.resolver.resolve_query("check_status:error")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
@@ -38,7 +38,7 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    def test_negation(self):
+    def test_negation(self) -> None:
         where, having, _ = self.resolver.resolve_query("!check_status:success")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
@@ -49,7 +49,7 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    def test_in_filter(self):
+    def test_in_filter(self) -> None:
         where, having, _ = self.resolver.resolve_query("region:[us-east-1,us-west-1,eu-west-1]")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
@@ -62,7 +62,7 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    def test_numeric_comparison(self):
+    def test_numeric_comparison(self) -> None:
         where, having, _ = self.resolver.resolve_query("duration_ms:>1000")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
@@ -73,7 +73,7 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    def test_http_status_code_filter(self):
+    def test_http_status_code_filter(self) -> None:
         where, having, _ = self.resolver.resolve_query("http_status_code:[200,404,500]")
         assert where == TraceItemFilter(
             comparison_filter=ComparisonFilter(
@@ -84,7 +84,7 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    def test_query_with_and(self):
+    def test_query_with_and(self) -> None:
         where, having, _ = self.resolver.resolve_query("check_status:error region:us-east-1")
         assert where == TraceItemFilter(
             and_filter=AndFilter(
@@ -110,7 +110,7 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    def test_query_with_or(self):
+    def test_query_with_or(self) -> None:
         where, having, _ = self.resolver.resolve_query("check_status:error or http_status_code:500")
         assert where == TraceItemFilter(
             or_filter=OrFilter(
@@ -138,12 +138,12 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    def test_empty_query(self):
+    def test_empty_query(self) -> None:
         where, having, _ = self.resolver.resolve_query("")
         assert where is None
         assert having is None
 
-    def test_none_query(self):
+    def test_none_query(self) -> None:
         where, having, _ = self.resolver.resolve_query(None)
         assert where is None
         assert having is None

@@ -1,14 +1,13 @@
-import type {Theme} from '@emotion/react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {StyledButton} from 'sentry/components/core/button';
-
-type Gap = keyof Theme['space'];
+// eslint-disable-next-line boundaries/element-types
+import type {Space} from 'sentry/utils/theme/theme';
 
 interface ButtonBarProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'className'> {
   children: React.ReactNode;
-  gap?: Gap;
+  gap?: Space;
   merged?: boolean;
 }
 
@@ -25,7 +24,7 @@ export function ButtonBar({
   );
 }
 
-const StyledButtonBar = styled('div')<{gap: Gap; merged: boolean}>`
+const StyledButtonBar = styled('div')<{gap: Space; merged: boolean}>`
   display: grid;
   grid-auto-flow: column;
   grid-column-gap: ${p => p.theme.space[p.gap]};

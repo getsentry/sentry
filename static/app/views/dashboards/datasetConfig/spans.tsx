@@ -283,7 +283,7 @@ function getEventsRequest(
     per_page: limit,
     cursor,
     referrer,
-    dataset: DiscoverDatasets.SPANS_EAP,
+    dataset: DiscoverDatasets.SPANS,
     ...queryExtras,
   };
 
@@ -345,7 +345,7 @@ function getSeriesRequest(
     queryIndex,
     organization,
     pageFilters,
-    DiscoverDatasets.SPANS_EAP,
+    DiscoverDatasets.SPANS,
     referrer
   );
 

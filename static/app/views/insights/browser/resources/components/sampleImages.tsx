@@ -19,7 +19,7 @@ import ResourceSize from 'sentry/views/insights/browser/resources/components/res
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import type {EAPSpanResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
@@ -97,7 +97,7 @@ function SampleImages({groupId, projectId}: Props) {
 }
 
 type ImageSpan = Pick<
-  EAPSpanResponse,
+  SpanResponse,
   | 'span.group'
   | 'raw_domain'
   | 'span.description'

@@ -27,7 +27,6 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export function Alert({
-  showIcon,
   icon,
   system,
   expand,
@@ -64,12 +63,14 @@ export function Alert({
     }
   }
 
+  const showIcon = props.showIcon ?? true;
+
   return (
     <AlertContainer
       system={system}
       expand={expand}
       trailingItems={trailingItems}
-      showIcon={showIcon}
+      showIcon={showIcon as false}
       onClick={handleClick}
       hovered={isHovered && !expandIsHovered}
       className={classNames(type ? `ref-${type}` : '', className)}
@@ -168,12 +169,12 @@ function getAlertColors(theme: Theme, type: NonNullable<AlertProps['type']>) {
 
 function getAlertGridLayout(p: AlertProps) {
   if (p.showIcon) {
-    return `min-content 1fr ${p.trailingItems ? 'min-content' : ''} ${
+    return `min-content 1fr ${p.trailingItems ? 'auto' : ''} ${
       p.expand ? 'min-content' : ''
     }`;
   }
 
-  return `1fr ${p.trailingItems ? 'min-content' : ''} ${p.expand ? 'min-content' : ''}`;
+  return `1fr ${p.trailingItems ? 'auto' : ''} ${p.expand ? 'min-content' : ''}`;
 }
 
 const AlertPanel = styled('div')<AlertProps & {hovered: boolean}>`

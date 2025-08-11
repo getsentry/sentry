@@ -14,7 +14,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ReleaseMetaTest(APITestCase):
-    def test_multiple_projects(self):
+    def test_multiple_projects(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -87,7 +87,7 @@ class ReleaseMetaTest(APITestCase):
         assert data["releaseFileCount"] == 1
         assert len(data["projects"]) == 2
 
-    def test_artifact_count_without_weak_association(self):
+    def test_artifact_count_without_weak_association(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -117,7 +117,7 @@ class ReleaseMetaTest(APITestCase):
         assert data["releaseFileCount"] == 2
         assert not data["isArtifactBundle"]
 
-    def test_artifact_count_with_single_weak_association(self):
+    def test_artifact_count_with_single_weak_association(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -155,7 +155,7 @@ class ReleaseMetaTest(APITestCase):
         assert data["releaseFileCount"] == 10
         assert data["isArtifactBundle"]
 
-    def test_artifact_count_with_multiple_weak_association(self):
+    def test_artifact_count_with_multiple_weak_association(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False

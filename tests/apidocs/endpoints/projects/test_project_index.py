@@ -13,7 +13,7 @@ class ProjectIndexDocs(APIDocsTestCase):
         self.login_as(user=self.user)
         self.url = reverse("sentry-api-0-projects")
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
 

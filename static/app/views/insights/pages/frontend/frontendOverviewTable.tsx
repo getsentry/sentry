@@ -23,19 +23,19 @@ import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {StyledIconStar} from 'sentry/views/insights/pages/backend/backendTable';
 import {SPAN_OP_QUERY_PARAM} from 'sentry/views/insights/pages/frontend/settings';
 import {TransactionCell} from 'sentry/views/insights/pages/transactionCell';
-import type {EAPSpanResponse} from 'sentry/views/insights/types';
+import type {SpanResponse} from 'sentry/views/insights/types';
 
 type Row = Pick<
-  EAPSpanResponse,
+  SpanResponse,
   | 'is_starred_transaction'
   | 'transaction'
   | 'project'
   | 'tpm()'
-  | 'p50_if(span.duration,is_transaction,true)'
-  | 'p95_if(span.duration,is_transaction,true)'
-  | 'failure_rate_if(is_transaction,true)'
+  | 'p50_if(span.duration,is_transaction,equals,true)'
+  | 'p95_if(span.duration,is_transaction,equals,true)'
+  | 'failure_rate_if(is_transaction,equals,true)'
   | 'count_unique(user)'
-  | 'sum_if(span.duration,is_transaction,true)'
+  | 'sum_if(span.duration,is_transaction,equals,true)'
   | 'performance_score(measurements.score.total)'
 >;
 
@@ -44,11 +44,11 @@ type Column = GridColumnHeader<
   | 'transaction'
   | 'project'
   | 'tpm()'
-  | 'p50_if(span.duration,is_transaction,true)'
-  | 'p95_if(span.duration,is_transaction,true)'
-  | 'failure_rate_if(is_transaction,true)'
+  | 'p50_if(span.duration,is_transaction,equals,true)'
+  | 'p95_if(span.duration,is_transaction,equals,true)'
+  | 'failure_rate_if(is_transaction,equals,true)'
   | 'count_unique(user)'
-  | 'sum_if(span.duration,is_transaction,true)'
+  | 'sum_if(span.duration,is_transaction,equals,true)'
   | 'performance_score(measurements.score.total)'
 >;
 
@@ -69,17 +69,17 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `p50_if(span.duration,is_transaction,true)`,
+    key: `p50_if(span.duration,is_transaction,equals,true)`,
     name: t('p50()'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `p95_if(span.duration,is_transaction,true)`,
+    key: `p95_if(span.duration,is_transaction,equals,true)`,
     name: t('p95()'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'failure_rate_if(is_transaction,true)',
+    key: 'failure_rate_if(is_transaction,equals,true)',
     name: t('Failure Rate'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -89,7 +89,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'sum_if(span.duration,is_transaction,true)',
+    key: 'sum_if(span.duration,is_transaction,equals,true)',
     name: DataTitles.timeSpent,
     width: COL_WIDTH_UNDEFINED,
     tooltip: SPAN_HEADER_TOOLTIPS.timeSpent,
@@ -107,11 +107,11 @@ const SORTABLE_FIELDS = [
   'transaction',
   'project',
   'tpm()',
-  'p50_if(span.duration,is_transaction,true)',
-  'p95_if(span.duration,is_transaction,true)',
-  'failure_rate_if(is_transaction,true)',
+  'p50_if(span.duration,is_transaction,equals,true)',
+  'p95_if(span.duration,is_transaction,equals,true)',
+  'failure_rate_if(is_transaction,equals,true)',
   'count_unique(user)',
-  'sum_if(span.duration,is_transaction,true)',
+  'sum_if(span.duration,is_transaction,equals,true)',
   'performance_score(measurements.score.total)',
 ] as const;
 

@@ -485,6 +485,7 @@ export default typescript.config([
           '@typescript-eslint/no-for-in-array': 'error',
           '@typescript-eslint/no-unnecessary-type-assertion': 'error',
           '@typescript-eslint/prefer-optional-chain': 'error',
+          '@typescript-eslint/no-meaningless-void-operator': 'error',
         }
       : {},
   },
@@ -624,6 +625,8 @@ export default typescript.config([
 
             // Internal packages.
             ['^(sentry-locale|sentry-images)(/.*|$)'],
+
+            ['^ui(/.*|$)'],
 
             ['^(app|sentry)(/.*|$)'],
 
@@ -974,6 +977,11 @@ export default typescript.config([
           type: 'story-book',
           pattern: 'static/app/stories',
         },
+        // --- debug tools (e.g. notifications) ---
+        {
+          type: 'debug-tools',
+          pattern: 'static/app/debug',
+        },
         // --- tests ---
         {
           type: 'test-sentry',
@@ -1126,6 +1134,11 @@ export default typescript.config([
             {
               from: ['story-files', 'story-book'],
               allow: ['core*', 'sentry*', 'story-book'],
+            },
+            // --- debug tools (e.g. notifications) ---
+            {
+              from: ['debug-tools'],
+              allow: ['core*', 'sentry*', 'debug-tools'],
             },
             // --- core ---
             {

@@ -66,11 +66,16 @@ export const LogTableBodyCell = styled(TableBodyCell)`
   }
 `;
 
-export const LogTableBody = styled(TableBody)<{showHeader?: boolean}>`
+export const LogTableBody = styled(TableBody)<{
+  disableBodyPadding?: boolean;
+  showHeader?: boolean;
+}>`
   ${p =>
     p.showHeader
       ? ''
-      : `
+      : p.disableBodyPadding
+        ? ''
+        : `
     padding-top: ${space(1)};
     padding-bottom: ${space(1)};
     `}
@@ -165,11 +170,10 @@ export const LogsHighlight = styled(HighlightComponent)`
   margin-left: 2px;
 `;
 
-export const WrappingText = styled('div')<{wrap?: boolean}>`
-  white-space: ${p => (p.wrap ? 'pre-wrap' : 'nowrap')};
+export const WrappingText = styled('div')<{wrapText?: boolean}>`
+  white-space: ${p => (p.wrapText ? 'pre-wrap' : 'nowrap')};
   overflow: hidden;
   text-overflow: ellipsis;
-  ${p => (p.wrap ? '' : '')}
 `;
 
 export const AlignedCellContent = styled('div')<{

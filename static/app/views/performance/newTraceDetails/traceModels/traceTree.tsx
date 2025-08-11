@@ -1248,6 +1248,56 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return node.children;
   }
 
+  static UniqueErrorIssues(
+    node: TraceTreeNode<TraceTree.NodeValue>
+  ): TraceTree.TraceErrorIssue[] {
+    if (!node) {
+      return [];
+    }
+
+    const unique: TraceTree.TraceErrorIssue[] = [];
+    const seenIssues: Set<number> = new Set();
+
+    for (const error of node.errors) {
+      if (seenIssues.has(error.issue_id)) {
+        continue;
+      }
+      seenIssues.add(error.issue_id);
+      unique.push(error);
+    }
+
+    return unique;
+  }
+
+  static UniqueOccurrences(
+    node: TraceTreeNode<TraceTree.NodeValue>
+  ): TraceTree.TraceOccurrence[] {
+    if (!node) {
+      return [];
+    }
+
+    const unique: TraceTree.TraceOccurrence[] = [];
+    const seenIssues: Set<number> = new Set();
+
+    for (const issue of node.occurrences) {
+      if (seenIssues.has(issue.issue_id)) {
+        continue;
+      }
+      seenIssues.add(issue.issue_id);
+      unique.push(issue);
+    }
+
+    return unique;
+  }
+
+  static UniqueIssues(node: TraceTreeNode<TraceTree.NodeValue>): TraceTree.TraceIssue[] {
+    if (!node) {
+      return [];
+    }
+
+    return [...TraceTree.UniqueErrorIssues(node), ...TraceTree.UniqueOccurrences(node)];
+  }
+
   static VisibleChildren(
     root: TraceTreeNode<TraceTree.NodeValue>
   ): Array<TraceTreeNode<TraceTree.NodeValue>> {
@@ -1498,6 +1548,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
         }
       }
       if (isSpanNode(n) || isEAPSpanNode(n)) {
+        // We still have transaction id links (ex: in discover tables) that link to the
+        // spans only eap trace waterfall.
+        if ('transaction_id' in n.value && n.value.transaction_id === eventId) {
+          return true;
+        }
+
         const spanId = 'span_id' in n.value ? n.value.span_id : n.value.event_id;
 
         if (spanId === eventId) {
@@ -1722,14 +1778,18 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       // When eap-transaction nodes are collapsed, they still render transactions as visible children.
       // Reparent the transactions from under the eap-spans in the expanded state, to under the closest eap-transaction
-      // in the collapsed state.
+      // in the collapsed state. This only targets the embedded transactions that are to be direct children of the node upon collapse.
       if (isEAPTransactionNode(node)) {
         TraceTree.ReparentEAPTransactions(
           node,
           t =>
-            TraceTree.FindAll(t, n => isEAPTransactionNode(n) && n !== t) as Array<
-              TraceTreeNode<TraceTree.EAPSpan>
-            >,
+            TraceTree.FindAll(
+              t,
+              n =>
+                isEAPTransactionNode(n) &&
+                n !== t &&
+                TraceTree.ParentEAPTransaction(n) === node
+            ) as Array<TraceTreeNode<TraceTree.EAPSpan>>,
           t => TraceTree.ParentEAPTransaction(t)
         );
       }
@@ -2209,7 +2269,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
               {
                 orgSlug: organization.slug,
                 query: qs.stringify(
-                  getTraceQueryParams(urlParams, filters.selection, {
+                  getTraceQueryParams(options.type, urlParams, filters.selection, {
                     timestamp: batchTraceData.timestamp,
                   })
                 ),

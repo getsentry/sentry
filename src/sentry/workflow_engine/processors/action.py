@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 from django.db import models
+from django.db.models import Case, Value, When
 from django.utils import timezone
 
 from sentry import features
@@ -157,10 +158,14 @@ def filter_recently_fired_workflow_actions(
     )
     update_workflow_action_group_statuses(now, statuses_to_update, missing_statuses)
 
+    # annotate actions with workflow_id they are firing for (deduped)
+    workflow_id_cases = [
+        When(id=action_id, then=Value(workflow_id))
+        for action_id, workflow_id in action_to_workflow_ids.items()
+    ]
+
     return Action.objects.filter(id__in=list(action_to_workflow_ids.keys())).annotate(
-        workflow_id=models.F(
-            "dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow__id"
-        )
+        workflow_id=Case(*workflow_id_cases, output_field=models.IntegerField()),
     )
 
 

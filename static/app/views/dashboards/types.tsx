@@ -132,6 +132,7 @@ export type DashboardPermissions = {
  */
 export type DashboardListItem = {
   environment: string[];
+  filters: DashboardFilters;
   id: string;
   projects: number[];
   title: string;
@@ -188,4 +189,5 @@ export enum DashboardWidgetSource {
   LIBRARY = 'library',
   ISSUE_DETAILS = 'issueDetail',
   TRACE_EXPLORER = 'traceExplorer',
+  LOGS = 'logs',
 }

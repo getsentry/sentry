@@ -421,6 +421,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.snuba",
     "sentry.lang.java.apps.Config",
     "sentry.lang.javascript.apps.Config",
+    "sentry.lang.dart.apps.Config",
     "sentry.plugins.sentry_interface_types.apps.Config",
     "sentry.plugins.sentry_urls.apps.Config",
     "sentry.plugins.sentry_useragents.apps.Config",
@@ -716,6 +717,8 @@ SEER_API_SHARED_SECRET: str = ""
 
 # Shared secret used to sign cross-region RPC requests from the launchpad microservice.
 LAUNCHPAD_RPC_SHARED_SECRET: list[str] | None = None
+if (val := os.environ.get("LAUNCHPAD_RPC_SHARED_SECRET")) is not None:
+    LAUNCHPAD_RPC_SHARED_SECRET = [val]
 
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
@@ -1460,6 +1463,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
     "sentry.notifications.utils.tasks",
+    "sentry.preprod.tasks",
     "sentry.profiles.task",
     "sentry.release_health.tasks",
     "sentry.relocation.tasks.process",
@@ -1520,6 +1524,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.workflow_engine.processors.delayed_workflow",
+    "sentry.workflow_engine.tasks.delayed_workflows",
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
     # Used for tests
@@ -1701,10 +1706,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "fetch-ai-model-costs": {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_costs",
         "schedule": task_crontab("*/30", "*", "*", "*", "*"),
-    },
-    "sync_options_trial": {
-        "schedule": timedelta(minutes=5),
-        "task": "options:sentry.tasks.options.sync_options",
     },
 }
 
@@ -2205,6 +2206,8 @@ SENTRY_TSDB_ROLLUPS = (
 # Internal metrics
 SENTRY_METRICS_BACKEND = "sentry.metrics.dummy.DummyMetricsBackend"
 SENTRY_METRICS_OPTIONS: dict[str, Any] = {}
+SENTRY_METRICS_PRECISE_BACKEND: str | None = None
+SENTRY_METRICS_PRECISE_OPTIONS: dict[str, Any] = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES: list[str] = []  # Order this by most frequent prefixes.
@@ -2667,6 +2670,9 @@ SENTRY_USE_UPTIME = False
 # This flag activates the taskbroker in devservices
 SENTRY_USE_TASKBROKER = False
 
+# This flag activates the objectstore in devservices
+SENTRY_USE_OBJECTSTORE = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -2917,6 +2923,14 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             },
             "ports": {"8085/tcp": 8085},
             "only_if": settings.SENTRY_USE_PROFILING,
+        }
+    ),
+    "objectstore": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/objectstore:latest",
+            "ports": {"8888/tcp": 8888},
+            "environment": {},
+            "only_if": settings.SENTRY_USE_OBJECTSTORE,
         }
     ),
 }
@@ -3414,6 +3428,8 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-ingest-dlq": "default",
     "taskworker-ingest-errors": "default",
     "taskworker-ingest-errors-dlq": "default",
+    "taskworker-ingest-errors-postprocess": "default",
+    "taskworker-ingest-errors-postprocess-dlq": "default",
     "taskworker-ingest-transactions": "default",
     "taskworker-ingest-transactions-dlq": "default",
     "taskworker-ingest-attachments": "default",
@@ -3434,6 +3450,8 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "taskworker-symbolication-dlq": "default",
     "taskworker-usage": "default",
     "taskworker-usage-dlq": "default",
+    "taskworker-workflows-engine": "default",
+    "taskworker-workflows-engine-dlq": "default",
 }
 
 
@@ -3598,6 +3616,8 @@ SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 
 SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
 
+SEER_SCORING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
+
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_ANOMALY_DETECTION_TIMEOUT = 5
@@ -3615,7 +3635,8 @@ SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
 
 SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 
-SEER_GHE_ENCRYPT_KEY: str | None = None  # For encrypting the access token for the GHE integration
+# For encrypting the access token for the GHE integration
+SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
 
 
 # This is the URL to the profiling service

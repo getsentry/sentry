@@ -126,7 +126,7 @@ def test_invalid_json_default() -> None:
 
 
 class JSONFieldTest(TestCase):
-    def test_json_field_save(self):
+    def test_json_field_save(self) -> None:
         JSONFieldTestModel.objects.create(
             id=10,
             json="""{
@@ -136,17 +136,17 @@ class JSONFieldTest(TestCase):
         obj2 = JSONFieldTestModel.objects.get(id=10)
         self.assertEqual(obj2.json, {"spam": "eggs"})
 
-    def test_json_field_save_empty(self):
+    def test_json_field_save_empty(self) -> None:
         JSONFieldTestModel.objects.create(id=10, json="")
         obj2 = JSONFieldTestModel.objects.get(id=10)
         self.assertEqual(obj2.json, None)
 
-    def test_default_value(self):
+    def test_default_value(self) -> None:
         obj = JSONFieldWithDefaultTestModel.objects.create()
         obj = JSONFieldWithDefaultTestModel.objects.get(id=obj.id)
         self.assertEqual(obj.json, {"sukasuka": "YAAAAAZ"})
 
-    def test_query_object(self):
+    def test_query_object(self) -> None:
         JSONFieldTestModel.objects.create(json={})
         JSONFieldTestModel.objects.create(json={"foo": "bar"})
         self.assertEqual(2, JSONFieldTestModel.objects.all().count())
@@ -168,7 +168,7 @@ class JSONFieldTest(TestCase):
             TypeError, lambda: JSONFieldTestModel.objects.filter(json__contains=["baz", "foo"])
         )
 
-    def test_query_isnull(self):
+    def test_query_isnull(self) -> None:
         JSONFieldTestModel.objects.create(json=None)
         JSONFieldTestModel.objects.create(json={})
         JSONFieldTestModel.objects.create(json={"foo": "bar"})
@@ -176,7 +176,7 @@ class JSONFieldTest(TestCase):
         self.assertEqual(1, JSONFieldTestModel.objects.filter(json=None).count())
         self.assertEqual(None, JSONFieldTestModel.objects.get(json=None).json)
 
-    def test_jsonfield_blank(self):
+    def test_jsonfield_blank(self) -> None:
         BlankJSONFieldTestModel.objects.create(blank_json="", null_json=None)
         obj = BlankJSONFieldTestModel.objects.get()
         self.assertEqual(None, obj.null_json)
@@ -186,19 +186,19 @@ class JSONFieldTest(TestCase):
         self.assertEqual(None, obj.null_json)
         self.assertEqual("", obj.blank_json)
 
-    def test_callable_default(self):
+    def test_callable_default(self) -> None:
         CallableDefaultModel.objects.create()
         obj = CallableDefaultModel.objects.get()
         self.assertEqual({"x": 2}, obj.json)
 
-    def test_callable_default_overridden(self):
+    def test_callable_default_overridden(self) -> None:
         CallableDefaultModel.objects.create(json={"x": 3})
         obj = CallableDefaultModel.objects.get()
         self.assertEqual({"x": 3}, obj.json)
 
 
 class SavingModelsTest(TestCase):
-    def test_saving_null(self):
+    def test_saving_null(self) -> None:
         obj = BlankJSONFieldTestModel.objects.create(blank_json="", null_json=None)
         self.assertEqual("", obj.blank_json)
         self.assertEqual(None, obj.null_json)

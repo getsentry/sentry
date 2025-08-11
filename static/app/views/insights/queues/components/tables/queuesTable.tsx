@@ -27,14 +27,14 @@ import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {useQueuesByDestinationQuery} from 'sentry/views/insights/queues/queries/useQueuesByDestinationQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
-import {type EAPSpanResponse, ModuleName, SpanFields} from 'sentry/views/insights/types';
+import {ModuleName, SpanFields, type SpanResponse} from 'sentry/views/insights/types';
 
 type Row = Pick<
-  EAPSpanResponse,
+  SpanResponse,
   | 'sum(span.duration)'
   | 'messaging.destination.name'
   | 'avg(messaging.message.receive.latency)'
-  | `avg_if(${string},${string},${string})`
+  | `avg_if(${string},${string},${string},${string})`
   | `count_op(${string})`
 >;
 
@@ -52,7 +52,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'avg_if(span.duration,span.op,queue.process)',
+    key: 'avg_if(span.duration,span.op,equals,queue.process)',
     name: t('Avg Processing Time'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -82,7 +82,7 @@ const SORTABLE_FIELDS = [
   SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME,
   'count_op(queue.publish)',
   'count_op(queue.process)',
-  'avg_if(span.duration,span.op,queue.process)',
+  'avg_if(span.duration,span.op,equals,queue.process)',
   'avg(messaging.message.receive.latency)',
   `sum(span.duration)`,
   'trace_status_rate(ok)',

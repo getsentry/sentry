@@ -38,12 +38,12 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
 
         fields = [
             "error.type",
-            "error.value",  # Deprecated, use title instead. See replayDataUtils.tsx
             "id",
             "issue.id",
             "issue",
             "timestamp",
             "title",
+            "level",
         ]
         dataset_label = request.GET.get("dataset", Dataset.Discover.value)
         if dataset_label == Dataset.Discover.value:
@@ -51,7 +51,7 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
 
         return fields
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
 

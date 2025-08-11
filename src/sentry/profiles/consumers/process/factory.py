@@ -17,7 +17,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
 
     if sampled or options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
         b64encoded = b64encode(message.payload.value).decode("utf-8")
-        process_profile_task.delay(payload=b64encoded, sampled=sampled, compressed_profile=False)
+        process_profile_task.delay(payload=b64encoded, sampled=sampled)
 
 
 class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):

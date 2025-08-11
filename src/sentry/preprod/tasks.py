@@ -9,9 +9,15 @@ from typing import Any
 import sentry_sdk
 from django.db import router, transaction
 
+from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.api.models.project_preprod_size_analysis_models import SizeAnalysisResults
+from sentry.preprod.models import (
+    PreprodArtifact,
+    PreprodArtifactSizeMetrics,
+    PreprodBuildConfiguration,
+)
 from sentry.preprod.producer import produce_preprod_artifact_to_kafka
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import (
@@ -45,16 +51,12 @@ def assemble_preprod_artifact(
     project_id,
     checksum,
     chunks,
-    git_sha=None,
-    build_configuration=None,
+    artifact_id,
     **kwargs,
 ) -> None:
     """
     Creates a preprod artifact from uploaded chunks.
     """
-    from sentry.models.files.file import File
-    from sentry.preprod.models import PreprodBuildConfiguration
-
     logger.info(
         "Starting preprod artifact assembly",
         extra={
@@ -65,123 +67,169 @@ def assemble_preprod_artifact(
         },
     )
 
-    preprod_artifact = None
+    try:
+        organization = Organization.objects.get_from_cache(pk=org_id)
+        project = Project.objects.get(id=project_id, organization=organization)
+        bind_organization_context(organization)
+
+        assemble_result = assemble_file(
+            task=AssembleTask.PREPROD_ARTIFACT,
+            org_or_project=project,
+            name=f"preprod-artifact-{uuid.uuid4().hex}",
+            checksum=checksum,
+            chunks=chunks,
+            file_type="preprod.artifact",
+        )
+
+        if assemble_result is None:
+            raise RuntimeError(
+                f"Assemble result is None for preprod artifact assembly (project_id={project_id}, organization_id={org_id}, checksum={checksum}, preprod_artifact_id={artifact_id})"
+            )
+
+        logger.info(
+            "Finished preprod artifact assembly",
+            extra={
+                "project_id": project_id,
+                "organization_id": org_id,
+                "checksum": checksum,
+                "preprod_artifact_id": artifact_id,
+            },
+        )
+
+        PreprodArtifact.objects.filter(id=artifact_id).update(
+            file_id=assemble_result.bundle.id,
+            state=PreprodArtifact.ArtifactState.UPLOADED,
+        )
+
+        produce_preprod_artifact_to_kafka(
+            project_id=project_id,
+            organization_id=org_id,
+            artifact_id=artifact_id,
+            head_sha=kwargs.get("head_sha"),
+            base_sha=kwargs.get("base_sha"),
+            provider=kwargs.get("provider"),
+            head_repo_name=kwargs.get("head_repo_name"),
+            base_repo_name=kwargs.get("base_repo_name"),
+            head_ref=kwargs.get("head_ref"),
+            base_ref=kwargs.get("base_ref"),
+            pr_number=kwargs.get("pr_number"),
+        )
+
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        logger.exception(
+            "Failed to assemble and create preprod artifact",
+            extra={
+                "project_id": project_id,
+                "organization_id": org_id,
+                "checksum": checksum,
+                "preprod_artifact_id": artifact_id,
+            },
+        )
+        PreprodArtifact.objects.filter(id=artifact_id).update(
+            state=PreprodArtifact.ArtifactState.FAILED
+        )
+        return
+
+    logger.info(
+        "Finished preprod artifact row creation and kafka dispatch",
+        extra={
+            "preprod_artifact_id": artifact_id,
+            "project_id": project_id,
+            "organization_id": org_id,
+            "checksum": checksum,
+        },
+    )
+
+
+def create_preprod_artifact(
+    org_id,
+    project_id,
+    checksum,
+    build_configuration=None,
+    head_sha=None,
+    base_sha=None,
+    provider=None,
+    head_repo_name=None,
+    base_repo_name=None,
+    head_ref=None,
+    base_ref=None,
+    pr_number=None,
+) -> str | None:
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
         project = Project.objects.get(id=project_id, organization=organization)
         bind_organization_context(organization)
 
         with transaction.atomic(router.db_for_write(PreprodArtifact)):
-            # First check if there's already a file with this checksum and type
-            existing_file = File.objects.filter(checksum=checksum, type="preprod.artifact").first()
-
-            existing_artifact = None
-            if existing_file:
-                existing_artifact = (
-                    PreprodArtifact.objects.select_for_update()
-                    .filter(project=project, file_id=existing_file.id)
-                    .first()
+            # Create CommitComparison if git information is provided
+            commit_comparison = None
+            if head_sha and head_repo_name and provider and head_ref:
+                commit_comparison, _ = CommitComparison.objects.get_or_create(
+                    organization_id=org_id,
+                    head_sha=head_sha,
+                    base_sha=base_sha,
+                    provider=provider,
+                    head_repo_name=head_repo_name,
+                    base_repo_name=base_repo_name,
+                    head_ref=head_ref,
+                    base_ref=base_ref,
+                    pr_number=pr_number,
                 )
-
-            if existing_artifact:
-                logger.info(
-                    "PreprodArtifact already exists for this checksum, using existing artifact",
-                    extra={
-                        "preprod_artifact_id": existing_artifact.id,
-                        "project_id": project_id,
-                        "organization_id": org_id,
-                        "checksum": checksum,
-                    },
-                )
-                preprod_artifact = existing_artifact
             else:
-                set_assemble_status(
-                    AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.ASSEMBLING
-                )
-
-                assemble_result = assemble_file(
-                    task=AssembleTask.PREPROD_ARTIFACT,
-                    org_or_project=project,
-                    name=f"preprod-artifact-{uuid.uuid4().hex}",
-                    checksum=checksum,
-                    chunks=chunks,
-                    file_type="preprod.artifact",
-                )
-
-                if assemble_result is None:
-                    logger.warning(
-                        "Assemble result is None, returning early",
-                        extra={
-                            "project_id": project_id,
-                            "organization_id": org_id,
-                            "checksum": checksum,
-                        },
-                    )
-                    return
-
-                build_config = None
-                if build_configuration:
-                    build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
-                        project=project,
-                        name=build_configuration,
-                    )
-
-                # Create PreprodArtifact record
-                preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
-                    project=project,
-                    file_id=assemble_result.bundle.id,
-                    build_configuration=build_config,
-                    state=PreprodArtifact.ArtifactState.UPLOADED,
-                )
-
                 logger.info(
-                    "Created preprod artifact",
+                    "Skipping commit comparison creation because required vcs information is not provided",
                     extra={
-                        "preprod_artifact_id": preprod_artifact.id,
                         "project_id": project_id,
                         "organization_id": org_id,
-                        "checksum": checksum,
+                        "head_sha": head_sha,
+                        "head_repo_name": head_repo_name,
+                        "provider": provider,
+                        "head_ref": head_ref,
+                        "base_sha": base_sha,
+                        "base_repo_name": base_repo_name,
+                        "base_ref": base_ref,
+                        "pr_number": pr_number,
                     },
                 )
+
+            build_config = None
+            if build_configuration:
+                build_config, _ = PreprodBuildConfiguration.objects.get_or_create(
+                    project=project,
+                    name=build_configuration,
+                )
+
+            preprod_artifact, _ = PreprodArtifact.objects.get_or_create(
+                project=project,
+                build_configuration=build_config,
+                state=PreprodArtifact.ArtifactState.UPLOADING,
+                commit_comparison=commit_comparison,
+            )
+
+            logger.info(
+                "Created preprod artifact row",
+                extra={
+                    "preprod_artifact_id": preprod_artifact.id,
+                    "project_id": project_id,
+                    "organization_id": org_id,
+                    "checksum": checksum,
+                },
+            )
+
+            return str(preprod_artifact.id)
 
     except Exception as e:
         sentry_sdk.capture_exception(e)
         logger.exception(
-            "Failed to assemble preprod artifact",
+            "Failed to create preprod artifact row",
             extra={
                 "project_id": project_id,
                 "organization_id": org_id,
                 "checksum": checksum,
             },
         )
-        set_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT,
-            project_id,
-            checksum,
-            ChunkFileState.ERROR,
-            detail=str(e),
-        )
-        return
-
-    # Mark assembly as successful since the artifact was created successfully
-    set_assemble_status(AssembleTask.PREPROD_ARTIFACT, project_id, checksum, ChunkFileState.OK)
-
-    if preprod_artifact:
-        produce_preprod_artifact_to_kafka(
-            project_id=project_id,
-            organization_id=org_id,
-            artifact_id=preprod_artifact.id,
-        )
-
-        logger.info(
-            "Finished preprod artifact assembly and Kafka dispatch",
-            extra={
-                "preprod_artifact_id": preprod_artifact.id,
-                "project_id": project_id,
-                "organization_id": org_id,
-                "checksum": checksum,
-            },
-        )
+        return None
 
 
 def _assemble_preprod_artifact_file(
@@ -249,8 +297,6 @@ def _assemble_preprod_artifact_file(
 def _assemble_preprod_artifact_size_analysis(
     assemble_result: AssembleResult, project, artifact_id, org_id
 ):
-    from sentry.preprod.models import PreprodArtifactSizeMetrics
-
     try:
         preprod_artifact = PreprodArtifact.objects.get(
             project=project,
@@ -261,7 +307,7 @@ def _assemble_preprod_artifact_size_analysis(
         logger.exception(
             "PreprodArtifact not found during size analysis assembly",
             extra={
-                "artifact_id": artifact_id,
+                "preprod_artifact_id": artifact_id,
                 "project_id": project.id,
                 "organization_id": org_id,
             },
@@ -277,6 +323,8 @@ def _assemble_preprod_artifact_size_analysis(
             pass  # Ignore cleanup errors
         raise Exception(f"PreprodArtifact with id {artifact_id} does not exist")
 
+    size_analysis_results = SizeAnalysisResults.parse_raw(assemble_result.bundle_temp_file.read())
+
     # Update size metrics in its own transaction
     with transaction.atomic(router.db_for_write(PreprodArtifactSizeMetrics)):
         size_metrics, created = PreprodArtifactSizeMetrics.objects.update_or_create(
@@ -284,6 +332,10 @@ def _assemble_preprod_artifact_size_analysis(
             defaults={
                 "analysis_file_id": assemble_result.bundle.id,
                 "metrics_artifact_type": PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,  # TODO: parse this from the treemap json
+                "min_install_size": None,  # No min value at this time
+                "max_install_size": size_analysis_results.install_size,
+                "min_download_size": None,  # No min value at this time
+                "max_download_size": size_analysis_results.download_size,
                 "state": PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
             },
         )

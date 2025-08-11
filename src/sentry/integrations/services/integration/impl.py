@@ -8,6 +8,9 @@ import sentry_sdk
 from django.utils import timezone
 
 from sentry import analytics
+from sentry.analytics.events.alert_rule_ui_component_webhook_sent import (
+    AlertRuleUiComponentWebhookSentEvent,
+)
 from sentry.api.paginator import OffsetPaginator
 from sentry.constants import SentryAppInstallationStatus
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationResult
@@ -48,6 +51,7 @@ from sentry.sentry_apps.metrics import (
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.webhooks import MetricAlertActionType, SentryAppResourceType
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.sentry_apps import send_and_save_webhook_request
@@ -377,7 +381,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
     ) -> bool:
         try:
             new_status_str = INCIDENT_STATUS[IncidentStatus(new_status)].lower()
-            event = SentryAppEventType(f"metric_alert.{new_status_str}")
+            event = SentryAppEventType(
+                f"{SentryAppResourceType.METRIC_ALERT}.{MetricAlertActionType(new_status_str)}"
+            )
         except ValueError as e:
             sentry_sdk.capture_exception(e)
             return False
@@ -405,8 +411,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
                 return False
 
             app_platform_event = AppPlatformEvent(
-                resource="metric_alert",
-                action=new_status_str,
+                resource=SentryAppResourceType.METRIC_ALERT,
+                action=MetricAlertActionType(new_status_str),
                 install=install,
                 data=json.loads(incident_attachment_json),
             )
@@ -421,12 +427,16 @@ class DatabaseBackedIntegrationService(IntegrationService):
         alert_rule_action_ui_component = find_alert_rule_action_ui_component(app_platform_event)
 
         if alert_rule_action_ui_component:
-            analytics.record(
-                "alert_rule_ui_component_webhook.sent",
-                organization_id=organization_id,
-                sentry_app_id=sentry_app.id,
-                event=f"{app_platform_event.resource}.{app_platform_event.action}",
-            )
+            try:
+                analytics.record(
+                    AlertRuleUiComponentWebhookSentEvent(
+                        organization_id=organization_id,
+                        sentry_app_id=sentry_app.id,
+                        event=f"{app_platform_event.resource}.{app_platform_event.action}",
+                    )
+                )
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
         return alert_rule_action_ui_component
 
     def send_msteams_incident_alert_notification(

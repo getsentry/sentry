@@ -3,8 +3,9 @@ import datetime
 from collections import defaultdict
 from datetime import timedelta
 from itertools import chain
+from typing import TypedDict
 
-from django.db.models import Case, Count, Q, QuerySet, Value, When
+from django.db.models import Case, Count, F, Q, QuerySet, Value, When
 from django.db.models.functions import TruncDay
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -28,6 +29,13 @@ from sentry.models.team import Team
 
 OPEN_STATUSES = UNRESOLVED_STATUSES + (GroupHistoryStatus.UNIGNORED,)
 CLOSED_STATUSES = RESOLVED_STATUSES + (GroupHistoryStatus.IGNORED,)
+
+
+class _Deduped(TypedDict):
+    project: int
+    bucket: datetime.datetime
+    open: int
+    closed: int
 
 
 def calculate_unresolved_counts(
@@ -59,10 +67,9 @@ def calculate_unresolved_counts(
     new_issues = (
         Group.objects.filter_to_team(team)
         .filter(group_environment_filter, first_seen__gte=start, first_seen__lt=end)
-        .annotate(bucket=TruncDay("first_seen"))
-        .order_by("bucket")
-        .values("project", "bucket")
-        .annotate(open=Count("id"))
+        .annotate(bucket=TruncDay("first_seen"), state=Value("open"), group_id=F("id"))
+        .order_by("bucket", "group_id")
+        .values("project", "group_id", "bucket", "state")[:200_000]
     )
 
     # Pull extra data to do deduplication in Python. (Inefficient to do in SQL via subqueries
@@ -91,12 +98,19 @@ def calculate_unresolved_counts(
         .values("project", "group_id", "bucket", "state")[:200_000]
     )
 
+    # sorted() is a stable sort, so this will sort by bucket, and within each bucket
+    # new issues are first, followed by bucketed issues (still sorted by id)
+    historical_issue_status_changes = sorted(
+        chain(new_issues, bucketed_issues), key=lambda i: i["bucket"]
+    )
+
     most_recent_group_state: defaultdict[str, str] = defaultdict(lambda: "other")
     # Project => Bucket => State => Count
-    deduping_map: defaultdict[str, defaultdict[str, defaultdict[str, int]]] = defaultdict(
-        lambda: defaultdict(lambda: defaultdict(int))
+    deduping_map: defaultdict[int, defaultdict[datetime.datetime, defaultdict[str, int]]] = (
+        defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
     )
-    for r in bucketed_issues:
+
+    for r in historical_issue_status_changes:
         # Don't process the row if it doesn't set the group to open or closed.
         if r["state"] == "other":
             continue
@@ -108,11 +122,11 @@ def calculate_unresolved_counts(
         deduping_map[r["project"]][r["bucket"]][r["state"]] += 1
         most_recent_group_state[r["group_id"]] = r["state"]
 
-    deduped_bucketed_issues = []
+    deduped_historical_issue_status_changes: list[_Deduped] = []
     for p in deduping_map.keys():
         bucket_counts = deduping_map[p]
         for b in bucket_counts.keys():
-            deduped_bucketed_issues.append(
+            deduped_historical_issue_status_changes.append(
                 {
                     "project": p,
                     "bucket": b,
@@ -129,7 +143,7 @@ def calculate_unresolved_counts(
     agg_project_precounts = {
         project.id: copy.deepcopy(date_series_dict) for project in project_list
     }
-    for r in chain(deduped_bucketed_issues, new_issues):
+    for r in deduped_historical_issue_status_changes:
         bucket = agg_project_precounts[r["project"]][r["bucket"].isoformat()]
         bucket["open"] += r.get("open", 0)
         bucket["closed"] += r.get("closed", 0)

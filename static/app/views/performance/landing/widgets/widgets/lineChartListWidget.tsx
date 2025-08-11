@@ -112,17 +112,24 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     props.chartSetting
   );
   const useEap = useInsightsEap();
-  const spanDataset = useEap
-    ? DiscoverDatasets.SPANS_EAP_RPC
-    : DiscoverDatasets.SPANS_METRICS;
+  const canUseMetrics = canUseMetricsData(organization);
 
-  const metricsDataset = useEap ? DiscoverDatasets.SPANS_EAP : DiscoverDatasets.METRICS;
+  // Some am1 customers have on demand metrics, so we still need to keep metrics here.
+  let metricsDataset = canUseMetrics
+    ? DiscoverDatasets.METRICS
+    : DiscoverDatasets.TRANSACTIONS;
+
+  const spanDataset = DiscoverDatasets.SPANS;
+
+  if (useEap) {
+    metricsDataset = DiscoverDatasets.SPANS;
+  }
 
   const spanQueryParams: Record<string, string> = {...EAP_QUERY_PARAMS};
 
   const metricsQueryParams: Record<string, string> = useEap
     ? {...EAP_QUERY_PARAMS}
-    : {dataset: DiscoverDatasets.METRICS};
+    : {dataset: metricsDataset};
 
   let emptyComponent: any;
   if (props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES) {
@@ -175,7 +182,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           ];
           eventView.additionalConditions.setFilterValues('event.type', ['error']);
           eventView.additionalConditions.setFilterValues('!tags[transaction]', ['']);
-          if (canUseMetricsData(organization)) {
+          if (canUseMetrics) {
             eventView.additionalConditions.setFilterValues('!transaction', [
               UNPARAMETERIZED_TRANSACTION,
             ]);
@@ -392,7 +399,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             ]);
             eventView.additionalConditions.setFilterValues('event.type', ['error']);
 
-            if (canUseMetricsData(organization)) {
+            if (canUseMetrics) {
               eventView.additionalConditions.setFilterValues('!transaction', [
                 UNPARAMETERIZED_TRANSACTION,
               ]);
@@ -489,7 +496,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           }
 
           if (useEap) {
-            eventView.dataset = DiscoverDatasets.SPANS_EAP_RPC;
+            eventView.dataset = DiscoverDatasets.SPANS;
             extraQueryParams = {
               ...extraQueryParams,
               ...spanQueryParams,

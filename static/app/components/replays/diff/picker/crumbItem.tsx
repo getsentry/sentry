@@ -42,8 +42,8 @@ export default function CrumbItem({
             </LeftAligned>
           }
         >
-          <Flex direction="column" gap={space(0.5)}>
-            <Flex gap={space(0.75)} align="center">
+          <Flex direction="column" gap="xs">
+            <Flex gap="sm" align="center">
               {icon}
               {formattedDuration}
             </Flex>

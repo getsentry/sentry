@@ -1,5 +1,5 @@
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {DetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
 export const DETECTOR_DATASET_TO_DISCOVER_DATASET_MAP: Record<
   DetectorDataset,
@@ -7,7 +7,7 @@ export const DETECTOR_DATASET_TO_DISCOVER_DATASET_MAP: Record<
 > = {
   [DetectorDataset.ERRORS]: DiscoverDatasets.ERRORS,
   [DetectorDataset.TRANSACTIONS]: DiscoverDatasets.TRANSACTIONS,
-  [DetectorDataset.SPANS]: DiscoverDatasets.SPANS_EAP,
+  [DetectorDataset.SPANS]: DiscoverDatasets.SPANS,
   [DetectorDataset.LOGS]: DiscoverDatasets.OURLOGS,
   [DetectorDataset.RELEASES]: DiscoverDatasets.DISCOVER,
 };

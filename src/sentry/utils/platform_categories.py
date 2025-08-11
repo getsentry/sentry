@@ -158,15 +158,18 @@ DESKTOP = {
     "unreal",
 }
 
+CONSOLES = {
+    "nintendo-switch",
+    "playstation",
+    "xbox",
+}
+
 GAMING = {
     "godot",
     "native",
-    "nintendo-switch",
-    "nintendo-switch-2",
-    "playstation",
     "unity",
     "unreal",
-    "xbox",
+    *CONSOLES,
 }
 
 CATEGORY_LIST = [

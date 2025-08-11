@@ -13,7 +13,7 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.min_ago = before_now(minutes=1).replace(microsecond=0)
         self.login_as(user=self.user)
@@ -25,7 +25,7 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
         )
         self.features = {"organizations:session-replay": True}
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         event_id_a = "a" * 32
         event_id_b = "b" * 32
 
@@ -64,20 +64,20 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
         expected = [
             {
                 "error.type": [],
-                "error.value": [],
                 "id": event_id_a,
                 "issue.id": event_a.group.id,
                 "issue": event_a.group.qualified_short_id,
+                "level": "error",
                 "project.name": self.project_1.slug,
                 "timestamp": min_ago_ms.isoformat(),
                 "title": "<unlabeled event>",
             },
             {
                 "error.type": [],
-                "error.value": [],
                 "id": event_id_b,
                 "issue.id": event_b.group.id,
                 "issue": event_b.group.qualified_short_id,
+                "level": "error",
                 "project.name": self.project_2.slug,
                 "timestamp": min_ago_ms.isoformat(),
                 "title": "<unlabeled event>",
@@ -87,7 +87,7 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
         assert response.status_code == 200, response.content
         assert sorted(response.data["data"], key=lambda v: v["id"]) == expected
 
-    def test_rage_clicks(self):
+    def test_rage_clicks(self) -> None:
         event_id_a = "a" * 32
 
         _, group_info = self.process_occurrence(
@@ -115,10 +115,10 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
         expected = [
             {
                 "error.type": "",
-                "error.value": "",
                 "id": event_id_a,
                 "issue.id": group_info.group.id,
                 "issue": group_info.group.qualified_short_id,
+                "level": "error",
                 "project.name": self.project.slug,
                 "timestamp": self.min_ago.isoformat(),
                 "title": "Rage Click",
@@ -128,7 +128,7 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
         assert response.status_code == 200, response.content
         assert sorted(response.data["data"], key=lambda v: v["id"]) == expected
 
-    def test_timestamp_ms_none(self):
+    def test_timestamp_ms_none(self) -> None:
         """
         Test handling of null timestamp_ms values in events.
 

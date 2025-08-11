@@ -1,18 +1,19 @@
+import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
+
+import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
-import {IconArrow} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
-import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
-import {getAIAttribute} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
+import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
+import {ModelName} from 'sentry/views/insights/agents/components/modelName';
 import {
   hasAgentInsightsFeature,
   hasMCPInsightsFeature,
-} from 'sentry/views/insights/agentMonitoring/utils/features';
-import {getIsAiSpan} from 'sentry/views/insights/agentMonitoring/utils/query';
+} from 'sentry/views/insights/agents/utils/features';
+import {getIsAiSpan} from 'sentry/views/insights/agents/utils/query';
 
 type HighlightedAttribute = {
   name: string;
@@ -31,7 +32,7 @@ export function getHighlightedSpanAttributes({
   const attributeObject = ensureAttributeObject(attributes);
 
   if (hasAgentInsightsFeature(organization) && getIsAiSpan({op})) {
-    return getAISpanAttributes(attributeObject);
+    return getAISpanAttributes(attributeObject, op);
   }
 
   if (hasMCPInsightsFeature(organization) && op?.startsWith('mcp.')) {
@@ -59,38 +60,42 @@ function ensureAttributeObject(
   return attributes;
 }
 
-function getAISpanAttributes(attributes: Record<string, string | number | boolean>) {
+function getAISpanAttributes(
+  attributes: Record<string, string | number | boolean>,
+  op?: string
+) {
   const highlightedAttributes = [];
 
-  const model =
-    getAIAttribute(attributes, 'gen_ai.request.model') ||
-    getAIAttribute(attributes, 'gen_ai.response.model');
+  const model = attributes['gen_ai.request.model'] || attributes['gen_ai.response.model'];
   if (model) {
     highlightedAttributes.push({
       name: t('Model'),
-      value: <ModelName modelId={model.toString()} gap={space(0.5)} />,
+      value: <ModelName modelId={model.toString()} gap="xs" />,
     });
   }
 
-  const promptTokens = getAIAttribute(attributes, 'gen_ai.usage.input_tokens');
-  const completionTokens = getAIAttribute(attributes, 'gen_ai.usage.output_tokens');
-  const totalTokens = getAIAttribute(attributes, 'gen_ai.usage.total_tokens');
-  if (promptTokens && completionTokens && totalTokens && Number(totalTokens) > 0) {
+  const inputTokens = attributes['gen_ai.usage.input_tokens'];
+  const cachedTokens = attributes['gen_ai.usage.cached_tokens'];
+  const outputTokens = attributes['gen_ai.usage.output_tokens'];
+  const reasoningTokens = attributes['gen_ai.usage.reasoning_tokens'];
+  const totalTokens = attributes['gen_ai.usage.total_tokens'];
+
+  if (inputTokens && outputTokens && totalTokens && Number(totalTokens) > 0) {
     highlightedAttributes.push({
       name: t('Tokens'),
       value: (
-        <span>
-          <Count value={promptTokens.toString()} />{' '}
-          <IconArrow direction="right" size="xs" />{' '}
-          <Count value={completionTokens.toString()} /> {' (Σ '}
-          <Count value={totalTokens.toString()} />
-          {')'}
-        </span>
+        <HighlightedTokenAttributes
+          inputTokens={Number(inputTokens)}
+          cachedTokens={Number(cachedTokens)}
+          outputTokens={Number(outputTokens)}
+          reasoningTokens={Number(reasoningTokens)}
+          totalTokens={Number(totalTokens)}
+        />
       ),
     });
   }
 
-  const totalCosts = getAIAttribute(attributes, 'gen_ai.usage.total_cost');
+  const totalCosts = attributes['gen_ai.usage.total_cost'];
   if (totalCosts && Number(totalCosts) > 0) {
     highlightedAttributes.push({
       name: t('Cost'),
@@ -98,7 +103,27 @@ function getAISpanAttributes(attributes: Record<string, string | number | boolea
     });
   }
 
-  const toolName = getAIAttribute(attributes, 'gen_ai.tool.name');
+  // Check for missing cost calculation and emit Sentry error
+  if (model && (!totalCosts || Number(totalCosts) === 0)) {
+    Sentry.captureMessage('Gen AI span missing cost calculation', {
+      level: 'warning',
+      tags: {
+        feature: 'agent-monitoring',
+        span_type: 'gen_ai',
+        has_model: 'true',
+        has_cost: 'false',
+        span_operation: op || 'unknown',
+        model: model.toString(),
+      },
+      extra: {
+        total_costs: totalCosts,
+        span_operation: op,
+        attributes,
+      },
+    });
+  }
+
+  const toolName = attributes['gen_ai.tool.name'];
   if (toolName) {
     highlightedAttributes.push({
       name: t('Tool Name'),
@@ -146,3 +171,76 @@ function getMCPAttributes(attributes: Record<string, string | number | boolean>)
 
   return highlightedAttributes;
 }
+
+function HighlightedTokenAttributes({
+  inputTokens,
+  cachedTokens,
+  outputTokens,
+  reasoningTokens,
+  totalTokens,
+}: {
+  cachedTokens: number;
+  inputTokens: number;
+  outputTokens: number;
+  reasoningTokens: number;
+  totalTokens: number;
+}) {
+  return (
+    <Tooltip
+      title={
+        <TokensTooltipTitle>
+          <span>{t('Input')}</span>
+          <span>{inputTokens.toString()}</span>
+          <SubTextCell>{t('Cached')}</SubTextCell>
+          <SubTextCell>{isNaN(cachedTokens) ? '0' : cachedTokens.toString()}</SubTextCell>
+          <span>{t('Output')}</span>
+          <span>{outputTokens.toString()}</span>
+          <SubTextCell>{t('Reasoning')}</SubTextCell>
+          <SubTextCell>
+            {isNaN(reasoningTokens) ? '0' : reasoningTokens.toString()}
+          </SubTextCell>
+          <span>{t('Total')}</span>
+          <span>{totalTokens.toString()}</span>
+        </TokensTooltipTitle>
+      }
+    >
+      <TokensSpan>
+        <span>
+          <Count value={inputTokens.toString()} /> {t('in')}
+        </span>
+        <span>+</span>
+        <span>
+          <Count value={outputTokens.toString()} /> {t('out')}
+        </span>
+        <span>=</span>
+        <span>
+          <Count value={totalTokens.toString()} /> {t('total')}
+        </span>
+      </TokensSpan>
+    </Tooltip>
+  );
+}
+
+const TokensTooltipTitle = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  > *:nth-child(odd) {
+    text-align: left;
+  }
+  > *:nth-child(even) {
+    text-align: right;
+  }
+  gap: ${p => p.theme.space.xs};
+`;
+
+const SubTextCell = styled('span')`
+  margin-left: ${p => p.theme.space.md};
+  color: ${p => p.theme.subText};
+`;
+
+const TokensSpan = styled('span')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  border-bottom: 1px dashed ${p => p.theme.border};
+`;

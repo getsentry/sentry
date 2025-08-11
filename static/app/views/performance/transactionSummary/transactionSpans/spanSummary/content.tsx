@@ -12,12 +12,11 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {AiHeader} from 'sentry/views/insights/pages/ai/aiPageHeader';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import type {EAPSpanResponse, SpanQueryFilters} from 'sentry/views/insights/types';
+import type {SpanQueryFilters, SpanResponse} from 'sentry/views/insights/types';
 import Breadcrumb, {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
 import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
@@ -113,7 +112,6 @@ export default function SpanSummary(props: Props) {
         <BackendHeader {...domainViewHeaderProps} />
       )}
       {isInDomainView && view === 'mobile' && <MobileHeader {...domainViewHeaderProps} />}
-      {isInDomainView && view === 'ai' && <AiHeader {...domainViewHeaderProps} />}
       <Layout.Body>
         <Layout.Main fullWidth>
           <SpanSummaryContent
@@ -183,7 +181,7 @@ function SpanSummaryContent(props: ContentProps) {
   );
 }
 
-function parseSpanHeaderData(data: Array<Partial<EAPSpanResponse>>) {
+function parseSpanHeaderData(data: Array<Partial<SpanResponse>>) {
   if (!data || data.length === 0) {
     return undefined;
   }

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {CopyDsnField} from 'sentry/components/onboarding/gettingStartedDoc/copyDsnField';
 import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/crashReportCallout';
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
@@ -33,9 +33,9 @@ import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/
 
 type Params = DocsParams;
 
-const getInstallSnippet = ({isSelfHosted, organization, projectSlug}: Params) => {
+const getInstallSnippet = ({isSelfHosted, organization, project}: Params) => {
   const urlParam = isSelfHosted ? '' : '--saas';
-  return `npx @sentry/wizard@latest -i nextjs ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
+  return `npx @sentry/wizard@latest -i nextjs ${urlParam} --org ${organization.slug} --project ${project.slug}`;
 };
 
 const getInstallConfig = (params: Params) => {

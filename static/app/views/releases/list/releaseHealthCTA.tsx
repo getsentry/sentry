@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {ExternalLink} from 'sentry/components/core/link';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -57,7 +57,7 @@ export default function ReleaseHealthCTA({
 
   return (
     <Alert.Container>
-      <Alert type="info" showIcon>
+      <Alert type="info">
         <AlertText>
           <div>
             {t(

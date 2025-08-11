@@ -16,7 +16,7 @@ import type {
   Repository,
 } from './integrations';
 import type {Team} from './organization';
-import type {PlatformKey, Project} from './project';
+import type {AvatarProject, PlatformKey, Project} from './project';
 import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | any[]>;
@@ -171,7 +171,7 @@ export enum IssueType {
   UPTIME_DOMAIN_FAILURE = 'uptime_domain_failure',
 
   // Metric Issues
-  METRIC_ISSUE_POC = 'metric_issue_poc', // To be removed
+  METRIC_ISSUE = 'metric_issue',
 
   // Detectors
   QUERY_INJECTION_VULNERABILITY = 'query_injection_vulnerability',
@@ -209,6 +209,15 @@ export enum IssueTitle {
   REPLAY_RAGE_CLICK = 'Rage Click Detected',
   REPLAY_HYDRATION_ERROR = 'Hydration Error Detected',
 
+  // Metric Issues
+  METRIC_ISSUE = 'Issue Detected by Metric Monitor',
+
+  // Monitors
+  MONITOR_CHECK_IN_FAILURE = 'Missed or Failed Cron Check-In',
+
+  // Uptime
+  UPTIME_DOMAIN_FAILURE = 'Uptime Monitor Detected Downtime',
+
   QUERY_INJECTION_VULNERABILITY = 'Potential Query Injection Vulnerability',
 }
 
@@ -240,6 +249,11 @@ export const ISSUE_TYPE_TO_ISSUE_TITLE = {
 
   replay_click_rage: IssueTitle.REPLAY_RAGE_CLICK,
   replay_hydration_error: IssueTitle.REPLAY_HYDRATION_ERROR,
+
+  metric_issue: IssueTitle.METRIC_ISSUE,
+
+  monitor_check_in_failure: IssueTitle.MONITOR_CHECK_IN_FAILURE,
+  uptime_domain_failure: IssueTitle.UPTIME_DOMAIN_FAILURE,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -335,6 +349,7 @@ export type Tag = {
    */
   maxSuggestedValues?: number;
   predefined?: boolean;
+  secondaryAliases?: string[];
   totalValues?: number;
   uniqueValues?: number;
   /**
@@ -806,7 +821,6 @@ export interface ResolvedStatusDetails {
   };
   inNextRelease?: boolean;
   inRelease?: string;
-  inUpcomingRelease?: boolean;
   repository?: string;
 }
 interface ReprocessingStatusDetails {
@@ -869,6 +883,7 @@ export const enum FixabilityScoreThresholds {
   HIGH = 'high',
   MEDIUM = 'medium',
   LOW = 'low',
+  SUPER_LOW = 'super_low',
 }
 
 // TODO(ts): incomplete
@@ -949,6 +964,24 @@ export interface GroupUnresolved extends BaseGroup, GroupStats {
 }
 
 export type Group = GroupUnresolved | GroupResolved | GroupIgnored | GroupReprocessing;
+
+// Maps to SimpleGroupSerializer in the backend
+export type SimpleGroup = {
+  culprit: string | null;
+  firstSeen: string;
+  id: string;
+  issueCategory: IssueCategory;
+  issueType: IssueType;
+  lastSeen: string;
+  level: Level;
+  metadata: EventMetadata;
+  project: AvatarProject;
+  shortId: string;
+  status: GroupStatus;
+  substatus: GroupSubstatus | null;
+  title: string;
+  type: EventOrGroupType;
+};
 
 export interface GroupTombstone {
   actor: AvatarUser;

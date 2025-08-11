@@ -18,6 +18,9 @@ ACTION_BITSIZE = 8
 # represented with `ACTION_BITSIZE` bits
 assert len(ACTIONS) < 1 << ACTION_BITSIZE  # This is 2^ACTION_BITSIZE
 ACTION_FLAGS = {
+    # Each key is the value to which to set the attribute (`in_app` or `contributes`), followed by
+    # the range (whether the action should apply to the given frame, frames above it, or frames
+    # below it)
     (True, None): 0,
     (True, "up"): 1,
     (True, "down"): 2,

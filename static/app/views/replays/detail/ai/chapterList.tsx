@@ -3,27 +3,31 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 
 import {Alert} from 'sentry/components/core/alert';
+import {Link} from 'sentry/components/core/link';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconChevron, IconFire, IconMegaphone} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {TimeRanges} from 'sentry/views/replays/detail/ai/utils';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
-import type {SummaryResponse} from './useFetchReplaySummary';
-
 interface Props {
-  summaryData: SummaryResponse;
+  timeRanges: TimeRanges;
 }
 
-export function ChapterList({summaryData}: Props) {
-  const {replay, setCurrentTime} = useReplayContext();
+export function ChapterList({timeRanges}: Props) {
+  const replay = useReplayReader();
+  const {setCurrentTime} = useReplayContext();
   const onClickChapterTimestamp = useCallback(
     (event: React.MouseEvent<Element>, start: number) => {
       event.stopPropagation();
@@ -34,7 +38,7 @@ export function ChapterList({summaryData}: Props) {
 
   const chapterData = useMemo(
     () =>
-      summaryData?.data.time_ranges
+      timeRanges
         .map(({period_title, period_start, period_end, error, feedback}) => ({
           title: period_title,
           start: period_start,
@@ -43,7 +47,7 @@ export function ChapterList({summaryData}: Props) {
           feedback,
           breadcrumbs:
             replay
-              ?.getChapterFrames()
+              ?.getSummaryChapterFrames()
               .filter(
                 breadcrumb =>
                   breadcrumb.timestampMs >= period_start &&
@@ -51,13 +55,15 @@ export function ChapterList({summaryData}: Props) {
               ) ?? [],
         }))
         .sort((a, b) => a.start - b.start),
-    [summaryData, replay]
+    [timeRanges, replay]
   );
 
-  if (!chapterData.length) {
+  if (!chapterData?.length) {
     return (
       <EmptyContainer>
-        <Alert type="info">{t('No chapters available for this replay.')}</Alert>
+        <Alert type="info" showIcon={false}>
+          {t('No chapters available for this replay.')}
+        </Alert>
       </EmptyContainer>
     );
   }
@@ -99,7 +105,10 @@ function ChapterRow({
   title: string;
   className?: string;
 }) {
-  const {replay, currentTime} = useReplayContext();
+  const replay = useReplayReader();
+  const {currentTime, setCurrentTime} = useReplayContext();
+  const organization = useOrganization();
+  const location = useLocation();
   const {onClickTimestamp} = useCrumbHandlers();
   const [currentHoverTime] = useCurrentHoverTime();
   const [isHovered, setIsHovered] = useState(false);
@@ -109,8 +118,6 @@ function ChapterRow({
   const endOffset = Math.max(end - (replay?.getStartTimestampMs() ?? 0), 0);
   const hasOccurred = currentTime >= startOffset;
   const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= startOffset;
-
-  const organization = useOrganization();
 
   return (
     <ChapterWrapper
@@ -153,9 +160,9 @@ function ChapterRow({
           )}
         </ChapterIconWrapper>
         <ChapterTitle>
-          <span>{title}</span>
+          <span style={{gridArea: 'title'}}>{title}</span>
 
-          <ReplayTimestamp>
+          <ReplayTimestamp style={{gridArea: 'timestamp'}}>
             <TimestampButton
               startTimestampMs={replay?.getStartTimestampMs() ?? 0}
               timestampMs={start}
@@ -163,12 +170,50 @@ function ChapterRow({
                 onClickChapterTimestamp(event, start);
               }}
             />
+            -
+            <TimestampButton
+              startTimestampMs={replay?.getStartTimestampMs() ?? 0}
+              timestampMs={end}
+              onClick={event => {
+                onClickChapterTimestamp(event, end);
+              }}
+            />
           </ReplayTimestamp>
         </ChapterTitle>
       </Chapter>
       <div>
         {!breadcrumbs.length && (
-          <EmptyMessage>{t('No breadcrumbs for this chapter')}</EmptyMessage>
+          <EmptyMessage>
+            {tct(
+              'No breadcrumbs for this chapter, but there may be [consoleLogs: console logs] or [networkRequests: network requests] that occurred during this window.',
+              {
+                consoleLogs: (
+                  <Link
+                    to={{
+                      pathname: location.pathname,
+                      query: {
+                        t_main: TabKey.CONSOLE,
+                        t: startOffset / 1000,
+                      },
+                    }}
+                    onClick={() => setCurrentTime(startOffset)}
+                  />
+                ),
+                networkRequests: (
+                  <Link
+                    to={{
+                      pathname: location.pathname,
+                      query: {
+                        t_main: TabKey.NETWORK,
+                        t: startOffset / 1000,
+                      },
+                    }}
+                    onClick={() => setCurrentTime(startOffset)}
+                  />
+                ),
+              }
+            )}
+          </EmptyMessage>
         )}
         {breadcrumbs.map((breadcrumb, j) => (
           <ChapterBreadcrumbRow
@@ -311,11 +356,12 @@ const Chapter = styled('summary')`
 `;
 
 const ChapterTitle = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: ${space(1)};
+  grid-template-areas: 'title timestamp';
   flex: 1;
   align-items: center;
-  gap: ${space(1)};
-  justify-content: space-between;
   font-size: ${p => p.theme.fontSize.md};
   padding: ${space(1)} 0;
 
@@ -331,11 +377,13 @@ const ChapterTitle = styled('div')`
   }
 `;
 
-// Copied from breadcrumbItem
-const ReplayTimestamp = styled('div')`
+const ReplayTimestamp = styled('span')`
+  display: flex;
+  gap: ${space(0.5)};
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSize.sm};
   font-weight: ${p => p.theme.fontWeight.normal};
+  justify-content: flex-end;
 `;
 
 const EmptyContainer = styled('div')`

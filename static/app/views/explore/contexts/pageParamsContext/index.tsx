@@ -246,7 +246,7 @@ export function useExplorePageParams(): ReadablePageParams {
 }
 
 export function useExploreDataset(): DiscoverDatasets {
-  return DiscoverDatasets.SPANS_EAP_RPC;
+  return DiscoverDatasets.SPANS;
 }
 
 interface UseExploreAggregateFieldsOptions {
@@ -279,11 +279,6 @@ export function useExploreFields(): string[] {
 export function useExploreGroupBys(): string[] {
   const pageParams = useExplorePageParams();
   return pageParams.groupBys;
-}
-
-export function useExploreMode(): Mode {
-  const pageParams = useExplorePageParams();
-  return pageParams.mode;
 }
 
 export function useExploreQuery(): string {

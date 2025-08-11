@@ -4,8 +4,6 @@ import {TooltipContext} from 'sentry/components/core/tooltip';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 
 import {ActionCell} from './actionCell';
-import {ConnectionCell} from './connectionCell';
-import {NumberCell} from './numberCell';
 import {TimeAgoCell} from './timeAgoCell';
 
 describe('Action Cell Component', function () {
@@ -38,60 +36,6 @@ describe('Time Ago Cell Component', function () {
     render(<TimeAgoCell date={new Date()} />);
 
     const text = screen.getByText('a few seconds ago');
-    expect(text).toBeInTheDocument();
-  });
-});
-
-describe('Connection Cell Component', function () {
-  it('renders monitors', function () {
-    render(<ConnectionCell ids={['12345']} type="detector" />);
-
-    const text = screen.getByText('1 monitor');
-    expect(text).toBeInTheDocument();
-  });
-
-  it('renders automations', function () {
-    render(<ConnectionCell ids={['12345']} type="workflow" />);
-    const text = screen.getByText('1 automation');
-    expect(text).toBeInTheDocument();
-  });
-
-  it('renders detector hovercard', async function () {
-    render(<ConnectionCell ids={['12345']} type="detector" />);
-
-    const span = screen.getByText('1 monitor');
-    expect(span).toBeInTheDocument();
-    await userEvent.hover(span, {delay: 100});
-    const overlay = await screen.findByRole('link');
-    expect(overlay).toBeInTheDocument();
-    expect(overlay).toHaveAttribute('href');
-    expect(overlay).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/issues/monitors/12345/'
-    );
-  });
-
-  it('renders workflow hovercard', async function () {
-    render(<ConnectionCell ids={['12345']} type="workflow" />);
-
-    const span = screen.getByText('1 automation');
-    expect(span).toBeInTheDocument();
-    await userEvent.hover(span, {delay: 100});
-    const overlay = await screen.findByRole('link');
-    expect(overlay).toBeInTheDocument();
-    expect(overlay).toHaveAttribute('href');
-    expect(overlay).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/issues/automations/12345/'
-    );
-  });
-});
-
-describe('Number Cell Component', function () {
-  it('renders', () => {
-    render(<NumberCell number={3} />);
-
-    const text = screen.getByText('3');
     expect(text).toBeInTheDocument();
   });
 });

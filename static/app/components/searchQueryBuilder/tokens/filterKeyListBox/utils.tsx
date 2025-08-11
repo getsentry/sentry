@@ -1,10 +1,8 @@
 import styled from '@emotion/styled';
 
 import {getEscapedKey} from 'sentry/components/core/compactSelect/utils';
-import {
-  ASK_SEER_CONSENT_ITEM_KEY,
-  ASK_SEER_ITEM_KEY,
-} from 'sentry/components/searchQueryBuilder/askSeer';
+import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
+import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {FormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {
@@ -13,7 +11,8 @@ import type {
   FilterValueItem,
   KeyItem,
   KeySectionItem,
-  RawSearchFilterValueItem,
+  RawSearchFilterHasValueItem,
+  RawSearchFilterIsValueItem,
   RawSearchItem,
   RecentQueryItem,
 } from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
@@ -150,10 +149,10 @@ export function createFilterValueItem(key: string, value: string): FilterValueIt
   };
 }
 
-export function createRawSearchFilterValueItem(
+export function createRawSearchFilterIsValueItem(
   key: string,
   value: string
-): RawSearchFilterValueItem {
+): RawSearchFilterIsValueItem {
   const filter = `${key}:${escapeFilterValue(value)}`;
 
   return {
@@ -164,7 +163,29 @@ export function createRawSearchFilterValueItem(
     hideCheck: true,
     showDetailsInOverlay: true,
     details: null,
-    type: 'raw-search-filter-value',
+    type: 'raw-search-filter-is-value',
+  };
+}
+
+export function createRawSearchFilterHasValueItem(
+  key: string,
+  value: string
+): RawSearchFilterHasValueItem {
+  const escapedValue = escapeFilterValue(value);
+  const inputValue = escapedValue?.includes(' ')
+    ? `"*${escapedValue.replace(/"/g, '')}*"`
+    : `*${escapedValue}*`;
+  const filter = `${key}:${inputValue}`;
+
+  return {
+    key: getEscapedKey(`${key}:${inputValue}`),
+    label: <FormattedQuery query={filter} />,
+    value: filter,
+    textValue: filter,
+    hideCheck: true,
+    showDetailsInOverlay: true,
+    details: null,
+    type: 'raw-search-filter-has-value',
   };
 }
 

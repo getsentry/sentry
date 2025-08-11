@@ -15,7 +15,7 @@ class AccountIdentityTest(TestCase):
         identity.register(DummyProvider)
         self.addCleanup(identity.unregister, DummyProvider)
 
-    def test_associate_identity(self):
+    def test_associate_identity(self) -> None:
         user = self.create_user()
         organization = self.create_organization(name="foo", owner=user)
         self.create_identity_provider(type="dummy", external_id="1234")

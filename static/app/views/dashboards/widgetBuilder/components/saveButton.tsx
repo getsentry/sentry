@@ -28,7 +28,7 @@ function SaveButton({isEditing, onSave, setError}: SaveButtonProps) {
   const api = useApi();
   const organization = useOrganization();
   const [isSaving, setIsSaving] = useState(false);
-  const disableTransactionWidget = useDisableTransactionWidget() && !isEditing;
+  const disableTransactionWidget = useDisableTransactionWidget();
 
   const handleSave = useCallback(async () => {
     trackAnalytics('dashboards_views.widget_builder.save', {
