@@ -35,6 +35,7 @@ from sentry.taskworker.namespaces import (
     issues_tasks,
 )
 from sentry.utils import metrics
+from sentry.utils.event import track_event_since_received
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
@@ -145,6 +146,11 @@ def _do_preprocess_event(
         metrics.incr("events.failed", tags={"reason": "cache", "stage": "pre"}, skip_internal=False)
         error_logger.error("preprocess.failed.empty", extra={"cache_key": cache_key})
         return
+
+    track_event_since_received(
+        step="start_preprocess_event",
+        event_data=data,
+    )
 
     original_data = data
     project_id = data["project"]
@@ -319,6 +325,11 @@ def do_process_event(
         error_logger.error("process.failed.empty", extra={"cache_key": cache_key})
         return
 
+    track_event_since_received(
+        step="start_process_event",
+        event_data=data,
+    )
+
     project_id = data["project"]
     set_current_event_project(project_id)
 
@@ -388,8 +399,8 @@ def do_process_event(
     # Default event processors.
     for plugin in plugins.all(version=2):
         with sentry_sdk.start_span(op="task.store.process_event.preprocessors") as span:
-            span.set_attribute("plugin", plugin.slug)
-            span.set_attribute("from_symbolicate", from_symbolicate)
+            span.set_data("plugin", plugin.slug)
+            span.set_data("from_symbolicate", from_symbolicate)
             processors = safe_execute(plugin.get_event_preprocessors, data=data)
             for processor in processors or ():
                 try:
@@ -524,6 +535,11 @@ def _do_save_event(
         if data is not None:
             event_type = data.get("type") or "none"
 
+    track_event_since_received(
+        step="start_save_event",
+        event_data=data,
+    )
+
     with metrics.global_tags(event_type=event_type):
         if event_id is None and data is not None:
             event_id = data["event_id"]
@@ -617,6 +633,11 @@ def _do_save_event(
                         ),
                     },
                 )
+
+            track_event_since_received(
+                step="end_save_event",
+                event_data=data,
+            )
 
 
 @instrumented_task(

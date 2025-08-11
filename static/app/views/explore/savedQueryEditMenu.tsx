@@ -9,7 +9,12 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getIdFromLocation} from 'sentry/views/explore/contexts/pageParamsContext/id';
 import {useDeleteQuery} from 'sentry/views/explore/hooks/useDeleteQuery';
-import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {
+  getSavedQueryTraceItemDataset,
+  useGetSavedQuery,
+} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {getLogsUrl} from 'sentry/views/explore/logs/utils';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {confirmDeleteSavedQuery} from 'sentry/views/explore/utils';
 
 export function SavedQueryEditMenu() {
@@ -35,20 +40,38 @@ export function SavedQueryEditMenu() {
             confirmDeleteSavedQuery({
               handleDelete: async () => {
                 await deleteQuery(savedQuery.id);
-                if (location.pathname.endsWith('compare/')) {
-                  navigate(
-                    normalizeUrl(
-                      `/organizations/${organization.slug}/explore/traces/compare/`
-                    )
-                  );
+                if (
+                  getSavedQueryTraceItemDataset(savedQuery.dataset) ===
+                  TraceItemDataset.SPANS
+                ) {
+                  if (location.pathname.endsWith('compare/')) {
+                    navigate(
+                      normalizeUrl(
+                        `/organizations/${organization.slug}/explore/traces/compare/`
+                      )
+                    );
+                  } else {
+                    navigate(
+                      normalizeUrl(`/organizations/${organization.slug}/explore/traces/`)
+                    );
+                  }
+                  trackAnalytics('trace_explorer.delete_query', {
+                    organization,
+                  });
+                } else if (
+                  getSavedQueryTraceItemDataset(savedQuery.dataset) ===
+                  TraceItemDataset.LOGS
+                ) {
+                  trackAnalytics('logs.delete_query', {
+                    organization,
+                  });
                 } else {
                   navigate(
-                    normalizeUrl(`/organizations/${organization.slug}/explore/traces/`)
+                    getLogsUrl({
+                      organization,
+                    })
                   );
                 }
-                trackAnalytics('trace_explorer.delete_query', {
-                  organization,
-                });
               },
               savedQuery,
             });

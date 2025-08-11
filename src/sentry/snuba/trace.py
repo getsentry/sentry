@@ -354,7 +354,6 @@ def _serialize_columnar_uptime_item(
     columns_by_name = {col.internal_name: col for col in UPTIME_ATTRIBUTE_DEFINITIONS.values()}
     common_column_names = {col.internal_name for col in COMMON_COLUMNS}
 
-    guid = row_dict["guid"].val_str
     trace_id = row_dict["sentry.trace_id"].val_str
     check_status = row_dict["check_status"].val_str
     http_status_code = (
@@ -368,8 +367,10 @@ def _serialize_columnar_uptime_item(
     project_id = row_dict["sentry.project_id"].val_int
     project_slug = project_slugs[project_id]
 
+    item_id_str = row_dict["sentry.item_id"].val_str
+
     span = {
-        "event_id": guid,
+        "event_id": item_id_str,
         "project_id": project_id,
         "project_slug": project_slug,
         "transaction_id": trace_id,
@@ -411,10 +412,8 @@ def _serialize_columnar_uptime_item(
             if resolved_val is not None:
                 additional_attrs[resolved_column.public_alias] = resolved_val
 
-    span["start_timestamp"] = datetime.fromtimestamp(scheduled_check_time_us / 1_000_000)
-    span["end_timestamp"] = datetime.fromtimestamp(
-        (scheduled_check_time_us + check_duration_us) / 1_000_000
-    )
+    span["start_timestamp"] = scheduled_check_time_us / 1_000_000
+    span["end_timestamp"] = (scheduled_check_time_us + check_duration_us) / 1_000_000
     span["duration"] = check_duration_us / 1_000.0
     description = f"Uptime Check [{check_status}] - {request_url}"
     if http_status_code:
@@ -516,7 +515,7 @@ def query_trace_data(
         for event in occurrence_data:
             offender_span_ids = event["occurrence"].evidence_data.get("offender_span_ids", [])
             if len(offender_span_ids) == 0:
-                sdk_span.set_attribute("evidence_data.empty", event["occurrence"].evidence_data)
+                sdk_span.set_data("evidence_data.empty", event["occurrence"].evidence_data)
             for span_id in offender_span_ids:
                 id_to_occurrence[span_id].append(event)
     for span in spans_data:
