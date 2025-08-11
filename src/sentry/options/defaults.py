@@ -524,6 +524,13 @@ register(
     default=0.0,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Enables profiling for replay recording ingestion.
+register(
+    "replay.consumer.recording.profiling.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Feedback Options
 register(
@@ -3440,9 +3447,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Enable enhancing access logs with snuba responses
-register("issues.use-snuba-error-data", type=Float, default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 register("issues.log-access-logs", type=Float, default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
