@@ -175,6 +175,7 @@ const AM1_PLANS: Record<string, Plan> = {
     features: AM1_FREE_FEATURES,
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: 10,
   },
   am1_t: {
     allowAdditionalReservedEvents: false,
@@ -248,6 +249,7 @@ const AM1_PLANS: Record<string, Plan> = {
     features: AM1_TRIAL_FEATURES,
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: 10,
   },
   am1_team: {
     allowAdditionalReservedEvents: false,
@@ -831,6 +833,7 @@ const AM1_PLANS: Record<string, Plan> = {
     features: AM1_TEAM_FEATURES,
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: 20,
   },
   am1_team_auf: {
     allowAdditionalReservedEvents: false,
@@ -1414,6 +1417,7 @@ const AM1_PLANS: Record<string, Plan> = {
     features: AM1_TEAM_FEATURES,
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: 20,
   },
   am1_business: {
     allowAdditionalReservedEvents: false,
@@ -1997,6 +2001,7 @@ const AM1_PLANS: Record<string, Plan> = {
     features: AM1_BUSINESS_FEATURES,
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
   },
   am1_business_auf: {
     allowAdditionalReservedEvents: false,
@@ -2580,6 +2585,7 @@ const AM1_PLANS: Record<string, Plan> = {
     features: AM1_BUSINESS_FEATURES,
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
   },
   am1_business_ent: {
     id: 'am1_business_ent',
@@ -2660,6 +2666,7 @@ const AM1_PLANS: Record<string, Plan> = {
     },
     budgetTerm: BUDGET_TERM,
     availableReservedBudgetTypes: AM1_AVAILABLE_RESERVED_BUDGET_TYPES,
+    dashboardLimit: -1,
   },
 };
 
