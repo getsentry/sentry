@@ -371,11 +371,6 @@ function LogRowDetails({
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const {onClick: betterCopyToClipboard} = useCopyToClipboard({
-    text: ourlogToJson(dataRow),
-    successMessage: t('Copied!'),
-    errorMessage: t('Failed to copy'),
-  });
   const addSearchFilter = useLogsAddSearchFilter();
   const project = useProjectFromId({
     project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
@@ -396,6 +391,19 @@ function LogRowDetails({
     projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID] ?? ''),
     traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID] ?? ''),
     enabled: !missingLogId,
+  });
+
+  const {onClick: betterCopyToClipboard} = useCopyToClipboard({
+    text: ourlogToJson(data),
+    onCopy: () => {
+      trackAnalytics('logs.table.row_copied_as_json', {
+        log_id: String(dataRow[OurLogKnownFieldKey.ID]),
+        organization,
+      });
+    },
+
+    successMessage: t('Copied!'),
+    errorMessage: t('Failed to copy'),
   });
 
   const theme = useTheme();

@@ -91,23 +91,14 @@ export const LogDetailTableBodyCell = styled(TableBodyCell)`
   }
 `;
 export const LogDetailTableActionsCell = styled(TableBodyCell)`
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
-  padding-top: ${space(0.5)};
-  padding-bottom: 0;
+  padding: ${space(0.5)} ${space(2)};
   min-height: 0px;
 
   ${LogTableRow} & {
-    padding-left: ${space(2)};
-    padding-right: ${space(2)};
-    padding-top: ${space(0.5)};
-    padding-bottom: 0;
+    padding: ${space(0.5)} ${space(2)};
   }
   &:last-child {
-    padding-left: ${space(2)};
-    padding-right: ${space(2)};
-    padding-top: ${space(0.5)};
-    padding-bottom: 0;
+    padding: ${space(0.5)} ${space(2)};
   }
 `;
 export const LogDetailTableActionsButtonBar = styled('div')`
