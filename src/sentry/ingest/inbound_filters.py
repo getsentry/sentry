@@ -427,7 +427,7 @@ def get_log_messages_generic_filter(log_messages: list[str]) -> GenericFilter | 
         return None
 
     return {
-        "id": "gen_body",
+        "id": "log-message",
         "isEnabled": True,
         "condition": {
             "op": "glob",

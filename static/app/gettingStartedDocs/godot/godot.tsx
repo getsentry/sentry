@@ -95,7 +95,7 @@ const onboarding: OnboardingConfig = {
       description: (
         <StoreCrashReportsConfig
           organization={params.organization}
-          projectSlug={params.projectSlug}
+          projectSlug={params.project.slug}
         />
       ),
     },

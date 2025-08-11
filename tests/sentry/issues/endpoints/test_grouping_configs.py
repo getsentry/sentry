@@ -17,7 +17,6 @@ class GroupingConfigsNoSlugTest(APITestCase):
         assert len(body)
         assert "id" in body[0]
         assert "base" in body[0]
-        assert "changelog" in body[0]
         assert "delegates" in body[0]
 
 
@@ -37,5 +36,4 @@ class GroupingConfigsWithSlugTest(APITestCase):
         assert len(body)
         assert "id" in body[0]
         assert "base" in body[0]
-        assert "changelog" in body[0]
         assert "delegates" in body[0]

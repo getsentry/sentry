@@ -936,6 +936,13 @@ register(
 )
 
 register(
+    "issues.fixability.gpu-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "issues.priority.projects-allowlist",
     type=Sequence,
     default=[],
@@ -3385,6 +3392,16 @@ register(
     default="8.49.0",
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "sdk-deprecation.profile-chunk.cocoa.reject",
+    default="8.49.2",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "sdk-deprecation.profile.cocoa.reject",
+    default="8.49.2",
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 
 # Orgs for which compression should be disabled in the chunk upload endpoint.
@@ -3424,15 +3441,10 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "sentry.hybridcloud.cacheversion.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Enable enhancing access logs with snuba responses
 register("issues.use-snuba-error-data", type=Float, default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+register("issues.log-access-logs", type=Float, default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Use "first-seen" group instead of "most-seen" group when merging
 register(
@@ -3449,3 +3461,6 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Whether the new objectstore implementation is being used for attachments
+register("objectstore.enable_for.attachments", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)

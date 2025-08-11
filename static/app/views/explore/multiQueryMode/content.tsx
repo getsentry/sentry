@@ -153,6 +153,7 @@ function Content() {
                     organization,
                     saveQuery,
                     source: 'toolbar',
+                    traceItemDataset: TraceItemDataset.SPANS,
                   });
                 },
               },

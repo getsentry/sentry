@@ -127,7 +127,7 @@ function Sidebar() {
   }, [collapsed]);
 
   // Close panel on any navigation
-  useEffect(() => void hidePanel(), [location?.pathname]);
+  useEffect(() => hidePanel(), [location?.pathname]);
 
   // Add classname to body
   useEffect(() => {

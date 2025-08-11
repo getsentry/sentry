@@ -5,7 +5,7 @@ from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
 
-from sentry.api.endpoints.project_transfer import SALT
+from sentry.core.endpoints.project_transfer import SALT
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time

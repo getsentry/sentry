@@ -49,6 +49,7 @@ from sentry.sentry_apps.services.app.service import (
 )
 from sentry.sentry_apps.services.hook.service import hook_service
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
+from sentry.sentry_apps.utils.webhooks import IssueAlertActionType, SentryAppResourceType
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
@@ -257,7 +258,10 @@ def send_alert_webhook_v2(
             data[additional_payload_key] = additional_payload
 
         request_data = AppPlatformEvent(
-            resource="event_alert", action="triggered", install=install, data=data
+            resource=SentryAppResourceType.EVENT_ALERT,
+            action=IssueAlertActionType.TRIGGERED,
+            install=install,
+            data=data,
         )
 
     send_and_save_webhook_request(sentry_app, request_data)
