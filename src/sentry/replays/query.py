@@ -10,8 +10,6 @@ from snuba_sdk import (
     Entity,
     Function,
     Granularity,
-    Identifier,
-    Lambda,
     Limit,
     Op,
     Or,
@@ -30,8 +28,6 @@ from sentry.utils.snuba import raw_snql_query
 MAX_PAGE_SIZE = 100
 DEFAULT_PAGE_SIZE = 10
 DEFAULT_OFFSET = 0
-MAX_REPLAY_LENGTH_HOURS = 1
-ELIGIBLE_SUBQUERY_SORTS = {"started_at", "browser.name", "os.name"}
 
 
 # Compatibility function for getsentry code.
@@ -206,76 +202,6 @@ def query_replays_dataset_tagkey_values(
         snuba_request,
         referrer="replays.query.query_replays_dataset_tagkey_values",
         use_cache=True,
-    )
-
-
-def anyIfNonZeroIP(
-    column_name: str,
-    alias: str | None = None,
-    aliased: bool = True,
-) -> Function:
-    return Function(
-        "anyIf",
-        parameters=[
-            Column(column_name),
-            Function("greater", parameters=[Column(column_name), 0]),
-        ],
-        alias=alias or column_name if aliased else None,
-    )
-
-
-def anyIf(
-    column_name: str,
-    alias: str | None = None,
-    aliased: bool = True,
-) -> Function:
-    """Returns any value of a non group-by field. in our case, they are always the same,
-    so the value should be consistent.
-    """
-    return Function(
-        "anyIf",
-        parameters=[Column(column_name), Function("notEmpty", [Column(column_name)])],
-        alias=alias or column_name if aliased else None,
-    )
-
-
-def _sorted_aggregated_urls(agg_urls_column, alias):
-    mapped_urls = Function(
-        "arrayMap",
-        parameters=[
-            Lambda(
-                ["url_tuple"],
-                Function("tupleElement", parameters=[Identifier("url_tuple"), 2]),
-            ),
-            agg_urls_column,
-        ],
-    )
-    mapped_sequence_ids = Function(
-        "arrayMap",
-        parameters=[
-            Lambda(
-                ["url_tuple"],
-                Function("tupleElement", parameters=[Identifier("url_tuple"), 1]),
-            ),
-            agg_urls_column,
-        ],
-    )
-    return Function(
-        "arrayFlatten",
-        parameters=[
-            Function(
-                "arraySort",
-                parameters=[
-                    Lambda(
-                        ["urls", "sequence_id"],
-                        Function("identity", parameters=[Identifier("sequence_id")]),
-                    ),
-                    mapped_urls,
-                    mapped_sequence_ids,
-                ],
-            )
-        ],
-        alias=alias,
     )
 
 
