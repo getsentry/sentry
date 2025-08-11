@@ -150,6 +150,120 @@ export const getJavascriptProfilingOnboarding = <
   ],
 });
 
+export const getJavascriptLogsOnboarding = <
+  PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
+>({
+  sdkPackage,
+  installSnippetBlock,
+  integrationsLink,
+}: {
+  installSnippetBlock: ContentBlock;
+  integrationsLink: string;
+  sdkPackage: `@sentry/${string}`;
+}): OnboardingConfig<PlatformOptions> => ({
+  install: () => [
+    {
+      type: StepType.INSTALL,
+      content: [
+        {
+          type: 'text',
+          text: t('Add the Sentry SDK as a dependency using npm, yarn, or pnpm.'),
+        },
+        installSnippetBlock,
+      ],
+    },
+  ],
+  configure: (params: DocsParams) => [
+    {
+      type: StepType.CONFIGURE,
+      content: [
+        {
+          type: 'text',
+          text: t(
+            'Enable Sentry logs by adding enableLogs: true to your Sentry.init configuration.'
+          ),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'Baseline',
+              language: 'javascript',
+              code: `
+import * as Sentry from "${sdkPackage}";
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  enableLogs: true,
+});
+`,
+            },
+            {
+              label: 'Logger Integration',
+              language: 'javascript',
+              code: `
+import * as Sentry from "${sdkPackage}";
+
+Sentry.init({
+  dsn: "${params.dsn.public}",
+  integrations: [
+    // send console.log, console.error, and console.warn calls as logs to Sentry
+    Sentry.consoleLoggingIntegration({ levels: ["log", "error", "warn"] }),
+  ],
+  enableLogs: true,
+});
+`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  verify: () => [
+    {
+      type: StepType.VERIFY,
+      content: [
+        {
+          type: 'text',
+          text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
+        },
+        {
+          type: 'code',
+          tabs: [
+            {
+              label: 'React',
+              language: 'javascript',
+              code: `import * as Sentry from "${sdkPackage}";
+
+function LogButton() {
+  return (
+    <button
+      onClick={() =>
+        Sentry.logger.info('User triggered test log', { action: 'test_log_button_click' })
+      }
+    >
+      Send test log
+    </button>
+  );
+}`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  nextSteps: () => [
+    {
+      id: 'logs',
+      name: t('Logging Integrations'),
+      description: t(
+        'Add logging integrations to automatically capture logs from your application.'
+      ),
+      link: integrationsLink,
+    },
+  ],
+});
+
 export const getJavascriptFullStackOnboarding = <
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 >({
