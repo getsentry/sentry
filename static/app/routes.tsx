@@ -2218,7 +2218,6 @@ function buildRoutes(): RouteObject[] {
     {
       path: ':eventSlug/',
       component: make(() => import('sentry/views/performance/transactionDetails')),
-      deprecatedRouteProps: true,
     },
   ];
   const performanceRoutes: SentryRouteObject = {
@@ -2226,7 +2225,6 @@ function buildRoutes(): RouteObject[] {
     component: make(() => import('sentry/views/performance')),
     withOrgPath: true,
     children: performanceChildren,
-    deprecatedRouteProps: true,
   };
 
   const tracesChildren: SentryRouteObject[] = [
