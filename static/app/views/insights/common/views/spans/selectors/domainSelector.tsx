@@ -149,12 +149,6 @@ export function DomainSelector({
     clearDomainOptionsCache();
   }, [pageFilters.selection.projects, clearDomainOptionsCache]);
 
-  useEffect(() => {
-    if (additionalQuery.length > 0) {
-      clearDomainOptionsCache();
-    }
-  }, [additionalQuery, clearDomainOptionsCache]);
-
   const emptyOption: SelectOption<string> = {
     value: EMPTY_OPTION_VALUE,
     label: <EmptyContainer>{t('(No %s)', domainAlias)}</EmptyContainer>,
