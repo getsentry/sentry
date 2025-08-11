@@ -3448,8 +3448,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register("issues.log-access-logs", type=Float, default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 # Use "first-seen" group instead of "most-seen" group when merging
 register(
     "issues.merging.first-seen",
