@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import {useCodecovContext} from 'sentry/components/codecov/context/codecovContext';
 import {IntegratedOrgSelector} from 'sentry/components/codecov/integratedOrgSelector/integratedOrgSelector';
 import {integratedOrgIdToName} from 'sentry/components/codecov/integratedOrgSelector/utils';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {Flex} from 'sentry/components/core/layout/flex';
+import {Text} from 'sentry/components/core/text';
 import Pagination from 'sentry/components/pagination';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeSorts} from 'sentry/utils/queryString';
@@ -72,36 +72,30 @@ export default function TokensPage() {
   );
 
   return (
-    <LayoutGap>
-      <PageFilterBar condensed>
-        <IntegratedOrgSelector />
-      </PageFilterBar>
+    <Flex direction="column" gap="xl" maxWidth="1000px">
+      <IntegratedOrgSelector />
       <HeaderValue>{t('Repository tokens')}</HeaderValue>
-      <p>
-        {t('View the list of tokens created for your repositories in')}{' '}
-        <strong>{integratedOrgIdToName(integratedOrgId, integrations)}</strong>.{' '}
-        {t("Use them for uploading reports to all Sentry Prevent's features.")}
-      </p>
+      <Text>
+        {tct(
+          `View the list of tokens created for your repositories in [org]. Use them for uploading reports to all Sentry Prevent's features.`,
+          {
+            org: <Text bold>{integratedOrgIdToName(integratedOrgId, integrations)}</Text>,
+          }
+        )}
+      </Text>
       <RepoTokenTable response={response} sort={sorts[0]} />
       {/* We don't need to use the pageLinks prop because Codecov handles pagination using our own cursor implementation. But we need to
           put a dummy value here because otherwise the component wouldn't render. */}
       <StyledPagination pageLinks="showComponent" onCursor={handleCursor} />
-    </LayoutGap>
+    </Flex>
   );
 }
 
-const LayoutGap = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  max-width: 1000px;
-`;
-
 const HeaderValue = styled('div')`
-  margin-top: ${space(4)};
-  font-size: ${p => p.theme.headerFontSize};
+  font-size: ${p => p.theme.fontSize['2xl']};
   font-weight: ${p => p.theme.fontWeight.bold};
 `;
 
 const StyledPagination = styled(Pagination)`
-  margin-top: 0px;
+  margin: 0px;
 `;
