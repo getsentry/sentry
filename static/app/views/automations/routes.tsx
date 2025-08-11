@@ -1,8 +1,8 @@
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Redirect from 'sentry/components/redirect';
 import type {SentryRouteObject} from 'sentry/components/route';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
@@ -13,14 +13,11 @@ export const automationRoutes: SentryRouteObject = {
 
   children: [
     {
-      index: true,
-      component: make(() => import('sentry/views/automations/list')),
-      // BROKEN: Results in empty page
-      // component: RedirectToRuleList,
-      // deprecatedRouteProps: true,
-      // children: [
-      //   {index: true, component: make(() => import('sentry/views/automations/list'))},
-      // ],
+      component: RedirectToRuleList,
+      deprecatedRouteProps: true,
+      children: [
+        {index: true, component: make(() => import('sentry/views/automations/list'))},
+      ],
     },
     {
       path: 'new',
@@ -58,21 +55,17 @@ export const automationRoutes: SentryRouteObject = {
 function RedirectToRuleList({children}: {children: React.ReactNode}) {
   const user = useUser();
   const organization = useOrganization();
-  const navigate = useNavigate();
 
   const shouldRedirect =
     !user.isStaff && !organization.features.includes('workflow-engine-ui');
 
   if (shouldRedirect) {
-    navigate(
-      makeAlertsPathname({
+    <Redirect
+      to={makeAlertsPathname({
         path: '/rules/',
         organization,
-      }),
-      {
-        replace: true,
-      }
-    );
+      })}
+    />;
   }
 
   return children;
@@ -81,20 +74,18 @@ function RedirectToRuleList({children}: {children: React.ReactNode}) {
 export function RedirectToNewRule({children}: {children: React.ReactNode}) {
   const user = useUser();
   const organization = useOrganization();
-  const navigate = useNavigate();
 
   const shouldRedirect =
     !user.isStaff && !organization.features.includes('workflow-engine-ui');
 
   if (shouldRedirect) {
-    navigate(
-      makeAlertsPathname({
-        path: '/new/',
-        organization,
-      }),
-      {
-        replace: true,
-      }
+    return (
+      <Redirect
+        to={makeAlertsPathname({
+          path: '/new/',
+          organization,
+        })}
+      />
     );
   }
 
@@ -110,7 +101,6 @@ interface AlertRuleWorkflow {
 export function RedirectToRuleDetails({children}: {children: React.ReactNode}) {
   const user = useUser();
   const organization = useOrganization();
-  const navigate = useNavigate();
 
   const params = useParams<{automationId: string}>();
 
@@ -131,16 +121,15 @@ export function RedirectToRuleDetails({children}: {children: React.ReactNode}) {
     if (!data) {
       return <LoadingIndicator />;
     }
-    navigate(
-      makeAlertsPathname({
-        path: data.ruleId
-          ? `/rules/details/${data.ruleId}/`
-          : `/rules/details/${data.alertRuleId}/`,
-        organization,
-      }),
-      {
-        replace: true,
-      }
+    return (
+      <Redirect
+        to={makeAlertsPathname({
+          path: data.ruleId
+            ? `/rules/details/${data.ruleId}/`
+            : `/rules/details/${data.alertRuleId}/`,
+          organization,
+        })}
+      />
     );
   }
 
