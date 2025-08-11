@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from django.utils.timezone import now
 
@@ -178,7 +179,7 @@ class TeamIssueBreakdownTest(APITestCase):
             self.team.organization.slug, self.team.slug, statsPeriod="7d"
         )
 
-        def compare_response(response, project, expected_results):
+        def compare_response(response: Any, project: Any, expected_results: Any) -> None:
             start = (now() - timedelta(days=len(expected_results) - 1)).replace(
                 hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
             )
@@ -223,7 +224,7 @@ class TeamIssueBreakdownTest(APITestCase):
             self.team.organization.slug, self.team.slug, statsPeriod="7d", environment="production"
         )
 
-        def compare_response(response, project, expected_results):
+        def compare_response(response: Any, project: Any, expected_results: Any) -> None:
             start = (now() - timedelta(days=len(expected_results) - 1)).replace(
                 hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
             )
