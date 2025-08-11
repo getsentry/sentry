@@ -1,4 +1,5 @@
 import logging
+import time
 from datetime import timedelta
 from typing import TypedDict
 
@@ -70,6 +71,8 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         ) or not features.has("organizations:gen-ai-features", organization, actor=request.user):
             return Response(status=403)
 
+        time.sleep(5)
+
         try:
             start, end = get_date_range_from_stats_period(
                 request.GET,
@@ -111,13 +114,13 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
 
         if groups.count() < MIN_FEEDBACKS_TO_SUMMARIZE:
             logger.error("Too few feedbacks to summarize")
-            return Response(
-                {
-                    "summary": None,
-                    "success": False,
-                    "numFeedbacksUsed": 0,
-                }
-            )
+            # return Response(
+            #     {
+            #         "summary": None,
+            #         "success": False,
+            #         "numFeedbacksUsed": 0,
+            #     }
+            # )
 
         # Also cap the number of characters that we send to the LLM
         group_feedbacks = []
@@ -181,6 +184,9 @@ def make_seer_request(request: SummaryRequest) -> bytes:
             },
         )
 
+    response.raise_for_status()
+
+    return response.content
     response.raise_for_status()
 
     return response.content
