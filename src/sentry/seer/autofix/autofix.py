@@ -232,8 +232,8 @@ def _get_trace_tree_for_event(event: Event | GroupEvent, project: Project) -> di
             },
         )
         return None
-    except Exception as e:
-        logger.exception("Error fetching trace tree for event: %s", e)
+    except Exception:
+        logger.exception("Error fetching trace tree for event")
         return None
 
 
