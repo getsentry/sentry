@@ -62,6 +62,7 @@ EXCLUDED_KEYWORDS = [
 # - @nestjs/typeorm: NestJS TypeORM
 # - @mikro-orm/nestjs: MikroORM NestJS ORM
 # - typeorm: TypeORM ORM
+# - @mikro-orm/core: MikroORM
 EXCLUDED_PACKAGES = [
     "github.com/go-sql-driver/mysql",
     "sequelize",
@@ -69,6 +70,7 @@ EXCLUDED_PACKAGES = [
     "@nestjs/typeorm",
     "@mikro-orm/nestjs",
     "typeorm",
+    "@mikro-orm/core",
 ]
 PARAMETERIZED_KEYWORDS = ["?", "$1", "%s"]
 
