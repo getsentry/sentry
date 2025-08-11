@@ -374,9 +374,10 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
         assert response.status_code == 200, response.content
-        assert response.data["state"] == ChunkFileState.OK
+        assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
-        assert response.data["artifactId"] == artifact_id
+        expected_url = f"/organizations/{self.organization.slug}/preprod/internal/{artifact_id}"
+        assert expected_url in response.data["artifactUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(
             org_id=self.organization.id,
@@ -440,9 +441,10 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
         assert response.status_code == 200, response.content
-        assert response.data["state"] == ChunkFileState.OK
+        assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
-        assert response.data["artifactId"] == artifact_id
+        expected_url = f"/organizations/{self.organization.slug}/preprod/internal/{artifact_id}"
+        assert expected_url in response.data["artifactUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(
             org_id=self.organization.id,
@@ -500,7 +502,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["state"] == ChunkFileState.OK
+        assert response.data["state"] == ChunkFileState.CREATED
 
     def test_assemble_response(self) -> None:
         content = b"test response content"
@@ -518,7 +520,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["state"] == ChunkFileState.OK
+        assert response.data["state"] == ChunkFileState.CREATED
 
     def test_assemble_with_pending_deletion_project(self) -> None:
         self.project.status = ObjectStatus.PENDING_DELETION
@@ -637,7 +639,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
 
         # Even if assembly status exists, endpoint doesn't check it
         set_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.project.id, checksum, ChunkFileState.OK
+            AssembleTask.PREPROD_ARTIFACT, self.project.id, checksum, ChunkFileState.CREATED
         )
 
         response = self.client.post(
@@ -671,7 +673,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
 
         # Even if task sets status, this endpoint doesn't read it
         set_assemble_status(
-            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum, ChunkFileState.OK
+            AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum, ChunkFileState.CREATED
         )
 
         response = self.client.post(
