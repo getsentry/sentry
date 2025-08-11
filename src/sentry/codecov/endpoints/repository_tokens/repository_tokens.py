@@ -34,7 +34,7 @@ class RepositoryTokensEndpoint(CodecovEndpoint):
             PreventParams.LIMIT,
             PreventParams.NAVIGATION,
             PreventParams.CURSOR,
-            PreventParams.TERM,
+            PreventParams.TOKENS_SORT_BY,
         ],
         request=None,
         responses={
