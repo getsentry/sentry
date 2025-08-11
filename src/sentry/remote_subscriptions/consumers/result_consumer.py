@@ -20,10 +20,6 @@ from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partitio
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.locks import locks
-from sentry.remote_subscriptions.consumers.queue_consumer import (
-    FixedQueuePool,
-    SimpleQueueProcessingStrategy,
-)
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
 from sentry.utils import metrics
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
@@ -47,26 +43,38 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
         pass
 
     def __call__(self, identifier: str, result: T):
-        try:
-            # TODO: Handle subscription not existing - we should remove the subscription from
-            # the remote system in that case.
-            with sentry_sdk.start_transaction(
-                name=f"monitors.{identifier}.result_consumer.ResultProcessor",
-                op="result_processor.handle_result",
-            ):
-                subscription = self.get_subscription(result)
-                if self.use_subscription_lock and subscription:
-                    lock = locks.get(
-                        f"subscription:{subscription.type}:{subscription.subscription_id}",
-                        duration=10,
-                        name=f"subscription_{identifier}",
-                    )
-                    with TimedRetryPolicy(10)(lock.acquire):
-                        self.handle_result(subscription, result)
-                else:
-                    self.handle_result(subscription, result)
-        except Exception:
-            logger.exception("Failed to process message result")
+        with metrics.timer(
+            "remote_subscriptions.result_consumer.call_timing",
+            tags={"identifier": identifier},
+        ):
+            try:
+                # TODO: Handle subscription not existing - we should remove the subscription from
+                # the remote system in that case.
+                with sentry_sdk.start_transaction(
+                    name=f"monitors.{identifier}.result_consumer.ResultProcessor",
+                    op="result_processor.handle_result",
+                ):
+                    subscription = self.get_subscription(result)
+                    if self.use_subscription_lock and subscription:
+                        lock = locks.get(
+                            f"subscription:{subscription.type}:{subscription.subscription_id}",
+                            duration=10,
+                            name=f"subscription_{identifier}",
+                        )
+                        with TimedRetryPolicy(10)(lock.acquire):
+                            with metrics.timer(
+                                "remote_subscriptions.result_consumer.handle_result_timing",
+                                tags={"identifier": identifier},
+                            ):
+                                self.handle_result(subscription, result)
+                    else:
+                        with metrics.timer(
+                            "remote_subscriptions.result_consumer.handle_result_timing",
+                            tags={"identifier": identifier},
+                        ):
+                            self.handle_result(subscription, result)
+            except Exception:
+                logger.exception("Failed to process message result")
 
     def get_subscription(self, result: T) -> U | None:
         try:
@@ -108,27 +116,20 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
     Does the consumer process all messages in parallel.
     """
 
-    thread_queue_parallel = False
-    """
-    Does the consumer use thread-queue-parallel processing?
-    """
-
     multiprocessing_pool: MultiprocessingPool | None = None
-    queue_pool: FixedQueuePool | None = None
     input_block_size: int | None = None
     output_block_size: int | None = None
 
     def __init__(
         self,
         consumer_group: str,
-        mode: Literal["batched-parallel", "parallel", "serial", "thread-queue-parallel"] = "serial",
+        mode: Literal["batched-parallel", "parallel", "serial"] = "serial",
         max_batch_size: int | None = None,
         max_batch_time: int | None = None,
         max_workers: int | None = None,
         num_processes: int | None = None,
         input_block_size: int | None = None,
         output_block_size: int | None = None,
-        commit_interval: float | None = None,
     ) -> None:
         self.mode = mode
         self.consumer_group = consumer_group
@@ -146,15 +147,6 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             if num_processes is None:
                 num_processes = multiprocessing.cpu_count()
             self.multiprocessing_pool = MultiprocessingPool(num_processes)
-        if mode == "thread-queue-parallel":
-            self.thread_queue_parallel = True
-            self.queue_pool = FixedQueuePool(
-                result_processor=self.result_processor,
-                identifier=self.identifier,
-                consumer_group=consumer_group,
-                num_queues=max_workers or 20,
-                commit_interval=commit_interval or 1.0,
-            )
 
         metrics.incr(
             "remote_subscriptions.result_consumer.start",
@@ -200,9 +192,6 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
     def shutdown(self) -> None:
         if self.parallel_executor:
             self.parallel_executor.shutdown()
-        if self.queue_pool:
-            self.queue_pool.shutdown()
-            self.queue_pool = None
 
     def create_with_partitions(
         self,
@@ -213,8 +202,6 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             return self.create_thread_parallel_worker(commit)
         if self.parallel:
             return self.create_multiprocess_worker(commit)
-        if self.thread_queue_parallel:
-            return self.create_thread_queue_parallel_worker(commit, partitions)
         else:
             return self.create_serial_worker(commit)
 
@@ -250,26 +237,6 @@ class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T,
             max_batch_size=self.max_batch_size,
             max_batch_time=self.max_batch_time,
             next_step=batch_processor,
-        )
-
-    def create_thread_queue_parallel_worker(
-        self, commit: Commit, partitions: Mapping[Partition, int]
-    ) -> ProcessingStrategy[KafkaPayload]:
-        assert self.queue_pool is not None
-
-        def commit_offsets(offsets: dict[Partition, int]):
-            # We add + 1 here because the committed offset should represent the next offset to read from
-            commit_data = {partition: offset + 1 for partition, offset in offsets.items()}
-            commit(commit_data)
-
-        return SimpleQueueProcessingStrategy(
-            queue_pool=self.queue_pool,
-            decoder=partial(
-                decode_payload, self.topic_for_codec, result_processor=self.result_processor
-            ),
-            grouping_fn=self.build_payload_grouping_key,
-            commit_function=commit_offsets,
-            partitions=set(partitions.keys()),
         )
 
     def partition_message_batch(self, message: Message[ValuesBatch[KafkaPayload]]) -> list[list[T]]:

@@ -92,11 +92,7 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import (
-    GroupOpenPeriod,
-    create_open_period,
-    has_initial_open_period,
-)
+from sentry.models.groupopenperiod import GroupOpenPeriod, create_open_period
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
@@ -1822,8 +1818,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
-        if has_initial_open_period(group):
-            create_open_period(group, activity.datetime)
+        create_open_period(group, activity.datetime)
 
     return is_regression
 

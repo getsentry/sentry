@@ -39,6 +39,8 @@ class DummyTSDB(BaseTSDB):
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
         group_on_time: bool = True,
+        aggregation_override: str | None = None,
+        project_ids: Sequence[int] | None = None,
     ) -> dict[TSDBKey, list[tuple[int, int]]]:
         self.validate_arguments([model], _environment_ids(environment_ids))
         _, series = self.get_optimal_rollup_series(start, end, rollup)
@@ -56,6 +58,7 @@ class DummyTSDB(BaseTSDB):
         rollup: int | None = None,
         environment_id: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
+        project_ids: Sequence[int] | None = None,
     ) -> dict[int, list[tuple[int, Any]]]:
         self.validate_arguments([model], [environment_id])
         _, series = self.get_optimal_rollup_series(start, end, rollup)
@@ -75,6 +78,7 @@ class DummyTSDB(BaseTSDB):
         referrer_suffix=None,
         conditions=None,
         group_on_time: bool = False,
+        project_ids: Sequence[int] | None = None,
     ):
         self.validate_arguments([model], [environment_id])
         return {k: 0 for k in keys}
@@ -106,6 +110,7 @@ class DummyTSDB(BaseTSDB):
         rollup: int | None = None,
         environment_id: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
+        project_ids: Sequence[int] | None = None,
     ) -> dict[TSDBKey, list[tuple[float, dict[TSDBItem, float]]]]:
         self.validate_arguments([model], [environment_id])
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)

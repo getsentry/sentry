@@ -1996,7 +1996,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         response = self.do_request(
             {
-                "field": ["p75_if(span.duration, is_transaction, true)"],
+                "field": ["p75_if(span.duration, is_transaction, equals, true)"],
                 "query": "",
                 "project": self.project.id,
                 "dataset": "spans",
@@ -2009,12 +2009,15 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert len(data) == 1
         assert data == [
             {
-                "p75_if(span.duration, is_transaction, true)": 3000,
+                "p75_if(span.duration, is_transaction, equals, true)": 3000,
             },
         ]
+
         assert meta["dataset"] == "spans"
-        assert meta["units"] == {"p75_if(span.duration, is_transaction, true)": "millisecond"}
-        assert meta["fields"] == {"p75_if(span.duration, is_transaction, true)": "duration"}
+        assert meta["units"] == {
+            "p75_if(span.duration, is_transaction, equals, true)": "millisecond"
+        }
+        assert meta["fields"] == {"p75_if(span.duration, is_transaction, equals, true)": "duration"}
 
     def test_is_transaction(self) -> None:
         self.store_spans(
@@ -2666,7 +2669,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         response = self.do_request(
             {
-                "field": ["failure_rate_if(is_transaction, true)"],
+                "field": ["failure_rate_if(is_transaction, equals, true)"],
                 "project": self.project.id,
                 "dataset": "spans",
             }
@@ -2676,13 +2679,13 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        assert data[0]["failure_rate_if(is_transaction, true)"] == 0.25
+        assert data[0]["failure_rate_if(is_transaction, equals, true)"] == 0.25
         assert meta["dataset"] == "spans"
         assert meta["fields"] == {
-            "failure_rate_if(is_transaction, true)": "percentage",
+            "failure_rate_if(is_transaction, equals, true)": "percentage",
         }
         assert meta["units"] == {
-            "failure_rate_if(is_transaction, true)": None,
+            "failure_rate_if(is_transaction, equals, true)": None,
         }
 
     def test_count_op(self) -> None:
@@ -2750,8 +2753,8 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         response = self.do_request(
             {
                 "field": [
-                    "avg_if(span.duration, span.op, queue.process)",
-                    "avg_if(span.duration, span.op, queue.publish)",
+                    "avg_if(span.duration, span.op, equals, queue.process)",
+                    "avg_if(span.duration, span.op, equals, queue.publish)",
                 ],
                 "project": self.project.id,
                 "dataset": "spans",
@@ -2762,8 +2765,8 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        assert data[0]["avg_if(span.duration, span.op, queue.process)"] == 1500.0
-        assert data[0]["avg_if(span.duration, span.op, queue.publish)"] == 3000.0
+        assert data[0]["avg_if(span.duration, span.op, equals, queue.process)"] == 1500.0
+        assert data[0]["avg_if(span.duration, span.op, equals, queue.publish)"] == 3000.0
         assert meta["dataset"] == "spans"
 
     def test_avg_compare(self) -> None:
@@ -2818,7 +2821,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         response = self.do_request(
             {
                 "field": [
-                    "avg_if(span.duration, span.duration, queue.process)",
+                    "avg_if(span.duration, span.duration, equals, queue.process)",
                 ],
                 "project": self.project.id,
                 "dataset": "spans",
@@ -3077,6 +3080,25 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["performance_score(measurements.score.lcp)"] == 0.06
         assert meta["dataset"] == "spans"
 
+    def test_performance_score_zero(self) -> None:
+
+        response = self.do_request(
+            {
+                "field": [
+                    "performance_score(measurements.score.lcp)",
+                ],
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["performance_score(measurements.score.lcp)"] is None
+        assert meta["dataset"] == "spans"
+
     def test_division_if(self) -> None:
         self.store_spans(
             [
@@ -3107,8 +3129,8 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         response = self.do_request(
             {
                 "field": [
-                    "division_if(mobile.slow_frames,mobile.total_frames,browser.name,Chrome)",
-                    "division_if(mobile.slow_frames,mobile.total_frames,browser.name,Firefox)",
+                    "division_if(mobile.slow_frames,mobile.total_frames,browser.name,equals,Chrome)",
+                    "division_if(mobile.slow_frames,mobile.total_frames,browser.name,equals,Firefox)",
                 ],
                 "project": self.project.id,
                 "dataset": "spans",
@@ -3120,17 +3142,21 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         meta = response.data["meta"]
         assert len(data) == 1
         assert (
-            data[0]["division_if(mobile.slow_frames,mobile.total_frames,browser.name,Chrome)"]
+            data[0][
+                "division_if(mobile.slow_frames,mobile.total_frames,browser.name,equals,Chrome)"
+            ]
             == 10 / 100
         )
         assert (
-            data[0]["division_if(mobile.slow_frames,mobile.total_frames,browser.name,Firefox)"]
+            data[0][
+                "division_if(mobile.slow_frames,mobile.total_frames,browser.name,equals,Firefox)"
+            ]
             == 50 / 100
         )
         assert meta["dataset"] == "spans"
         assert meta["fields"] == {
-            "division_if(mobile.slow_frames,mobile.total_frames,browser.name,Chrome)": "percentage",
-            "division_if(mobile.slow_frames,mobile.total_frames,browser.name,Firefox)": "percentage",
+            "division_if(mobile.slow_frames,mobile.total_frames,browser.name,equals,Chrome)": "percentage",
+            "division_if(mobile.slow_frames,mobile.total_frames,browser.name,equals,Firefox)": "percentage",
         }
 
     def test_total_performance_score(self) -> None:
@@ -3300,7 +3326,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert len(data) == 1
         assert data[0]["performance_score(measurements.score.lcp)"] == 0.02
         assert data[0]["performance_score(measurements.score.cls)"] == 0.08
-        assert data[0]["performance_score(measurements.score.ttfb)"] == 0.0
+        assert data[0]["performance_score(measurements.score.ttfb)"] is None
         assert data[0]["performance_score(measurements.score.fcp)"] == 0.08
         assert data[0]["performance_score(measurements.score.inp)"] == 0.5
         self.assertAlmostEqual(data[0]["performance_score(measurements.score.total)"], 0.20)
@@ -3358,8 +3384,8 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["transaction"] == "foo_transaction"
         self.assertAlmostEqual(data[0]["performance_score(measurements.score.total)"], 0.8)
         assert data[0]["performance_score(measurements.score.lcp)"] == 0.8
-        assert data[0]["performance_score(measurements.score.cls)"] == 0.0
-        assert data[0]["performance_score(measurements.score.fcp)"] == 0.0
+        assert data[0]["performance_score(measurements.score.cls)"] is None
+        assert data[0]["performance_score(measurements.score.fcp)"] is None
         self.assertAlmostEqual(
             data[0]["opportunity_score(measurements.score.total)"], 0.13333333333333333
         )
@@ -3368,9 +3394,9 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["opportunity_score(measurements.score.fcp)"] == 0.0
         assert data[1]["transaction"] == "bar_transaction"
         self.assertAlmostEqual(data[1]["performance_score(measurements.score.total)"], 0.7)
-        assert data[1]["performance_score(measurements.score.lcp)"] == 0.0
+        assert data[1]["performance_score(measurements.score.lcp)"] is None
         assert data[1]["performance_score(measurements.score.cls)"] == 0.7
-        assert data[1]["performance_score(measurements.score.fcp)"] == 0.0
+        assert data[1]["performance_score(measurements.score.fcp)"] is None
         self.assertAlmostEqual(data[1]["opportunity_score(measurements.score.total)"], 0.1)
         assert data[1]["opportunity_score(measurements.score.lcp)"] == 0.0
         self.assertAlmostEqual(data[1]["opportunity_score(measurements.score.cls)"], 0.3)
@@ -4504,7 +4530,8 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
 
-    def test_count_if_two_args(self) -> None:
+    def test_count_if_two_args(self):
+        """count_if should have an operator"""
         self.store_spans(
             [
                 self.create_span({"sentry_tags": {"release": "foo"}}),
@@ -4525,13 +4552,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "dataset": "spans",
             }
         )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        meta = response.data["meta"]
-
-        assert len(data) == 1
-        assert data[0]["count_if(release,foo)"] == 1
-        assert meta["dataset"] == "spans"
+        assert response.status_code == 400, response.content
 
     def test_span_ops_breakdown(self) -> None:
         self.store_spans(

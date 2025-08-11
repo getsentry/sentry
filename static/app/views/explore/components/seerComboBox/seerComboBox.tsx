@@ -109,7 +109,7 @@ const SeerExampleItems = [
   {key: 'example-query-1', query: 'p95 duration of http client calls'},
   {key: 'example-query-2', query: 'database calls by transaction'},
   {key: 'example-query-3', query: 'POST requests slower than 250ms'},
-  {key: 'example-query-4', query: 'failure rate by user in the last week'},
+  // {key: 'example-query-4', query: 'failure rate by user in the last week'},
 ] as SeerSearchItems[];
 
 export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
@@ -225,12 +225,10 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
         return;
       }
 
-      trackAnalytics('trace.explorer.ai_query_submitted', {
-        organization,
-        natural_language_query: searchQuery.trim(),
-      });
       askSeerNLQueryRef.current = searchQuery.trim();
       applySeerSearchQuery(item);
+      setDisplayAskSeerFeedback(true);
+      setDisplayAskSeer(false);
       state.close();
     },
     children: item => {
@@ -296,6 +294,10 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
         switch (e.key) {
           case 'Escape':
             if (!state.isOpen) {
+              trackAnalytics('trace.explorer.ai_query_interface', {
+                organization,
+                action: 'closed',
+              });
               setDisplayAskSeerFeedback(false);
               setDisplayAskSeer(false);
             }
@@ -342,8 +344,12 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
                 addErrorMessage(t('Failed to find AI query to apply'));
                 return;
               }
-              state.close();
+
+              askSeerNLQueryRef.current = searchQuery.trim();
               applySeerSearchQuery(item);
+              setDisplayAskSeerFeedback(true);
+              setDisplayAskSeer(false);
+              state.close();
               return;
             }
 

@@ -27,5 +27,12 @@ class ActionService(RpcService):
     ) -> None:
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abc.abstractmethod
+    def update_action_status_for_organization_integration(
+        self, *, organization_id: int, integration_id: int, status: int
+    ) -> None:
+        pass
+
 
 action_service = ActionService.create_delegation()
