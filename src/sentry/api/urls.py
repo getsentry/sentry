@@ -1783,7 +1783,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-page-web-vitals-summary",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/web-vitals-issue/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/user-issue/$",
         OrganizationUserIssueEndpoint.as_view(),
         name="sentry-api-0-organization-user-issue",
     ),
