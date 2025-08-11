@@ -316,8 +316,8 @@ importers:
         specifier: 11.1.0
         version: 11.1.0(webpack@5.99.6(esbuild@0.25.3))
       core-js:
-        specifier: ^3.41.0
-        version: 3.41.0
+        specifier: 3.45.0
+        version: 3.45.0
       cronstrue:
         specifier: ^2.50.0
         version: 2.50.0
@@ -4621,8 +4621,8 @@ packages:
   core-js-compat@3.44.0:
     resolution: {integrity: sha512-JepmAj2zfl6ogy34qfWtcE7nHKAJnKsQFRn++scjVS2bZFllwptzw61BZcZFYBPpUznLfAvh0LGhxKppk04ClA==}
 
-  core-js@3.41.0:
-    resolution: {integrity: sha512-SJ4/EHwS36QMJd6h/Rg+GyR4A5xE0FSI3eZ+iBVpfqf1x0eTSg1smWLHrA+2jQThZSh97fmSgFSU8B61nxosxA==}
+  core-js@3.45.0:
+    resolution: {integrity: sha512-c2KZL9lP4DjkN3hk/an4pWn5b5ZefhRJnAc42n6LJ19kSnbeRbdQZE5dSeE2LBol1OwJD3X1BQvFTAsa8ReeDA==}
 
   core-util-is@1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
@@ -13992,7 +13992,7 @@ snapshots:
     dependencies:
       browserslist: 4.25.1
 
-  core-js@3.41.0: {}
+  core-js@3.45.0: {}
 
   core-util-is@1.0.3: {}
 
