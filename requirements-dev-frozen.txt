@@ -45,7 +45,7 @@ django-crispy-forms==1.14.0
 django-csp==3.8
 django-pg-zero-downtime-migrations==0.18
 django-stubs-ext==5.2.2
-djangorestframework==3.16.0
+djangorestframework==3.16.1
 docker==7.1.0
 drf-spectacular==0.27.2
 ephemeral-port-reserve==1.1.4
