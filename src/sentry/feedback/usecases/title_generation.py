@@ -103,8 +103,13 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
             body=json.dumps(seer_request).encode("utf-8"),
         )
         response_data = json.loads(response.data.decode("utf-8"))
-    except Exception:
-        logger.exception("Seer title generation endpoint failed")
+    except Exception as e:
+        logger.exception(
+            "Seer title generation endpoint failed",
+            extra={
+                "error": type(e).__name__,
+            },
+        )
         metrics.incr(
             "feedback.ai_title_generation.error",
             tags={"reason": "seer_response_failed"},
@@ -116,7 +121,7 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
             "Seer title generation endpoint failed",
             extra={
                 "status_code": response.status,
-                "response_data": response.data,
+                "response_data": response.data if response else None,
             },
         )
         metrics.incr(

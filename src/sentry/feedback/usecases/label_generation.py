@@ -49,8 +49,13 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
             body=json.dumps(request).encode("utf-8"),
         )
         response_data = json.loads(response.data.decode("utf-8"))
-    except Exception:
-        logger.exception("Failed to generate labels")
+    except Exception as e:
+        logger.exception(
+            "Failed to generate labels",
+            extra={
+                "error": type(e).__name__,
+            },
+        )
         raise Exception("Seer label generation endpoint failed")
 
     if response.status < 200 or response.status >= 300:
@@ -58,7 +63,7 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
             "Failed to generate labels",
             extra={
                 "status_code": response.status,
-                "response_data": response.data,
+                "response_data": response.data if response else None,
             },
         )
         raise Exception(f"Seer label generation endpoint returned status {response.status}")
