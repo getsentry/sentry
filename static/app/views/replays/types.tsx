@@ -285,20 +285,6 @@ export type ReplayListRecord = Pick<
   | 'warning_ids'
 >;
 
-/**
- * This is a result of a custom discover query
- */
-export interface ReplayError {
-  ['error.type']: string[];
-  ['error.value']: string[]; // deprecated, use title instead. See organization_replay_events_meta.py
-  id: string;
-  issue: string;
-  ['issue.id']: number;
-  ['project.name']: string;
-  timestamp: string;
-  title: string;
-}
-
 export type DeadRageSelectorItem = {
   aria_label: string;
   dom_element: {
