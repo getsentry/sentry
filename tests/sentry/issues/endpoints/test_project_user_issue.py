@@ -16,7 +16,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-user-issue"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="user@example.com")
         self.organization = self.create_organization(owner=self.user)
@@ -33,7 +33,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
 
     @with_feature("organizations:performance-web-vitals-seer-suggestions")
     @with_feature("organizations:issue-web-vitals-ingest")
-    def test_create_web_vitals_issue_success(self):
+    def test_create_web_vitals_issue_success(self) -> None:
         data = {
             "transaction": "/test-transaction",
             "issueType": WebVitalsGroup.slug,
@@ -78,7 +78,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
             "score": 75,
         }
 
-    def test_no_access(self):
+    def test_no_access(self) -> None:
         data = {
             "transaction": "/test-transaction",
             "issueType": WebVitalsGroup.slug,
@@ -95,7 +95,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
 
     @with_feature("organizations:performance-web-vitals-seer-suggestions")
     @with_feature("organizations:issue-web-vitals-ingest")
-    def test_missing_required_fields(self):
+    def test_missing_required_fields(self) -> None:
         data = {
             "transaction": "/test-transaction",
         }
@@ -112,7 +112,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
 
     @with_feature("organizations:performance-web-vitals-seer-suggestions")
     @with_feature("organizations:issue-web-vitals-ingest")
-    def test_invalid_web_vitals_fields(self):
+    def test_invalid_web_vitals_fields(self) -> None:
         data = {
             "transaction": "/test-transaction",
             "issueType": WebVitalsGroup.slug,
@@ -132,7 +132,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
 
     @with_feature("organizations:performance-web-vitals-seer-suggestions")
     @with_feature("organizations:issue-web-vitals-ingest")
-    def test_web_vitals_issue_fingerprint_consistency(self):
+    def test_web_vitals_issue_fingerprint_consistency(self) -> None:
         data = {
             "transaction": "/test-transaction",
             "issueType": WebVitalsGroup.slug,
