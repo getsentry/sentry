@@ -203,6 +203,7 @@ const BodyCell = memo(function BodyCell({
       },
     ],
     query: `gen_ai.tool.name:${dataRow.tool}`,
+    field: ['span.description', 'gen_ai.tool.output', 'span.duration', 'timestamp'],
   });
 
   switch (column.key) {

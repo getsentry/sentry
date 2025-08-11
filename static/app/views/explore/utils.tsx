@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
@@ -40,8 +41,13 @@ import type {
   RawVisualize,
   SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {isRawVisualize} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {
+  getSavedQueryTraceItemDataset,
+  isRawVisualize,
+} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import type {ReadableExploreQueryParts} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
@@ -106,7 +112,7 @@ export function getExploreUrl({
   );
 }
 
-export function getExploreUrlFromSavedQueryUrl({
+function getExploreUrlFromSavedQueryUrl({
   savedQuery,
   organization,
 }: {
@@ -655,4 +661,37 @@ export const onlyShowKeys = (tagCollection: Tag[], keys: string[]): Tag[] => {
     }
   });
   return result;
+};
+
+export function getSavedQueryTraceItemUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: SavedQuery;
+}) {
+  const traceItemDataset = getSavedQueryTraceItemDataset(savedQuery.dataset);
+  const urlFunction = TRACE_ITEM_TO_URL_FUNCTION[traceItemDataset];
+  if (urlFunction) {
+    return urlFunction({savedQuery, organization});
+  }
+  // Invariant, only spans and logs are currently supported.
+  Sentry.captureMessage(
+    `Saved query ${savedQuery.id} has an invalid dataset: ${savedQuery.dataset}`
+  );
+  return getExploreUrlFromSavedQueryUrl({savedQuery, organization});
+}
+
+const TRACE_ITEM_TO_URL_FUNCTION: Record<
+  TraceItemDataset,
+  ({
+    savedQuery,
+    organization,
+  }: {
+    organization: Organization;
+    savedQuery: SavedQuery;
+  }) => string
+> = {
+  [TraceItemDataset.LOGS]: getLogsUrlFromSavedQueryUrl,
+  [TraceItemDataset.SPANS]: getExploreUrlFromSavedQueryUrl,
 };
