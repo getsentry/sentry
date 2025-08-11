@@ -95,8 +95,6 @@ export function updateQuery(
       copyToClipboard(value);
       break;
     case Actions.OPEN_EXTERNAL_LINK:
-      openExternalLink(value);
-      break;
     case Actions.RELEASE:
     case Actions.DRILLDOWN:
     case Actions.OPEN_INTERNAL_LINK:
@@ -166,18 +164,6 @@ export function copyToClipboard(value: string | number | string[]) {
   });
 }
 
-/**
- * If provided value is a valid url, opens the url in a new tab
- * @param value
- */
-export function openExternalLink(value: string | number | string[]) {
-  if (typeof value === 'string' && isUrl(value)) {
-    window.open(value, '_blank', 'noopener,noreferrer');
-  } else {
-    addErrorMessage('Could not open link');
-  }
-}
-
 type CellActionsOpts = {
   column: TableColumn<keyof TableDataRow>;
   dataRow: TableDataRow;
@@ -235,6 +221,8 @@ function makeCellActions({
         textValue: itemTextValue,
         onAction: () => handleCellAction(action, value!),
         to: action === Actions.OPEN_INTERNAL_LINK && to ? stripURLOrigin(to) : undefined,
+        externalHref:
+          action === Actions.OPEN_EXTERNAL_LINK ? (value as string) : undefined,
       });
     }
   }

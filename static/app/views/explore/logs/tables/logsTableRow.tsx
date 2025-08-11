@@ -19,7 +19,6 @@ import CellAction, {
   Actions,
   ActionTriggerType,
   copyToClipboard,
-  openExternalLink,
 } from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
@@ -331,9 +330,6 @@ export const LogRowContent = memo(function LogRowContent({
                         break;
                       case Actions.COPY_TO_CLIPBOARD:
                         copyToClipboard(cellValue);
-                        break;
-                      case Actions.OPEN_EXTERNAL_LINK:
-                        openExternalLink(cellValue);
                         break;
                       default:
                         break;

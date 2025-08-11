@@ -6,6 +6,7 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEd
 import SortLink from 'sentry/components/tables/gridEditable/sortLink';
 import {defined} from 'sentry/utils';
 import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -29,7 +30,6 @@ import type {
 import CellAction, {
   Actions,
   copyToClipboard,
-  openExternalLink,
 } from 'sentry/views/discover/table/cellAction';
 
 type FieldRendererGetter = (
@@ -283,16 +283,12 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
             <CellAction
               key={`${rowIndex}-${columnIndex}:${tableColumn.name}`}
               column={formattedColumn}
-              // id is not used by CellAction, but is required for the TableDataRow type
-              dataRow={{...dataRow, id: ''}}
+              dataRow={dataRow as TableDataRow}
               handleCellAction={(action: Actions, value: string | number) => {
                 onTriggerCellAction?.(action, value);
                 switch (action) {
                   case Actions.COPY_TO_CLIPBOARD:
                     copyToClipboard(value);
-                    break;
-                  case Actions.OPEN_EXTERNAL_LINK:
-                    openExternalLink(value);
                     break;
                   default:
                     break;
