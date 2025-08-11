@@ -139,7 +139,7 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
     # Step 1: Get trace IDs with their span counts in a single query
     traces_result = Spans.run_table_query(
         params=snuba_params,
-        query_string=f"transaction:{transaction_name} project.id:{project_id}",
+        query_string=f'transaction:"{transaction_name}" project.id:{project_id}',
         selected_columns=[
             "trace",
             "count()",  # This counts all spans in each trace
