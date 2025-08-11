@@ -99,7 +99,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
     (acc, item) => acc + (itemIsSection(item) ? item.options.length : 1),
     0
   );
-  const anyItemsShowing = totalOptions >= hiddenOptions.size;
+  const anyItemsShowing = totalOptions > hiddenOptions.size;
 
   const listBoxRefCallback = useCallback(
     (element: HTMLUListElement | null) => {

@@ -3,6 +3,9 @@ import styled from '@emotion/styled';
 import {Item} from '@react-stately/collections';
 import type {Node} from '@react-types/shared';
 
+import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
+import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
+import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {getFilterValueType} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
@@ -16,7 +19,9 @@ import type {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKey} from 'sentry/utils/fields';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type KeyComboboxProps = {
   item: Node<ParseResultToken>;
@@ -27,12 +32,22 @@ type KeyComboboxProps = {
 export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState(getKeyLabel(token.key) ?? '');
+
+  const organization = useOrganization();
+  const {mutate: seerAcknowledgeMutate} = useSeerAcknowledgeMutation();
   const sortedFilterKeys = useSortedFilterKeyItems({
     filterValue: inputValue,
     inputValue,
     includeSuggestions: false,
   });
-  const {dispatch, getFieldDefinition, getSuggestedFilterKey} = useSearchQueryBuilder();
+  const {
+    dispatch,
+    getFieldDefinition,
+    getSuggestedFilterKey,
+    setDisplayAskSeer,
+    currentInputValue,
+    setAutoSubmitSeer,
+  } = useSearchQueryBuilder();
 
   const currentFilterValueType = getFilterValueType(
     token,
@@ -43,6 +58,31 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     (keyName: string) => {
       const newFieldDef = getFieldDefinition(keyName);
       const newFilterValueType = getFilterValueType(token, newFieldDef);
+
+      if (keyName === ASK_SEER_ITEM_KEY) {
+        trackAnalytics('trace.explorer.ai_query_interface', {
+          organization,
+          action: 'opened',
+        });
+        setDisplayAskSeer(true);
+
+        if (currentInputValue?.trim()) {
+          setAutoSubmitSeer(true);
+        } else {
+          setAutoSubmitSeer(false);
+        }
+
+        return;
+      }
+
+      if (keyName === ASK_SEER_CONSENT_ITEM_KEY) {
+        trackAnalytics('trace.explorer.ai_query_interface', {
+          organization,
+          action: 'consent_accepted',
+        });
+        seerAcknowledgeMutate();
+        return;
+      }
 
       if (keyName === getKeyName(token.key)) {
         onCommit();
@@ -77,7 +117,19 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
 
       onCommit();
     },
-    [currentFilterValueType, dispatch, getFieldDefinition, item.key, onCommit, token]
+    [
+      currentFilterValueType,
+      currentInputValue,
+      dispatch,
+      getFieldDefinition,
+      item.key,
+      onCommit,
+      organization,
+      seerAcknowledgeMutate,
+      setAutoSubmitSeer,
+      setDisplayAskSeer,
+      token,
+    ]
   );
 
   const onOptionSelected = useCallback(
