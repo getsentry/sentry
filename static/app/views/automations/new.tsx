@@ -10,7 +10,6 @@ import {
   StickyFooter,
   StickyFooterLabel,
 } from 'sentry/components/workflowEngine/ui/footer';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
@@ -35,7 +34,6 @@ function AutomationBreadcrumbs() {
 export default function AutomationNew() {
   const location = useLocation();
   const organization = useOrganization();
-  useWorkflowEngineFeatureGate({redirect: true});
 
   const [connectedIds, setConnectedIds] = useState<Automation['detectorIds']>(() => {
     const connectedIdsQuery = location.query.connectedIds as
