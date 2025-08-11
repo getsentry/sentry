@@ -204,9 +204,10 @@ describe('Onboarding Setup Docs', function () {
         await screen.findByRole('heading', {name: 'Configure React SDK'})
       ).toBeInTheDocument();
 
-      const codeBlock = await screen.findByText(/import \* as Sentry/);
-      expect(codeBlock).toHaveTextContent(/Tracing/);
-      expect(codeBlock).toHaveTextContent(/Session Replay/);
+      // First code block is the install snippet, second is the verify snippet
+      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      expect(codeBlocks[0]).toHaveTextContent(/Tracing/);
+      expect(codeBlocks[0]).toHaveTextContent(/Session Replay/);
     });
 
     it('only performance checked', async function () {

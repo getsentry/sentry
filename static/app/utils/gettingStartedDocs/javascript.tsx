@@ -168,7 +168,7 @@ export const getJavascriptLogsOnboarding = <
         {
           type: 'text',
           text: tct(
-            'Add the Sentry SDK as a dependency using npm, yarn, or pnpm. The minimum version of [sdkPackage] that supports logs is [code:9.17.0].',
+            'Add the Sentry SDK as a dependency using npm, yarn, or pnpm. The minimum version of [sdkPackage] that supports logs is [code:9.41.0].',
             {
               code: <code />,
               sdkPackage: <code>{sdkPackage}</code>,
