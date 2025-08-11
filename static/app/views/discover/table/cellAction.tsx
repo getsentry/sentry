@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -14,8 +15,10 @@ import {
   isRelativeSpanOperationBreakdownField,
 } from 'sentry/utils/discover/fields';
 import getDuration from 'sentry/utils/duration/getDuration';
+import {FieldKey} from 'sentry/utils/fields';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {TableColumn} from './types';
@@ -30,6 +33,7 @@ export enum Actions {
   EDIT_THRESHOLD = 'edit_threshold',
   COPY_TO_CLIPBOARD = 'copy_to_clipboard',
   OPEN_EXTERNAL_LINK = 'open_external_link',
+  OPEN_INTERNAL_LINK = 'open_internal_link',
 }
 
 export function updateQuery(
@@ -95,6 +99,7 @@ export function updateQuery(
       break;
     case Actions.RELEASE:
     case Actions.DRILLDOWN:
+    case Actions.OPEN_INTERNAL_LINK:
       break;
     default:
       throw new Error(`Unknown action type. ${action}`);
@@ -182,6 +187,10 @@ type CellActionsOpts = {
    */
   allowActions?: Actions[];
   children?: React.ReactNode;
+  /**
+   * Any parsed out internal links that should be added to the menu as an option
+   */
+  to?: string;
 };
 
 function makeCellActions({
@@ -189,6 +198,7 @@ function makeCellActions({
   column,
   handleCellAction,
   allowActions,
+  to,
 }: CellActionsOpts) {
   // Do not render context menu buttons for the span op breakdown field.
   if (isRelativeSpanOperationBreakdownField(column.name)) {
@@ -224,9 +234,21 @@ function makeCellActions({
         label: itemLabel,
         textValue: itemTextValue,
         onAction: () => handleCellAction(action, value!),
+        to: action === Actions.OPEN_INTERNAL_LINK && to ? stripURLOrigin(to) : undefined,
       });
     }
   }
+
+  if (to && to !== value) {
+    const field = String(column.key);
+    addMenuItem(Actions.OPEN_INTERNAL_LINK, getInternalLinkActionLabel(field));
+  }
+
+  if (isUrl(value)) {
+    addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
+  }
+
+  if (value) addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
 
   if (
     !['duration', 'number', 'percentage'].includes(column.type) ||
@@ -271,15 +293,37 @@ function makeCellActions({
     );
   }
 
-  if (value) addMenuItem(Actions.COPY_TO_CLIPBOARD, t('Copy to clipboard'));
-
-  if (isUrl(value)) addMenuItem(Actions.OPEN_EXTERNAL_LINK, t('Open external link'));
-
   if (actions.length === 0) {
     return null;
   }
 
   return actions;
+}
+
+/**
+ * Provides the correct text for the dropdown menu based on the field.
+ * @param field column field name
+ */
+function getInternalLinkActionLabel(field: string): string {
+  switch (field) {
+    case FieldKey.ID:
+      return t('Open view');
+    case FieldKey.TRACE:
+      return t('Open trace');
+    case FieldKey.PROJECT:
+    case 'project_id':
+    case 'project.id':
+      return t('Open project');
+    case FieldKey.RELEASE:
+      return t('View details');
+    case FieldKey.ISSUE:
+      return t('Open issue');
+    case FieldKey.REPLAY_ID:
+      return t('Open replay');
+    default:
+      break;
+  }
+  return t('Open link');
 }
 
 /**
@@ -291,7 +335,7 @@ export enum ActionTriggerType {
   BOLD_HOVER = 'bold_hover',
 }
 
-type Props = React.PropsWithoutRef<CellActionsOpts> & {
+type Props = React.PropsWithoutRef<Omit<CellActionsOpts, 'to'>> & {
   triggerType?: ActionTriggerType;
 };
 
@@ -302,15 +346,24 @@ function CellAction({
 }: Props) {
   const organization = useOrganization();
   const {children, column} = props;
+  // The menu is activated by clicking the value, which doesn't work if the value is rendered as a link
+  // So, `target` contains an internal link extracted from the DOM on click and that link is added dropdown menu.
+  const [target, setTarget] = useState<string>();
 
   const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
   let filteredActions = allowActions;
-  if (!useCellActionsV2)
-    filteredActions = filteredActions?.filter(
-      action => action !== Actions.OPEN_EXTERNAL_LINK
+  if (!useCellActionsV2 && filteredActions) {
+    // New dropdown menu options should not be allowed if the feature flag is not on
+    filteredActions = filteredActions.filter(
+      action =>
+        action !== Actions.OPEN_EXTERNAL_LINK && action !== Actions.OPEN_INTERNAL_LINK
     );
-
-  const cellActions = makeCellActions({...props, allowActions: filteredActions});
+  }
+  const cellActions = makeCellActions({
+    ...props,
+    allowActions: filteredActions,
+    to: target,
+  });
   const align = fieldAlignment(column.key as string, column.type);
 
   if (useCellActionsV2 && triggerType === ActionTriggerType.BOLD_HOVER)
@@ -338,11 +391,26 @@ function CellAction({
               ],
             }}
             trigger={triggerProps => (
-              <ActionMenuTriggerV2 {...triggerProps} aria-label={t('Actions')}>
+              <ActionMenuTriggerV2
+                {...triggerProps}
+                aria-label={t('Actions')}
+                onClickCapture={e => {
+                  // Allow for users to hold shift, ctrl or cmd to open links instead of the menu
+                  if (e.metaKey || e.shiftKey || e.ctrlKey) {
+                    e.stopPropagation();
+                  } else {
+                    const aTags = e.currentTarget.getElementsByTagName('a');
+                    if (aTags?.[0]) {
+                      const href = aTags[0].href;
+                      setTarget(href);
+                    }
+                    e.preventDefault();
+                  }
+                }}
+              >
                 {children}
               </ActionMenuTriggerV2>
             )}
-            // So the menu doesn't fill the entire row which can lead to extremely wide menus
             minMenuWidth={0}
           />
         ) : (
