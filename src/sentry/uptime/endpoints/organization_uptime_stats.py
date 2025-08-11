@@ -98,7 +98,7 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
                     timerange_args,
                     epoch_cutoff,
                     TraceItemType.TRACE_ITEM_TYPE_UPTIME_RESULT,
-                    "guid",
+                    "check_id",
                     "subscription_id",
                     include_request_sequence_filter=True,
                 )

@@ -27,13 +27,13 @@ UPTIME_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
-            public_alias="guid",
-            internal_name="guid",
+            public_alias="subscription_id",
+            internal_name="subscription_id",
             search_type="string",
         ),
         ResolvedAttribute(
-            public_alias="subscription_id",
-            internal_name="subscription_id",
+            public_alias="check_id",
+            internal_name="check_id",
             search_type="string",
         ),
         ResolvedAttribute(
