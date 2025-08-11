@@ -7,14 +7,13 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
-import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
-import {getAIAttribute} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
+import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
+import {ModelName} from 'sentry/views/insights/agents/components/modelName';
 import {
   hasAgentInsightsFeature,
   hasMCPInsightsFeature,
-} from 'sentry/views/insights/agentMonitoring/utils/features';
-import {getIsAiSpan} from 'sentry/views/insights/agentMonitoring/utils/query';
+} from 'sentry/views/insights/agents/utils/features';
+import {getIsAiSpan} from 'sentry/views/insights/agents/utils/query';
 
 type HighlightedAttribute = {
   name: string;
@@ -67,9 +66,7 @@ function getAISpanAttributes(
 ) {
   const highlightedAttributes = [];
 
-  const model =
-    getAIAttribute(attributes, 'gen_ai.request.model') ||
-    getAIAttribute(attributes, 'gen_ai.response.model');
+  const model = attributes['gen_ai.request.model'] || attributes['gen_ai.response.model'];
   if (model) {
     highlightedAttributes.push({
       name: t('Model'),
@@ -77,11 +74,11 @@ function getAISpanAttributes(
     });
   }
 
-  const inputTokens = getAIAttribute(attributes, 'gen_ai.usage.input_tokens');
-  const cachedTokens = getAIAttribute(attributes, 'gen_ai.usage.cached_tokens');
-  const outputTokens = getAIAttribute(attributes, 'gen_ai.usage.output_tokens');
-  const reasoningTokens = getAIAttribute(attributes, 'gen_ai.usage.reasoning_tokens');
-  const totalTokens = getAIAttribute(attributes, 'gen_ai.usage.total_tokens');
+  const inputTokens = attributes['gen_ai.usage.input_tokens'];
+  const cachedTokens = attributes['gen_ai.usage.cached_tokens'];
+  const outputTokens = attributes['gen_ai.usage.output_tokens'];
+  const reasoningTokens = attributes['gen_ai.usage.reasoning_tokens'];
+  const totalTokens = attributes['gen_ai.usage.total_tokens'];
 
   if (inputTokens && outputTokens && totalTokens && Number(totalTokens) > 0) {
     highlightedAttributes.push({
@@ -98,7 +95,7 @@ function getAISpanAttributes(
     });
   }
 
-  const totalCosts = getAIAttribute(attributes, 'gen_ai.usage.total_cost');
+  const totalCosts = attributes['gen_ai.usage.total_cost'];
   if (totalCosts && Number(totalCosts) > 0) {
     highlightedAttributes.push({
       name: t('Cost'),
@@ -126,7 +123,7 @@ function getAISpanAttributes(
     });
   }
 
-  const toolName = getAIAttribute(attributes, 'gen_ai.tool.name');
+  const toolName = attributes['gen_ai.tool.name'];
   if (toolName) {
     highlightedAttributes.push({
       name: t('Tool Name'),

@@ -66,9 +66,9 @@
     "@sentry-internal/rrweb": "2.34.0",
     "@sentry-internal/rrweb-player": "2.34.0",
     "@sentry-internal/rrweb-snapshot": "2.34.0",
-    "@sentry/core": "10.0.0",
-    "@sentry/node": "10.0.0",
-    "@sentry/react": "10.0.0",
+    "@sentry/core": "10.2.0",
+    "@sentry/node": "10.2.0",
+    "@sentry/react": "10.2.0",
     "@sentry/release-parser": "^1.3.1",
     "@sentry/status-page-list": "^0.6.1",
     "@sentry/toolbar": "1.0.0-beta.16",
@@ -173,7 +173,7 @@
     "swc-plugin-component-annotate": "1.8.0",
     "ts-checker-rspack-plugin": "1.1.4",
     "tslib": "^2.8.1",
-    "typescript": "^5.8.3",
+    "typescript": "5.9.2",
     "zrender": "5.4.0",
     "zxcvbn": "^4.4.2"
   },
@@ -181,6 +181,7 @@
     "@codecov/webpack-plugin": "^1.9.0",
     "@emotion/eslint-plugin": "^11.12.0",
     "@eslint/js": "9.32.0",
+    "@prettier/plugin-oxc": "0.0.4",
     "@sentry-internal/rrweb-types": "2.34.0",
     "@sentry/jest-environment": "6.1.0",
     "@sentry/profiling-node": "9.40.0",
@@ -250,10 +251,10 @@
     "lint": "pnpm run lint:prettier && pnpm run lint:js && pnpm run lint:css",
     "lint:js": "eslint",
     "lint:css": "stylelint '**/*.[jt]sx'",
-    "lint:prettier": "prettier \"**/*{.md,.yaml,.js,.jsx,.ts,.tsx}\" --check --log-level=error --experimental-cli --no-cache",
+    "lint:prettier": "prettier \"**/*{.md,.yaml,.js,.mjs,.jsx,.ts,.tsx}\" --check --log-level=error --experimental-cli --no-cache",
     "fix": "pnpm run fix:prettier && pnpm run fix:eslint",
     "fix:eslint": "eslint --fix",
-    "fix:prettier": "prettier \"**/*{.md,.yaml,.js,.jsx,.ts,.tsx}\" --write --log-level=error --experimental-cli --no-cache",
+    "fix:prettier": "prettier \"**/*{.md,.yaml,.js,.mjs,.jsx,.ts,.tsx}\" --write --log-level=error --experimental-cli --no-cache",
     "dev": "pnpm install --frozen-lockfile && sentry devserver",
     "dev-ui": "NODE_OPTIONS='--experimental-transform-types' SENTRY_UI_DEV_ONLY=1 SENTRY_WEBPACK_PROXY_PORT=7999 SENTRY_UI_HOT_RELOAD=1 rspack serve",
     "dev-ui-admin": "SENTRY_ADMIN_UI_DEV=1 pnpm run dev-ui",
@@ -305,6 +306,9 @@
     "tabWidth": 2,
     "trailingComma": "es5",
     "useTabs": false,
-    "arrowParens": "avoid"
+    "arrowParens": "avoid",
+    "plugins": [
+      "@prettier/plugin-oxc"
+    ]
   }
 }

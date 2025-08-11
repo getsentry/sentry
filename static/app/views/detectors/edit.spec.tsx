@@ -15,6 +15,8 @@ import {
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {SnubaQueryType} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import DetectorEdit from 'sentry/views/detectors/edit';
 
 describe('DetectorEdit', () => {
@@ -237,6 +239,12 @@ describe('DetectorEdit', () => {
   describe('Metric', () => {
     const name = 'Test Metric Detector';
     const mockDetector = MetricDetectorFixture({name, projectId: project.id});
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/metrics/data/`,
+      });
+    });
 
     it('allows editing the detector name/environment and saving changes', async () => {
       MockApiClient.addMockResponse({
@@ -509,6 +517,130 @@ describe('DetectorEdit', () => {
 
       // Verify interval changed to 15 minutes
       expect(await screen.findByText('15 minutes')).toBeInTheDocument();
+    });
+
+    it('calls anomaly API when using dynamic detection', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      // Current data for chart
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-stats/`,
+        match: [MockApiClient.matchQuery({statsPeriod: '9998m'})],
+        body: {
+          data: [
+            [1609459200000, [{count: 100}]],
+            [1609462800000, [{count: 120}]],
+            [1609466400000, [{count: 90}]],
+            [1609470000000, [{count: 150}]],
+          ],
+        },
+      });
+
+      // Historical data
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-stats/`,
+        match: [MockApiClient.matchQuery({statsPeriod: '35d'})],
+        body: {
+          data: [
+            [1607459200000, [{count: 80}]],
+            [1607462800000, [{count: 95}]],
+            [1607466400000, [{count: 110}]],
+            [1607470000000, [{count: 75}]],
+          ],
+        },
+      });
+
+      const anomalyRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/anomalies/`,
+        method: 'POST',
+        body: [],
+      });
+
+      render(<DetectorEdit />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('radio', {name: 'Dynamic'}));
+
+      await waitFor(() => {
+        expect(anomalyRequest).toHaveBeenCalled();
+      });
+      const payload = anomalyRequest.mock.calls[0][1];
+      expect(payload.data).toEqual({
+        config: {
+          direction: 'both',
+          expected_seasonality: 'auto',
+          sensitivity: 'medium',
+          time_period: 15,
+        },
+        current_data: [
+          [1609459200000, {count: 100}],
+          [1609462800000, {count: 120}],
+          [1609466400000, {count: 90}],
+          [1609470000000, {count: 150}],
+        ],
+        historical_data: [
+          [1607459200000, {count: 80}],
+          [1607462800000, {count: 95}],
+          [1607466400000, {count: 110}],
+          [1607470000000, {count: 75}],
+        ],
+        organization_id: organization.id,
+        project_id: project.id,
+      });
+    });
+
+    describe('releases dataset', () => {
+      it('can save crash_free_rate(sessions)', async () => {
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+          body: mockDetector,
+        });
+
+        const updateRequest = MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+          method: 'PUT',
+          body: mockDetector,
+        });
+
+        render(<DetectorEdit />, {
+          organization,
+          initialRouterConfig,
+        });
+
+        expect(await screen.findByRole('link', {name})).toBeInTheDocument();
+
+        // Change dataset to releases
+        const datasetField = screen.getByLabelText('Dataset');
+        await userEvent.click(datasetField);
+        await userEvent.click(screen.getByRole('menuitemradio', {name: 'Releases'}));
+
+        await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+        await waitFor(() => {
+          expect(updateRequest).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+              data: expect.objectContaining({
+                dataSource: expect.objectContaining({
+                  // Aggreate needs to be transformed to this in order to save correctly
+                  aggregate:
+                    'percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate',
+                  dataset: Dataset.METRICS,
+                  eventTypes: [],
+                  queryType: SnubaQueryType.CRASH_RATE,
+                }),
+              }),
+            })
+          );
+        });
+      });
     });
   });
 });
