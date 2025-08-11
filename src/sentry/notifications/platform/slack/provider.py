@@ -7,6 +7,7 @@ from slack_sdk.models.blocks import (
     HeaderBlock,
     ImageBlock,
     MarkdownTextObject,
+    PlainTextObject,
     SectionBlock,
 )
 
@@ -35,7 +36,7 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
     def render[DataT: NotificationData](
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
     ) -> SlackRenderable:
-        subject = HeaderBlock(text=MarkdownTextObject(text=rendered_template.subject))
+        subject = HeaderBlock(text=PlainTextObject(text=rendered_template.subject))
         body = SectionBlock(text=MarkdownTextObject(text=rendered_template.body))
 
         actions_block = ActionsBlock(elements=[])

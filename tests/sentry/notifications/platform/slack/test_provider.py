@@ -22,7 +22,7 @@ class SlackRendererTest(TestCase):
         rendererable_dict = [block.to_dict() for block in rendererable.get("blocks", [])]
 
         assert rendererable_dict == [
-            {"text": {"text": "Mock Notification", "type": "mrkdwn"}, "type": "header"},
+            {"text": {"text": "Mock Notification", "type": "plain_text"}, "type": "header"},
             {"text": {"text": "test", "type": "mrkdwn"}, "type": "section"},
             {
                 "elements": [
