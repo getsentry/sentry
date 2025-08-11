@@ -27,11 +27,6 @@ UPTIME_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         ResolvedAttribute(
-            public_alias="guid",
-            internal_name="guid",
-            search_type="string",
-        ),
-        ResolvedAttribute(
             public_alias="subscription_id",
             internal_name="subscription_id",
             search_type="string",

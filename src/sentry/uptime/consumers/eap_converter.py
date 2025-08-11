@@ -72,7 +72,6 @@ def convert_uptime_request_to_trace_item(
     """
     attributes: MutableMapping[str, AnyValue] = {}
 
-    attributes["guid"] = _anyvalue(result["guid"])
     attributes["subscription_id"] = _anyvalue(result["subscription_id"])
     attributes["check_status"] = _anyvalue(result["status"])
     if "region" in result:
