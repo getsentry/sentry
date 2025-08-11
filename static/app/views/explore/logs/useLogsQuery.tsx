@@ -10,11 +10,13 @@ import {
   type ApiQueryKey,
   fetchDataQuery,
   type InfiniteData,
+  Query,
   type QueryKeyEndpointOptions,
   useApiQuery,
   useInfiniteQuery,
   useQueryClient,
 } from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -263,10 +265,19 @@ export function useLogsQuery({
   disabled,
   limit,
   referrer,
+  refetchInterval,
 }: {
   disabled?: boolean;
   limit?: number;
   referrer?: string;
+  refetchInterval?: (
+    query: Query<
+      ApiResult<EventsLogsResult>,
+      RequestError,
+      ApiResult<EventsLogsResult>,
+      ApiQueryKey
+    >
+  ) => number;
 }) {
   const _referrer = referrer ?? 'api.explore.logs-table';
   const {queryKey, other} = useLogsQueryKey({limit, referrer: _referrer});
@@ -276,6 +287,7 @@ export function useLogsQuery({
     staleTime: getStaleTimeForEventView(other.eventView),
     refetchOnWindowFocus: false,
     retry: false,
+    refetchInterval,
   });
 
   return {
