@@ -30,7 +30,7 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
     sort: IssueSortOptions.FREQ,
     groupStatsPeriod: 'auto',
     query: new MutableSearch([
-      `first-release:${escapeDoubleQuotes(release)}`,
+      `first-release:"${escapeDoubleQuotes(release)}"`,
     ]).formatString(),
   };
 
@@ -42,7 +42,7 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
     <GroupList
       endpointPath={path}
       queryParams={queryParams}
-      query={`release:"${releaseDetails?.versionInfo.version.raw}"`}
+      query={`release:"${escapeDoubleQuotes (releaseDetails?.versionInfo.version.raw)}"`}
       canSelectGroups={false}
       withChart={withChart}
       renderEmptyMessage={renderEmptyMessage}
