@@ -108,15 +108,16 @@ RECURSION_COMPARISON_FIELDS = [
 StacktraceEncoderReturnValue = Any
 
 
-def is_recursive_frames(frame1: Frame, frame2: Frame | None) -> bool:
+def _is_recursive_frame(frame: Frame, previous_frame: Frame | None) -> bool:
     """
-    Returns a boolean indicating whether frames are recursive calls.
+    Return a boolean indicating whether the given frame is a repeat of the frame before it and
+    therefore represents a recursive call.
     """
-    if frame2 is None:
+    if previous_frame is None:
         return False
 
     for field in RECURSION_COMPARISON_FIELDS:
-        if getattr(frame1, field, None) != getattr(frame2, field, None):
+        if getattr(frame, field, None) != getattr(previous_frame, field, None):
             return False
 
     return True
@@ -299,6 +300,8 @@ def frame(
 ) -> ReturnedVariants:
     frame = interface
     platform = frame.platform or event.platform
+    variant_name = context["variant_name"]
+    assert variant_name is not None
 
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
@@ -370,7 +373,7 @@ def frame(
     if context["is_recursion"]:
         frame_component.update(contributes=False, hint="ignored due to recursion")
 
-    return {context["variant"]: frame_component}
+    return {variant_name: frame_component}
 
 
 def get_contextline_component(
@@ -408,7 +411,7 @@ def get_contextline_component(
 def stacktrace(
     interface: Stacktrace, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
-    assert context["variant"] is None
+    assert context.get("variant_name") is None
 
     return call_with_variants(
         _single_stacktrace_variant,
@@ -423,7 +426,8 @@ def stacktrace(
 def _single_stacktrace_variant(
     stacktrace: Stacktrace, event: Event, context: GroupingContext, kwargs: dict[str, Any]
 ) -> ReturnedVariants:
-    variant_name = context["variant"]
+    variant_name = context["variant_name"]
+    assert variant_name is not None
 
     frames = stacktrace.frames
 
@@ -434,7 +438,7 @@ def _single_stacktrace_variant(
 
     for frame in frames:
         with context:
-            context["is_recursion"] = is_recursive_frames(frame, prev_frame)
+            context["is_recursion"] = _is_recursive_frame(frame, prev_frame)
             frame_component = context.get_single_grouping_component(frame, event=event, **kwargs)
 
         if variant_name == "app":
@@ -466,7 +470,7 @@ def _single_stacktrace_variant(
         frame_components,
         raw_frames,
         event.platform,
-        exception_data=context["exception_data"],
+        exception_data=context.get("exception_data"),
     )
 
     # This context value is set by the grouping info endpoint, so that the frame order of the

@@ -8,7 +8,6 @@ from functools import cached_property
 from typing import Any, TypeAlias
 
 import sentry_sdk
-from celery import Task
 from django.utils import timezone
 from pydantic import BaseModel, validator
 
@@ -21,12 +20,6 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
-from sentry.rules.processing.buffer_processing import (
-    BufferHashKeys,
-    DelayedProcessingBase,
-    FilterKeys,
-    delayed_processing_registry,
-)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.post_process import should_retry_fetch
@@ -58,7 +51,6 @@ from sentry.workflow_engine.processors.data_condition_group import (
 )
 from sentry.workflow_engine.processors.detector import get_detectors_by_groupevents_bulk
 from sentry.workflow_engine.processors.log_util import track_batch_performance
-from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
 from sentry.workflow_engine.types import WorkflowEventData
@@ -733,6 +725,7 @@ def fire_actions_for_groups(
                     filtered_actions,
                     workflow_event_data,
                     should_trigger_actions(group_event.group.type),
+                    is_delayed=True,
                 )
 
                 event_id = (
@@ -759,7 +752,9 @@ def fire_actions_for_groups(
                         task_params = build_trigger_action_task_params(
                             action, detector, workflow_event_data
                         )
-                        trigger_action.delay(**task_params)
+                        trigger_action.apply_async(
+                            kwargs=task_params, headers={"sentry-propagate-traces": False}
+                        )
 
     logger.info(
         "workflow_engine.delayed_workflow.triggered_actions_summary",
@@ -783,9 +778,7 @@ def repr_keys[T, V](d: dict[T, V]) -> dict[str, V]:
     return {repr(key): value for key, value in d.items()}
 
 
-def _summarize_by_first[T1, T2: int | str](
-    it: Iterable[tuple[T1, T2]],
-) -> dict[T1, list[T2]]:
+def _summarize_by_first[T1, T2: int | str](it: Iterable[tuple[T1, T2]]) -> dict[T1, list[T2]]:
     "Logging helper to allow pairs to be summarized as a mapping from first to list of second"
     result = defaultdict(set)
     for key, value in it:
@@ -819,6 +812,11 @@ def process_delayed_workflows(
     Grab workflows, groups, and data condition groups from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
     log_context.add_extras(project_id=project_id)
+    logger.info(
+        "workflow_engine.delayed_workflow.start",
+        extra={"batch_key": batch_key},
+    )
+
     with sentry_sdk.start_span(op="delayed_workflow.prepare_data"):
         project = fetch_project(project_id)
         if not project:
@@ -921,17 +919,3 @@ def process_delayed_workflows(
 
     fire_actions_for_groups(project.organization, groups_to_dcgs, group_to_groupevent)
     cleanup_redis_buffer(project_id, event_data.events.keys(), batch_key)
-
-
-@delayed_processing_registry.register("delayed_workflow")
-class DelayedWorkflow(DelayedProcessingBase):
-    buffer_key = WORKFLOW_ENGINE_BUFFER_LIST_KEY
-    option = "delayed_workflow.rollout"
-
-    @property
-    def hash_args(self) -> BufferHashKeys:
-        return BufferHashKeys(model=Workflow, filters=FilterKeys(project_id=self.project_id))
-
-    @property
-    def processing_task(self) -> Task:
-        return process_delayed_workflows
