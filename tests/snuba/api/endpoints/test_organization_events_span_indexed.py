@@ -3326,7 +3326,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert len(data) == 1
         assert data[0]["performance_score(measurements.score.lcp)"] == 0.02
         assert data[0]["performance_score(measurements.score.cls)"] == 0.08
-        assert data[0]["performance_score(measurements.score.ttfb)"] == 0.0
+        assert data[0]["performance_score(measurements.score.ttfb)"] is None
         assert data[0]["performance_score(measurements.score.fcp)"] == 0.08
         assert data[0]["performance_score(measurements.score.inp)"] == 0.5
         self.assertAlmostEqual(data[0]["performance_score(measurements.score.total)"], 0.20)
@@ -3384,8 +3384,8 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["transaction"] == "foo_transaction"
         self.assertAlmostEqual(data[0]["performance_score(measurements.score.total)"], 0.8)
         assert data[0]["performance_score(measurements.score.lcp)"] == 0.8
-        assert data[0]["performance_score(measurements.score.cls)"] == 0.0
-        assert data[0]["performance_score(measurements.score.fcp)"] == 0.0
+        assert data[0]["performance_score(measurements.score.cls)"] is None
+        assert data[0]["performance_score(measurements.score.fcp)"] is None
         self.assertAlmostEqual(
             data[0]["opportunity_score(measurements.score.total)"], 0.13333333333333333
         )
@@ -3394,9 +3394,9 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["opportunity_score(measurements.score.fcp)"] == 0.0
         assert data[1]["transaction"] == "bar_transaction"
         self.assertAlmostEqual(data[1]["performance_score(measurements.score.total)"], 0.7)
-        assert data[1]["performance_score(measurements.score.lcp)"] == 0.0
+        assert data[1]["performance_score(measurements.score.lcp)"] is None
         assert data[1]["performance_score(measurements.score.cls)"] == 0.7
-        assert data[1]["performance_score(measurements.score.fcp)"] == 0.0
+        assert data[1]["performance_score(measurements.score.fcp)"] is None
         self.assertAlmostEqual(data[1]["opportunity_score(measurements.score.total)"], 0.1)
         assert data[1]["opportunity_score(measurements.score.lcp)"] == 0.0
         self.assertAlmostEqual(data[1]["opportunity_score(measurements.score.cls)"], 0.3)
