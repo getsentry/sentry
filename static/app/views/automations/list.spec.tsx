@@ -208,7 +208,7 @@ describe('AutomationsList', function () {
       );
     });
 
-    it('can select individual automations', async function () {
+    it('can select automations', async function () {
       render(<AutomationsList />, {organization});
       await screen.findByText('Enabled Automation');
 
@@ -236,26 +236,12 @@ describe('AutomationsList', function () {
       expect(screen.getByRole('button', {name: 'Disable'})).toBeInTheDocument();
       // Should always show Delete button
       expect(screen.getByRole('button', {name: 'Delete'})).toBeInTheDocument();
-    });
-
-    it('can select all automations on page', async function () {
-      render(<AutomationsList />, {organization});
-      await screen.findByText('Enabled Automation');
-
-      const rows = screen.getAllByTestId('automation-list-row');
-
-      // Select first automation
-      const firstRowCheckbox = within(rows[0]!).getByRole('checkbox');
-      await userEvent.click(firstRowCheckbox);
-      expect(firstRowCheckbox).toBeChecked();
 
       // Select master checkbox to select all on page
-      const masterCheckbox = screen.getAllByRole('checkbox')[0]!;
       await userEvent.click(masterCheckbox);
       expect(masterCheckbox).toBeChecked();
 
       // // All checkboxes should be checked
-      const checkboxes = screen.getAllByRole('checkbox');
       checkboxes.forEach(checkbox => {
         expect(checkbox).toBeChecked();
       });

@@ -50,40 +50,49 @@ export function AutomationsTableActions({
   const {mutateAsync: updateAutomations, isPending: isUpdating} =
     useUpdateAutomationsMutation();
 
-  const getConfirmMessage = useCallback(
-    (action: string) => {
-      if (allInQuerySelected) {
-        return tct(
-          'Are you sure you want to [action] all [queryCount] automations that match the search?',
-          {
-            action,
-            queryCount,
-          }
-        );
-      }
-      return tn(
-        // Use sprintf argument swapping since the number value must come
-        // first. See https://github.com/alexei/sprintf.js#argument-swapping
-        `Are you sure you want to %2$s this %s automation?`,
-        `Are you sure you want to %2$s these %s automations?`,
-        selected.size,
-        action
+  const getEnableConfirmMessage = useCallback(() => {
+    if (allInQuerySelected) {
+      return tct(
+        'Are you sure you want to enable all [queryCount] automations that match the search?',
+        {
+          queryCount,
+        }
       );
-    },
-    [allInQuerySelected, queryCount, selected.size]
-  );
+    }
+    return tn(
+      `Are you sure you want to enable this %s automation?`,
+      `Are you sure you want to enable these %s automations?`,
+      selected.size
+    );
+  }, [allInQuerySelected, queryCount, selected.size]);
+
+  const getDisableConfirmMessage = useCallback(() => {
+    if (allInQuerySelected) {
+      return tct(
+        'Are you sure you want to disable all [queryCount] automations that match the search?',
+        {
+          queryCount,
+        }
+      );
+    }
+    return tn(
+      `Are you sure you want to disable this %s automation?`,
+      `Are you sure you want to disable these %s automations?`,
+      selected.size
+    );
+  }, [allInQuerySelected, queryCount, selected.size]);
 
   const handleUpdate = useCallback(
     ({enabled}: {enabled: boolean}) => {
       openConfirmModal({
-        message: getConfirmMessage(enabled ? t('enable') : t('disable')),
+        message: enabled ? getEnableConfirmMessage() : getDisableConfirmMessage(),
         confirmText: enabled ? t('Enable') : t('Disable'),
         priority: 'danger',
-        onConfirm: () => {
+        onConfirm: async () => {
           if (allInQuerySelected) {
-            updateAutomations({enabled, query, projects: selection.projects});
+            await updateAutomations({enabled, query, projects: selection.projects});
           } else {
-            updateAutomations({enabled, ids: Array.from(selected)});
+            await updateAutomations({enabled, ids: Array.from(selected)});
           }
           togglePageSelected(false);
         },
@@ -93,23 +102,40 @@ export function AutomationsTableActions({
       selected,
       allInQuerySelected,
       updateAutomations,
-      getConfirmMessage,
+      getEnableConfirmMessage,
+      getDisableConfirmMessage,
       togglePageSelected,
       selection.projects,
       query,
     ]
   );
 
+  const getDeleteConfirmMessage = useCallback(() => {
+    if (allInQuerySelected) {
+      return tct(
+        'Are you sure you want to delete all [queryCount] automations that match the search?',
+        {
+          queryCount,
+        }
+      );
+    }
+    return tn(
+      `Are you sure you want to delete this %s automation?`,
+      `Are you sure you want to delete these %s automations?`,
+      selected.size
+    );
+  }, [allInQuerySelected, queryCount, selected.size]);
+
   const handleDelete = useCallback(() => {
     openConfirmModal({
-      message: getConfirmMessage(t('delete')),
+      message: getDeleteConfirmMessage(),
       confirmText: t('Delete'),
       priority: 'danger',
-      onConfirm: () => {
+      onConfirm: async () => {
         if (allInQuerySelected) {
-          deleteAutomations({query, projects: selection.projects});
+          await deleteAutomations({query, projects: selection.projects});
         } else {
-          deleteAutomations({ids: Array.from(selected)});
+          await deleteAutomations({ids: Array.from(selected)});
         }
         togglePageSelected(false);
       },
@@ -118,7 +144,7 @@ export function AutomationsTableActions({
     selected,
     allInQuerySelected,
     deleteAutomations,
-    getConfirmMessage,
+    getDeleteConfirmMessage,
     togglePageSelected,
     selection.projects,
     query,
@@ -177,11 +203,11 @@ export function AutomationsTableActions({
                   '%s automations on this page selected.',
                   selected.size
                 )}
-                <a onClick={() => setAllInQuerySelected(true)}>
+                <Button priority={'link'} onClick={() => setAllInQuerySelected(true)}>
                   {tct('Select all [count] automations that match this search query.', {
                     count: queryCount,
                   })}
-                </a>
+                </Button>
               </Fragment>
             )}
           </Flex>
