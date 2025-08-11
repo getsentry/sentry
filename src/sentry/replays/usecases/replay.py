@@ -202,12 +202,9 @@ QUERY_MAP: dict[str, Expression] = {
         "dateDiff",
         parameters=[
             "second",
-            Function("min", parameters=[Column("replay_start_timestamp")], alias="started_at"),
+            Function("min", parameters=[Column("replay_start_timestamp")]),
             conditional_function(
-                "maxIf",
-                Column("timestamp"),
-                Condition(Column("segment_id"), Op.IS_NOT_NULL),
-                alias="finished_at",
+                "maxIf", Column("timestamp"), Condition(Column("segment_id"), Op.IS_NOT_NULL)
             ),
         ],
         alias="duration",
