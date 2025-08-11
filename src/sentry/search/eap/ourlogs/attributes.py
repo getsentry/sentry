@@ -42,6 +42,16 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
             validator=is_event_id_or_list,
         ),
+        ResolvedAttribute(
+            public_alias="timestamp_precise",
+            internal_name="tags[sentry.timestamp_precise,number]",
+            search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="observed_timestamp_nanos",
+            internal_name="sentry.observed_timestamp_nanos",
+            search_type="string",
+        ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("browser.version"),
         simple_sentry_field("environment"),
