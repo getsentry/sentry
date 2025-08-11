@@ -2171,12 +2171,14 @@ describe('GSBanner Overage Alerts', function () {
         // this would never happen in practice, but we're asserting that we properly filter out non-billed categories
         logItems: MetricHistoryFixture({usageExceeded: true}),
         profileChunks: MetricHistoryFixture({usageExceeded: true}),
+        profiles: MetricHistoryFixture({usageExceeded: true}),
       },
     });
     subscription.planDetails.categories = [
       ...subscription.planDetails.categories,
       DataCategory.LOG_ITEM,
       DataCategory.PROFILE_CHUNKS,
+      DataCategory.PROFILES,
     ];
     SubscriptionStore.set(organization.slug, subscription);
 
@@ -2199,6 +2201,7 @@ describe('GSBanner Overage Alerts', function () {
     const nonBilledOveragePrompts = [
       'log_items_overage_alert',
       'profile_chunks_overage_alert',
+      'profiles_overage_alert',
     ];
     expect(
       (lastCall[1].query.feature as string[]).some(prompt =>
