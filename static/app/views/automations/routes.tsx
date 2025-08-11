@@ -66,7 +66,7 @@ function RedirectToRuleList({children}: {children: React.ReactNode}) {
   return children;
 }
 
-export function RedirectToNewRule({children}: {children: React.ReactNode}) {
+function RedirectToNewRule({children}: {children: React.ReactNode}) {
   const user = useUser();
   const organization = useOrganization();
 
@@ -93,7 +93,7 @@ interface AlertRuleWorkflow {
   ruleId?: string;
 }
 
-export function RedirectToRuleDetails({children}: {children: React.ReactNode}) {
+function RedirectToRuleDetails({children}: {children: React.ReactNode}) {
   const user = useUser();
   const organization = useOrganization();
 
