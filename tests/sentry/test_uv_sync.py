@@ -12,9 +12,8 @@ def test_uv_lock_in_sync() -> None:
                 continue
             reqs.add(line)
 
-    out = subprocess.run(
+    out = subprocess.check_output(
         ("uv", "export", "--no-hashes", "--no-annotate", "--no-header"),
-        capture_output=True,
     )
 
     uv_reqs = set()
