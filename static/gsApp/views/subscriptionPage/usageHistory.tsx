@@ -40,8 +40,13 @@ import {
   formatReservedWithUnits,
   formatUsageWithUnits,
   getSoftCapType,
+  MILLISECONDS_IN_HOUR,
 } from 'getsentry/utils/billing';
-import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
+import {
+  getPlanCategoryName,
+  isContinuousProfiling,
+  sortCategories,
+} from 'getsentry/utils/dataCategory';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import ContactBillingMembers from 'getsentry/views/contactBillingMembers';
 
@@ -341,7 +346,9 @@ function UsageHistoryRow({history, subscription}: RowProps) {
                         : usagePercentage(
                             metricHistory.category === DataCategory.ATTACHMENTS
                               ? metricHistory.usage / GIGABYTE
-                              : metricHistory.usage,
+                              : isContinuousProfiling(metricHistory.category)
+                                ? metricHistory.usage / MILLISECONDS_IN_HOUR
+                                : metricHistory.usage,
                             metricHistory.prepaid
                           )}
                     </td>
