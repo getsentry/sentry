@@ -6,6 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {IconAdd, IconGeneric} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {useDashboardsLimit} from 'sentry/views/dashboards/hooks/useDashboardsLimit';
 
 type Props = {
   description: string;
@@ -16,6 +17,11 @@ type Props = {
 
 function TemplateCard({title, description, onPreview, onAdd}: Props) {
   const [isAddingDashboardTemplate, setIsAddingDashboardTemplate] = useState(false);
+  const {
+    hasReachedDashboardLimit,
+    isLoading: isLoadingDashboardsLimit,
+    limitMessage,
+  } = useDashboardsLimit();
 
   return (
     <StyledCard>
@@ -36,6 +42,8 @@ function TemplateCard({title, description, onPreview, onAdd}: Props) {
           }}
           icon={<IconAdd isCircled />}
           busy={isAddingDashboardTemplate}
+          disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
+          title={limitMessage}
         >
           {t('Add Dashboard')}
         </StyledButton>

@@ -14,6 +14,7 @@ import {useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useDashboardsLimit} from 'sentry/views/dashboards/hooks/useDashboardsLimit';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {useResetDashboardLists} from 'sentry/views/dashboards/hooks/useResetDashboardLists';
@@ -45,6 +46,11 @@ export function DashboardTable({
   const handleDeleteDashboard = useDeleteDashboard({
     onSuccess: resetDashboardLists,
   });
+  const {
+    hasReachedDashboardLimit,
+    isLoading: isLoadingDashboardsLimit,
+    limitMessage,
+  } = useDashboardsLimit();
 
   const handleCursor: CursorHandler = (_cursor, pathname, query) => {
     navigate({
@@ -155,6 +161,8 @@ export function DashboardTable({
                     key: 'duplicate',
                     label: t('Duplicate'),
                     onAction: () => handleDuplicateDashboard(dashboard, 'table'),
+                    disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
+                    tooltip: limitMessage,
                   },
                   ...(dashboard.createdBy === null
                     ? []

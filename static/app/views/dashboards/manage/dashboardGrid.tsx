@@ -19,6 +19,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import withApi from 'sentry/utils/withApi';
+import {useDashboardsLimit} from 'sentry/views/dashboards/hooks/useDashboardsLimit';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {
@@ -58,6 +59,11 @@ function DashboardGrid({
   const handleDeleteDashboard = useDeleteDashboard({
     onSuccess: onDashboardsChange,
   });
+  const {
+    hasReachedDashboardLimit,
+    isLoading: isLoadingDashboardsLimit,
+    limitMessage,
+  } = useDashboardsLimit();
   // this acts as a cache for the dashboards being passed in. It preserves the previously populated dashboard list
   // to be able to show the 'previous' dashboards on resize
   const [currentDashboards, setCurrentDashboards] = useState<
@@ -98,6 +104,8 @@ function DashboardGrid({
             onConfirm: () => handleDuplicateDashboard(dashboard, 'grid'),
           });
         },
+        disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
+        tooltip: limitMessage,
       },
       {
         key: 'dashboard-delete',

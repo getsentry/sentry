@@ -38,6 +38,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDashboardTemplates} from 'sentry/views/dashboards/data';
+import {useDashboardsLimit} from 'sentry/views/dashboards/hooks/useDashboardsLimit';
 import {useOwnedDashboards} from 'sentry/views/dashboards/hooks/useOwnedDashboards';
 import {
   assignDefaultLayout,
@@ -274,6 +275,12 @@ function ManageDashboards() {
     organization,
     sortOptions,
   ]);
+
+  const {
+    hasReachedDashboardLimit,
+    isLoading: isLoadingDashboardsLimit,
+    limitMessage,
+  } = useDashboardsLimit();
 
   function getActiveSort() {
     const defaultSort = getDefaultSort({
@@ -527,7 +534,7 @@ function ManageDashboards() {
   return (
     <Feature
       organization={organization}
-      features="dashboards-edit"
+      features="dashboards-plan-limits"
       renderDisabled={renderNoAccess}
     >
       <SentryDocumentTitle title={t('All Dashboards')} orgSlug={organization.slug}>
@@ -571,6 +578,11 @@ function ManageDashboards() {
                         size="sm"
                         priority="primary"
                         icon={<IconAdd />}
+                        disabled={
+                          organization.features.includes('dashboards-plan-limits') &&
+                          (hasReachedDashboardLimit || isLoadingDashboardsLimit)
+                        }
+                        title={limitMessage}
                       >
                         {t('Create Dashboard')}
                       </Button>
