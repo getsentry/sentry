@@ -4,9 +4,6 @@
 const config = {
   plugins: ['@prettier/plugin-oxc', '@ianvs/prettier-plugin-sort-imports'],
   importOrder: [
-    // Side effect imports.
-    String.raw`^\u0000`,
-    '',
     // Node.js builtins.
     '<BUILTIN_MODULES>',
     '',
