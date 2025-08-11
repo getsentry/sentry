@@ -3,17 +3,24 @@ from __future__ import annotations
 import logging
 from typing import TypedDict
 
-import requests
 from django.conf import settings
+from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features
 from sentry.models.organization import Organization
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.net.http import connection_from_url
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
-SEER_GENERATE_TITLE_URL = f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/title"
+SEER_TITLE_GENERATION_ENDPOINT_URL = "v1/automation/summarize/feedback/title"
+SEER_TITLE_GENERATION_URL = f"{settings.SEER_AUTOFIX_URL}/{SEER_TITLE_GENERATION_ENDPOINT_URL}"
+
+seer_connection_pool = connection_from_url(
+    settings.SEER_AUTOFIX_URL,
+    timeout=settings.SEER_DEFAULT_TIMEOUT,
+)
 
 
 class GenerateFeedbackTitleRequest(TypedDict):
@@ -93,7 +100,19 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
     )
 
     try:
-        response_data = json.loads(make_seer_request(seer_request).decode("utf-8"))
+        response = make_signed_seer_api_request(
+            connection_pool=seer_connection_pool,
+            path=SEER_TITLE_GENERATION_ENDPOINT_URL,
+            body=json.dumps(seer_request).encode("utf-8"),
+        )
+        response_data = json.loads(response.data.decode("utf-8"))
+    except (TimeoutError, MaxRetryError):
+        logger.warning("Timeout error when hitting Seer title generation endpoint")
+        metrics.incr(
+            "feedback.ai_title_generation.error",
+            tags={"reason": "timeout"},
+        )
+        return None
     except Exception:
         logger.exception("Seer failed to generate a title for user feedback")
         metrics.incr(
@@ -123,22 +142,3 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
         "feedback.ai_title_generation.success",
     )
     return title
-
-
-def make_seer_request(request: GenerateFeedbackTitleRequest) -> bytes:
-    """Make a request to the Seer service for AI title generation."""
-    serialized_request = json.dumps(request)
-
-    response = requests.post(
-        SEER_GENERATE_TITLE_URL,
-        data=serialized_request,
-        headers={
-            "content-type": "application/json;charset=utf-8",
-            **sign_with_seer_secret(serialized_request.encode()),
-        },
-    )
-
-    if response.status_code != 200:
-        response.raise_for_status()
-
-    return response.content
