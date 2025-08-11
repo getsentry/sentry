@@ -22,14 +22,14 @@ export function OverviewIssuesWidget() {
     'api.insights.overview-issues-widget'
   );
 
+  if (isLoading) {
+    return <TableWidgetVisualization.LoadingPlaceholder columns={columns} />;
+  }
+
   const tableData = {
     data,
     meta: {fields: {...meta?.fields}, units: {...meta?.units}} as TabularMeta, // TODO: ideally this is properly typed, but EventsMeta doesn't match TabularMeta even tho they seem like they should
   };
-
-  if (isLoading) {
-    return <TableWidgetVisualization.LoadingPlaceholder columns={columns} />;
-  }
 
   return <TableWidgetVisualization tableData={tableData} columns={columns} />;
 }
