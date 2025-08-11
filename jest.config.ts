@@ -2,38 +2,47 @@ import type {Config} from '@jest/types';
 import path from 'node:path';
 import process from 'node:process';
 import {execFileSync} from 'node:child_process';
-import type {TransformOptions} from '@babel/core';
+import type {Config as SwcConfig} from '@swc/core';
 
-const babelConfig: TransformOptions = {
-  presets: [
-    [
-      '@babel/preset-react',
-      {
+// Get major version of node 22.10.0 to 22
+const NODE_VERSION = process.versions.node.split('.')[0];
+
+const swcConfig: SwcConfig = {
+  sourceMaps: true,
+  jsc: {
+    externalHelpers: true,
+    experimental: {
+      plugins: [
+        [
+          '@swc/plugin-emotion',
+          {
+            sourceMap: true,
+            autoLabel: 'always',
+          },
+        ],
+        // https://github.com/magic-akari/swc_mut_cjs_exports
+        ['swc_mut_cjs_exports', {}],
+      ],
+    },
+    parser: {
+      syntax: 'typescript',
+      tsx: true,
+    },
+    transform: {
+      react: {
         runtime: 'automatic',
         importSource: '@emotion/react',
       },
-    ],
-    [
-      '@babel/preset-env',
-      {
-        useBuiltIns: 'usage',
-        corejs: '3.41',
-        targets: {
-          node: 'current',
-        },
-      },
-    ],
-    // TODO: Remove allowDeclareFields when we upgrade to Babel 8
-    ['@babel/preset-typescript', {allowDeclareFields: true, onlyRemoveTypeImports: true}],
-  ],
-  plugins: [
-    [
-      '@emotion/babel-plugin',
-      {
-        sourceMap: false,
-      },
-    ],
-  ],
+    },
+  },
+  env: {
+    targets: `node ${NODE_VERSION}`,
+  },
+  module: {
+    // In order to stop testing in commonjs, we would need to fix a number of module mocks and spyOns
+    // that break when using esm style modules.
+    type: 'commonjs',
+  },
 };
 
 const {
@@ -299,8 +308,8 @@ const config: Config.InitialOptions = {
     '<rootDir>/node_modules/reflux',
   ],
   transform: {
-    '^.+\\.jsx?$': ['babel-jest', babelConfig as any],
-    '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
+    '^.+\\.jsx?$': ['@swc/jest', swcConfig],
+    '^.+\\.tsx?$': ['@swc/jest', swcConfig],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [

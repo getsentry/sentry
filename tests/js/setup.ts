@@ -1,5 +1,6 @@
 'use strict';
 import '@testing-library/jest-dom';
+import 'core-js/actual/structured-clone';
 
 import type {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
@@ -16,7 +17,6 @@ import type {Client} from 'sentry/__mocks__/api';
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {DANGEROUS_SET_TEST_HISTORY} from 'sentry/utils/browserHistory';
-import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 
 /**
  * Set locale to English
@@ -61,9 +61,10 @@ jest.mock('lodash/debounce', () =>
 );
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
-jest
-  .spyOn(performanceForSentry, 'VisuallyCompleteWithData')
-  .mockImplementation(props => props.children as ReactElement);
+jest.mock('sentry/utils/performanceForSentry', () => ({
+  ...jest.requireActual('sentry/utils/performanceForSentry'),
+  VisuallyCompleteWithData: jest.fn(props => props.children as ReactElement),
+}));
 jest.mock('scroll-to-element', () => jest.fn());
 
 jest.mock('getsentry/utils/stripe');
