@@ -52,6 +52,11 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.observed_timestamp_nanos",
             search_type="string",
         ),
+        ResolvedAttribute(
+            public_alias="payload_size_bytes",
+            internal_name="sentry.payload_size_bytes",
+            search_type="number",
+        ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("browser.version"),
         simple_sentry_field("environment"),
