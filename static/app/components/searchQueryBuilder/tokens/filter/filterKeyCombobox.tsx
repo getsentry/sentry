@@ -1,7 +1,8 @@
 import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Item} from '@react-stately/collections';
-import type {Node} from '@react-types/shared';
+import type {ComboBoxState} from '@react-stately/combobox';
+import type {KeyboardEvent, Node} from '@react-types/shared';
 
 import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
@@ -161,6 +162,63 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
     onCommit();
   }, [onCommit]);
 
+  const keyUpCounter = useRef(0);
+  const keyDownCounter = useRef(0);
+  const onKeyDown = useCallback(
+    (e: KeyboardEvent, {state}: {state: ComboBoxState<SearchKeyItem>}) => {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const firstKey = state.collection.getFirstKey();
+        const lastKey = state.collection.getLastKey();
+        const currentKey = state.selectionManager.focusedKey;
+
+        if (currentKey === firstKey) {
+          keyUpCounter.current++;
+          keyDownCounter.current++;
+
+          if (keyUpCounter.current >= 2) {
+            keyUpCounter.current = 0;
+            state.selectionManager.setFocusedKey(state.collection.getLastKey());
+          }
+        }
+        // Case when user goes from input to last item
+        else if (currentKey === lastKey && keyDownCounter.current === 0) {
+          keyDownCounter.current = 2;
+        } else {
+          keyUpCounter.current = 0;
+          keyDownCounter.current = 0;
+        }
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const firstKey = state.collection.getFirstKey();
+        const lastKey = state.collection.getLastKey();
+        const currentKey = state.selectionManager.focusedKey;
+
+        if (currentKey === lastKey) {
+          keyUpCounter.current++;
+          keyDownCounter.current++;
+
+          if (keyDownCounter.current >= 2) {
+            keyDownCounter.current = 0;
+            state.selectionManager.setFocusedKey(state.collection.getFirstKey());
+          }
+        }
+        // case when user goes from input to first item
+        else if (currentKey === firstKey) {
+          keyUpCounter.current = 2;
+        } else {
+          keyUpCounter.current = 0;
+          keyDownCounter.current = 0;
+        }
+        return;
+      }
+    },
+    []
+  );
+
   return (
     <EditingWrapper>
       <SearchQueryBuilderCombobox
@@ -169,6 +227,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         onOptionSelected={onOptionSelected}
         onCustomValueCommitted={onValueCommitted}
         onCustomValueBlurred={onCustomValueBlurred}
+        onKeyDown={onKeyDown}
         onExit={onExit}
         inputValue={inputValue}
         placeholder={getKeyLabel(token.key)}
