@@ -4,7 +4,7 @@ import logging
 from typing import TypedDict
 
 from django.conf import settings
-from urllib3.exceptions import MaxRetryError, TimeoutError
+from urllib3.exceptions import HTTPError, MaxRetryError, TimeoutError
 
 from sentry import features
 from sentry.models.organization import Organization
@@ -18,8 +18,7 @@ SEER_TITLE_GENERATION_ENDPOINT_URL = "v1/automation/summarize/feedback/title"
 SEER_TITLE_GENERATION_URL = f"{settings.SEER_AUTOFIX_URL}/{SEER_TITLE_GENERATION_ENDPOINT_URL}"
 
 seer_connection_pool = connection_from_url(
-    settings.SEER_AUTOFIX_URL,
-    timeout=settings.SEER_DEFAULT_TIMEOUT,
+    settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
 )
 
 
@@ -106,15 +105,17 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
             body=json.dumps(seer_request).encode("utf-8"),
         )
         response_data = json.loads(response.data.decode("utf-8"))
+        if response.status != 200:
+            raise HTTPError(f"Seer title generation endpoint returned status {response.status}")
     except (TimeoutError, MaxRetryError):
-        logger.warning("Timeout error when hitting Seer title generation endpoint")
+        logger.warning("Seer title generation endpoint timed out")
         metrics.incr(
             "feedback.ai_title_generation.error",
-            tags={"reason": "timeout"},
+            tags={"reason": "seer_timeout"},
         )
         return None
     except Exception:
-        logger.exception("Seer failed to generate a title for user feedback")
+        logger.exception("Seer title generation endpoint failed")
         metrics.incr(
             "feedback.ai_title_generation.error",
             tags={"reason": "seer_response_failed"},
@@ -124,7 +125,7 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
     try:
         title = response_data["title"]
     except KeyError:
-        logger.exception("Seer returned invalid response for user feedback title")
+        logger.exception("Seer title generation endpoint returned invalid response")
         metrics.incr(
             "feedback.ai_title_generation.error",
             tags={"reason": "invalid_response"},
