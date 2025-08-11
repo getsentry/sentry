@@ -42,6 +42,86 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
         )
         assert batch_query == {self.event3.group_id: 1}
 
+    def test_batch_query_with_upsampling_enabled_counts_upsampled(self) -> None:
+        # Create two sampled error events in a dedicated group
+        event_a = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "environment": self.environment.name,
+                "timestamp": before_now(seconds=20).isoformat(),
+                "fingerprint": ["upsampled-group"],
+                "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+                "exception": {"values": [{"type": "ValueError", "value": "a"}]},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "environment": self.environment.name,
+                "timestamp": before_now(seconds=10).isoformat(),
+                "fingerprint": ["upsampled-group"],
+                "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+                "exception": {"values": [{"type": "ValueError", "value": "b"}]},
+            },
+            project_id=self.project.id,
+        )
+
+        groups = list(
+            Group.objects.filter(id=event_a.group_id).values(
+                "id", "type", "project_id", "project__organization_id"
+            )
+        )
+
+        with self.options({"issues.client_error_sampling.project_allowlist": [self.project.id]}):
+            batch_query = self.handler().batch_query(
+                groups=groups,
+                start=self.start,
+                end=self.end,
+                environment_id=self.environment.id,
+            )
+        # Expect 2 events upsampled by 5x => 10
+        assert batch_query[event_a.group_id] == 10
+
+    def test_batch_query_without_upsampling_counts_raw(self) -> None:
+        # Same setup as above but without allowlist; expect raw count of 2
+        event_a = self.store_event(
+            data={
+                "event_id": "f" * 32,
+                "environment": self.environment.name,
+                "timestamp": before_now(seconds=20).isoformat(),
+                "fingerprint": ["upsampled-group-raw"],
+                "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+                "exception": {"values": [{"type": "ValueError", "value": "a"}]},
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "1" * 32,
+                "environment": self.environment.name,
+                "timestamp": before_now(seconds=10).isoformat(),
+                "fingerprint": ["upsampled-group-raw"],
+                "contexts": {"error_sampling": {"client_sample_rate": 0.2}},
+                "exception": {"values": [{"type": "ValueError", "value": "b"}]},
+            },
+            project_id=self.project.id,
+        )
+
+        groups = list(
+            Group.objects.filter(id=event_a.group_id).values(
+                "id", "type", "project_id", "project__organization_id"
+            )
+        )
+
+        batch_query = self.handler().batch_query(
+            groups=groups,
+            start=self.start,
+            end=self.end,
+            environment_id=self.environment.id,
+        )
+        assert batch_query[event_a.group_id] == 2
+
     def test_batch_query__tag_conditions__equal(self) -> None:
         batch_query = self.handler().batch_query(
             groups=self.groups,
