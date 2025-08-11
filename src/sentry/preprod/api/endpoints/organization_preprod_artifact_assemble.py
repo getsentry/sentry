@@ -14,6 +14,7 @@ from sentry.debug_files.upload import find_missing_chunks
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
 from sentry.preprod.tasks import assemble_preprod_artifact, create_preprod_artifact
+from sentry.preprod.url_utils import get_preprod_artifact_url
 from sentry.tasks.assemble import ChunkFileState
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -183,6 +184,12 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             if is_org_auth_token_auth(request.auth):
                 update_org_auth_token_last_used(request.auth, [project.id])
 
+        artifact_url = get_preprod_artifact_url(project.organization_id, artifact_id)
+
         return Response(
-            {"state": ChunkFileState.OK, "missingChunks": [], "artifactId": artifact_id}
+            {
+                "state": ChunkFileState.CREATED,
+                "missingChunks": [],
+                "artifactUrl": artifact_url,
+            }
         )
