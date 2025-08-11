@@ -155,6 +155,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         assert problem.fingerprint == "1-1911-44f4f3cc14f0f8d0c5ae372e5e8c80e7ba84f413"
 
         assert len(problem.offender_span_ids) == num_offender_spans
+        assert problem.evidence_data is not None
         assert problem.evidence_data["number_repeating_spans"] == str(num_offender_spans)
         assert problem.evidence_data["offender_span_ids"] == offender_span_ids
         assert problem.evidence_data["op"] == "db"
@@ -169,6 +170,7 @@ class MNPlusOneDBDetectorTest(TestCase):
         assert problem.type == PerformanceNPlusOneExperimentalGroupType
         assert problem.fingerprint == "1-1911-50301e409950f4b1cc0a02d9d172684b4020ae32"
         assert len(problem.offender_span_ids) == 10
+        assert problem.evidence_data is not None
         assert problem.evidence_data["number_repeating_spans"] == str(10)
         assert (
             problem.evidence_data["repeating_spans_compact"][0]
