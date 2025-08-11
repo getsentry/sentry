@@ -72,7 +72,7 @@ class DeploySerializer(serializers.Serializer):
         help_text="An optional date that indicates when the deploy ended. If not provided, the current time is used.",
     )
     projects = serializers.ListField(
-        child=ProjectField(scope="project:read", id_allowed=True),
+        child=ProjectField(scope=("project:read", "project:releases"), id_allowed=True),
         required=False,
         allow_empty=False,
         help_text="The optional list of project slugs to create a deploy within. If not provided, deploys are created for all of the release's projects.",
