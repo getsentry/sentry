@@ -1,28 +1,21 @@
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
-import type {Organization} from 'sentry/types/organization';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
-import withOrganization from 'sentry/utils/withOrganization';
 
 import EventDetailsContent from './content';
 
-type Props = RouteComponentProps<{eventSlug: string}> & {
-  organization: Organization;
-};
-
-function EventDetails(props: Props) {
+function EventDetails() {
+  const organization = useOrganization();
   const {projects} = useProjects();
+  const location = useLocation();
+  const params = useParams<{eventSlug: string}>();
 
-  const getEventSlug = (): string => {
-    const {eventSlug} = props.params;
-    return typeof eventSlug === 'string' ? eventSlug.trim() : '';
-  };
-
-  const {organization, location, params} = props;
   const documentTitle = t('Performance Details');
-  const eventSlug = getEventSlug();
+  const eventSlug = typeof params.eventSlug === 'string' ? params.eventSlug.trim() : '';
   const projectSlug = eventSlug.split(':')[0];
 
   return (
@@ -44,4 +37,4 @@ function EventDetails(props: Props) {
   );
 }
 
-export default withOrganization(EventDetails);
+export default EventDetails;
