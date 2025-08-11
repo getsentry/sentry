@@ -19,7 +19,6 @@ export default function useFeedbackCategories(): {
   categories: FeedbackCategory[] | null;
   isError: boolean;
   isPending: boolean;
-  numFeedbacksContext: number;
   tooFewFeedbacks: boolean;
 } {
   const organization = useOrganization();
@@ -51,7 +50,6 @@ export default function useFeedbackCategories(): {
       isPending: true,
       isError: false,
       tooFewFeedbacks: false,
-      numFeedbacksContext: 0,
     };
   }
 
@@ -61,7 +59,6 @@ export default function useFeedbackCategories(): {
       isPending: false,
       isError: true,
       tooFewFeedbacks: false,
-      numFeedbacksContext: 0,
     };
   }
 
@@ -70,6 +67,5 @@ export default function useFeedbackCategories(): {
     isPending: false,
     isError: false,
     tooFewFeedbacks: data.numFeedbacksContext === 0 && !data.success,
-    numFeedbacksContext: data.numFeedbacksContext,
   };
 }
