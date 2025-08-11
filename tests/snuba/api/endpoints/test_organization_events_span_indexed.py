@@ -3080,6 +3080,25 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert data[0]["performance_score(measurements.score.lcp)"] == 0.06
         assert meta["dataset"] == "spans"
 
+    def test_performance_score_zero(self) -> None:
+
+        response = self.do_request(
+            {
+                "field": [
+                    "performance_score(measurements.score.lcp)",
+                ],
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["performance_score(measurements.score.lcp)"] is None
+        assert meta["dataset"] == "spans"
+
     def test_division_if(self) -> None:
         self.store_spans(
             [
