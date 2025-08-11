@@ -30,6 +30,7 @@ import type {
   incrementalSnapshotEvent,
   MemoryFrame,
   OptionFrame,
+  RawReplayError,
   RecordingFrame,
   ReplayFrame,
   serializedNodeWithId,
@@ -54,7 +55,7 @@ import {
   isWebVitalFrame,
   NodeType,
 } from 'sentry/utils/replays/types';
-import type {HydratedReplayRecord, ReplayError} from 'sentry/views/replays/types';
+import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
 interface ReplayReaderParams {
   /**
@@ -71,7 +72,7 @@ interface ReplayReaderParams {
    * Error instances could be frontend, backend, or come from the error platform
    * like performance-errors or replay-errors
    */
-  errors: ReplayError[] | undefined;
+  errors: RawReplayError[] | undefined;
 
   /**
    * Is replay data still fetching?
