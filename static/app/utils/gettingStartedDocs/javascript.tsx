@@ -153,12 +153,12 @@ export const getJavascriptProfilingOnboarding = <
 export const getJavascriptLogsOnboarding = <
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 >({
+  docsLink,
   sdkPackage,
   installSnippetBlock,
-  integrationsLink,
 }: {
+  docsLink: string;
   installSnippetBlock: ContentBlock;
-  integrationsLink: string;
   sdkPackage: `@sentry/${string}`;
 }): OnboardingConfig<PlatformOptions> => ({
   install: () => [
@@ -202,6 +202,12 @@ Sentry.init({
 });
 `,
         },
+        {
+          type: 'text',
+          text: tct('For more detailed information, see the [link:logs documentation].', {
+            link: <ExternalLink href={docsLink} />,
+          }),
+        },
       ],
     },
   ],
@@ -236,16 +242,6 @@ function LogButton() {
           ],
         },
       ],
-    },
-  ],
-  nextSteps: () => [
-    {
-      id: 'logs',
-      name: t('Logging Integrations'),
-      description: t(
-        'Add logging integrations to automatically capture logs from your application.'
-      ),
-      link: integrationsLink,
     },
   ],
 });
