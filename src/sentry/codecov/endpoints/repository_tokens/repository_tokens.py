@@ -53,6 +53,14 @@ class RepositoryTokensEndpoint(CodecovEndpoint):
         limit_param = request.query_params.get("limit", MAX_RESULTS_PER_PAGE)
         cursor = request.query_params.get("cursor")
 
+        sort_by = request.query_params.get("sortBy", "-COMMIT_DATE")
+
+        if sort_by.startswith("-"):
+            sort_by = sort_by[1:]
+            ordering_direction = OrderingDirection.DESC.value
+        else:
+            ordering_direction = OrderingDirection.ASC.value
+
         owner_slug = owner.name
 
         # When calling request.query_params, the URL is decoded so + is replaced with spaces. We need to change them back so Codecov can properly fetch the next page.
@@ -75,8 +83,8 @@ class RepositoryTokensEndpoint(CodecovEndpoint):
 
         variables = {
             "owner": owner_slug,
-            "direction": OrderingDirection.DESC.value,
-            "ordering": "COMMIT_DATE",
+            "orderingDirection": ordering_direction,
+            "ordering": sort_by,
             "first": limit if navigation != NavigationParameter.PREV.value else None,
             "last": limit if navigation == NavigationParameter.PREV.value else None,
             "before": cursor if cursor and navigation == NavigationParameter.PREV.value else None,

@@ -100,7 +100,7 @@ class RepositoryTokensEndpointTest(APITestCase):
         # Verify the correct variables are passed to the GraphQL query
         expected_variables = {
             "owner": "testowner",
-            "direction": "DESC",
+            "orderingDirection": "DESC",
             "ordering": "COMMIT_DATE",
             "first": 25,
             "last": None,
@@ -145,7 +145,7 @@ class RepositoryTokensEndpointTest(APITestCase):
 
         expected_variables = {
             "owner": "testowner",
-            "direction": "DESC",
+            "orderingDirection": "DESC",
             "ordering": "COMMIT_DATE",
             "first": None,
             "last": 5,
