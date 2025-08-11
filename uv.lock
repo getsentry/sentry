@@ -2170,7 +2170,7 @@ requires-dist = [
     { name = "sentry-ophio", specifier = ">=1.1.3" },
     { name = "sentry-protos", specifier = ">=0.3.1" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
-    { name = "sentry-relay", specifier = ">=0.9.10" },
+    { name = "sentry-relay", specifier = ">=0.9.11" },
     { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.29.1" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "setuptools", specifier = ">=70.0.0" },
@@ -2388,16 +2388,16 @@ wheels = [
 
 [[package]]
 name = "sentry-relay"
-version = "0.9.10"
+version = "0.9.11"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "milksnake", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.10-py2.py3-none-macosx_13_0_x86_64.whl", hash = "sha256:6f5e841e0d5551585f8132feb6df9c1296e8b411999295d622a393c44392394c" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.10-py2.py3-none-macosx_14_0_arm64.whl", hash = "sha256:fb986a8df06d8428dd263f639d83fc60083b5dd83729fdd8620987137dffca6e" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.10-py2.py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:db3596e82fb537f5ea08f26ce4a25cdb1cc09badfdcddcd30d2a6bb5dae0f42f" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.10-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:03892dbc91752554f59a586350670b91b7219a55a27f57465efcae9f99d7184e" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.11-py2.py3-none-macosx_13_0_x86_64.whl", hash = "sha256:31f2ec48aa687f809670542a372c55059f3ff659f77ee27495cf1f20ab574134" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.11-py2.py3-none-macosx_14_0_arm64.whl", hash = "sha256:7ba4ecc920e143ddc00d8fbbcf0a3b68f63d0623ce2ab997be6f085084b03cea" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.11-py2.py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:0438fb1b600a72e0d6093dc94730f9026a469b066362a93fb8e1bbfe905d5d12" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_relay-0.9.11-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:fbf1f6f1407f379b0e541f1ac490da91db33da90ecc07955cec86275accc2c38" },
 ]
 
 [[package]]
