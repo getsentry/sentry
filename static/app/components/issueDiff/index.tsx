@@ -212,6 +212,7 @@ const StyledIssueDiff = styled('div', {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 
   ${p =>
     p.loading &&
@@ -226,11 +227,15 @@ const SegmentedControlContainer = styled('div')`
   position: relative;
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   top: -${space(1)};
-  right: ${space(1)};
+  right: 0;
   z-index: 1;
 `;
 
 const Container = styled('div')`
   position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 `;
