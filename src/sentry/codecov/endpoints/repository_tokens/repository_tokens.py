@@ -83,7 +83,7 @@ class RepositoryTokensEndpoint(CodecovEndpoint):
 
         variables = {
             "owner": owner_slug,
-            "orderingDirection": ordering_direction,
+            "direction": ordering_direction,
             "ordering": sort_by,
             "first": limit if navigation != NavigationParameter.PREV.value else None,
             "last": limit if navigation == NavigationParameter.PREV.value else None,
