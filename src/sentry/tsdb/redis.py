@@ -501,6 +501,7 @@ class RedisTSDB(BaseTSDB):
         rollup: int | None = None,
         environment_id: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
+        project_ids: Sequence[int] | None = None,
     ) -> dict[int, list[tuple[int, Any]]]:
         """
         Fetch counts of distinct items for each rollup interval within the range.
@@ -542,6 +543,7 @@ class RedisTSDB(BaseTSDB):
         referrer_suffix: str | None = None,
         conditions: list[SnubaCondition] | None = None,
         group_on_time: bool = False,
+        project_ids: Sequence[int] | None = None,
     ) -> Mapping[TSDBKey, int]:
         """
         Count distinct items during a time range.
@@ -753,6 +755,7 @@ class RedisTSDB(BaseTSDB):
         rollup: int | None = None,
         environment_id: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
+        project_ids: Sequence[int] | None = None,
     ) -> dict[TSDBKey, list[tuple[float, dict[TSDBItem, float]]]]:
         self.validate_arguments([model], [environment_id])
 

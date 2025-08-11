@@ -87,10 +87,18 @@ class IssueDiff extends Component<Props, State> {
           this.fetchEvent(baseIssueId, baseEventId ?? 'latest'),
           this.fetchEvent(targetIssueId, targetEventId ?? 'latest'),
         ]);
-
+        const includeLocation = false;
         const [baseEvent, targetEvent] = await Promise.all([
-          getStacktraceBody(baseEventData, hasSimilarityEmbeddingsFeature),
-          getStacktraceBody(targetEventData, hasSimilarityEmbeddingsFeature),
+          getStacktraceBody(
+            baseEventData,
+            hasSimilarityEmbeddingsFeature,
+            includeLocation
+          ),
+          getStacktraceBody(
+            targetEventData,
+            hasSimilarityEmbeddingsFeature,
+            includeLocation
+          ),
         ]);
 
         this.setState({
