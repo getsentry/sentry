@@ -320,7 +320,10 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
                 SupportedTraceItemType.SPANS,
             )["name"]
             for attr in fields_resp.attributes
-            if attr.name and can_expose_attribute(attr.name, SupportedTraceItemType.SPANS)
+            if attr.name
+            and can_expose_attribute(
+                attr.name, SupportedTraceItemType.SPANS, include_internal=False
+            )
         ]
 
         fields[type_str].extend(parsed_fields)

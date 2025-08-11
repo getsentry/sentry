@@ -15,7 +15,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedAttribute
-from sentry.search.eap.constants import SAMPLING_MODE_MAP
+from sentry.search.eap.constants import SAMPLING_MODE_MAP, SENTRY_INTERNAL_PREFIXES
 from sentry.search.eap.ourlogs.attributes import (
     LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     LOGS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
@@ -189,11 +189,22 @@ def get_secondary_aliases(
     return mapping.get(internal_alias)
 
 
-def can_expose_attribute(attribute: str, item_type: SupportedTraceItemType) -> bool:
-    return attribute not in PRIVATE_ATTRIBUTES.get(item_type, {}) and not any(
+def can_expose_attribute(
+    attribute: str, item_type: SupportedTraceItemType, include_internal: bool = False
+) -> bool:
+    # Always omit private attributes
+    if attribute in PRIVATE_ATTRIBUTES.get(item_type, {}) or any(
         attribute.lower().startswith(prefix.lower())
         for prefix in PRIVATE_ATTRIBUTE_PREFIXES.get(item_type, {})
-    )
+    ):
+        return False
+
+    # Omit internal attributes, unless explicitly requested. Usually, only
+    # Sentry staff should see these.
+    if any(attribute.lower().startswith(prefix.lower()) for prefix in SENTRY_INTERNAL_PREFIXES):
+        return include_internal
+
+    return True
 
 
 def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:
