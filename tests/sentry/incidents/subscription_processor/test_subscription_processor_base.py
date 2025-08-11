@@ -12,16 +12,15 @@ from sentry.incidents.subscription_processor import SubscriptionProcessor
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.entity_subscription import SnubaQuery
-from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
-from sentry.testutils.fixtures import DetectorPriorityLevel
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, DetectorState
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.detector import Detector
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 EMPTY = object()
 
@@ -218,6 +217,6 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
         # TODO: once we are writing to IncidentGroupOpenPeriod look up the GroupOpenPeriod
         pass
 
-    def get_detector_state(self, detector: Detector) -> DetectorPriorityLevel:
+    def get_detector_state(self, detector: Detector) -> int:
         detector_state = DetectorState.objects.get(detector=detector)
         return int(detector_state.state)
