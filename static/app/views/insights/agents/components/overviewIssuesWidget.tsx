@@ -23,7 +23,7 @@ export function OverviewIssuesWidget() {
 
   const tableData = {
     data,
-    meta: {fields: {...meta?.fields}, units: {...meta?.units}} as TabularMeta, // TODO: ideally this is properly types, but EventsMeta doesn't match TabularMeta
+    meta: {fields: {...meta?.fields}, units: {...meta?.units}} as TabularMeta, // TODO: ideally this is properly typed, but EventsMeta doesn't match TabularMeta even tho they seem like they should
   };
 
   if (isLoading) {
