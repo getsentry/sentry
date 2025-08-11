@@ -132,7 +132,7 @@ def _create_api_access_log(
         metrics.incr("middleware.access_log.created")
 
         if in_random_rollout("issues.log-access-logs") and not org_id:
-            with sentry_sdk.scope.use_isolation_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_extra("request_auth", request_auth)
                 scope.set_extra("request._request", request._request)
                 sentry_sdk.capture_message(
