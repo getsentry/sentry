@@ -1,3 +1,4 @@
+import collections
 from datetime import datetime, timedelta, timezone
 from typing import Any, TypedDict
 
@@ -234,6 +235,7 @@ QUERY_MAP: dict[str, Expression] = {
     "tags": Function(
         "groupArrayArray",
         parameters=[Function("arrayZip", parameters=[Column("tags.key"), Column("tags.value")])],
+        alias="tags",
     ),
     "viewed_by_ids": Function(
         "groupUniqArrayIf",
@@ -358,6 +360,7 @@ def get_replay(
     timestamp_start: datetime | None = None,
     timestamp_end: datetime | None = None,
     fields: set[str] | None = None,
+    requesting_user_id: int | None = None,
     referrer: str = "replays.get_replay_unknown",
     tenant_ids: dict[str, Any] | None = None,
 ) -> Replay | None:
@@ -367,6 +370,7 @@ def get_replay(
         timestamp_start=timestamp_start,
         timestamp_end=timestamp_end,
         fields=fields,
+        requesting_user_id=requesting_user_id,
         referrer=referrer,
         tenant_ids=tenant_ids,
     )
@@ -382,15 +386,30 @@ def get_replays(
     timestamp_start: datetime | None = None,
     timestamp_end: datetime | None = None,
     fields: set[str] | None = None,
+    requesting_user_id: int | None = None,
     referrer: str = "replays.get_replays_unknown",
     tenant_ids: dict[str, Any] | None = None,
 ) -> list[Replay]:
     timestamp_start = timestamp_start or (datetime.now(tz=timezone.utc) - timedelta(days=90))
     timestamp_end = timestamp_end or datetime.now(tz=timezone.utc)
 
+    selected_expressions = list(QUERY_MAP.values())
+
+    # If a requesting_user_id was specified we can compute the has_viewed value.
+    if requesting_user_id:
+        selected_expressions.append(
+            Function(
+                "sum",
+                parameters=[
+                    Function("equals", parameters=[Column("viewed_by_id"), requesting_user_id])
+                ],
+                alias="has_viewed",
+            )
+        )
+
     query = Query(
         match=Entity("replays"),
-        select=list(QUERY_MAP.values()),
+        select=selected_expressions,
         where=[
             Condition(Column("project_id"), Op.IN, project_ids),
             Condition(Column("timestamp"), Op.GTE, timestamp_start),
@@ -413,6 +432,11 @@ def as_replay(data: dict[str, Any]) -> Replay:
         def get(key, default):
             # Forces a default value if any empty state was returned.
             return data.get(key, default) or default
+
+        # Unique tag set.
+        tags_set = collections.defaultdict(set)
+        for v in get("tags", []):
+            tags_set[v[0]].add(v[1])
 
         return {
             "activity": get("activity", 0),
@@ -438,7 +462,7 @@ def as_replay(data: dict[str, Any]) -> Replay:
             "environment": get("agg_environment", ""),
             "error_ids": get("error_ids", []),
             "finished_at": get("finished_at", datetime.fromtimestamp(0)),
-            "has_viewed": get("has_viewed", False),
+            "has_viewed": get("has_viewed", 0) > 0,
             "id": get("replay_id", "").replace("-", ""),
             "info_ids": get("info_ids", []),
             "is_archived": get("isArchived", False),
@@ -460,7 +484,7 @@ def as_replay(data: dict[str, Any]) -> Replay:
                 "version": get("sdk_version", ""),
             },
             "started_at": get("started_at", datetime.fromtimestamp(0)),
-            "tags": dict(get("tags", [])),
+            "tags": {k: list(v) for k, v in tags_set.items()},
             "trace_ids": get("traceIds", []),
             "urls": get("urls_sorted", []),
             "user": {
@@ -484,6 +508,6 @@ def as_replay(data: dict[str, Any]) -> Replay:
     # If the data indicated the replay was archived we can ignore nearly all of the data we were
     # given and just return defaults.
     if data["isArchived"]:
-        return _as_replay({"id": data.get("replay_id"), "isArchived": True})
+        return _as_replay({"replay_id": data["replay_id"], "isArchived": True})
 
     return _as_replay(data)
