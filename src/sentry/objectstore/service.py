@@ -145,7 +145,8 @@ class Client:
             # Must do this after streaming `body` as that's what is responsible
             # for advancing the seek position in both streams
             metric_emitter.record_uncompressed_size(original_body.tell())
-            metric_emitter.record_compressed_size(body.tell(), compression)
+            if compression and compression != "none":
+                metric_emitter.record_compressed_size(body.tell(), compression)
             return res["key"]
 
     def get(self, id: str, decompress: bool = True) -> GetResult:
