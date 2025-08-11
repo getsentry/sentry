@@ -292,13 +292,16 @@ export function useLogsQuery({
 
   return {
     isPending: queryResult.isPending,
+    isRefetching: queryResult.isRefetching,
     isError: queryResult.isError,
     isLoading: queryResult.isLoading,
     queryResult,
     data: queryResult?.data?.data,
+    refetch: queryResult.refetch,
     infiniteData: queryResult?.data?.data,
     error: queryResult.error,
     meta: queryResult?.data?.meta,
+    queryKey,
     pageLinks: queryResult?.getResponseHeader?.('Link') ?? undefined,
   };
 }
@@ -564,7 +567,7 @@ export function useInfiniteLogsQuery({
     isFetching,
     isFetchingNextPage,
     isFetchingPreviousPage,
-    isPending,
+    refetch,
   } = queryResult;
 
   useEffect(() => {
@@ -648,22 +651,29 @@ export function useInfiniteLogsQuery({
   const _fetchNextPage = useCallback(
     () =>
       hasNextPage && nextPageHasData
-        ? !isFetchingNextPage && !isError && fetchNextPage()
+        ? !isFetching && !isError && fetchNextPage()
         : Promise.resolve(),
-    [hasNextPage, fetchNextPage, isFetchingNextPage, isError, nextPageHasData]
+    [hasNextPage, fetchNextPage, isFetching, isError, nextPageHasData]
   );
 
   return {
     error,
     isError,
     isFetching,
-    isPending,
+    isPending: queryResult.isPending,
     data: _data,
     meta: _meta,
-    isEmpty: !isPending && !isError && _data.length === 0,
+    isRefetching: queryResult.isRefetching,
+    isEmpty:
+      !queryResult.isPending &&
+      !queryResult.isRefetching &&
+      !isError &&
+      _data.length === 0,
     fetchNextPage: _fetchNextPage,
     fetchPreviousPage: _fetchPreviousPage,
+    refetch,
     hasNextPage,
+    queryKey: queryKeyWithInfinite,
     hasPreviousPage,
     isFetchingNextPage,
     isFetchingPreviousPage,

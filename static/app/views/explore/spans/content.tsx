@@ -135,7 +135,9 @@ function SpansTabHeader({organization}: SpansTabHeaderProps) {
   return (
     <Layout.Header unified={prefersStackedNav}>
       <Layout.HeaderContent unified={prefersStackedNav}>
-        {title && defined(id) ? <ExploreBreadcrumb /> : null}
+        {title && defined(id) ? (
+          <ExploreBreadcrumb traceItemDataset={TraceItemDataset.SPANS} />
+        ) : null}
         <Layout.Title>
           {title ? title : t('Traces')}
           <PageHeadingQuestionTooltip

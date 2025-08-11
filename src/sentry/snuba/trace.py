@@ -412,10 +412,8 @@ def _serialize_columnar_uptime_item(
             if resolved_val is not None:
                 additional_attrs[resolved_column.public_alias] = resolved_val
 
-    span["start_timestamp"] = datetime.fromtimestamp(scheduled_check_time_us / 1_000_000)
-    span["end_timestamp"] = datetime.fromtimestamp(
-        (scheduled_check_time_us + check_duration_us) / 1_000_000
-    )
+    span["start_timestamp"] = scheduled_check_time_us / 1_000_000
+    span["end_timestamp"] = (scheduled_check_time_us + check_duration_us) / 1_000_000
     span["duration"] = check_duration_us / 1_000.0
     description = f"Uptime Check [{check_status}] - {request_url}"
     if http_status_code:

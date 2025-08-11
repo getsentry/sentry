@@ -9,7 +9,7 @@ describe('useTags', function () {
   });
 
   it('provides tags from the tag store', function () {
-    act(() => void TagStore.loadTagsSuccess([{name: 'Mechanism', key: 'mechanism'}]));
+    act(() => TagStore.loadTagsSuccess([{name: 'Mechanism', key: 'mechanism'}]));
 
     const {result} = renderHook(useTags);
     const tags = result.current;

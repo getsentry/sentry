@@ -255,8 +255,8 @@ export function logsPickableDays(organization: Organization): PickableDays {
 }
 
 export function getDynamicLogsNextFetchThreshold(lastPageLength: number) {
-  if (lastPageLength * 0.75 > LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD) {
-    return Math.floor(lastPageLength * 0.75); // Can be up to 750 on large pages.
+  if (lastPageLength * 0.25 > LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD) {
+    return Math.floor(lastPageLength * 0.25); // Can be up to 250 on large pages.
   }
   return LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD;
 }
@@ -399,7 +399,7 @@ export function getLogsUrl({
   );
 }
 
-function makeLogsPathname({
+export function makeLogsPathname({
   organization,
   path,
 }: {
@@ -409,10 +409,13 @@ function makeLogsPathname({
   return normalizeUrl(`/organizations/${organization.slug}/explore/logs${path}`);
 }
 
-export function getLogsUrlFromSavedQueryUrl(
-  savedQuery: SavedQuery,
-  organization: Organization
-) {
+export function getLogsUrlFromSavedQueryUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: SavedQuery;
+}) {
   const firstQuery = savedQuery.query[0];
   const visualize = firstQuery.visualize?.[0]?.yAxes?.[0];
   const aggregateFn = visualize ? visualize.split('(')[0] : undefined;
