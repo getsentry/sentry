@@ -1150,3 +1150,16 @@ Available fields are:
         many=True,
         description="""A list of test suites belonging to a repository's test results.""",
     )
+    TOKENS_SORT_BY = OpenApiParameter(
+        name="sortBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The property to sort results by. If not specified, the default is `COMMIT_DATE` in descending order. Use `-`
+        for descending order.
+
+Available fields are:
+- `NAME`
+- `COMMIT_DATE`
+        """,
+    )
