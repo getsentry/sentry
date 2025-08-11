@@ -63,8 +63,8 @@ class Buffer(Service):
 
     def get_sharded_sorted_set(
         self, key: str, separator: str, shards: int, min: float, max: float
-    ) -> list[tuple[int, datetime]]:
-        return []
+    ) -> dict[int, list[datetime]]:
+        return {}
 
     def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
         return None

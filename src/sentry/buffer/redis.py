@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import pickle
+from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
@@ -368,6 +369,22 @@ class RedisBuffer(Buffer):
             pipe.expire(key, self.key_expire)
         return pipe.execute()[0]
 
+    def _execute_redis_operations(
+        self,
+        keys: list[str],
+        operation: RedisOperation,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
+        metrics_str = f"redis_buffer.{operation.value}"
+        metrics.incr(metrics_str)
+        pipe = self.get_redis_connection(self.pending_key)
+        for key in keys:
+            getattr(pipe, operation.value)(key, *args, **kwargs)
+            if args:
+                pipe.expire(key, self.key_expire)
+        return pipe.execute()
+
     def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
         now = time()
         if isinstance(value, list):
@@ -395,18 +412,34 @@ class RedisBuffer(Buffer):
 
     def get_sharded_sorted_set(
         self, key: str, separator: str, shards: int, min: float, max: float
-    ) -> list[tuple[int, datetime]]:
-        data_to_timestamp: dict[int, datetime] = {}
-        for shard in range(shards):
-            shard_key = f"{key}{separator}{shard}"
-            shard_set = self.get_sorted_set(shard_key, min, max)
-            for data, timestamp in shard_set:
-                # overwrite with the latest timestamp
-                if data not in data_to_timestamp or timestamp > data_to_timestamp[data]:
-                    data_to_timestamp[data] = timestamp
+    ) -> dict[int, list[datetime]]:
+        """
+        Using a single shard will result in the same behavior as get_sorted_set,
+        but using the return value of this function.
+        """
 
-        decoded_set = [(data, timestamp) for data, timestamp in data_to_timestamp.items()]
-        return decoded_set
+        if shards < 1:
+            raise ValueError("Number of shards must be greater than 0")
+
+        data_to_timestamps: dict[int, list[datetime]] = defaultdict(list)
+
+        shard_keys = [f"{key}{separator}{shard}" if shard > 0 else key for shard in range(shards)]
+
+        redis_set = self._execute_redis_operations(
+            shard_keys,
+            RedisOperation.SORTED_SET_GET_RANGE,
+            min=min,
+            max=max,
+            withscores=True,
+        )
+        for result in redis_set:
+            for items in result:
+                item = items[0]
+                if isinstance(item, bytes):
+                    item = item.decode("utf-8")
+                data_to_timestamps[int(item)].append(items[1])
+
+        return data_to_timestamps
 
     def delete_key(self, key: str, min: float, max: float) -> None:
         self._execute_redis_operation(key, RedisOperation.SORTED_SET_DELETE_RANGE, min=min, max=max)
@@ -414,9 +447,13 @@ class RedisBuffer(Buffer):
     def delete_sharded_key(
         self, key: str, separator: str, shards: int, min: float, max: float
     ) -> None:
-        for shard in range(shards):
-            shard_key = f"{key}{separator}{shard}"
-            self.delete_key(shard_key, min, max)
+        shard_keys = [f"{key}{separator}{shard}" if shard > 0 else key for shard in range(shards)]
+        self._execute_redis_operations(
+            shard_keys,
+            RedisOperation.SORTED_SET_DELETE_RANGE,
+            min=min,
+            max=max,
+        )
 
     def delete_hash(
         self,
