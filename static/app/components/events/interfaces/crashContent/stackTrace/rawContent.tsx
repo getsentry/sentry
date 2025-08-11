@@ -3,7 +3,7 @@ import type {ExceptionValue, Frame} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 
-function getJavaScriptFrame(frame: Frame): string {
+function getJavaScriptFrame(frame: Frame, includeLocation: boolean): string {
   let result = '';
   if (defined(frame.function)) {
     result += '  at ' + frame.function + '(';
@@ -15,17 +15,17 @@ function getJavaScriptFrame(frame: Frame): string {
   } else if (defined(frame.module)) {
     result += frame.module;
   }
-  if (defined(frame.lineNo) && frame.lineNo >= 0) {
+  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
     result += ':' + frame.lineNo;
   }
-  if (defined(frame.colNo) && frame.colNo >= 0) {
+  if (defined(frame.colNo) && frame.colNo >= 0 && includeLocation) {
     result += ':' + frame.colNo;
   }
   result += ')';
   return result;
 }
 
-function getRubyFrame(frame: Frame): string {
+function getRubyFrame(frame: Frame, includeLocation: boolean): string {
   let result = '  from ';
   if (defined(frame.filename)) {
     result += frame.filename;
@@ -34,10 +34,10 @@ function getRubyFrame(frame: Frame): string {
   } else {
     result += '?';
   }
-  if (defined(frame.lineNo) && frame.lineNo >= 0) {
+  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
     result += ':' + frame.lineNo;
   }
-  if (defined(frame.colNo) && frame.colNo >= 0) {
+  if (defined(frame.colNo) && frame.colNo >= 0 && includeLocation) {
     result += ':' + frame.colNo;
   }
   if (defined(frame.function)) {
@@ -46,12 +46,17 @@ function getRubyFrame(frame: Frame): string {
   return result;
 }
 
-function getPHPFrame(frame: Frame, idx: number): string {
+function getPHPFrame(frame: Frame, idx: number, includeLocation: boolean): string {
   const funcName = frame.function === 'null' ? '{main}' : frame.function;
-  return `#${idx} ${frame.filename || frame.module}(${frame.lineNo}): ${funcName}`;
+  let result = `#${idx} ${frame.filename || frame.module}`;
+  if (includeLocation && defined(frame.lineNo) && frame.lineNo >= 0) {
+    result += `(${frame.lineNo})`;
+  }
+  result += `: ${funcName}`;
+  return result;
 }
 
-function getPythonFrame(frame: Frame): string {
+function getPythonFrame(frame: Frame, includeLocation: boolean): string {
   let result = '';
   if (defined(frame.filename)) {
     result += '  File "' + frame.filename + '"';
@@ -60,10 +65,10 @@ function getPythonFrame(frame: Frame): string {
   } else {
     result += '  ?';
   }
-  if (defined(frame.lineNo) && frame.lineNo >= 0) {
+  if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
     result += ', line ' + frame.lineNo;
   }
-  if (defined(frame.colNo) && frame.colNo >= 0) {
+  if (defined(frame.colNo) && frame.colNo >= 0 && includeLocation) {
     result += ', col ' + frame.colNo;
   }
   if (defined(frame.function)) {
@@ -79,7 +84,7 @@ function getPythonFrame(frame: Frame): string {
   return result;
 }
 
-export function getJavaFrame(frame: Frame): string {
+export function getJavaFrame(frame: Frame, includeLocation: boolean): string {
   let result = '    at';
 
   if (defined(frame.module)) {
@@ -90,7 +95,7 @@ export function getJavaFrame(frame: Frame): string {
   }
   if (defined(frame.filename)) {
     result += '(' + frame.filename;
-    if (defined(frame.lineNo) && frame.lineNo >= 0) {
+    if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
       result += ':' + frame.lineNo;
     }
     result += ')';
@@ -98,7 +103,11 @@ export function getJavaFrame(frame: Frame): string {
   return result;
 }
 
-function getDartFrame(frame: Frame, frameIdxFromEnd: number): string {
+function getDartFrame(
+  frame: Frame,
+  frameIdxFromEnd: number,
+  includeLocation: boolean
+): string {
   let result = `  #${frameIdxFromEnd}`;
 
   if (frame.function === '<asynchronous suspension>') {
@@ -112,10 +121,10 @@ function getDartFrame(frame: Frame, frameIdxFromEnd: number): string {
     result += ' (';
 
     result += frame.absPath;
-    if (defined(frame.lineNo) && frame.lineNo >= 0) {
+    if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
       result += ':' + frame.lineNo;
     }
-    if (defined(frame.colNo) && frame.colNo >= 0) {
+    if (defined(frame.colNo) && frame.colNo >= 0 && includeLocation) {
       result += ':' + frame.colNo;
     }
 
@@ -129,7 +138,7 @@ function ljust(str: string, len: number) {
   return str + new Array(Math.max(0, len - str.length) + 1).join(' ');
 }
 
-function getNativeFrame(frame: Frame): string {
+function getNativeFrame(frame: Frame, includeLocation: boolean): string {
   let result = '  ';
   if (defined(frame.package)) {
     result += ljust(trimPackage(frame.package), 20);
@@ -140,7 +149,7 @@ function getNativeFrame(frame: Frame): string {
   result += ' ' + (frame.function || frame.symbolAddr);
   if (defined(frame.filename)) {
     result += ' (' + frame.filename;
-    if (defined(frame.lineNo) && frame.lineNo >= 0) {
+    if (defined(frame.lineNo) && frame.lineNo >= 0 && includeLocation) {
       result += ':' + frame.lineNo;
     }
     result += ')';
@@ -169,32 +178,33 @@ function getFrame(
   frame: Frame,
   frameIdx: number,
   frameIdxFromEnd: number,
-  platform: string | undefined
+  platform: string | undefined,
+  includeLocation: boolean
 ): string {
   if (frame.platform) {
     platform = frame.platform;
   }
   switch (platform) {
     case 'javascript':
-      return getJavaScriptFrame(frame);
+      return getJavaScriptFrame(frame, includeLocation);
     case 'ruby':
-      return getRubyFrame(frame);
+      return getRubyFrame(frame, includeLocation);
     case 'php':
-      return getPHPFrame(frame, frameIdx);
+      return getPHPFrame(frame, frameIdx, includeLocation);
     case 'python':
-      return getPythonFrame(frame);
+      return getPythonFrame(frame, includeLocation);
     case 'java':
-      return getJavaFrame(frame);
+      return getJavaFrame(frame, includeLocation);
     case 'dart':
-      return getDartFrame(frame, frameIdxFromEnd);
+      return getDartFrame(frame, frameIdxFromEnd, includeLocation);
     case 'objc':
     // fallthrough
     case 'cocoa':
     // fallthrough
     case 'native':
-      return getNativeFrame(frame);
+      return getNativeFrame(frame, includeLocation);
     default:
-      return getPythonFrame(frame);
+      return getPythonFrame(frame, includeLocation);
   }
 }
 
@@ -202,7 +212,8 @@ export default function displayRawContent(
   data: StacktraceType | null,
   platform?: string,
   exception?: ExceptionValue,
-  hasSimilarityEmbeddingsFeature = false
+  hasSimilarityEmbeddingsFeature = false,
+  includeLocation = true
 ) {
   const rawFrames = data?.frames || [];
 
@@ -214,7 +225,13 @@ export default function displayRawContent(
     : rawFrames;
 
   const frames = framesToUse.map((frame, frameIdx) =>
-    getFrame(frame, frameIdx, framesToUse.length - frameIdx - 1, platform)
+    getFrame(
+      frame,
+      frameIdx,
+      framesToUse.length - frameIdx - 1,
+      platform,
+      includeLocation
+    )
   );
 
   if (platform !== 'python') {
