@@ -1,19 +1,18 @@
 import {t} from 'sentry/locale';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {InsightsLineChartWidget} from 'sentry/views/insights/common/components/insightsLineChartWidget';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {useSpanSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {Referrer} from 'sentry/views/insights/pages/frontend/referrers';
-import {useTransactionNameQuery} from 'sentry/views/insights/pages/platform/shared/useTransactionNameQuery';
+import {useFrontendQuery} from 'sentry/views/insights/pages/frontend/useFrontendQuery';
 import {SpanFields, type SpanProperty} from 'sentry/views/insights/types';
 
 export default function OverviewTransactionThroughputChartWidget(
   props: LoadableChartWidgetProps
 ) {
-  const {query} = useTransactionNameQuery();
-
+  const search = useFrontendQuery();
   const title = t('Throughput');
-  const search = new MutableSearch(`${SpanFields.IS_TRANSACTION}:true ${query}`);
+
+  search.addFilterValue(SpanFields.IS_TRANSACTION, 'true');
   const yAxis: SpanProperty = 'epm()';
   const referrer = Referrer.TRANSACTION_THROUGHPUT_CHART;
 
