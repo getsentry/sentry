@@ -66,9 +66,9 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         return RunTask(
-            function=process_message,
+            function=process_message_with_options,
             next_step=RunTaskInThreads(
-                processing_function=commit_message,
+                processing_function=commit_message_with_options,
                 concurrency=self.num_threads,
                 max_pending_futures=self.max_pending_futures,
                 next_step=CommitOffsets(commit),
@@ -79,7 +79,18 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 # Processing Task
 
 
-def process_message(message: Message[KafkaPayload]) -> ProcessedEvent | FilteredPayload:
+def process_message_with_options(
+    message: Message[KafkaPayload],
+) -> ProcessedEvent | FilteredPayload:
+    profiling_enabled = options.get(
+        "replay.consumer.recording.profiling.enabled",
+    )
+    return process_message(message, profiling_enabled=profiling_enabled)
+
+
+def process_message(
+    message: Message[KafkaPayload], profiling_enabled: bool = False
+) -> ProcessedEvent | FilteredPayload:
     with sentry_sdk.start_transaction(
         name="replays.consumer.recording_buffered.process_message",
         op="replays.consumer.recording_buffered.process_message",
@@ -87,9 +98,6 @@ def process_message(message: Message[KafkaPayload]) -> ProcessedEvent | Filtered
             "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
         },
     ):
-        profiling_enabled = options.get(
-            "replay.consumer.recording.profiling.enabled",
-        )
         if profiling_enabled:
             sentry_sdk.profiler.start_profiler()
 
@@ -180,7 +188,14 @@ def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
 # I/O Task
 
 
-def commit_message(message: Message[ProcessedEvent]) -> None:
+def commit_message_with_options(message: Message[ProcessedEvent]) -> None:
+    profiling_enabled = options.get(
+        "replay.consumer.recording.profiling.enabled",
+    )
+    return commit_message(message, profiling_enabled=profiling_enabled)
+
+
+def commit_message(message: Message[ProcessedEvent], profiling_enabled: bool = False) -> None:
     isolation_scope = sentry_sdk.get_isolation_scope().fork()
     with sentry_sdk.scope.use_isolation_scope(isolation_scope):
         with sentry_sdk.start_transaction(
@@ -192,11 +207,9 @@ def commit_message(message: Message[ProcessedEvent]) -> None:
                 )
             },
         ):
-            profiling_enabled = options.get(
-                "replay.consumer.recording.profiling.enabled",
-            )
             if profiling_enabled:
                 sentry_sdk.profiler.start_profiler()
+
             try:
                 commit_recording_message(message.payload)
                 track_recording_metadata(message.payload)

@@ -9,11 +9,13 @@ from arroyo.types import FilteredPayload, Message, Value
 from sentry.replays.consumers.recording import (
     DropSilently,
     commit_message,
+    commit_message_with_options,
     decompress_segment,
     parse_headers,
     parse_recording_event,
     parse_request_message,
     process_message,
+    process_message_with_options,
 )
 from sentry.replays.usecases.ingest import ProcessedEvent
 from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta
@@ -415,13 +417,11 @@ def test_process_message_compressed_with_video() -> None:
     assert expected == processed_result
 
 
-@django_db_all
 def test_process_message_invalid_message() -> None:
     """Test "process_message" function with invalid message."""
     assert process_message(make_kafka_message(b"")) == FilteredPayload()
 
 
-@django_db_all
 def test_process_message_invalid_recording_json() -> None:
     """Test "process_message" function with invalid recording json."""
     message = {
@@ -442,7 +442,6 @@ def test_process_message_invalid_recording_json() -> None:
     assert process_message(kafka_message) == FilteredPayload()
 
 
-@django_db_all
 def test_process_message_invalid_headers() -> None:
     """Test "process_message" function with invalid headers."""
     message = {
@@ -463,7 +462,6 @@ def test_process_message_invalid_headers() -> None:
     assert process_message(kafka_message) == FilteredPayload()
 
 
-@django_db_all
 def test_process_message_malformed_headers() -> None:
     """Test "process_message" function with malformed headers."""
     message = {
@@ -484,7 +482,6 @@ def test_process_message_malformed_headers() -> None:
     assert process_message(kafka_message) == FilteredPayload()
 
 
-@django_db_all
 def test_process_message_malformed_headers_invalid_unicode_codepoint() -> None:
     """Test "process_message" function with malformed unicode codepoint in headers."""
     message = {
@@ -505,7 +502,6 @@ def test_process_message_malformed_headers_invalid_unicode_codepoint() -> None:
     assert process_message(kafka_message) == FilteredPayload()
 
 
-@django_db_all
 def test_process_message_no_headers() -> None:
     """Test "process_message" function with no headers."""
     message = {
@@ -581,16 +577,13 @@ def make_valid_processed_event() -> ProcessedEvent:
     )
 
 
-@patch("sentry.replays.consumers.recording.options.get")
 @patch("sentry.replays.consumers.recording.sentry_sdk.profiler")
 @pytest.mark.parametrize("profiling_enabled", [True, False])
-def test_process_message_profiling(mock_profiler, mock_options, profiling_enabled) -> None:
+def test_process_message_profiling(mock_profiler, profiling_enabled) -> None:
     """Test that profiling is started and stopped when enabled, and not when disabled."""
-    mock_options.return_value = profiling_enabled
-
     message = make_valid_message()
     kafka_message = make_kafka_message(message)
-    result = process_message(kafka_message)
+    result = process_message(kafka_message, profiling_enabled=profiling_enabled)
 
     assert mock_profiler.start_profiler.call_count == (1 if profiling_enabled else 0)
     assert mock_profiler.stop_profiler.call_count == (1 if profiling_enabled else 0)
@@ -598,53 +591,81 @@ def test_process_message_profiling(mock_profiler, mock_options, profiling_enable
     assert isinstance(result, ProcessedEvent)
 
 
-@patch("sentry.replays.consumers.recording.options.get")
 @patch("sentry.replays.consumers.recording.sentry_sdk.profiler")
 @pytest.mark.parametrize("profiling_enabled", [True, False])
-def test_commit_message_profiling(mock_profiler, mock_options, profiling_enabled) -> None:
+def test_commit_message_profiling(mock_profiler, profiling_enabled) -> None:
     """Test that profiling is started and stopped when enabled, and not when disabled."""
-    mock_options.return_value = profiling_enabled
-
     processed_event = make_valid_processed_event()
-    commit_message(make_processed_event_message(processed_event))
+    commit_message(
+        make_processed_event_message(processed_event), profiling_enabled=profiling_enabled
+    )
 
     assert mock_profiler.start_profiler.call_count == (1 if profiling_enabled else 0)
     assert mock_profiler.stop_profiler.call_count == (1 if profiling_enabled else 0)
 
 
-@patch("sentry.replays.consumers.recording.options.get")
 @patch("sentry.replays.consumers.recording.sentry_sdk.profiler")
 @patch("sentry.replays.consumers.recording.parse_recording_event")
 @pytest.mark.parametrize("profiling_enabled", [True, False])
 def test_process_message_profiling_on_error(
-    mock_parse_recording_event, mock_profiler, mock_options, profiling_enabled
+    mock_parse_recording_event, mock_profiler, profiling_enabled
 ) -> None:
     """Test that profiling is started and stopped when enabled, and not when disabled, even on error."""
-    mock_options.return_value = profiling_enabled
     mock_parse_recording_event.side_effect = Exception("test error")
 
     message = make_valid_message()
     kafka_message = make_kafka_message(message)
-    result = process_message(kafka_message)
+    result = process_message(kafka_message, profiling_enabled=profiling_enabled)
 
     assert mock_profiler.start_profiler.call_count == (1 if profiling_enabled else 0)
     assert mock_profiler.stop_profiler.call_count == (1 if profiling_enabled else 0)
     assert result == FilteredPayload()
 
 
-@patch("sentry.replays.consumers.recording.options.get")
 @patch("sentry.replays.consumers.recording.sentry_sdk.profiler")
 @patch("sentry.replays.consumers.recording.commit_recording_message")
 @pytest.mark.parametrize("profiling_enabled", [True, False])
 def test_commit_message_profiling_on_error(
-    mock_commit_recording_message, mock_profiler, mock_options, profiling_enabled
+    mock_commit_recording_message, mock_profiler, profiling_enabled
 ) -> None:
     """Test that profiling is started and stopped when enabled, and not when disabled, even on error."""
-    mock_options.return_value = profiling_enabled
     mock_commit_recording_message.side_effect = Exception("test error")
 
     processed_event = make_valid_processed_event()
-    commit_message(make_processed_event_message(processed_event))
+    commit_message(
+        make_processed_event_message(processed_event), profiling_enabled=profiling_enabled
+    )
 
     assert mock_profiler.start_profiler.call_count == (1 if profiling_enabled else 0)
     assert mock_profiler.stop_profiler.call_count == (1 if profiling_enabled else 0)
+
+
+@patch("sentry.replays.consumers.recording.options.get")
+@patch("sentry.replays.consumers.recording.commit_message")
+@pytest.mark.parametrize("profiling_enabled", [True, False])
+def test_commit_message_with_options(mock_commit_message, mock_options, profiling_enabled) -> None:
+    """Test that commit_message_with_options calls commit_message with the correct profiling_enabled value."""
+    mock_options.return_value = profiling_enabled
+
+    processed_event = make_valid_processed_event()
+    commit_message_with_options(make_processed_event_message(processed_event))
+
+    assert mock_commit_message.call_count == 1
+    assert mock_commit_message.call_args[1]["profiling_enabled"] == profiling_enabled
+
+
+@patch("sentry.replays.consumers.recording.options.get")
+@patch("sentry.replays.consumers.recording.process_message")
+@pytest.mark.parametrize("profiling_enabled", [True, False])
+def test_process_message_with_options(
+    mock_process_message, mock_options, profiling_enabled
+) -> None:
+    """Test that process_message_with_options calls process_message with the correct profiling_enabled value."""
+    mock_options.return_value = profiling_enabled
+
+    message = make_valid_message()
+    kafka_message = make_kafka_message(message)
+    process_message_with_options(kafka_message)
+
+    assert mock_process_message.call_count == 1
+    assert mock_process_message.call_args[1]["profiling_enabled"] == profiling_enabled
