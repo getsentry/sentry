@@ -58,28 +58,30 @@ def group_event_ids(column_names: list[str], alias: str | None = None) -> Functi
         parameters=[
             Lambda(
                 ["error_id_no_dashes"],
-                strip_dashes("error_id_no_dashes", alias="error_id_no_dashes"),
+                strip_dashes("error_id_no_dashes", alias=None),
             ),
             Function(
                 "flatten",
-                [
-                    Function(
-                        "arrayFilter",
-                        parameters=[
-                            Lambda(
-                                ["id"],
-                                Function(
-                                    "notEquals",
-                                    parameters=[
-                                        Identifier("id"),
-                                        "00000000-0000-0000-0000-000000000000",
-                                    ],
+                parameters=[
+                    [
+                        Function(
+                            "arrayFilter",
+                            parameters=[
+                                Lambda(
+                                    ["id"],
+                                    Function(
+                                        "notEquals",
+                                        parameters=[
+                                            Identifier("id"),
+                                            "00000000-0000-0000-0000-000000000000",
+                                        ],
+                                    ),
                                 ),
-                            ),
-                            Function("groupArray", parameters=[Column(column_name)]),
-                        ],
-                    )
-                    for column_name in column_names
+                                Function("groupArray", parameters=[Column(column_name)]),
+                            ],
+                        )
+                        for column_name in column_names
+                    ]
                 ],
             ),
         ],
@@ -88,7 +90,7 @@ def group_event_ids(column_names: list[str], alias: str | None = None) -> Functi
 
 
 def urls(alias: str | None = None):
-    func = Function(
+    return Function(
         "arrayFlatten",
         parameters=[
             Function(
@@ -122,8 +124,6 @@ def urls(alias: str | None = None):
         ],
         alias=alias,
     )
-    print(func)
-    return func
 
 
 def activity_score():
@@ -397,10 +397,11 @@ def get_replays(
             Condition(Column("timestamp"), Op.LT, timestamp_end),
             Condition(Column("replay_id"), Op.IN, replay_ids),
         ],
+        having=[
+            Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
+        ],
         groupby=[Column("replay_id")],
     )
-
-    print(query.print())
 
     return list(map(as_replay, execute_query(query, tenant_ids=tenant_ids, referrer=referrer)))
 
@@ -421,7 +422,7 @@ def as_replay(data: dict[str, Any]) -> Replay:
             },
             "count_dead_clicks": get("count_dead_clicks", 0),
             "count_errors": get("count_errors", 0),
-            "count_infos": get("count_infos"),
+            "count_infos": get("count_infos", 0),
             "count_rage_clicks": get("count_rage_clicks", 0),
             "count_segments": get("count_segments", 0),
             "count_urls": get("count_urls", 0),
@@ -436,9 +437,9 @@ def as_replay(data: dict[str, Any]) -> Replay:
             "duration": get("duration", 0),
             "environment": get("agg_environment", ""),
             "error_ids": get("error_ids", []),
-            "finished_at": get("finished_at", datetime()),
+            "finished_at": get("finished_at", datetime.fromtimestamp(0)),
             "has_viewed": get("has_viewed", False),
-            "id": get("id", ""),
+            "id": get("replay_id", "").replace("-", ""),
             "info_ids": get("info_ids", []),
             "is_archived": get("isArchived", False),
             "os": {
@@ -451,17 +452,17 @@ def as_replay(data: dict[str, Any]) -> Replay:
                 "update_id": get("ota_updates_update_id", ""),
             },
             "platform": get("platform", ""),
-            "project_id": get("project_id", 0),
+            "project_id": str(get("agg_project_id", 0)),
             "releases": get("releases", []),
             "replay_type": get("replay_type", "session"),
             "sdk": {
                 "name": get("sdk_name", ""),
                 "version": get("sdk_version", ""),
             },
-            "started_at": get("started_at", datetime()),
-            "tags": dict(zip(get("tk", []), get("tk", []))),
-            "trace_ids": get("trace_ids", []),
-            "urls": get("urls", []),
+            "started_at": get("started_at", datetime.fromtimestamp(0)),
+            "tags": dict(get("tags", [])),
+            "trace_ids": get("traceIds", []),
+            "urls": get("urls_sorted", []),
             "user": {
                 "display_name": get(
                     "user_username", get("user_email", get("user_id", get("user_ip", "")))
@@ -482,7 +483,7 @@ def as_replay(data: dict[str, Any]) -> Replay:
 
     # If the data indicated the replay was archived we can ignore nearly all of the data we were
     # given and just return defaults.
-    if data["is_archived"]:
-        return _as_replay({"id": data.get("replay_id"), "is_archived": True})
+    if data["isArchived"]:
+        return _as_replay({"id": data.get("replay_id"), "isArchived": True})
 
     return _as_replay(data)

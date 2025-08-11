@@ -57,7 +57,7 @@ def assert_expected_response(response: dict[str, Any], expected_response: dict[s
                 else:
                     assert response_value[k] == v, f"value: {v}, expected: {response_value[k]}"
         elif isinstance(response_value, list):
-            assert len(response_value) == len(value), f'"{response_value}" "{value}"'
+            assert len(response_value) == len(value), f'{key} => "{response_value}" != "{value}"'
             for item in response_value:
                 assert item in value, f"{key}, {item}"
                 value.remove(item)
@@ -133,7 +133,6 @@ def mock_expected_response(
         "tags": kwargs.pop("tags", {}),
         "activity": kwargs.pop("activity", 0),
         "is_archived": kwargs.pop("is_archived", False),
-        "clicks": kwargs.pop("clicks", []),
         "warning_ids": kwargs.pop("warning_ids", []),
         "info_ids": kwargs.pop("info_ids", []),
         "count_errors": kwargs.pop("count_errors", 0),
