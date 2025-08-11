@@ -77,7 +77,7 @@ def test_basic(kafka_slice_id) -> None:
                 "spans": [
                     {
                         "data": {
-                            "sentry._internal.span_buffer_outcome": "different",
+                            "sentry._internal.span_buffer_segment_id_outcome": "different",
                         },
                         "is_segment": True,
                         "project_id": 12,
