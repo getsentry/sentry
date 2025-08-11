@@ -18,7 +18,7 @@ from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscrip
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.fixtures import DetectorPriorityLevel
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, DetectorState
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.detector import Detector
@@ -27,7 +27,7 @@ EMPTY = object()
 
 
 @freeze_time()
-@apply_feature_flag_on_cls("organizations:workflow-engine-single-process-metric-issues")
+@with_feature("organizations:workflow-engine-single-process-metric-issues")
 class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
     @pytest.fixture(autouse=True)
     def _setup_metrics_patch(self):
