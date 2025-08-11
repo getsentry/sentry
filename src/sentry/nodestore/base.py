@@ -10,7 +10,6 @@ from django.core.cache import BaseCache, InvalidCacheBackendError, caches
 from django.utils.functional import cached_property
 
 from sentry import options
-from sentry.objectstore.metrics import measure_storage_put
 from sentry.utils import json, metrics
 from sentry.utils.services import Service
 
@@ -232,8 +231,7 @@ class NodeStorage(local, Service):
         >>> nodestore.set_bytes('key1', b"{'foo': 'bar'}")
         """
         metrics.distribution("nodestore.set_bytes", len(data))
-        with measure_storage_put(len(data), "nodestore"):
-            return self._set_bytes(item_id, data, ttl)
+        return self._set_bytes(item_id, data, ttl)
 
     def _set_bytes(self, item_id: str, data: bytes, ttl: timedelta | None = None) -> None:
         raise NotImplementedError

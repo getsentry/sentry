@@ -7,6 +7,7 @@ from typing import Any
 import sentry_sdk
 
 from sentry.nodestore.base import NodeStorage
+from sentry.objectstore.metrics import measure_storage_operation
 from sentry.utils.kvstore.bigtable import BigtableKVStorage
 
 
@@ -65,16 +66,28 @@ class BigtableNodeStorage(NodeStorage):
 
     @sentry_sdk.tracing.trace
     def _get_bytes(self, id: str) -> bytes | None:
-        return self.store.get(id)
+        # Note: This metric encapsulates any decompression performed by `self.store.get()`. Other
+        # instances of this metric stop measuring before decompression happens.
+        with measure_storage_operation("get", "nodestore") as metric_emitter:
+            result = self.store.get(id)
+            if result:
+                metric_emitter.record_uncompressed_size(len(result))
+            return result
 
     @sentry_sdk.tracing.trace
     def _get_bytes_multi(self, id_list: list[str]) -> dict[str, bytes | None]:
         rv: dict[str, bytes | None] = {id: None for id in id_list}
-        rv.update(self.store.get_many(id_list))
+        # Note: This metric encapsulates any decompression performed by `self.store.get_many()`. Other
+        # instances of this metric stop measuring before decompression happens.
+        with measure_storage_operation("get-multi", "nodestore"):
+            rv.update(self.store.get_many(id_list))
         return rv
 
     def _set_bytes(self, id: str, data: Any, ttl: timedelta | None = None) -> None:
-        self.store.set(id, data, ttl)
+        # Note: This metric encapsulates any compression performed by `self.store.put()`. Other
+        # instances of this metric start measuring after compression happens.
+        with measure_storage_operation("put", "nodestore", len(data)):
+            self.store.set(id, data, ttl)
 
     def delete(self, id: str) -> None:
         if self.skip_deletes:
@@ -82,7 +95,8 @@ class BigtableNodeStorage(NodeStorage):
 
         with sentry_sdk.start_span(op="nodestore.bigtable.delete"):
             try:
-                self.store.delete(id)
+                with measure_storage_operation("delete", "nodestore"):
+                    self.store.delete(id)
             finally:
                 self._delete_cache_item(id)
 
@@ -98,7 +112,8 @@ class BigtableNodeStorage(NodeStorage):
                 return
 
             try:
-                self.store.delete_many(id_list)
+                with measure_storage_operation("delete-multi", "nodestore"):
+                    self.store.delete_many(id_list)
             finally:
                 self._delete_cache_items(id_list)
 
