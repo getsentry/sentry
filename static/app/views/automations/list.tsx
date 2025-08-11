@@ -28,7 +28,7 @@ export default function AutomationsList() {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const {selection} = usePageFilters();
+  const {selection, isReady} = usePageFilters();
 
   const {
     sort: sorts,
@@ -45,17 +45,20 @@ export default function AutomationsList() {
 
   const {
     data: automations,
-    isPending,
+    isLoading,
     isError,
     isSuccess,
     getResponseHeader,
-  } = useAutomationsQuery({
-    cursor,
-    query,
-    sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
-    projects: selection.projects,
-    limit: AUTOMATION_LIST_PAGE_LIMIT,
-  });
+  } = useAutomationsQuery(
+    {
+      cursor,
+      query,
+      sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
+      projects: selection.projects,
+      limit: AUTOMATION_LIST_PAGE_LIMIT,
+    },
+    {enabled: isReady}
+  );
 
   const hits = getResponseHeader?.('X-Hits') || '';
   const hitsInt = hits ? parseInt(hits, 10) || 0 : 0;
@@ -81,7 +84,7 @@ export default function AutomationsList() {
           <div>
             <AutomationListTable
               automations={automations ?? []}
-              isPending={isPending}
+              isPending={isLoading}
               isError={isError}
               isSuccess={isSuccess}
               sort={sort}
