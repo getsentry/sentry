@@ -142,7 +142,7 @@ Sentry uses `devservices` to manage local development dependencies:
 ### API Endpoint Pattern
 
 ```python
-# src/sentry/api/endpoints/organization_details.py
+# src/sentry/core/endpoints/organization_details.py
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry.api.base import region_silo_endpoint
@@ -230,7 +230,7 @@ def send_email(user_id: int, subject: str, body: str) -> None:
 ### Test Pattern
 
 ```python
-# tests/sentry/api/endpoints/test_organization_details.py
+# tests/sentry/core/endpoints/test_organization_details.py
 from sentry.testutils.cases import APITestCase
 
 class OrganizationDetailsTest(APITestCase):

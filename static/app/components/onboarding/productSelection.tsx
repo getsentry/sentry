@@ -112,6 +112,7 @@ export const platformProductAvailability = {
     ProductSolution.SESSION_REPLAY,
     ProductSolution.LOGS,
   ],
+  dart: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
   go: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
   'go-echo': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
@@ -137,6 +138,7 @@ export const platformProductAvailability = {
   'javascript-react-router': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.SESSION_REPLAY,
+    ProductSolution.LOGS,
   ],
   'javascript-vue': [
     ProductSolution.PERFORMANCE_MONITORING,
