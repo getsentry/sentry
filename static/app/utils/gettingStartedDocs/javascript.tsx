@@ -204,7 +204,6 @@ export const getJavascriptLogsOnboarding = <
           ),
         },
         {
-          label: 'React',
           type: 'code',
           language: 'javascript',
           code: `
