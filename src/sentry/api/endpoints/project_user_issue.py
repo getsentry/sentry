@@ -147,7 +147,7 @@ class ProjectUserIssueRequestSerializer(serializers.Serializer):
 
 class WebVitalsIssueDataSerializer(ProjectUserIssueRequestSerializer):
     score = serializers.IntegerField(required=True, min_value=0, max_value=100)
-    vital = serializers.ChoiceField(required=True, choices=["lcp", "fcp", "cls", "fid", "ttfb"])
+    vital = serializers.ChoiceField(required=True, choices=["lcp", "fcp", "cls", "inp", "ttfb"])
 
 
 @region_silo_endpoint
