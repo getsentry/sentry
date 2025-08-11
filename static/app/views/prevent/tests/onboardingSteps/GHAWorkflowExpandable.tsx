@@ -2,7 +2,7 @@ import testAnalyticsGHAWorkflowExample from 'sentry-images/features/test-analyti
 
 import {Text} from 'sentry/components/core/text';
 import {t, tct} from 'sentry/locale';
-import {OnboardingStep} from 'sentry/views/codecov/tests/onboardingSteps/onboardingStep';
+import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
 export function GHAWorkflowExpandable() {
   return (
