@@ -108,9 +108,23 @@ class DatadogMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
         unit: str | None = None,
         stacklevel: int = 0,
+        precise: bool = False,
     ) -> None:
-        # We keep the same implementation for Datadog.
-        self.timing(key, value, instance, tags, sample_rate)
+        if not precise:
+            # We keep the same implementation for Datadog.
+            return self.timing(key, value, instance, tags, sample_rate)
+
+        tags = dict(tags or ())
+
+        if self.tags:
+            tags.update(self.tags)
+        if instance:
+            tags["instance"] = instance
+
+        tags_list = [f"{k}:{v}" for k, v in tags.items()]
+        self.stats.distribution(
+            self._get_key(key), value, sample_rate=sample_rate, tags=tags_list, host=self.host
+        )
 
     def event(
         self,

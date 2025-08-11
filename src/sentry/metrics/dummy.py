@@ -48,6 +48,7 @@ class DummyMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
         unit: str | None = None,
         stacklevel: int = 0,
+        precise: bool = False,
     ) -> None:
         pass
 
