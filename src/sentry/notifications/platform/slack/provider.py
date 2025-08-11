@@ -41,9 +41,7 @@ class SlackRenderer(NotificationRenderer[SlackRenderable]):
         actions_block = ActionsBlock(elements=[])
         for action in rendered_template.actions:
             actions_block.elements.append(
-                ButtonElement(
-                    text=action.get("label", ""), url=action.get("link", ""), type="button"
-                )
+                ButtonElement(text=action.get("label", ""), url=action.get("link", ""))
             )
 
         blocks = [subject, body, actions_block]
