@@ -139,7 +139,8 @@ export function DomainSelector({
     useCompactSelectOptionsCache(
       domainList
         .filter(domain => Boolean(domain?.label))
-        .filter(domain => domain.value !== EMPTY_OPTION_VALUE)
+        .filter(domain => domain.value !== EMPTY_OPTION_VALUE),
+      query
     );
 
   useEffect(() => {
