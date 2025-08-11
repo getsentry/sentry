@@ -1,12 +1,13 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any
 
 from django.utils.timezone import now
+from rest_framework.response import Response
 
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
+from sentry.models.project import Project
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 
@@ -179,7 +180,9 @@ class TeamIssueBreakdownTest(APITestCase):
             self.team.organization.slug, self.team.slug, statsPeriod="7d"
         )
 
-        def compare_response(response: Any, project: Any, expected_results: Any) -> None:
+        def compare_response(
+            response: Response, project: Project, expected_results: list[int]
+        ) -> None:
             start = (now() - timedelta(days=len(expected_results) - 1)).replace(
                 hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
             )
@@ -224,7 +227,9 @@ class TeamIssueBreakdownTest(APITestCase):
             self.team.organization.slug, self.team.slug, statsPeriod="7d", environment="production"
         )
 
-        def compare_response(response: Any, project: Any, expected_results: Any) -> None:
+        def compare_response(
+            response: Response, project: Project, expected_results: list[int]
+        ) -> None:
             start = (now() - timedelta(days=len(expected_results) - 1)).replace(
                 hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc
             )
