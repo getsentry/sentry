@@ -37,7 +37,7 @@ def get_org_sample_rate(
                 "log-project-config: org.get_option: %s",
                 sample_rate,
                 extra={
-                    "org": org.id,
+                    "org": org.id if org else None,
                     "target_sample_rate": sample_rate,
                     "default_sample_rate": default_sample_rate,
                 },
