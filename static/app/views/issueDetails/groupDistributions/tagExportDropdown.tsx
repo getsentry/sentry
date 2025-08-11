@@ -31,7 +31,7 @@ export default function TagExportDropdown({tagKey, group, organization, project}
   });
 
   return (
-    <Feature features="organizations:discover-query" organization={organization}>
+    <Feature features="organizations:discover-query">
       <DropdownMenu
         size="xs"
         trigger={triggerProps => (

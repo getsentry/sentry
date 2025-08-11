@@ -19,7 +19,8 @@ describe('TagExportDropdown', function () {
         project={project}
         group={group}
         tagKey="user"
-      />
+      />,
+      {organization: orgWithoutFeature}
     );
 
     expect(screen.queryByLabelText('Export options')).not.toBeInTheDocument();
@@ -32,7 +33,8 @@ describe('TagExportDropdown', function () {
         project={project}
         group={group}
         tagKey="user"
-      />
+      />,
+      {organization: orgWithFeature}
     );
 
     expect(screen.getByLabelText('Export options')).toBeInTheDocument();
