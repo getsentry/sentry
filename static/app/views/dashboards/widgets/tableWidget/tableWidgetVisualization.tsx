@@ -267,38 +267,41 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
 
           const cell = valueRenderer(dataRow, baggage);
 
-          const column = columnOrder[columnIndex]!;
-          const formattedColumn = {
-            key: column.key,
-            name: column.key,
-            isSortable: !!column.sortable,
-            type: column.type ?? FieldValueType.NEVER,
-            column: {
-              field: column.key,
-              kind: 'field',
-            } as Column,
-          };
+          if (organization.features.includes('discover-cell-actions-v2')) {
+            const column = columnOrder[columnIndex]!;
+            const formattedColumn = {
+              key: column.key,
+              name: column.key,
+              isSortable: !!column.sortable,
+              type: column.type ?? FieldValueType.NEVER,
+              column: {
+                field: column.key,
+                kind: 'field',
+              } as Column,
+            };
+            return (
+              <CellAction
+                key={`${rowIndex}-${columnIndex}:${tableColumn.name}`}
+                column={formattedColumn}
+                dataRow={dataRow as TableDataRow}
+                handleCellAction={(action: Actions, value: string | number) => {
+                  onTriggerCellAction?.(action, value);
+                  switch (action) {
+                    case Actions.COPY_TO_CLIPBOARD:
+                      copyToClipboard(value);
+                      break;
+                    default:
+                      break;
+                  }
+                }}
+                allowActions={allowedCellActions}
+              >
+                {cell}
+              </CellAction>
+            );
+          }
 
-          return (
-            <CellAction
-              key={`${rowIndex}-${columnIndex}:${tableColumn.name}`}
-              column={formattedColumn}
-              dataRow={dataRow as TableDataRow}
-              handleCellAction={(action: Actions, value: string | number) => {
-                onTriggerCellAction?.(action, value);
-                switch (action) {
-                  case Actions.COPY_TO_CLIPBOARD:
-                    copyToClipboard(value);
-                    break;
-                  default:
-                    break;
-                }
-              }}
-              allowActions={allowedCellActions}
-            >
-              {cell}
-            </CellAction>
-          );
+          return <div key={`${rowIndex}-${columnIndex}:${tableColumn.name}`}>{cell}</div>;
         },
         onResizeColumn: (columnIndex: number, nextColumn: TabularColumn) => {
           widths[columnIndex] = defined(nextColumn.width)
