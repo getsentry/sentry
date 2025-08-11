@@ -3,7 +3,6 @@ import {useMemo} from 'react';
 import type {Series} from 'sentry/types/echarts';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {DETECTOR_DATASET_TO_DISCOVER_DATASET_MAP} from 'sentry/views/detectors/datasetConfig/utils/discoverDatasetMap';
@@ -15,9 +14,11 @@ interface UseMetricDetectorSeriesProps {
   interval: number;
   projectId: string;
   query: string;
-  statsPeriod: TimePeriod;
   comparisonDelta?: number;
+  end?: string;
   options?: Partial<UseApiQueryOptions<any>>;
+  start?: string;
+  statsPeriod?: string;
 }
 
 interface UseMetricDetectorSeriesResult {
@@ -38,6 +39,8 @@ export function useMetricDetectorSeries({
   environment,
   projectId,
   statsPeriod,
+  start,
+  end,
   comparisonDelta,
   options,
 }: UseMetricDetectorSeriesProps): UseMetricDetectorSeriesResult {
@@ -52,6 +55,8 @@ export function useMetricDetectorSeries({
     projectId,
     dataset: DETECTOR_DATASET_TO_DISCOVER_DATASET_MAP[dataset],
     statsPeriod,
+    start,
+    end,
     comparisonDelta,
   });
 
