@@ -2,18 +2,20 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Literal
 
+from google.protobuf.json_format import MessageToJson
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import (
     DownsampledStorageConfig,
     DownsampledStorageMeta,
 )
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import Expression, TimeSeriesRequest
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
+from sentry_protos.snuba.v1.request_common_pb2 import ResponseMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import Function
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedAttribute
-from sentry.search.eap.constants import SAMPLING_MODE_MAP
+from sentry.search.eap.constants import SAMPLING_MODE_MAP, SENTRY_INTERNAL_PREFIXES
 from sentry.search.eap.ourlogs.attributes import (
     LOGS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
     LOGS_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
@@ -33,7 +35,8 @@ from sentry.search.eap.spans.attributes import (
     SPANS_REPLACEMENT_MAP,
 )
 from sentry.search.eap.types import SupportedTraceItemType
-from sentry.search.events.types import SAMPLING_MODES
+from sentry.search.events.types import SAMPLING_MODES, EventsMeta
+from sentry.utils import json
 
 # TODO: Remove when https://github.com/getsentry/eap-planning/issues/206 is merged, since we can use formulas in both APIs at that point
 BINARY_FORMULA_OPERATOR_MAP = {
@@ -186,15 +189,40 @@ def get_secondary_aliases(
     return mapping.get(internal_alias)
 
 
-def can_expose_attribute(attribute: str, item_type: SupportedTraceItemType) -> bool:
-    return attribute not in PRIVATE_ATTRIBUTES.get(item_type, {}) and not any(
+def can_expose_attribute(
+    attribute: str, item_type: SupportedTraceItemType, include_internal: bool = False
+) -> bool:
+    # Always omit private attributes
+    if attribute in PRIVATE_ATTRIBUTES.get(item_type, {}) or any(
         attribute.lower().startswith(prefix.lower())
         for prefix in PRIVATE_ATTRIBUTE_PREFIXES.get(item_type, {})
-    )
+    ):
+        return False
+
+    # Omit internal attributes, unless explicitly requested. Usually, only
+    # Sentry staff should see these.
+    if any(attribute.lower().startswith(prefix.lower()) for prefix in SENTRY_INTERNAL_PREFIXES):
+        return include_internal
+
+    return True
 
 
 def handle_downsample_meta(meta: DownsampledStorageMeta) -> bool:
     return not meta.can_go_to_higher_accuracy_tier
+
+
+def set_debug_meta(
+    events_meta: EventsMeta,
+    rpc_meta: ResponseMeta,
+    rpc_request: TraceItemTableRequest | TimeSeriesRequest,
+) -> None:
+    """Only done when debug is passed to the events endpoint"""
+    rpc_query = json.loads(MessageToJson(rpc_request))
+
+    events_meta["debug_info"] = {
+        "query.storage_meta.tier": rpc_meta.downsampled_storage_meta.tier,
+        "query": rpc_query,
+    }
 
 
 def is_sentry_convention_replacement_attribute(

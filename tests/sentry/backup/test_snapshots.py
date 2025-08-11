@@ -25,7 +25,7 @@ class SnapshotTests(BackupTransactionTestCase):
     Tests against specific JSON snapshots.
     """
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         clear_database(reset_pks=True)
 

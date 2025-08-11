@@ -68,6 +68,7 @@ function transformRepositoriesToApiFormat(repositories: any[], repoIds: string[]
       external_id: repo.externalId,
       branch_name: '',
       instructions: '',
+      branch_overrides: [],
     };
   });
 }
@@ -82,7 +83,7 @@ function filterProjectsWithAccess(projects: Project[], organization: any) {
 function ProjectRow({onClick, project}: {onClick: () => void; project: Project}) {
   return (
     <ClickablePanelItem onClick={onClick}>
-      <Flex align="center" gap="md" justify="space-between" flex={1}>
+      <Flex align="center" gap="md" justify="between" flex={1}>
         <Flex align="center" gap="md">
           <ProjectAvatar project={project} title={project.slug} />
           <ProjectName>{project.slug}</ProjectName>

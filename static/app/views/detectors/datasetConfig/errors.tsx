@@ -4,6 +4,7 @@ import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
 import {EventsSearchBar} from 'sentry/views/detectors/datasetConfig/components/eventSearchBar';
 import {
   getDiscoverSeriesQueryOptions,
+  transformEventsStatsComparisonSeries,
   transformEventsStatsToSeries,
 } from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
 
@@ -23,4 +24,9 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
   transformSeriesQueryData: (data, aggregate) => {
     return [transformEventsStatsToSeries(data, aggregate)];
   },
+  transformComparisonSeriesData: data => {
+    return [transformEventsStatsComparisonSeries(data)];
+  },
+  fromApiAggregate: aggregate => aggregate,
+  toApiAggregate: aggregate => aggregate,
 };

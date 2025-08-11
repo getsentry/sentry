@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 from django.urls import reverse
@@ -12,7 +12,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class BitbucketSearchEndpointTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.base_url = "https://api.bitbucket.org"
         self.shared_secret = "234567890"
         self.subject = "connect:1234567"
@@ -36,7 +36,7 @@ class BitbucketSearchEndpointTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_search_issues(self, mock_record):
+    def test_search_issues(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/meredithanya/apples/issues",
@@ -73,7 +73,7 @@ class BitbucketSearchEndpointTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_search_repositories(self, mock_record):
+    def test_search_repositories(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/meredithanya",
@@ -98,7 +98,7 @@ class BitbucketSearchEndpointTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_search_repositories_no_issue_tracker(self, mock_record):
+    def test_search_repositories_no_issue_tracker(self, mock_record: MagicMock) -> None:
         responses.add(
             responses.GET,
             "https://api.bitbucket.org/2.0/repositories/meredithanya/apples/issues",

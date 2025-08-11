@@ -51,7 +51,6 @@ interface LogsPageParams {
   /** In the 'aggregates' table, if you GROUP BY, there can be many rows. This is the 'sort by' for that table. */
   readonly aggregateSortBys: Sort[];
   readonly analyticsPageSource: LogsAnalyticsPageSource;
-  readonly blockRowExpanding: boolean | undefined;
   readonly cursor: string;
   readonly fields: string[];
   readonly isTableFrozen: boolean | undefined;
@@ -91,16 +90,25 @@ interface LogsPageParams {
   readonly groupBy?: string;
 
   /**
-   * If provided, add a 'trace:{trace id}' to all queries.
-   * Used in embedded views like error page and trace page
+   * The id of the query, if a saved query.
    */
-  readonly limitToTraceId?: string;
+  readonly id?: string;
+  /**
+   * If provided, add a 'trace:{trace id}' to all queries.
+   * Used in embedded views like error page and trace page.
+   * Can be an array of trace IDs on some pages (eg. replays)
+   */
+  readonly limitToTraceId?: string | string[];
 
   /**
    * If provided, ignores the project in the location and uses the provided project IDs.
    * Useful for cross-project traces when project is in the location.
    */
   readonly projectIds?: number[];
+  /**
+   * The title of the query, if a saved query.
+   */
+  readonly title?: string;
 }
 
 type NullablePartial<T> = {
@@ -120,11 +128,10 @@ interface LogsPageParamsProviderProps {
     autoRefresh?: AutoRefreshState;
     refreshInterval?: number;
   };
-  blockRowExpanding?: boolean;
   isTableFrozen?: boolean;
   limitToProjectIds?: number[];
   limitToSpanId?: string;
-  limitToTraceId?: string;
+  limitToTraceId?: string | string[];
 }
 
 export function LogsPageParamsProvider({
@@ -132,7 +139,6 @@ export function LogsPageParamsProvider({
   limitToTraceId,
   limitToSpanId,
   limitToProjectIds,
-  blockRowExpanding,
   isTableFrozen,
   analyticsPageSource,
   _testContext,
@@ -146,14 +152,24 @@ export function LogsPageParamsProvider({
 
   const search = isTableFrozen ? searchForFrozenPages : new MutableSearch(logsQuery);
   let baseSearch: MutableSearch | undefined = undefined;
-  if (limitToSpanId && limitToTraceId) {
+
+  const traceIds = Array.isArray(limitToTraceId)
+    ? limitToTraceId
+    : limitToTraceId
+      ? [limitToTraceId]
+      : undefined;
+
+  if (traceIds?.length) {
     baseSearch = baseSearch ?? new MutableSearch('');
-    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, limitToTraceId);
-    baseSearch.addFilterValue(OurLogKnownFieldKey.PARENT_SPAN_ID, limitToSpanId);
-  } else if (limitToTraceId) {
-    baseSearch = baseSearch ?? new MutableSearch('');
-    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, limitToTraceId);
+    const traceIdValue = `[${traceIds.join(',')}]`;
+    baseSearch.addFilterValue(OurLogKnownFieldKey.TRACE_ID, traceIdValue);
+    if (limitToSpanId) {
+      baseSearch.addFilterValue(OurLogKnownFieldKey.PARENT_SPAN_ID, limitToSpanId);
+    }
   }
+
+  const title = getLogTitleFromLocation(location);
+  const id = getLogIdFromLocation(location);
   const fields = isTableFrozen ? defaultLogFields() : getLogFieldsFromLocation(location);
   const sortBys = isTableFrozen
     ? [logsTimestampDescendingSortBy]
@@ -197,14 +213,15 @@ export function LogsPageParamsProvider({
         search,
         setSearchForFrozenPages,
         sortBys,
+        title,
+        id,
         cursor,
         setCursorForFrozenPages,
         isTableFrozen,
-        blockRowExpanding,
         baseSearch,
         projectIds,
         analyticsPageSource,
-        limitToTraceId,
+        limitToTraceId: traceIds,
         groupBy,
         aggregateFn,
         aggregateParam,
@@ -219,7 +236,7 @@ export function LogsPageParamsProvider({
   );
 }
 
-const useLogsPageParams = _useLogsPageParams;
+export const useLogsPageParams = _useLogsPageParams;
 
 const decodeLogsQuery = (location: Location): string => {
   if (!location.query?.[LOGS_QUERY_KEY]) {
@@ -361,11 +378,6 @@ export function useLogsGroupBy() {
   return groupBy;
 }
 
-export function useLogsIsFrozen() {
-  const {isTableFrozen} = useLogsPageParams();
-  return !!isTableFrozen;
-}
-
 export function useLogsLimitToTraceId() {
   const {limitToTraceId} = useLogsPageParams();
   return limitToTraceId;
@@ -384,16 +396,6 @@ export function useSetLogsCursor() {
     },
     [isTableFrozen, setCursorForFrozenPages, setPageParams]
   );
-}
-
-export function useLogsIsTableFrozen() {
-  const {isTableFrozen} = useLogsPageParams();
-  return !!isTableFrozen;
-}
-
-export function useLogsBlockRowExpanding() {
-  const {blockRowExpanding} = useLogsPageParams();
-  return !!blockRowExpanding;
 }
 
 export function usePersistedLogsPageParams() {
@@ -432,6 +434,16 @@ export function useLogsFields() {
   return fields;
 }
 
+export function useLogsId() {
+  const {id} = useLogsPageParams();
+  return id;
+}
+
+export function useLogsTitle() {
+  const {title} = useLogsPageParams();
+  return title;
+}
+
 export function useLogsProjectIds() {
   const {projectIds} = useLogsPageParams();
   return projectIds;
@@ -448,6 +460,16 @@ export function useSetLogsFields() {
       setPersistentParams(prev => ({...prev, fields}));
     },
     [setPageParams, setPersistentParams]
+  );
+}
+
+export function useSetLogsSavedQueryInfo() {
+  const setPageParams = useSetLogsPageParams();
+  return useCallback(
+    (id: string, title: string) => {
+      setPageParams({id, title});
+    },
+    [setPageParams]
   );
 }
 
@@ -491,19 +513,12 @@ export function useLogsAnalyticsPageSource() {
   return analyticsPageSource;
 }
 
-export function useLogsMode() {
-  const {mode} = useLogsPageParams();
-  return mode;
+function getLogTitleFromLocation(location: Location): string {
+  return decodeScalar(location.query.title, '');
 }
 
-export function useSetLogsMode() {
-  const setPageParams = useSetLogsPageParams();
-  return useCallback(
-    (mode: Mode) => {
-      setPageParams({mode});
-    },
-    [setPageParams]
-  );
+function getLogIdFromLocation(location: Location): string {
+  return decodeScalar(location.query.id, '');
 }
 
 function getLogCursorFromLocation(location: Location): string {

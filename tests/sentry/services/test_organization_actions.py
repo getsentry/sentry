@@ -29,7 +29,7 @@ def assert_outbox_update_message_exists(org: Organization, expected_count: int):
 
 
 class OrganizationUpdateWithOutboxTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org: Organization = self.create_organization(slug="sluggy", name="barfoo")
 
     def test_update_organization_with_outbox_message(self) -> None:
@@ -49,7 +49,7 @@ class OrganizationUpdateWithOutboxTest(TestCase):
 
 
 class OrganizationUpsertWithOutboxTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org: Organization = self.create_organization(slug="sluggy", name="barfoo")
 
     def test_upsert_queues_outbox_message_and_updates_org(self) -> None:
@@ -111,7 +111,7 @@ class OrganizationUpsertWithOutboxTest(TestCase):
 
 
 class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org: Organization = self.create_organization(
             slug="sluggy", name="barfoo", status=OrganizationStatus.ACTIVE
         )
@@ -154,7 +154,7 @@ class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCas
 
 
 class UnmarkOrganizationForDeletionWithOutboxMessageTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.org: Organization = self.create_organization(
             slug="sluggy", name="barfoo", status=OrganizationStatus.PENDING_DELETION
         )

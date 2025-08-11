@@ -1,6 +1,9 @@
-import styled from '@emotion/styled';
-
 import {Alert} from 'sentry/components/core/alert';
+import {Flex} from 'sentry/components/core/layout';
+import {
+  KeyValueData,
+  type KeyValueDataContentProps,
+} from 'sentry/components/keyValueData';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -22,48 +25,86 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
   } = props.buildDetailsQuery;
 
   if (isBuildDetailsPending) {
-    return (
-      <SidebarContainer>
-        <LoadingIndicator />
-      </SidebarContainer>
-    );
+    return <LoadingIndicator />;
   }
 
   if (isBuildDetailsError) {
-    return (
-      <SidebarContainer>
-        <Alert type="error">{buildDetailsError?.message}</Alert>
-      </SidebarContainer>
-    );
+    return <Alert type="error">{buildDetailsError?.message}</Alert>;
   }
 
   if (!buildDetailsData) {
-    return (
-      <SidebarContainer>
-        <Alert type="error">No build details found</Alert>
-      </SidebarContainer>
-    );
+    return <Alert type="error">No build details found</Alert>;
+  }
+
+  // TODO: Linkify
+  const vcsInfoContentItems: KeyValueDataContentProps[] = [
+    {
+      item: {
+        key: 'SHA',
+        subject: 'SHA',
+        value: buildDetailsData.vcs_info.head_sha ?? '-',
+      },
+    },
+    {
+      item: {
+        key: 'Base SHA',
+        subject: 'Base SHA',
+        value: buildDetailsData.vcs_info.base_sha ?? '-',
+      },
+    },
+    {
+      item: {
+        key: 'PR Number',
+        subject: 'PR Number',
+        value: buildDetailsData.vcs_info.pr_number ?? '-',
+      },
+    },
+    {
+      item: {
+        key: 'Branch',
+        subject: 'Branch',
+        value: buildDetailsData.vcs_info.head_ref ?? '-',
+      },
+    },
+    {
+      item: {
+        key: 'Base Branch',
+        subject: 'Base Branch',
+        value: buildDetailsData.vcs_info.base_ref ?? '-',
+      },
+    },
+    {
+      item: {
+        key: 'Repo Name',
+        subject: 'Repo Name',
+        value: buildDetailsData.vcs_info.head_repo_name ?? '-',
+      },
+    },
+  ];
+
+  // Base repo name is only available for forks, so we shouldn't show it if it's not present
+  if (buildDetailsData.vcs_info.base_repo_name) {
+    vcsInfoContentItems.push({
+      item: {
+        key: 'Base Repo Name',
+        subject: 'Base Repo Name',
+        value: buildDetailsData.vcs_info.base_repo_name,
+      },
+    });
   }
 
   return (
-    <SidebarContainer>
+    <Flex direction="column" gap="2xl">
       {/* App info */}
       <BuildDetailsSidebarAppInfo
         appInfo={buildDetailsData.app_info}
+        sizeInfo={buildDetailsData.size_info}
         projectId={props.projectId}
         artifactId={props.artifactId}
-        // TODO: Get from size data when available
-        installSizeBytes={1000000}
-        downloadSizeBytes={1000000}
       />
 
-      {/* TODO: VCS info */}
-    </SidebarContainer>
+      {/* VCS info */}
+      <KeyValueData.Card title="Git details" contentItems={vcsInfoContentItems} />
+    </Flex>
   );
 }
-
-const SidebarContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.lg};
-`;

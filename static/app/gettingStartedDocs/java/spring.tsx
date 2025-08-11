@@ -98,7 +98,7 @@ sentry {
   includeSourceContext = true
 
   org = "${params.organization.slug}"
-  projectName = "${params.projectSlug}"
+  projectName = "${params.project.slug}"
   authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }`;
 
@@ -121,7 +121,7 @@ const getMavenInstallSnippet = (params: Params) => `
 
         <org>${params.organization.slug}</org>
 
-        <project>${params.projectSlug}</project>
+        <project>${params.project.slug}</project>
 
         <!-- in case you're self hosting, provide the URL here -->
         <!--<url>http://localhost:8000/</url>-->
@@ -205,8 +205,16 @@ try {
 
 const getSentryPropertiesSnippet = (params: Params) =>
   `${
+    params.isLogsSelected
+      ? `
+# Enable sending logs to Sentry
+logs.enabled=true`
+      : ''
+  }${
     params.isPerformanceSelected
       ? `
+# Set traces-sample-rate to 1.0 to capture 100% of transactions for tracing.
+# We recommend adjusting this value in production.
 traces-sample-rate=1.0`
       : ''
   }`;
@@ -387,19 +395,19 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
             },
           ],
         },
-        ...(params.isPerformanceSelected
+        ...(params.isPerformanceSelected || params.isLogsSelected
           ? [
               {
                 type: StepType.CONFIGURE,
                 description: tct(
-                  'Add a [code:sentry.properties] file to enable Performance:',
+                  'Add a [code:sentry.properties] file to enable additional features:',
                   {
                     code: <code />,
                   }
                 ),
                 configurations: [
                   {
-                    language: 'java',
+                    language: 'properties',
                     code: getSentryPropertiesSnippet(params),
                   },
                 ],

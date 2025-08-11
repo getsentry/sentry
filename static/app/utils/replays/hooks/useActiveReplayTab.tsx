@@ -1,7 +1,6 @@
 import {useCallback} from 'react';
 
 import useUrlParams from 'sentry/utils/url/useUrlParams';
-import useOrganization from 'sentry/utils/useOrganization';
 
 export enum TabKey {
   AI = 'ai',
@@ -12,6 +11,7 @@ export enum TabKey {
   NETWORK = 'network',
   TAGS = 'tags',
   TRACE = 'trace',
+  LOGS = 'logs',
 }
 
 function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}) {
@@ -23,6 +23,7 @@ function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}
     TabKey.NETWORK,
     TabKey.CONSOLE,
     TabKey.TRACE,
+    TabKey.LOGS,
   ];
 
   if (isVideoReplay) {
@@ -33,14 +34,7 @@ function isReplayTab({tab, isVideoReplay}: {isVideoReplay: boolean; tab: string}
 }
 
 function useActiveReplayTab({isVideoReplay = false}: {isVideoReplay?: boolean}) {
-  const organization = useOrganization();
-
-  // Use AI as default tab if user has the replay-ai-summaries feature flag, otherwise use breadcrumbs
-  const defaultTab =
-    organization.features.includes('replay-ai-summaries') &&
-    organization.features.includes('gen-ai-features')
-      ? TabKey.AI
-      : TabKey.BREADCRUMBS;
+  const defaultTab = TabKey.BREADCRUMBS;
 
   const {getParamValue, setParamValue} = useUrlParams('t_main', defaultTab);
 

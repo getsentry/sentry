@@ -16,7 +16,7 @@ from sentry.users.models.user import User
 
 @control_silo_test
 class TestNotificationUtilities(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.notification = DummyNotification(self.organization)
 

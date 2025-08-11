@@ -5,7 +5,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class DummyNewsletterTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.newsletter = DummyNewsletter()
 
     def test_defaults(self) -> None:

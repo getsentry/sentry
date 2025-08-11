@@ -55,12 +55,10 @@ const getIntegrations = (params: Params): string[] => {
 const getDynamicParts = (params: Params): string[] => {
   const dynamicParts: string[] = [];
 
-  if (params.isPerformanceSelected) {
+  if (params.isLogsSelected) {
     dynamicParts.push(`
-      // Tracing
-      tracesSampleRate: 1.0, //  Capture 100% of the transactions
-      // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-      tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
+      // Enable sending logs to Sentry
+      enableLogs: true`);
   }
 
   if (params.isReplaySelected) {
@@ -68,6 +66,14 @@ const getDynamicParts = (params: Params): string[] => {
       // Session Replay
       replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
       replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
+  }
+
+  if (params.isPerformanceSelected) {
+    dynamicParts.push(`
+      // Tracing
+      tracesSampleRate: 1.0, //  Capture 100% of the transactions
+      // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+      tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/]`);
   }
 
   if (params.isProfilingSelected) {
@@ -127,8 +133,22 @@ const installSnippetBlock: ContentBlock = {
   ],
 };
 
-const getVerifyEmberSnippet = () => `
-myUndefinedFunction();`;
+const getVerifyEmberSnippet = (params: Params) => {
+  const logsCode = params.isLogsSelected
+    ? `// Send a log before throwing the error
+    Sentry.logger.info(Sentry.logger.fmt\`User \${"sentry-test"} triggered test error button\`, {
+      action: "test_error_button_click",
+    });
+`
+    : '';
+
+  return `
+import * as Sentry from "@sentry/ember";
+
+setTimeout(() => {
+  ${logsCode}throw new Error("Sentry Test Error");
+});`;
+};
 
 const onboarding: OnboardingConfig = {
   introduction: () =>
@@ -139,13 +159,13 @@ const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: t(
-        'Sentry captures data by using an SDK within your application’s runtime.'
+        "Sentry captures data by using an SDK within your application's runtime."
       ),
       content: [
         {
           type: 'text',
           text: t(
-            'Sentry captures data by using an SDK within your application’s runtime.'
+            "Sentry captures data by using an SDK within your application's runtime."
           ),
         },
         installSnippetBlock,
@@ -182,7 +202,7 @@ const onboarding: OnboardingConfig = {
       ...params,
     }),
   ],
-  verify: () => [
+  verify: (params: Params) => [
     {
       type: StepType.VERIFY,
       content: [
@@ -198,14 +218,38 @@ const onboarding: OnboardingConfig = {
             {
               label: 'JavaScript',
               language: 'javascript',
-              code: getVerifyEmberSnippet(),
+              code: getVerifyEmberSnippet(params),
             },
           ],
         },
       ],
     },
   ],
-  nextSteps: () => [],
+  nextSteps: (params: Params) => {
+    const steps = [
+      {
+        id: 'ember-configuration',
+        name: t('Configure Ember Options'),
+        description: t(
+          'Learn about additional configuration options for the Ember addon.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/ember/configuration/ember-options/',
+      },
+    ];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/ember/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const replayOnboarding: OnboardingConfig = {

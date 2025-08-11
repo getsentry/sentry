@@ -5,6 +5,7 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
+import sentry_sdk
 from django.conf import settings
 from django.utils.encoding import force_str
 from rest_framework.authentication import get_authorization_header
@@ -12,6 +13,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.auth.services.auth import AuthenticatedToken
+from sentry.options.rollout import in_random_rollout
+from sentry.types.ratelimit import RateLimitMeta, SnubaRateLimitMeta
 from sentry.utils import metrics
 
 from . import is_frontend_request
@@ -47,24 +50,37 @@ def _get_token_name(auth: AuthenticatedToken | None) -> str | None:
 
 
 def _get_rate_limit_stats_dict(request: Request) -> dict[str, str]:
-    # TODO:: plumb the rate limit group up here as well for better future analysis
-    default = {
-        "rate_limit_type": "DNE",
-        "concurrent_limit": str(None),
-        "concurrent_requests": str(None),
-        "reset_time": str(None),
-        "group": str(None),
-        "limit": str(None),
-        "remaining": str(None),
+
+    rate_limit_metadata: RateLimitMeta | None = getattr(request, "rate_limit_metadata", None)
+    snuba_rate_limit_metadata: SnubaRateLimitMeta | None = getattr(
+        request, "snuba_rate_limit_metadata", None
+    )
+
+    rate_limit_type = "DNE"
+    if rate_limit_metadata:
+        rate_limit_type = str(getattr(rate_limit_metadata, "rate_limit_type", "DNE"))
+    if snuba_rate_limit_metadata:
+        rate_limit_type = "RateLimitType.SNUBA"
+
+    rate_limit_stats = {
+        "rate_limit_type": rate_limit_type,
+        "concurrent_limit": str(getattr(rate_limit_metadata, "concurrent_limit", None)),
+        "concurrent_requests": str(getattr(rate_limit_metadata, "concurrent_requests", None)),
+        "reset_time": str(getattr(rate_limit_metadata, "reset_time", None)),
+        "group": str(getattr(rate_limit_metadata, "group", None)),
+        "limit": str(getattr(rate_limit_metadata, "limit", None)),
+        "remaining": str(getattr(rate_limit_metadata, "remaining", None)),
+        # We prefix the snuba fields with snuba_ to avoid confusion with the standard rate limit metadata
+        "snuba_policy": str(getattr(snuba_rate_limit_metadata, "policy", None)),
+        "snuba_quota_unit": str(getattr(snuba_rate_limit_metadata, "quota_unit", None)),
+        "snuba_quota_used": str(getattr(snuba_rate_limit_metadata, "quota_used", None)),
+        "snuba_rejection_threshold": str(
+            getattr(snuba_rate_limit_metadata, "rejection_threshold", None)
+        ),
+        "snuba_storage_key": str(getattr(snuba_rate_limit_metadata, "storage_key", None)),
     }
 
-    rate_limit_metadata = getattr(request, "rate_limit_metadata", None)
-    if not rate_limit_metadata:
-        return default
-    res = {}
-    for field in default:
-        res[field] = str(getattr(rate_limit_metadata, field, None))
-    return res
+    return rate_limit_stats
 
 
 def _create_api_access_log(
@@ -89,7 +105,7 @@ def _create_api_access_log(
         user_id = getattr(request_user, "id", None)
         is_app = getattr(request_user, "is_sentry_app", None)
         org_id = getattr(getattr(request, "organization", None), "id", None)
-        auth_id = getattr(request_auth, "id", None)
+        entity_id = getattr(request_auth, "entity_id", None)
         status_code = getattr(response, "status_code", 500)
         log_metrics = dict(
             method=str(request.method),
@@ -100,7 +116,7 @@ def _create_api_access_log(
             token_type=token_type,
             is_frontend_request=str(is_frontend_request(request)),
             organization_id=str(org_id),
-            auth_id=str(auth_id),
+            entity_id=str(entity_id),
             path=str(request.path),
             caller_ip=str(request.META.get("REMOTE_ADDR")),
             user_agent=str(request.META.get("HTTP_USER_AGENT")),
@@ -114,12 +130,16 @@ def _create_api_access_log(
             log_metrics["token_last_characters"] = force_str(auth[1])[-4:]
         api_access_logger.info("api.access", extra=log_metrics)
         metrics.incr("middleware.access_log.created")
+
+        if in_random_rollout("issues.log-access-logs") and not org_id:
+            sentry_sdk.capture_message("Acesss log created without org_id", level="debug")
+
     except Exception:
         api_access_logger.exception("api.access: Error capturing API access logs")
 
 
 def access_log_middleware(
-    get_response: Callable[[Request], Response]
+    get_response: Callable[[Request], Response],
 ) -> Callable[[Request], Response]:
     def middleware(request: Request) -> Response:
         # NOTE(Vlad): `request.auth|user` are not a simple member accesses,

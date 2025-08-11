@@ -23,18 +23,18 @@ export function TitleCell({
   className,
 }: TitleCellProps) {
   return (
-    <TitleWrapper to={link} disabled={disabled} className={className}>
-      <Name disabled={disabled}>
+    <TitleWrapper to={link} className={className}>
+      <Name>
         <NameText>{name}</NameText>
         {systemCreated && <CreatedBySentryIcon size="xs" color="subText" />}
-        {disabled && <span>&mdash; Disabled</span>}
+        {disabled && <DisabledText>&mdash; Disabled</DisabledText>}
       </Name>
       {defined(details) && <DetailsWrapper>{details}</DetailsWrapper>}
     </TitleWrapper>
   );
 }
 
-const Name = styled('div')<{disabled: boolean}>`
+const Name = styled('div')`
   color: ${p => p.theme.textColor};
   display: flex;
   align-items: center;
@@ -44,19 +44,24 @@ const Name = styled('div')<{disabled: boolean}>`
 const NameText = styled('span')`
   font-weight: ${p => p.theme.fontWeight.bold};
   ${p => p.theme.overflowEllipsis};
-  width: auto;
+  width: fit-content;
+`;
+
+const DisabledText = styled('span')`
+  flex-shrink: 0;
 `;
 
 const CreatedBySentryIcon = styled(IconSentry)`
   flex-shrink: 0;
 `;
 
-const TitleWrapper = styled(Link)<{disabled: boolean}>`
+const TitleWrapper = styled(Link)`
   display: flex;
   flex-direction: column;
   gap: ${space(0.5)};
   flex: 1;
   overflow: hidden;
+  min-height: 20px;
 
   &:hover {
     ${Name} {

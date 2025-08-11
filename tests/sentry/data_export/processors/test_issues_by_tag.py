@@ -25,7 +25,7 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
         "first_seen",
     ]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.org = self.create_organization(owner=self.user)

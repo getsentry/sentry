@@ -12,7 +12,7 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
-import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {type Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
@@ -113,6 +113,7 @@ export function IssueWidgetCard({
           } satisfies RenderFunctionBaggage;
         }}
         onResizeColumn={onWidgetTableResizeColumn}
+        allowedCellActions={[]}
       />
     </TableContainer>
   ) : (

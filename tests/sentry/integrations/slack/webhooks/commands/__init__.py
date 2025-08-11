@@ -27,7 +27,7 @@ class SlackCommandsTest(APITestCase, TestCase):
     endpoint = "sentry-integration-slack-commands"
     method = "post"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.slack_id = "UXXXXXXX1"

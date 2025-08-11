@@ -201,7 +201,7 @@ function EventsTable({
       column: TableColumn<keyof TableDataRow>,
       dataRow: TableDataRow
     ): React.ReactNode => {
-      if (!tableData || !tableData.meta) {
+      if (!tableData?.meta) {
         return dataRow[column.key];
       }
       const tableMeta = tableData.meta;
@@ -221,6 +221,7 @@ function EventsTable({
         Actions.SHOW_GREATER_THAN,
         Actions.SHOW_LESS_THAN,
         Actions.OPEN_EXTERNAL_LINK,
+        Actions.OPEN_INTERNAL_LINK,
       ];
 
       if (['attachments', 'minidump'].includes(field)) {

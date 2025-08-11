@@ -128,7 +128,7 @@ def assert_get_personalized_digests(
 
 
 class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user1 = self.create_user()
         self.user2 = self.create_user()

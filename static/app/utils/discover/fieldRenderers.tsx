@@ -24,7 +24,6 @@ import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
@@ -96,6 +95,13 @@ export type RenderFunctionBaggage = {
   location: Location;
   organization: Organization;
   theme: Theme;
+  /**
+   * If true, all fields that are not needed immediately will not be rendered lazily.
+   * This is useful for fields that require api calls or other side effects to render.
+   *
+   * eg. the code path field in logs requires a call to the stacktrace link api to render.
+   */
+  disableLazyLoad?: boolean;
   eventView?: EventView;
   projectSlug?: string;
   unit?: string;
@@ -321,7 +327,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   },
   string: {
     isSortable: true,
-    renderFunc: (field, data, baggage) => {
+    renderFunc: (field, data) => {
       // Some fields have long arrays in them, only show the tail of the data.
       const value = Array.isArray(data[field])
         ? data[field].slice(-1)
@@ -329,11 +335,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           ? data[field]
           : emptyValue;
 
-      // In the future, external linking will be done through CellAction component instead of the default renderer
-      if (
-        !baggage?.organization.features.includes('discover-cell-actions-v2') &&
-        isUrl(value)
-      ) {
+      if (isUrl(value)) {
         return (
           <Tooltip title={value} containerDisplayMode="block" showOnlyOnOverflow>
             <Container>
@@ -382,7 +384,7 @@ type SpecialField = {
 };
 
 const DownloadCount = styled('span')`
-  padding-left: ${space(0.75)};
+  padding-left: ${p => p.theme.space.sm};
 `;
 
 const RightAlignedContainer = styled('span')`
@@ -499,7 +501,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   },
   'span.description': {
     sortField: 'span.description',
-    renderFunc: (data, {organization}) => {
+    renderFunc: data => {
       const value = data[SpanFields.SPAN_DESCRIPTION];
       const op: string = data[SpanFields.SPAN_OP];
       const projectId =
@@ -527,8 +529,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           maxWidth={400}
         >
           <Container>
-            {!organization.features.includes('discover-cell-actions-v2') &&
-            isUrl(value) ? (
+            {isUrl(value) ? (
               <ExternalLink href={value}>{value}</ExternalLink>
             ) : (
               nullableValue(value)
@@ -899,7 +900,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return (
         <IconContainer>
           {getContextIcon(browserName)}
-          {browserName}
+          <Container>{browserName}</Container>
         </IconContainer>
       );
     },
@@ -915,7 +916,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return (
         <IconContainer>
           {getContextIcon(dropVersion(browser))}
-          {browser}
+          <Container>{browser}</Container>
         </IconContainer>
       );
     },
@@ -931,7 +932,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return (
         <IconContainer>
           {getContextIcon(osName)}
-          {osName}
+          <Container>{osName}</Container>
         </IconContainer>
       );
     },
@@ -950,11 +951,11 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         <IconContainer>
           {getContextIcon(dropVersion(os))}
           {hasUserAgentLocking ? (
-            <Tooltip title={userAgentLocking} showUnderline>
-              {os}
-            </Tooltip>
+            <StyledTooltip title={userAgentLocking} showUnderline>
+              <Container>{os}</Container>
+            </StyledTooltip>
           ) : (
-            os
+            <Container>{os}</Container>
           )}
         </IconContainer>
       );
@@ -1279,6 +1280,10 @@ const StyledProjectBadge = styled(ProjectBadge)`
   ${BadgeDisplayName} {
     max-width: 100%;
   }
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  ${p => p.theme.overflowEllipsis}
 `;
 
 /**

@@ -8,7 +8,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class SentryAppRotateSecretTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.application = ApiApplication.objects.create(owner=self.user)
         self.sentry_app = SentryApp.objects.create(
             application=self.application, owner_id=self.organization.id, name="a", slug="a"

@@ -14,7 +14,6 @@ import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widget
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
-import {useCachedTimeseriesResults} from 'sentry/views/explore/components/chart/useCachedTimeseriesResults';
 import ChartContextMenu from 'sentry/views/explore/components/chartContextMenu';
 import {FloatingTrigger} from 'sentry/views/explore/components/suspectTags/floatingTrigger';
 import type {
@@ -39,7 +38,6 @@ import {
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 interface ExploreChartsProps {
-  canUsePreviousResults: boolean;
   confidences: Confidence[];
   query: string;
   setVisualizes: (visualizes: BaseVisualize[]) => void;
@@ -67,7 +65,6 @@ export const EXPLORE_CHART_TYPE_OPTIONS = [
 const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
 export function ExploreCharts({
-  canUsePreviousResults,
   query,
   timeseriesResult,
   visualizes,
@@ -99,8 +96,7 @@ export function ExploreCharts({
         {visualizes.map((visualize, index) => {
           return (
             <Chart
-              key={`${index}-${visualize.yAxis}`}
-              canUsePreviousResults={canUsePreviousResults}
+              key={`${index}`}
               index={index}
               onChartTypeChange={chartType => handleChartTypeChange(index, chartType)}
               query={query}
@@ -118,7 +114,6 @@ export function ExploreCharts({
 }
 
 interface ChartProps {
-  canUsePreviousResults: boolean;
   index: number;
   onChartTypeChange: (chartType: ChartType) => void;
   query: string;
@@ -130,7 +125,6 @@ interface ChartProps {
 }
 
 function Chart({
-  canUsePreviousResults,
   index,
   onChartTypeChange,
   query,
@@ -161,19 +155,13 @@ function Chart({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeseriesResult]);
 
-  const cachedTimeseriesResult = useCachedTimeseriesResults({
-    canUsePreviousResults,
-    timeseriesResult,
-    yAxis: visualize.yAxis,
-  });
-
   const chartType = visualize.chartType;
   const chartIcon =
     chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
 
   const chartInfo: ChartInfo = useMemo(() => {
     const isTopN = defined(topEvents) && topEvents > 0;
-    const series = cachedTimeseriesResult.data[visualize.yAxis] ?? [];
+    const series = timeseriesResult.data[visualize.yAxis] ?? [];
 
     let confidenceSeries = series;
 
@@ -183,7 +171,7 @@ function Chart({
     // When this happens, we override it with the sampling meta
     // data from the DEFAULT_VISUALIZATION.
     if (samplingMeta.sampleCount === 0 && !defined(samplingMeta.isSampled)) {
-      confidenceSeries = cachedTimeseriesResult.data[DEFAULT_VISUALIZATION] ?? [];
+      confidenceSeries = timeseriesResult.data[DEFAULT_VISUALIZATION] ?? [];
       samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
     }
 
@@ -191,14 +179,14 @@ function Chart({
       chartType,
       confidence: combineConfidenceForSeries(confidenceSeries),
       series,
-      timeseriesResult: cachedTimeseriesResult,
+      timeseriesResult,
       yAxis: visualize.yAxis,
       dataScanned: samplingMeta.dataScanned,
       isSampled: samplingMeta.isSampled,
       sampleCount: samplingMeta.sampleCount,
       samplingMode,
     };
-  }, [chartType, cachedTimeseriesResult, visualize, samplingMode, topEvents]);
+  }, [chartType, timeseriesResult, visualize, samplingMode, topEvents]);
 
   const Title = (
     <ChartTitle>
@@ -271,6 +259,7 @@ function Chart({
         Footer={
           <ConfidenceFooter
             sampleCount={chartInfo.sampleCount}
+            isLoading={chartInfo.timeseriesResult?.isPending || false}
             isSampled={chartInfo.isSampled}
             confidence={chartInfo.confidence}
             topEvents={

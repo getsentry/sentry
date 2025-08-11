@@ -36,7 +36,7 @@ function OrgFooterMessage() {
     <Fragment>
       <AddIntegratedOrgButton />
       <MenuFooterDivider />
-      <Flex justify="flex-start" gap="md">
+      <Flex justify="start" gap="md">
         <IconInfo size="sm" style={{margin: '2px 0'}} />
         <div>
           <FooterInfoHeading>
@@ -52,7 +52,7 @@ function OrgFooterMessage() {
 }
 
 export function IntegratedOrgSelector() {
-  const {integratedOrgId, changeContextValue} = useCodecovContext();
+  const {integratedOrgId, codecovPeriod, changeContextValue} = useCodecovContext();
   const organization = useOrganization();
 
   const {data: integrations = []} = useApiQuery<Integration[]>(
@@ -65,9 +65,9 @@ export function IntegratedOrgSelector() {
 
   const handleChange = useCallback(
     (selectedOption: SelectOption<string>) => {
-      changeContextValue({integratedOrgId: selectedOption.value});
+      changeContextValue({codecovPeriod, integratedOrgId: selectedOption.value});
     },
-    [changeContextValue]
+    [changeContextValue, codecovPeriod]
   );
 
   const options = useMemo((): Array<SelectOption<string>> => {
@@ -102,7 +102,7 @@ export function IntegratedOrgSelector() {
             {...triggerProps}
           >
             <TriggerLabelWrap>
-              <Flex justify="flex-start" gap="sm" align="center">
+              <Flex justify="start" gap="sm" align="center">
                 <IconContainer>
                   <IconIntegratedOrg />
                 </IconContainer>

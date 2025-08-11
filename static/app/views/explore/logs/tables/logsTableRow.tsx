@@ -19,7 +19,6 @@ import CellAction, {
   Actions,
   ActionTriggerType,
   copyToClipboard,
-  openExternalLink,
 } from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
@@ -29,13 +28,15 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   useLogsAnalyticsPageSource,
-  useLogsBlockRowExpanding,
   useLogsFields,
-  useLogsIsTableFrozen,
   useLogsSearch,
   useSetLogsSearch,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {HiddenLogDetailFields} from 'sentry/views/explore/logs/constants';
+import {
+  DEFAULT_TRACE_ITEM_HOVER_TIMEOUT,
+  DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH,
+  HiddenLogDetailFields,
+} from 'sentry/views/explore/logs/constants';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
 import {
   LogAttributesRendererMap,
@@ -76,7 +77,9 @@ type LogsRowProps = {
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
+  blockRowExpanding?: boolean;
   canDeferRenderElements?: boolean;
+  embedded?: boolean;
   isExpanded?: boolean;
   onCollapse?: (logItemId: string) => void;
   onExpand?: (logItemId: string) => void;
@@ -106,6 +109,7 @@ function isInsideButton(element: Element | null): boolean {
 
 export const LogRowContent = memo(function LogRowContent({
   dataRow,
+  embedded = false,
   highlightTerms,
   meta,
   sharedHoverTimeoutRef,
@@ -113,6 +117,7 @@ export const LogRowContent = memo(function LogRowContent({
   onExpand,
   onCollapse,
   onExpandHeight,
+  blockRowExpanding,
   canDeferRenderElements,
 }: LogsRowProps) {
   const location = useLocation();
@@ -120,8 +125,6 @@ export const LogRowContent = memo(function LogRowContent({
   const fields = useLogsFields();
   const search = useLogsSearch();
   const setLogsSearch = useSetLogsSearch();
-  const isTableFrozen = useLogsIsTableFrozen();
-  const blockRowExpanding = useLogsBlockRowExpanding();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const setAutorefresh = useSetLogsAutoRefresh();
   const measureRef = useRef<HTMLTableRowElement>(null);
@@ -163,7 +166,7 @@ export const LogRowContent = memo(function LogRowContent({
       setExpanded(e => !e);
     }
     if (!isExpanded && autorefreshEnabled) {
-      setAutorefresh('idle');
+      setAutorefresh('paused');
     }
 
     trackAnalytics('logs.table.row_expanded', {
@@ -212,11 +215,15 @@ export const LogRowContent = memo(function LogRowContent({
     typeof severityText === 'string' ? severityText : null
   );
   const logColors = getLogColors(level, theme);
+  const prefetchTimeout = autorefreshEnabled
+    ? DEFAULT_TRACE_ITEM_HOVER_TIMEOUT_WITH_AUTO_REFRESH
+    : DEFAULT_TRACE_ITEM_HOVER_TIMEOUT;
   const hoverProps = usePrefetchLogTableRowOnHover({
     logId: String(dataRow[OurLogKnownFieldKey.ID]),
     projectId: String(dataRow[OurLogKnownFieldKey.PROJECT_ID]),
     traceId: String(dataRow[OurLogKnownFieldKey.TRACE_ID]),
     sharedHoverTimeoutRef,
+    timeout: prefetchTimeout,
   });
 
   const rendererExtra = {
@@ -250,7 +257,12 @@ export const LogRowContent = memo(function LogRowContent({
       <LogTableRow
         data-test-id="log-table-row"
         {...rowInteractProps}
-        onMouseEnter={() => setShouldRenderHoverElements(true)}
+        onMouseEnter={e => {
+          setShouldRenderHoverElements(true);
+          if (rowInteractProps.onMouseEnter) {
+            rowInteractProps.onMouseEnter(e);
+          }
+        }}
       >
         <LogsTableBodyFirstCell key={'first'}>
           <LogFirstCellContent>
@@ -319,15 +331,12 @@ export const LogRowContent = memo(function LogRowContent({
                       case Actions.COPY_TO_CLIPBOARD:
                         copyToClipboard(cellValue);
                         break;
-                      case Actions.OPEN_EXTERNAL_LINK:
-                        openExternalLink(cellValue);
-                        break;
                       default:
                         break;
                     }
                   }}
                   allowActions={
-                    field === OurLogKnownFieldKey.TIMESTAMP || isTableFrozen
+                    field === OurLogKnownFieldKey.TIMESTAMP || embedded
                       ? []
                       : ALLOWED_CELL_ACTIONS
                   }
@@ -346,6 +355,7 @@ export const LogRowContent = memo(function LogRowContent({
         <LogRowDetails
           dataRow={dataRow}
           highlightTerms={highlightTerms}
+          embedded={embedded}
           meta={meta}
           ref={measureRef}
         />
@@ -356,11 +366,13 @@ export const LogRowContent = memo(function LogRowContent({
 
 function LogRowDetails({
   dataRow,
+  embedded,
   highlightTerms,
   meta,
   ref,
 }: {
   dataRow: OurLogsResponseItem;
+  embedded: boolean;
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
   ref: React.RefObject<HTMLTableRowElement | null>;
@@ -372,7 +384,7 @@ function LogRowDetails({
   });
   const projectSlug = project?.slug ?? '';
   const fields = useLogsFields();
-  const getActions = useLogAttributesTreeActions();
+  const getActions = useLogAttributesTreeActions({embedded});
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
   const severityText = dataRow[OurLogKnownFieldKey.SEVERITY];
 
@@ -445,6 +457,7 @@ function LogRowDetails({
                     projectSlug,
                     attributes,
                     theme,
+                    disableLazyLoad: true, // We disable lazy loading in the log details view since a user has to open it first.
                   }}
                 />
               </LogAttributeTreeWrapper>

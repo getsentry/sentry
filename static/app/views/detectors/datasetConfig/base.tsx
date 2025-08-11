@@ -22,6 +22,10 @@ export interface DetectorSeriesQueryOptions {
    * The aggregate to use for the series query. eg: `count()`
    */
   aggregate: string;
+  /**
+   * Comparison delta in seconds for % change alerts
+   */
+  comparisonDelta: number | undefined;
   dataset: DiscoverDatasets;
   environment: string;
   /**
@@ -55,6 +59,11 @@ export interface DetectorDatasetConfig<SeriesResponse> {
    */
   defaultField: QueryFieldValue;
   /**
+   * Transform the aggregate function from the API response to a more user friendly title.
+   * This is currently only used for the releases dataset.
+   */
+  fromApiAggregate: (aggregate: string) => string;
+  /**
    * Field options to display in the aggregate and field selectors
    */
   getAggregateOptions: (
@@ -63,6 +72,15 @@ export interface DetectorDatasetConfig<SeriesResponse> {
     customMeasurements?: CustomMeasurementCollection
   ) => Record<string, SelectValue<FieldValue>>;
   getSeriesQueryOptions: (options: DetectorSeriesQueryOptions) => ApiQueryKey;
+  /**
+   * Transform the user-friendly aggregate function to the API aggregate function.
+   * This is currently only used for the releases dataset.
+   */
+  toApiAggregate: (aggregate: string) => string;
+  /**
+   * Transform comparison series data for % change alerts
+   */
+  transformComparisonSeriesData: (data: SeriesResponse | undefined) => Series[];
   transformSeriesQueryData: (
     data: SeriesResponse | undefined,
     aggregate: string

@@ -13,7 +13,7 @@ def validate_and_normalize(data):
     return manager.get_data()
 
 
-def test_timestamp():
+def test_timestamp() -> None:
     data = validate_and_normalize({"timestamp": "not-a-timestamp"})
     assert len(data["errors"]) == 1
 
@@ -32,17 +32,17 @@ def test_timestamp():
     assert data["errors"][0]["type"] == "past_timestamp"
 
 
-def test_empty_event_id():
+def test_empty_event_id() -> None:
     data = validate_and_normalize({"event_id": ""})
     assert len(data["event_id"]) == 32
 
 
-def test_missing_event_id():
+def test_missing_event_id() -> None:
     data = validate_and_normalize({})
     assert len(data["event_id"]) == 32
 
 
-def test_invalid_event_id():
+def test_invalid_event_id() -> None:
     data = validate_and_normalize({"event_id": "a" * 33})
     assert len(data["event_id"]) == 32
     assert len(data["errors"]) == 1
@@ -58,7 +58,7 @@ def test_invalid_event_id():
     assert data["errors"][0]["value"] == "xyz"
 
 
-def test_unknown_attribute():
+def test_unknown_attribute() -> None:
     data = validate_and_normalize({"message": "foo", "foo": "bar"})
     assert data["foo"] is None
     assert len(data["errors"]) == 1
@@ -66,7 +66,7 @@ def test_unknown_attribute():
     assert data["errors"][0]["name"] == "foo"
 
 
-def test_invalid_interface_name():
+def test_invalid_interface_name() -> None:
     data = validate_and_normalize({"message": "foo", "foo.baz": "bar"})
     assert data["foo.baz"] is None
     assert len(data["errors"]) == 1
@@ -74,7 +74,7 @@ def test_invalid_interface_name():
     assert data["errors"][0]["name"] == "foo.baz"
 
 
-def test_invalid_interface_import_path():
+def test_invalid_interface_import_path() -> None:
     data = validate_and_normalize({"message": "foo", "exception2": "bar"})
     assert data["exception2"] is None
 
@@ -83,7 +83,7 @@ def test_invalid_interface_import_path():
     assert data["errors"][0]["name"] == "exception2"
 
 
-def test_does_expand_list():
+def test_does_expand_list() -> None:
     data = validate_and_normalize(
         {
             "message": "foo",
@@ -93,17 +93,17 @@ def test_does_expand_list():
     assert "exception" in data
 
 
-def test_log_level_as_string():
+def test_log_level_as_string() -> None:
     data = validate_and_normalize({"message": "foo", "level": "error"})
     assert data["level"] == "error"
 
 
-def test_log_level_as_int():
+def test_log_level_as_int() -> None:
     data = validate_and_normalize({"message": "foo", "level": 40})
     assert data["level"] == "error"
 
 
-def test_invalid_log_level():
+def test_invalid_log_level() -> None:
     data = validate_and_normalize({"message": "foo", "level": "foobar"})
     assert data["level"] == "error"
     assert len(data["errors"]) == 1
@@ -112,17 +112,17 @@ def test_invalid_log_level():
     assert data["errors"][0]["value"] == "foobar"
 
 
-def test_tags_as_string():
+def test_tags_as_string() -> None:
     data = validate_and_normalize({"message": "foo", "tags": "bar"})
     assert data["tags"] == []
 
 
-def test_tags_with_spaces():
+def test_tags_with_spaces() -> None:
     data = validate_and_normalize({"message": "foo", "tags": {"foo bar": "baz bar"}})
     assert data["tags"] == [["foo-bar", "baz bar"]]
 
 
-def test_tags_out_of_bounds():
+def test_tags_out_of_bounds() -> None:
     data = validate_and_normalize(
         {"message": "foo", "tags": {"f" * 201: "value", "foo": "v" * 201, "bar": "value"}}
     )
@@ -130,7 +130,7 @@ def test_tags_out_of_bounds():
     assert len(data["errors"]) == 2
 
 
-def test_tags_as_invalid_pair():
+def test_tags_as_invalid_pair() -> None:
     data = validate_and_normalize(
         {"message": "foo", "tags": [("foo", "bar"), ("biz", "baz", "boz")]}
     )
@@ -140,14 +140,14 @@ def test_tags_as_invalid_pair():
     assert data["errors"][0]["value"] == ["biz", "baz", "boz"]
 
 
-def test_reserved_tags():
+def test_reserved_tags() -> None:
     data = validate_and_normalize(
         {"message": "foo", "tags": [("foo", "bar"), ("release", "abc123")]}
     )
     assert data["tags"] == [["foo", "bar"]]
 
 
-def test_tag_value():
+def test_tag_value() -> None:
     data = validate_and_normalize({"message": "foo", "tags": [("foo", "b\nar"), ("biz", "baz")]})
     assert data["tags"] == [["foo", None], ["biz", "baz"]]
 
@@ -157,12 +157,12 @@ def test_tag_value():
     assert data["errors"][0]["value"] == "b\nar"
 
 
-def test_extra_as_string():
+def test_extra_as_string() -> None:
     data = validate_and_normalize({"message": "foo", "extra": "bar"})
     assert data["extra"] == {}
 
 
-def test_release_tag_max_len():
+def test_release_tag_max_len() -> None:
     release_key = "sentry:release"
     release_value = "a" * MAX_VERSION_LENGTH
     data = validate_and_normalize({"message": "foo", "tags": [[release_key, release_value]]})
@@ -170,21 +170,21 @@ def test_release_tag_max_len():
     assert data["tags"] == [[release_key, release_value]]
 
 
-def test_server_name_too_long():
+def test_server_name_too_long() -> None:
     key = "server_name"
     value = "a" * (MAX_CULPRIT_LENGTH + 1)
     data = validate_and_normalize({key: value})
     assert len(dict(data["tags"])[key]) == MAX_CULPRIT_LENGTH
 
 
-def test_site_too_long():
+def test_site_too_long() -> None:
     key = "site"
     value = "a" * (MAX_CULPRIT_LENGTH + 1)
     data = validate_and_normalize({key: value})
     assert len(dict(data["tags"])[key]) == MAX_CULPRIT_LENGTH
 
 
-def test_release_too_long():
+def test_release_too_long() -> None:
     data = validate_and_normalize({"release": "a" * (MAX_VERSION_LENGTH + 1)})
     assert not data.get("release")
     assert len(data["errors"]) == 1
@@ -193,12 +193,12 @@ def test_release_too_long():
     assert data["errors"][0]["value"] == "a" * (MAX_VERSION_LENGTH + 1)
 
 
-def test_release_as_non_string():
+def test_release_as_non_string() -> None:
     data = validate_and_normalize({"release": 42})
     assert data["release"] == "42"
 
 
-def test_distribution_too_long():
+def test_distribution_too_long() -> None:
     dist_len = 201
     data = validate_and_normalize({"release": "a" * 62, "dist": "b" * dist_len})
     # max dist length since relay-python 0.8.16 = 64 chars, and they started
@@ -210,7 +210,7 @@ def test_distribution_too_long():
     assert data["errors"][0]["value"] == "b" * dist_len
 
 
-def test_distribution_bad_char():
+def test_distribution_bad_char() -> None:
     data = validate_and_normalize({"release": "a" * 62, "dist": "^%"})
     assert not data.get("dist")
     assert len(data["errors"]) == 1
@@ -219,38 +219,38 @@ def test_distribution_bad_char():
     assert data["errors"][0]["value"] == "^%"
 
 
-def test_distribution_strip():
+def test_distribution_strip() -> None:
     data = validate_and_normalize({"release": "a" * 62, "dist": " foo "})
     assert data["dist"] == "foo"
 
 
-def test_distribution_as_non_string():
+def test_distribution_as_non_string() -> None:
     data = validate_and_normalize({"release": "42", "dist": 23})
     assert data["release"] == "42"
     assert data.get("dist") is None
 
 
-def test_distribution_no_release():
+def test_distribution_no_release() -> None:
     data = validate_and_normalize({"dist": 23})
     assert data.get("dist") is None
 
 
-def test_valid_platform():
+def test_valid_platform() -> None:
     data = validate_and_normalize({"platform": "python"})
     assert data["platform"] == "python"
 
 
-def test_no_platform():
+def test_no_platform() -> None:
     data = validate_and_normalize({})
     assert data["platform"] == "other"
 
 
-def test_invalid_platform():
+def test_invalid_platform() -> None:
     data = validate_and_normalize({"platform": "foobar"})
     assert data["platform"] == "other"
 
 
-def test_environment_too_long():
+def test_environment_too_long() -> None:
     data = validate_and_normalize({"environment": "a" * 65})
     assert not data.get("environment")
     (error,) = data["errors"]
@@ -260,7 +260,7 @@ def test_environment_too_long():
     assert error["value"] == "a" * 65
 
 
-def test_environment_invalid():
+def test_environment_invalid() -> None:
     data = validate_and_normalize({"environment": "a/b"})
     assert not data.get("environment")
     (error,) = data["errors"]
@@ -270,17 +270,17 @@ def test_environment_invalid():
     assert error["value"] == "a/b"
 
 
-def test_environment_as_non_string():
+def test_environment_as_non_string() -> None:
     data = validate_and_normalize({"environment": 42})
     assert data.get("environment") is None
 
 
-def test_time_spent_too_large():
+def test_time_spent_too_large() -> None:
     data = validate_and_normalize({"time_spent": 2147483647 + 1})
     assert data.get("time_spent") is None
 
 
-def test_time_spent_invalid():
+def test_time_spent_invalid() -> None:
     data = validate_and_normalize({"time_spent": "lol"})
     assert not data.get("time_spent")
     assert len(data["errors"]) == 1
@@ -289,12 +289,12 @@ def test_time_spent_invalid():
     assert data["errors"][0]["value"] == "lol"
 
 
-def test_time_spent_non_int():
+def test_time_spent_non_int() -> None:
     data = validate_and_normalize({"time_spent": "123"})
     assert data["time_spent"] is None
 
 
-def test_fingerprints():
+def test_fingerprints() -> None:
     data = validate_and_normalize({"fingerprint": "2012-01-01T10:30:45"})
     assert not data.get("fingerprint")
     assert data["errors"][0]["type"] == "invalid_data"
@@ -327,7 +327,7 @@ def test_fingerprints():
     assert "errors" not in data
 
 
-def test_messages():
+def test_messages() -> None:
     # Just 'message': wrap it in interface
     data = validate_and_normalize({"message": "foo is bar"})
     assert data["logentry"] == {"formatted": "foo is bar"}
@@ -354,7 +354,7 @@ def test_messages():
 
 
 @pytest.mark.skip(reason="Message behavior that didn't make a lot of sense.")
-def test_messages_old_behavior():
+def test_messages_old_behavior() -> None:
     # both 'message' and complete valid interface but interface has the same
     # value for both keys so the 'formatted' value is discarded and ends up
     # being replaced with 'message'

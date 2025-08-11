@@ -13,7 +13,7 @@ class OrganizationMissingMembersTestCase(APITestCase):
     endpoint = "sentry-api-0-organization-missing-members"
     method = "get"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(email="owner@example.com")
         self.organization = self.create_organization(owner=self.user)

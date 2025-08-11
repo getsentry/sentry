@@ -11,7 +11,7 @@ from sentry.testutils.silo import control_silo_test
 class CsrfTokenEndpointTest(APITestCase):
     endpoint = "sentry-api-0-auth-v2-csrf"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = reverse(self.endpoint)
         self.user = self.create_user()

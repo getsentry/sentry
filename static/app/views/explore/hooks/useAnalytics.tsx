@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {defined} from 'sentry/utils';
@@ -8,6 +8,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   useLogsFields,
   useLogsSearch,
@@ -414,9 +415,32 @@ export function useLogAnalytics({
 
   const tableError = logsTableResult.error?.message ?? '';
   const query_status = tableError ? 'error' : 'success';
+  const autorefreshEnabled = useLogsAutoRefreshEnabled();
+  const autorefreshBox = useRef(autorefreshEnabled); // Boxed to avoid useEffect firing analytics on changes.
+  const resultLengthBox = useRef(logsTableResult.data?.length || 0); // Boxed to avoid useEffect firing analytics on changes.
+  const isDisablingAutorefresh = useRef(false);
+
+  autorefreshBox.current = autorefreshEnabled;
+  resultLengthBox.current = logsTableResult.data?.length || 0;
 
   useEffect(() => {
-    if (logsTableResult.isPending || isLoadingSubscriptionDetails) {
+    if (!autorefreshEnabled) {
+      isDisablingAutorefresh.current = true;
+    }
+  }, [autorefreshEnabled]);
+
+  useEffect(() => {
+    if (isDisablingAutorefresh.current) {
+      isDisablingAutorefresh.current = false;
+      return;
+    }
+
+    if (
+      logsTableResult.isPending ||
+      isLoadingSubscriptionDetails ||
+      autorefreshBox.current
+    ) {
+      // Auto-refresh causes constant metadata events, so we don't want to track them.
       return;
     }
 
@@ -427,7 +451,7 @@ export function useLogAnalytics({
       columns,
       columns_count: columns.length,
       query_status,
-      table_result_length: logsTableResult.data?.length || 0,
+      table_result_length: resultLengthBox.current,
       table_result_missing_root: 0,
       user_queries: search.formatString(),
       user_queries_count: search.tokens.length,
@@ -442,7 +466,7 @@ export function useLogAnalytics({
       query: ${query}
       fields: ${fields}
       query_status: ${query_status}
-      result_length: ${String(logsTableResult.data?.length || 0)}
+      result_length: ${String(resultLengthBox.current)}
       user_queries: ${search.formatString()}
       user_queries_count: ${String(search.tokens.length)}
       has_exceeded_performance_usage_limit: ${String(hasExceededPerformanceUsageLimit)}
@@ -460,7 +484,6 @@ export function useLogAnalytics({
     query_status,
     page_source,
     logsTableResult.isPending,
-    logsTableResult.data?.length,
     search,
   ]);
 }

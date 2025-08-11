@@ -20,7 +20,7 @@ from sentry.testutils.cases import TestCase
 
 class MonitorClockTasksMarkUnknownTest(TestCase):
     @mock.patch("sentry.monitors.clock_tasks.mark_unknown.produce_task")
-    def test_mark_unknown(self, mock_produce_task):
+    def test_mark_unknown(self, mock_produce_task: mock.MagicMock) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 

@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
 import Count from 'sentry/components/count';
@@ -6,14 +7,13 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {LLMCosts} from 'sentry/views/insights/agentMonitoring/components/llmCosts';
-import {ModelName} from 'sentry/views/insights/agentMonitoring/components/modelName';
-import {getAIAttribute} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
+import {LLMCosts} from 'sentry/views/insights/agents/components/llmCosts';
+import {ModelName} from 'sentry/views/insights/agents/components/modelName';
 import {
   hasAgentInsightsFeature,
   hasMCPInsightsFeature,
-} from 'sentry/views/insights/agentMonitoring/utils/features';
-import {getIsAiSpan} from 'sentry/views/insights/agentMonitoring/utils/query';
+} from 'sentry/views/insights/agents/utils/features';
+import {getIsAiSpan} from 'sentry/views/insights/agents/utils/query';
 
 type HighlightedAttribute = {
   name: string;
@@ -32,7 +32,7 @@ export function getHighlightedSpanAttributes({
   const attributeObject = ensureAttributeObject(attributes);
 
   if (hasAgentInsightsFeature(organization) && getIsAiSpan({op})) {
-    return getAISpanAttributes(attributeObject);
+    return getAISpanAttributes(attributeObject, op);
   }
 
   if (hasMCPInsightsFeature(organization) && op?.startsWith('mcp.')) {
@@ -60,12 +60,13 @@ function ensureAttributeObject(
   return attributes;
 }
 
-function getAISpanAttributes(attributes: Record<string, string | number | boolean>) {
+function getAISpanAttributes(
+  attributes: Record<string, string | number | boolean>,
+  op?: string
+) {
   const highlightedAttributes = [];
 
-  const model =
-    getAIAttribute(attributes, 'gen_ai.request.model') ||
-    getAIAttribute(attributes, 'gen_ai.response.model');
+  const model = attributes['gen_ai.request.model'] || attributes['gen_ai.response.model'];
   if (model) {
     highlightedAttributes.push({
       name: t('Model'),
@@ -73,11 +74,11 @@ function getAISpanAttributes(attributes: Record<string, string | number | boolea
     });
   }
 
-  const inputTokens = getAIAttribute(attributes, 'gen_ai.usage.input_tokens');
-  const cachedTokens = getAIAttribute(attributes, 'gen_ai.usage.cached_tokens');
-  const outputTokens = getAIAttribute(attributes, 'gen_ai.usage.output_tokens');
-  const reasoningTokens = getAIAttribute(attributes, 'gen_ai.usage.reasoning_tokens');
-  const totalTokens = getAIAttribute(attributes, 'gen_ai.usage.total_tokens');
+  const inputTokens = attributes['gen_ai.usage.input_tokens'];
+  const cachedTokens = attributes['gen_ai.usage.cached_tokens'];
+  const outputTokens = attributes['gen_ai.usage.output_tokens'];
+  const reasoningTokens = attributes['gen_ai.usage.reasoning_tokens'];
+  const totalTokens = attributes['gen_ai.usage.total_tokens'];
 
   if (inputTokens && outputTokens && totalTokens && Number(totalTokens) > 0) {
     highlightedAttributes.push({
@@ -94,7 +95,7 @@ function getAISpanAttributes(attributes: Record<string, string | number | boolea
     });
   }
 
-  const totalCosts = getAIAttribute(attributes, 'gen_ai.usage.total_cost');
+  const totalCosts = attributes['gen_ai.usage.total_cost'];
   if (totalCosts && Number(totalCosts) > 0) {
     highlightedAttributes.push({
       name: t('Cost'),
@@ -102,7 +103,27 @@ function getAISpanAttributes(attributes: Record<string, string | number | boolea
     });
   }
 
-  const toolName = getAIAttribute(attributes, 'gen_ai.tool.name');
+  // Check for missing cost calculation and emit Sentry error
+  if (model && (!totalCosts || Number(totalCosts) === 0)) {
+    Sentry.captureMessage('Gen AI span missing cost calculation', {
+      level: 'warning',
+      tags: {
+        feature: 'agent-monitoring',
+        span_type: 'gen_ai',
+        has_model: 'true',
+        has_cost: 'false',
+        span_operation: op || 'unknown',
+        model: model.toString(),
+      },
+      extra: {
+        total_costs: totalCosts,
+        span_operation: op,
+        attributes,
+      },
+    });
+  }
+
+  const toolName = attributes['gen_ai.tool.name'];
   if (toolName) {
     highlightedAttributes.push({
       name: t('Tool Name'),

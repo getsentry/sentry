@@ -41,7 +41,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.organization_trace_item_attributes import as_attribute_key
-from sentry.constants import ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT, ObjectStatus
+from sentry.constants import (
+    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+    HIDE_AI_FEATURES_DEFAULT,
+    ObjectStatus,
+)
 from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, RpcResolutionException
 from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
@@ -49,6 +53,7 @@ from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIn
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
@@ -209,6 +214,40 @@ def get_organization_slug(*, org_id: int) -> dict:
     return {"slug": org.slug}
 
 
+def _can_use_prevent_ai_features(org: Organization) -> bool:
+    hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
+    pr_review_test_generation_enabled = bool(
+        org.get_option(
+            "sentry:enable_pr_review_test_generation",
+            ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
+        )
+    )
+    return not hide_ai_features and pr_review_test_generation_enabled
+
+
+def get_sentry_organization_ids(
+    *, full_repo_name: str, external_id: str, provider: str = "integrations:github"
+) -> dict:
+    """
+    Get the Sentry organization ID for a given Repository.
+
+    Args:
+        full_repo_name: The full name of the repository (e.g. "getsentry/sentry")
+        external_id: The id of the repo in the provider's system
+        provider: The provider of the repository (e.g. "integrations:github")
+    """
+
+    # It's possible that multiple orgs will be returned for a given repo.
+    organization_ids = Repository.objects.filter(
+        name=full_repo_name, provider=provider, status=ObjectStatus.ACTIVE, external_id=external_id
+    ).values_list("organization_id", flat=True)
+    organizations = Organization.objects.filter(id__in=organization_ids)
+    # We then filter out all orgs that didn't give us consent to use AI features.
+    orgs_with_consent = [org for org in organizations if _can_use_prevent_ai_features(org)]
+
+    return {"org_ids": [organization.id for organization in orgs_with_consent]}
+
+
 def get_organization_autofix_consent(*, org_id: int) -> dict:
     org: Organization = Organization.objects.get(id=org_id)
     seer_org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
@@ -229,18 +268,7 @@ def get_organization_seer_consent_by_org_name(
     for org_integration in org_integrations:
         try:
             org = Organization.objects.get(id=org_integration.organization_id)
-            seer_org_acknowledgement = get_seer_org_acknowledgement(org_id=org.id)
-            github_extension_enabled = org.id in options.get("github-extension.enabled-orgs")
-            pr_review_test_generation_enabled = bool(
-                org.get_option(
-                    "sentry:enable_pr_review_test_generation",
-                    ENABLE_PR_REVIEW_TEST_GENERATION_DEFAULT,
-                )
-            )
-
-            if (
-                seer_org_acknowledgement or github_extension_enabled
-            ) and pr_review_test_generation_enabled:
+            if _can_use_prevent_ai_features(org):
                 return {"consent": True}
         except Organization.DoesNotExist:
             continue
@@ -292,7 +320,10 @@ def get_attribute_names(*, org_id: int, project_ids: list[int], stats_period: st
                 SupportedTraceItemType.SPANS,
             )["name"]
             for attr in fields_resp.attributes
-            if attr.name and can_expose_attribute(attr.name, SupportedTraceItemType.SPANS)
+            if attr.name
+            and can_expose_attribute(
+                attr.name, SupportedTraceItemType.SPANS, include_internal=False
+            )
         ]
 
         fields[type_str].extend(parsed_fields)
@@ -548,14 +579,15 @@ def get_github_enterprise_integration_config(
     assert isinstance(installation, GitHubEnterpriseIntegration)
 
     client = installation.get_client()
-    access_token = client.get_access_token()
+    access_token_data = client.get_access_token()
 
-    if not access_token:
+    if not access_token_data:
         logger.error("No access token found for integration %s", integration.id)
         return {"success": False}
 
     try:
         fernet = Fernet(settings.SEER_GHE_ENCRYPT_KEY.encode("utf-8"))
+        access_token = access_token_data["access_token"]
         encrypted_access_token = fernet.encrypt(access_token.encode("utf-8")).decode("utf-8")
     except Exception:
         logger.exception("Failed to encrypt access token")
@@ -566,11 +598,13 @@ def get_github_enterprise_integration_config(
         "base_url": f"https://{installation.model.metadata['domain_name'].split('/')[0]}/api/v3",
         "verify_ssl": installation.model.metadata["installation"]["verify_ssl"],
         "encrypted_access_token": encrypted_access_token,
+        "permissions": access_token_data["permissions"],
     }
 
 
 seer_method_registry: dict[str, Callable[..., dict[str, Any]]] = {
     "get_organization_slug": get_organization_slug,
+    "get_sentry_organization_ids": get_sentry_organization_ids,
     "get_organization_autofix_consent": get_organization_autofix_consent,
     "get_organization_seer_consent_by_org_name": get_organization_seer_consent_by_org_name,
     "get_issues_related_to_file_patches": get_issues_related_to_file_patches,

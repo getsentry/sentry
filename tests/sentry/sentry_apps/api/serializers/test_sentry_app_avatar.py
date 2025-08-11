@@ -7,7 +7,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class SentryAppSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.sentry_app = self.create_sentry_app(organization=self.organization)
         self.avatar = self.create_sentry_app_avatar(sentry_app=self.sentry_app)
 

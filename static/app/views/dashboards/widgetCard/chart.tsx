@@ -40,7 +40,7 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
-import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -50,6 +50,8 @@ import {
   isAggregateField,
   isEquation,
   maybeEquationAlias,
+  parseFunction,
+  prettifyParsedFunction,
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
@@ -195,6 +197,14 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       const tableData = convertTableDataToTabularData(tableResults?.[i]);
       const sort = decodeSorts(widget.queries[0]?.orderby)?.[0];
 
+      // Inject any prettified function names that aren't currently aliased into the aliases
+      for (const column of columns) {
+        const parsedFunction = parseFunction(column.key);
+        if (!aliases[column.key] && parsedFunction) {
+          aliases[column.key] = prettifyParsedFunction(parsedFunction);
+        }
+      }
+
       return (
         <TableWrapper key={`table:${result.title}`}>
           {organization.features.includes('dashboards-use-widget-table-visualization') ? (
@@ -229,6 +239,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                 } satisfies RenderFunctionBaggage;
               }}
               onResizeColumn={onWidgetTableResizeColumn}
+              allowedCellActions={[]}
             />
           ) : (
             <StyledSimpleTableChart
@@ -480,7 +491,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     };
 
     const nameFormatter = (name: string) => {
-      return WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(name)!;
+      return WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(name);
     };
 
     const chartOptions = {

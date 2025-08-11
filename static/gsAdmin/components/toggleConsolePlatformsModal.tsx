@@ -71,7 +71,7 @@ function ToggleConsolePlatformsModal({
       submitDisabled={isPending}
     >
       <Header closeButton>
-        <Flex align="center" gap={space(2)}>
+        <Flex align="center" gap="xl">
           <h4>Toggle Console Platforms</h4>
         </Flex>
       </Header>
@@ -104,7 +104,7 @@ function ToggleConsolePlatformsModal({
               name: 'nintendo-switch',
               type: 'boolean',
               label: 'Nintendo Switch',
-              help: 'Toggle the Nintendo Switch console platform for this organization.',
+              help: 'Toggle Nintendo Switch console platform for this organization.',
             }}
             flexibleControlStateSize
             inline

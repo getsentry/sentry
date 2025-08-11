@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from collections.abc import Generator, Iterator, Sequence
 from functools import cached_property
-from typing import Any, Self
+from typing import Any
 
 from sentry.grouping.utils import hash_from_values
 
@@ -149,13 +149,6 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
         if contributes is not None:
             self.contributes = contributes
 
-    def shallow_copy(self) -> Self:
-        """Creates a shallow copy."""
-        copy = object.__new__(self.__class__)
-        copy.__dict__.update(self.__dict__)
-        copy.values = list(self.values)
-        return copy
-
     def iter_values(self) -> Generator[str | int]:
         """
         Recursively walks the component tree, gathering literal values from contributing
@@ -286,6 +279,7 @@ class MessageGroupingComponent(BaseGroupingComponent[str]):
 class StacktraceGroupingComponent(BaseGroupingComponent[FrameGroupingComponent]):
     id: str = "stacktrace"
     frame_counts: Counter[str]
+    reverse_when_serializing: bool = False
 
     def __init__(
         self,
@@ -296,6 +290,14 @@ class StacktraceGroupingComponent(BaseGroupingComponent[FrameGroupingComponent])
     ):
         super().__init__(hint=hint, contributes=contributes, values=values)
         self.frame_counts = frame_counts or Counter()
+
+    def as_dict(self) -> dict[str, Any]:
+        result = super().as_dict()
+
+        if self.reverse_when_serializing:
+            result["values"].reverse()
+
+        return result
 
 
 ExceptionGroupingComponentChildren = (
@@ -324,6 +326,7 @@ class ExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponen
 class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingComponent]):
     id: str = "chained-exception"
     frame_counts: Counter[str]
+    reverse_when_serializing: bool = False
 
     def __init__(
         self,
@@ -334,6 +337,14 @@ class ChainedExceptionGroupingComponent(BaseGroupingComponent[ExceptionGroupingC
     ):
         super().__init__(hint=hint, contributes=contributes, values=values)
         self.frame_counts = frame_counts or Counter()
+
+    def as_dict(self) -> dict[str, Any]:
+        result = super().as_dict()
+
+        if self.reverse_when_serializing:
+            result["values"].reverse()
+
+        return result
 
 
 class ThreadsGroupingComponent(BaseGroupingComponent[StacktraceGroupingComponent]):

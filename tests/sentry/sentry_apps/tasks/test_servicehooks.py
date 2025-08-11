@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import responses
 
@@ -12,12 +12,12 @@ pytestmark = [requires_snuba]
 
 
 class TestServiceHooks(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.hook = self.create_service_hook(project=self.project, events=("issue.created",))
 
     @patch("sentry.sentry_apps.tasks.service_hooks.safe_urlopen")
     @responses.activate
-    def test_verify_sentry_hook_signature(self, safe_urlopen):
+    def test_verify_sentry_hook_signature(self, safe_urlopen: MagicMock) -> None:
         import hmac
         from hashlib import sha256
 
@@ -43,7 +43,7 @@ class TestServiceHooks(TestCase):
 
     @patch("sentry.sentry_apps.tasks.service_hooks.safe_urlopen")
     @responses.activate
-    def test_event_created_sends_service_hook(self, safe_urlopen):
+    def test_event_created_sends_service_hook(self, safe_urlopen: MagicMock) -> None:
         self.hook.update(events=["event.created", "event.alert"])
 
         event = self.store_event(
@@ -71,7 +71,7 @@ class TestServiceHooks(TestCase):
 
     @patch("sentry.sentry_apps.tasks.service_hooks.safe_urlopen")
     @responses.activate
-    def test_event_created_sends_service_hook_with_event_id(self, safe_urlopen):
+    def test_event_created_sends_service_hook_with_event_id(self, safe_urlopen: MagicMock) -> None:
         self.hook.update(events=["event.created", "event.alert"])
 
         event = self.store_event(
