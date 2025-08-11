@@ -53,6 +53,7 @@ export type StepProps = {
   stepNumber: number;
   subscription: Subscription;
   checkoutTier?: PlanTier;
+  isNewCheckout?: boolean;
   onToggleLegacy?: (tier: string) => void;
   promotion?: Promotion;
   referrer?: string;
