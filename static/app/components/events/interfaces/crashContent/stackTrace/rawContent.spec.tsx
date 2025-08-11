@@ -32,7 +32,7 @@ describe('RawStacktraceContent', () => {
             function: 'run',
             filename: 'QueuedThreadPool.java',
           }),
-          false
+          true
         )
       ).toBe(
         '    at org.mortbay.thread.QueuedThreadPool$PoolThread.run(QueuedThreadPool.java)'
@@ -46,7 +46,7 @@ describe('RawStacktraceContent', () => {
             function: 'run',
             filename: 'QueuedThreadPool.java',
           }),
-          false
+          true
         )
       ).toBe(
         '    at org.mortbay.thread.QueuedThreadPool$PoolThread.run(QueuedThreadPool.java)'
