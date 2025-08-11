@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Generator, Iterator
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -59,21 +59,18 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[EventDict
         return []
 
 
-def parse_timestamp(timestamp_value: Any, unit: str) -> float:
-    """Parse a timestamp input to a float value.
-    The argument timestamp value can be string, float, or None.
-    The returned unit will be the same as the input unit.
+def _parse_snuba_timestamp(timestamp: str | float, input_unit: Literal["s", "ms"]) -> float:
     """
-    if timestamp_value is not None:
-        if isinstance(timestamp_value, str):
-            try:
-                dt = datetime.fromisoformat(timestamp_value.replace("Z", "+00:00"))
-                return dt.timestamp() * 1000 if unit == "ms" else dt.timestamp()
-            except (ValueError, AttributeError):
-                return 0.0
-        else:
-            return float(timestamp_value)
-    return 0.0
+    Parse a numeric or ISO timestamp to float milliseconds. `input_unit` is only used for numeric inputs.
+    """
+    if isinstance(timestamp, str):
+        try:
+            dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+            return dt.timestamp() * 1000
+        except (ValueError, AttributeError):
+            return 0.0
+
+    return float(timestamp) * 1000 if input_unit == "s" else float(timestamp)
 
 
 @sentry_sdk.trace
@@ -138,9 +135,9 @@ def fetch_trace_connected_errors(
             error_data = query.process_results(result)["data"]
 
             for event in error_data:
-                timestamp_ms = parse_timestamp(event.get("timestamp_ms"), "ms")
-                timestamp_s = parse_timestamp(event.get("timestamp"), "s")
-                timestamp = timestamp_ms or timestamp_s * 1000
+                timestamp = _parse_snuba_timestamp(
+                    event.get("timestamp_ms", 0.0), "ms"
+                ) or _parse_snuba_timestamp(event.get("timestamp", 0.0), "s")
 
                 if timestamp:
                     error_events.append(
