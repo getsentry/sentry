@@ -17,7 +17,7 @@ describe('withConfig HoC', function () {
 
     render(<Container />);
 
-    act(() => void ConfigStore.set('dsn', 'foo'));
+    act(() => ConfigStore.set('dsn', 'foo'));
 
     expect(screen.getByText('foo')).toBeInTheDocument();
   });

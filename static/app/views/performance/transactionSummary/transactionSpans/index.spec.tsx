@@ -46,7 +46,7 @@ function initializeData(options: {
       },
     },
   });
-  act(() => void ProjectsStore.loadInitialData(initialData.projects));
+  act(() => ProjectsStore.loadInitialData(initialData.projects));
   return initialData;
 }
 
