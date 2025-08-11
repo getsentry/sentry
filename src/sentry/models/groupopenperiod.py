@@ -73,6 +73,10 @@ class GroupOpenPeriod(DefaultFieldsModel):
         indexes = (
             # get all open periods since a certain date
             models.Index(fields=("group", "date_started")),
+            models.Index(
+                models.F("data__pending_incident_detector_id"),
+                name="data__pend_inc_detector_id_idx",
+            ),
         )
 
         constraints = (
