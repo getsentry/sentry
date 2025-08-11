@@ -1080,6 +1080,13 @@ class Referrer(StrEnum):
     TSDB_MODELID_300_alert_event_uniq_user_frequency = (
         "tsdb-modelid:300.alert_event_uniq_user_frequency"
     )
+    TSDB_MODELID_4_wf_batch_alert_event_frequency = "tsdb-modelid:4.wf_batch_alert_event_frequency"
+    TSDB_MODELID_4_wf_batch_alert_event_frequency_percent = (
+        "tsdb-modelid:4.wf_batch_alert_event_frequency_percent"
+    )
+    TSDB_MODELID_300_wf_batch_alert_event_uniq_user_frequency = (
+        "tsdb-modelid:300.wf_batch_alert_event_uniq_user_frequency"
+    )
 
     UNKNOWN = "unknown"
     UNMERGE = "unmerge"
