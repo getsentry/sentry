@@ -27,18 +27,22 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
       enabled: organization.features.includes('dashboards-plan-limits'),
     });
 
-  const isUnlimitedPlan =
-    subscription?.planDetails?.dashboardLimit === UNLIMITED_DASHBOARDS_LIMIT;
+  // If there is no subscription, the user can create unlimited dashboards
+  const dashboardsLimit =
+    subscription?.planDetails?.dashboardLimit ?? UNLIMITED_DASHBOARDS_LIMIT;
 
-  // Request up to 20 dashboards to get an idea of whether a user has reached the dashboard limit
+  const isUnlimitedPlan = dashboardsLimit === UNLIMITED_DASHBOARDS_LIMIT;
+
+  // Request up to the limited # of dashboards to get an idea of whether a user
+  // has reached the dashboard limit
   const {data: dashboardsTotalCount, isLoading: isLoadingDashboardsTotalCount} =
     useApiQuery<DashboardListItem[]>(
       [
         `/organizations/${organization.slug}/dashboards/`,
         {
           query: {
-            // We only need to know at most 20 dashboards because that is the max limit we apply
-            per_page: 20,
+            // We only need to know there are at most the limited # of dashboards.
+            per_page: dashboardsLimit + 1, // +1 to account for the General dashboard
           },
         },
       ],
@@ -69,11 +73,9 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
     };
   }
 
-  // If there is no subscription, the user can create unlimited dashboards
-  const dashboardsLimit =
-    subscription?.planDetails?.dashboardLimit ?? UNLIMITED_DASHBOARDS_LIMIT;
+  // Add 1 to dashboardsLimit to account for the General dashboard
   const hasReachedDashboardLimit =
-    (dashboardsTotalCount?.length ?? 0) >= dashboardsLimit &&
+    (dashboardsTotalCount?.length ?? 0) >= dashboardsLimit + 1 &&
     dashboardsLimit !== UNLIMITED_DASHBOARDS_LIMIT;
   const limitMessage = hasReachedDashboardLimit
     ? tct(
