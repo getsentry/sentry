@@ -9,6 +9,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import {MIN_CANVAS_SUPPORTED_SDK} from 'sentry/utils/replays/sdkVersions';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
@@ -25,8 +26,7 @@ export function CanvasSupportNotice() {
   const {isFetching} = useReplayContext();
   const projectId = replay?.getReplay().project_id;
   const {needsUpdate} = useProjectSdkNeedsUpdate({
-    minVersion: '7.98.0',
-    organization,
+    minVersion: MIN_CANVAS_SUPPORTED_SDK.minVersion,
     projectId: [projectId ?? '-1'],
   });
 
