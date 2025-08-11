@@ -377,7 +377,7 @@ class RedisBuffer(Buffer):
         **kwargs: Any,
     ) -> Any:
         metrics_str = f"redis_buffer.{operation.value}"
-        metrics.incr(metrics_str)
+        metrics.incr(metrics_str, amount=len(keys))
         pipe = self.get_redis_connection(self.pending_key)
         for key in keys:
             getattr(pipe, operation.value)(key, *args, **kwargs)
