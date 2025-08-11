@@ -28,4 +28,6 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
     transformComparisonSeriesData: data => {
       return [transformEventsStatsComparisonSeries(data)];
     },
+    fromApiAggregate: aggregate => aggregate,
+    toApiAggregate: aggregate => aggregate,
   };
