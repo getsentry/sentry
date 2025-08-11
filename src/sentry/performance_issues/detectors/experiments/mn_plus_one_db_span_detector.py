@@ -254,11 +254,12 @@ class ContinuingMNPlusOne(MNPlusOneState):
                 "offender_span_ids": offender_span_ids,
                 "transaction_name": self.event.get("transaction", ""),
                 "parent_span": get_span_evidence_value(common_parent_span),
-                "repeating_spans": get_span_evidence_value(db_span),
-                "repeating_spans_compact": get_span_evidence_value(db_span, include_op=False),
+                "repeating_spans": [get_span_evidence_value(span) for span in self.pattern],
+                "repeating_spans_compact": [
+                    get_span_evidence_value(span, include_op=False) for span in self.pattern
+                ],
                 "number_repeating_spans": str(len(offender_spans)),
                 "pattern_size": len(self.pattern),
-                "pattern_span_ids": [span["span_id"] for span in self.pattern],
                 "num_pattern_repetitions": times_occurred,
             },
             evidence_display=[
