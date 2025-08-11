@@ -48,6 +48,7 @@ from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeIssue,
     OrganizationUnsubscribeProject,
 )
+from sentry.api.endpoints.organization_user_issue import OrganizationUserIssueEndpoint
 from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
@@ -1780,6 +1781,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/page-web-vitals-summary/$",
         OrganizationPageWebVitalsSummaryEndpoint.as_view(),
         name="sentry-api-0-organization-page-web-vitals-summary",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/web-vitals-issue/$",
+        OrganizationUserIssueEndpoint.as_view(),
+        name="sentry-api-0-organization-user-issue",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/measurements-meta/$",
