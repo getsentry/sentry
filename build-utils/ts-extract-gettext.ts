@@ -1,11 +1,9 @@
 import fs from 'node:fs/promises';
-import path, {resolve} from 'node:path';
+import path, {resolve} from 'node:path'; // Added for module check
 import {fileURLToPath} from 'node:url';
 
 import {po} from 'gettext-parser';
 import type {GetTextTranslation, GetTextTranslations} from 'gettext-parser';
-// Added for module check
-
 import {glob} from 'tinyglobby';
 import ts from 'typescript';
 
