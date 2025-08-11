@@ -1,32 +1,17 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
-import useFeedbackCategories from 'sentry/components/feedback/list/useFeedbackCategories';
-import useFeedbackSummary from 'sentry/components/feedback/list/useFeedbackSummary';
 import FeedbackCategories from 'sentry/components/feedback/summaryCategories/feedbackCategories';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import FeedbackSummary from 'sentry/components/feedback/summaryCategories/feedbackSummary';
 import {IconThumb} from 'sentry/icons';
 import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import useOrganization from 'sentry/utils/useOrganization';
 
-export default function FeedbackSummary() {
-  const {
-    isError: isSummaryError,
-    isPending: isSummaryPending,
-    summary,
-    tooFewFeedbacks: tooFewFeedbacksSummary,
-    numFeedbacksUsed,
-  } = useFeedbackSummary();
-
-  const {
-    isError: isCategoriesError,
-    isPending: isCategoriesPending,
-    categories,
-    tooFewFeedbacks: tooFewFeedbacksCategories,
-  } = useFeedbackCategories();
+export default function FeedbackSummaryCategories() {
+  const organization = useOrganization();
 
   const openForm = useFeedbackForm();
 
@@ -47,17 +32,12 @@ export default function FeedbackSummary() {
               ['feedback.source']: 'feedback_ai_summary',
               ['feedback.owner']: 'replay',
               ['feedback.type']: type,
-              ['feedback.num_feedbacks_used']: numFeedbacksUsed,
             },
           })
         }
       />
     ) : null;
   };
-
-  const isPending = isSummaryPending || isCategoriesPending;
-  const isError = isSummaryError || isCategoriesError;
-  const tooFewFeedbacks = tooFewFeedbacksSummary || tooFewFeedbacksCategories;
 
   return (
     <SummaryIconContainer>
@@ -70,40 +50,16 @@ export default function FeedbackSummary() {
             {feedbackButton({type: 'negative'})}
           </Flex>
         </Flex>
-
-        {isPending ? (
-          <LoadingContainer>
-            <StyledLoadingIndicator size={24} />
-            <SummaryContent>{t('Summarizing feedback received...')}</SummaryContent>
-          </LoadingContainer>
-        ) : tooFewFeedbacks ? (
-          <SummaryContent>
-            {t('Bummer... Not enough feedback to summarize (yet).')}
-          </SummaryContent>
-        ) : isError ? (
-          <SummaryContent>{t('Error summarizing feedback.')}</SummaryContent>
-        ) : (
-          <React.Fragment>
-            <SummaryContent>{summary}</SummaryContent>
-            {categories && categories.length > 0 && (
-              <FeedbackCategories categories={categories} />
-            )}
-          </React.Fragment>
+        {organization.features.includes('user-feedback-ai-summaries') && (
+          <FeedbackSummary />
+        )}
+        {organization.features.includes('user-feedback-ai-categorization-features') && (
+          <FeedbackCategories />
         )}
       </SummaryContainer>
     </SummaryIconContainer>
   );
 }
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  margin: ${p => p.theme.space.xs} 0 0 0;
-`;
-
-const LoadingContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;
 
 const SummaryContainer = styled('div')`
   display: flex;
@@ -115,12 +71,6 @@ const SummaryContainer = styled('div')`
 const SummaryHeader = styled('p')`
   font-size: ${p => p.theme.fontSize.md};
   font-weight: ${p => p.theme.fontWeight.bold};
-  margin: 0;
-`;
-
-const SummaryContent = styled('p')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
   margin: 0;
 `;
 

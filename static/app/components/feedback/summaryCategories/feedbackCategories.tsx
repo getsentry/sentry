@@ -2,7 +2,9 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
-import type {FeedbackCategory} from 'sentry/components/feedback/list/useFeedbackCategories';
+import useFeedbackCategories from 'sentry/components/feedback/list/useFeedbackCategories';
+import Placeholder from 'sentry/components/placeholder';
+import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -34,11 +36,9 @@ function getSearchTermForLabelList(labels: string[]) {
   return `[${searchTerms.join(',')}]`;
 }
 
-export default function FeedbackCategories({
-  categories,
-}: {
-  categories: FeedbackCategory[];
-}) {
+export default function FeedbackCategories() {
+  const {isError, isPending, categories, tooFewFeedbacks} = useFeedbackCategories();
+
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -47,6 +47,22 @@ export default function FeedbackCategories({
     [location.query.query]
   );
   const searchConditions = useMemo(() => new MutableSearch(currentQuery), [currentQuery]);
+
+  if (isPending) {
+    return <SkeletonLine />;
+  }
+
+  if (isError) {
+    return <ErrorText>{t('Error loading feedback categories.')}</ErrorText>;
+  }
+
+  if (tooFewFeedbacks) {
+    return <ErrorText>{t('Not enough feedback to categorize and group')}</ErrorText>;
+  }
+
+  if (!categories || categories.length === 0) {
+    return <ErrorText>{t('No feedback categories found.')}</ErrorText>;
+  }
 
   const handleTagClick = (category: {
     associatedLabels: string[];
@@ -130,4 +146,16 @@ const ClickableTag = styled(Tag)<{selected: boolean}>`
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
+`;
+
+const SkeletonLine = styled(Placeholder)`
+  height: 16px;
+  width: 100%;
+  border-radius: ${p => p.theme.borderRadius};
+`;
+
+const ErrorText = styled('p')`
+  font-size: ${p => p.theme.fontSize.sm};
+  color: ${p => p.theme.subText};
+  margin: 0;
 `;

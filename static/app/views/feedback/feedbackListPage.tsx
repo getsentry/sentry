@@ -10,7 +10,7 @@ import FeedbackSearch from 'sentry/components/feedback/feedbackSearch';
 import FeedbackSetupPanel from 'sentry/components/feedback/feedbackSetupPanel';
 import FeedbackWhatsNewBanner from 'sentry/components/feedback/feedbackWhatsNewBanner';
 import FeedbackList from 'sentry/components/feedback/list/feedbackList';
-import FeedbackSummary from 'sentry/components/feedback/summaryCategories/feedbackSummaryCategories';
+import FeedbackSummaryCategories from 'sentry/components/feedback/summaryCategories/feedbackSummaryCategories';
 import useCurrentFeedbackId from 'sentry/components/feedback/useCurrentFeedbackId';
 import useHaveSelectedProjectsSetupFeedback, {
   useHaveSelectedProjectsSetupNewFeedback,
@@ -56,6 +56,11 @@ export default function FeedbackListPage() {
     feedbackWidgetPlatforms.includes(p.platform!)
   );
 
+  const showSummaryCategories =
+    organization.features.includes('gen-ai-features') &&
+    (organization.features.includes('user-feedback-ai-summaries') ||
+      organization.features.includes('user-feedback-ai-categorization-features'));
+
   const showWidgetBanner = showWhatsNewBanner && oneIsWidgetEligible;
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
@@ -92,10 +97,7 @@ export default function FeedbackListPage() {
                   {hasSetupOneFeedback || hasSlug ? (
                     <Fragment>
                       <SummaryListContainer style={{gridArea: 'list'}}>
-                        {organization.features.includes('user-feedback-ai-summaries') &&
-                          organization.features.includes('gen-ai-features') && (
-                            <FeedbackSummary />
-                          )}
+                        {showSummaryCategories && <FeedbackSummaryCategories />}
                         <Container>
                           <FeedbackList />
                         </Container>
