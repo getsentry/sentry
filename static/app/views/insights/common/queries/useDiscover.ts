@@ -9,7 +9,12 @@ import {
   useWrappedDiscoverQuery,
   useWrappedDiscoverQueryWithoutPageFilters,
 } from 'sentry/views/insights/common/queries/useSpansQuery';
-import type {SpanProperty, SpanResponse} from 'sentry/views/insights/types';
+import type {
+  ErrorProperty,
+  ErrorResponse,
+  SpanProperty,
+  SpanResponse,
+} from 'sentry/views/insights/types';
 
 interface UseDiscoverQueryOptions {
   additonalQueryKey?: string[];
@@ -47,6 +52,13 @@ export const useSpans = <Fields extends SpanProperty[]>(
   referrer: string
 ) => {
   return useDiscover<Fields, SpanResponse>(options, DiscoverDatasets.SPANS, referrer);
+};
+
+export const useErrors = <Fields extends ErrorProperty[]>(
+  options: UseDiscoverOptions<Fields> = {},
+  referrer: string
+) => {
+  return useDiscover<Fields, ErrorResponse>(options, DiscoverDatasets.ERRORS, referrer);
 };
 
 const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, ResponseType>(
