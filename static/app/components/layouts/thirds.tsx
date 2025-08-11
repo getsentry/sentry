@@ -27,8 +27,8 @@ export const Page = styled((props: PageProps) => {
         <SentryDocumentTitle {...props.title} />
       )}
       <Flex
-        direction="column"
         flex={1}
+        direction="column"
         padding={props.withPadding ? `2xl 3xl` : undefined}
       >
         {props.children}
