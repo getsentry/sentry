@@ -10,7 +10,6 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
 
@@ -42,8 +41,11 @@ def submit(consumer, message):
     consumer.terminate()
 
 
-@django_db_all
-def test_recording_consumer(consumer) -> None:
+@mock.patch("sentry.replays.consumers.recording.options.get")
+def test_recording_consumer(mock_options_get, consumer) -> None:
+    # disable profiling
+    mock_options_get.return_value = False
+
     headers = json.dumps({"segment_id": 42}).encode()
     recording_payload = headers + b"\n" + zlib.compress(b"")
 
@@ -68,8 +70,11 @@ def test_recording_consumer(consumer) -> None:
         assert commit.called
 
 
-@django_db_all
-def test_recording_consumer_invalid_message(consumer) -> None:
+@mock.patch("sentry.replays.consumers.recording.options.get")
+def test_recording_consumer_invalid_message(mock_options_get, consumer) -> None:
+    # disable profiling
+    mock_options_get.return_value = False
+
     with mock.patch("sentry.replays.consumers.recording.commit_recording_message") as commit:
         submit(consumer, {})
 
