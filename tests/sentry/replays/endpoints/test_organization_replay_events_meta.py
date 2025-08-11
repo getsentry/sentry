@@ -64,20 +64,20 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
         expected = [
             {
                 "error.type": [],
-                "error.value": [],
                 "id": event_id_a,
                 "issue.id": event_a.group.id,
                 "issue": event_a.group.qualified_short_id,
+                "level": "error",
                 "project.name": self.project_1.slug,
                 "timestamp": min_ago_ms.isoformat(),
                 "title": "<unlabeled event>",
             },
             {
                 "error.type": [],
-                "error.value": [],
                 "id": event_id_b,
                 "issue.id": event_b.group.id,
                 "issue": event_b.group.qualified_short_id,
+                "level": "error",
                 "project.name": self.project_2.slug,
                 "timestamp": min_ago_ms.isoformat(),
                 "title": "<unlabeled event>",
@@ -115,10 +115,10 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
         expected = [
             {
                 "error.type": "",
-                "error.value": "",
                 "id": event_id_a,
                 "issue.id": group_info.group.id,
                 "issue": group_info.group.qualified_short_id,
+                "level": "error",
                 "project.name": self.project.slug,
                 "timestamp": self.min_ago.isoformat(),
                 "title": "Rage Click",
