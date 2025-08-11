@@ -534,7 +534,7 @@ function ManageDashboards() {
   return (
     <Feature
       organization={organization}
-      features="dashboards-plan-limits"
+      features="dashboards-edit"
       renderDisabled={renderNoAccess}
     >
       <SentryDocumentTitle title={t('All Dashboards')} orgSlug={organization.slug}>
