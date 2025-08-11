@@ -42,7 +42,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
         }
 
         with patch(
-            "sentry.api.endpoints.project_user_issue.produce_occurrence_to_kafka"
+            "sentry.issues.endpoints.project_user_issue.produce_occurrence_to_kafka"
         ) as mock_produce:
             response = self.get_success_response(
                 self.organization.slug,
@@ -141,7 +141,7 @@ class ProjectUserIssueEndpointTest(APITestCase):
         }
 
         with patch(
-            "sentry.api.endpoints.project_user_issue.produce_occurrence_to_kafka"
+            "sentry.issues.endpoints.project_user_issue.produce_occurrence_to_kafka"
         ) as mock_produce:
             response1 = self.get_success_response(
                 self.organization.slug,
