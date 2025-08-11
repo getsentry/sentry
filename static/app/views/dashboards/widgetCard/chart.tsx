@@ -207,6 +207,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
         }
       }
 
+      const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
       return (
         <TableWrapper key={`table:${result.title}`}>
           {organization.features.includes('dashboards-use-widget-table-visualization') ? (
@@ -241,7 +242,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                 } satisfies RenderFunctionBaggage;
               }}
               onResizeColumn={onWidgetTableResizeColumn}
-              allowedCellActions={isWidgetPreview ? [] : undefined}
+              allowedCellActions={isWidgetPreview || !useCellActionsV2 ? [] : undefined}
             />
           ) : (
             <StyledSimpleTableChart

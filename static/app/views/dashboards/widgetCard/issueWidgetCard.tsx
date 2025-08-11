@@ -85,6 +85,7 @@ export function IssueWidgetCard({
     return datasetConfig.getCustomFieldRenderer?.(field, meta, widget, org) || null;
   };
 
+  const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
   return organization.features.includes('dashboards-use-widget-table-visualization') ? (
     <TableContainer>
       <TableWidgetVisualization
@@ -115,7 +116,7 @@ export function IssueWidgetCard({
           } satisfies RenderFunctionBaggage;
         }}
         onResizeColumn={onWidgetTableResizeColumn}
-        allowedCellActions={isWidgetPreview ? [] : undefined}
+        allowedCellActions={isWidgetPreview || !useCellActionsV2 ? [] : undefined}
       />
     </TableContainer>
   ) : (
