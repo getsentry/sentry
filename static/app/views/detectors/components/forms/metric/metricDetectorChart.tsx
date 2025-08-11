@@ -15,7 +15,7 @@ import {
   AlertRuleThresholdType,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
-import type {DetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import {useMetricDetectorAnomalyPeriods} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyPeriods';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
