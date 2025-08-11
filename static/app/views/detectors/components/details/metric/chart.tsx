@@ -30,7 +30,7 @@ interface MetricDetectorChartProps {
    */
   end?: string;
   start?: string;
-  statsPeriod?: string | null;
+  statsPeriod?: string;
 }
 
 function MetricDetectorChart({
