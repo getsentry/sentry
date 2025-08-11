@@ -5,7 +5,7 @@ import {useTheme} from '@emotion/react';
 import {Button} from 'sentry/components/core/button';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconAdd, IconJson, IconSpan, IconSubtract, IconWarning} from 'sentry/icons';
+import {IconAdd, IconJson, IconSubtract, IconWarning} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,7 +16,6 @@ import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
 import CellAction, {
@@ -32,7 +31,6 @@ import {
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
-  stripLogParamsFromLocation,
   useLogsAddSearchFilter,
   useLogsAnalyticsPageSource,
   useLogsFields,
@@ -75,13 +73,10 @@ import {
 } from 'sentry/views/explore/logs/useLogsQuery';
 import {
   adjustAliases,
-  adjustLogTraceID,
   getLogRowItem,
   getLogSeverityLevel,
   ourlogToJson,
 } from 'sentry/views/explore/logs/utils';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 type LogsRowProps = {
   dataRow: OurLogsResponseItem;
@@ -376,7 +371,6 @@ function LogRowDetails({
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const navigate = useNavigate();
   const {onClick: betterCopyToClipboard} = useCopyToClipboard({
     text: ourlogToJson(dataRow),
     successMessage: t('Copied!'),
@@ -521,32 +515,6 @@ function LogRowDetails({
             >
               <IconJson size="md" style={{paddingRight: space(0.5)}} />
               {t('Copy as JSON')}
-            </Button>
-            <Button
-              priority="link"
-              size="sm"
-              borderless
-              onClick={() => {
-                const traceId = adjustLogTraceID(dataRow[OurLogKnownFieldKey.TRACE_ID]);
-                const locationStripped = stripLogParamsFromLocation(location);
-                const timestamp = dataRow[OurLogKnownFieldKey.TIMESTAMP];
-                const target = getTraceDetailsUrl({
-                  traceSlug: traceId,
-                  spanId: dataRow[OurLogKnownFieldKey.SPAN_ID] as string | undefined,
-                  timestamp:
-                    typeof timestamp === 'string' || typeof timestamp === 'number'
-                      ? timestamp
-                      : undefined,
-                  organization,
-                  dateSelection: locationStripped,
-                  location: locationStripped,
-                  source: TraceViewSources.LOGS,
-                });
-                navigate(target);
-              }}
-            >
-              <IconSpan size="md" style={{paddingRight: space(0.5)}} />
-              {t('View Trace')}
             </Button>
           </LogDetailTableActionsButtonBar>
         </LogDetailTableActionsCell>
