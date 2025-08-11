@@ -99,6 +99,7 @@ describe('useMetricDetectorAnomalyPeriods', () => {
           interval: 900, // 15 minutes
           thresholdType: AlertRuleThresholdType.ABOVE,
           sensitivity: AlertRuleSensitivity.MEDIUM,
+          isLoadingSeries: false,
           enabled: true,
         }),
       {wrapper: TestContext}

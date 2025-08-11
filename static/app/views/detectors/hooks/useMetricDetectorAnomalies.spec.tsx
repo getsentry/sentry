@@ -77,6 +77,7 @@ describe('useMetricDetectorAnomalies', () => {
           sensitivity: AlertRuleSensitivity.MEDIUM,
           interval: 900, // 15 minutes
           projectId: '1',
+          enabled: true,
         }),
       {wrapper: TestContext}
     );
