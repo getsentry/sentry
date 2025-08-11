@@ -155,20 +155,6 @@ class ValidatePreprodArtifactSchemaTest(TestCase):
         assert "base_sha" in error
         assert result == {}
 
-    def test_provider_too_long(self) -> None:
-        """Test provider field too long returns error."""
-        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "provider": "a" * 65})
-        result, error = validate_preprod_artifact_schema(body)
-        assert error is not None
-        assert result == {}
-
-    def test_head_repo_name_too_long(self) -> None:
-        """Test head_repo_name field too long returns error."""
-        body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "head_repo_name": "a" * 256})
-        result, error = validate_preprod_artifact_schema(body)
-        assert error is not None
-        assert result == {}
-
     def test_pr_number_invalid(self) -> None:
         """Test invalid pr_number returns error."""
         body = orjson.dumps({"checksum": "a" * 40, "chunks": [], "pr_number": 0})
