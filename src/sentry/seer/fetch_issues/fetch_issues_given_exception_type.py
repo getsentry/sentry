@@ -132,9 +132,8 @@ def get_issues_related_to_exception_type(
         "issues_with_message": [
             {
                 "id": issue.id,
-                "message": issue.data["title"],
+                "message": issue.data.get("title") if issue.data else "",
             }
             for issue in query_set
-            if issue.data and "title" in issue.data
         ],
     }
