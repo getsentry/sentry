@@ -153,11 +153,11 @@ export const getJavascriptProfilingOnboarding = <
 export const getJavascriptLogsOnboarding = <
   PlatformOptions extends BasePlatformOptions = BasePlatformOptions,
 >({
-  docsLink,
+  docsPlatform,
   sdkPackage,
   installSnippetBlock,
 }: {
-  docsLink: string;
+  docsPlatform: string;
   installSnippetBlock: ContentBlock;
   sdkPackage: `@sentry/${string}`;
 }): OnboardingConfig<PlatformOptions> => ({
@@ -167,9 +167,28 @@ export const getJavascriptLogsOnboarding = <
       content: [
         {
           type: 'text',
-          text: t('Add the Sentry SDK as a dependency using npm, yarn, or pnpm.'),
+          text: tct(
+            'Add the Sentry SDK as a dependency using npm, yarn, or pnpm. The minimum version of [sdkPackage] that supports logs is [code:9.17.0].',
+            {
+              code: <code />,
+              sdkPackage: <code>{sdkPackage}</code>,
+            }
+          ),
         },
         installSnippetBlock,
+        {
+          type: 'text',
+          text: tct(
+            'If you are on an older version of the SDK, follow our [link:migration guide] to upgrade.',
+            {
+              link: (
+                <ExternalLink
+                  href={`https://docs.sentry.io/platforms/javascript/guides/${docsPlatform}/migration/`}
+                />
+              ),
+            }
+          ),
+        },
       ],
     },
   ],
@@ -205,7 +224,11 @@ Sentry.init({
         {
           type: 'text',
           text: tct('For more detailed information, see the [link:logs documentation].', {
-            link: <ExternalLink href={docsLink} />,
+            link: (
+              <ExternalLink
+                href={`https://docs.sentry.io/platforms/javascript/guides/${docsPlatform}/logs/`}
+              />
+            ),
           }),
         },
       ],

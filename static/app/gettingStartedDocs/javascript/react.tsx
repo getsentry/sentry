@@ -637,7 +637,7 @@ const profilingOnboarding = getJavascriptProfilingOnboarding({
 
 const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
   installSnippetBlock,
-  docsLink: 'https://docs.sentry.io/platforms/javascript/guides/react/logs/',
+  docsPlatform: 'react',
   sdkPackage: '@sentry/react',
 });
 
