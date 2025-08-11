@@ -1,4 +1,7 @@
-import GridEditable, {type GridColumnHeader} from 'sentry/components/tables/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  type GridColumnHeader,
+} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {renderTableBody} from 'sentry/views/codecov/tokens/repoTokenTable/tableBody';
@@ -9,7 +12,7 @@ type RepoTokenTableResponse = {
   token: string;
 };
 
-export type Row = Pick<RepoTokenTableResponse, 'name' | 'token'>;
+export type Row = RepoTokenTableResponse;
 export type Column = GridColumnHeader<'name' | 'token' | 'regenerateToken'>;
 
 type ValidField = (typeof SORTABLE_FIELDS)[number];
@@ -23,8 +26,8 @@ export type ValidSort = Sort & {
 };
 
 const COLUMNS_ORDER: Column[] = [
-  {key: 'name', name: t('Repository Name'), width: 400},
-  {key: 'token', name: t('Token'), width: 350},
+  {key: 'name', name: t('Repository Name'), width: COL_WIDTH_UNDEFINED},
+  {key: 'token', name: t('Token'), width: COL_WIDTH_UNDEFINED},
   {key: 'regenerateToken', name: '', width: 100},
 ];
 
