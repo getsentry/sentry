@@ -51,7 +51,7 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
             "content-type": "application/json;charset=utf-8",
             **sign_with_seer_secret(serialized_request.encode()),
         },
-        timeout=10,
+        timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5),
     )
 
     if response.status_code != 200:
