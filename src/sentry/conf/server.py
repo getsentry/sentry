@@ -2206,6 +2206,8 @@ SENTRY_TSDB_ROLLUPS = (
 # Internal metrics
 SENTRY_METRICS_BACKEND = "sentry.metrics.dummy.DummyMetricsBackend"
 SENTRY_METRICS_OPTIONS: dict[str, Any] = {}
+SENTRY_METRICS_PRECISE_BACKEND: str | None = None
+SENTRY_METRICS_PRECISE_OPTIONS: dict[str, Any] = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES: list[str] = []  # Order this by most frequent prefixes.
@@ -3613,6 +3615,8 @@ SEER_FIXABILITY_TIMEOUT = 0.6  # 600 milliseconds
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 
 SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
+
+SEER_SCORING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL

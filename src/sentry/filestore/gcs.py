@@ -175,6 +175,8 @@ class GoogleCloudFile(File):
 
     @property
     def size(self):
+        if self.blob.size is None:
+            self.blob.reload()
         return self.blob.size
 
     @property
