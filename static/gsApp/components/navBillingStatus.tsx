@@ -71,10 +71,12 @@ function QuotaExceededContent({
   const usageCategoryList = listDisplayNames({
     plan: subscription.planDetails,
     categories: usageCategories,
+    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
   });
   const seatCategoryList = listDisplayNames({
     plan: subscription.planDetails,
     categories: seatCategories,
+    hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
   });
 
   return (
@@ -101,7 +103,7 @@ function QuotaExceededContent({
               'You have used up your quota for [usageCategoryList]. Monitoring and new data [descriptor] are paused until your quota resets.',
               {
                 usageCategoryList,
-                descriptor: usageCategories.length > 1 ? 'for these features' : '',
+                descriptor: usageCategories.length > 1 ? t('for these features') : '',
               }
             )}
           </Description>
@@ -111,7 +113,7 @@ function QuotaExceededContent({
             {tct(
               '[prefix] reached your quota for [seatCategoryList]. Existing monitors remain active, but you cannot add new ones until your quota resets.',
               {
-                prefix: usageCategories.length > 0 ? 'You have also' : 'You have',
+                prefix: usageCategories.length > 0 ? t('You have also') : t('You have'),
                 seatCategoryList,
               }
             )}
