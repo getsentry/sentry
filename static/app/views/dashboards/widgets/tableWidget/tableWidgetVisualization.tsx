@@ -145,7 +145,11 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     onResizeColumn,
     resizable = true,
     onTriggerCellAction,
-    allowedCellActions = [Actions.COPY_TO_CLIPBOARD, Actions.OPEN_EXTERNAL_LINK],
+    allowedCellActions = [
+      Actions.COPY_TO_CLIPBOARD,
+      Actions.OPEN_EXTERNAL_LINK,
+      Actions.OPEN_INTERNAL_LINK,
+    ],
   } = props;
 
   const theme = useTheme();
