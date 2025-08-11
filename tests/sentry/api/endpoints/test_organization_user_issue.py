@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from django.urls import reverse
-
 from sentry.issues.grouptype import WebVitalsGroup
 from sentry.issues.producer import PayloadType
 from sentry.testutils.cases import APITestCase
@@ -20,11 +18,6 @@ class OrganizationUserIssueEndpointTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
         self.project = self.create_project(organization=self.organization)
-
-    def get_url(self, org_slug: str | None = None) -> str:
-        if org_slug is None:
-            org_slug = self.organization.slug
-        return reverse(self.endpoint, kwargs={"organization_id_or_slug": org_slug})
 
     @with_feature("organizations:performance-web-vitals-seer-suggestions")
     @with_feature("organizations:issue-web-vitals-ingest")
