@@ -132,8 +132,20 @@ def activity_score():
     #  score = (count_errors * 25 + pagesVisited * 5 ) / 10;
     #  score = Math.floor(Math.min(10, Math.max(1, score)));
 
-    error_weight = Function("multiply", parameters=[Column("count_errors"), 25])
-    pages_visited_weight = Function("multiply", parameters=[Column("count_urls"), 5])
+    error_weight = Function(
+        "multiply", parameters=[sum_fn("count_error_events", alias="count_errors"), 25]
+    )
+    pages_visited_weight = Function(
+        "multiply",
+        parameters=[
+            Function(
+                "sum",
+                parameters=[Function("length", parameters=[Column("urls")])],
+                alias="count_urls",
+            ),
+            5,
+        ],
+    )
 
     combined_weight = Function(
         "plus",
@@ -266,13 +278,12 @@ QUERY_MAP: dict[str, Expression] = {
 """Mapping of field name to SELECT expression."""
 
 COMPOSITE_FIELD_MAP = {
-    "browser": ["browser.name", "browser.version"],
-    "device": ["device.name", "device.brand", "device.family", "device.model"],
-    "os": ["os.name", "os.version"],
-    "ota_updates": ["ota_updates.channel", "ota_updates.runtime_version", "ota_updates.update_id"],
-    "sdk": ["sdk.name", "sdk.version"],
-    "tags": ["tags.keys", "tags.values"],
-    "user": [
+    "browser": {"browser.name", "browser.version"},
+    "device": {"device.name", "device.brand", "device.family", "device.model"},
+    "os": {"os.name", "os.version"},
+    "ota_updates": {"ota_updates.channel", "ota_updates.runtime_version", "ota_updates.update_id"},
+    "sdk": {"sdk.name", "sdk.version"},
+    "user": {
         "user.id",
         "user.email",
         "user.name",
@@ -281,7 +292,7 @@ COMPOSITE_FIELD_MAP = {
         "user.geo.country_code",
         "user.geo.region",
         "user.geo.subdivision",
-    ],
+    },
 }
 
 
@@ -393,10 +404,21 @@ def get_replays(
     timestamp_start = timestamp_start or (datetime.now(tz=timezone.utc) - timedelta(days=90))
     timestamp_end = timestamp_end or datetime.now(tz=timezone.utc)
 
-    selected_expressions = list(QUERY_MAP.values())
+    # Queryset can be reduced by specifying the fields you want to be returned.
+    if fields:
+        flat_field_set = {field for field in fields if field not in COMPOSITE_FIELD_MAP}
+        flat_field_set.add("is_archived")
+
+        for field, value in COMPOSITE_FIELD_MAP.items():
+            if field in fields:
+                flat_field_set = flat_field_set.union(value)
+
+        selected_expressions = [QUERY_MAP[field] for field in flat_field_set]
+    else:
+        selected_expressions = list(QUERY_MAP.values())
 
     # If a requesting_user_id was specified we can compute the has_viewed value.
-    if requesting_user_id:
+    if requesting_user_id and (not fields or "has_viewed" in fields):
         selected_expressions.append(
             Function(
                 "sum",
