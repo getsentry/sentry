@@ -9,6 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.endpoints.organization_member import get_allowed_org_roles
+from sentry.api.endpoints.organization_member_invite import MISSING_FEATURE_MESSAGE
 from sentry.api.endpoints.organization_member_invite.utils import MemberInviteDetailsPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -27,8 +28,6 @@ ERR_EDIT_WHEN_REINVITING = (
 )
 ERR_EXPIRED = "You cannot resend an expired invitation without regenerating the token."
 ERR_RATE_LIMITED = "You are being rate limited for too many invitations."
-
-MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
 
 @region_silo_endpoint
