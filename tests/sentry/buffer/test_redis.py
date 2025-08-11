@@ -1,6 +1,7 @@
 import copy
 import datetime
 import pickle
+import random
 from collections import defaultdict
 from collections.abc import Mapping
 from unittest import mock
@@ -280,6 +281,39 @@ class TestRedisBuffer:
         )
         result = json.loads(project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}"))
         assert result.get("event_id") == event4_id
+
+    def test_sharded_sorted_set(self) -> None:
+        shards = 3
+        project_ids = [1, 2, 2, 3, 3, 3, 4, 4, 4, 4]
+        for id in project_ids:
+            sharded_key = f"{PROJECT_ID_BUFFER_LIST_KEY}:{random.randrange(shards)}"
+            self.buf.push_to_sorted_set(key=sharded_key, value=id)
+
+        project_ids_and_timestamps = self.buf.get_sharded_sorted_set(
+            key=PROJECT_ID_BUFFER_LIST_KEY,
+            separator=":",
+            shards=shards,
+            min=0,
+            max=datetime.datetime.now().timestamp(),
+        )
+        assert len(project_ids_and_timestamps) == 4
+        assert {project_id for project_id, _ in project_ids_and_timestamps} == set(project_ids)
+
+        self.buf.delete_sharded_key(
+            key=PROJECT_ID_BUFFER_LIST_KEY,
+            separator=":",
+            shards=shards,
+            min=0,
+            max=datetime.datetime.now().timestamp(),
+        )
+        project_ids_and_timestamps = self.buf.get_sharded_sorted_set(
+            key=PROJECT_ID_BUFFER_LIST_KEY,
+            separator=":",
+            shards=shards,
+            min=0,
+            max=datetime.datetime.now().timestamp(),
+        )
+        assert len(project_ids_and_timestamps) == 0
 
     def test_buffer_hook_registry(self) -> None:
         """Test that we can add an event to the registry and that the callback is invoked"""

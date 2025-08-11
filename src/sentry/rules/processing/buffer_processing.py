@@ -32,6 +32,8 @@ class BufferHashKeys:
 
 class DelayedProcessingBase(ABC):
     buffer_key: ClassVar[str]
+    buffer_shards: ClassVar[int] = 0
+    buffer_separator: ClassVar[str] = ":"
     option: ClassVar[str | None]
 
     def __init__(self, project_id: int):
@@ -156,21 +158,40 @@ def process_buffer() -> None:
             # The staler this timestamp, the more likely it'll miss some recently updated projects,
             # and the more likely we'll have frequently updated projects that are never actually
             # retrieved and processed here.
-            fetch_time = datetime.now(tz=timezone.utc)
-            project_ids = buffer.backend.get_sorted_set(
-                handler.buffer_key, min=0, max=fetch_time.timestamp()
+            fetch_time = datetime.now(tz=timezone.utc).timestamp()
+            project_ids_and_timestamps = buffer.backend.get_sorted_set(
+                handler.buffer_key, min=0, max=fetch_time
             )
+            project_ids_and_timestamps.extend(
+                buffer.backend.get_sharded_sorted_set(
+                    handler.buffer_key,
+                    separator=handler.buffer_separator,
+                    shards=handler.buffer_shards,
+                    min=0,
+                    max=fetch_time,
+                )
+            )
+
             if should_emit_logs:
                 log_str = ", ".join(
-                    f"{project_id}: {timestamp}" for project_id, timestamp in project_ids
+                    f"{project_id}: {timestamp}"
+                    for project_id, timestamp in project_ids_and_timestamps
                 )
                 log_name = f"{processing_type}.project_id_list"
                 logger.info(log_name, extra={"project_ids": log_str})
 
-            for project_id, _ in project_ids:
+            project_ids = {project_id for project_id, _ in project_ids_and_timestamps}
+            for project_id in project_ids:
                 process_in_batches(project_id, processing_type)
 
-            buffer.backend.delete_key(handler.buffer_key, min=0, max=fetch_time.timestamp())
+            buffer.backend.delete_key(handler.buffer_key, min=0, max=fetch_time)
+            buffer.backend.delete_sharded_key(
+                handler.buffer_key,
+                separator=handler.buffer_separator,
+                shards=handler.buffer_shards,
+                min=0,
+                max=fetch_time,
+            )
 
 
 if not redis_buffer_registry.has(BufferHookEvent.FLUSH):

@@ -393,8 +393,30 @@ class RedisBuffer(Buffer):
             decoded_set.append(data_and_timestamp)
         return decoded_set
 
+    def get_sharded_sorted_set(
+        self, key: str, separator: str, shards: int, min: float, max: float
+    ) -> list[tuple[int, datetime]]:
+        data_to_timestamp: dict[int, datetime] = {}
+        for shard in range(shards):
+            shard_key = f"{key}{separator}{shard}"
+            shard_set = self.get_sorted_set(shard_key, min, max)
+            for data, timestamp in shard_set:
+                # overwrite with the latest timestamp
+                if data not in data_to_timestamp or timestamp > data_to_timestamp[data]:
+                    data_to_timestamp[data] = timestamp
+
+        decoded_set = [(data, timestamp) for data, timestamp in data_to_timestamp.items()]
+        return decoded_set
+
     def delete_key(self, key: str, min: float, max: float) -> None:
         self._execute_redis_operation(key, RedisOperation.SORTED_SET_DELETE_RANGE, min=min, max=max)
+
+    def delete_sharded_key(
+        self, key: str, separator: str, shards: int, min: float, max: float
+    ) -> None:
+        for shard in range(shards):
+            shard_key = f"{key}{separator}{shard}"
+            self.delete_key(shard_key, min, max)
 
     def delete_hash(
         self,
