@@ -2,7 +2,6 @@ import logging
 from typing import TypedDict
 
 from django.conf import settings
-from urllib3.exceptions import HTTPError
 
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
@@ -36,25 +35,25 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
     """
     Generate labels for a feedback message.
 
-    The possible errors this can throw are:
-    - urllib3.exceptions.HTTPError: If Seer returns a non-200 status code
-    - urllib3.exceptions.TimeoutError, MaxRetryError: For connection/timeout issues
-    - json.JSONDecodeError: If the response is not valid JSON
-    - KeyError: If the response JSON doesn't have the expected structure
+    Raises an exception if anything goes wrong during the API call or response processing.
     """
     request = LabelRequest(
         organization_id=organization_id,
         feedback_message=feedback_message,
     )
 
-    response = make_signed_seer_api_request(
-        connection_pool=seer_connection_pool,
-        path=SEER_LABEL_GENERATION_ENDPOINT_URL,
-        body=json.dumps(request).encode("utf-8"),
-    )
-    response_data = json.loads(response.data.decode("utf-8"))
+    try:
+        response = make_signed_seer_api_request(
+            connection_pool=seer_connection_pool,
+            path=SEER_LABEL_GENERATION_ENDPOINT_URL,
+            body=json.dumps(request).encode("utf-8"),
+        )
+        response_data = json.loads(response.data.decode("utf-8"))
+    except Exception:
+        logger.exception("Failed to generate labels")
+        raise Exception("Seer label generation endpoint failed")
 
-    if response.status != 200:
+    if response.status < 200 or response.status >= 300:
         logger.error(
             "Failed to generate labels",
             extra={
@@ -62,7 +61,7 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
                 "response_data": response.data,
             },
         )
-        raise HTTPError(f"Seer label generation endpoint returned status {response.status}")
+        raise Exception(f"Seer label generation endpoint returned status {response.status}")
 
     labels = response_data["data"]["labels"]
 

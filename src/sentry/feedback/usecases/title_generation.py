@@ -4,7 +4,6 @@ import logging
 from typing import TypedDict
 
 from django.conf import settings
-from urllib3.exceptions import HTTPError, MaxRetryError, TimeoutError
 
 from sentry import features
 from sentry.models.organization import Organization
@@ -104,16 +103,22 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
             body=json.dumps(seer_request).encode("utf-8"),
         )
         response_data = json.loads(response.data.decode("utf-8"))
-        if response.status != 200:
-            raise HTTPError(f"Seer title generation endpoint returned status {response.status}")
-    except (TimeoutError, MaxRetryError):
-        logger.warning("Seer title generation endpoint timed out")
-        metrics.incr(
-            "feedback.ai_title_generation.timeout",
-        )
-        return None
     except Exception:
         logger.exception("Seer title generation endpoint failed")
+        metrics.incr(
+            "feedback.ai_title_generation.error",
+            tags={"reason": "seer_response_failed"},
+        )
+        return None
+
+    if response.status < 200 or response.status >= 300:
+        logger.error(
+            "Seer title generation endpoint failed",
+            extra={
+                "status_code": response.status,
+                "response_data": response.data,
+            },
+        )
         metrics.incr(
             "feedback.ai_title_generation.error",
             tags={"reason": "seer_response_failed"},
