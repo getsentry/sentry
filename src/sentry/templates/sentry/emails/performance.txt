@@ -15,7 +15,6 @@ Details
 {{ link }}
 
 {% include "sentry/emails/_suspect_commits.txt" %}
-
 Tags
 ----
 {% for tag_key, tag_value in tags %}

@@ -13,7 +13,6 @@
 
 {{ activity_link }}
 {% include "sentry/emails/_suspect_commits.txt" %}
-
 Unsubscribe: {{ unsubscribe_link }}
 
 {% endautoescape %}
