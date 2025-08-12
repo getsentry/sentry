@@ -90,16 +90,14 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]):
 
         for exception in exceptions:
             exception_type = exception.get("type")
-            if exception_type is None:
-                continue
-
-            deobfuscated_type = symbol_map.get(exception_type)
-            if deobfuscated_type is not None:
-                exception["type"] = deobfuscated_type
+            if isinstance(exception_type, str):
+                mapped_type = symbol_map.get(exception_type)
+                if mapped_type is not None:
+                    exception["type"] = mapped_type
 
             # Deobfuscate occurrences of "Instance of 'xYz'" in the exception value
-            value = exception.get("value")
-            if isinstance(value, str):
+            exception_value = exception.get("value")
+            if isinstance(exception_value, str):
 
                 def replace_symbol(match: re.Match[str]) -> str:
                     symbol = match.group(1)
@@ -108,8 +106,8 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]):
                         return match.group(0)
                     return f"Instance of '{deobfuscated_symbol}'"
 
-                new_value = re.sub(INSTANCE_OF_VALUE_RE, replace_symbol, value)
-                if new_value != value:
+                new_value = re.sub(INSTANCE_OF_VALUE_RE, replace_symbol, exception_value)
+                if new_value != exception_value:
                     exception["value"] = new_value
 
 
