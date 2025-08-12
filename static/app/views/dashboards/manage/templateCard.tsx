@@ -6,6 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {IconAdd, IconGeneric} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 
 type Props = {
   description: string;
@@ -27,18 +28,28 @@ function TemplateCard({title, description, onPreview, onAdd}: Props) {
         </Title>
       </Header>
       <ButtonContainer>
-        <StyledButton
-          onClick={() => {
-            setIsAddingDashboardTemplate(true);
-            onAdd().finally(() => {
-              setIsAddingDashboardTemplate(false);
-            });
-          }}
-          icon={<IconAdd isCircled />}
-          busy={isAddingDashboardTemplate}
-        >
-          {t('Add Dashboard')}
-        </StyledButton>
+        <DashboardCreateLimitWrapper>
+          {({
+            hasReachedDashboardLimit,
+            isLoading: isLoadingDashboardsLimit,
+            limitMessage,
+          }) => (
+            <StyledButton
+              onClick={() => {
+                setIsAddingDashboardTemplate(true);
+                onAdd().finally(() => {
+                  setIsAddingDashboardTemplate(false);
+                });
+              }}
+              icon={<IconAdd isCircled />}
+              busy={isAddingDashboardTemplate}
+              disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
+              title={limitMessage}
+            >
+              {t('Add Dashboard')}
+            </StyledButton>
+          )}
+        </DashboardCreateLimitWrapper>
         <StyledButton priority="primary" onClick={onPreview}>
           {t('Preview')}
         </StyledButton>
