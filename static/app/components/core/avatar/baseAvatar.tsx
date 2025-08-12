@@ -7,7 +7,7 @@ import * as qs from 'query-string';
 import {Tooltip, type TooltipProps} from 'sentry/components/core/tooltip';
 import type {Avatar as AvatarType} from 'sentry/types/core';
 
-import {type BaseAvatarStyleProps, baseAvatarStyles} from './baseAvatarComponentStyles';
+import {baseAvatarStyles, type BaseAvatarStyleProps} from './baseAvatarComponentStyles';
 import {Gravatar} from './gravatar';
 import {LetterAvatar} from './letterAvatar';
 
