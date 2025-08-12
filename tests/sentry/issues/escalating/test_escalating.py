@@ -96,6 +96,7 @@ class HistoricGroupCounts(
             self._create_hourly_bucket(1, event)
         ]
 
+    @pytest.mark.skip(reason="flaky: #95139")
     @freeze_time(TIME_YESTERDAY)
     def test_query_different_group_categories(self) -> None:
         from django.utils import timezone

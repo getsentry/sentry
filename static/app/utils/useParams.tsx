@@ -23,6 +23,7 @@ type ParamKeys =
   | 'detectorId'
   | 'docIntegrationSlug'
   | 'eventId'
+  | 'eventSlug'
   | 'fineTuneType'
   | 'groupId'
   | 'id'
