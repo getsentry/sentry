@@ -10,7 +10,7 @@ import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import {AppSizeInsightsSidebar} from 'sentry/views/preprod/main/insights/appSizeInsightsSidebar';
+import {AppSizeInsightsSidebar} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebar';
 import {type ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 
 interface AppSizeInsightsProps {
