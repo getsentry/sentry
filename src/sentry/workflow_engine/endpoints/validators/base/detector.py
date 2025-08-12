@@ -14,7 +14,6 @@ from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataConditionGroupValidator,
     BaseDataConditionValidator,
-    BaseDataSourceValidator,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
     get_unknown_detector_type_error,
@@ -65,7 +64,10 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         return type
 
     @property
-    def data_source(self) -> BaseDataSourceValidator:
+    def data_sources(self) -> serializers.ListField:
+        # TODO - improve typing here to enforce that the child is the correct type
+        # otherwise, can look at creating a custom field.
+        # This should be a list of `BaseDataSourceValidator`s
         raise NotImplementedError
 
     @property
@@ -143,13 +145,18 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 logic_type=DataConditionGroup.Type.ANY,
                 organization_id=self.context["organization"].id,
             )
-            data_source_creator = validated_data["data_source"]["_creator"]
-            data_source = data_source_creator.create()
-            detector_data_source = DataSource.objects.create(
-                organization_id=self.context["project"].organization_id,
-                source_id=data_source.id,
-                type=validated_data["data_source"]["data_source_type"],
-            )
+
+            validated_data_sources = validated_data.pop("data_sources", [])
+
+            for validated_data_source in validated_data_sources:
+                data_source_creator = validated_data_source["_creator"]
+                data_source = data_source_creator.create()
+                detector_data_source = DataSource.objects.create(
+                    organization_id=self.context["project"].organization_id,
+                    source_id=data_source.id,
+                    type=validated_data_source["data_source_type"],
+                )
+
             if "condition_group" in validated_data:
                 for condition in validated_data["condition_group"]["conditions"]:
                     DataCondition.objects.create(
