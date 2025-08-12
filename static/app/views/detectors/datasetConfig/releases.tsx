@@ -1,7 +1,10 @@
 import type {SelectValue} from 'sentry/types/core';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {SessionField} from 'sentry/types/sessions';
-import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
+import type {
+  AggregationKeyWithAlias,
+  QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import {ReleaseSearchBar} from 'sentry/views/detectors/datasetConfig/components/releaseSearchBar';
 import {
   getReleasesSeriesQueryOptions,
@@ -63,6 +66,16 @@ const AGGREGATE_FUNCTION_MAP: Record<string, string> = {
     'percentage(users_crashed, users) AS _crash_rate_alert_aggregate',
 };
 
+const DEFAULT_FIELD: QueryFieldValue = {
+  function: [
+    'crash_free_rate' as AggregationKeyWithAlias,
+    SessionField.SESSION,
+    undefined,
+    undefined,
+  ],
+  kind: FieldValueKind.FUNCTION,
+};
+
 const fromApiAggregate = (aggregate: string) => {
   return (
     Object.keys(AGGREGATE_FUNCTION_MAP).find(
@@ -76,7 +89,7 @@ const toApiAggregate = (aggregate: string) => {
 };
 
 export const DetectorReleasesConfig: DetectorDatasetConfig<ReleasesSeriesResponse> = {
-  defaultField: ReleasesConfig.defaultField,
+  defaultField: DEFAULT_FIELD,
   getAggregateOptions: () => AGGREGATE_OPTIONS,
   SearchBar: ReleaseSearchBar,
   getSeriesQueryOptions: getReleasesSeriesQueryOptions,
@@ -89,4 +102,5 @@ export const DetectorReleasesConfig: DetectorDatasetConfig<ReleasesSeriesRespons
     // Releases cannot have a comparison series currently
     return [];
   },
+  supportedDetectionTypes: ['static'],
 };

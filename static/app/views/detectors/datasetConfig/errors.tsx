@@ -29,4 +29,5 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
   },
   fromApiAggregate: aggregate => aggregate,
   toApiAggregate: aggregate => aggregate,
+  supportedDetectionTypes: ['static', 'percent', 'dynamic'],
 };
