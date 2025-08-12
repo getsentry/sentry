@@ -326,7 +326,7 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         # Create feedbacks where "Usability" has more feedbacks than "Navigation" (the primary label)
         # This should cause "Usability" to be filtered out as an invalid associated label
 
-        # Create feedbacks for "Navigation" (primary label) - 8 feedbacks
+        # Create feedbacks for "Navigation" (primary label) - 4 feedbacks
         for i in range(4):
             self.store_search_issue(
                 project_id=self.project1.id,
@@ -338,7 +338,7 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
                 insert_time=before_now(hours=12),
             )
 
-        # Create feedbacks for "Usability" - 10 feedbacks (more than Navigation)
+        # Create feedbacks for "Usability" - 5 feedbacks (more than Navigation)
         for i in range(5):
             self.store_search_issue(
                 project_id=self.project1.id,
@@ -350,21 +350,19 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
                 insert_time=before_now(hours=12),
             )
 
-        # Create feedbacks for "Design" - 2 feedbacks (less than Navigation, should be kept)
-        for i in range(1):
-            self.store_search_issue(
-                project_id=self.project1.id,
-                user_id=1,
-                fingerprints=[f"design-feedback-{i}"],
-                tags=[(f"{AI_LABEL_TAG_PREFIX}.label.0", "Design")],
-                event_data={"contexts": {"feedback": {"message": f"Design issue {i}"}}},
-                override_occurrence_data={"type": FeedbackGroup.type_id},
-                insert_time=before_now(hours=12),
-            )
+        self.store_search_issue(
+            project_id=self.project1.id,
+            user_id=1,
+            fingerprints=["design-feedback-0"],
+            tags=[(f"{AI_LABEL_TAG_PREFIX}.label.0", "Design")],
+            event_data={"contexts": {"feedback": {"message": "Design issue 0"}}},
+            override_occurrence_data={"type": FeedbackGroup.type_id},
+            insert_time=before_now(hours=12),
+        )
 
         # Mock Seer to return "Navigation" as primary with "Usability" and "Design" as associated
-        # "Usability" should be filtered out because it has 10 feedbacks > 3/4 * 8 = 6
-        # "Design" should be kept because it has 2 feedbacks <= 3/4 * 8 = 6
+        # "Usability" should be filtered out because it has 5 feedbacks > 3/4 * 4 = 3
+        # "Design" should be kept because it has 1 feedbacks <= 3/4 * 4 = 3
         mock_seer_category_response(
             status=200,
             json={
