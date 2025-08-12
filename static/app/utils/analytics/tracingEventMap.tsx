@@ -38,6 +38,7 @@ export type TracingEventParameters = {
     columns_count: number;
     confidences: string[];
     dataset: string;
+    gave_seer_consent: 'given' | 'not_given' | 'gen_ai_features_disabled';
     has_exceeded_performance_usage_limit: boolean | null;
     interval: string;
     page_source: 'explore' | 'compare';
