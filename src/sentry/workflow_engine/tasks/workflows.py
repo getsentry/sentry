@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Any
 
 from django.db import router, transaction
 from google.api_core.exceptions import RetryError
@@ -67,7 +68,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
         group=group,
     )
 
-    process_workflows(event_data, detector, event_start_time=activity.datetime)
+    process_workflows(event_data, event_start_time=activity.datetime, detector=detector)
     metrics.incr(
         "workflow_engine.tasks.process_workflows.activity_update.executed",
         tags={"activity_type": activity.type, "detector_type": detector.type},
@@ -103,7 +104,7 @@ def process_workflows_event(
     has_reappeared: bool,
     has_escalated: bool,
     start_timestamp_seconds: float | None = None,
-    **kwargs,
+    **kwargs: dict[str, Any],
 ) -> None:
 
     try:
