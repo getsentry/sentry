@@ -323,6 +323,7 @@ def create_dif_from_id(
         file.size,
         tags={"usecase": "debug-files", "compression": "none"},
         unit="byte",
+        precise=True,
     )
 
     dif = ProjectDebugFile.objects.create(
