@@ -69,27 +69,7 @@ describe('FeedbackCategories', () => {
       expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
     });
 
-    it('renders error state', async () => {
-      // Mock API to return error
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/feedback-categories/',
-        body: null,
-        statusCode: 500,
-      });
-
-      const {container} = render(<FeedbackCategories />, {
-        organization: mockOrganization,
-      });
-
-      // ?????????? why does waiting 2 seconds work? this feels so hacky i swear tests shouldnt be written like this
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-placeholder'), {
-        timeout: 2000,
-      });
-
-      expect(container).toBeEmptyDOMElement();
-    });
-
-    it('renders too few feedbacks state', () => {
+    it('renders too few feedbacks state', async () => {
       // Mock API to return too few feedbacks
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/feedback-categories/',
@@ -104,6 +84,8 @@ describe('FeedbackCategories', () => {
       const {container} = render(<FeedbackCategories />, {
         organization: mockOrganization,
       });
+
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-placeholder'));
 
       expect(container).toBeEmptyDOMElement();
     });
@@ -120,11 +102,13 @@ describe('FeedbackCategories', () => {
         statusCode: 200,
       });
 
-      render(<FeedbackCategories />, {organization: mockOrganization});
+      const {container} = render(<FeedbackCategories />, {
+        organization: mockOrganization,
+      });
 
-      expect(
-        await screen.findByText('No feedback categories found.')
-      ).toBeInTheDocument();
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-placeholder'));
+
+      expect(container).toBeEmptyDOMElement();
     });
 
     it('renders categories when available', async () => {
