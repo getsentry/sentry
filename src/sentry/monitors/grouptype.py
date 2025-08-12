@@ -19,15 +19,3 @@ class MonitorIncidentType(GroupType):
     creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
     default_priority = PriorityLevel.HIGH
     notification_config = NotificationConfig(context=[])
-
-
-@dataclass(frozen=True)
-class MonitorCheckInTimeout(MonitorIncidentType):
-    # This is deprecated, only kept around for its type_id
-    type_id = 4002
-
-
-@dataclass(frozen=True)
-class MonitorCheckInMissed(MonitorIncidentType):
-    # This is deprecated, only kept around for its type_id
-    type_id = 4003
