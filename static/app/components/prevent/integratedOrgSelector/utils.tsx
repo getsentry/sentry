@@ -1,7 +1,6 @@
-import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 
-const EMPTY_MESSAGE = t('Select integrated organization');
+const EMPTY_MESSAGE = 'Select integrated organization';
 
 export const integratedOrgIdToName = (id?: string, integrations?: Integration[]) => {
   if (!id || !integrations) {
