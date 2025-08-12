@@ -178,7 +178,9 @@ def timing(
 
     if precise and precise_backend:
         try:
-            precise_backend.timing(key, value, instance, tags, sample_rate, stacklevel + 1)
+            precise_backend.timing(
+                key, value, instance, tags, sample_rate, stacklevel + 1, precise=True
+            )
         except Exception:
             logger = logging.getLogger("sentry.errors")
             logger.exception("Unable to record precise metric")
