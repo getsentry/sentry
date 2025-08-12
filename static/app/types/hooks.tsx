@@ -158,7 +158,14 @@ export type GithubInstallationInstallButtonProps = {
 };
 
 type DashboardLimitProviderProps = {
-  children: ((data: any) => React.ReactNode) | React.ReactNode;
+  children:
+    | ((limitData: {
+        dashboardsLimit: number;
+        hasReachedDashboardLimit: boolean;
+        isLoading: boolean;
+        limitMessage: React.ReactNode | null;
+      }) => React.ReactNode)
+    | React.ReactNode;
 };
 
 /**
