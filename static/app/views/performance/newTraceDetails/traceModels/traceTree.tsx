@@ -358,15 +358,15 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return tree;
   }
 
-  static Loading(metadata: TraceTree.Metadata): TraceTree {
-    const t = makeExampleTrace(metadata);
+  static Loading(metadata: TraceTree.Metadata, organization: Organization): TraceTree {
+    const t = makeExampleTrace(metadata, organization);
     t.type = 'loading';
     t.build();
     return t;
   }
 
-  static Error(metadata: TraceTree.Metadata): TraceTree {
-    const t = makeExampleTrace(metadata);
+  static Error(metadata: TraceTree.Metadata, organization: Organization): TraceTree {
+    const t = makeExampleTrace(metadata, organization);
     t.type = 'error';
     t.build();
     return t;
@@ -375,6 +375,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
   static ApplyPreferences(
     root: TraceTreeNode<TraceTree.NodeValue>,
     options: {
+      organization: Organization;
       preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
     }
   ): void {
@@ -387,7 +388,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     if (options?.preferences?.autogroup.sibling) {
-      TraceTree.AutogroupSiblingSpanNodes(root);
+      TraceTree.AutogroupSiblingSpanNodes(root, {organization: options.organization});
     }
   }
 
@@ -395,6 +396,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     trace: TraceTree.Trace,
     options: {
       meta: TraceMetaQueryResults['data'] | null;
+      organization: Organization;
       replay: HydratedReplayRecord | null;
       preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
       // This is used to track the traceslug associated with a trace in a replay.
@@ -1075,7 +1077,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return removeCount;
   }
 
-  static AutogroupSiblingSpanNodes(root: TraceTreeNode<TraceTree.NodeValue>): number {
+  static AutogroupSiblingSpanNodes(
+    root: TraceTreeNode<TraceTree.NodeValue>,
+    options: {
+      organization: Organization;
+    }
+  ): number {
     const queue = [root];
     let autogroupCount = 0;
 
@@ -2294,6 +2301,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
                 replay: null,
                 preferences: options.preferences,
                 replayTraceSlug: traceSlug,
+                organization,
               })
             );
             rerender();
