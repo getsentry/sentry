@@ -271,21 +271,14 @@ def create_feedback_issue(
         except Exception:
             # until we have LLM error types ironed out, just catch all exceptions
             logger.exception("Error checking if message is spam", extra={"project_id": project.id})
-            metrics.incr(
-                "feedback.create_feedback_issue.spam_detection.error",
-                tags={"referrer": source.value},
-                sample_rate=1.0,
-            )
-
-        if is_message_spam is not None:
-            metrics.incr(
-                "feedback.create_feedback_issue.spam_detection",
-                tags={
-                    "is_spam": is_message_spam,
-                    "referrer": source.value,
-                },
-                sample_rate=1.0,
-            )
+        metrics.incr(
+            "feedback.create_feedback_issue.spam_detection",
+            tags={
+                "is_spam": is_message_spam,
+                "referrer": source.value,
+            },
+            sample_rate=1.0,
+        )
 
     # Prepare the data for issue platform processing and attach useful tags.
 
