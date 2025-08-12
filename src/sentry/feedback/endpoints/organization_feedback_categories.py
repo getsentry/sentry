@@ -205,21 +205,16 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
             response_data = json.loads(response.data.decode("utf-8"))
         except Exception as e:
             logger.exception(
-                "Failed to generate user feedback label groups",
-                extra={
-                    "error": type(e).__name__,
-                },
+                "Seer failed to generate user feedback label groups",
+                extra={"error": type(e).__name__},
             )
-            raise Exception("Seer feedback labels endpoint failed")
+            raise Exception("Failed to generate user feedback label groups")
         if response.status < 200 or response.status >= 300:
             logger.error(
-                "Failed to generate user feedback label groups",
-                extra={
-                    "status_code": response.status,
-                    "response_data": response.data if response else None,
-                },
+                "Seer failed to generate user feedback label groups",
+                extra={"status_code": response.status, "response_data": response.data},
             )
-            raise Exception(f"Seer feedback labels endpoint returned status {response.status}")
+            raise Exception("Failed to generate user feedback label groups")
         label_groups = response_data["data"]
 
         # If the LLM just forgets or adds extra primary labels, log it but still generate categories

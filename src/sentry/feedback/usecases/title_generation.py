@@ -106,9 +106,7 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
     except Exception as e:
         logger.exception(
             "Seer title generation endpoint failed",
-            extra={
-                "error": type(e).__name__,
-            },
+            extra={"error": type(e).__name__},
         )
         metrics.incr(
             "feedback.ai_title_generation.error",
@@ -119,10 +117,7 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
     if response.status < 200 or response.status >= 300:
         logger.error(
             "Seer title generation endpoint failed",
-            extra={
-                "status_code": response.status,
-                "response_data": response.data if response else None,
-            },
+            extra={"status_code": response.status, "response_data": response.data},
         )
         metrics.incr(
             "feedback.ai_title_generation.error",

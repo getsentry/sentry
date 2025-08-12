@@ -1,7 +1,6 @@
 import logging
 from typing import Any
 
-import requests
 from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -13,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.models.project import Project
+from sentry.net.http import connection_from_url
 from sentry.replays.lib.storage import storage
 from sentry.replays.lib.summarize import (
     fetch_error_details,
@@ -22,7 +22,7 @@ from sentry.replays.lib.summarize import (
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
-from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -31,20 +31,12 @@ logger = logging.getLogger(__name__)
 MAX_SEGMENTS_TO_SUMMARIZE = 100
 SEER_REQUEST_SIZE_LOG_THRESHOLD = 1e5  # Threshold for logging large Seer requests.
 
-SEER_START_TASK_URL = (
-    f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs/start"
-)
-SEER_POLL_STATE_URL = (
-    f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs/state"
-)
+SEER_START_TASK_ENDPOINT_URL = "v1/automation/summarize/replay/breadcrumbs/start"
+SEER_POLL_STATE_ENDPOINT_URL = "v1/automation/summarize/replay/breadcrumbs/state"
 
-
-def _get_request_exc_extras(e: requests.exceptions.RequestException) -> dict[str, Any]:
-    return {
-        "status_code": e.response.status_code if e.response is not None else None,
-        "response": e.response.text if e.response is not None else None,
-        "content": e.response.content if e.response is not None else None,
-    }
+seer_connection_pool = connection_from_url(
+    settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
+)
 
 
 class ReplaySummaryPermission(ProjectPermission):
@@ -92,40 +84,30 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             )
 
         try:
-            response = requests.post(
-                url,
-                data=data,
-                headers={
-                    "content-type": "application/json;charset=utf-8",
-                    **sign_with_seer_secret(data.encode()),
+            response = make_signed_seer_api_request(
+                connection_pool=seer_connection_pool,
+                path=url,
+                body=data.encode("utf-8"),
+            )
+            response_data = json.loads(response.data.decode("utf-8"))
+        except Exception as e:
+            logger.exception(
+                "Seer replay breadcrumbs summary endpoint failed",
+                extra={
+                    "error": type(e).__name__,
                 },
-                timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5),
             )
-            response.raise_for_status()  # Raises HTTPError for 4xx and 5xx.
+            return self.respond("Failed to generate a replay breadcrumbs summary", status=500)
 
-        except requests.exceptions.HTTPError as e:
-            logger.exception(
-                "Seer returned error during replay breadcrumbs summary",
-                extra={"url": url, **_get_request_exc_extras(e)},
+        if response.status < 200 or response.status >= 300:
+            logger.error(
+                "Seer replay breadcrumbs summary endpoint failed",
+                extra={"url": url, "status_code": response.status, "response_data": response.data},
             )
-            return self.respond(status=e.response.status_code if e.response is not None else 502)
-
-        except requests.exceptions.Timeout as e:
-            logger.exception(
-                "Seer timed out when starting a replay breadcrumbs summary",
-                extra={"url": url, **_get_request_exc_extras(e)},
-            )
-            return self.respond(status=504)
-
-        except requests.exceptions.RequestException as e:
-            logger.exception(
-                "Error requesting from Seer when starting a replay breadcrumbs summary",
-                extra={"url": url, **_get_request_exc_extras(e)},
-            )
-            return self.respond(status=502)
+            return self.respond("Failed to generate a replay breadcrumbs summary", status=500)
 
         # Note any headers in the Seer response aren't returned.
-        return Response(data=response.json(), status=response.status_code)
+        return Response(data=response_data, status=response.status)
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         """Poll for the status of a replay summary task in Seer."""
@@ -137,7 +119,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
 
         # Request Seer for the state of the summary task.
         return self.make_seer_request(
-            SEER_POLL_STATE_URL,
+            SEER_POLL_STATE_ENDPOINT_URL,
             {
                 "replay_id": replay_id,
             },
@@ -206,7 +188,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         # XXX: Request isn't streaming. Limitation of Seer authentication. Would be much faster if we
         # could stream the request data since the GCS download will (likely) dominate latency.
         return self.make_seer_request(
-            SEER_START_TASK_URL,
+            SEER_START_TASK_ENDPOINT_URL,
             {
                 "logs": logs,
                 "num_segments": num_segments,

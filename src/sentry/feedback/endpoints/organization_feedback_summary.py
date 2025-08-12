@@ -154,21 +154,20 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             response_data = json.loads(response.data.decode("utf-8"))
         except Exception as e:
             logger.exception(
-                "Failed to generate a summary for a list of feedbacks",
-                extra={
-                    "error": type(e).__name__,
-                },
+                "Seer failed to generate a summary for a list of feedbacks",
+                extra={"error": type(e).__name__},
             )
-            return Response({"detail": "Error generating summary"}, status=500)
+            return Response(
+                {"detail": "Failed to generate a summary for a list of feedbacks"}, status=500
+            )
         if response.status < 200 or response.status >= 300:
             logger.error(
-                "Failed to generate a summary for a list of feedbacks",
-                extra={
-                    "status_code": response.status,
-                    "response_data": response.data if response else None,
-                },
+                "Seer failed to generate a summary for a list of feedbacks",
+                extra={"status_code": response.status, "response_data": response.data},
             )
-            return Response({"detail": "Error generating summary"}, status=500)
+            return Response(
+                {"detail": "Failed to generate a summary for a list of feedbacks"}, status=500
+            )
         summary = response_data["data"]
 
         cache.set(
