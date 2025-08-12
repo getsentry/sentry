@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
@@ -7,9 +7,9 @@ import devkitCrashesStep2 from 'sentry-images/tempest/devkit-crashes-step2.png';
 import devkitCrashesStep3 from 'sentry-images/tempest/devkit-crashes-step3.png';
 import windowToolImg from 'sentry-images/tempest/windows-tool-devkit.png';
 
+import Accordion from 'sentry/components/container/accordion';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
-import Accordion from 'sentry/components/container/accordion';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -24,7 +24,6 @@ import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjectKeys} from 'sentry/utils/useProjectKeys';
-import {useState} from 'react';
 
 import {RequestSdkAccessButton} from './RequestSdkAccessButton';
 
@@ -94,23 +93,24 @@ export default function DevKitSettings({organization, project}: Props) {
                     <GuidedSteps.StepButtons />
                   </GuidedSteps.Step>
 
-                  <GuidedSteps.Step
-                    stepKey="step-2"
-                    title={t('Configure Upload URL')}
-                  >
+                  <GuidedSteps.Step stepKey="step-2" title={t('Configure Upload URL')}>
                     <DescriptionWrapper>
                       <IntroText>
                         {t(
                           'There are two ways to configure the Upload URL on your DevKit. Choose one of the following methods:'
                         )}
                       </IntroText>
-                      
+
                       <Accordion
                         expandedIndex={expandedAccordionIndex}
                         setExpandedIndex={setExpandedAccordionIndex}
                         items={[
                           {
-                            header: <AccordionHeader>{t('Using Windows tool to set up Upload URL')}</AccordionHeader>,
+                            header: (
+                              <AccordionHeader>
+                                {t('Using Windows tool to set up Upload URL')}
+                              </AccordionHeader>
+                            ),
                             content: (
                               <AccordionContentWrapper>
                                 <StepContentColumn>
@@ -132,7 +132,11 @@ export default function DevKitSettings({organization, project}: Props) {
                             ),
                           },
                           {
-                            header: <AccordionHeader>{t('Using DevKit Directly to set up Upload URL')}</AccordionHeader>,
+                            header: (
+                              <AccordionHeader>
+                                {t('Using DevKit Directly to set up Upload URL')}
+                              </AccordionHeader>
+                            ),
                             content: (
                               <AccordionContentWrapper>
                                 <StepContentColumn>
