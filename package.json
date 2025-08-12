@@ -124,7 +124,7 @@
     "gettext-parser": "7.0.1",
     "gl-matrix": "^3.4.3",
     "html-webpack-plugin": "5.6.3",
-    "idb-keyval": "^6.2.1",
+    "idb-keyval": "6.2.2",
     "invariant": "^2.2.4",
     "jed": "^1.1.0",
     "jest-fetch-mock": "^3.0.3",
