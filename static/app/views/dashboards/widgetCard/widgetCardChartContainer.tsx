@@ -227,6 +227,7 @@ export function WidgetCardChartContainer({
               onWidgetTableSort={onWidgetTableSort}
               onWidgetTableResizeColumn={onWidgetTableResizeColumn}
               disableTableActions={disableTableActions}
+              dashboardFilters={dashboardFilters}
             />
           </Fragment>
         );

@@ -58,19 +58,22 @@ import {
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import type {Widget} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
+import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
+import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 
@@ -96,6 +99,7 @@ type WidgetCardChartProps = Pick<
   widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
   confidence?: Confidence;
+  dashboardFilters?: DashboardFilters;
   disableTableActions?: boolean;
   disableZoom?: boolean;
   expandNumbers?: boolean;
@@ -162,6 +166,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       onWidgetTableSort,
       onWidgetTableResizeColumn,
       disableTableActions,
+      dashboardFilters,
     } = this.props;
     if (loading || !tableResults?.[0]) {
       // Align height to other charts.
@@ -208,6 +213,13 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       }
 
       const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
+      let cellActions = ALLOWED_CELL_ACTIONS;
+      if (disableTableActions || !useCellActionsV2) {
+        cellActions = [];
+      } else if (widget.widgetType === WidgetType.SPANS) {
+        cellActions = [...cellActions, Actions.OPEN_ROW_IN_EXPLORE];
+      }
+
       return (
         <TableWrapper key={`table:${result.title}`}>
           {organization.features.includes('dashboards-use-widget-table-visualization') ? (
@@ -242,9 +254,18 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                 } satisfies RenderFunctionBaggage;
               }}
               onResizeColumn={onWidgetTableResizeColumn}
-              allowedCellActions={
-                disableTableActions || !useCellActionsV2 ? [] : undefined
-              }
+              allowedCellActions={cellActions}
+              onTriggerCellAction={(action, _value, dataRow) => {
+                if (action === Actions.OPEN_ROW_IN_EXPLORE) {
+                  const getExploreUrl = getWidgetTableRowExploreUrlFunction(
+                    selection,
+                    widget,
+                    organization,
+                    dashboardFilters
+                  );
+                  window.location.href = getExploreUrl(dataRow);
+                }
+              }}
             />
           ) : (
             <StyledSimpleTableChart
