@@ -8,6 +8,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Panel from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
 import {space} from 'sentry/styles/space';
+import {NumberContainer} from 'sentry/utils/discover/styles';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -114,6 +115,12 @@ export const DetailsContent = styled(StyledPanel)`
 export const LogFirstCellContent = styled('div')`
   display: flex;
   align-items: center;
+`;
+
+export const LogBasicRendererContainer = styled('span')<{align?: 'left' | 'right'}>`
+  ${NumberContainer} {
+    text-align: ${p => p.align || 'left'};
+  }
 `;
 
 export const DetailsBody = styled('div')`
