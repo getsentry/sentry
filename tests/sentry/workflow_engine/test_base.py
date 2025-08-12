@@ -285,11 +285,12 @@ class BaseWorkflowTest(TestCase, OccurrenceTestMixin):
     def create_workflow_action(
         self,
         workflow: Workflow,
+        action: Action | None = None,
         **kwargs,
     ) -> tuple[DataConditionGroup, Action]:
         action_group = self.create_data_condition_group(logic_type="any-short")
 
-        action = self.create_action()
+        action = action or self.create_action(integration_id=self.integration.id)
 
         self.create_data_condition_group_action(
             condition_group=action_group,
