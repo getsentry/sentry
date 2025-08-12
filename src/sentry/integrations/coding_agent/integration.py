@@ -18,11 +18,11 @@ from sentry.utils.http import absolute_uri
 
 # Default metadata for coding agent integrations
 DEFAULT_CODING_AGENT_METADATA = IntegrationMetadata(
-    description="AI-powered coding agent integration for automated development assistance.",
+    description="AI coding agent integration.",
     features=[
         FeatureDescription(
-            "Launch AI coding sessions from Sentry alerts and issues.",
-            IntegrationFeatures.ALERT_RULE,
+            "Launch AI coding agents from Seer.",
+            IntegrationFeatures.CODING_AGENT,
         ),
     ],
     author="The Sentry Team",
