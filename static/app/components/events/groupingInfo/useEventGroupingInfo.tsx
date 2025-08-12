@@ -3,6 +3,7 @@ import {
 
   convertVariantFromBackend,
   EventGroupVariantType,
+  isEventGroupVariantType,
   type Event,
   type EventGroupVariant,
 } from 'sentry/types/event';
