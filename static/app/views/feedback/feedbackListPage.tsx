@@ -56,11 +56,6 @@ export default function FeedbackListPage() {
     feedbackWidgetPlatforms.includes(p.platform!)
   );
 
-  const showSummaryCategories =
-    organization.features.includes('gen-ai-features') &&
-    (organization.features.includes('user-feedback-ai-summaries') ||
-      organization.features.includes('user-feedback-ai-categorization-features'));
-
   const showWidgetBanner = showWhatsNewBanner && oneIsWidgetEligible;
   return (
     <SentryDocumentTitle title={t('User Feedback')} orgSlug={organization.slug}>
@@ -97,7 +92,7 @@ export default function FeedbackListPage() {
                   {hasSetupOneFeedback || hasSlug ? (
                     <Fragment>
                       <SummaryListContainer style={{gridArea: 'list'}}>
-                        {showSummaryCategories && <FeedbackSummaryCategories />}
+                        <FeedbackSummaryCategories />
                         <Container>
                           <FeedbackList />
                         </Container>

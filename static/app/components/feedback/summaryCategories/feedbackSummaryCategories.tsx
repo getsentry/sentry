@@ -15,6 +15,15 @@ export default function FeedbackSummaryCategories() {
 
   const openForm = useFeedbackForm();
 
+  const showSummaryCategories =
+    organization.features.includes('gen-ai-features') &&
+    (organization.features.includes('user-feedback-ai-summaries') ||
+      organization.features.includes('user-feedback-ai-categorization-features'));
+
+  if (!showSummaryCategories) {
+    return null;
+  }
+
   const feedbackButton = ({type}: {type: 'positive' | 'negative'}) => {
     return openForm ? (
       <Button
