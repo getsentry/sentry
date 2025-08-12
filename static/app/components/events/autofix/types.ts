@@ -39,10 +39,27 @@ type AutofixOptions = {
   iterative_feedback?: boolean;
 };
 
+export interface CodingAgentResult {
+  description: string;
+  pr_url?: string;
+}
+
+export interface CodingAgentState {
+  id: string;
+  name: string;
+  started_at: string;
+  status: string;
+  agent_url?: string;
+  branch_name?: string;
+  pr_url?: string;
+  result?: CodingAgentResult;
+}
+
 type CodebaseState = {
   is_readable: boolean | null;
   is_writeable: boolean | null;
   repo_external_id: string | null;
+  coding_agent_state?: CodingAgentState;
 };
 
 export type AutofixData = {
