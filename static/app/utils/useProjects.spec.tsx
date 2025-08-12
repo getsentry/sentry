@@ -17,7 +17,7 @@ describe('useProjects', function () {
   const mockProjects = [ProjectFixture()];
 
   it('provides projects from the team store', function () {
-    act(() => void ProjectsStore.loadInitialData(mockProjects));
+    act(() => ProjectsStore.loadInitialData(mockProjects));
 
     const {result} = renderHook(useProjects, {wrapper: TestContext});
     const {projects} = result.current;
@@ -26,7 +26,7 @@ describe('useProjects', function () {
   });
 
   it('loads more projects when using onSearch', async function () {
-    act(() => void ProjectsStore.loadInitialData(mockProjects));
+    act(() => ProjectsStore.loadInitialData(mockProjects));
 
     const newProject3 = ProjectFixture({id: '3', slug: 'test-project3'});
     const newProject4 = ProjectFixture({id: '4', slug: 'test-project4'});
@@ -63,7 +63,7 @@ describe('useProjects', function () {
   });
 
   it('provides only the specified slugs', async function () {
-    act(() => void ProjectsStore.loadInitialData(mockProjects));
+    act(() => ProjectsStore.loadInitialData(mockProjects));
 
     const projectFoo = ProjectFixture({id: '3', slug: 'foo'});
     const mockRequest = MockApiClient.addMockResponse({
@@ -87,7 +87,7 @@ describe('useProjects', function () {
   });
 
   it('only loads slugs when needed', function () {
-    act(() => void ProjectsStore.loadInitialData(mockProjects));
+    act(() => ProjectsStore.loadInitialData(mockProjects));
 
     const {result} = renderHook(useProjects, {
       initialProps: {slugs: [mockProjects[0]!.slug]},

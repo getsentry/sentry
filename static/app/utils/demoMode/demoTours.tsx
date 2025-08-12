@@ -7,10 +7,10 @@ import {
   type TourElementProps,
 } from 'sentry/components/tours/components';
 import {
+  useTourReducer,
   type TourContextType,
   type TourEnumType,
   type TourState,
-  useTourReducer,
 } from 'sentry/components/tours/tourContext';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';

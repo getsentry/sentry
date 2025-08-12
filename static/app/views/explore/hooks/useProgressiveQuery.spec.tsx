@@ -12,8 +12,8 @@ import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
   SAMPLING_MODE,
-  type SamplingMode,
   useProgressiveQuery,
+  type SamplingMode,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 

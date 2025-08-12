@@ -1,5 +1,5 @@
 import type {DO_NOT_USE_ChonkTheme} from '@emotion/react';
-import {type HTMLMotionProps, motion} from 'framer-motion';
+import {motion, type HTMLMotionProps} from 'framer-motion';
 
 import type {Indicator} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/core/button';

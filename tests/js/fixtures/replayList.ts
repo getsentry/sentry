@@ -15,7 +15,6 @@ export function ReplayListFixture(
         name: 'Firefox',
         version: '111.0',
       },
-      clicks: [],
       count_dead_clicks: 0,
       count_errors: 0,
       count_infos: 0,

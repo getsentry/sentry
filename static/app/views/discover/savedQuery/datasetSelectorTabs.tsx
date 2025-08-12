@@ -7,8 +7,8 @@ import {
   ERROR_ONLY_FIELDS,
   explodeField,
   getAggregations,
-  type QueryFieldValue,
   TRANSACTION_ONLY_FIELDS,
+  type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import type {FieldKey, SpanOpBreakdown} from 'sentry/utils/fields';

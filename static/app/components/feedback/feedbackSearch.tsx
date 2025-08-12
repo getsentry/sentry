@@ -4,6 +4,7 @@ import union from 'lodash/union';
 
 import {fetchTagValues, useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import type {SearchGroup} from 'sentry/components/deprecatedSmartSearchBar/types';
+import {EMAIL_REGEX} from 'sentry/components/events/contexts/knownContext/user';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import {t} from 'sentry/locale';
@@ -284,6 +285,7 @@ export default function FeedbackSearch() {
       onSearch={onSearch}
       searchSource={'feedback-list'}
       placeholder={t('Search Feedback')}
+      matchKeySuggestions={[{key: 'user.email', valuePattern: EMAIL_REGEX}]}
     />
   );
 }

@@ -38,9 +38,11 @@ runs:
         # isn't right because job-total will be 3x larger and you'd never run 2/3 of the tests.
         # MATRIX_INSTANCE_TOTAL: ${{ strategy.job-total }}
       run: |
+        echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
+
+        # for actions/setup-python which always runs pip install
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
         echo "PIP_INDEX_URL=https://pypi.devinfra.sentry.io/simple" >> $GITHUB_ENV
-        echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
 
         ### node configuration ###
         echo "NODE_ENV=development" >> $GITHUB_ENV
@@ -79,11 +81,17 @@ runs:
           echo "TOTAL_TEST_GROUPS=$MATRIX_INSTANCE_TOTAL" >> $GITHUB_ENV
         fi
 
+    - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
+      with:
+        version: '0.8.2'
+        # we just cache the venv-dir directly in action-setup-venv
+        enable-cache: false
+
     - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
       with:
         python-version: ${{ inputs.python-version }}
-        cache-dependency-path: ${{ inputs.workdir }}/requirements-dev-frozen.txt
-        install-cmd: cd ${{ inputs.workdir }} && pip install -r requirements-dev-frozen.txt
+        cache-dependency-path: ${{ inputs.workdir }}/uv.lock
+        install-cmd: cd ${{ inputs.workdir }} && uv sync --frozen --active
 
     - name: Set up outputs
       id: config

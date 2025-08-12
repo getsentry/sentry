@@ -1,7 +1,7 @@
 import type {Project} from 'sentry/types/project';
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 

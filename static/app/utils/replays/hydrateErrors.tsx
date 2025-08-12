@@ -39,6 +39,7 @@ export default function hydrateErrors(
               (Array.isArray(e['error.type']) ? e['error.type'][0] : e['error.type']) ??
               '',
             labels: toArray(e['error.type']).filter(Boolean),
+            level: e.level,
             projectSlug: e['project.name'],
           },
           message:
@@ -64,6 +65,7 @@ export default function hydrateErrors(
           label:
             (Array.isArray(e['error.type']) ? e['error.type'][0] : e['error.type']) ?? '',
           labels: toArray(e['error.type']).filter(defined),
+          level: e.level,
           projectSlug: e['project.name'],
         },
         message: e.title,

@@ -1,5 +1,5 @@
 import type {Deploy} from 'sentry/types/release';
-import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 
 function getDeploysQueryKey({
   orgSlug,

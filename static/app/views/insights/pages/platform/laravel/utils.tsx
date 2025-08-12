@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {type Fidelity, getInterval} from 'sentry/components/charts/utils';
+import {getInterval, type Fidelity} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
