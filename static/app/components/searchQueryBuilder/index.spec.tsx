@@ -1590,6 +1590,59 @@ describe('SearchQueryBuilder', function () {
       const updatedListBox = screen.getByRole('checkbox', {name: 'Toggle randomValue'});
       expect(updatedListBox).toBeChecked();
     });
+
+    describe('filter key combobox', function () {
+      it.each([
+        {
+          description: 'goes to first item when pressing arrow down',
+          arrow: '{ArrowDown}',
+          expected: 'option-age',
+        },
+        {
+          description: 'goes to last item when pressing arrow up',
+          arrow: '{ArrowUp}',
+          expected: 'option-custom_tag_name',
+        },
+        {
+          description: 'goes to first item when pressing arrow down on the last item',
+          arrow: '{ArrowDown}{ArrowUp}',
+          expected: 'option-custom_tag_name',
+        },
+        {
+          description: 'goes to last item when pressing arrow up on the first item',
+          arrow: '{ArrowUp}{ArrowDown}',
+          expected: 'option-age',
+        },
+        {
+          description: 'goes to the last item after going from second up to first',
+          arrow: '{ArrowDown}{ArrowDown}{ArrowUp}{ArrowUp}',
+          expected: 'option-custom_tag_name',
+        },
+        {
+          description:
+            'goes to the first item after going from second last item up to first',
+          arrow: '{ArrowUp}{ArrowUp}{ArrowDown}{ArrowDown}',
+          expected: 'option-age',
+        },
+      ])('$description', async function ({arrow, expected}) {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
+        );
+
+        await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter key'}));
+
+        await userEvent.keyboard(arrow);
+        const input = await screen.findByRole('combobox', {name: 'Edit filter key'});
+        expect(input).toHaveAttribute(
+          'aria-activedescendant',
+          expect.stringContaining(expected)
+        );
+      });
+    });
   });
 
   describe('token values', function () {
