@@ -228,7 +228,6 @@ def get_timestamp_unit(event_type: EventType) -> Literal["s", "ms"]:
     match event_type:
         case (
             EventType.CLS
-            | EventType.FCP
             | EventType.LCP
             | EventType.FEEDBACK
             | EventType.MEMORY
