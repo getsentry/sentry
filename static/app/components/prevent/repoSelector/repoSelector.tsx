@@ -57,8 +57,14 @@ function MenuFooter({repoAccessLink}: MenuFooterProps) {
 export function RepoSelector() {
   const {repository, integratedOrgId, preventPeriod, changeContextValue} =
     usePreventContext();
+  const [displayedRepos, setDisplayedRepos] = useState<string[]>([]);
+
   const [searchValue, setSearchValue] = useState<string | undefined>();
-  const {data: repositories} = useInfiniteRepositories({term: searchValue});
+  const {
+    data: repositories,
+    isFetching,
+    isLoading,
+  } = useInfiniteRepositories({term: searchValue});
 
   const disabled = !integratedOrgId;
 
@@ -77,16 +83,12 @@ export function RepoSelector() {
     () =>
       debounce((value: string) => {
         setSearchValue(value);
-      }, 500),
+      }, 300),
     [setSearchValue]
   );
 
   const options = useMemo((): Array<SelectOption<string>> => {
-    // TODO: When API is ready, replace placeholder w/ api response
-    const repoSet = new Set([
-      ...(repository ? [repository] : []),
-      ...(repositories.length > 0 ? repositories.map(item => item.name) : []),
-    ]);
+    const repoSet = new Set([...(repository ? [repository] : []), ...displayedRepos]);
 
     return [...repoSet].map((value): SelectOption<string> => {
       return {
@@ -97,7 +99,26 @@ export function RepoSelector() {
         textValue: value,
       };
     });
-  }, [repository, repositories]);
+  }, [displayedRepos, repository]);
+
+  function getEmptyMessage() {
+    if (isFetching) {
+      return t('Getting repositories...');
+    }
+
+    if (searchValue && !repositories?.length) {
+      return t('No repositories found. Please enter at least 3 characters to search.');
+    }
+
+    return t('No repositories found');
+  }
+
+  useEffect(() => {
+    // Only update displayedRepos if the hook returned something non-empty
+    if (!isFetching) {
+      setDisplayedRepos((repositories ?? []).map(item => item.name));
+    }
+  }, [isFetching, repositories]);
 
   useEffect(() => {
     // Create a use effect to cancel handleOnSearch fn on unmount to avoid memory leaks
@@ -108,19 +129,20 @@ export function RepoSelector() {
 
   return (
     <CompactSelect
+      loading={isLoading}
       onSearch={handleOnSearch}
       searchable
+      disableSearchFilter
       searchPlaceholder={t('search by repository name')}
       options={options}
       value={repository ?? ''}
       onChange={handleChange}
+      onOpenChange={_ => setSearchValue(undefined)}
       menuWidth={'16rem'}
       menuBody={<SyncRepoButton />}
       menuFooter={<MenuFooter repoAccessLink="placeholder" />}
       disabled={disabled}
-      emptyMessage={
-        'No repositories found. Please enter at least 3 characters to search.'
-      }
+      emptyMessage={getEmptyMessage()}
       trigger={(triggerProps, isOpen) => {
         const defaultLabel = options.some(item => item.value === repository)
           ? repository
