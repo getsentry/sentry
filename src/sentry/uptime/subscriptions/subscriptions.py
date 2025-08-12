@@ -11,8 +11,7 @@ from sentry.models.project import Project
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.types.actor import Actor
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
-from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.uptime.issue_platform import resolve_uptime_issue
+from sentry.uptime.grouptype import UptimeDomainCheckFailure, resolve_uptime_issue
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     UptimeStatus,
