@@ -18,6 +18,7 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {EventSamplesTable} from 'sentry/views/insights/mobile/screenload/components/tables/eventSamplesTable';
 import {SpanFields} from 'sentry/views/insights/types';
+
 // test
 const DEFAULT_SORT = {
   kind: 'desc',

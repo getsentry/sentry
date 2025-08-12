@@ -1,6 +1,6 @@
 import {createAsyncStoragePersister} from '@tanstack/query-async-storage-persister';
 import {PersistQueryClientProvider} from '@tanstack/react-query-persist-client';
-import {del as removeItem, get as getItem, set as setItem} from 'idb-keyval';
+import {get as getItem, del as removeItem, set as setItem} from 'idb-keyval';
 
 import {SENTRY_RELEASE_VERSION} from 'sentry/constants';
 import {

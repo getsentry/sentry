@@ -14,9 +14,9 @@ import {
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
-  type SavedQuery,
   useInvalidateSavedQueries,
   useInvalidateSavedQuery,
+  type SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 // Request payload type that matches the backend ExploreSavedQuerySerializer

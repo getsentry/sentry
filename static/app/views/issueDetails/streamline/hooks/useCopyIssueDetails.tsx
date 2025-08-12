@@ -7,8 +7,8 @@ import {
   getSolutionCopyText,
 } from 'sentry/components/events/autofix/utils';
 import {
-  type GroupSummaryData,
   useGroupSummaryData,
+  type GroupSummaryData,
 } from 'sentry/components/group/groupSummary';
 import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';

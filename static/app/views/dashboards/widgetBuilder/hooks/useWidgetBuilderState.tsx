@@ -3,10 +3,10 @@ import partition from 'lodash/partition';
 
 import {defined} from 'sentry/utils';
 import {
-  type Column,
   explodeField,
   generateFieldAsString,
   isAggregateFieldOrEquation,
+  type Column,
   type QueryFieldValue,
   type Sort,
 } from 'sentry/utils/discover/fields';

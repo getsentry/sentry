@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {type AnimationProps, motion} from 'framer-motion';
+import {motion, type AnimationProps} from 'framer-motion';
 
 import {space} from 'sentry/styles/space';
 
