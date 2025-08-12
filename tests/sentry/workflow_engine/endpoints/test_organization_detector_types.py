@@ -6,9 +6,9 @@ from sentry.issues.grouptype import (
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
-    MonitorIncidentType,
     PerformanceSlowDBQueryGroupType,
 )
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
