@@ -1669,7 +1669,7 @@ wheels = [
 
 [[package]]
 name = "pytest-sentry"
-version = "0.3.0"
+version = "0.5.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "pytest", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -1677,7 +1677,7 @@ dependencies = [
     { name = "wrapt", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/pytest_sentry-0.3.0-py3-none-any.whl", hash = "sha256:ae182f11c18179533d4d760fd79f1992cc351062e69d253297a4cc7639535db7" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pytest_sentry-0.5.1-py3-none-any.whl", hash = "sha256:a171ec311fe74106647cbbd14f4aefc8ff2932594c12e38b7983b0ae3f0dff6d" },
 ]
 
 [[package]]
@@ -2269,7 +2269,7 @@ dev = [
     { name = "pytest-fail-slow", specifier = ">=0.3.0" },
     { name = "pytest-json-report", specifier = ">=1.5.0" },
     { name = "pytest-rerunfailures", specifier = ">=15.0" },
-    { name = "pytest-sentry", specifier = ">=0.3.0" },
+    { name = "pytest-sentry", specifier = "==0.5.1" },
     { name = "pytest-workaround-12888", specifier = ">=1.0.0" },
     { name = "pytest-xdist", specifier = ">=3.0.2" },
     { name = "pyupgrade", specifier = ">=3.19.1" },
