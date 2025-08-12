@@ -1,5 +1,4 @@
-import {type ComponentProps, Fragment, PureComponent} from 'react';
-import React from 'react';
+import React, {Fragment, PureComponent, type ComponentProps} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';

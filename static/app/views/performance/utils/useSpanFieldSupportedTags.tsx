@@ -3,7 +3,7 @@ import {useMemo} from 'react';
 import {getHasTag} from 'sentry/components/events/searchBar';
 import type {PageFilters} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
-import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {SpanFields} from 'sentry/views/insights/types';

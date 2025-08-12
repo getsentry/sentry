@@ -13,8 +13,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {
-  type MonitorEnvironment,
   MonitorStatus,
+  type MonitorEnvironment,
   type StatusNotice,
 } from 'sentry/views/insights/crons/types';
 

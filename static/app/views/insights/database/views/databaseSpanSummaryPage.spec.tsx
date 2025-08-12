@@ -1,20 +1,19 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {DatabaseSpanSummaryPage} from 'sentry/views/insights/database/views/databaseSpanSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useParams');
 jest.mock('sentry/utils/usePageFilters');
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
-
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 jest.mock('sentry/utils/useReleaseStats');
 

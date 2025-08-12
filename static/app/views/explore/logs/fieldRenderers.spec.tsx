@@ -10,7 +10,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
 import {LogAttributesRendererMap} from 'sentry/views/explore/logs/fieldRenderers';
-import {type LogRowItem, OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {OurLogKnownFieldKey, type LogRowItem} from 'sentry/views/explore/logs/types';
 
 const TimestampRenderer = LogAttributesRendererMap[OurLogKnownFieldKey.TIMESTAMP];
 

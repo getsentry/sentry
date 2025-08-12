@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {ExternalLink} from 'sentry/components/core/link';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
+  StepType,
   type Docs,
   type DocsParams,
   type OnboardingConfig,

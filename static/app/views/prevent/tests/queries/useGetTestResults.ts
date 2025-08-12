@@ -6,9 +6,9 @@ import {ALL_BRANCHES} from 'sentry/components/prevent/branchSelector/branchSelec
 import {usePreventContext} from 'sentry/components/prevent/context/preventContext';
 import {
   fetchDataQuery,
+  useInfiniteQuery,
   type InfiniteData,
   type QueryKeyEndpointOptions,
-  useInfiniteQuery,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {

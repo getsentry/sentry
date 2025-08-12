@@ -15,8 +15,8 @@ import {
 import {DeviceName} from 'sentry/components/deviceName';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {
-  type CustomComboboxMenu,
   SearchQueryBuilderCombobox,
+  type CustomComboboxMenu,
 } from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
 import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
@@ -56,10 +56,10 @@ import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {
-  type FieldDefinition,
   FieldKey,
   FieldValueType,
   prettifyTagKey,
+  type FieldDefinition,
 } from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';

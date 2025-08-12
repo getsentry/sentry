@@ -24,8 +24,8 @@ import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
-  type DomainView,
   useDomainViewFilters,
+  type DomainView,
 } from 'sentry/views/insights/pages/useFilters';
 import {SpanFields, type SpanQueryFilters} from 'sentry/views/insights/types';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';

@@ -10,8 +10,8 @@ import {
   DEFAULT_SPAN_OP_SELECTION,
   EAP_OVERVIEW_PAGE_ALLOWED_OPS,
   PAGE_SPAN_OPS,
-  type PageSpanOps,
   SPAN_OP_QUERY_PARAM,
+  type PageSpanOps,
 } from 'sentry/views/insights/pages/frontend/settings';
 import {categorizeProjects} from 'sentry/views/insights/pages/utils';
 

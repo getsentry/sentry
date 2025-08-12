@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {
   render,
@@ -9,14 +10,12 @@ import {
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {HTTPDomainSummaryPage} from 'sentry/views/insights/http/views/httpDomainSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
-
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 jest.mock('sentry/utils/useReleaseStats');
 

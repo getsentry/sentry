@@ -27,9 +27,9 @@ import {
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
   InvalidReason,
-  type ParseResultToken,
   parseSearch,
   Token,
+  type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';

@@ -17,12 +17,12 @@ import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isAggregateField, parseFunction} from 'sentry/utils/discover/fields';
 import {
-  type AggregationKey,
-  type FieldDefinition,
   FieldKind,
   FieldValueType,
   getFieldDefinition,
   prettifyTagKey,
+  type AggregationKey,
+  type FieldDefinition,
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';

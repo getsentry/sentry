@@ -16,10 +16,10 @@ import FormFieldControlState from 'sentry/components/forms/formField/controlStat
 import {t} from 'sentry/locale';
 import type {Choices, SelectValue} from 'sentry/types/core';
 
-const NONE_SELECTED_LABEL = t('None selected');
-
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
+
+const NONE_SELECTED_LABEL = t('None selected');
 
 export interface SelectFieldProps<OptionType extends OptionTypeBase>
   extends InputFieldProps,

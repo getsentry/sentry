@@ -7,14 +7,14 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
-  type ApiQueryKey,
   fetchDataQuery,
-  type InfiniteData,
   Query,
-  type QueryKeyEndpointOptions,
   useApiQuery,
   useInfiniteQuery,
   useQueryClient,
+  type ApiQueryKey,
+  type InfiniteData,
+  type QueryKeyEndpointOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -45,9 +45,9 @@ import {
   QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
 } from 'sentry/views/explore/logs/constants';
 import {
+  OurLogKnownFieldKey,
   type EventsLogsResult,
   type LogsAggregatesResult,
-  OurLogKnownFieldKey,
 } from 'sentry/views/explore/logs/types';
 import {
   isRowVisibleInVirtualStream,

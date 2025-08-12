@@ -5,10 +5,10 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
-  type GroupActivity,
   GroupActivityType,
   GroupStatus,
   IssueCategory,
+  type GroupActivity,
 } from 'sentry/types/group';
 
 import {UptimeDataSection} from './uptimeDataSection';

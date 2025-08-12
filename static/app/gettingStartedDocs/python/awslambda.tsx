@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import {
+  StepType,
   type Docs,
   type DocsParams,
   type OnboardingConfig,
   type OnboardingStep,
-  StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {
   agentMonitoringOnboarding,

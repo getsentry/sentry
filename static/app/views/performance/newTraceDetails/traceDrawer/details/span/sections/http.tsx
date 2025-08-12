@@ -4,8 +4,8 @@ import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types'
 import {t} from 'sentry/locale';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {
-  type SectionCardKeyValueList,
   TraceDrawerComponents,
+  type SectionCardKeyValueList,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 
 export function hasSpanHTTPInfo(span: RawSpanType) {

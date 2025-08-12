@@ -7,12 +7,11 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import importedUsePageFilters from 'sentry/utils/usePageFilters';
+import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 
 jest.mock('sentry/utils/usePageFilters');
 
 const usePageFilters = jest.mocked(importedUsePageFilters);
-
-import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 
 describe('NoDataMessage', () => {
   beforeEach(() => {

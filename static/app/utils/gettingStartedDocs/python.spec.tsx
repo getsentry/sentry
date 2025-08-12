@@ -1,3 +1,5 @@
+import {getPythonInstallConfig} from 'sentry/utils/gettingStartedDocs/python';
+
 // Mock the modules that cause circular dependencies
 jest.mock('sentry/utils/gettingStartedDocs/python', () => {
   const original = jest.requireActual('sentry/utils/gettingStartedDocs/python');
@@ -7,8 +9,6 @@ jest.mock('sentry/utils/gettingStartedDocs/python', () => {
     getPythonProfilingOnboarding: jest.fn(),
   };
 });
-
-import {getPythonInstallConfig} from 'sentry/utils/gettingStartedDocs/python';
 
 describe('getPythonInstallConfig', () => {
   it('generates install commands with default parameters', () => {

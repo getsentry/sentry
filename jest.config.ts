@@ -1,8 +1,9 @@
-import type {Config} from '@jest/types';
+import {execFileSync} from 'node:child_process';
 import path from 'node:path';
 import process from 'node:process';
-import {execFileSync} from 'node:child_process';
+
 import type {TransformOptions} from '@babel/core';
+import type {Config} from '@jest/types';
 
 const babelConfig: TransformOptions = {
   presets: [

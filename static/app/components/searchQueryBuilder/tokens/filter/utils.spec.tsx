@@ -1,4 +1,4 @@
-import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
 import {areWildcardOperatorsAllowed} from './utils';
 

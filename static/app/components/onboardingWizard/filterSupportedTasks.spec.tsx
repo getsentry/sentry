@@ -1,7 +1,7 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {filterSupportedTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
-import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
+import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
 import type {PlatformKey, Project} from 'sentry/types/project';
 
 describe('filterSupportedTasks', function () {

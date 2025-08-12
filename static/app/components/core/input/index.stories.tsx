@@ -1,12 +1,11 @@
 import {Fragment, useState} from 'react';
+import types from '!!type-loader!sentry/components/core/input';
 import styled from '@emotion/styled';
 
 import {Input} from 'sentry/components/core/input';
 import {useAutosizeInput} from 'sentry/components/core/input/useAutosizeInput';
 import * as Storybook from 'sentry/stories';
 import {space} from 'sentry/styles/space';
-
-import types from '!!type-loader!sentry/components/core/input';
 
 export default Storybook.story('Input', (story, APIReference) => {
   APIReference(types.Input);

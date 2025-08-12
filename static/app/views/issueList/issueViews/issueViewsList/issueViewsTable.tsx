@@ -14,8 +14,8 @@ import {
   confirmDeleteIssueView,
 } from 'sentry/views/issueList/issueViews/utils';
 import {
-  type GroupSearchView,
   GroupSearchViewCreatedBy,
+  type GroupSearchView,
 } from 'sentry/views/issueList/types';
 import {useHasIssueViews} from 'sentry/views/nav/secondary/sections/issues/issueViews/useHasIssueViews';
 

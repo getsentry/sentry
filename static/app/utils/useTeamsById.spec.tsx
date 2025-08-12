@@ -8,7 +8,7 @@ import TeamStore from 'sentry/stores/teamStore';
 import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import {useTeamsById as useTeamsById} from './useTeamsById';
+import {useTeamsById} from './useTeamsById';
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -59,15 +59,16 @@ import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 
 import IssueListFilters from './filters';
 import IssueListHeader from './header';
-import {DEFAULT_QUERY, type QueryCounts} from './utils';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
+  DEFAULT_QUERY,
   FOR_REVIEW_QUERIES,
   getTabsWithCounts,
   isForReviewQuery,
   IssueSortOptions,
   Query,
   TAB_MAX_COUNT,
+  type QueryCounts,
 } from './utils';
 
 const MAX_ITEMS = 25;

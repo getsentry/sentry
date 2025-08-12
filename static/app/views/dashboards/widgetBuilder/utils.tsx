@@ -14,9 +14,9 @@ import {
   isEquation,
   isEquationAlias,
   isLegalYAxisType,
-  type QueryFieldValue,
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
+  type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';

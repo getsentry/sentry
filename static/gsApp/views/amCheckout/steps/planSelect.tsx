@@ -13,7 +13,7 @@ import {space} from 'sentry/styles/space';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {Oxfordize} from 'sentry/utils/oxfordizeArray';
 
-import {type Plan, PlanTier} from 'getsentry/types';
+import {PlanTier, type Plan} from 'getsentry/types';
 import {
   getBusinessPlanOfTier,
   isBizPlanFamily,
