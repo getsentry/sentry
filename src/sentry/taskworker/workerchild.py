@@ -347,7 +347,7 @@ def child_process(
 
         args = parameters.get("args", [])
         kwargs = parameters.get("kwargs", {})
-        trace_headers_present = all(headers.get("sentry-trace"), headers.get("baggage"))
+        trace_headers_present = all((headers.get("sentry-trace"), headers.get("baggage")))
         attributes = {
             "taskworker.task": activation.taskname,
         }
