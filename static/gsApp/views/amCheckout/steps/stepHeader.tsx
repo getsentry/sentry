@@ -23,6 +23,7 @@ type Props = {
    */
   canSkip?: boolean;
   checkoutTier?: PlanTier;
+  isNewCheckout?: boolean;
   onToggleLegacy?: (tier: string) => void;
   organization?: Organization;
   trailingItems?: React.ReactNode;
@@ -39,17 +40,30 @@ function StepHeader({
   onToggleLegacy,
   checkoutTier,
   organization,
+  isNewCheckout,
 }: Props) {
   const canEdit = !isActive && (isCompleted || canSkip);
   const toggleTier = getToggleTier(checkoutTier);
   const onEditClick = canEdit ? () => onEdit(stepNumber) : undefined;
+  const dataTestId = `header-${kebabCase(title)}`;
+
+  if (isNewCheckout) {
+    return (
+      <Flex justify="between">
+        <NewCheckoutStepTitle id={`step-${stepNumber}`} data-test-id={dataTestId}>
+          {title}
+        </NewCheckoutStepTitle>
+        {trailingItems && <div>{trailingItems}</div>}
+      </Flex>
+    );
+  }
 
   return (
     <Header
       isActive={isActive}
       canEdit={canEdit}
       onClick={onEditClick}
-      data-test-id={`header-${kebabCase(title)}`}
+      data-test-id={dataTestId}
     >
       <Flex justify="between">
         <StepTitle>
@@ -118,4 +132,9 @@ const EditStep = styled('div')`
   grid-auto-flow: column;
   gap: ${space(1)};
   align-items: center;
+`;
+
+const NewCheckoutStepTitle = styled('div')`
+  font-size: ${p => p.theme.fontSize['2xl']};
+  font-weight: ${p => p.theme.fontWeight.bold};
 `;
