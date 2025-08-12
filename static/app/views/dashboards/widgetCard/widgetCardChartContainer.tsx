@@ -38,6 +38,7 @@ type Props = {
   widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
   dashboardFilters?: DashboardFilters;
+  disableTableActions?: boolean;
   disableZoom?: boolean;
   expandNumbers?: boolean;
   isMobile?: boolean;
@@ -95,6 +96,7 @@ export function WidgetCardChartContainer({
   showLoadingText,
   onWidgetTableSort,
   onWidgetTableResizeColumn,
+  disableTableActions,
 }: Props) {
   const location = useLocation();
   const theme = useTheme();
@@ -177,6 +179,7 @@ export function WidgetCardChartContainer({
                 theme={theme}
                 organization={organization}
                 onWidgetTableResizeColumn={onWidgetTableResizeColumn}
+                disableTableActions={disableTableActions}
               />
             </Fragment>
           );
@@ -223,6 +226,7 @@ export function WidgetCardChartContainer({
               theme={theme}
               onWidgetTableSort={onWidgetTableSort}
               onWidgetTableResizeColumn={onWidgetTableResizeColumn}
+              disableTableActions={disableTableActions}
             />
           </Fragment>
         );
