@@ -1,4 +1,4 @@
-import {Component, type ReactNode, useEffect} from 'react';
+import {Component, useEffect, type ReactNode} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptorObject} from 'history';
@@ -35,8 +35,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {
-  type DomainViewFilters,
   useDomainViewFilters,
+  type DomainViewFilters,
 } from 'sentry/views/insights/pages/useFilters';
 import {getLandingDisplayFromParam} from 'sentry/views/performance/landing/utils';
 

@@ -10,8 +10,8 @@ import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBy
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {
-  type SpansRPCQueryExtras,
   useProgressiveQuery,
+  type SpansRPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {getFieldsForConstructedQuery} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';

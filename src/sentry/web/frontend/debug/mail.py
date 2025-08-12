@@ -28,7 +28,6 @@ from sentry.digests.notifications import DigestInfo, _build_digest_impl
 from sentry.digests.types import Notification, Record
 from sentry.digests.utils import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
-from sentry.eventstore.models import Event
 from sentry.http import get_server_hostname
 from sentry.issues.grouptype import NoiseConfig
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
@@ -52,6 +51,7 @@ from sentry.notifications.utils.links import (
     get_issue_replay_link,
     get_rules,
 )
+from sentry.services.eventstore.models import Event
 from sentry.testutils.helpers.datetime import before_now  # NOQA:S007
 from sentry.testutils.helpers.notifications import (  # NOQA:S007
     SAMPLE_TO_OCCURRENCE_MAP,

@@ -79,7 +79,6 @@ export default function ReplayIndexTable() {
 
   const rageClicksSdkVersion = useProjectSdkNeedsUpdate({
     minVersion: MIN_DEAD_RAGE_CLICK_SDK.minVersion,
-    organization,
     projectId: projects.map(String),
   });
   const hasSentReplays = useHaveSelectedProjectsSentAnyReplayEvents();
@@ -186,13 +185,11 @@ export default function ReplayIndexTable() {
 }
 
 function useNeedsSDKUpdateForClickSearch({query}: {query: string}) {
-  const organization = useOrganization();
   const {
     selection: {projects},
   } = usePageFilters();
   const {needsUpdate} = useProjectSdkNeedsUpdate({
     minVersion: MIN_REPLAY_CLICK_SDK.minVersion,
-    organization,
     projectId: projects.map(String),
   });
 

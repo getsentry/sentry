@@ -12,7 +12,6 @@ from sentry_relay.processing import parse_release
 
 from sentry import features, tagstore
 from sentry.constants import LOG_LEVELS
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.identity.services.identity import RpcIdentity, identity_service
 from sentry.integrations.messaging.message_builder import (
     build_attachment_replay_link,
@@ -63,6 +62,7 @@ from sentry.notifications.utils.participants import (
     get_suspect_commit_users,
 )
 from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor
 from sentry.types.group import SUBSTATUS_TO_STR
