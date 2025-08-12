@@ -44,7 +44,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
         ),
         ResolvedAttribute(
             public_alias="timestamp_precise",
-            internal_name="tags[sentry.timestamp_precise,number]",
+            internal_name="sentry.timestamp_precise",
             search_type="number",
         ),
         ResolvedAttribute(
@@ -55,7 +55,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
         ),
         ResolvedAttribute(
             public_alias="payload_size",
-            internal_name="tags[sentry.payload_size_bytes,number]",
+            internal_name="sentry.payload_size_bytes",
             search_type="number",
         ),
         simple_sentry_field("browser.name"),
