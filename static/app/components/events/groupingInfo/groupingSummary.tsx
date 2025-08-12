@@ -1,3 +1,5 @@
+import React from 'react';
+
 import {useEventGroupingInfo} from 'sentry/components/events/groupingInfo/useEventGroupingInfo';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -41,7 +43,11 @@ export function GroupInfoSummary({
     <p data-test-id="loaded-grouping-info">
       <strong>{t('Grouped by:')}</strong> {groupedBy}
       <br />
-      {groupingConfig && <strong>{t('Grouping Config:')}</strong>} {groupingConfig}
+      {groupingConfig && (
+        <React.Fragment>
+          <strong>{t('Grouping Config:')}</strong> {groupingConfig}
+        </React.Fragment>
+      )}
     </p>
   );
 }
