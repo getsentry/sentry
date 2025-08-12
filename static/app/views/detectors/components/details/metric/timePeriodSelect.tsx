@@ -94,6 +94,7 @@ export function MetricTimePeriodSelect({dataset, interval}: TimePeriodSelectProp
         navigate({
           pathname: location.pathname,
           query: {
+            ...location.query,
             statsPeriod: opt.value,
             start: undefined,
             end: undefined,
