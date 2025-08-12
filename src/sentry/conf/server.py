@@ -3203,6 +3203,20 @@ SENTRY_BUILTIN_SOURCES = {
         "is_public": True,
         "has_index": True,
     },
+    "cuda": {
+        "type": "http",
+        "id": "sentry:cuda",
+        "name": "CUDA",
+        "layout": {"type": "symstore"},
+        "url": "https://cudatoolkit-symbols.nvidia.com/",
+        "is_public": True,
+        "filters": {
+            "path_patterns": [
+                "*libcu*",
+                "*libnv*",
+            ],
+        },
+    },
     "chromium": {
         "type": "http",
         "id": "sentry:chromium",
