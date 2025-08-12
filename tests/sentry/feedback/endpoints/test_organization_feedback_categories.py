@@ -5,6 +5,7 @@ import responses
 from django.conf import settings
 from django.urls import reverse
 
+from sentry.feedback.endpoints.organization_feedback_categories import MAX_GROUP_LABELS
 from sentry.feedback.usecases.label_generation import AI_LABEL_TAG_PREFIX
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -255,32 +256,37 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
 
     @django_db_all
     @responses.activate
-    def test_max_associated_labels_limit(self) -> None:
-        """Test that MAX_ASSOCIATED_LABELS constant is respected when processing label groups."""
-        # Mock Seer to return a label group with more than MAX_ASSOCIATED_LABELS associated labels
+    def test_max_group_labels_limit(self) -> None:
+        """Test that MAX_GROUP_LABELS constant is respected when processing label groups."""
+        # Mock Seer to return a label group with more than MAX_GROUP_LABELS associated labels
+
+        # Since the primary label is included in the label group, we need to have exactly MAX_GROUP_LABELS - 1 associated labels that get included
+        new_labels = [f"Label{i}" for i in range(MAX_GROUP_LABELS - 1)] + [
+            "Extra Label 1",
+            "Extra Label 2",
+            "Extra Label 3",
+        ]
+        insert_time = before_now(hours=12)
+        for i in range(len(new_labels)):
+            self.store_search_issue(
+                project_id=self.project1.id,
+                user_id=1,
+                fingerprints=[f"feedback-project1-{i}"],
+                tags=[(f"{AI_LABEL_TAG_PREFIX}.label.0", new_labels[i])],
+                event_data={
+                    "contexts": {"feedback": {"message": f"New feedback {i} from project1"}}
+                },
+                override_occurrence_data={"type": FeedbackGroup.type_id},
+                insert_time=insert_time,
+            )
+
         mock_seer_category_response(
             status=200,
             json={
                 "data": [
                     {
                         "primaryLabel": "User Interface",
-                        "associatedLabels": [
-                            "Usability",
-                            "Design",
-                            "Layout",
-                            "Colors",
-                            "Typography",
-                            "Spacing",
-                            "Alignment",
-                            "Responsiveness",
-                            "Accessibility",
-                            "Navigation",
-                            "Buttons",
-                            "Forms",
-                            "Extra Label 1",  # This should be truncated
-                            "Extra Label 2",  # This should be truncated
-                            "Extra Label 3",  # This should be truncated
-                        ],
+                        "associatedLabels": new_labels,
                     }
                 ]
             },
@@ -296,35 +302,108 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         assert len(categories) == 1
 
         user_interface_category = categories[0]
-        assert user_interface_category["primaryLabel"] == "User Interface"
+        primary_label = user_interface_category["primaryLabel"]
+        assert primary_label == "User Interface"
 
-        # Verify that associatedLabels is truncated to MAX_ASSOCIATED_LABELS (12)
+        # Verify that the total number of labels in the label group is truncated to MAX_GROUP_LABELS
         associated_labels = user_interface_category["associatedLabels"]
         assert (
-            len(associated_labels) == 12
-        ), f"Expected 12 associated labels, got {len(associated_labels)}"
+            len(associated_labels) == MAX_GROUP_LABELS - 1
+        ), f"Expected {MAX_GROUP_LABELS - 1} associated labels, got {len(associated_labels)}"
 
-        # Verify the first 12 labels are preserved
-        expected_labels = [
-            "Usability",
-            "Design",
-            "Layout",
-            "Colors",
-            "Typography",
-            "Spacing",
-            "Alignment",
-            "Responsiveness",
-            "Accessibility",
-            "Navigation",
-            "Buttons",
-            "Forms",
-        ]
-        assert associated_labels == expected_labels
+        # Verify the first MAX_GROUP_LABELS labels are preserved (the primary label and the associated labels)
+        assert associated_labels == new_labels[: MAX_GROUP_LABELS - 1]
 
-        # Verify that the extra labels beyond MAX_ASSOCIATED_LABELS are not included
+        # Verify that the extra labels beyond MAX_GROUP_LABELS are not included
         assert "Extra Label 1" not in associated_labels
         assert "Extra Label 2" not in associated_labels
         assert "Extra Label 3" not in associated_labels
+
+    @django_db_all
+    @responses.activate
+    def test_filter_invalid_associated_labels_by_count_ratio(self) -> None:
+        """Test that associated labels with too many feedbacks (relative to primary label) are filtered out."""
+        # Create feedbacks where "Usability" has more feedbacks than "Navigation" (the primary label)
+        # This should cause "Usability" to be filtered out as an invalid associated label
+
+        # Create feedbacks for "Navigation" (primary label) - 8 feedbacks
+        for i in range(4):
+            self.store_search_issue(
+                project_id=self.project1.id,
+                user_id=1,
+                fingerprints=[f"navigation-feedback-{i}"],
+                tags=[(f"{AI_LABEL_TAG_PREFIX}.label.0", "Navigation")],
+                event_data={"contexts": {"feedback": {"message": f"Navigation issue {i}"}}},
+                override_occurrence_data={"type": FeedbackGroup.type_id},
+                insert_time=before_now(hours=12),
+            )
+
+        # Create feedbacks for "Usability" - 10 feedbacks (more than Navigation)
+        for i in range(5):
+            self.store_search_issue(
+                project_id=self.project1.id,
+                user_id=1,
+                fingerprints=[f"usability-feedback-{i}"],
+                tags=[(f"{AI_LABEL_TAG_PREFIX}.label.0", "Usability")],
+                event_data={"contexts": {"feedback": {"message": f"Usability issue {i}"}}},
+                override_occurrence_data={"type": FeedbackGroup.type_id},
+                insert_time=before_now(hours=12),
+            )
+
+        # Create feedbacks for "Design" - 2 feedbacks (less than Navigation, should be kept)
+        for i in range(1):
+            self.store_search_issue(
+                project_id=self.project1.id,
+                user_id=1,
+                fingerprints=[f"design-feedback-{i}"],
+                tags=[(f"{AI_LABEL_TAG_PREFIX}.label.0", "Design")],
+                event_data={"contexts": {"feedback": {"message": f"Design issue {i}"}}},
+                override_occurrence_data={"type": FeedbackGroup.type_id},
+                insert_time=before_now(hours=12),
+            )
+
+        # Mock Seer to return "Navigation" as primary with "Usability" and "Design" as associated
+        # "Usability" should be filtered out because it has 10 feedbacks > 3/4 * 8 = 6
+        # "Design" should be kept because it has 2 feedbacks <= 3/4 * 8 = 6
+        mock_seer_category_response(
+            status=200,
+            json={
+                "data": [
+                    {
+                        "primaryLabel": "Navigation",
+                        "associatedLabels": ["Usability", "Design"],
+                    }
+                ]
+            },
+        )
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.org.slug)
+
+        assert response.data["success"] is True
+        assert "categories" in response.data
+
+        categories = response.data["categories"]
+        assert len(categories) == 1
+
+        navigation_category = categories[0]
+        assert navigation_category["primaryLabel"] == "Navigation"
+
+        # Verify that "Usability" was filtered out (too many feedbacks)
+        associated_labels = navigation_category["associatedLabels"]
+        assert (
+            "Usability" not in associated_labels
+        ), "Usability should be filtered out (too many feedbacks)"
+
+        # Verify that "Design" was kept (fewer feedbacks)
+        assert "Design" in associated_labels, "Design should be kept (fewer feedbacks)"
+
+        # Verify the feedback counts
+        assert navigation_category["feedbackCount"] == 5
+
+        # Verify that only valid associated labels remain
+        assert len(associated_labels) == 1
+        assert associated_labels == ["Design"]
 
     @django_db_all
     @responses.activate
