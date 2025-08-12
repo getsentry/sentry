@@ -9,6 +9,7 @@ from sentry.issues.grouptype import PerformanceHTTPOverheadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.performance_issues.detectors.utils import has_filtered_url
 
 from ..base import (
     DetectorType,
@@ -115,13 +116,8 @@ class HTTPOverheadDetector(PerformanceDetector):
             return False
 
         # Check if any spans have filtered URLs
-        event_spans = self._event.get("spans", [])
-        span_index = str(event_spans.index(span) if span in event_spans else -1)
-        meta = self._event.get("_meta", {}).get("spans", {})
-        if span_index in meta:
-            has_filtered_url = meta[span_index].get("data", {}).get("url", {})
-            if has_filtered_url:
-                return False
+        if has_filtered_url(self._event, span):
+            return False
 
         return True
 
