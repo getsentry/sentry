@@ -13,6 +13,7 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
 from sentry.monitors.constants import DEFAULT_CHECKIN_MARGIN, MAX_TIMEOUT, TIMEOUT
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.projects.project_rules.creator import ProjectRuleCreator
@@ -392,7 +393,6 @@ def update_issue_alert_rule(
 
 
 def ensure_cron_detector(monitor: Monitor):
-    from sentry.issues.grouptype import MonitorCheckInFailure
 
     try:
         with atomic_transaction(using=router.db_for_write(DataSource)):
@@ -403,7 +403,7 @@ def ensure_cron_detector(monitor: Monitor):
             )
             if created:
                 detector = Detector.objects.create(
-                    type=MonitorCheckInFailure.slug,
+                    type=MonitorIncidentType.slug,
                     project_id=monitor.project_id,
                     name=monitor.name,
                     owner_user_id=monitor.owner_user_id,
@@ -412,3 +412,14 @@ def ensure_cron_detector(monitor: Monitor):
                 DataSourceDetector.objects.create(data_source=data_source, detector=detector)
     except Exception:
         logger.exception("Error creating cron detector")
+
+
+def get_detector_for_monitor(monitor: Monitor) -> Detector | None:
+    try:
+        return Detector.objects.get(
+            datasource__type=DATA_SOURCE_CRON_MONITOR,
+            datasource__source_id=str(monitor.id),
+            datasource__organization_id=monitor.organization_id,
+        )
+    except Detector.DoesNotExist:
+        return None
