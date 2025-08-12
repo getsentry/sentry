@@ -232,7 +232,7 @@ def delete_seer_replay_data(project_id: int, replay_ids: list[str]) -> bool:
                 "project_id": project_id,
                 "replay_ids": replay_ids,
                 "status_code": response.status,
-                "response": response.data if response else None,
+                "response": response.data,
             },
         )
     return response_status_ok
