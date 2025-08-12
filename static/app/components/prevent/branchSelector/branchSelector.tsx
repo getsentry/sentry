@@ -49,9 +49,6 @@ export function BranchSelector() {
   );
 
   const options = useMemo((): Array<SelectOption<string>> => {
-    if (isFetching) {
-      return [];
-    }
     const optionSet = new Set<string>([
       ALL_BRANCHES,
       ...(branch ? [branch] : []),
@@ -67,7 +64,7 @@ export function BranchSelector() {
     };
 
     return [...optionSet].map(makeOption);
-  }, [branch, isFetching, displayedBranches]);
+  }, [branch, displayedBranches]);
 
   useEffect(() => {
     // Only update displayedBranches if the hook returned something non-empty
@@ -85,6 +82,10 @@ export function BranchSelector() {
 
   const branchResetButton = useCallback(
     ({closeOverlay}: any) => {
+      if (!defaultBranch || !branch || branch === defaultBranch) {
+        return null;
+      }
+
       return (
         <ResetButton
           onClick={() => {
@@ -103,15 +104,22 @@ export function BranchSelector() {
         </ResetButton>
       );
     },
-    [integratedOrgId, preventPeriod, repository, changeContextValue, defaultBranch]
+    [
+      branch,
+      integratedOrgId,
+      preventPeriod,
+      repository,
+      changeContextValue,
+      defaultBranch,
+    ]
   );
 
   function getEmptyMessage() {
-    if (branches.length) {
+    if (displayedBranches.length) {
       return '';
     }
 
-    if (searchValue && !branches.length) {
+    if (searchValue && !displayedBranches.length) {
       return t('Sorry, no branches match your search query');
     }
 

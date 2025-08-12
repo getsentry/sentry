@@ -88,10 +88,6 @@ export function RepoSelector() {
   );
 
   const options = useMemo((): Array<SelectOption<string>> => {
-    if (isFetching) {
-      return [];
-    }
-
     const repoSet = new Set([...(repository ? [repository] : []), ...displayedRepos]);
 
     return [...repoSet].map((value): SelectOption<string> => {
@@ -103,14 +99,14 @@ export function RepoSelector() {
         textValue: value,
       };
     });
-  }, [displayedRepos, isFetching, repository]);
+  }, [displayedRepos, repository]);
 
   function getEmptyMessage() {
-    if (repositories.length) {
+    if (displayedRepos.length) {
       return '';
     }
 
-    if (searchValue && !repositories.length) {
+    if (searchValue && !displayedRepos.length && !isFetching) {
       return t('No repositories found. Please enter at least 3 characters to search.');
     }
 
