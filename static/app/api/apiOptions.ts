@@ -5,13 +5,11 @@ import {fetchDataQuery, type QueryKeyEndpointOptions} from 'sentry/utils/queryCl
 
 import type {ApiPath} from './apiDefinition';
 import {
-  type ExtractPathParams,
   getApiUrl,
+  type ExtractPathParams,
   type OptionalPathParams,
   type PathParamOptions,
 } from './getApiUrl';
-import type {MaybeApiPath} from './apiDefinition';
-import {getApiUrl, type ExtractPathParams, type OptionalPathParams} from './getApiUrl';
 
 type Options = QueryKeyEndpointOptions & {staleTime: number};
 
