@@ -5,7 +5,7 @@ import {getReadableQueryParamsFromLocation} from 'sentry/views/explore/logs/logs
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 
 function locationFixture(query: Location['query']): Location {
   return LocationFixture({query});
@@ -21,7 +21,7 @@ function readableQueryParamOptions(
     fields: ['timestamp', 'message'],
     sortBys: [{field: 'timestamp', kind: 'desc'}],
     aggregateCursor: '',
-    aggregateFields: [{groupBy: ''}, new Visualize('count(message)')],
+    aggregateFields: [{groupBy: ''}, new VisualizeFunction('count(message)')],
     aggregateSortBys: [
       {
         field: 'count(message)',
@@ -179,7 +179,10 @@ describe('getReadableQueryParamsFromLocation', function () {
     expect(queryParams).toEqual(
       new ReadableQueryParams(
         readableQueryParamOptions({
-          aggregateFields: [{groupBy: 'severity'}, new Visualize('count(message)')],
+          aggregateFields: [
+            {groupBy: 'severity'},
+            new VisualizeFunction('count(message)'),
+          ],
         })
       )
     );
@@ -191,7 +194,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     expect(queryParams).toEqual(
       new ReadableQueryParams(
         readableQueryParamOptions({
-          aggregateFields: [{groupBy: ''}, new Visualize('avg(foo)')],
+          aggregateFields: [{groupBy: ''}, new VisualizeFunction('avg(foo)')],
           aggregateSortBys: [{field: 'avg(foo)', kind: 'desc'}],
         })
       )
@@ -209,7 +212,7 @@ describe('getReadableQueryParamsFromLocation', function () {
     expect(queryParams).toEqual(
       new ReadableQueryParams(
         readableQueryParamOptions({
-          aggregateFields: [{groupBy: 'severity'}, new Visualize('avg(foo)')],
+          aggregateFields: [{groupBy: 'severity'}, new VisualizeFunction('avg(foo)')],
           aggregateSortBys: [{field: 'severity', kind: 'desc'}],
         })
       )
