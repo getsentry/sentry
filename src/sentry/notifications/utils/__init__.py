@@ -8,6 +8,7 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
 from urllib.parse import parse_qs, urlparse
 
+import sentry_sdk
 from django.db.models import Count
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
@@ -180,7 +181,7 @@ def get_suspect_commits_by_group_id(
     except (Commit.DoesNotExist, Release.DoesNotExist):
         pass
     except Exception as exc:
-        logging.exception(str(exc))
+        sentry_sdk.capture_exception(exc)
     else:
         commits = process_serialized_committers(committers=committers, commits=commits)
     return list(commits.values())
