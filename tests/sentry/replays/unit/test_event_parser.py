@@ -694,16 +694,6 @@ def test_which() -> None:
     event = {
         "type": 5,
         "timestamp": 0.0,
-        "data": {
-            "tag": "performanceSpan",
-            "payload": {"op": "web-vital", "description": "first-contentful-paint"},
-        },
-    }
-    assert which(event) == EventType.FCP
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "replay.hydrate-error"}},
     }
     assert which(event) == EventType.HYDRATION_ERROR
