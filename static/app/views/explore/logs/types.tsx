@@ -25,14 +25,19 @@ export enum OurLogKnownFieldKey {
   PROJECT = 'project',
   SPAN_ID = 'span_id',
   TIMESTAMP = 'timestamp',
-  TIMESTAMP_PRECISE = 'tags[sentry.timestamp_precise,number]',
-  OBSERVED_TIMESTAMP_PRECISE = 'sentry.observed_timestamp_nanos',
+  TIMESTAMP_PRECISE = 'timestamp_precise',
+  OBSERVED_TIMESTAMP_PRECISE = 'observed_timestamp',
+
+  PAYLOAD_SIZE = 'payload_size',
+
+  TEMPLATE = 'message.template',
+  PARENT_SPAN_ID = 'trace.parent_span_id',
+
+  // Field renderer aliases
   CODE_FILE_PATH = 'code.file.path',
   CODE_LINE_NUMBER = 'tags[code.line.number,number]',
   CODE_FUNCTION_NAME = 'code.function.name',
 
-  TEMPLATE = 'message.template',
-  PARENT_SPAN_ID = 'trace.parent_span_id',
   // SDK attributes https://develop.sentry.dev/sdk/telemetry/logs/#default-attributes
   RELEASE = 'release',
   SDK_NAME = 'sdk.name',
@@ -64,6 +69,7 @@ type OurLogsKnownFieldResponseMap = Record<
   [OurLogKnownFieldKey.PROJECT_ID]: string;
   [OurLogKnownFieldKey.TIMESTAMP]: string;
   [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: string | number;
+  [OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: string | number;
 };
 
 type OurLogsCustomFieldResponseMap = Record<OurLogCustomFieldKey, string | number>;

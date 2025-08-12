@@ -9,11 +9,12 @@ import Version from 'sentry/components/version';
 import {tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   getFieldRenderer,
   type RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
-import {parseFunction} from 'sentry/utils/discover/fields';
+import {parseFunction, type ColumnValueType} from 'sentry/utils/discover/fields';
 import {NumberContainer, VersionContainer} from 'sentry/utils/discover/styles';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useRelease} from 'sentry/utils/useRelease';
@@ -21,12 +22,14 @@ import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {stripLogParamsFromLocation} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
 import LogsTimestampTooltip from 'sentry/views/explore/logs/logsTimeTooltip';
 import {
   AlignedCellContent,
   ColoredLogCircle,
   ColoredLogText,
+  LogBasicRendererContainer,
   LogDate,
   LogsHighlight,
   WrappingText,
@@ -51,6 +54,10 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 interface LogFieldRendererProps extends AttributesFieldRendererProps<RendererExtra> {}
 
 export interface RendererExtra extends RenderFunctionBaggage {
+  attributeTypes: Record<
+    string,
+    TraceItemResponseAttribute['type'] | EventsMetaType['fields'][string]
+  >;
   attributes: Record<string, string | number | boolean>;
   highlightTerms: string[];
   logColors: ReturnType<typeof getLogColors>;
@@ -120,8 +127,8 @@ export function SeverityCircleRenderer(props: Omit<LogFieldRendererProps, 'item'
 }
 
 function TimestampRenderer(props: LogFieldRendererProps) {
-  const preciseTimestamp =
-    props.extra.attributes?.['tags[sentry.timestamp_precise,number]'];
+  const preciseTimestamp = props.extra.attributes[OurLogKnownFieldKey.TIMESTAMP_PRECISE];
+
   const timestampToUse = preciseTimestamp
     ? new Date(Number(preciseTimestamp) / 1_000_000) // Convert nanoseconds to milliseconds
     : props.item.value;
@@ -402,6 +409,50 @@ export function LogFieldRenderer(props: LogFieldRendererProps) {
   );
 }
 
+/**
+ * Only formats the field the same as discover does, does not apply any additional rendering, but has a container to fix styling.
+ */
+function BasicDiscoverRenderer(props: LogFieldRendererProps) {
+  const logMeta: EventsMetaType =
+    Object.keys(props.meta ?? {}).length > 0 ? props.meta! : logFieldBasicMetas;
+  const basicRenderer = getFieldRenderer(props.item.fieldKey, logMeta, false);
+  const attributeType = props.extra.attributeTypes[props.item.fieldKey];
+  const align = logsFieldAlignment(props.item.fieldKey, attributeType as ColumnValueType);
+  let castValue: string | number | boolean | null = props.item.value;
+  // TODO: Values being emitted by ProjectTraceItemDetails and Events should be the same type, and their type names should match (or be casted from rpc types to discover types).
+  if (
+    attributeType === 'int' ||
+    attributeType === 'float' ||
+    attributeType === 'size' ||
+    attributeType === 'number' ||
+    attributeType === 'integer' ||
+    attributeType === 'duration' ||
+    attributeType === 'percentage' ||
+    attributeType === 'rate' ||
+    attributeType === 'percent_change' ||
+    attributeType === 'score'
+  ) {
+    castValue = Number(props.item.value);
+  }
+  if (attributeType === 'bool' || attributeType === 'boolean') {
+    castValue = Boolean(props.item.value);
+  }
+  return (
+    <LogBasicRendererContainer align={align}>
+      {basicRenderer(
+        {
+          [props.item.fieldKey]: castValue,
+        },
+        {
+          unit: logMeta.units[props.item.fieldKey] ?? undefined,
+          ...props.extra,
+          theme: props.extra.theme,
+        }
+      )}
+    </LogBasicRendererContainer>
+  );
+}
+
 export const LogAttributesRendererMap: Record<
   OurLogFieldKey,
   (props: LogFieldRendererProps) => React.ReactNode
@@ -415,8 +466,19 @@ export const LogAttributesRendererMap: Record<
   [OurLogKnownFieldKey.CODE_FILE_PATH]: CodePathRenderer,
   [OurLogKnownFieldKey.RELEASE]: ReleaseRenderer,
   [OurLogKnownFieldKey.TEMPLATE]: LogTemplateRenderer,
+  [OurLogKnownFieldKey.PAYLOAD_SIZE]: BasicDiscoverRenderer,
 };
 
 const fullFieldToExistingField: Record<OurLogFieldKey, string> = {
   [OurLogKnownFieldKey.TRACE_ID]: 'trace',
+};
+
+// Meta returned from TraceItemDetails is empty, in which case we can provide our own meta to map known fields to their types to get the basic rendering working.
+const logFieldBasicMetas: EventsMetaType = {
+  fields: {
+    [OurLogKnownFieldKey.PAYLOAD_SIZE]: 'size',
+  },
+  units: {
+    [OurLogKnownFieldKey.PAYLOAD_SIZE]: 'byte', // SIZE_UNITS
+  },
 };

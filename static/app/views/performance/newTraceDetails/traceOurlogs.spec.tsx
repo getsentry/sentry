@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
   TraceViewLogsDataProvider,
   TraceViewLogsSection,
@@ -70,7 +71,7 @@ describe('TraceViewLogsSection', function () {
             severity_number: 0,
             severity: 'info',
             timestamp: now.toISOString(),
-            'tags[sentry.timestamp_precise,number]': now.getTime() * 1e6,
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: now.getTime() * 1e6,
             message: 'i am a log',
           },
         ],

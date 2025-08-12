@@ -6,6 +6,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 const TRACE_ID = '00000000000000000000000000000000';
 
@@ -97,7 +98,7 @@ describe('OurlogsSection', function () {
             severity_number: 0,
             severity: 'info',
             timestamp: now.toISOString(),
-            'tags[sentry.timestamp_precise,number]': now.getTime() * 1e6,
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: now.getTime() * 1e6,
             message: 'i am a log',
           },
         ],

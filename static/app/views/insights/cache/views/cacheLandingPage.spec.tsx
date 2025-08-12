@@ -243,7 +243,7 @@ describe('CacheLandingPage', function () {
     expect(
       screen.getByRole('columnheader', {name: 'Avg Value Size'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '123.0 B'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '123 B'})).toBeInTheDocument();
 
     expect(
       screen.getByRole('columnheader', {name: 'Requests Per Minute'})

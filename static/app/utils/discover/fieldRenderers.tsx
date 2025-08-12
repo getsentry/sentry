@@ -191,6 +191,7 @@ export const SIZE_UNITS = {
 };
 
 export const ABYTE_UNITS = [
+  'byte',
   'kilobyte',
   'megabyte',
   'gigabyte',
