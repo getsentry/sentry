@@ -10,6 +10,7 @@ import {DataCategory} from 'sentry/types/core';
 import {BILLION, GIGABYTE, MILLION, UNLIMITED} from 'getsentry/constants';
 import {OnDemandBudgetMode, type EventBucket, type ProductTrial} from 'getsentry/types';
 import {
+  convertUsageToReservedUnit,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getActiveProductTrial,
@@ -387,6 +388,47 @@ describe('formatUsageWithUnits', function () {
         ).toBe('1K');
       }
     );
+  });
+});
+
+describe('convertUsageToReservedUnit', function () {
+  it('converts attachments from bytes to GB', function () {
+    expect(convertUsageToReservedUnit(GIGABYTE, DataCategory.ATTACHMENTS)).toBe(1);
+    expect(convertUsageToReservedUnit(5 * GIGABYTE, DataCategory.ATTACHMENTS)).toBe(5);
+    expect(convertUsageToReservedUnit(0.5 * GIGABYTE, DataCategory.ATTACHMENTS)).toBe(
+      0.5
+    );
+  });
+
+  it('converts continuous profiling from milliseconds to hours', function () {
+    expect(
+      convertUsageToReservedUnit(MILLISECONDS_IN_HOUR, DataCategory.PROFILE_DURATION)
+    ).toBe(1);
+    expect(
+      convertUsageToReservedUnit(2 * MILLISECONDS_IN_HOUR, DataCategory.PROFILE_DURATION)
+    ).toBe(2);
+    expect(
+      convertUsageToReservedUnit(
+        0.5 * MILLISECONDS_IN_HOUR,
+        DataCategory.PROFILE_DURATION
+      )
+    ).toBe(0.5);
+    expect(
+      convertUsageToReservedUnit(MILLISECONDS_IN_HOUR, DataCategory.PROFILE_DURATION_UI)
+    ).toBe(1);
+    expect(
+      convertUsageToReservedUnit(
+        3.5 * MILLISECONDS_IN_HOUR,
+        DataCategory.PROFILE_DURATION_UI
+      )
+    ).toBe(3.5);
+  });
+
+  it('returns usage unchanged for other categories', function () {
+    expect(convertUsageToReservedUnit(1000, DataCategory.ERRORS)).toBe(1000);
+    expect(convertUsageToReservedUnit(500, DataCategory.TRANSACTIONS)).toBe(500);
+    expect(convertUsageToReservedUnit(250, DataCategory.REPLAYS)).toBe(250);
+    expect(convertUsageToReservedUnit(0, DataCategory.SPANS)).toBe(0);
   });
 });
 

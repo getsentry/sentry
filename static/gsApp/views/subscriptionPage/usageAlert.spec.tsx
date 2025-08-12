@@ -12,6 +12,7 @@ import {DataCategory} from 'sentry/types/core';
 
 import {GIGABYTE} from 'getsentry/constants';
 import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+import {MILLISECONDS_IN_HOUR} from 'getsentry/utils/billing';
 import UsageAlert from 'getsentry/views/subscriptionPage/usageAlert';
 
 describe('Subscription > UsageAlert', function () {
@@ -695,6 +696,76 @@ describe('Subscription > UsageAlert', function () {
               attachments: UsageTotalFixture({
                 accepted: GIGABYTE * 40,
                 projected: GIGABYTE * 4,
+              }),
+            },
+          })}
+        />,
+        {organization}
+      );
+
+      expect(screen.queryByTestId('usage-alert')).not.toBeInTheDocument();
+    });
+
+    it('renders am3 with projected profile duration overage', function () {
+      const organization = OrganizationFixture({access: ['org:billing']});
+      const subscription = SubscriptionFixture({organization, canTrial: false});
+
+      render(
+        <UsageAlert
+          subscription={{
+            ...subscription,
+            plan: 'am3_f',
+            categories: {
+              [DataCategory.PROFILE_DURATION]: MetricHistoryFixture({
+                prepaid: 100,
+                reserved: 100,
+                category: DataCategory.PROFILE_DURATION,
+              }),
+            },
+          }}
+          usage={CustomerUsageFixture({
+            totals: {
+              [DataCategory.PROFILE_DURATION]: UsageTotalFixture({
+                accepted: 50 * MILLISECONDS_IN_HOUR,
+                projected: 200 * MILLISECONDS_IN_HOUR,
+              }),
+            },
+          })}
+        />,
+        {organization}
+      );
+
+      expect(screen.getByTestId('projected-overage-alert')).toBeInTheDocument();
+      expect(screen.getByText('Projected Overage')).toBeInTheDocument();
+      expect(screen.getByText(/will need at least 200/)).toBeInTheDocument();
+      expect(screen.getByLabelText('Upgrade Plan')).toBeInTheDocument();
+
+      expect(screen.queryByTestId('usage-exceeded-alert')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('grace-period-alert')).not.toBeInTheDocument();
+    });
+
+    it('does not render without projected profile duration overage', function () {
+      const organization = OrganizationFixture({access: ['org:billing']});
+      const subscription = SubscriptionFixture({organization, canTrial: false});
+
+      render(
+        <UsageAlert
+          subscription={{
+            ...subscription,
+            plan: 'am3_f',
+            categories: {
+              [DataCategory.PROFILE_DURATION]: MetricHistoryFixture({
+                prepaid: 500,
+                reserved: 500,
+                category: DataCategory.PROFILE_DURATION,
+              }),
+            },
+          }}
+          usage={CustomerUsageFixture({
+            totals: {
+              [DataCategory.PROFILE_DURATION]: UsageTotalFixture({
+                accepted: 50 * MILLISECONDS_IN_HOUR,
+                projected: 200 * MILLISECONDS_IN_HOUR,
               }),
             },
           })}
