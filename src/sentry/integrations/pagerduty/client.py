@@ -4,11 +4,11 @@ from enum import StrEnum
 from typing import Any
 
 from sentry.api.serializers import ExternalEventSerializer, serialize
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.client import ApiClient
 from sentry.integrations.on_call.metrics import OnCallInteractionType
 from sentry.integrations.pagerduty.metrics import record_event
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.services.eventstore.models import Event, GroupEvent
 
 type PagerDutyEventPayload = dict[str, Any]
 
