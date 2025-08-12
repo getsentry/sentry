@@ -2,11 +2,11 @@ import type {Location} from 'history';
 
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {defined} from 'sentry/utils';
-import {type ParsedFunction} from 'sentry/utils/discover/fields';
 import {
   isEquation,
   parseFunction,
   stripEquationPrefix,
+  type ParsedFunction,
 } from 'sentry/utils/discover/fields';
 import {decodeList} from 'sentry/utils/queryString';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
