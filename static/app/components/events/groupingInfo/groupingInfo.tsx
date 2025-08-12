@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {GroupInfoSummary} from 'sentry/components/events/groupingInfo/groupingSummary';
@@ -27,6 +27,8 @@ export default function GroupingInfo({
   showGroupingConfig,
   group,
 }: GroupingSummaryProps) {
+  const [showNonContributing, setShowNonContributing] = useState(false);
+
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   const {groupInfo, isPending, isError, isSuccess, hasPerformanceGrouping} =
@@ -86,7 +88,12 @@ export default function GroupingInfo({
       {hasPerformanceGrouping || isSuccess
         ? variants.map((variant, index) => (
             <Fragment key={variant.key}>
-              <GroupingVariant event={event} variant={variant} />
+              <GroupingVariant
+                event={event}
+                variant={variant}
+                showNonContributing={showNonContributing}
+                onShowNonContributingChange={setShowNonContributing}
+              />
               {index < variants.length - 1 && <VariantDivider />}
             </Fragment>
           ))

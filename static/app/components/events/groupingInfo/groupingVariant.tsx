@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
@@ -23,6 +22,8 @@ import {hasNonContributingComponent} from './utils';
 
 interface GroupingVariantProps {
   event: Event;
+  onShowNonContributingChange: (show: boolean) => void;
+  showNonContributing: boolean;
   variant: EventGroupVariant;
 }
 
@@ -69,9 +70,14 @@ function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
   }
 }
 
-function GroupingVariant({event, variant}: GroupingVariantProps) {
-  const [showNonContributing, setShowNonContributing] = useState(false);
 
+
+function GroupingVariant({
+  event,
+  variant,
+  showNonContributing,
+  onShowNonContributingChange,
+}: GroupingVariantProps) {
   const getVariantData = (): [VariantData, EventGroupComponent | undefined] => {
     const data: VariantData = [];
     let component: EventGroupComponent | undefined;
@@ -163,7 +169,7 @@ function GroupingVariant({event, variant}: GroupingVariantProps) {
         aria-label={t('Filter by contribution')}
         size="xs"
         value={showNonContributing ? 'all' : 'relevant'}
-        onChange={key => setShowNonContributing(key === 'all')}
+        onChange={key => onShowNonContributingChange(key === 'all')}
       >
         <SegmentedControl.Item key="relevant">
           {t('Contributing values')}
