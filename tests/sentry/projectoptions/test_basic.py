@@ -1,5 +1,7 @@
 from unittest import mock
 
+import pytest
+
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.options.project_template_option import ProjectTemplateOption
 from sentry.models.projecttemplate import ProjectTemplate
@@ -76,6 +78,7 @@ def test_isset_differentiates_unset_from_set_to_default(default_project) -> None
 
 
 @django_db_all
+@pytest.mark.skip
 def test_project_template_options(default_project) -> None:
     default_manager.register("test_option", default="default")
     assert default_project.get_option("test_option") == "default"

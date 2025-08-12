@@ -179,7 +179,6 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ),
             AttributeArgumentDefinition(attribute_types={"string"}),
             ValueArgumentDefinition(
-                default_arg="equals",
                 argument_types={"string"},
                 validator=literal_validator(["equals", "notEquals"]),
             ),
@@ -202,7 +201,6 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ),
             AttributeArgumentDefinition(attribute_types={"string"}),
             ValueArgumentDefinition(
-                default_arg="equals",
                 argument_types={"string"},
                 validator=literal_validator(["equals", "notEquals"]),
             ),
@@ -225,7 +223,6 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ),
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
             ValueArgumentDefinition(
-                default_arg="equals",
                 argument_types={"string"},
                 validator=literal_validator(["equals", "notEquals"]),
             ),
@@ -248,7 +245,6 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ),
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
             ValueArgumentDefinition(
-                default_arg="equals",
                 argument_types={"string"},
                 validator=literal_validator(["equals", "notEquals"]),
             ),
@@ -271,7 +267,6 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ),
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
             ValueArgumentDefinition(
-                default_arg="equals",
                 argument_types={"string"},
                 validator=literal_validator(["equals", "notEquals"]),
             ),
@@ -294,7 +289,6 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ),
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
             ValueArgumentDefinition(
-                default_arg="equals",
                 argument_types={"string"},
                 validator=literal_validator(["equals", "notEquals"]),
             ),
@@ -317,7 +311,6 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ),
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
             ValueArgumentDefinition(
-                default_arg="equals",
                 argument_types={"string"},
                 validator=literal_validator(["equals", "notEquals"]),
             ),
@@ -340,7 +333,6 @@ SPAN_CONDITIONAL_AGGREGATE_DEFINITIONS = {
             ),
             AttributeArgumentDefinition(attribute_types={"string", "boolean"}),
             ValueArgumentDefinition(
-                default_arg="equals",
                 argument_types={"string"},
                 validator=literal_validator(["equals", "notEquals"]),
             ),

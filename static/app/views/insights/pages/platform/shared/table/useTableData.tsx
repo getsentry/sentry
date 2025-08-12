@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import {useTableSortParams} from 'sentry/views/insights/agentMonitoring/components/headSortCell';
+import {useTableSortParams} from 'sentry/views/insights/agents/components/headSortCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanProperty} from 'sentry/views/insights/types';
 

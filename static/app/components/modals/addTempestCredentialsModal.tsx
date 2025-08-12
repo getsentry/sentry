@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -18,6 +19,7 @@ export default function AddCredentialsModal({Body, Header, ...props}: Props) {
   const {invalidateCredentialsCache} = useFetchTempestCredentials(organization, project);
 
   const onSuccess = () => {
+    addSuccessMessage(t('Credentials submitted successfully'));
     invalidateCredentialsCache();
     closeModal();
     trackAnalytics('tempest.credentials.added', {

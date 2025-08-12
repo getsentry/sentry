@@ -1214,6 +1214,11 @@ class SimpleGroupSerializerResponse(TypedDict):
     project: GroupProjectResponse
     type: str
     issueType: str
+    issueCategory: str
+    metadata: dict[str, Any]
+    numComments: int
+    firstSeen: datetime | None
+    lastSeen: datetime | None
 
 
 class SimpleGroupSerializer(Serializer):
@@ -1229,6 +1234,12 @@ class SimpleGroupSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> SimpleGroupSerializerResponse:
+        issue_category = (
+            obj.issue_category_v2.name.lower()
+            if features.has("organizations:issue-taxonomy", obj.project.organization, actor=user)
+            else obj.issue_category.name.lower()
+        )
+
         return SimpleGroupSerializerResponse(
             id=str(obj.id),
             title=obj.title,
@@ -1241,4 +1252,9 @@ class SimpleGroupSerializer(Serializer):
             project=_make_group_project_response(obj.project),
             type=obj.get_event_type(),
             issueType=obj.issue_type.slug,
+            issueCategory=issue_category,
+            metadata=obj.get_event_metadata(),
+            numComments=obj.num_comments,
+            firstSeen=obj.first_seen,
+            lastSeen=obj.last_seen,
         )

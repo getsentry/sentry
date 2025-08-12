@@ -1,8 +1,11 @@
 import type {ReactNode} from 'react';
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
+import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 interface QueryParamsContextValue {
@@ -10,7 +13,7 @@ interface QueryParamsContextValue {
   setQueryParams: (queryParams: WritableQueryParams) => void;
 }
 
-const [_QueryParamsContextProvider, _useQueryParamsContext, QueryParamsContext] =
+const [_QueryParamsContextProvider, useQueryParamsContext, QueryParamsContext] =
   createDefinedContext<QueryParamsContextValue>({
     name: 'QueryParamsContext',
   });
@@ -31,4 +34,51 @@ export function QueryParamsContextProvider({
     };
   }, [queryParams, setQueryParams]);
   return <QueryParamsContext value={value}>{children}</QueryParamsContext>;
+}
+
+function useQueryParams() {
+  const {queryParams} = useQueryParamsContext();
+  return queryParams;
+}
+
+function useSetQueryParams() {
+  const {setQueryParams} = useQueryParamsContext();
+
+  return useCallback(
+    (writableQueryParams: WritableQueryParams) => {
+      setQueryParams(writableQueryParams);
+    },
+    [setQueryParams]
+  );
+}
+
+export function useQueryParamsMode(): Mode {
+  const queryParams = useQueryParams();
+  return queryParams.mode;
+}
+
+export function useSetQueryParamsMode() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (mode: Mode) => {
+      setQueryParams({mode});
+    },
+    [setQueryParams]
+  );
+}
+
+export function useQueryParamsVisualizes(): readonly Visualize[] {
+  const queryParams = useQueryParams();
+  return queryParams.visualizes;
+}
+
+export function useQueryParamsGroupBys(): readonly string[] {
+  const queryParams = useQueryParams();
+  return queryParams.groupBys;
+}
+
+export function useQueryParamsTopEventsLimit(): number | undefined {
+  const groupBys = useQueryParamsGroupBys();
+  return groupBys.every(groupBy => groupBy === '') ? undefined : TOP_EVENTS_LIMIT;
 }

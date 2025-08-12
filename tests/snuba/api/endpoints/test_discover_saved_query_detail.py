@@ -7,6 +7,7 @@ from sentry.discover.models import (
     DiscoverSavedQueryTypes,
 )
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now
 
 
 class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
@@ -153,6 +154,8 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
                 {
                     "name": "New query",
                     "projects": self.project_ids,
+                    "start": before_now(hours=1).isoformat(),
+                    "end": before_now().isoformat(),
                     "fields": [],
                     "range": "24h",
                     "limit": 20,

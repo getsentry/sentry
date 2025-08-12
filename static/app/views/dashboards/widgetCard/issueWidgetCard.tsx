@@ -14,7 +14,7 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {type Widget, WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetType, type Widget} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';

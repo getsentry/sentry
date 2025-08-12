@@ -30,12 +30,8 @@ export type EventGroupComponent = {
 };
 export type EventGroupingConfig = {
   base: string | null;
-  changelog: string;
   delegates: string[];
-  hidden: boolean;
   id: string;
-  latest: boolean;
-  risk: number;
   strategies: string[];
 };
 

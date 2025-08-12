@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
-import {useCombinedQuery} from 'sentry/views/insights/agentMonitoring/hooks/useCombinedQuery';
-import {getAgentRunsFilter} from 'sentry/views/insights/agentMonitoring/utils/query';
-import {Referrer} from 'sentry/views/insights/agentMonitoring/utils/referrers';
+import {useCombinedQuery} from 'sentry/views/insights/agents/hooks/useCombinedQuery';
+import {getAgentRunsFilter} from 'sentry/views/insights/agents/utils/query';
+import {Referrer} from 'sentry/views/insights/agents/utils/referrers';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {BaseTrafficWidget} from 'sentry/views/insights/pages/platform/shared/baseTrafficWidget';
 

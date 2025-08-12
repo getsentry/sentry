@@ -15,18 +15,25 @@ type TraceTabsAndVitalsProps = {
   tree: TraceTree;
 };
 
+const CONTAINER_MIN_HEIGHT = 36;
+
 function Placeholder() {
   return (
-    <Flex justify="between" align="center" gap="md">
+    <Flex
+      justify="between"
+      align="center"
+      gap="md"
+      minHeight={`${CONTAINER_MIN_HEIGHT}px`}
+    >
       <Flex align="center" gap="md">
-        <StyledPlaceholder _width={75} _height={28} />
-        <StyledPlaceholder _width={75} _height={28} />
-        <StyledPlaceholder _width={75} _height={28} />
+        <StyledPlaceholder _width={75} _height={CONTAINER_MIN_HEIGHT} />
+        <StyledPlaceholder _width={75} _height={CONTAINER_MIN_HEIGHT} />
+        <StyledPlaceholder _width={75} _height={CONTAINER_MIN_HEIGHT} />
       </Flex>
-      <Flex>
-        <StyledPlaceholder _width={100} _height={28} />
-        <StyledPlaceholder _width={100} _height={28} />
-        <StyledPlaceholder _width={100} _height={28} />
+      <Flex align="center" gap="md">
+        <StyledPlaceholder _width={100} _height={24} />
+        <StyledPlaceholder _width={100} _height={24} />
+        <StyledPlaceholder _width={100} _height={24} />
       </Flex>
     </Flex>
   );
@@ -89,7 +96,7 @@ export function TraceTabsAndVitals({
   }
 
   return (
-    <Flex ref={setRef} justify="between">
+    <Flex ref={setRef} justify="between" minHeight={`${CONTAINER_MIN_HEIGHT}px`}>
       <Tabs value={currentTab} onChange={onTabChange}>
         <TabList hideBorder variant="floating">
           {tabOptions.map(tab => (

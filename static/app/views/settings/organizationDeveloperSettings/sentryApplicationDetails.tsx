@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
-import {Observer} from 'mobx-react';
+import {Observer} from 'mobx-react-lite';
 import scrollToElement from 'scroll-to-element';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -43,10 +43,10 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
