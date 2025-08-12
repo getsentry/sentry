@@ -971,9 +971,12 @@ def broadcast_webhooks_for_organization(
             if installation:
                 send_resource_change_webhook.delay(installation.id, event_type, payload)
 
-                logger.info("Queued webhook for %s to installation %s", event_type, installation.id)
+                logger.info(
+                    "sentry_app.webhook_queued",
+                    extra={"event_type": event_type, "installation_id": installation.id},
+                )
             else:
                 logger.error(
                     "sentry_app.webhook_no_installation",
-                    extra={"installation_id": installation.id},
+                    extra={"event_type": event_type, "organization_id": organization_id},
                 )

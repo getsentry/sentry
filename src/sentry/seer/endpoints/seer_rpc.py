@@ -615,12 +615,28 @@ def send_seer_webhook(*, event_name: str, organization_id: int, payload: dict) -
     Returns:
         dict: Status of the webhook sending operation
     """
-    organization = Organization.objects.get(id=organization_id, status=OrganizationStatus.ACTIVE)
+    # Validate event_name by constructing the full event type and checking if it's valid
+    from sentry.sentry_apps.metrics import SentryAppEventType
 
-    if not organization:
-        logger.error(
-            "Seer webhook trying to send to organization %s not found or not active",
-            organization_id,
+    event_type = f"seer.{event_name}"
+    try:
+        SentryAppEventType(event_type)
+    except ValueError:
+        logger.exception(
+            "seer.webhook_invalid_event_type",
+            extra={"event_type": event_type},
+        )
+        return {"success": False, "error": f"Invalid event type: {event_type}"}
+
+    # Handle organization lookup safely
+    try:
+        organization = Organization.objects.get(
+            id=organization_id, status=OrganizationStatus.ACTIVE
+        )
+    except Organization.DoesNotExist:
+        logger.exception(
+            "seer.webhook_organization_not_found_or_not_active",
+            extra={"organization_id": organization_id},
         )
         return {"success": False, "error": "Organization not found or not active"}
 

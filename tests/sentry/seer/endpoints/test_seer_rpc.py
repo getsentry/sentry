@@ -593,3 +593,123 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         assert result == {"org_ids": [self.organization.id, org2.id]}
+
+    def test_send_seer_webhook_invalid_event_name(self) -> None:
+        """Test that send_seer_webhook returns error for invalid event names"""
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+
+        # Test with an invalid event name
+        result = send_seer_webhook(
+            event_name="invalid_event_name",
+            organization_id=self.organization.id,
+            payload={"test": "data"},
+        )
+
+        assert result == {
+            "success": False,
+            "error": "Invalid event type: seer.invalid_event_name",
+        }
+
+    def test_send_seer_webhook_organization_does_not_exist(self) -> None:
+        """Test that send_seer_webhook returns error for non-existent organization"""
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+
+        # Test with a non-existent organization ID
+        result = send_seer_webhook(
+            event_name="root_cause_started",
+            organization_id=99999,
+            payload={"test": "data"},
+        )
+
+        assert result == {
+            "success": False,
+            "error": "Organization not found or not active",
+        }
+
+    def test_send_seer_webhook_organization_inactive(self) -> None:
+        """Test that send_seer_webhook returns error for inactive organization"""
+        from sentry.models.organization import OrganizationStatus
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+
+        # Create an inactive organization
+        inactive_org = self.create_organization(status=OrganizationStatus.PENDING_DELETION)
+
+        result = send_seer_webhook(
+            event_name="root_cause_started",
+            organization_id=inactive_org.id,
+            payload={"test": "data"},
+        )
+
+        assert result == {
+            "success": False,
+            "error": "Organization not found or not active",
+        }
+
+    @patch("sentry.features.has")
+    def test_send_seer_webhook_feature_disabled(self, mock_features_has) -> None:
+        """Test that send_seer_webhook returns error when feature is disabled"""
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+
+        mock_features_has.return_value = False
+
+        result = send_seer_webhook(
+            event_name="root_cause_started",
+            organization_id=self.organization.id,
+            payload={"test": "data"},
+        )
+
+        assert result == {
+            "success": False,
+            "error": "Seer webhooks are not enabled for this organization",
+        }
+        mock_features_has.assert_called_once_with("organizations:seer-webhooks", self.organization)
+
+    @patch("sentry.features.has")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
+    def test_send_seer_webhook_success(self, mock_delay, mock_features_has) -> None:
+        """Test that send_seer_webhook successfully enqueues webhook when all conditions are met"""
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+
+        mock_features_has.return_value = True
+
+        result = send_seer_webhook(
+            event_name="root_cause_started",
+            organization_id=self.organization.id,
+            payload={"test": "data"},
+        )
+
+        assert result == {"success": True}
+        mock_features_has.assert_called_once_with("organizations:seer-webhooks", self.organization)
+        mock_delay.assert_called_once_with(
+            resource_name="seer",
+            event_name="root_cause_started",
+            organization_id=self.organization.id,
+            payload={"test": "data"},
+        )
+
+    @patch("sentry.features.has")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
+    def test_send_seer_webhook_all_valid_event_names(self, mock_delay, mock_features_has) -> None:
+        """Test that send_seer_webhook works with all valid seer event names"""
+        from sentry.seer.endpoints.seer_rpc import send_seer_webhook
+        from sentry.sentry_apps.metrics import SentryAppEventType
+
+        mock_features_has.return_value = True
+
+        # Get all seer event types
+        seer_events = [
+            event_type.value.split(".", 1)[1]  # Remove "seer." prefix
+            for event_type in SentryAppEventType
+            if event_type.value.startswith("seer.")
+        ]
+
+        for event_name in seer_events:
+            result = send_seer_webhook(
+                event_name=event_name,
+                organization_id=self.organization.id,
+                payload={"test": "data"},
+            )
+            assert result == {"success": True}
+
+        # Verify that the task was called for each valid event
+        assert mock_delay.call_count == len(seer_events)
