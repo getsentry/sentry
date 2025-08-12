@@ -16,7 +16,7 @@ import {
   getPlatformIconFromPlatform,
   getReadableArtifactTypeLabel,
   getReadablePlatformLabel,
-} from 'sentry/views/preprod/utils';
+} from 'sentry/views/preprod/utils/labelUtils';
 
 interface BuildDetailsSidebarAppInfoProps {
   appInfo: BuildDetailsAppInfo;
