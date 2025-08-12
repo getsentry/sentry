@@ -13,9 +13,9 @@ import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnh
 import {OnDemandControlConsumer} from 'sentry/utils/performance/contexts/onDemandControl';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
+  WidgetType,
   type DashboardFilters,
   type Widget,
-  WidgetType,
 } from 'sentry/views/dashboards/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 

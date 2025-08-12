@@ -22,8 +22,8 @@ import type {
 } from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
-  type LogPageParam,
   useInfiniteLogsQuery,
+  type LogPageParam,
 } from 'sentry/views/explore/logs/useLogsQuery';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 

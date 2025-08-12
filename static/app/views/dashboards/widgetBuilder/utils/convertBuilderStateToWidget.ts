@@ -3,9 +3,9 @@ import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DisplayType,
+  WidgetType,
   type Widget,
   type WidgetQuery,
-  WidgetType,
 } from 'sentry/views/dashboards/types';
 import {
   serializeSorts,

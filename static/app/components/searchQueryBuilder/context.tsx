@@ -1,19 +1,19 @@
 import {
   createContext,
-  type Dispatch,
   useCallback,
   useContext,
   useMemo,
   useRef,
   useState,
+  type Dispatch,
 } from 'react';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import type {SearchQueryBuilderProps} from 'sentry/components/searchQueryBuilder';
 import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
 import {
-  type QueryBuilderActions,
   useQueryBuilderState,
+  type QueryBuilderActions,
 } from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import type {
   FilterKeySection,

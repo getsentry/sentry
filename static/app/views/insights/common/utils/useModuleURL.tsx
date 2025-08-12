@@ -14,8 +14,8 @@ import {BASE_URL as MOBILE_SCREENS_BASE_URL} from 'sentry/views/insights/mobile/
 import {BASE_URL as MOBILE_UI_BASE_URL} from 'sentry/views/insights/mobile/ui/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {
-  type DomainView,
   useDomainViewFilters,
+  type DomainView,
 } from 'sentry/views/insights/pages/useFilters';
 import {getModuleView} from 'sentry/views/insights/pages/utils';
 import {BASE_URL as QUEUE_BASE_URL} from 'sentry/views/insights/queues/settings';

@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
+import {AnimatePresence, motion, type AnimationProps} from 'framer-motion';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -14,9 +14,9 @@ import AutofixHighlightPopup from 'sentry/components/events/autofix/autofixHighl
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {AutofixSetupWriteAccessModal} from 'sentry/components/events/autofix/autofixSetupWriteAccessModal';
 import {
+  AutofixStatus,
   type AutofixChangesStep,
   type AutofixCodebaseChange,
-  AutofixStatus,
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {

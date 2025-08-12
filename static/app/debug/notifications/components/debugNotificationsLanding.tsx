@@ -1,6 +1,6 @@
 import type {PropsWithChildren} from 'react';
 import {Fragment} from 'react';
-import {type Theme, ThemeProvider, useTheme} from '@emotion/react';
+import {ThemeProvider, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import heroImg from 'sentry-images/debug/notifications/hero.png';

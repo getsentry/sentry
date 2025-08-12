@@ -1,4 +1,4 @@
-import {Fragment, type ReactNode, useEffect} from 'react';
+import {Fragment, useEffect, type ReactNode} from 'react';
 
 import {Switch} from 'sentry/components/core/switch';
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -8,10 +8,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import usePrevious from 'sentry/utils/usePrevious';
 import {
-  type AutoRefreshState,
   useLogsAutoRefresh,
   useLogsAutoRefreshEnabled,
   useSetLogsAutoRefresh,
+  type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {

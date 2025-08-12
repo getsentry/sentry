@@ -9,8 +9,8 @@ import {defined} from 'sentry/utils';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {DataUnit} from 'sentry/utils/discover/fields';
 import {
-  type DiscoverQueryProps,
   useGenericDiscoverQuery,
+  type DiscoverQueryProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';

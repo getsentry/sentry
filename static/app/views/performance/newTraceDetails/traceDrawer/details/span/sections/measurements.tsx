@@ -19,8 +19,8 @@ import {
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 import {
-  type SectionCardKeyValueList,
   TraceDrawerComponents,
+  type SectionCardKeyValueList,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {TraceDrawerActionValueKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';

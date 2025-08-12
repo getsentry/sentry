@@ -3,8 +3,8 @@ import {useMemo} from 'react';
 import {
   decodeBoolean,
   decodeInteger,
-  type decodeList,
   decodeScalar,
+  type decodeList,
   type decodeSorts,
   type QueryValue,
 } from 'sentry/utils/queryString';

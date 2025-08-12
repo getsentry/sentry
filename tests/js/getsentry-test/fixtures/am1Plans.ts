@@ -9,7 +9,7 @@ import {SeerReservedBudgetCategoryFixture} from 'getsentry-test/fixtures/reserve
 import type {DataCategory} from 'sentry/types/core';
 
 import {ANNUAL, MONTHLY} from 'getsentry/constants';
-import {type Plan, ReservedBudgetCategoryType} from 'getsentry/types';
+import {ReservedBudgetCategoryType, type Plan} from 'getsentry/types';
 
 const AM1_CHECKOUT_CATEGORIES = [
   'errors',

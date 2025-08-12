@@ -1,13 +1,5 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-
-import {trackAnalytics} from 'sentry/utils/analytics';
-
-jest.mock('sentry/utils/analytics', () => ({
-  ...jest.requireActual('sentry/utils/analytics'),
-  trackAnalytics: jest.fn(),
-}));
-
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -20,9 +12,15 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import Nav from 'sentry/views/nav';
 import {NAV_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/nav/constants';
 import {NavContextProvider} from 'sentry/views/nav/context';
+
+jest.mock('sentry/utils/analytics', () => ({
+  ...jest.requireActual('sentry/utils/analytics'),
+  trackAnalytics: jest.fn(),
+}));
 
 const ALL_AVAILABLE_FEATURES = [
   'insights-entry-points',

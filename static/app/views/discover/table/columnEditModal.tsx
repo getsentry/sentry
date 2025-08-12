@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
-import {css, type Theme, useTheme} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -15,13 +15,13 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {
-  type Column,
   ERROR_FIELDS,
   ERROR_UPSAMPLING_AGGREGATION_FUNCTIONS,
   ERRORS_AGGREGATION_FUNCTIONS,
   getAggregations,
   TRANSACTION_FIELDS,
   TRANSACTIONS_AGGREGATION_FUNCTIONS,
+  type Column,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {AggregationKey, FieldKey} from 'sentry/utils/fields';

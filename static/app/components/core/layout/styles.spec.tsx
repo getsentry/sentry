@@ -4,10 +4,10 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {
-  type Breakpoint,
-  type Responsive,
   useActiveBreakpoint,
   useResponsivePropValue,
+  type Breakpoint,
+  type Responsive,
 } from './styles';
 
 const theme = ThemeFixture();

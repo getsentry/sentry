@@ -1,16 +1,16 @@
 import {
   createContext,
-  type ReactNode,
   useCallback,
   useContext,
   useMemo,
   useRef,
+  type ReactNode,
 } from 'react';
 import type {ListState} from '@react-stately/list';
 import type {Key} from '@react-types/shared';
 
 import {findNearestFreeTextKey} from 'sentry/components/searchQueryBuilder/utils';
-import {type ParseResultToken, Token} from 'sentry/components/searchSyntax/parser';
+import {Token, type ParseResultToken} from 'sentry/components/searchSyntax/parser';
 
 type SelectFunc = (params: {
   direction: 'left' | 'right';

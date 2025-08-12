@@ -10,9 +10,9 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   DocsPageLocation,
+  ProductSolution,
   type DocsParams,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {TaskSidebar} from 'sentry/components/sidebar/taskSidebar';

@@ -5,11 +5,11 @@ import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/t
 import {
   BooleanOperator,
   FilterType,
+  parseSearch,
+  Token,
   type ParseResult,
   type ParseResultToken,
-  parseSearch,
   type SearchConfig,
-  Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';

@@ -10,9 +10,9 @@ import {
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {
-  type Aggregate,
   ModuleName,
   SpanFunction,
+  type Aggregate,
   type SpanProperty,
 } from 'sentry/views/insights/types';
 

@@ -14,7 +14,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import DashboardGrid from 'sentry/views/dashboards/manage/dashboardGrid';
-import {type DashboardListItem, DisplayType} from 'sentry/views/dashboards/types';
+import {DisplayType, type DashboardListItem} from 'sentry/views/dashboards/types';
 
 describe('Dashboards - DashboardGrid', function () {
   let dashboards: DashboardListItem[];

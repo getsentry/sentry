@@ -18,9 +18,9 @@ import {
   getLogFieldsFromLocation,
 } from 'sentry/views/explore/contexts/logs/fields';
 import {
-  type AutoRefreshState,
   LOGS_AUTO_REFRESH_KEY,
   LogsAutoRefreshProvider,
+  type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   getLogAggregateSortBysFromLocation,
@@ -31,8 +31,8 @@ import {
 } from 'sentry/views/explore/contexts/logs/sortBys';
 import {
   getModeFromLocation,
-  type Mode,
   updateLocationWithMode,
+  type Mode,
 } from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 

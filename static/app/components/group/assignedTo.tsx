@@ -10,8 +10,8 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {ActorAvatar} from 'sentry/components/core/avatar/actorAvatar';
 import {Button} from 'sentry/components/core/button';
 import {
-  type OnAssignCallback,
   useHandleAssigneeChange,
+  type OnAssignCallback,
 } from 'sentry/components/group/assigneeSelector';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import * as SidebarSection from 'sentry/components/sidebarSection';
@@ -33,6 +33,7 @@ import useApi from 'sentry/utils/useApi';
 import useCommitters from 'sentry/utils/useCommitters';
 import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import useOrganization from 'sentry/utils/useOrganization';
+
 /**
  * example: codeowners:/issues -> [['codeowners', '/issues']]
  */

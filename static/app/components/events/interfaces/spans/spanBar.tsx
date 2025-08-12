@@ -106,6 +106,7 @@ import {
   spanTargetHash,
   unwrapTreeDepth,
 } from './utils';
+
 // TODO: maybe use babel-plugin-preval
 // for (let i = 0; i <= 1.0; i += 0.01) {
 //   INTERSECTION_THRESHOLDS.push(i);

@@ -1,4 +1,4 @@
-import {type Widget, WidgetType} from 'sentry/views/dashboards/types';
+import {WidgetType, type Widget} from 'sentry/views/dashboards/types';
 
 // Checks for specific widget conditions that should force a widget to query the spans dataset instead
 // TODO: Deprecate this function when all metric widgets have been migrated to the spans dataset

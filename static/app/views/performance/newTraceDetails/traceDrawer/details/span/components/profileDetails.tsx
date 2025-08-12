@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 import {
   SpanProfileDetails,
-  type SpanProfileDetailsProps,
   useSpanProfileDetails,
+  type SpanProfileDetailsProps,
 } from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

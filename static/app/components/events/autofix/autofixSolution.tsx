@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
+import {AnimatePresence, motion, type AnimationProps} from 'framer-motion';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import ClippedBox from 'sentry/components/clippedBox';
@@ -14,15 +14,15 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {SolutionEventItem} from 'sentry/components/events/autofix/autofixSolutionEventItem';
 import {
-  type AutofixSolutionTimelineEvent,
   AutofixStatus,
   AutofixStepType,
+  type AutofixSolutionTimelineEvent,
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
-  type AutofixResponse,
   makeAutofixQueryKey,
   useAutofixRepos,
+  type AutofixResponse,
 } from 'sentry/components/events/autofix/useAutofix';
 import {Timeline} from 'sentry/components/timeline';
 import {IconAdd, IconChat, IconFix} from 'sentry/icons';

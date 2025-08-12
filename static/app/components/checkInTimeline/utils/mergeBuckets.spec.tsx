@@ -1,7 +1,7 @@
 import type {CheckInBucket, RollupConfig} from 'sentry/components/checkInTimeline/types';
 
 import {mergeBuckets} from './mergeBuckets';
-import {generateTestStats, type TestStatusCounts, testStatusPrecedent} from './testUtils';
+import {generateTestStats, testStatusPrecedent, type TestStatusCounts} from './testUtils';
 
 function generateJobRunWithStats(jobStatus: string) {
   const sortedStatuses = ['in_progress', 'ok', 'missed', 'timeout', 'error'];

@@ -8,8 +8,8 @@ import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {SunburstSeriesOption} from 'echarts';
-import * as echarts from 'echarts/core';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
+import * as echarts from 'echarts/core';
 
 import {getTooltipStyles} from 'sentry/components/charts/baseChart';
 import {computeChartTooltip} from 'sentry/components/charts/components/tooltip';

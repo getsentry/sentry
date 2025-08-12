@@ -1,9 +1,8 @@
+import types from '!!type-loader!sentry/components/core/button';
 import {useTheme} from '@emotion/react';
 
 import {LinkButton, type LinkButtonProps} from 'sentry/components/core/button/linkButton';
 import * as Storybook from 'sentry/stories';
-
-import types from '!!type-loader!sentry/components/core/button';
 
 export default Storybook.story('LinkButton', (story, APIReference) => {
   APIReference(types.LinkButton);

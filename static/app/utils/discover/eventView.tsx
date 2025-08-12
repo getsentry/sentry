@@ -34,8 +34,8 @@ import {
   DISPLAY_MODE_FALLBACK_OPTIONS,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
-  type SavedQueryDatasets,
   TOP_N,
+  type SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import type {WebVital} from 'sentry/utils/fields';

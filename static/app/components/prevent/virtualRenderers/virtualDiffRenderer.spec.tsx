@@ -9,7 +9,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {type LineData, VirtualDiffRenderer} from './virtualDiffRenderer';
+import {VirtualDiffRenderer, type LineData} from './virtualDiffRenderer';
 
 jest.mock('@sentry/react', () => {
   const originalModule = jest.requireActual('@sentry/react');

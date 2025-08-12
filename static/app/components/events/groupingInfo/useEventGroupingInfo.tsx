@@ -1,8 +1,8 @@
 import {t} from 'sentry/locale';
 import {
+  EventGroupVariantType,
   type Event,
   type EventGroupVariant,
-  EventGroupVariantType,
 } from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';

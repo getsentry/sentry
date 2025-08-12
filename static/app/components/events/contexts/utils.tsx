@@ -9,8 +9,8 @@ import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {DeviceName} from 'sentry/components/deviceName';
 import {
   ContextIcon,
-  type ContextIconProps,
   getLogoImage,
+  type ContextIconProps,
 } from 'sentry/components/events/contexts/contextIcon';
 import {getAppContextData} from 'sentry/components/events/contexts/knownContext/app';
 import {getBrowserContextData} from 'sentry/components/events/contexts/knownContext/browser';

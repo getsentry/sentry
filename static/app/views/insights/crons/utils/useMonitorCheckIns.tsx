@@ -1,6 +1,6 @@
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type {CheckIn} from 'sentry/views/insights/crons/types';

@@ -1,6 +1,6 @@
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type {Incident} from 'sentry/views/alerts/types';

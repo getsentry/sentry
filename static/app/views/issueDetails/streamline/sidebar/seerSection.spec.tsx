@@ -8,7 +8,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EntryType} from 'sentry/types/event';
-import {type Group, IssueCategory} from 'sentry/types/group';
+import {IssueCategory, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import SeerSection from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
 

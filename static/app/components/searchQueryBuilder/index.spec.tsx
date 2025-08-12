@@ -23,9 +23,9 @@ import {
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
 import {
+  QueryInterfaceType,
   type FieldDefinitionGetter,
   type FilterKeySection,
-  QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
 import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';

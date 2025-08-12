@@ -29,8 +29,8 @@ import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import ReleasesSelectControl from 'sentry/views/dashboards/releasesSelectControl';
 import {
   DashboardFilterKeys,
-  type DashboardFilters,
   OnDemandExtractionState,
+  type DashboardFilters,
   type ValidateWidgetResponse,
   type WidgetQuery,
   type WidgetType,

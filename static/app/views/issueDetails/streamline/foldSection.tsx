@@ -1,11 +1,11 @@
 import {
-  type CSSProperties,
   Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
 } from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';

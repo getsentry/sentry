@@ -26,10 +26,10 @@ import type {
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {
-  type ApiQueryKey,
   useApiQuery,
   useMutation,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';

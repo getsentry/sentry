@@ -4,8 +4,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ContextCard from 'sentry/components/events/contexts/contextCard';
 import {
-  type CultureContext,
   getCultureContextData,
+  type CultureContext,
 } from 'sentry/components/events/contexts/knownContext/culture';
 
 const MOCK_CULTURE_CONTEXT: CultureContext = {

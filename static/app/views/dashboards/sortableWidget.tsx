@@ -1,4 +1,4 @@
-import {type ComponentProps, useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -17,11 +17,11 @@ import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {DashboardsMEPProvider} from './widgetCard/dashboardsMEPContext';
 import {Toolbar} from './widgetCard/toolbar';
 import {
+  WidgetType,
   type DashboardFilters,
   type DashboardPermissions,
   type Widget,
   type WidgetQuery,
-  WidgetType,
 } from './types';
 import type WidgetLegendSelectionState from './widgetLegendSelectionState';
 

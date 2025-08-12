@@ -27,16 +27,16 @@ import {
   AlignedCellContent,
   ColoredLogCircle,
   ColoredLogText,
-  type getLogColors,
   LogDate,
   LogsHighlight,
   WrappingText,
+  type getLogColors,
 } from 'sentry/views/explore/logs/styles';
 import {
+  OurLogKnownFieldKey,
   type LogAttributeItem,
   type LogRowItem,
   type OurLogFieldKey,
-  OurLogKnownFieldKey,
 } from 'sentry/views/explore/logs/types';
 import {
   adjustLogTraceID,

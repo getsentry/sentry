@@ -1,8 +1,8 @@
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import FormSource, {
-  type FormSearchField,
   setSearchMap,
+  type FormSearchField,
 } from 'sentry/components/search/sources/formSource';
 
 describe('FormSource', function () {

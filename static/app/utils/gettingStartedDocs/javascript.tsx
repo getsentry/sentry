@@ -1,12 +1,12 @@
 import {Alert} from 'sentry/components/core/alert';
 import {ExternalLink} from 'sentry/components/core/link';
 import {
+  StepType,
   type BasePlatformOptions,
   type Configuration,
   type ContentBlock,
   type DocsParams,
   type OnboardingConfig,
-  StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 

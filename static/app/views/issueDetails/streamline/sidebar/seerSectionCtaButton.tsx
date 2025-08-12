@@ -5,8 +5,8 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {
   AutofixStatus,
-  type AutofixStep,
   AutofixStepType,
+  type AutofixStep,
 } from 'sentry/components/events/autofix/types';
 import {useAiAutofix, useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {getAutofixRunExists} from 'sentry/components/events/autofix/utils';

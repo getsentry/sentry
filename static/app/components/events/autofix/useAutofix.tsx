@@ -1,18 +1,18 @@
 import {useCallback, useMemo, useState} from 'react';
 
 import {
-  type AutofixData,
   AutofixStatus,
   AutofixStepType,
+  type AutofixData,
   type GroupWithAutofix,
 } from 'sentry/components/events/autofix/types';
 import type {Event} from 'sentry/types/event';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
-  type UseApiQueryOptions,
   useQueryClient,
+  type ApiQueryKey,
+  type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';

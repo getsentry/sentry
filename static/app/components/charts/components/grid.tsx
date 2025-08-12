@@ -1,5 +1,6 @@
 import type {GridComponentOption} from 'echarts';
 import merge from 'lodash/merge';
+
 /**
  * Drawing grid in rectangular coordinates
  *

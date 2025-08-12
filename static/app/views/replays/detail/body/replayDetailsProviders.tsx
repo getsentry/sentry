@@ -1,4 +1,4 @@
-import {type ReactNode, useEffect} from 'react';
+import {useEffect, type ReactNode} from 'react';
 
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';

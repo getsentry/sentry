@@ -1,10 +1,10 @@
 import {
-  type ChangeEvent,
-  type KeyboardEvent,
-  type SyntheticEvent,
   useCallback,
   useRef,
   useState,
+  type ChangeEvent,
+  type KeyboardEvent,
+  type SyntheticEvent,
 } from 'react';
 import styled from '@emotion/styled';
 

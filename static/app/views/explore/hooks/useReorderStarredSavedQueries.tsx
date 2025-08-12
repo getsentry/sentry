@@ -3,8 +3,8 @@ import {useCallback} from 'react';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
-  type SavedQuery,
   useInvalidateSavedQueries,
+  type SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 export function useReorderStarredSavedQueries() {

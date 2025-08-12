@@ -1,8 +1,8 @@
 import {
   getColdAppStartPerformance,
   getWarmAppStartPerformance,
-  type MetricValue,
   PerformanceScore,
+  type MetricValue,
 } from 'sentry/views/insights/mobile/screens/utils';
 import {VitalState} from 'sentry/views/performance/vitalDetail/utils';
 

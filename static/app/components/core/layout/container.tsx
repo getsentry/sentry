@@ -5,12 +5,12 @@ import styled from '@emotion/styled';
 import type {Theme} from 'sentry/utils/theme';
 
 import {
-  type Border,
   getBorder,
   getRadius,
   getSpacing,
-  type RadiusSize,
   rc,
+  type Border,
+  type RadiusSize,
   type Responsive,
   type Shorthand,
   type SpacingSize,

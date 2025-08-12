@@ -1,4 +1,4 @@
-import {type ReactNode, useMemo} from 'react';
+import {useMemo, type ReactNode} from 'react';
 import type Fuse from 'fuse.js';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';

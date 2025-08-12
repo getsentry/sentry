@@ -10,8 +10,8 @@ import {
   useExploreSortBys,
 } from 'sentry/views/explore/contexts/pageParamsContext';
 import {
-  type SpansRPCQueryExtras,
   useProgressiveQuery,
+  type SpansRPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 

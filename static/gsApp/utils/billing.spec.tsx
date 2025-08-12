@@ -8,7 +8,7 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {DataCategory} from 'sentry/types/core';
 
 import {BILLION, GIGABYTE, MILLION, UNLIMITED} from 'getsentry/constants';
-import {type EventBucket, OnDemandBudgetMode, type ProductTrial} from 'getsentry/types';
+import {OnDemandBudgetMode, type EventBucket, type ProductTrial} from 'getsentry/types';
 import {
   formatReservedWithUnits,
   formatUsageWithUnits,

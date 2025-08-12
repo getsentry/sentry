@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/react';
 
 import {
-  type ProcessedTokenResult,
   toPostFix,
+  type ProcessedTokenResult,
 } from 'sentry/components/searchSyntax/evaluator';
 import {
   BooleanOperator,

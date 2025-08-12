@@ -3,10 +3,10 @@ import {Fragment} from 'react';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
-  type ApiQueryKey,
-  type InfiniteApiQueryKey,
   parseQueryKey,
   useApiQuery,
+  type ApiQueryKey,
+  type InfiniteApiQueryKey,
 } from 'sentry/utils/queryClient';
 
 type ResponseData = {

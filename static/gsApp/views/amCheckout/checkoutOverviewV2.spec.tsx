@@ -8,7 +8,7 @@ import SubscriptionStore from 'getsentry/stores/subscriptionStore';
 import {PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 import CheckoutOverviewV2 from 'getsentry/views/amCheckout/checkoutOverviewV2';
-import {type CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
+import {SelectableProduct, type CheckoutFormData} from 'getsentry/views/amCheckout/types';
 
 describe('CheckoutOverviewV2', function () {
   const api = new MockApiClient();

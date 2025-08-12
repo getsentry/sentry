@@ -11,9 +11,9 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {
-  type ModalRenderProps,
   openConsoleModal,
   openProjectCreationModal,
+  type ModalRenderProps,
 } from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {Input} from 'sentry/components/core/input';
