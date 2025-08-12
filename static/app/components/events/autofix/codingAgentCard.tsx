@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
+import {AnimatePresence, motion, type AnimationProps} from 'framer-motion';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
