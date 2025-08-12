@@ -5,12 +5,12 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {BuildDetailsHeaderContent} from 'sentry/views/preprod/header/buildDetailsHeaderContent';
+import type {AppSizeApiResponse} from 'sentry/views/preprod/types/appSizeTypes';
+import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 
+import {BuildDetailsHeaderContent} from './header/buildDetailsHeaderContent';
 import {BuildDetailsMainContent} from './main/buildDetailsMainContent';
 import {BuildDetailsSidebarContent} from './sidebar/buildDetailsSidebarContent';
-import type {AppSizeApiResponse} from './types/appSizeTypes';
-import type {BuildDetailsApiResponse} from './types/buildDetailsTypes';
 
 export default function BuildDetails() {
   const organization = useOrganization();

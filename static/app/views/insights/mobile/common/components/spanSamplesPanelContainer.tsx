@@ -28,8 +28,8 @@ import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries
 import {InsightsSpanTagProvider} from 'sentry/views/insights/pages/insightsSpanTagProvider';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {
-  type ModuleName,
   SpanFields,
+  type ModuleName,
   type SpanQueryFilters,
 } from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
