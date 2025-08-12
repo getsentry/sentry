@@ -2,7 +2,20 @@ import collections
 from datetime import datetime, timedelta, timezone
 from typing import Any, TypedDict
 
-from snuba_sdk import Column, Condition, Entity, Function, Identifier, Lambda, Op, Query
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Identifier,
+    Lambda,
+    Limit,
+    Offset,
+    Op,
+    OrderBy,
+    Query,
+)
 from snuba_sdk.expressions import Expression
 
 from sentry.replays.lib.new_query.utils import translate_condition_to_function
@@ -546,3 +559,74 @@ def as_replay(data: dict[str, Any]) -> Replay:
         return _as_replay({"replay_id": data["replay_id"], "isArchived": True})
 
     return _as_replay(data)
+
+
+class RecordingSegment(TypedDict):
+    retention_days: int
+    project_id: int
+    replay_id: str
+    segment_id: int
+    timestamp: int
+
+
+def get_replay_segment(
+    project_id: int,
+    replay_id: str,
+    segment_id: int,
+    referrer: str = "replays.get_replay_segments_unknown",
+    tenant_ids: dict[str, Any] | None = None,
+) -> RecordingSegment | None:
+    segments = get_replay_segments(
+        project_id,
+        replay_id,
+        segment_id,
+        limit=1,
+        offset=0,
+        referrer=referrer,
+        tenant_ids=tenant_ids,
+    )
+    return segments[0] if segments else None
+
+
+def get_replay_segments(
+    project_id: int,
+    replay_id: str,
+    segment_id: int | None,
+    limit: int = 50,
+    offset: int = 0,
+    referrer: str = "replays.get_replay_segments_unknown",
+    tenant_ids: dict[str, Any] | None = None,
+) -> list[RecordingSegment]:
+    query = Query(
+        match=Entity("replays"),
+        select=[
+            Column("retention_days"),
+            Column("segment_id"),
+            Column("timestamp"),
+        ],
+        where=[
+            Condition(Column("project_id"), Op.EQ, project_id),
+            Condition(Column("replay_id"), Op.EQ, replay_id),
+            Condition(Column("timestamp"), Op.LT, datetime.now()),
+            Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=90)),
+            (
+                Condition(Column("segment_id"), Op.EQ, segment_id)
+                if segment_id is not None
+                else Condition(Column("segment_id"), Op.IS_NOT_NULL)
+            ),
+        ],
+        orderby=[OrderBy(Column("segment_id"), Direction.ASC)],
+        limit=Limit(limit),
+        offset=Offset(offset),
+    )
+
+    return [
+        {
+            "project_id": project_id,
+            "replay_id": replay_id,
+            "retention_days": result["retention_days"],
+            "segment_id": result["segment_id"],
+            "timestamp": result["timestamp"],
+        }
+        for result in execute_query(query, tenant_ids=tenant_ids, referrer=referrer)
+    ]
