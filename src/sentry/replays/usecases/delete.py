@@ -213,14 +213,10 @@ def delete_seer_replay_data(project_id: int, replay_ids: list[str]) -> bool:
             path=SEER_DELETE_SUMMARIES_ENDPOINT_PATH,
             body=json.dumps(seer_request).encode("utf-8"),
         )
-    except Exception as e:
+    except Exception:
         logger.exception(
             "Failed to delete replay data from Seer",
-            extra={
-                "project_id": project_id,
-                "replay_ids": replay_ids,
-                "error": type(e).__name__,
-            },
+            extra={"project_id": project_id, "replay_ids": replay_ids},
         )
         return False
 

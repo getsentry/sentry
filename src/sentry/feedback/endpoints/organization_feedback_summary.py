@@ -151,12 +151,9 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
                 path=SEER_SUMMARIZE_FEEDBACKS_ENDPOINT_PATH,
                 body=json.dumps(seer_request).encode("utf-8"),
             )
-            response_data = json.loads(response.data.decode("utf-8"))
-        except Exception as e:
-            logger.exception(
-                "Seer failed to generate a summary for a list of feedbacks",
-                extra={"error": type(e).__name__},
-            )
+            response_data = response.json()
+        except Exception:
+            logger.exception("Seer failed to generate a summary for a list of feedbacks")
             return Response(
                 {"detail": "Failed to generate a summary for a list of feedbacks"}, status=500
             )

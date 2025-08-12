@@ -35,7 +35,7 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
     """
     Generate labels for a feedback message.
 
-    Raises 500 if anything goes wrong during the API call or response processing.
+    Raises exception if anything goes wrong during the API call or response processing.
     """
     request = LabelRequest(
         organization_id=organization_id,
@@ -48,20 +48,17 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
             path=SEER_LABEL_GENERATION_ENDPOINT_PATH,
             body=json.dumps(request).encode("utf-8"),
         )
-        response_data = json.loads(response.data.decode("utf-8"))
-    except Exception as e:
-        logger.exception(
-            "Seer failed to generate user feedback labels",
-            extra={"error": type(e).__name__},
-        )
-        raise Exception("Failed to generate user feedback labels")
+        response_data = response.json()
+    except Exception:
+        logger.exception("Seer failed to generate user feedback labels")
+        raise
 
     if response.status < 200 or response.status >= 300:
         logger.error(
             "Seer failed to generate user feedback labels",
             extra={"status_code": response.status, "response_data": response.data},
         )
-        raise Exception("Failed to generate user feedback labels")
+        raise Exception("Seer returned non-200 response")
 
     labels = response_data["data"]["labels"]
 

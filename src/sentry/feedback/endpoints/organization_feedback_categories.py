@@ -100,7 +100,7 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
         }
         It is returned as a list in the order of feedback count.
 
-        Raises 500 if the Seer endpoint fails.
+        Returns 500 if the Seer endpoint fails.
 
         :pparam string organization_id_or_slug: the id or slug of the organization.
         :qparam int project: project IDs to filter by
@@ -202,12 +202,9 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
                 path=SEER_LABEL_GROUPS_ENDPOINT_PATH,
                 body=json.dumps(seer_request).encode("utf-8"),
             )
-            response_data = json.loads(response.data.decode("utf-8"))
-        except Exception as e:
-            logger.exception(
-                "Seer failed to generate user feedback label groups",
-                extra={"error": type(e).__name__},
-            )
+            response_data = response.json()
+        except Exception:
+            logger.exception("Seer failed to generate user feedback label groups")
             raise Exception("Failed to generate user feedback label groups")
         if response.status < 200 or response.status >= 300:
             logger.error(

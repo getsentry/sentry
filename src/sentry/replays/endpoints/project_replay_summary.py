@@ -89,14 +89,9 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                 path=path,
                 body=data.encode("utf-8"),
             )
-            response_data = json.loads(response.data.decode("utf-8"))
-        except Exception as e:
-            logger.exception(
-                "Seer replay breadcrumbs summary endpoint failed",
-                extra={
-                    "error": type(e).__name__,
-                },
-            )
+            response_data = response.json()
+        except Exception:
+            logger.exception("Seer replay breadcrumbs summary endpoint failed")
             return self.respond("Failed to generate a replay breadcrumbs summary", status=500)
 
         if response.status < 200 or response.status >= 300:
