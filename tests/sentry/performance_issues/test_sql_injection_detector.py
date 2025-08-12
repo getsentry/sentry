@@ -107,3 +107,7 @@ class SQLInjectionDetectorTest(TestCase):
     def test_sql_injection_on_zf1_event(self) -> None:
         injection_event = get_event("sql-injection/sql-injection-event-zf1")
         assert len(self.find_problems(injection_event)) == 0
+
+    def test_sql_injection_on_parameterized_query(self) -> None:
+        injection_event = get_event("sql-injection/sql-injection-event-parameterized-query")
+        assert len(self.find_problems(injection_event)) == 0

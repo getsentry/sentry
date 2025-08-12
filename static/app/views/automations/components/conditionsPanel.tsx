@@ -6,10 +6,10 @@ import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
-  type Action,
-  type ActionHandler,
   ActionType,
   SentryAppIdentifier,
+  type Action,
+  type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
 import type {
   DataCondition,

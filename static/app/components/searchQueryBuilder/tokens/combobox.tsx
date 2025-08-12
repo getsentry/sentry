@@ -1,11 +1,11 @@
 import {
-  type MouseEventHandler,
-  type ReactNode,
   useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
+  type MouseEventHandler,
+  type ReactNode,
 } from 'react';
 import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
@@ -13,7 +13,7 @@ import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {type AriaListBoxOptions} from '@react-aria/listbox';
 import {ariaHideOutside} from '@react-aria/overlays';
 import {mergeRefs} from '@react-aria/utils';
-import {type ComboBoxState, useComboBoxState} from '@react-stately/combobox';
+import {useComboBoxState, type ComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
 import Feature from 'sentry/components/acl/feature';

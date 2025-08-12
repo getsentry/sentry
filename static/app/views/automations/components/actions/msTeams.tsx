@@ -1,9 +1,9 @@
 import {ActionMetadata} from 'sentry/components/workflowEngine/ui/actionMetadata';
 import {t, tct} from 'sentry/locale';
 import {
+  ActionType,
   type Action,
   type ActionHandler,
-  ActionType,
 } from 'sentry/types/workflowEngine/actions';
 import {IntegrationField} from 'sentry/views/automations/components/actions/integrationField';
 import {TargetDisplayField} from 'sentry/views/automations/components/actions/targetDisplayField';

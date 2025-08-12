@@ -6,7 +6,7 @@ import color from 'color';
 
 import {isChonkTheme} from 'sentry/utils/theme/withChonk';
 
-import {type BaseAvatarStyleProps, baseAvatarStyles} from './baseAvatarComponentStyles';
+import {baseAvatarStyles, type BaseAvatarStyleProps} from './baseAvatarComponentStyles';
 
 interface LetterAvatarProps
   extends React.HTMLAttributes<SVGSVGElement>,

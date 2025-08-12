@@ -1,5 +1,5 @@
 import {Component, createRef} from 'react';
-import {type Theme, withTheme} from '@emotion/react';
+import {withTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
