@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItems';
 import {DEFAULT_RELATIVE_PERIODS, MAX_PICKABLE_DAYS} from 'sentry/constants';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -126,7 +126,7 @@ const UpsellMessage = styled('p')`
   margin-bottom: 0;
 `;
 
-const StyledIconBusiness = styled(IconBusiness)`
+const StyledIconBusiness = styled(IconBusinessLegacy)`
   display: grid;
   align-items: center;
   margin-left: ${space(0.5)};

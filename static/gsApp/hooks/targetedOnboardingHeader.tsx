@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {ExternalLink} from 'sentry/components/core/link';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -60,7 +60,7 @@ function TargetedOnboardingHeader({source, subscription}: Props) {
         )}
         external
         size="sm"
-        icon={<IconBusiness />}
+        icon={<IconBusinessLegacy />}
         priority="default"
       >
         {t('Upgrade Now')}

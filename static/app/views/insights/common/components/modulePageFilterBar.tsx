@@ -9,7 +9,7 @@ import {
 } from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {SECOND} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -138,7 +138,7 @@ const DisabledDateOptionContainer = styled('div')`
   align-items: center;
 `;
 
-const StyledIconBuisness = styled(IconBusiness)`
+const StyledIconBuisness = styled(IconBusinessLegacy)`
   margin-left: auto;
 `;
 

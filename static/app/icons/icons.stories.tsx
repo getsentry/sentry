@@ -138,10 +138,10 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'business',
+        id: 'legacy-business',
         groups: ['product'],
         keywords: ['feature', 'promotion', 'fresh', 'new'],
-        name: 'Business',
+        name: 'BusinessLegacy',
         defaultProps: {},
       },
       {
@@ -198,6 +198,20 @@ const SECTIONS: TSection[] = [
         groups: ['product'],
         keywords: ['starred', 'sidebar'],
         name: 'AllProjects',
+        defaultProps: {},
+      },
+      {
+        id: 'business',
+        groups: ['product'],
+        keywords: ['feature', 'plan'],
+        name: 'Business',
+        defaultProps: {},
+      },
+      {
+        id: 'team',
+        groups: ['product'],
+        keywords: ['feature', 'plan'],
+        name: 'Team',
         defaultProps: {},
       },
     ],

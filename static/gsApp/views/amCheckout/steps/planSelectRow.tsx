@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Radio} from 'sentry/components/core/radio';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {IconBusiness, IconCheckmark} from 'sentry/icons';
+import {IconBusinessLegacy, IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -86,7 +86,7 @@ function PlanSelectRow({
   const icon = isFeaturesCheckmarked ? (
     <IconCheckmark legacySize="14px" />
   ) : (
-    <IconBusiness data-test-id="plan-icon-business" legacySize="14px" />
+    <IconBusinessLegacy data-test-id="plan-icon-business" legacySize="14px" />
   );
 
   const describeId = `plan-details-${plan.id}`;
@@ -140,7 +140,7 @@ function PlanSelectRow({
                       .map(([featureId, feature]) => (
                         <Feature key={featureId}>
                           {/* custom to match text size */}
-                          <IconBusiness legacySize="14px" gradient />
+                          <IconBusinessLegacy legacySize="14px" gradient />
                           {
                             // Only shows hovercard when one feature was highlighted
                             highlightedFeatures.length === 1 ? (

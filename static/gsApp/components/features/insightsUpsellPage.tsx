@@ -15,7 +15,7 @@ import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-
 import {Button} from 'sentry/components/core/button';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import Panel from 'sentry/components/panels/panel';
-import {IconBusiness, IconCheckmark} from 'sentry/icons';
+import {IconBusinessLegacy, IconCheckmark} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -258,7 +258,7 @@ function ModuleNameListItem({
       {hasRequiredFeatures ? (
         <IconCheckmark {...iconProps} />
       ) : (
-        <IconBusiness {...iconProps} />
+        <IconBusinessLegacy {...iconProps} />
       )}{' '}
       {moduleTitle}
     </FeatureListItem>

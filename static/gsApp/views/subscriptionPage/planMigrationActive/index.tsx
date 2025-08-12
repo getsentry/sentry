@@ -3,7 +3,7 @@ import moment from 'moment-timezone';
 
 import {ExternalLink} from 'sentry/components/core/link';
 import Panel from 'sentry/components/panels/panel';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -22,7 +22,7 @@ type Props = {
 function NewFeature({title}: {title: string}) {
   return (
     <Feature>
-      <IconBusiness gradient size="sm" />
+      <IconBusinessLegacy gradient size="sm" />
       {title}
     </Feature>
   );

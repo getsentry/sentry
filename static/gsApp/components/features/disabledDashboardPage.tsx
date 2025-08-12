@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -58,7 +58,7 @@ function DisabledDashboardPage({
         )}
       </p>
       <FeatureList
-        symbol={<IconBusiness size="sm" />}
+        symbol={<IconBusinessLegacy size="sm" />}
         data-test-id="dashboard-feature-list"
       >
         <ListItem>{t('Build and share dashboards')}</ListItem>

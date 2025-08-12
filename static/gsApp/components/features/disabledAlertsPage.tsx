@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -51,7 +51,7 @@ function DisabledAlertsPage({
           'Sure, we like attention as much as the next app. But we don’t want to send notifications you don’t need. Set your own alert rules.'
         )}
       </p>
-      <FeatureList symbol={<IconBusiness size="sm" />}>
+      <FeatureList symbol={<IconBusinessLegacy size="sm" />}>
         <ListItem>{t('Set critical thresholds')}</ListItem>
         <ListItem>{t('Automate resolution')}</ListItem>
         <ListItem>{t('Identify key events to watch')}</ListItem>

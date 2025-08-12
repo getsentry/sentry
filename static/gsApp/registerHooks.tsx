@@ -1,7 +1,7 @@
 import {lazy} from 'react';
 
 import LazyLoad from 'sentry/components/lazyLoad';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import HookStore from 'sentry/stores/hookStore';
 import type {Hooks} from 'sentry/types/hooks';
 
@@ -305,7 +305,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
       features={['organizations:codecov-integration']}
       id="codecov-integration"
     >
-      <IconBusiness size="sm" data-test-id="power-icon" />
+      <IconBusinessLegacy size="sm" data-test-id="power-icon" />
     </PowerFeatureHovercard>
   ),
   'feature-disabled:project-performance-score-card': p => (

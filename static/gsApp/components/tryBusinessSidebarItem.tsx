@@ -2,7 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Hooks} from 'sentry/types/hooks';
 import type {Organization} from 'sentry/types/organization';
@@ -59,7 +59,7 @@ function TryBusinessNavigationItem({
         }}
         analyticsKey="try-business"
       >
-        <IconBusiness size="md" />
+        <IconBusinessLegacy size="md" />
         {showIsNew && (
           <SidebarItemUnreadIndicator isMobile={layout === NavLayout.MOBILE} />
         )}
@@ -144,7 +144,7 @@ class TryBusinessSidebarItem extends Component<Props> {
         <SidebarItem
           {...sidebarItemProps}
           id="try-business"
-          icon={<IconBusiness size="md" />}
+          icon={<IconBusinessLegacy size="md" />}
           label={this.labelText}
           onClick={this.openModal}
           key="gs-try-business"

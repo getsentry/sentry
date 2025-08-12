@@ -9,7 +9,7 @@ import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {SelectOptionWithKey} from 'sentry/components/core/compactSelect/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {IconBusiness} from 'sentry/icons/iconBusiness';
+import {IconBusinessLegacy} from 'sentry/icons/iconBusinessLegacy';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag, TagCollection} from 'sentry/types/group';
@@ -474,7 +474,7 @@ const DisabledDateOptionContainer = styled('div')`
   align-items: center;
 `;
 
-const StyledIconBuisness = styled(IconBusiness)`
+const StyledIconBuisness = styled(IconBusinessLegacy)`
   margin-left: auto;
 `;
 

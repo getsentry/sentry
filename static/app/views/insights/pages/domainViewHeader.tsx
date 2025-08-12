@@ -9,7 +9,7 @@ import {TabList} from 'sentry/components/core/tabs';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -170,7 +170,7 @@ function TabLabel({moduleName}: TabLabelProps) {
         {moduleTitles[moduleName]}
         {isModuleConsideredNew(moduleName) && <FeatureBadge type="new" />}
         {isModuleInBeta(moduleName) && <FeatureBadge type="beta" />}
-        {showBusinessIcon && <IconBusiness />}
+        {showBusinessIcon && <IconBusinessLegacy />}
       </TabContainer>
     );
   }

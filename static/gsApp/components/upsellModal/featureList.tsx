@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import ProgressRing from 'sentry/components/progressRing';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -54,7 +54,10 @@ function FeatureList({
           whileTap={{x: -7}}
           transition={testableTransition()}
         >
-          <IconBusiness gradient={feat === selected} withShine={feat === selected} />
+          <IconBusinessLegacy
+            gradient={feat === selected}
+            withShine={feat === selected}
+          />
           {feat.name}
         </FeatureLink>
       ))}

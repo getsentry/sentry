@@ -1,7 +1,7 @@
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -33,13 +33,15 @@ function DisabledAuthProvider({organization, features, children, ...props}: Prop
               organization,
               features,
               renderDisabled: () => (
-                <Tag icon={<IconBusiness />}>{t('%s Plan', displayPlanName(plan))}</Tag>
+                <Tag icon={<IconBusinessLegacy />}>
+                  {t('%s Plan', displayPlanName(plan))}
+                </Tag>
               ),
               renderInstallButton: p => (
                 <Button
                   size="sm"
                   priority="primary"
-                  icon={<IconBusiness />}
+                  icon={<IconBusinessLegacy />}
                   onClick={() =>
                     openUpsellModal({
                       organization,

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import DemoSandboxButton from 'sentry/components/demoSandboxButton';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -41,7 +41,7 @@ function DisabledPerformancePage({
         )}
       </p>
       <FeatureList
-        symbol={<IconBusiness size="sm" />}
+        symbol={<IconBusinessLegacy size="sm" />}
         data-test-id="performance-feature-list"
       >
         <ListItem>{t('Visualize latency percentiles')}</ListItem>

@@ -7,7 +7,7 @@ import {motion} from 'framer-motion';
 import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/core/button';
 import {Hovercard} from 'sentry/components/hovercard';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -69,13 +69,13 @@ class TrialStartedSidebarItem extends Component<Props, State> {
         <p>{t('Check out these great new features')}</p>
 
         <Bullets>
-          <IconBusiness gradient />
+          <IconBusinessLegacy gradient />
           {t('Application Insights')}
-          <IconBusiness gradient />
+          <IconBusinessLegacy gradient />
           {t('Dashboards')}
-          <IconBusiness gradient />
+          <IconBusinessLegacy gradient />
           {t('Advanced Discover Queries')}
-          <IconBusiness gradient />
+          <IconBusinessLegacy gradient />
           {t('Additional Integrations')}
         </Bullets>
 

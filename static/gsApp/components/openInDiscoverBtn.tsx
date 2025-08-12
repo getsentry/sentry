@@ -1,6 +1,6 @@
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/core/button';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -27,7 +27,7 @@ function OpenInDiscoverBtn(props: Props) {
       }}
       className="hidden-xs"
       size="sm"
-      icon={<IconBusiness />}
+      icon={<IconBusinessLegacy />}
     >
       <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
     </Button>

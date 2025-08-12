@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import {IconBusiness, IconLock} from 'sentry/icons';
+import {IconBusinessLegacy, IconLock} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -46,7 +46,7 @@ function DisabledCustomSymbolSources({organization}: Props) {
         <ButtonBar gap="sm">
           <StyledButton
             priority="primary"
-            icon={<IconBusiness />}
+            icon={<IconBusinessLegacy />}
             onClick={() =>
               openUpsellModal({
                 organization,

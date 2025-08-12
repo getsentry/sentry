@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
-import {IconBroadcast, IconBusiness} from 'sentry/icons';
+import {IconBroadcast, IconBusinessLegacy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -41,7 +41,7 @@ function DisabledRelay({organization, features}: Props) {
               <ButtonBar>
                 <StyledButton
                   priority="primary"
-                  icon={<IconBusiness />}
+                  icon={<IconBusinessLegacy />}
                   onClick={() => openUpsellModal({organization, source: 'feature.relay'})}
                 >
                   {t('Learn More')}

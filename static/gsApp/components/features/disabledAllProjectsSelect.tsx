@@ -1,5 +1,5 @@
 import {Button} from 'sentry/components/core/button';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import UpsellProvider from 'getsentry/components/upsellProvider';
@@ -49,7 +49,7 @@ const DisabledAllProjectsSelect: React.FC<Props> = ({children}: Props) => {
                     priority="primary"
                     size="xs"
                     onClick={onClick}
-                    icon={<IconBusiness />}
+                    icon={<IconBusinessLegacy />}
                   >
                     {getButtonText(hasBillingScope, canTrial)}
                   </Button>

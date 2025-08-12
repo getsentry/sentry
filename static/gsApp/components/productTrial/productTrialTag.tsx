@@ -1,7 +1,7 @@
 import moment from 'moment-timezone';
 
 import {Tag, type TagProps} from 'sentry/components/core/badge/tag';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {IconClock} from 'sentry/icons/iconClock';
 import {IconFlag} from 'sentry/icons/iconFlag';
 import {t} from 'sentry/locale';
@@ -32,7 +32,7 @@ function ProductTrialTag({trial, type, showTrialEnded = false}: ProductTrialTagP
 
   if (!trial.isStarted) {
     return (
-      <Tag icon={<IconBusiness gradient />} type={type ?? 'info'}>
+      <Tag icon={<IconBusinessLegacy gradient />} type={type ?? 'info'}>
         {t('Trial Available')}
       </Tag>
     );

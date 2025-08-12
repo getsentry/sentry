@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -25,7 +25,7 @@ function PerformanceNewProjectPrompt({organization}: Props) {
           <StyledButton
             size="sm"
             priority="primary"
-            icon={<IconBusiness />}
+            icon={<IconBusinessLegacy />}
             onClick={() =>
               openUpsellModal({
                 organization,

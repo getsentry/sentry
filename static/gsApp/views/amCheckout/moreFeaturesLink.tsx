@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {ExternalLink} from 'sentry/components/core/link';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -16,7 +16,7 @@ type Props = {
 function MoreFeaturesLink({color, iconSize}: Props) {
   return (
     <MoreLink href="https://sentry.io/pricing" color={color}>
-      <IconBusiness legacySize={iconSize} />
+      <IconBusinessLegacy legacySize={iconSize} />
       {t('And more...')}
     </MoreLink>
   );

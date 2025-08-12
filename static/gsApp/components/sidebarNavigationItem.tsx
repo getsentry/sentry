@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -139,7 +139,7 @@ class InsightsAccordionAccessRule extends InsightsItemAccessRule {
   }
 }
 
-const CenteredIcon = styled(IconBusiness)`
+const CenteredIcon = styled(IconBusinessLegacy)`
   display: inline-flex;
   flex-shrink: 0;
   margin-left: ${space(1)};

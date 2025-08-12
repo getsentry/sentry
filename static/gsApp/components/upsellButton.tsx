@@ -1,5 +1,5 @@
 import {Button, type ButtonProps} from 'sentry/components/core/button';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import type {Organization} from 'sentry/types/organization';
 
 import UpsellProvider from 'getsentry/components/upsellProvider';
@@ -28,7 +28,7 @@ function UpsellButton({
       subscription={subscription}
     >
       {({onClick, defaultButtonText}) => (
-        <Button onClick={onClick} icon={<IconBusiness />} {...rest}>
+        <Button onClick={onClick} icon={<IconBusinessLegacy />} {...rest}>
           {defaultButtonText}
         </Button>
       )}

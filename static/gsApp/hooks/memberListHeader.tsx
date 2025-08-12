@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import {IconBusiness, IconClose} from 'sentry/icons';
+import {IconBusinessLegacy, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Member, Organization} from 'sentry/types/organization';
@@ -54,7 +54,7 @@ function MemberListHeader({members, organization, subscription}: Props) {
               priority="default"
               size="xs"
               onClick={onClick}
-              icon={<IconBusiness />}
+              icon={<IconBusinessLegacy />}
               data-test-id="member-settings-table-header-upsell-button"
             >
               {canTrial ? t('Start Trial') : t('Upgrade')}

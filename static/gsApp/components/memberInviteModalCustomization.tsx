@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Link} from 'sentry/components/core/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {IconBusiness, IconCheckmark, IconWarning} from 'sentry/icons';
+import {IconBusinessLegacy, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -150,7 +150,7 @@ function MemberInviteModalCustomization({
       }
       return (
         <TrialInfo>
-          <IconBusiness gradient withShine size="md" />
+          <IconBusinessLegacy gradient withShine size="md" />
           {trialStartText}
           {upgradeOrTrialButton}
         </TrialInfo>

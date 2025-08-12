@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
 import PanelAlert from 'sentry/components/panels/panelAlert';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Hooks} from 'sentry/types/hooks';
@@ -39,7 +39,7 @@ function DisabledAlert({organization, features}: Props) {
             <Button
               size="sm"
               priority="primary"
-              icon={<IconBusiness />}
+              icon={<IconBusinessLegacy />}
               data-test-id="rate-limit-upsell"
               onClick={() =>
                 openUpsellModal({

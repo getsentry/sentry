@@ -2,7 +2,7 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import {IconBusiness} from 'sentry/icons';
+import {IconBusinessLegacy} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
@@ -94,7 +94,7 @@ function LabelWithPowerIcon({children, id, subscription}: Props) {
             `}
             containerDisplayMode="inline-flex"
           >
-            <IconBusiness data-test-id="power-icon" />
+            <IconBusinessLegacy data-test-id="power-icon" />
           </PowerFeatureHovercard>
         )}
       </ClassNames>
