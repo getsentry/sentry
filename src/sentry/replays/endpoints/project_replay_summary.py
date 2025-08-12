@@ -22,7 +22,7 @@ from sentry.replays.lib.summarize import (
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
-from sentry.seer.seer_setup import has_seer_permissions
+from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
 
@@ -151,7 +151,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         ):
             return self.respond(status=404)
 
-        if not has_seer_permissions(project.organization, actor=request.user):
+        if not has_seer_access(project.organization, actor=request.user):
             return self.respond(status=403)
 
         filter_params = self.get_filter_params(request, project)

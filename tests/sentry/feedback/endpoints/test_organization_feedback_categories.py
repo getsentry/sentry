@@ -49,16 +49,16 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
             self.endpoint,
             kwargs={"organization_id_or_slug": self.org.slug},
         )
-        self.mock_has_seer_perms_patcher = patch(
-            "sentry.feedback.endpoints.organization_feedback_categories.has_seer_permissions",
+        self.mock_has_seer_access_patcher = patch(
+            "sentry.feedback.endpoints.organization_feedback_categories.has_seer_access",
             return_value=True,
         )
-        self.mock_has_seer_perms = self.mock_has_seer_perms_patcher.start()
+        self.mock_has_seer_access = self.mock_has_seer_access_patcher.start()
 
         self._create_standard_feedbacks(self.project1.id)
 
     def tearDown(self) -> None:
-        self.mock_has_seer_perms_patcher.stop()
+        self.mock_has_seer_access_patcher.stop()
         super().tearDown()
 
     def _create_standard_feedbacks(self, project_id: int) -> None:
@@ -168,7 +168,7 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         assert response.status_code == 403
 
     def test_get_feedback_categories_without_seer_permissions(self) -> None:
-        self.mock_has_seer_perms.return_value = False
+        self.mock_has_seer_access.return_value = False
         with self.feature(self.features):
             response = self.get_error_response(self.org.slug)
             assert response.status_code == 403
@@ -337,7 +337,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         assert "Extra Label 2" not in associated_labels
         assert "Extra Label 3" not in associated_labels
 
-    @django_db_all
     @responses.activate
     def test_seer_timeout(self) -> None:
         mock_seer_category_response(body=requests.exceptions.Timeout("Request timed out"))

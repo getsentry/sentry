@@ -26,7 +26,7 @@ def get_seer_org_acknowledgement(org_id: int) -> bool:
     ).exists()
 
 
-def has_seer_permissions(
+def has_seer_access(
     organization: Organization, actor: User | AnonymousUser | RpcUser | None = None
 ) -> bool:
     return (

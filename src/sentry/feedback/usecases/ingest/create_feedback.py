@@ -26,7 +26,7 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
-from sentry.seer.seer_setup import has_seer_permissions
+from sentry.seer.seer_setup import has_seer_access
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
@@ -302,7 +302,7 @@ def create_feedback_issue(
             "feedback.ai_title_generation.skipped",
             tags={"reason": "is_spam"},
         )
-    elif not has_seer_permissions(project.organization):
+    elif not has_seer_access(project.organization):
         metrics.incr(
             "feedback.ai_title_generation.skipped",
             tags={"reason": "gen_ai_disabled"},
@@ -315,7 +315,7 @@ def create_feedback_issue(
 
     use_ai_title = (
         not is_message_spam
-        and has_seer_permissions(project.organization)
+        and has_seer_access(project.organization)
         and features.has("organizations:user-feedback-ai-titles", project.organization)
     )
     title = get_feedback_title(feedback_message, project.organization_id, use_ai_title)
@@ -350,7 +350,7 @@ def create_feedback_issue(
     if (
         not is_message_spam
         and features.has("organizations:user-feedback-ai-categorization", project.organization)
-        and has_seer_permissions(project.organization)
+        and has_seer_access(project.organization)
     ):
         try:
             labels = generate_labels(feedback_message, project.organization_id)

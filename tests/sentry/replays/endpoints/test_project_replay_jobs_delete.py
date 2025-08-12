@@ -23,14 +23,14 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization)
         self.other_project = self.create_project()  # Different organization
-        self.mock_has_seer_perms_patcher = mock.patch(
-            "sentry.replays.endpoints.project_replay_jobs_delete.has_seer_permissions",
+        self.mock_has_seer_access_patcher = mock.patch(
+            "sentry.replays.endpoints.project_replay_jobs_delete.has_seer_access",
             return_value=False,
         )
-        self.mock_has_seer_perms = self.mock_has_seer_perms_patcher.start()
+        self.mock_has_seer_access = self.mock_has_seer_access_patcher.start()
 
     def tearDown(self) -> None:
-        self.mock_has_seer_perms_patcher.stop()
+        self.mock_has_seer_access_patcher.stop()
         super().tearDown()
 
     def test_get_no_jobs(self) -> None:
@@ -364,7 +364,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
             }
         }
 
-        self.mock_has_seer_perms.return_value = True
+        self.mock_has_seer_access.return_value = True
         with self.feature({"organizations:replay-ai-summaries": True}):
             response = self.get_success_response(
                 self.organization.slug, self.project.slug, method="post", **data, status_code=201
