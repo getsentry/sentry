@@ -1,4 +1,5 @@
 import React, {Component, Fragment} from 'react';
+import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
@@ -16,7 +17,7 @@ import {
   promptsUpdate,
 } from 'sentry/actionCreators/prompts';
 import type {Client} from 'sentry/api';
-import {Alert} from 'sentry/components/core/alert';
+import {Alert, type AlertProps} from 'sentry/components/core/alert';
 import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -33,6 +34,7 @@ import type {Organization} from 'sentry/types/organization';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {Oxfordize} from 'sentry/utils/oxfordizeArray';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
+import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import withApi from 'sentry/utils/withApi';
@@ -1151,7 +1153,7 @@ class GSBanner extends Component<Props, State> {
                     updateUrl: (
                       <LinkButton
                         to={billingUrl}
-                        size="xs"
+                        size="zero"
                         priority="default"
                         aria-label={t('Update payment information')}
                         onClick={addButtonAnalytics}
@@ -1165,7 +1167,7 @@ class GSBanner extends Component<Props, State> {
                     updateUrl: (
                       <LinkButton
                         to={membersPageUrl}
-                        size="xs"
+                        size="zero"
                         priority="default"
                         aria-label={t('Org Owner or Billing Member')}
                         onClick={addButtonAnalytics}
@@ -1262,8 +1264,21 @@ export default withPromotions(withApi(withSubscription(GSBanner, {noLoader: true
 
 // XXX: We have no alert types with this styling, but for now we would like for
 // it to be differentiated.
-const BannerAlert = styled(Alert)`
+const StyledBannerAlert = styled(Alert)`
   color: ${p => p.theme.headerBackground};
-  background-color: ${p => p.theme.bannerBackground};
+  background-color: ${p => p.theme.gray500};
   border: none;
 `;
+
+function BannerAlert(props: AlertProps) {
+  const invertedTheme = useInvertedTheme();
+
+  if (invertedTheme.isChonk) {
+    return (
+      <ThemeProvider theme={invertedTheme}>
+        <Alert {...props} />
+      </ThemeProvider>
+    );
+  }
+  return <StyledBannerAlert {...props} />;
+}
