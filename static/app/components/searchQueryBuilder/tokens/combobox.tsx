@@ -423,6 +423,7 @@ export function SearchQueryBuilderCombobox<
       listBoxRef,
       inputRef,
       popoverRef,
+      shouldFocusWrap: true,
       onFocus: e => {
         if (openOnFocus) {
           state.open();

@@ -53,7 +53,6 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -966,7 +965,7 @@ const TrailingWrap = styled('div')`
   display: grid;
   grid-auto-flow: column;
   align-items: center;
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
 `;
 
 const CheckWrap = styled('div')<{visible: boolean}>`
@@ -974,5 +973,8 @@ const CheckWrap = styled('div')<{visible: boolean}>`
   justify-content: center;
   align-items: center;
   opacity: ${p => (p.visible ? 1 : 0)};
-  padding: ${space(0.25)} 0 ${space(0.25)} ${space(0.25)};
+  padding-top: ${p => p.theme.space['2xs']};
+  padding-right: 0;
+  padding-bottom: ${p => p.theme.space['2xs']};
+  padding-left: ${p => p.theme.space['2xs']};
 `;
