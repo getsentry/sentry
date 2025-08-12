@@ -31,7 +31,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformKey} from 'sentry/types/project';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
@@ -271,9 +271,9 @@ export function getSourceMapsDocLinks(platform: string) {
 function SentryWizardCallout({
   analyticsParams,
   organization,
-  projectSlug,
+  project,
 }: Pick<SourceMapsDebuggerModalProps, 'analyticsParams' | 'organization'> & {
-  projectSlug?: string;
+  project?: Project;
 }) {
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   return (
@@ -302,7 +302,7 @@ function SentryWizardCallout({
         {getSourceMapsWizardSnippet({
           isSelfHosted,
           organization,
-          projectSlug,
+          project,
         })}
       </InstructionCodeSnippet>
     </Fragment>
@@ -624,7 +624,7 @@ export function SourceMapsDebuggerModal({
             <SentryWizardCallout
               analyticsParams={analyticsParams}
               organization={organization}
-              projectSlug={project?.slug}
+              project={project}
             />
           )}
           <h6>{t('Troubleshooting Checklist')}</h6>

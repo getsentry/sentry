@@ -34,7 +34,7 @@ class RepositoryTokensEndpoint(CodecovEndpoint):
             PreventParams.LIMIT,
             PreventParams.NAVIGATION,
             PreventParams.CURSOR,
-            PreventParams.TERM,
+            PreventParams.TOKENS_SORT_BY,
         ],
         request=None,
         responses={
@@ -52,6 +52,14 @@ class RepositoryTokensEndpoint(CodecovEndpoint):
         navigation = request.query_params.get("navigation", NavigationParameter.NEXT.value)
         limit_param = request.query_params.get("limit", MAX_RESULTS_PER_PAGE)
         cursor = request.query_params.get("cursor")
+
+        sort_by = request.query_params.get("sortBy", "-COMMIT_DATE")
+
+        if sort_by.startswith("-"):
+            sort_by = sort_by[1:]
+            ordering_direction = OrderingDirection.DESC.value
+        else:
+            ordering_direction = OrderingDirection.ASC.value
 
         owner_slug = owner.name
 
@@ -75,8 +83,8 @@ class RepositoryTokensEndpoint(CodecovEndpoint):
 
         variables = {
             "owner": owner_slug,
-            "direction": OrderingDirection.DESC.value,
-            "ordering": "COMMIT_DATE",
+            "direction": ordering_direction,
+            "ordering": sort_by,
             "first": limit if navigation != NavigationParameter.PREV.value else None,
             "last": limit if navigation == NavigationParameter.PREV.value else None,
             "before": cursor if cursor and navigation == NavigationParameter.PREV.value else None,

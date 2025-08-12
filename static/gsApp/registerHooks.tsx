@@ -330,7 +330,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     <PowerFeatureHovercard
       features={['organizations:dashboards-edit']}
       id="dashboards-edit"
-      upsellDefaultSelection="custom-dashboards"
     >
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </PowerFeatureHovercard>

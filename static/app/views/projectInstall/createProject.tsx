@@ -324,7 +324,7 @@ export function CreateProject() {
               org_features: organization.features,
               org_allow_member_project_creation: organization.allowMemberProjectCreation,
               user_team_access: team
-                ? accessTeams.find(teamItem => teamItem.slug === team)
+                ? accessTeams.find(teamItem => teamItem.slug === team)?.access
                 : null,
               available_teams_count: accessTeams.length,
             });

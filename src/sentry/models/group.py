@@ -29,11 +29,11 @@ from sentry.db.models import (
     BoundedIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    GzippedDictField,
     Model,
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
@@ -612,9 +612,7 @@ class Group(Model):
     time_spent_count = BoundedIntegerField(default=0)
     # deprecated, do not use. GroupShare has superseded
     is_public = models.BooleanField(default=False, null=True)
-    data: models.Field[dict[str, Any] | None, dict[str, Any]] = GzippedDictField(
-        blank=True, null=True
-    )
+    data = LegacyTextJSONField(null=True)
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(
         default=DEFAULT_TYPE_ID, db_default=DEFAULT_TYPE_ID, db_index=True

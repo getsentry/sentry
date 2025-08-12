@@ -37,7 +37,7 @@ export default defineConfig({
   integrations: [
     sentry({
       sourceMapsUploadOptions: {
-        project: "${params.projectSlug}",
+        project: "${params.project.slug}",
         authToken: process.env.SENTRY_AUTH_TOKEN,
       },
     }),
@@ -404,7 +404,7 @@ export default defineConfig({
   integrations: [
     sentry({
       sourceMapsUploadOptions: {
-        project: "${params.projectSlug}",
+        project: "${params.project.slug}",
         authToken: process.env.SENTRY_AUTH_TOKEN,
       },
     }),

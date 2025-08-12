@@ -6,7 +6,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 import responses
-from django.conf import settings
 
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import (
@@ -19,6 +18,7 @@ from sentry.feedback.usecases.label_generation import (
     MAX_AI_LABELS,
     MAX_AI_LABELS_JSON_LENGTH,
 )
+from sentry.feedback.usecases.title_generation import SEER_GENERATE_TITLE_URL
 from sentry.models.group import Group, GroupStatus
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.testutils.helpers import Feature
@@ -28,11 +28,11 @@ from sentry.utils import json
 from tests.sentry.feedback import create_dummy_openai_response, mock_feedback_event
 
 
-def mock_seer_response(**kwargs) -> None:
-    """Use with @responses.activate to mock Seer API responses."""
+def mock_seer_title_response(**kwargs) -> None:
+    """Use with @responses.activate to mock Seer title generation response."""
     responses.add(
         responses.POST,
-        f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/title",
+        SEER_GENERATE_TITLE_URL,
         **kwargs,
     )
 
@@ -944,7 +944,7 @@ def test_create_feedback_issue_title_from_seer(
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
-        mock_seer_response(
+        mock_seer_title_response(
             status=200,
             body='{"title": "Login Button Issue"}',
         )
@@ -970,7 +970,7 @@ def test_create_feedback_issue_title_from_seer_fallback(
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
-        mock_seer_response(body=Exception("Network Error"))
+        mock_seer_title_response(body=Exception("Network Error"))
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
         assert mock_produce_occurrence_to_kafka.call_count == 1
@@ -978,6 +978,33 @@ def test_create_feedback_issue_title_from_seer_fallback(
         assert (
             occurrence.issue_title == "User Feedback: The login button is broken and the UI is slow"
         )
+
+
+@django_db_all
+@responses.activate
+def test_create_feedback_issue_title_from_seer_skips_if_spam(
+    default_project,
+    mock_produce_occurrence_to_kafka,
+) -> None:
+    """Test title generation endpoint is not called if marked as spam."""
+    with (
+        patch("sentry.feedback.usecases.ingest.create_feedback.is_spam", return_value=True),
+        # XXX: this is not ideal to mock, we should refactor spam and AI processors to their own unit testable function.
+        patch(
+            "sentry.feedback.usecases.ingest.create_feedback.spam_detection_enabled",
+            return_value=True,
+        ),
+        Feature(
+            {
+                "organizations:gen-ai-features": True,
+                "organizations:user-feedback-ai-titles": True,
+            }
+        ),
+    ):
+        event = mock_feedback_event(default_project.id)
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+        urls = [call.request.url for call in responses.calls]
+        assert SEER_GENERATE_TITLE_URL not in urls
 
 
 @django_db_all
@@ -995,7 +1022,7 @@ def test_create_feedback_issue_title_from_seer_none(
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
-        mock_seer_response(
+        mock_seer_title_response(
             status=200,
             body='{"title": ""}',
         )

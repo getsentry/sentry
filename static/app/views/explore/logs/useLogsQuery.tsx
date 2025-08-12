@@ -7,26 +7,26 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
-  type ApiQueryKey,
   fetchDataQuery,
-  type InfiniteData,
-  type QueryKeyEndpointOptions,
+  Query,
   useApiQuery,
   useInfiniteQuery,
   useQueryClient,
+  type ApiQueryKey,
+  type InfiniteData,
+  type QueryKeyEndpointOptions,
 } from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
-  useLogsAggregate,
   useLogsAggregateCursor,
   useLogsAggregateSortBys,
   useLogsBaseSearch,
   useLogsCursor,
   useLogsFields,
-  useLogsGroupBy,
   useLogsLimitToTraceId,
   useLogsProjectIds,
   useLogsSearch,
@@ -43,15 +43,19 @@ import {
   QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
 } from 'sentry/views/explore/logs/constants';
 import {
+  OurLogKnownFieldKey,
   type EventsLogsResult,
   type LogsAggregatesResult,
-  OurLogKnownFieldKey,
 } from 'sentry/views/explore/logs/types';
 import {
   isRowVisibleInVirtualStream,
   useVirtualStreaming,
 } from 'sentry/views/explore/logs/useVirtualStreaming';
 import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
+import {
+  useQueryParamsGroupBys,
+  useQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
@@ -113,15 +117,13 @@ function useLogsAggregatesQueryKey({
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsProjectIds();
-  const groupBy = useLogsGroupBy();
-  const aggregate = useLogsAggregate();
+  const groupBys = useQueryParamsGroupBys();
+  const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useLogsAggregateSortBys();
   const aggregateCursor = useLogsAggregateCursor();
   const fields: string[] = [];
-  if (groupBy) {
-    fields.push(groupBy);
-  }
-  fields.push(aggregate);
+  fields.push(...groupBys.filter(Boolean));
+  fields.push(...visualizes.map(visualize => visualize.yAxis));
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
@@ -199,14 +201,14 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsProjectIds();
-  const groupBy = useLogsGroupBy();
+  const groupBys = useQueryParamsGroupBys();
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
     search.tokens.push(...baseSearch.tokens);
   }
   const fields = Array.from(
-    new Set([...AlwaysPresentLogFields, ..._fields, ...(groupBy ? [groupBy] : [])])
+    new Set([...AlwaysPresentLogFields, ..._fields, ...groupBys.filter(Boolean)])
   );
   const sorts = sortBys ?? [];
   const pageFilters = selection;
@@ -263,10 +265,19 @@ export function useLogsQuery({
   disabled,
   limit,
   referrer,
+  refetchInterval,
 }: {
   disabled?: boolean;
   limit?: number;
   referrer?: string;
+  refetchInterval?: (
+    query: Query<
+      ApiResult<EventsLogsResult>,
+      RequestError,
+      ApiResult<EventsLogsResult>,
+      ApiQueryKey
+    >
+  ) => number;
 }) {
   const _referrer = referrer ?? 'api.explore.logs-table';
   const {queryKey, other} = useLogsQueryKey({limit, referrer: _referrer});
@@ -276,17 +287,21 @@ export function useLogsQuery({
     staleTime: getStaleTimeForEventView(other.eventView),
     refetchOnWindowFocus: false,
     retry: false,
+    refetchInterval,
   });
 
   return {
     isPending: queryResult.isPending,
+    isRefetching: queryResult.isRefetching,
     isError: queryResult.isError,
     isLoading: queryResult.isLoading,
     queryResult,
     data: queryResult?.data?.data,
+    refetch: queryResult.refetch,
     infiniteData: queryResult?.data?.data,
     error: queryResult.error,
     meta: queryResult?.data?.meta,
+    queryKey,
     pageLinks: queryResult?.getResponseHeader?.('Link') ?? undefined,
   };
 }
@@ -552,7 +567,7 @@ export function useInfiniteLogsQuery({
     isFetching,
     isFetchingNextPage,
     isFetchingPreviousPage,
-    isPending,
+    refetch,
   } = queryResult;
 
   useEffect(() => {
@@ -636,22 +651,29 @@ export function useInfiniteLogsQuery({
   const _fetchNextPage = useCallback(
     () =>
       hasNextPage && nextPageHasData
-        ? !isFetchingNextPage && !isError && fetchNextPage()
+        ? !isFetching && !isError && fetchNextPage()
         : Promise.resolve(),
-    [hasNextPage, fetchNextPage, isFetchingNextPage, isError, nextPageHasData]
+    [hasNextPage, fetchNextPage, isFetching, isError, nextPageHasData]
   );
 
   return {
     error,
     isError,
     isFetching,
-    isPending,
+    isPending: queryResult.isPending,
     data: _data,
     meta: _meta,
-    isEmpty: !isPending && !isError && _data.length === 0,
+    isRefetching: queryResult.isRefetching,
+    isEmpty:
+      !queryResult.isPending &&
+      !queryResult.isRefetching &&
+      !isError &&
+      _data.length === 0,
     fetchNextPage: _fetchNextPage,
     fetchPreviousPage: _fetchPreviousPage,
+    refetch,
     hasNextPage,
+    queryKey: queryKeyWithInfinite,
     hasPreviousPage,
     isFetchingNextPage,
     isFetchingPreviousPage,

@@ -52,6 +52,7 @@ class MetricsBackend(local):
         tags: Tags | None = None,
         sample_rate: float = 1,
         stacklevel: int = 0,
+        precise: bool = False,
     ) -> None:
         raise NotImplementedError
 
@@ -76,6 +77,7 @@ class MetricsBackend(local):
         sample_rate: float = 1,
         unit: str | None = None,
         stacklevel: int = 0,
+        precise: bool = False,
     ) -> None:
         raise NotImplementedError
 

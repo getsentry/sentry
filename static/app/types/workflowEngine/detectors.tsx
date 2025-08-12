@@ -13,7 +13,7 @@ import type {
 /**
  * See SnubaQuerySerializer
  */
-interface SnubaQuery {
+export interface SnubaQuery {
   aggregate: string;
   dataset: Dataset;
   eventTypes: EventTypes[];

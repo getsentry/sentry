@@ -10,8 +10,8 @@ import {
   AlertRuleThresholdType,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
-import {type Anomaly, AnomalyType} from 'sentry/views/alerts/types';
-import {DetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {AnomalyType, type Anomaly} from 'sentry/views/alerts/types';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useMetricDetectorAnomalyPeriods} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyPeriods';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 

@@ -4,8 +4,8 @@ import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import {
-  type ReadableExploreQueryParts,
   useUpdateQueryAtIndex,
+  type ReadableExploreQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {
   Section,

@@ -102,6 +102,8 @@ def _create_api_access_log(
         request_user = getattr(request, "user", None)
         user_id = getattr(request_user, "id", None)
         is_app = getattr(request_user, "is_sentry_app", None)
+        # TODO: `org_id` is often None even if we should have it
+        # Likely `organization` is not being correctly set in the base endpoints on _request
         org_id = getattr(getattr(request, "organization", None), "id", None)
         entity_id = getattr(request_auth, "entity_id", None)
         status_code = getattr(response, "status_code", 500)
@@ -128,6 +130,7 @@ def _create_api_access_log(
             log_metrics["token_last_characters"] = force_str(auth[1])[-4:]
         api_access_logger.info("api.access", extra=log_metrics)
         metrics.incr("middleware.access_log.created")
+
     except Exception:
         api_access_logger.exception("api.access: Error capturing API access logs")
 

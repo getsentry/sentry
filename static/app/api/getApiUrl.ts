@@ -7,7 +7,7 @@ export type ExtractPathParams<TApiPath extends string> =
       ? Param
       : never;
 
-export type PathParamOptions<TApiPath extends string> =
+type PathParamOptions<TApiPath extends string> =
   ExtractPathParams<TApiPath> extends never
     ? {path?: never}
     : {path: Record<ExtractPathParams<TApiPath>, string | number>};
