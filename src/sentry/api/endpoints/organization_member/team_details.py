@@ -538,11 +538,13 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         """
         Unsubscribe user from issues the team is subscribed to
         """
-        team_assigned_issues = GroupAssignee.objects.filter(team_id=team.id)
-        team_subscribed_isses = GroupSubscription.objects.filter(
-            team_id=team.id, reason=GroupSubscriptionReason.assigned
+        team_assigned_groups = GroupAssignee.objects.filter(team_id=team.id).values_list(
+            "group_id", flat=True
         )
-        issues_to_unsubscribe = set(team_assigned_issues) | set(team_subscribed_isses)
+        team_subscribed_groups = GroupSubscription.objects.filter(
+            team_id=team.id, reason=GroupSubscriptionReason.assigned
+        ).values_list("group_id", flat=True)
+        group_ids_to_unsubscribe = set(team_assigned_groups) | set(team_subscribed_groups)
         GroupSubscription.objects.filter(
-            group_id__in=[group.id for group in issues_to_unsubscribe], user_id=member.user_id
+            group_id__in=group_ids_to_unsubscribe, user_id=member.user_id
         ).delete()
