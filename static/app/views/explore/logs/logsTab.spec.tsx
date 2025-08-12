@@ -193,7 +193,7 @@ describe('LogsTabContent', function () {
           dataset: 'ourlogs',
           yAxis: 'count(message)',
           interval: '1h',
-          query: 'severity:error timestamp_[OurLoIKAprecise:<=1508208040000000000',
+          query: 'severity:error timestamp_precise:<=1508208040000000000',
         }),
       })
     );
