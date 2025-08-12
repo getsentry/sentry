@@ -1,10 +1,10 @@
 import {t} from 'sentry/locale';
 import {
   convertVariantFromBackend,
-  type Event,
-  type EventGroupVariant,
   EventGroupVariantType,
   isEventGroupVariantType,
+  type Event,
+  type EventGroupVariant,
 } from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
