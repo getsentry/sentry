@@ -271,6 +271,8 @@ def create_feedback_issue(
         except Exception:
             # until we have LLM error types ironed out, just catch all exceptions
             logger.exception("Error checking if message is spam", extra={"project_id": project.id})
+
+        # In DD we use is_spam = None to indicate spam failed.
         metrics.incr(
             "feedback.create_feedback_issue.spam_detection",
             tags={
