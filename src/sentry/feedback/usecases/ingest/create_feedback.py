@@ -25,7 +25,7 @@ from sentry.feedback.usecases.title_generation import (
 )
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA, LEGACY_EVENT_PAYLOAD_SCHEMA
+from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
@@ -165,11 +165,8 @@ def validate_issue_platform_event_schema(event_data):
     try:
         jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
     except jsonschema.exceptions.ValidationError:
-        try:
-            jsonschema.validate(event_data, LEGACY_EVENT_PAYLOAD_SCHEMA)
-        except jsonschema.exceptions.ValidationError:
-            metrics.incr("feedback.create_feedback_issue.invalid_schema")
-            raise
+        metrics.incr("feedback.create_feedback_issue.invalid_schema")
+        raise
 
 
 def should_filter_feedback(event: dict) -> tuple[bool, str | None]:
@@ -301,10 +298,12 @@ def create_feedback_issue(
         event["contexts"]["feedback"], source, is_message_spam
     )
     issue_fingerprint = [uuid4().hex]
+
     ai_title = None
-    if should_get_ai_title(project.organization):
+    if not is_message_spam and should_get_ai_title(project.organization):
         ai_title = get_feedback_title_from_seer(feedback_message, project.organization_id)
     formatted_title = format_feedback_title(ai_title or feedback_message)
+
     occurrence = IssueOccurrence(
         id=uuid4().hex,
         event_id=event["event_id"],
@@ -362,6 +361,7 @@ def create_feedback_issue(
             event_fixed["tags"][f"{AI_LABEL_TAG_PREFIX}.labels"] = json.dumps(labels)
         except Exception:
             logger.exception("Error generating labels", extra={"project_id": project.id})
+            metrics.incr("feedback.label_generation.error")
 
     # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
     # as well as be able to write alert conditions on it

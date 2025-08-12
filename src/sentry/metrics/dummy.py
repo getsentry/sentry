@@ -24,6 +24,7 @@ class DummyMetricsBackend(MetricsBackend):
         tags: Tags | None = None,
         sample_rate: float = 1,
         stacklevel: int = 0,
+        precise: bool = False,
     ) -> None:
         pass
 
@@ -48,6 +49,7 @@ class DummyMetricsBackend(MetricsBackend):
         sample_rate: float = 1,
         unit: str | None = None,
         stacklevel: int = 0,
+        precise: bool = False,
     ) -> None:
         pass
 

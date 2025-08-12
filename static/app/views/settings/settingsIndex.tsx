@@ -1,4 +1,4 @@
-import {css, type Theme, useTheme} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {OrganizationAvatar} from 'sentry/components/core/avatar/organizationAvatar';

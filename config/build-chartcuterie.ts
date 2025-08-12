@@ -1,10 +1,11 @@
 /* eslint-disable import/no-nodejs-modules, no-console */
 
-import * as esbuild from 'esbuild';
 import childProcess from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+
+import * as esbuild from 'esbuild';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(scriptDir, '..');

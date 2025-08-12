@@ -1,7 +1,7 @@
 import {
+  initializeData as _initializeData,
   generateSampleEvent,
   generateSampleSpan,
-  initializeData as _initializeData,
 } from 'sentry-test/performance/initializePerformanceData';
 import {MockSpan, TransactionEventBuilder} from 'sentry-test/performance/utils';
 import {

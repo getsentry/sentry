@@ -34,7 +34,7 @@ import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
-import {type DatasetConfig, handleOrderByReset} from './base';
+import {handleOrderByReset, type DatasetConfig} from './base';
 import {
   filterAggregateParams,
   filterSeriesSortOptions,
