@@ -31,8 +31,8 @@ type Props = {
   selection: PageFilters;
   theme: Theme;
   widget: Widget;
+  disableTableActions?: boolean;
   errorMessage?: string;
-  isWidgetPreview?: boolean;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   tableResults?: TableData[];
 };
@@ -47,7 +47,7 @@ export function IssueWidgetCard({
   location,
   theme,
   onWidgetTableResizeColumn,
-  isWidgetPreview,
+  disableTableActions,
 }: Props) {
   const datasetConfig = getDatasetConfig(WidgetType.ISSUE);
 
@@ -116,7 +116,7 @@ export function IssueWidgetCard({
           } satisfies RenderFunctionBaggage;
         }}
         onResizeColumn={onWidgetTableResizeColumn}
-        allowedCellActions={isWidgetPreview || !useCellActionsV2 ? [] : undefined}
+        allowedCellActions={disableTableActions || !useCellActionsV2 ? [] : undefined}
       />
     </TableContainer>
   ) : (

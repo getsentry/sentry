@@ -72,6 +72,7 @@ type Props = WithRouterProps & {
   borderless?: boolean;
   dashboardFilters?: DashboardFilters;
   disableFullscreen?: boolean;
+  disableTableActions?: boolean;
   disableZoom?: boolean;
   forceDescriptionTooltip?: boolean;
   hasEditAccess?: boolean;
@@ -80,10 +81,6 @@ type Props = WithRouterProps & {
   isMobile?: boolean;
   isPreview?: boolean;
   isWidgetInvalid?: boolean;
-  /**
-   * Is the widget a preview widget, e.g., the widget builder, or add to dashboard modal. Currently, widget previews do not allow any table cell actions.
-   */
-  isWidgetPreview?: boolean;
   legendOptions?: LegendComponentOption;
   minTableColumnWidth?: number;
   onDataFetched?: (results: TableDataWithTitle[]) => void;
@@ -165,7 +162,7 @@ function WidgetCard(props: Props) {
     router,
     onWidgetTableSort,
     onWidgetTableResizeColumn,
-    isWidgetPreview,
+    disableTableActions,
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
@@ -342,7 +339,7 @@ function WidgetCard(props: Props) {
             showLoadingText={showLoadingText && isLoadingTextVisible}
             onWidgetTableSort={onWidgetTableSort}
             onWidgetTableResizeColumn={onWidgetTableResizeColumn}
-            isWidgetPreview={isWidgetPreview}
+            disableTableActions={disableTableActions}
           />
         </WidgetFrame>
       </VisuallyCompleteWithData>
