@@ -146,6 +146,7 @@ export type Plan = {
   categories: DataCategory[];
   checkoutCategories: DataCategory[];
   contractInterval: 'monthly' | 'annual';
+  dashboardLimit: number;
   description: string;
   features: string[];
 

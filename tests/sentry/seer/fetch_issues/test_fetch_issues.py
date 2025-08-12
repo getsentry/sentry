@@ -1,7 +1,6 @@
 from typing import Any
 from unittest.mock import Mock, patch
 
-from sentry import eventstore
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.models.group import Group
 from sentry.models.repository import Repository
@@ -17,6 +16,7 @@ from sentry.seer.fetch_issues.fetch_issues import (
     get_issues_with_event_details_for_file,
     safe_for_fetching_issues,
 )
+from sentry.services import eventstore
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.integrations.github.tasks.test_open_pr_comment import CreateEventTestCase
