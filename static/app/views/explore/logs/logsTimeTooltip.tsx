@@ -64,7 +64,7 @@ function TimestampTooltipBody({
       {isUTCLocalTimezone && (
         <Fragment>
           <dt />
-          <TimestampLabel>
+          <TimestampLabelLinkContainer>
             <TimestampLabelLink
               target="_blank"
               to="/settings/account/details/#timezone"
@@ -77,7 +77,7 @@ function TimestampTooltipBody({
               <br />
               {t('Add your local timezone')}
             </TimestampLabelLink>
-          </TimestampLabel>
+          </TimestampLabelLinkContainer>
         </Fragment>
       )}
 
@@ -155,7 +155,10 @@ const TimestampLabelLink = styled(Link)`
   line-height: 0.8;
 `;
 
-const TimestampLabel = styled('dd')`
+const TimestampLabel = styled('span')`
   color: ${p => p.theme.gray400};
+`;
+
+const TimestampLabelLinkContainer = styled('dd')`
   line-height: 0.8;
 `;
