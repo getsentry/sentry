@@ -14,6 +14,7 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
@@ -115,9 +116,11 @@ function GoToMetricAlert({detector}: {detector: MetricDetector}) {
 
   return (
     <div>
-      <Tooltip title="Superuser only">
+      <Tooltip title="Superuser only" skipWrapper>
         <Link
-          to={`/organizations/${organization.slug}issues/alerts/rules/details/${detector.alertRuleId}/`}
+          to={normalizeUrl(
+            `/organizations/${organization.slug}/issues/alerts/rules/details/${detector.alertRuleId}/`
+          )}
         >
           View Metric Alert
         </Link>
