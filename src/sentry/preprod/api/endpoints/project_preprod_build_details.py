@@ -9,7 +9,9 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.preprod.analytics import PreprodArtifactApiGetBuildDetailsEvent
-from sentry.preprod.build_details_utils import transform_preprod_artifact_to_build_details
+from sentry.preprod.api.models.project_preprod_build_details_models import (
+    transform_preprod_artifact_to_build_details,
+)
 from sentry.preprod.models import PreprodArtifact
 
 logger = logging.getLogger(__name__)

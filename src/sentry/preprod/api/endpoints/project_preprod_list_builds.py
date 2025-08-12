@@ -139,7 +139,7 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
 
         # Build response with pagination info
         response_data = ListBuildsApiResponse(
-            builds=[item.dict() for item in build_details_list],
+            builds=build_details_list,
             pagination=PaginationInfo(
                 next=result.next.offset if result.next.has_results else None,
                 prev=result.prev.offset if result.prev.has_results else None,
