@@ -1393,10 +1393,11 @@ def _process_vroomrs_transaction_profile(profile: Profile) -> bool:
             if prof.is_sampled():
                 with sentry_sdk.start_span(op="gcs.write", name="compress and write"):
                     storage = get_profiles_storage()
-                    compressed_profile = prof.compress()
                     with measure_storage_operation(
-                        "put", "profiling", len(json_profile), len(compressed_profile), "lz4"
-                    ):
+                        "put", "profiling", len(json_profile)
+                    ) as metric_emitter:
+                        compressed_profile = prof.compress()
+                        metric_emitter.record_compressed_size(len(compressed_profile), "lz4")
                         storage.save(prof.storage_path(), io.BytesIO(compressed_profile))
                 # we only run find_occurrences for sampled profiles, unsampled profiles
                 # are skipped
@@ -1456,10 +1457,11 @@ def _process_vroomrs_chunk_profile(profile: Profile) -> bool:
             chunk.normalize()
             with sentry_sdk.start_span(op="gcs.write", name="compress and write"):
                 storage = get_profiles_storage()
-                compressed_chunk = chunk.compress()
                 with measure_storage_operation(
-                    "put", "profiling", len(json_profile), len(compressed_chunk), "lz4"
-                ):
+                    "put", "profiling", len(json_profile)
+                ) as metric_emitter:
+                    compressed_chunk = chunk.compress()
+                    metric_emitter.record_compressed_size(len(compressed_chunk), "lz4")
                     storage.save(chunk.storage_path(), io.BytesIO(compressed_chunk))
             with sentry_sdk.start_span(op="processing", name="send chunk to kafka"):
                 payload = build_chunk_kafka_message(chunk)

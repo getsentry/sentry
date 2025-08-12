@@ -246,6 +246,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
                 len(value),
                 tags={"usecase": "nodestore", "compression": self.compression},
                 unit="byte",
+                precise=True,
             )
 
         # Only need to write the column at all if any flags are enabled. And if
