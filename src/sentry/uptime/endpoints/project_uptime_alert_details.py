@@ -123,7 +123,6 @@ class ProjectUptimeAlertDetailsEndpoint(ProjectUptimeAlertEndpoint):
         Delete an uptime monitor.
         """
         detector = get_detector(uptime_subscription.uptime_subscription)
-        assert detector
         uptime_subscription_id = uptime_subscription.id
         audit_log_data = uptime_subscription.get_audit_log_data()
         delete_uptime_detector(detector)
