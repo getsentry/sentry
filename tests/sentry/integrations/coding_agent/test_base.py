@@ -48,11 +48,9 @@ class MockCodingAgentInstallation(CodingAgentIntegration):
 class MockCodingAgentClient(CodingAgentClient):
     """Concrete implementation for testing."""
 
-    @property
-    def base_url(self) -> str:
-        return "https://api.test-agent.com/v1"
+    base_url = "https://api.test-agent.com/v1"
 
-    def launch(self, webhook_url: str, request: CodingAgentLaunchRequest) -> dict:
+    def launch(self, webhook_url: str, request: CodingAgentLaunchRequest) -> CodingAgentState:
         """Mock implementation of launch method."""
         return CodingAgentState(
             id="test-123",

@@ -30,7 +30,7 @@ class AutofixIssue(TypedDict):
 class AutofixRequest(TypedDict):
     project_id: int
     issue: AutofixIssue
-    repos: list[dict] = []
+    repos: list[dict]
 
 
 class FileChange(BaseModel):
