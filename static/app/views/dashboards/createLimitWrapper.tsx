@@ -1,7 +1,7 @@
 import HookOrDefault from 'sentry/components/hookOrDefault';
 
 export const DashboardCreateLimitWrapper = HookOrDefault({
-  hookName: 'component:dashboard-limit-provider',
+  hookName: 'component:dashboards-limit-provider',
   defaultComponent: ({children}) =>
     typeof children === 'function'
       ? children({

@@ -83,14 +83,14 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
   };
 }
 
-export type DashboardLimitProviderProps = {
+export type DashboardsLimitProviderProps = {
   children: ((data: UseDashboardsLimitResult & any) => React.ReactNode) | React.ReactNode;
 };
 
-export function DashboardLimitProvider({
+export function DashboardsLimitProvider({
   children,
   ...props
-}: DashboardLimitProviderProps & any) {
+}: DashboardsLimitProviderProps & any) {
   const dashboardLimitData = useDashboardsLimit();
 
   return (
