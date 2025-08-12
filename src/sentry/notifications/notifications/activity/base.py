@@ -130,7 +130,6 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         should_add_url = provider is not None
         text_description = self.description_as_text(text_template, params, should_add_url, provider)
         html_description = self.description_as_html(html_template or text_template, params)
-
         enhanced_privacy = self.group.organization.flags.enhanced_privacy
 
         context = {
@@ -140,12 +139,13 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
             "enhanced_privacy": enhanced_privacy,
         }
 
-        if features.has("organizations:suspect-commits-in-emails", self.group.organization):
-            # Add suspect commits to workflow notifications using the same method as issue alerts
-            if self.group:
-                context["commits"] = get_suspect_commits_by_group_id(
-                    project=self.project, group_id=self.group.id
-                )
+        if (
+            features.has("organizations:suspect-commits-in-emails", self.group.organization)
+            and self.group
+        ):
+            context["commits"] = get_suspect_commits_by_group_id(
+                project=self.project, group_id=self.group.id
+            )
 
         return context
 
