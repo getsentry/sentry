@@ -215,17 +215,17 @@ def create_feedback_issue(
     if should_filter:
         if filter_reason == "too_large":
             feedback_message = event["contexts"]["feedback"]["message"]
+            metrics.distribution(
+                "feedback.large_message",
+                len(feedback_message),
+                tags={
+                    "entrypoint": "create_feedback_issue",
+                    "referrer": source.value,
+                    "platform": project.platform,
+                },
+                sample_rate=1.0,
+            )
             if random.random() < 0.1:
-                metrics.distribution(
-                    "feedback.large_message",
-                    len(feedback_message),
-                    tags={
-                        "entrypoint": "create_feedback_issue",
-                        "referrer": source.value,
-                        "platform": project.platform,
-                    },
-                    sample_rate=1.0,
-                )
                 logger.info(
                     "Feedback message exceeds max size.",
                     extra={
