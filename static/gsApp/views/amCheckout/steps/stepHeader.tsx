@@ -49,9 +49,12 @@ function StepHeader({
 
   if (isNewCheckout) {
     return (
-      <NewCheckoutStepTitle id={`step-${stepNumber}`} data-test-id={dataTestId}>
-        {title}
-      </NewCheckoutStepTitle>
+      <Flex justify="between">
+        <NewCheckoutStepTitle id={`step-${stepNumber}`} data-test-id={dataTestId}>
+          {title}
+        </NewCheckoutStepTitle>
+        {trailingItems && <div>{trailingItems}</div>}
+      </Flex>
     );
   }
 
