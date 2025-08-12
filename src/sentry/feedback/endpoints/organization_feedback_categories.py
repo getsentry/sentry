@@ -35,6 +35,11 @@ MAX_FEEDBACKS_CONTEXT_CHARS = 1000000
 
 MAX_RETURN_CATEGORIES = 4
 
+MAX_ASSOCIATED_LABELS = 12
+
+# Number of top labels to pass to Seer to ask for similar labels
+NUM_TOP_LABELS = 6
+
 # Two days because the largest granularity we cache at is the day
 CATEGORIES_CACHE_TIMEOUT = 172800
 
@@ -169,21 +174,21 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
                 LabelGroupFeedbacksContext(feedback=feedback["feedback"], labels=feedback["labels"])
             )
 
-        # Gets the top 10 labels by feedbacks to augment the context that the LLM has, instead of just asking it to generate categories without knowing the most common labels
-        top_10_labels_result = query_top_ai_labels_by_feedback_count(
+        # Gets the top labels by feedbacks to augment the context that the LLM has, instead of just asking it to generate categories without knowing the most common labels
+        top_labels_result = query_top_ai_labels_by_feedback_count(
             organization_id=organization.id,
             project_ids=numeric_project_ids,
             start=start,
             end=end,
-            limit=10,
+            limit=NUM_TOP_LABELS,
         )
 
         # Guaranteed to be non-empty since recent_feedbacks is non-empty
-        top_10_labels = [result["label"] for result in top_10_labels_result]
+        top_labels = [result["label"] for result in top_labels_result]
 
         seer_request = LabelGroupsRequest(
             organization_id=organization.id,
-            labels=top_10_labels,
+            labels=top_labels,
             feedbacks_context=context_feedbacks,
         )
 
@@ -192,18 +197,18 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
         )["data"]
 
         # If the LLM just forgets or adds extra primary labels, log it but still generate categories
-        if len(label_groups) != len(top_10_labels):
+        if len(label_groups) != len(top_labels):
             logger.warning(
                 "Number of label groups does not match number of primary labels passed in Seer",
                 extra={
                     "label_groups": label_groups,
-                    "top_10_labels": top_10_labels,
+                    "top_labels": top_labels,
                 },
             )
 
         # If the LLM hallucinates primary label(s), log it but still generate categories
         for label_group in label_groups:
-            if label_group["primaryLabel"] not in top_10_labels:
+            if label_group["primaryLabel"] not in top_labels:
                 logger.warning(
                     "LLM hallucinated primary label",
                     extra={"label_group": label_group},
@@ -211,12 +216,12 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
 
         # Converts label_groups (which maps primary label to associated labels) to a list of lists, where the first element is the primary label and the rest are the associated labels
         label_groups_lists: list[list[str]] = [
-            [label_group["primaryLabel"]] + label_group["associatedLabels"]
+            [label_group["primaryLabel"]] + label_group["associatedLabels"][:MAX_ASSOCIATED_LABELS]
             for label_group in label_groups
         ]
 
         # label_groups_lists might be empty if the LLM just decides not to give us any primary labels (leading to ValueError, then 500)
-        # This will be logged since top_10_labels is guaranteed to be non-empty, but label_groups_lists will be empty
+        # This will be logged since top_labels is guaranteed to be non-empty, but label_groups_lists will be empty
         label_feedback_counts = query_label_group_counts(
             organization_id=organization.id,
             project_ids=numeric_project_ids,
