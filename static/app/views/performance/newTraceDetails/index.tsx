@@ -35,8 +35,8 @@ import {
   getInitialTracePreferences,
 } from './traceState/tracePreferences';
 import {TraceStateProvider} from './traceState/traceStateProvider';
+import {ErrorsOnlyWarnings} from './traceTypeWarnings/errorsOnlyWarnings';
 import {TraceMetaDataHeader} from './traceHeader';
-import TraceTypeWarnings from './traceTypeWarnings';
 import {useTraceEventView} from './useTraceEventView';
 import {useTraceQueryParams} from './useTraceQueryParams';
 
@@ -143,7 +143,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
             logs={logsData}
           />
           <TraceInnerLayout ref={traceInnerLayoutRef}>
-            <TraceTypeWarnings
+            <ErrorsOnlyWarnings
               tree={tree}
               traceSlug={traceSlug}
               organization={organization}
