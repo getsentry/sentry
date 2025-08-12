@@ -867,7 +867,6 @@ function buildRoutes(): RouteObject[] {
           component: make(
             () => import('sentry/views/organizationStats/teamInsights/issues')
           ),
-          deprecatedRouteProps: true,
         },
         {
           path: 'health/',
