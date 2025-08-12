@@ -44,7 +44,7 @@ export function GroupInfoSummary({
       <strong>{t('Grouped by:')}</strong> {groupedBy}
       <br />
       {groupingConfig && (
-        <React.Fragment>
+        <Fragment>
           <strong>{t('Grouping Config:')}</strong> {groupingConfig}
         </React.Fragment>
       )}
