@@ -397,7 +397,7 @@ class RedisBuffer(Buffer):
             value_dict = {value: now}
         self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, value_dict)
 
-    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
+    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, float]]:
         redis_set = self._execute_redis_operation(
             key,
             RedisOperation.SORTED_SET_GET_RANGE,
@@ -416,8 +416,8 @@ class RedisBuffer(Buffer):
 
     def bulk_get_sorted_set(
         self, keys: list[str], min: float, max: float
-    ) -> dict[int, list[datetime]]:
-        data_to_timestamps: dict[int, list[datetime]] = defaultdict(list)
+    ) -> dict[int, list[float]]:
+        data_to_timestamps: dict[int, list[float]] = defaultdict(list)
 
         redis_set = self._execute_sharded_redis_operation(
             keys,
