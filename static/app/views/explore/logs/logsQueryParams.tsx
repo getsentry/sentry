@@ -1,6 +1,7 @@
 import type {Location} from 'history';
 
 import type {Sort} from 'sentry/utils/discover/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
@@ -31,7 +32,8 @@ import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
 import {getQueryFromLocation} from 'sentry/views/explore/queryParams/query';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {getSortBysFromLocation} from 'sentry/views/explore/queryParams/sortBy';
-import {isVisualize, Visualize} from 'sentry/views/explore/queryParams/visualize';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {isVisualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 const LOGS_MODE_KEY = 'mode';
@@ -102,17 +104,20 @@ function defaultSortBys(fields: string[]) {
 }
 
 export function defaultVisualizes() {
-  return [new Visualize('count(message)')];
+  return [new VisualizeFunction('count(message)')];
 }
 
 function getVisualizesFromLocation(location: Location): [Visualize] {
-  const aggregateFn = decodeScalar(location.query?.[LOGS_AGGREGATE_FN_KEY], 'count');
+  const aggregateFn = decodeScalar(
+    location.query?.[LOGS_AGGREGATE_FN_KEY],
+    AggregationKey.COUNT
+  );
   const aggregateParam = decodeScalar(
     location.query?.[LOGS_AGGREGATE_PARAM_KEY],
-    'message'
+    aggregateFn === AggregationKey.COUNT ? OurLogKnownFieldKey.MESSAGE : ''
   );
 
-  return [new Visualize(`${aggregateFn}(${aggregateParam})`)];
+  return [new VisualizeFunction(`${aggregateFn}(${aggregateParam})`)];
 }
 
 function getLogsAggregateFieldsFromLocation(location: Location): AggregateField[] {

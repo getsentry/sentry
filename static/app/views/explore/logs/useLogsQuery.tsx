@@ -22,7 +22,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
-  useLogsAggregate,
   useLogsAggregateCursor,
   useLogsAggregateSortBys,
   useLogsBaseSearch,
@@ -53,7 +52,10 @@ import {
   useVirtualStreaming,
 } from 'sentry/views/explore/logs/useVirtualStreaming';
 import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
-import {useQueryParamsGroupBys} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsGroupBys,
+  useQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
@@ -116,12 +118,12 @@ function useLogsAggregatesQueryKey({
   const location = useLocation();
   const projectIds = useLogsProjectIds();
   const groupBys = useQueryParamsGroupBys();
-  const aggregate = useLogsAggregate();
+  const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useLogsAggregateSortBys();
   const aggregateCursor = useLogsAggregateCursor();
   const fields: string[] = [];
   fields.push(...groupBys.filter(Boolean));
-  fields.push(aggregate);
+  fields.push(...visualizes.map(visualize => visualize.yAxis));
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
