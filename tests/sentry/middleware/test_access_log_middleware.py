@@ -141,23 +141,27 @@ urlpatterns = [
     ),
 ]
 
-access_log_fields = (
+required_access_log_fields = (
     "method",
     "view",
     "response",
-    "user_id",
-    "is_app",
-    "token_type",
-    "organization_id",
-    "entity_id",
     "path",
-    "caller_ip",
-    "user_agent",
-    "rate_limited",
-    "rate_limit_category",
-    "request_duration_seconds",
-    "group",
     "rate_limit_type",
+    "rate_limited",
+    "caller_ip",
+    "request_duration_seconds",
+)
+
+# All of these fields may be None, and thus may not appear in every access log
+optional_access_log_fields = (
+    "organization_id",
+    "is_app",
+    "user_id",
+    "token_type",
+    "entity_id",
+    "user_agent",
+    "rate_limit_category",
+    "group",
     "concurrent_limit",
     "concurrent_requests",
     "reset_time",
@@ -168,6 +172,7 @@ access_log_fields = (
     "snuba_storage_key",
     "snuba_quota_used",
     "snuba_rejection_threshold",
+    "token_last_characters",
 )
 
 
@@ -181,7 +186,7 @@ class LogCaptureAPITestCase(APITestCase):
     def assert_access_log_recorded(self):
         sentinel = object()
         for record in self.captured_logs:
-            for field in access_log_fields:
+            for field in required_access_log_fields:
                 assert getattr(record, field, sentinel) != sentinel, field
 
     @property
@@ -231,7 +236,7 @@ class TestAccessLogRateLimited(LogCaptureAPITestCase):
         self.get_error_response(status_code=429)
         self.assert_access_log_recorded()
         # no token because the endpoint was not hit
-        assert self.captured_logs[0].token_type == "None"
+        assert not hasattr(self.captured_logs[0], "token_type")
         assert self.captured_logs[0].limit == "0"
         assert self.captured_logs[0].remaining == "0"
         assert self.captured_logs[0].group == RateLimitedEndpoint.rate_limits.group
@@ -250,7 +255,7 @@ class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
         # rate limiting
         self.assert_access_log_recorded()
         for i in range(10):
-            assert self.captured_logs[i].token_type == "None"
+            assert not hasattr(self.captured_logs[i], "token_type")
             assert self.captured_logs[0].group == RateLimitedEndpoint.rate_limits.group
             assert self.captured_logs[i].concurrent_requests == "1"
             assert self.captured_logs[i].concurrent_limit == "1"
