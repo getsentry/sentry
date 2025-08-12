@@ -29,13 +29,14 @@ from sentry.monitors.models import (
     ScheduleType,
 )
 from sentry.monitors.processing_errors.errors import ProcessingErrorsException, ProcessingErrorType
-from sentry.monitors.types import CheckinItem
+from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR, CheckinItem
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.utils import json
 from sentry.utils.outcomes import Outcome
+from sentry.workflow_engine.models import Detector
 
 
 class ExpectNoProcessingError:
@@ -572,6 +573,10 @@ class MonitorConsumerTest(TestCase):
             monitor_environment.next_checkin_latest
             == monitor_environment.monitor.get_next_expected_checkin_latest(checkin.date_added)
         )
+        assert Detector.objects.filter(
+            datasource__type=DATA_SOURCE_CRON_MONITOR,
+            datasource__source_id=str(monitor_environment.monitor_id),
+        ).exists()
 
     def test_monitor_create_owner(self) -> None:
         self.send_checkin(
