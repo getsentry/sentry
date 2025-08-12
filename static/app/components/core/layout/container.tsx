@@ -43,8 +43,13 @@ interface ContainerLayoutProps {
 
   border?: Responsive<Border>;
 
+  // Grid Item Properties
   area?: Responsive<React.CSSProperties['gridArea']>;
   order?: Responsive<React.CSSProperties['order']>;
+  row?: Responsive<React.CSSProperties['gridRow']>;
+  column?: Responsive<React.CSSProperties['gridColumn']>;
+
+  // Flex Item Properties
   flex?: Responsive<React.CSSProperties['flex']>;
   alignSelf?: Responsive<React.CSSProperties['alignSelf']>;
 }
@@ -94,25 +99,27 @@ export type ContainerProps<T extends ContainerElement = 'div'> =
 
 const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'alignSelf',
-  'as',
   'area',
-  'border',
+  'as',
   'background',
+  'border',
+  'column',
   'display',
   'flex',
-  'padding',
+  'height',
+  'maxHeight',
+  'maxWidth',
+  'minHeight',
+  'minWidth',
+  'order',
   'overflow',
   'overflowX',
   'overflowY',
-  'order',
+  'padding',
   'position',
   'radius',
+  'row',
   'width',
-  'minWidth',
-  'maxWidth',
-  'height',
-  'minHeight',
-  'maxHeight',
 ]);
 
 export const Container = styled(
@@ -158,6 +165,9 @@ export const Container = styled(
 
   ${p => rc('grid-area', p.area, p.theme)};
   ${p => rc('order', p.order, p.theme)};
+  ${p => rc('grid-row', p.row, p.theme)};
+  ${p => rc('grid-column', p.column, p.theme)};
+
   ${p => rc('flex', p.flex, p.theme)};
   ${p => rc('align-self', p.alignSelf, p.theme)};
 
