@@ -800,4 +800,73 @@ describe('Subscription > UsageHistory', () => {
 
     expect(mockCall).toHaveBeenCalled();
   });
+
+  it('converts prepaid limit to hours for UI profile duration category', async function () {
+    const MILLISECONDS_IN_HOUR = 60 * 60 * 1000;
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/history/`,
+      method: 'GET',
+      body: [
+        BillingHistoryFixture({
+          plan: 'am3_business_ent_auf',
+          isCurrent: true,
+          categories: {
+            [DataCategory.PROFILE_DURATION_UI]: MetricHistoryFixture({
+              category: DataCategory.PROFILE_DURATION_UI,
+              usage: 100 * MILLISECONDS_IN_HOUR,
+              reserved: 6000,
+              prepaid: 6000,
+            }),
+          },
+        }),
+      ],
+    });
+
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business_ent_auf',
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
+
+    // Should show 2% (100/6000 * 100)
+    expect(await screen.findByText(/UI Profile Hours/i)).toBeInTheDocument();
+    expect(await screen.findByText('2%')).toBeInTheDocument();
+    expect(screen.queryByText('>100%')).not.toBeInTheDocument();
+  });
+
+  it('shows >100% for UI profile duration overage', async function () {
+    const MILLISECONDS_IN_HOUR = 60 * 60 * 1000;
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/history/`,
+      method: 'GET',
+      body: [
+        BillingHistoryFixture({
+          plan: 'am3_business_ent_auf',
+          isCurrent: true,
+          categories: {
+            [DataCategory.PROFILE_DURATION_UI]: MetricHistoryFixture({
+              category: DataCategory.PROFILE_DURATION_UI,
+              usage: 7000 * MILLISECONDS_IN_HOUR,
+              reserved: 6000,
+              prepaid: 6000,
+            }),
+          },
+        }),
+      ],
+    });
+
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business_ent_auf',
+    });
+    SubscriptionStore.set(organization.slug, subscription);
+
+    render(<UsageHistory {...RouteComponentPropsFixture()} />, {organization});
+
+    // Should show >100% when usage exceeds prepaid limit
+    expect(await screen.findByText(/UI Profile Hours/i)).toBeInTheDocument();
+    expect(await screen.findByText('>100%')).toBeInTheDocument();
+  });
 });
