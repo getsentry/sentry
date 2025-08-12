@@ -49,15 +49,8 @@ from sentry.sentry_apps.services.app.service import (
 )
 from sentry.sentry_apps.services.hook.service import hook_service
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
-from sentry.sentry_apps.utils.webhooks import (
-    IssueAlertActionType,
-    SentryAppResourceType,
-)
-from sentry.shared_integrations.exceptions import (
-    ApiHostError,
-    ApiTimeoutError,
-    ClientError,
-)
+from sentry.sentry_apps.utils.webhooks import IssueAlertActionType, SentryAppResourceType
+from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker.config import TaskworkerConfig
@@ -123,10 +116,7 @@ TYPES = {"Group": Group, "Error": Event, "Comment": Activity}
 def _webhook_event_data(
     event: Event | GroupEvent, group_id: int, project_id: int
 ) -> dict[str, Any]:
-    from sentry.api.serializers.rest_framework import (
-        convert_dict_key_case,
-        snake_to_camel_case,
-    )
+    from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
 
     project = Project.objects.get_from_cache(id=project_id)
     organization = Organization.objects.get_from_cache(id=project.organization_id)
@@ -719,9 +709,7 @@ def send_resource_change_webhook(
 
 
 def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]):
-    from sentry.notifications.notification_action.utils import (
-        should_fire_workflow_actions,
-    )
+    from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 
     for f in futures:
         if not f.kwargs.get("sentry_app"):
