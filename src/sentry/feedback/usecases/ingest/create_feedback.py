@@ -302,14 +302,12 @@ def create_feedback_issue(
             "feedback.ai_title_generation.skipped",
             tags={"reason": "is_spam"},
         )
-
-    if not has_seer_permissions(project.organization):
+    elif not has_seer_permissions(project.organization):
         metrics.incr(
             "feedback.ai_title_generation.skipped",
             tags={"reason": "gen_ai_disabled"},
         )
-
-    if not features.has("organizations:user-feedback-ai-titles", project.organization):
+    elif not features.has("organizations:user-feedback-ai-titles", project.organization):
         metrics.incr(
             "feedback.ai_title_generation.skipped",
             tags={"reason": "feedback_ai_titles_disabled"},
