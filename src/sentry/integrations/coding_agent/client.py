@@ -17,11 +17,7 @@ class CodingAgentClient(ApiClient, abc.ABC):
         self.api_key = api_key
         super().__init__()
 
-    @property
-    @abc.abstractmethod
-    def base_url(self) -> str:
-        """Return the base URL for the agent API."""
-        pass
+    base_url: str
 
     @abc.abstractmethod
     def _get_auth_headers(self) -> dict[str, str]:
