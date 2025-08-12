@@ -2498,13 +2498,13 @@ function buildRoutes(): RouteObject[] {
   const preprodChildren: SentryRouteObject[] = [
     {
       index: true,
-      component: make(() => import('sentry/views/preprod/buildDetails')),
+      component: make(() => import('sentry/views/preprod/buildDetails/buildDetails')),
       deprecatedRouteProps: true,
     },
   ];
   const preprodRoutes: SentryRouteObject = {
     path: '/preprod/:projectId/:artifactId/',
-    component: make(() => import('sentry/views/preprod/index')),
+    component: make(() => import('sentry/views/preprod/buildDetails/index')),
     withOrgPath: true,
     children: preprodChildren,
     deprecatedRouteProps: true,

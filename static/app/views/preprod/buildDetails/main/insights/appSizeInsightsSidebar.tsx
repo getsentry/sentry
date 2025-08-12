@@ -8,7 +8,7 @@ import {Heading} from 'sentry/components/core/text/heading';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {AppSizeInsightsSidebarRow} from 'sentry/views/preprod/main/insights/appSizeInsightsSidebarRow';
+import {AppSizeInsightsSidebarRow} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebarRow';
 import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 
 interface AppSizeInsightsSidebarProps {
