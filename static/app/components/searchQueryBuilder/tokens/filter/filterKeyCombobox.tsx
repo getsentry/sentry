@@ -171,6 +171,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         const firstKey = state.collection.getFirstKey();
         const lastKey = state.collection.getLastKey();
         const currentKey = state.selectionManager.focusedKey;
+        if (!firstKey || !lastKey || !currentKey) return;
 
         if (currentKey === firstKey) {
           keyUpCounter.current++;
@@ -196,6 +197,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         const firstKey = state.collection.getFirstKey();
         const lastKey = state.collection.getLastKey();
         const currentKey = state.selectionManager.focusedKey;
+        if (!firstKey || !lastKey || !currentKey) return;
 
         if (currentKey === lastKey) {
           keyUpCounter.current++;

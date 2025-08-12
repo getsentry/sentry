@@ -831,11 +831,12 @@ export function SearchQueryBuilderValueCombobox({
       if (e.key === 'ArrowUp') {
         e.preventDefault();
         const firstKey = state.collection.getFirstKey();
-        if (firstKey === null) return;
-
         const lastKey = state.collection.getLastKey();
-        const secondKey = state.collection.getKeyAfter(firstKey);
         const currentKey = state.selectionManager.focusedKey;
+        if (!firstKey || !lastKey || !currentKey) return;
+
+        const secondKey = state.collection.getKeyAfter(firstKey);
+        if (!secondKey) return;
 
         if (currentKey === secondKey) {
           keyUpCounter.current++;
@@ -859,11 +860,12 @@ export function SearchQueryBuilderValueCombobox({
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         const firstKey = state.collection.getFirstKey();
-        if (firstKey === null) return;
-
         const lastKey = state.collection.getLastKey();
-        const secondKey = state.collection.getKeyAfter(firstKey);
         const currentKey = state.selectionManager.focusedKey;
+        if (!firstKey || !lastKey || !currentKey) return;
+
+        const secondKey = state.collection.getKeyAfter(firstKey);
+        if (!secondKey) return;
 
         if (currentKey === lastKey) {
           keyUpCounter.current++;
