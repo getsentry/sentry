@@ -16,6 +16,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {type AutoRefreshState} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {
   EventsLogsResult,
   OurLogsResponseItem,
@@ -51,13 +52,15 @@ describe('useInfiniteLogsQuery', () => {
     return function ({children}: {children?: React.ReactNode}) {
       return (
         <QueryClientProvider client={queryClient}>
-          <LogsPageParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-          >
-            <OrganizationContext.Provider value={organization}>
-              {children}
-            </OrganizationContext.Provider>
-          </LogsPageParamsProvider>
+          <LogsQueryParamsProvider source="location">
+            <LogsPageParamsProvider
+              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+            >
+              <OrganizationContext.Provider value={organization}>
+                {children}
+              </OrganizationContext.Provider>
+            </LogsPageParamsProvider>
+          </LogsQueryParamsProvider>
         </QueryClientProvider>
       );
     };
@@ -424,17 +427,19 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     return function ({children}: {children?: React.ReactNode}) {
       return (
         <QueryClientProvider client={queryClient}>
-          <LogsPageParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-            _testContext={{
-              autoRefresh,
-              refreshInterval: 5, // Fast refresh for testing
-            }}
-          >
-            <OrganizationContext.Provider value={organization}>
-              {children}
-            </OrganizationContext.Provider>
-          </LogsPageParamsProvider>
+          <LogsQueryParamsProvider source="location">
+            <LogsPageParamsProvider
+              analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+              _testContext={{
+                autoRefresh,
+                refreshInterval: 5, // Fast refresh for testing
+              }}
+            >
+              <OrganizationContext.Provider value={organization}>
+                {children}
+              </OrganizationContext.Provider>
+            </LogsPageParamsProvider>
+          </LogsQueryParamsProvider>
         </QueryClientProvider>
       );
     };

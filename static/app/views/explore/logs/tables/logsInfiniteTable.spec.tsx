@@ -24,6 +24,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -198,11 +199,13 @@ describe('LogsInfiniteTable', function () {
   const renderWithProviders = (children: React.ReactNode) => {
     return render(
       <OrganizationContext.Provider value={organization}>
-        <LogsPageParamsProvider
-          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-        >
-          <LogsPageDataProvider>{children}</LogsPageDataProvider>
-        </LogsPageParamsProvider>
+        <LogsQueryParamsProvider source="location">
+          <LogsPageParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+          >
+            <LogsPageDataProvider>{children}</LogsPageDataProvider>
+          </LogsPageParamsProvider>
+        </LogsQueryParamsProvider>
       </OrganizationContext.Provider>
     );
   };
