@@ -115,7 +115,6 @@ const AM3_BUSINESS_FEATURES = [
   'data-forwarding',
   'discard-groups',
   'discover-query',
-  'global-views',
   'indexed-spans-extraction',
   'insights-initial-modules',
   'insights-addon-modules',
