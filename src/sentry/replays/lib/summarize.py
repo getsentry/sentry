@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Generator, Iterator
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -9,11 +9,11 @@ import sentry_sdk
 from sentry import nodestore
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
+from sentry.replays.usecases.ingest.event_parser import EventType
 from sentry.replays.usecases.ingest.event_parser import (
-    EventType,
-    parse_network_content_lengths,
-    which,
+    get_timestamp_ms as get_replay_event_timestamp_ms,
 )
+from sentry.replays.usecases.ingest.event_parser import parse_network_content_lengths, which
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.services.eventstore.models import Event
@@ -59,21 +59,18 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[EventDict
         return []
 
 
-def parse_timestamp(timestamp_value: Any, unit: str) -> float:
-    """Parse a timestamp input to a float value.
-    The argument timestamp value can be string, float, or None.
-    The returned unit will be the same as the input unit.
+def _parse_snuba_timestamp_to_ms(timestamp: str | float, input_unit: Literal["s", "ms"]) -> float:
     """
-    if timestamp_value is not None:
-        if isinstance(timestamp_value, str):
-            try:
-                dt = datetime.fromisoformat(timestamp_value.replace("Z", "+00:00"))
-                return dt.timestamp() * 1000 if unit == "ms" else dt.timestamp()
-            except (ValueError, AttributeError):
-                return 0.0
-        else:
-            return float(timestamp_value)
-    return 0.0
+    Parse a numeric or ISO timestamp to float milliseconds. `input_unit` is only used for numeric inputs.
+    """
+    if isinstance(timestamp, str):
+        try:
+            dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+            return dt.timestamp() * 1000
+        except (ValueError, AttributeError):
+            return 0.0
+
+    return float(timestamp) * 1000 if input_unit == "s" else float(timestamp)
 
 
 @sentry_sdk.trace
@@ -138,9 +135,11 @@ def fetch_trace_connected_errors(
             error_data = query.process_results(result)["data"]
 
             for event in error_data:
-                timestamp_ms = parse_timestamp(event.get("timestamp_ms"), "ms")
-                timestamp_s = parse_timestamp(event.get("timestamp"), "s")
-                timestamp = timestamp_ms or timestamp_s * 1000
+                snuba_ts_ms = event.get("timestamp_ms", 0.0)
+                snuba_ts_s = event.get("timestamp", 0.0)
+                timestamp = _parse_snuba_timestamp_to_ms(
+                    snuba_ts_ms, "ms"
+                ) or _parse_snuba_timestamp_to_ms(snuba_ts_s, "s")
 
                 if timestamp:
                     error_events.append(
@@ -227,16 +226,18 @@ def generate_summary_logs(
     for _, segment in segment_data:
         events = json.loads(segment.tobytes().decode("utf-8"))
         for event in events:
+            event_type = which(event)
+            timestamp = get_replay_event_timestamp_ms(event, event_type)
+
             # Check if we need to yield any error messages that occurred before this event
-            while error_idx < len(error_events) and error_events[error_idx][
-                "timestamp"
-            ] < event.get("timestamp", 0):
+            while (
+                error_idx < len(error_events) and error_events[error_idx]["timestamp"] < timestamp
+            ):
                 error = error_events[error_idx]
                 yield generate_error_log_message(error)
                 error_idx += 1
 
             # Yield the current event's log message
-            event_type = which(event)
             if event_type == EventType.FEEDBACK:
                 feedback_id = event["data"]["payload"].get("data", {}).get("feedbackId")
                 feedback = fetch_feedback_details(feedback_id, project_id)
@@ -262,7 +263,7 @@ def as_log_message(event: dict[str, Any]) -> str | None:
     should be forked.
     """
     event_type = which(event)
-    timestamp = event.get("timestamp", 0.0)
+    timestamp = get_replay_event_timestamp_ms(event, event_type)
 
     try:
         match event_type:
@@ -276,20 +277,16 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 message = event["data"]["payload"]["message"]
                 return f"User rage clicked on {message} but the triggered action was slow to complete at {timestamp}"
             case EventType.NAVIGATION_SPAN:
-                timestamp_ms = timestamp * 1000
                 to = event["data"]["payload"]["description"]
-                return f"User navigated to: {to} at {timestamp_ms}"
+                return f"User navigated to: {to} at {timestamp}"
             case EventType.CONSOLE:
                 message = event["data"]["payload"]["message"]
                 return f"Logged: {message} at {timestamp}"
             case EventType.UI_BLUR:
-                # timestamp_ms = timestamp * 1000
                 return None
             case EventType.UI_FOCUS:
-                # timestamp_ms = timestamp * 1000
                 return None
             case EventType.RESOURCE_FETCH:
-                timestamp_ms = timestamp * 1000
                 payload = event["data"]["payload"]
                 method = payload["data"]["method"]
                 status_code = payload["data"]["statusCode"]
@@ -311,14 +308,13 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                     return None
 
                 if response_size is None:
-                    return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code}; took {duration} milliseconds at {timestamp_ms}'
+                    return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code}; took {duration} milliseconds at {timestamp}'
                 else:
-                    return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code} and response size {response_size}; took {duration} milliseconds at {timestamp_ms}'
+                    return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code} and response size {response_size}; took {duration} milliseconds at {timestamp}'
             case EventType.LCP:
-                timestamp_ms = timestamp * 1000
                 duration = event["data"]["payload"]["data"]["size"]
                 rating = event["data"]["payload"]["data"]["rating"]
-                return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
+                return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp}"
             case EventType.HYDRATION_ERROR:
                 return f"There was a hydration error on the page at {timestamp}"
             case EventType.RESOURCE_XHR:
