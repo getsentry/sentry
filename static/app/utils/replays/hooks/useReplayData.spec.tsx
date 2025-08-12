@@ -1,11 +1,11 @@
 import type {ReactNode} from 'react';
 import {duration} from 'moment-timezone';
+import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
 import {
   ReplayConsoleEventFixture,
   ReplayNavigateEventFixture,
 } from 'sentry-fixture/replay/helpers';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
-import {ReplayErrorFixture} from 'sentry-fixture/replayError';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -278,31 +278,31 @@ describe('useReplayData', () => {
     });
 
     const mockErrorResponse1 = [
-      ReplayErrorFixture({
+      RawReplayErrorFixture({
         id: ERROR_IDS[0]!,
         issue: 'JAVASCRIPT-123E',
-        timestamp: startedAt.toISOString(),
+        timestamp: startedAt,
       }),
     ];
     const mockErrorResponse2 = [
-      ReplayErrorFixture({
+      RawReplayErrorFixture({
         id: ERROR_IDS[1]!,
         issue: 'JAVASCRIPT-789Z',
-        timestamp: startedAt.toISOString(),
+        timestamp: startedAt,
       }),
     ];
     const mockErrorResponse3 = [
-      ReplayErrorFixture({
+      RawReplayErrorFixture({
         id: ERROR_IDS[0]!,
         issue: 'JAVASCRIPT-123E',
-        timestamp: startedAt.toISOString(),
+        timestamp: startedAt,
       }),
     ];
     const mockErrorResponse4 = [
-      ReplayErrorFixture({
+      RawReplayErrorFixture({
         id: ERROR_IDS[1]!,
         issue: 'JAVASCRIPT-789Z',
-        timestamp: startedAt.toISOString(),
+        timestamp: startedAt,
       }),
     ];
 
@@ -418,10 +418,10 @@ describe('useReplayData', () => {
       timestamp: startedAt,
     });
     const mockErrorResponse = [
-      ReplayErrorFixture({
+      RawReplayErrorFixture({
         id: ERROR_IDS[0]!,
         issue: 'JAVASCRIPT-123E',
-        timestamp: startedAt.toISOString(),
+        timestamp: startedAt,
       }),
     ];
 

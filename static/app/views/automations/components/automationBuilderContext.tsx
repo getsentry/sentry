@@ -1,4 +1,4 @@
-import {createContext, type Reducer, useCallback, useContext, useReducer} from 'react';
+import {createContext, useCallback, useContext, useReducer, type Reducer} from 'react';
 import {uuid4} from '@sentry/core';
 
 import type {
@@ -12,8 +12,8 @@ import {
   SentryAppIdentifier,
 } from 'sentry/types/workflowEngine/actions';
 import {
-  type DataConditionGroup,
   DataConditionGroupLogicType,
+  type DataConditionGroup,
   type DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';

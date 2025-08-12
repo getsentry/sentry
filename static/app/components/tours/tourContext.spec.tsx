@@ -5,7 +5,7 @@ import {
   ORDERED_TEST_TOUR,
   TestTour,
 } from 'sentry/components/tours/testUtils';
-import {type TourState, useTourReducer} from 'sentry/components/tours/tourContext';
+import {useTourReducer, type TourState} from 'sentry/components/tours/tourContext';
 
 describe('useTourReducer', () => {
   const initialState: TourState<TestTour> = {

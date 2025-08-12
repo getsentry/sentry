@@ -1,10 +1,10 @@
 import {
   createContext,
-  type ReactNode,
   useCallback,
   useContext,
   useEffect,
   useRef,
+  type ReactNode,
 } from 'react';
 import type {FeedbackModalIntegration} from '@sentry/core';
 import isEqual from 'lodash/isEqual';

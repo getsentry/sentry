@@ -437,11 +437,6 @@ const generateThemeAliases = (colors: Colors) => ({
     warning: colors.yellow200,
     warningActive: color(colors.yellow200).opaquer(1).string(),
   },
-
-  /**
-   * Background of alert banners at the top
-   */
-  bannerBackground: colors.gray500,
 });
 
 type Alert = 'muted' | 'info' | 'warning' | 'success' | 'error';

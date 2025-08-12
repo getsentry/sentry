@@ -1,4 +1,4 @@
-import {Fragment, lazy, type ReactNode, Suspense} from 'react';
+import {Fragment, lazy, Suspense, type ReactNode} from 'react';
 import {css} from '@emotion/react';
 
 import {openModal} from 'sentry/actionCreators/modal';
