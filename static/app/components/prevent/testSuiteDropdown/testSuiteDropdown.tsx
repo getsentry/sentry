@@ -64,6 +64,14 @@ export function TestSuiteDropdown() {
     [setDropdownSearch]
   );
 
+  function getEmptyMessage() {
+    if (testSuites.length) {
+      return '';
+    }
+
+    return t('No test suites found');
+  }
+
   useEffect(() => {
     // Create a use effect to cancel handleOnSearch fn on unmount to avoid memory leaks
     return () => {
@@ -89,7 +97,7 @@ export function TestSuiteDropdown() {
       defaultValue={[]}
       onChange={handleChange}
       onSearch={handleOnSearch}
-      // TODO: Add the disabled and emptyMessage when connected to backend hook
+      emptyMessage={getEmptyMessage()}
       menuTitle={t('Filter Test Suites')}
       menuWidth={`${MAX_SUITE_UI_LENGTH}em`}
       trigger={triggerProps => {
