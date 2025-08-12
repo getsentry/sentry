@@ -40,7 +40,6 @@ from sentry.integrations.time_utils import time_since
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,
-    MonitorIncidentType,
     PerformanceP95EndpointRegressionGroupType,
     ProfileFileIOGroupType,
 )
@@ -53,6 +52,7 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule as IssueAlertRule
 from sentry.models.team import Team
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.notifications.utils.actions import MessageAction
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.seer.autofix.constants import SeerAutomationSource
