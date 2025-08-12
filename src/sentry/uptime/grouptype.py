@@ -11,7 +11,9 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult, Che
 from sentry import features, options
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.group import GroupStatus
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_project_subscription
@@ -32,6 +34,23 @@ from sentry.workflow_engine.types import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def resolve_uptime_issue(detector: Detector):
+    """
+    Sends an update to the issue platform to resolve the uptime issue for this
+    monitor.
+    """
+    status_change = StatusChangeMessage(
+        fingerprint=build_fingerprint(detector),
+        project_id=detector.project_id,
+        new_status=GroupStatus.RESOLVED,
+        new_substatus=None,
+    )
+    produce_occurrence_to_kafka(
+        payload_type=PayloadType.STATUS_CHANGE,
+        status_change=status_change,
+    )
 
 
 @dataclass(frozen=True)

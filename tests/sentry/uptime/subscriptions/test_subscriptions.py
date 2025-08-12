@@ -1,4 +1,3 @@
-from hashlib import md5
 from unittest import mock
 
 import pytest
@@ -9,14 +8,12 @@ from pytest import raises
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
-from sentry.models.group import Group, GroupStatus
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_kafka
 from sentry.types.actor import Actor
-from sentry.uptime.grouptype import UptimeDomainCheckFailure, build_detector_fingerprint_component
-from sentry.uptime.issue_platform import create_issue_platform_occurrence
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     UptimeStatus,
@@ -770,7 +767,8 @@ class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
         assert not detector.enabled
 
     @mock.patch("sentry.quotas.backend.disable_seat")
-    def test_disable_failed(self, mock_disable_seat: mock.MagicMock) -> None:
+    @mock.patch("sentry.uptime.subscriptions.subscriptions.resolve_uptime_issue")
+    def test_disable_failed(self, mock_resolve_uptime_issue, mock_disable_seat) -> None:
         with (
             self.tasks(),
             self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()),
@@ -786,21 +784,8 @@ class DisableProjectUptimeSubscriptionTest(UptimeTestCase):
             )
             detector = get_detector(proj_sub.uptime_subscription)
 
-            create_issue_platform_occurrence(
-                self.create_uptime_result(
-                    subscription_id=proj_sub.uptime_subscription.subscription_id
-                ),
-                detector,
-            )
-            fingerprint = build_detector_fingerprint_component(detector).encode("utf-8")
-            hashed_fingerprint = md5(fingerprint).hexdigest()
-            assert Group.objects.filter(
-                grouphash__hash=hashed_fingerprint, status=GroupStatus.UNRESOLVED
-            ).exists()
             disable_uptime_detector(detector)
-            assert Group.objects.filter(
-                grouphash__hash=hashed_fingerprint, status=GroupStatus.RESOLVED
-            ).exists()
+            mock_resolve_uptime_issue.assert_called_with(detector)
 
         proj_sub.refresh_from_db()
         assert proj_sub.status == ObjectStatus.DISABLED
