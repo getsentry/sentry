@@ -3,9 +3,9 @@ from collections.abc import Generator
 from sentry.models.project import Project
 from sentry.replays.lib.summarize import (
     EventDict,
+    _parse_snuba_timestamp_to_ms,
     as_log_message,
     get_summary_logs,
-    parse_timestamp,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
@@ -255,29 +255,27 @@ def test_as_log_message() -> None:
     assert as_log_message({}) is None
 
 
-def test_parse_timestamp() -> None:
-    # Test None input
-    assert parse_timestamp(None, "ms") == 0.0
-    assert parse_timestamp(None, "s") == 0.0
-
+def test_parse_snuba_timestamp() -> None:
     # Test numeric input
-    assert parse_timestamp(123.456, "ms") == 123.456
-    assert parse_timestamp(123, "s") == 123.0
+    assert _parse_snuba_timestamp_to_ms(123.456, "ms") == 123.456
+    assert _parse_snuba_timestamp_to_ms(123, "s") == 123000
+
+    # Note input unit is ignored for string inputs.
 
     # Test string input with ISO format without timezone
-    assert parse_timestamp("2023-01-01T12:00:00", "ms") == 1672574400.0 * 1000
-    assert parse_timestamp("2023-01-01T12:00:00", "s") == 1672574400.0
+    assert _parse_snuba_timestamp_to_ms("2023-01-01T12:00:00", "ms") == 1672574400000
+    assert _parse_snuba_timestamp_to_ms("2023-01-01T12:00:00", "s") == 1672574400000
 
     # Test string input with ISO format with timezone offset
-    assert parse_timestamp("2023-01-01T12:00:00+00:00", "ms") == 1672574400.0 * 1000
-    assert parse_timestamp("2023-01-01T12:00:00.123+00:00", "ms") == 1672574400.123 * 1000
-    assert parse_timestamp("2023-01-01T12:00:00+00:00", "s") == 1672574400.0
+    assert _parse_snuba_timestamp_to_ms("2023-01-01T12:00:00+00:00", "ms") == 1672574400000
+    assert _parse_snuba_timestamp_to_ms("2023-01-01T12:00:00.123+00:00", "ms") == 1672574400123
+    assert _parse_snuba_timestamp_to_ms("2023-01-01T12:00:00+00:00", "s") == 1672574400000
 
     # Test string input with ISO format with 'Z' timezone suffix
-    assert parse_timestamp("2023-01-01T12:00:00Z", "s") == 1672574400.0
-    assert parse_timestamp("2023-01-01T12:00:00.123Z", "ms") == 1672574400.123 * 1000
+    assert _parse_snuba_timestamp_to_ms("2023-01-01T12:00:00Z", "s") == 1672574400000
+    assert _parse_snuba_timestamp_to_ms("2023-01-01T12:00:00.123Z", "ms") == 1672574400123
 
     # Test invalid input
-    assert parse_timestamp("invalid timestamp", "ms") == 0.0
-    assert parse_timestamp("", "ms") == 0.0
-    assert parse_timestamp("2023-13-01T12:00:00Z", "ms") == 0.0
+    assert _parse_snuba_timestamp_to_ms("invalid timestamp", "ms") == 0.0
+    assert _parse_snuba_timestamp_to_ms("", "ms") == 0.0
+    assert _parse_snuba_timestamp_to_ms("2023-13-01T12:00:00Z", "ms") == 0.0
