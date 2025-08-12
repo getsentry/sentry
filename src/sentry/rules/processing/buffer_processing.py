@@ -49,6 +49,13 @@ class DelayedProcessingBase(ABC):
     def processing_task(self) -> Task:
         raise NotImplementedError
 
+    @classmethod
+    def get_buffer_keys(cls) -> list[str]:
+        return [
+            f"{cls.buffer_key}{cls.buffer_separator}{shard}" if shard > 0 else cls.buffer_key
+            for shard in range(cls.buffer_shards)
+        ]
+
 
 delayed_processing_registry = Registry[type[DelayedProcessingBase]]()
 
@@ -159,10 +166,9 @@ def process_buffer() -> None:
             # and the more likely we'll have frequently updated projects that are never actually
             # retrieved and processed here.
             fetch_time = datetime.now(tz=timezone.utc).timestamp()
-            all_project_ids_and_timestamps = buffer.backend.get_sharded_sorted_set(
-                handler.buffer_key,
-                separator=handler.buffer_separator,
-                shards=handler.buffer_shards,
+            buffer_keys = handler.get_buffer_keys()
+            all_project_ids_and_timestamps = buffer.backend.bulk_get_sorted_set(
+                buffer_keys,
                 min=0,
                 max=fetch_time,
             )
@@ -179,10 +185,8 @@ def process_buffer() -> None:
             for project_id in project_ids:
                 process_in_batches(project_id, processing_type)
 
-            buffer.backend.delete_sharded_key(
-                handler.buffer_key,
-                separator=handler.buffer_separator,
-                shards=handler.buffer_shards,
+            buffer.backend.delete_keys(
+                buffer_keys,
                 min=0,
                 max=fetch_time,
             )

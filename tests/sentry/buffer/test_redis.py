@@ -282,7 +282,7 @@ class TestRedisBuffer:
         result = json.loads(project_ids_to_rule_data[project_id2][0].get(f"{rule2_id}:{group3_id}"))
         assert result.get("event_id") == event4_id
 
-    def test_sharded_sorted_set(self) -> None:
+    def test_get_bulk_sorted_set(self) -> None:
         shards = 3
         project_ids = [1, 2, 2, 3, 3, 3, 4, 4, 4, 4]
         for id in project_ids:
@@ -293,55 +293,42 @@ class TestRedisBuffer:
                 key = f"{PROJECT_ID_BUFFER_LIST_KEY}:{shard}"
             self.buf.push_to_sorted_set(key=key, value=id)
 
-        project_ids_and_timestamps = self.buf.get_sharded_sorted_set(
-            key=PROJECT_ID_BUFFER_LIST_KEY,
-            separator=":",
-            shards=shards,
+        buffer_keys = [
+            f"{PROJECT_ID_BUFFER_LIST_KEY}:{shard}" if shard > 0 else PROJECT_ID_BUFFER_LIST_KEY
+            for shard in range(shards)
+        ]
+
+        project_ids_and_timestamps = self.buf.bulk_get_sorted_set(
+            buffer_keys,
             min=0,
             max=datetime.datetime.now().timestamp(),
         )
         assert len(project_ids_and_timestamps) == 4
         assert set(project_ids_and_timestamps.keys()) == set(project_ids)
 
-        self.buf.delete_sharded_key(
-            key=PROJECT_ID_BUFFER_LIST_KEY,
-            separator=":",
-            shards=shards,
+        self.buf.delete_keys(
+            buffer_keys,
             min=0,
             max=datetime.datetime.now().timestamp(),
         )
-        project_ids_and_timestamps = self.buf.get_sharded_sorted_set(
-            key=PROJECT_ID_BUFFER_LIST_KEY,
-            separator=":",
-            shards=shards,
+        project_ids_and_timestamps = self.buf.bulk_get_sorted_set(
+            buffer_keys,
             min=0,
             max=datetime.datetime.now().timestamp(),
         )
         assert len(project_ids_and_timestamps) == 0
 
-    def test_sharded_sorted_set_single_shard(self) -> None:
+    def test_bulk_sorted_set_single_key(self) -> None:
         project_ids = [1, 2, 2, 3, 3, 3, 4, 4, 4, 4]
         for id in project_ids:
             self.buf.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=id)
-        project_ids_and_timestamps = self.buf.get_sharded_sorted_set(
-            key=PROJECT_ID_BUFFER_LIST_KEY,
-            separator=":",
-            shards=1,
+        project_ids_and_timestamps = self.buf.bulk_get_sorted_set(
+            [PROJECT_ID_BUFFER_LIST_KEY],
             min=0,
             max=datetime.datetime.now().timestamp(),
         )
         assert len(project_ids_and_timestamps) == 4
         assert set(project_ids_and_timestamps.keys()) == set(project_ids)
-
-    def test_sharded_sorted_set_zero_shards(self) -> None:
-        with pytest.raises(ValueError):
-            self.buf.get_sharded_sorted_set(
-                key=PROJECT_ID_BUFFER_LIST_KEY,
-                separator=":",
-                shards=0,
-                min=0,
-                max=datetime.datetime.now().timestamp(),
-            )
 
     def test_buffer_hook_registry(self) -> None:
         """Test that we can add an event to the registry and that the callback is invoked"""

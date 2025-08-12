@@ -61,8 +61,8 @@ class Buffer(Service):
     def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
         return []
 
-    def get_sharded_sorted_set(
-        self, key: str, separator: str, shards: int, min: float, max: float
+    def bulk_get_sorted_set(
+        self, keys: list[str], min: float, max: float
     ) -> dict[int, list[datetime]]:
         return {}
 
@@ -97,9 +97,7 @@ class Buffer(Service):
     def delete_key(self, key: str, min: float, max: float) -> None:
         return None
 
-    def delete_sharded_key(
-        self, key: str, separator: str, shards: int, min: float, max: float
-    ) -> None:
+    def delete_keys(self, keys: list[str], min: float, max: float) -> None:
         return None
 
     def incr(
