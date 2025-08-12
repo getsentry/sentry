@@ -147,7 +147,6 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
             )
 
             validated_data_sources = validated_data.pop("data_sources", [])
-
             for validated_data_source in validated_data_sources:
                 data_source_creator = validated_data_source["_creator"]
                 data_source = data_source_creator.create()
@@ -185,7 +184,21 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
                 owner_team_id=owner_team_id,
                 created_by_id=self.context["request"].user.id,
             )
-            DataSourceDetector.objects.create(data_source=detector_data_source, detector=detector)
+
+            # TODO - bulk create these?
+            validated_data_sources = validated_data.pop("data_sources", [])
+            for validated_data_source in validated_data_sources:
+                data_source_creator = validated_data_source["_creator"]
+                data_source = data_source_creator.create()
+                detector_data_source = DataSource.objects.create(
+                    organization_id=self.context["project"].organization_id,
+                    source_id=data_source.id,
+                    type=validated_data_source["data_source_type"],
+                )
+
+                DataSourceDetector.objects.create(
+                    data_source=detector_data_source, detector=detector
+                )
 
             create_audit_entry(
                 request=self.context["request"],
