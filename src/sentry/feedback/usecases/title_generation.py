@@ -26,17 +26,9 @@ class GenerateFeedbackTitleRequest(TypedDict):
 def should_get_ai_title(organization: Organization) -> bool:
     """Check if AI title generation should be used for the given organization."""
     if not features.has("organizations:gen-ai-features", organization):
-        metrics.incr(
-            "feedback.ai_title_generation.skipped",
-            tags={"reason": "gen_ai_disabled"},
-        )
         return False
 
     if not features.has("organizations:user-feedback-ai-titles", organization):
-        metrics.incr(
-            "feedback.ai_title_generation.skipped",
-            tags={"reason": "feedback_ai_titles_disabled"},
-        )
         return False
 
     return True
