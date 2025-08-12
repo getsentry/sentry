@@ -26,7 +26,7 @@ from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
-from sentry.seer.utils import has_seer_permissions
+from sentry.seer.seer_setup import has_seer_permissions
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics

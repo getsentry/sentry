@@ -12,7 +12,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, serialize
 from sentry.replays.models import ReplayDeletionJobModel
 from sentry.replays.tasks import run_bulk_replay_delete_job
-from sentry.seer.utils import has_seer_permissions
+from sentry.seer.seer_setup import has_seer_permissions
 
 
 class ReplayDeletionJobPermission(ProjectPermission):

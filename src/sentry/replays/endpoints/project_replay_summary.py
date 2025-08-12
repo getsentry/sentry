@@ -22,8 +22,8 @@ from sentry.replays.lib.summarize import (
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
+from sentry.seer.seer_setup import has_seer_permissions
 from sentry.seer.signed_seer_api import sign_with_seer_secret
-from sentry.seer.utils import has_seer_permissions
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)

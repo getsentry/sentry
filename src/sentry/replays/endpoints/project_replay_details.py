@@ -16,7 +16,7 @@ from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.replays.tasks import delete_replay
 from sentry.replays.usecases.reader import has_archived_segment
-from sentry.seer.utils import has_seer_permissions
+from sentry.seer.seer_setup import has_seer_permissions
 
 
 class ReplayDetailsPermission(ProjectPermission):
