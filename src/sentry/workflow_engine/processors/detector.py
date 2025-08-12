@@ -8,9 +8,9 @@ from typing import NamedTuple
 import sentry_sdk
 
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.eventstore.models import GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.types import (

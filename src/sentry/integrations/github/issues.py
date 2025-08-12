@@ -7,7 +7,6 @@ from typing import Any, NoReturn
 
 from django.urls import reverse
 
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.mixins.issues import MAX_CHAR
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
@@ -15,6 +14,7 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,

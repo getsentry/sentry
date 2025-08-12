@@ -70,13 +70,13 @@ def mock_symbolicate_event():
 
 @pytest.fixture
 def mock_event_processing_store():
-    with mock.patch("sentry.eventstore.processing.event_processing_store") as m:
+    with mock.patch("sentry.services.eventstore.processing.event_processing_store") as m:
         yield m
 
 
 @pytest.fixture
 def mock_transaction_processing_store():
-    with mock.patch("sentry.eventstore.processing.transaction_processing_store") as m:
+    with mock.patch("sentry.services.eventstore.processing.transaction_processing_store") as m:
         yield m
 
 

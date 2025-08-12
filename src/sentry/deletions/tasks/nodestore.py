@@ -6,12 +6,13 @@ from typing import Any
 import sentry_sdk
 from snuba_sdk import DeleteQuery, Request
 
-from sentry import eventstore, eventstream, nodestore
+from sentry import eventstream, nodestore
 from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
-from sentry.eventstore.models import Event
 from sentry.exceptions import DeleteAborted
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer

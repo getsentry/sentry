@@ -2,13 +2,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sentry import eventstore
 from sentry.eventstream.types import EventStreamEventType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_consumer import update_status
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import Group
 from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.services import eventstore
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.features import Feature

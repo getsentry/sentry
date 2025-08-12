@@ -4,13 +4,13 @@ from typing import TYPE_CHECKING
 
 from django import forms
 
-from sentry.eventstore.models import GroupEvent
 from sentry.mail.forms.assigned_to import AssignedToForm
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.team import Team
 from sentry.notifications.types import ASSIGNEE_CHOICES, AssigneeTargetType
 from sentry.rules import EventState
 from sentry.rules.filters.base import EventFilter
+from sentry.services.eventstore.models import GroupEvent
 from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 

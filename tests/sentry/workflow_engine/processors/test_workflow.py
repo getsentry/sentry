@@ -5,11 +5,11 @@ import pytest
 from django.utils import timezone
 
 from sentry import buffer
-from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
+from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer

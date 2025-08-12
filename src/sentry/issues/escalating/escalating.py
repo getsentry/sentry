@@ -25,7 +25,6 @@ from snuba_sdk import (
 )
 
 from sentry import options
-from sentry.eventstore.models import GroupEvent
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating.escalating_issues_alg import GroupCount
 from sentry.issues.grouptype import GroupCategory
@@ -34,6 +33,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInboxReason, InboxReasonDetails, add_group_to_inbox
+from sentry.services.eventstore.models import GroupEvent
 from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.types.activity import ActivityType

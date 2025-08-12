@@ -1,5 +1,5 @@
-from sentry.eventstore.base import EventStorage
-from sentry.eventstore.models import Event
+from sentry.services.eventstore.base import EventStorage
+from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now

@@ -10,9 +10,9 @@ import urllib3
 
 from sentry import quotas
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.base import EventStream, GroupStates
 from sentry.eventstream.types import EventStreamEventType
+from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json, snuba
 from sentry.utils.safe import get_path
 from sentry.utils.sdk import set_current_event_project
@@ -22,7 +22,7 @@ KW_SKIP_SEMANTIC_PARTITIONING = "skip_semantic_partitioning"
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 
 # Version 1 format: (1, TYPE, [...REST...])

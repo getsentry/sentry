@@ -7,7 +7,6 @@ from datetime import timedelta
 import pytest
 from django.utils import timezone
 
-from sentry.eventstore.models import Event
 from sentry.integrations.types import ExternalProviders
 from sentry.issues.ownership import grammar
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
@@ -32,6 +31,7 @@ from sentry.notifications.utils.participants import (
     get_owners,
     get_send_to,
 )
+from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now

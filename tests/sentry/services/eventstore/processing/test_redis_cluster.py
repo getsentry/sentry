@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sentry.eventstore.reprocessing.redis import RedisReprocessingStore
+from sentry.services.eventstore.reprocessing.redis import RedisReprocessingStore
 from sentry.testutils.helpers.redis import use_redis_cluster
 
 

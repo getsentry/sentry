@@ -19,7 +19,6 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.constants import SentryAppInstallationStatus
 from sentry.db.models.base import Model
-from sentry.eventstore.models import BaseEvent, Event, GroupEvent
 from sentry.exceptions import RestrictedIPAddress
 from sentry.hybridcloud.rpc.caching import region_caching_service
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -50,6 +49,7 @@ from sentry.sentry_apps.services.app.service import (
 from sentry.sentry_apps.services.hook.service import hook_service
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.sentry_apps.utils.webhooks import IssueAlertActionType, SentryAppResourceType
+from sentry.services.eventstore.models import BaseEvent, Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry

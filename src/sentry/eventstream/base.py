@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event, GroupEvent
+    from sentry.services.eventstore.models import Event, GroupEvent
 
 
 class ForwarderNotRequired(NotImplementedError):

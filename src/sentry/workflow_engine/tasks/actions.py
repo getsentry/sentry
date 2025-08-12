@@ -2,9 +2,9 @@ from dataclasses import asdict
 
 from django.db.models import Value
 
-from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.base import GroupState
 from sentry.models.activity import Activity
+from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.taskworker import config, namespaces

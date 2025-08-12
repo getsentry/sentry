@@ -14,7 +14,6 @@ from django.db.models import OuterRef, Subquery
 from sentry import buffer, features, nodestore
 from sentry.buffer.base import BufferField
 from sentry.db import models
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.grouprulestatus import GroupRuleStatus
@@ -43,6 +42,7 @@ from sentry.rules.processing.processor import (
     is_condition_slow,
     split_conditions_and_filters,
 )
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.post_process import should_retry_fetch
