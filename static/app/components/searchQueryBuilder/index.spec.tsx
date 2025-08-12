@@ -280,7 +280,7 @@ describe('SearchQueryBuilder', function () {
   });
 
   describe('disabled', function () {
-    it('disables all intractable elements', async function () {
+    it('disables all interactable elements', async function () {
       const mockOnChange = jest.fn();
       render(
         <SearchQueryBuilder
