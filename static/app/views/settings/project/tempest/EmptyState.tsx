@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
@@ -32,6 +33,13 @@ export default function EmptyState() {
       <Body>
         <Setup>
           <BodyTitle>{t('Install instructions')}</BodyTitle>
+          <Alert.Container>
+            <Alert type="info">
+              {t(
+                "Note: You need PlayStation access to complete these instructions. Sentry admin access alone isn't sufficient."
+              )}
+            </Alert>
+          </Alert.Container>
           <GuidedSteps
             initialStep={decodeInteger(location.query.guidedStep)}
             onStepChange={step => {
