@@ -6,13 +6,13 @@ from uuid import uuid4
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import ProcessedSubscriptionUpdate
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.project import Project
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription

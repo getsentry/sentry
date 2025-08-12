@@ -13,7 +13,6 @@ from django.utils import timezone
 
 from sentry import analytics, buffer, features
 from sentry.analytics.events.issue_alert_fired import IssueAlertFiredEvent
-from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouprulestatus import GroupRuleStatus
@@ -26,6 +25,7 @@ from sentry.rules.actions.base import instantiate_action
 from sentry.rules.conditions.base import EventCondition
 from sentry.rules.conditions.event_frequency import EventFrequencyConditionData
 from sentry.rules.filters.base import EventFilter
+from sentry.services.eventstore.models import GroupEvent
 from sentry.types.rules import RuleFuture
 from sentry.utils import json, metrics
 from sentry.utils.dates import ensure_aware
