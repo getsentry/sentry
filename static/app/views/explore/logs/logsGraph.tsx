@@ -8,16 +8,14 @@ import {defined} from 'sentry/utils';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
-import {
-  useLogsAggregate,
-  useLogsGroupBy,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {useLogsAggregate} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   ChartIntervalUnspecifiedStrategy,
   useChartInterval,
 } from 'sentry/views/explore/hooks/useChartInterval';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {ConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
+import {useQueryParamsTopEventsLimit} from 'sentry/views/explore/queryParams/context';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {
   combineConfidenceForSeries,
@@ -32,7 +30,7 @@ interface LogsGraphProps {
 
 export function LogsGraph({timeseriesResult}: LogsGraphProps) {
   const aggregate = useLogsAggregate();
-  const groupBy = useLogsGroupBy();
+  const topEventsLimit = useQueryParamsTopEventsLimit();
 
   const [chartType, setChartType] = useState<ChartType>(ChartType.BAR);
   const [interval, setInterval, intervalOptions] = useChartInterval({
@@ -41,7 +39,7 @@ export function LogsGraph({timeseriesResult}: LogsGraphProps) {
 
   const chartInfo = useMemo(() => {
     const series = timeseriesResult.data[aggregate] ?? [];
-    const isTopEvents = defined(groupBy);
+    const isTopEvents = defined(topEventsLimit);
     const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopEvents);
     return {
       chartType,
@@ -55,7 +53,7 @@ export function LogsGraph({timeseriesResult}: LogsGraphProps) {
       samplingMode: undefined,
       topEvents: isTopEvents ? TOP_EVENTS_LIMIT : undefined,
     };
-  }, [chartType, timeseriesResult, aggregate, groupBy]);
+  }, [chartType, timeseriesResult, aggregate, topEventsLimit]);
 
   const Title = (
     <Widget.WidgetTitle title={prettifyAggregation(aggregate) ?? aggregate} />

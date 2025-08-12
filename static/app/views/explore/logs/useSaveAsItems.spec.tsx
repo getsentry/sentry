@@ -102,7 +102,7 @@ describe('useSaveAsItems', () => {
       () =>
         useSaveAsItems({
           aggregate: 'count()',
-          groupBy: 'message.template',
+          groupBys: ['message.template'],
           interval: '5m',
           mode: Mode.AGGREGATE,
           search: new MutableSearch('message:"test error"'),
@@ -131,7 +131,7 @@ describe('useSaveAsItems', () => {
       () =>
         useSaveAsItems({
           aggregate: 'count()',
-          groupBy: 'message.template',
+          groupBys: ['message.template'],
           interval: '5m',
           mode: Mode.AGGREGATE,
           search: new MutableSearch('message:"test error"'),

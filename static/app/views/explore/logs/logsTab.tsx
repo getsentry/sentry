@@ -33,7 +33,6 @@ import {
   useLogsAggregateFunction,
   useLogsAggregateSortBys,
   useLogsFields,
-  useLogsGroupBy,
   useLogsSearch,
   useSetLogsFields,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -45,7 +44,6 @@ import {
   ChartIntervalUnspecifiedStrategy,
   useChartInterval,
 } from 'sentry/views/explore/hooks/useChartInterval';
-import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {
   HiddenColumnEditorLogFields,
   HiddenLogSearchFields,
@@ -82,7 +80,9 @@ import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
 import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
 import {
+  useQueryParamsGroupBys,
   useQueryParamsMode,
+  useQueryParamsTopEventsLimit,
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
@@ -100,8 +100,9 @@ export function LogsTabContent({
   const pageFilters = usePageFilters();
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
-  const groupBy = useLogsGroupBy();
+  const groupBys = useQueryParamsGroupBys();
   const mode = useQueryParamsMode();
+  const topEventsLimit = useQueryParamsTopEventsLimit();
   const queryClient = useQueryClient();
   const sortBys = useLogsAggregateSortBys();
   const setMode = useSetQueryParamsMode();
@@ -130,7 +131,10 @@ export function LogsTabContent({
   }, [sortBys]);
 
   const [sidebarOpen, setSidebarOpen] = useState(
-    !!((aggregateFunction && aggregateFunction !== 'count') || groupBy)
+    !!(
+      (aggregateFunction && aggregateFunction !== 'count') ||
+      groupBys.filter(Boolean).length
+    )
   );
 
   useEffect(() => {
@@ -154,8 +158,8 @@ export function LogsTabContent({
       search,
       yAxis: [aggregate],
       interval,
-      fields: [...(groupBy ? [groupBy] : []), aggregate],
-      topEvents: groupBy ? TOP_EVENTS_LIMIT : undefined,
+      fields: [...groupBys.filter(Boolean), aggregate],
+      topEvents: topEventsLimit,
       orderby,
     },
     'explore.ourlogs.main-chart',
@@ -249,7 +253,7 @@ export function LogsTabContent({
 
   const saveAsItems = useSaveAsItems({
     aggregate,
-    groupBy,
+    groupBys,
     interval,
     mode,
     search: logsSearch,

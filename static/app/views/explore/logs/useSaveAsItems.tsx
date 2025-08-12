@@ -33,7 +33,7 @@ import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 interface UseSaveAsItemsOptions {
   aggregate: string;
-  groupBy: string | undefined;
+  groupBys: readonly string[];
   interval: string;
   mode: Mode;
   search: MutableSearch;
@@ -42,7 +42,7 @@ interface UseSaveAsItemsOptions {
 
 export function useSaveAsItems({
   aggregate,
-  groupBy,
+  groupBys,
   interval,
   mode,
   search,
@@ -139,9 +139,13 @@ export function useSaveAsItems({
           const fields =
             mode === Mode.SAMPLES
               ? []
-              : [...new Set([groupBy, yAxis, ...sortBys.map(sort => sort.field)])].filter(
-                  defined
-                );
+              : [
+                  ...new Set([
+                    ...groupBys.filter(Boolean),
+                    yAxis,
+                    ...sortBys.map(sort => sort.field),
+                  ]),
+                ].filter(defined);
 
           const discoverQuery: NewQuery = {
             name: DEFAULT_WIDGET_NAME,
@@ -191,7 +195,7 @@ export function useSaveAsItems({
     };
   }, [
     aggregates,
-    groupBy,
+    groupBys,
     mode,
     organization,
     pageFilters,
