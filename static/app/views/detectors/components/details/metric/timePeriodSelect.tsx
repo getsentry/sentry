@@ -1,12 +1,11 @@
 import {Fragment, useMemo} from 'react';
 import moment from 'moment-timezone';
 
-import {updateDateTime} from 'sentry/actionCreators/pageFilters';
 import {CompactSelect} from 'sentry/components/core/compactSelect';
 import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import useRouter from 'sentry/utils/useRouter';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {Dataset, TimePeriod, TimeWindow} from 'sentry/views/alerts/rules/metric/types';
 import {getTimePeriodOptions} from 'sentry/views/alerts/utils/timePeriods';
 
@@ -21,7 +20,7 @@ interface TimePeriodSelectProps {
 
 export function MetricTimePeriodSelect({dataset, interval}: TimePeriodSelectProps) {
   const location = useLocation();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   const start = location.query?.start as string | undefined;
   const end = location.query?.end as string | undefined;
@@ -92,9 +91,13 @@ export function MetricTimePeriodSelect({dataset, interval}: TimePeriodSelectProp
         if (opt.value === CUSTOM_TIME_VALUE) {
           return;
         }
-        updateDateTime({period: opt.value}, router, {
-          save: true,
-          resetParams: ['start', 'end'],
+        navigate({
+          pathname: location.pathname,
+          query: {
+            statsPeriod: opt.value,
+            start: undefined,
+            end: undefined,
+          },
         });
       }}
     />

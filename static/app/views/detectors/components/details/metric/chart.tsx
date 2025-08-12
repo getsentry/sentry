@@ -74,7 +74,7 @@ function MetricDetectorChart({
   });
 
   const chartZoomProps = useChartZoom({
-    saveOnZoom: true,
+    usePageDate: true,
   });
 
   // Calculate y-axis bounds to ensure all thresholds are visible
