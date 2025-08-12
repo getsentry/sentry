@@ -351,6 +351,9 @@ export function getWidgetTableRowExploreUrlFunction(
       if (!defined(value)) {
         return query.addFilterValue('!has', field);
       }
+      if (Array.isArray(value)) {
+        return query.addFilterValues(field, value);
+      }
       return query.addFilterValue(field, String(value));
     });
 
