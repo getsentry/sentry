@@ -12,6 +12,7 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import reformat_timestamp_ms_to_isoformat
 from sentry.models.organization import Organization
+from sentry.replays.query import build_replay_events_query
 from sentry.snuba.dataset import Dataset
 
 
@@ -63,23 +64,16 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
         dataset = self.get_dataset(request)
 
         def data_fn(offset, limit):
-            query_details = {
-                "selected_columns": self.get_field_list(organization, request),
-                "query": request.GET.get("query"),
-                "snuba_params": snuba_params,
-                "equations": self.get_equation_list(organization, request),
-                "orderby": self.get_orderby(request),
-                "offset": offset,
-                "limit": limit,
-                "referrer": "api.replay.details-page",
-                "auto_fields": True,
-                "auto_aggregations": True,
-                "use_aggregate_conditions": True,
-                "allow_metric_aggregates": False,
-                "transform_alias_to_input_format": True,
-            }
-
-            return dataset.query(**query_details)
+            return build_replay_events_query(
+                dataset=dataset,
+                selected_columns=self.get_field_list(organization, request),
+                query=request.GET.get("query"),
+                snuba_params=snuba_params,
+                equations=self.get_equation_list(organization, request),
+                orderby=self.get_orderby(request),
+                offset=offset,
+                limit=limit,
+            )
 
         return self.paginate(
             request=request,

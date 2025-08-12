@@ -307,6 +307,107 @@ class ProjectReplaySummaryTestCase(
         assert any("Great website!" in log for log in logs)
         assert any("User submitted feedback" in log for log in logs)
 
+    @patch("sentry.replays.endpoints.project_replay_summary.requests")
+    def test_post_with_trace_errors_both_datasets(self, mock_requests):
+        """Test that trace connected error snuba query works correctly with both datasets."""
+        mock_requests.post.return_value = Mock(
+            status_code=200, json=lambda: {"summary": "Test summary"}
+        )
+
+        now = datetime.now(UTC)
+        project_1 = self.create_project()
+        project_2 = self.create_project()
+
+        # Create regular error event - errors dataset
+        event_id_1 = uuid.uuid4().hex
+        trace_id_1 = uuid.uuid4().hex
+        timestamp_1 = now.timestamp() - 2
+        self.store_event(
+            data={
+                "event_id": event_id_1,
+                "timestamp": timestamp_1,
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "value": "Invalid input",
+                        }
+                    ]
+                },
+                "contexts": {
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id_1,
+                        "span_id": "1" + uuid.uuid4().hex[:15],
+                    }
+                },
+            },
+            project_id=project_1.id,
+        )
+
+        # Create feedback event - issuePlatform dataset
+        event_id_2 = uuid.uuid4().hex
+        trace_id_2 = uuid.uuid4().hex
+        timestamp_2 = now.timestamp()
+
+        self.store_event(
+            data={
+                "type": "feedback",
+                "event_id": event_id_2,
+                "timestamp": timestamp_2,
+                "contexts": {
+                    "feedback": {
+                        "contact_email": "test@example.com",
+                        "name": "Test User",
+                        "message": "User submitted feedback",
+                        "replay_id": self.replay_id,
+                        "url": "https://example.com",
+                    },
+                    "trace": {
+                        "type": "trace",
+                        "trace_id": trace_id_2,
+                        "span_id": "2" + uuid.uuid4().hex[:15],
+                    },
+                },
+            },
+            project_id=project_2.id,
+        )
+
+        # Store the replay with all trace IDs
+        self.store_replay(trace_ids=[trace_id_1, trace_id_2])
+
+        data = [
+            {
+                "type": 5,
+                "timestamp": float(now.timestamp()),
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "test message"},
+                },
+            }
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url, data={"num_segments": 1}, content_type="application/json"
+            )
+
+        assert response.status_code == 200
+        assert response.get("Content-Type") == "application/json"
+        assert response.json() == {"summary": "Test summary"}
+
+        assert mock_requests.post.call_count == 1
+        data = mock_requests.post.call_args.kwargs["data"]
+        logs = json.loads(data)["logs"]
+
+        # Verify that regular error event is included
+        assert any("ValueError" in log for log in logs)
+        assert any("Invalid input" in log for log in logs)
+
+        # Verify that feedback event is included
+        assert any("User submitted feedback" in log for log in logs)
+
     @responses.activate
     @patch("sentry.replays.endpoints.project_replay_summary.MAX_SEGMENTS_TO_SUMMARIZE", 1)
     def test_post_max_segments_exceeded(self) -> None:
