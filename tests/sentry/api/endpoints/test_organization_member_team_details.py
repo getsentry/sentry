@@ -768,6 +768,7 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         """
         self.login_as(self.member_on_team)
         rpc_user = user_service.get_user(user_id=self.member_on_team.user_id)
+        assert rpc_user
         user2 = self.create_user()
         self.create_member(user=user2, organization=self.org, role="member", teams=[self.team])
         group = self.create_group()
