@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import pickle
+from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
@@ -368,6 +369,26 @@ class RedisBuffer(Buffer):
             pipe.expire(key, self.key_expire)
         return pipe.execute()[0]
 
+    def _execute_sharded_redis_operation(
+        self,
+        keys: list[str],
+        operation: RedisOperation,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
+        """
+        Execute a Redis operation on a list of keys, using the same args and kwargs for each key.
+        """
+
+        metrics_str = f"redis_buffer.{operation.value}"
+        metrics.incr(metrics_str, amount=len(keys))
+        pipe = self.get_redis_connection(self.pending_key)
+        for key in keys:
+            getattr(pipe, operation.value)(key, *args, **kwargs)
+            if args:
+                pipe.expire(key, self.key_expire)
+        return pipe.execute()
+
     def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
         now = time()
         if isinstance(value, list):
@@ -376,7 +397,7 @@ class RedisBuffer(Buffer):
             value_dict = {value: now}
         self._execute_redis_operation(key, RedisOperation.SORTED_SET_ADD, value_dict)
 
-    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
+    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, float]]:
         redis_set = self._execute_redis_operation(
             key,
             RedisOperation.SORTED_SET_GET_RANGE,
@@ -393,8 +414,37 @@ class RedisBuffer(Buffer):
             decoded_set.append(data_and_timestamp)
         return decoded_set
 
+    def bulk_get_sorted_set(
+        self, keys: list[str], min: float, max: float
+    ) -> dict[int, list[float]]:
+        data_to_timestamps: dict[int, list[float]] = defaultdict(list)
+
+        redis_set = self._execute_sharded_redis_operation(
+            keys,
+            RedisOperation.SORTED_SET_GET_RANGE,
+            min=min,
+            max=max,
+            withscores=True,
+        )
+        for result in redis_set:
+            for items in result:
+                item = items[0]
+                if isinstance(item, bytes):
+                    item = item.decode("utf-8")
+                data_to_timestamps[int(item)].append(items[1])
+
+        return data_to_timestamps
+
     def delete_key(self, key: str, min: float, max: float) -> None:
         self._execute_redis_operation(key, RedisOperation.SORTED_SET_DELETE_RANGE, min=min, max=max)
+
+    def delete_keys(self, keys: list[str], min: float, max: float) -> None:
+        self._execute_sharded_redis_operation(
+            keys,
+            RedisOperation.SORTED_SET_DELETE_RANGE,
+            min=min,
+            max=max,
+        )
 
     def delete_hash(
         self,
