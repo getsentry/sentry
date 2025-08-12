@@ -1,4 +1,6 @@
-from datetime import datetime, timedelta
+import uuid
+from datetime import datetime, timedelta, timezone
+from hashlib import md5
 from itertools import cycle
 from unittest import mock
 
@@ -12,6 +14,8 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 )
 
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.models.group import Group, GroupStatus
 from sentry.testutils.cases import TestCase, UptimeTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.uptime.grouptype import (
@@ -22,12 +26,59 @@ from sentry.uptime.grouptype import (
     build_event_data,
     build_evidence_display,
     build_fingerprint,
+    resolve_uptime_issue,
 )
 from sentry.uptime.models import UptimeStatus, UptimeSubscription, get_detector
 from sentry.uptime.types import UptimeMonitorMode
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.types import DetectorPriorityLevel
+
+
+class ResolveUptimeIssueTest(UptimeTestCase):
+    def test(self):
+        subscription = self.create_uptime_subscription(subscription_id=uuid.uuid4().hex)
+        self.create_project_uptime_subscription(uptime_subscription=subscription)
+        detector = get_detector(subscription)
+        result = self.create_uptime_result(subscription.subscription_id)
+
+        fingerprint = build_detector_fingerprint_component(detector)
+
+        with self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()):
+            occurrence = IssueOccurrence(
+                id=uuid.uuid4().hex,
+                resource_id=None,
+                project_id=detector.project_id,
+                event_id=uuid.uuid4().hex,
+                fingerprint=[fingerprint],
+                type=UptimeDomainCheckFailure,
+                issue_title=f"Downtime detected for {subscription.url}",
+                subtitle="Your monitored domain is down",
+                evidence_display=[],
+                evidence_data={},
+                culprit="",
+                detection_time=datetime.now(timezone.utc),
+                level="error",
+                assignee=detector.owner,
+            )
+            produce_occurrence_to_kafka(
+                payload_type=PayloadType.OCCURRENCE,
+                occurrence=occurrence,
+                event_data={
+                    **build_event_data(result, detector),
+                    "event_id": occurrence.event_id,
+                    "fingerprint": occurrence.fingerprint,
+                    "timestamp": occurrence.detection_time.isoformat(),
+                },
+            )
+
+        hashed_detector_fingerprint = md5(fingerprint.encode("utf-8")).hexdigest()
+        group_detector = Group.objects.get(grouphash__hash=hashed_detector_fingerprint)
+        assert group_detector.status == GroupStatus.UNRESOLVED
+
+        resolve_uptime_issue(detector)
+        group_detector.refresh_from_db()
+        assert group_detector.status == GroupStatus.RESOLVED
 
 
 class BuildDetectorFingerprintComponentTest(UptimeTestCase):
