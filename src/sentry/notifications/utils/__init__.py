@@ -188,7 +188,7 @@ def get_suspect_commits_by_group_id(
 
 def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
     # let's identify possible suspect commits and owners
-    commits: MutableMapping[int, Mapping[str, Any]] = {}
+    commits: MutableMapping[str, Mapping[str, Any]] = {}
     try:
         committers = get_serialized_event_file_committers(project, event)
     except (Commit.DoesNotExist, Release.DoesNotExist):

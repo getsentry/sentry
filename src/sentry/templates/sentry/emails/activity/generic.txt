@@ -11,8 +11,7 @@
 
 {{ link }}
 
-{% include "sentry/emails/_suspect_commits.txt" %}
-{% if unsubscribe_link %}
+{% include "sentry/emails/_suspect_commits.txt" %}{% if unsubscribe_link %}
 
 Unsubscribe: {{ unsubscribe_link }}{% endif %}
 

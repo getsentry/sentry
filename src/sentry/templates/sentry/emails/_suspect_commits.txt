@@ -1,7 +1,8 @@
-{% if commits %}
+{% if commits and not enhanced_privacy %}
 Suspect Commits
 ---------------
 {% for commit in commits %}
 * {{ commit.subject }}
   {{ commit.shortId }} - {% if commit.author %}{{ commit.author.name }}{% else %}Unknown Author{% endif %}
-{% endfor %}{% endif %}
+{% endfor %}
+{% endif %}

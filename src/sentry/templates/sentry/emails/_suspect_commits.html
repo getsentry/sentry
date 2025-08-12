@@ -1,5 +1,5 @@
 {% load sentry_avatars %}
-{% if commits %}
+{% if commits and not enhanced_privacy %}
 <div class="committers">
   <h3 class="title" style="margin-bottom: 10px">Suspect Commits</h3>
   <table class="table commit-table">

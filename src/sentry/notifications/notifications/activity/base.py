@@ -131,10 +131,13 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         text_description = self.description_as_text(text_template, params, should_add_url, provider)
         html_description = self.description_as_html(html_template or text_template, params)
 
+        enhanced_privacy = self.group.organization.flags.enhanced_privacy
+
         context = {
             **self.get_base_context(),
             "text_description": text_description,
             "html_description": html_description,
+            "enhanced_privacy": enhanced_privacy,
         }
 
         if features.has("organizations:suspect-commits-in-emails", self.group.organization):

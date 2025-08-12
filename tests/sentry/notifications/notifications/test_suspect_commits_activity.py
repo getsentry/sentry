@@ -1,8 +1,10 @@
+from django.db.models import F
 from django.utils import timezone
 
 from sentry.models.activity import Activity
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.organization import Organization
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.notifications.notifications.activity.note import NoteActivityNotification
 from sentry.notifications.notifications.activity.resolved import ResolvedActivityNotification
@@ -235,3 +237,34 @@ class SuspectCommitsInActivityNotificationsTest(TestCase):
 
         assert "commits" in context
         assert context["commits"] == []
+
+    @with_feature("organizations:suspect-commits-in-emails")
+    def test_enhanced_privacy_hides_suspect_commits(self):
+        """Test that suspect commits are hidden when enhanced privacy is enabled."""
+        self._create_suspect_commit_owner(self.commit1)
+        self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
+        self.organization.refresh_from_db()
+        assert self.organization.flags.enhanced_privacy.is_set is True
+
+        activity = Activity.objects.create(
+            project=self.project,
+            group=self.group,
+            type=ActivityType.ASSIGNED.value,
+            user_id=self.user.id,
+            data={
+                "assignee": str(self.user.id),
+                "assigneeEmail": self.user.email,
+                "assigneeName": self.user.get_display_name(),
+                "assigneeType": "user",
+            },
+        )
+
+        notification = AssignedActivityNotification(activity)
+        context = notification.get_context()
+
+        # Verify that context includes commits but enhanced_privacy is set
+        # The templates will use this context to conditionally hide suspect commits
+        assert "commits" in context
+        assert len(context["commits"]) == 1
+        assert context["commits"][0]["subject"] == "feat: Add new feature"
+        assert context["enhanced_privacy"]

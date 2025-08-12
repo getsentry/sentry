@@ -3,10 +3,12 @@ from unittest.mock import MagicMock, patch
 import orjson
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
+from django.db.models import F
 from slack_sdk.web import SlackResponse
 
 from sentry.models.activity import Activity
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.organization import Organization
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.skips import requires_snuba
@@ -35,8 +37,9 @@ class AssignedNotificationAPITest(APITestCase):
         # check the txt version
         assert txt_msg in msg.body
         # check the html version
-        assert isinstance(msg.alternatives[0][0], str)
-        assert html_msg in msg.alternatives[0][0]
+        alt0 = msg.alternatives[0][0]
+        assert isinstance(alt0, str)
+        assert html_msg in alt0
 
     def validate_slack_message(self, msg, group, project, user_id, mock_post, index=0):
         blocks = orjson.loads(mock_post.call_args_list[index].kwargs["blocks"])
@@ -94,8 +97,9 @@ class AssignedNotificationAPITest(APITestCase):
         # check the txt version
         assert f"assigned {self.group.qualified_short_id} to themselves" in msg.body
         # check the html version
-        assert isinstance(msg.alternatives[0][0], str)
-        assert f"{self.group.qualified_short_id}</a> to themselves</p>" in msg.alternatives[0][0]
+        alt0 = msg.alternatives[0][0]
+        assert isinstance(alt0, str)
+        assert f"{self.group.qualified_short_id}</a> to themselves</p>" in alt0
 
         blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
         fallback_text = mock_post.call_args.kwargs["text"]
@@ -180,6 +184,111 @@ class AssignedNotificationAPITest(APITestCase):
         assert "Suspect Commits" not in html_content
 
         # But assignment notification should still work
+        assert f"assigned {self.group.qualified_short_id} to themselves" in msg.body
+
+    @with_feature("organizations:suspect-commits-in-emails")
+    def test_enhanced_privacy_hides_suspect_commits_in_emails(self, mock_post):
+        user = self.create_user()
+        self.setup_user(user, self.team)
+        self.login_as(user)
+
+        repo = self.create_repo(
+            project=self.project,
+            name="example/repo",
+        )
+        commit = self.create_commit(
+            project=self.project,
+            repo=repo,
+            author=self.create_commit_author(project=self.project, user=user),
+            key="abc123def456",
+            message="feat: Add new feature\n\nThis is a longer commit message with details.",
+        )
+        GroupOwner.objects.create(
+            group=self.group,
+            user_id=user.id,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": commit.id},
+        )
+
+        # Enable enhanced privacy flag
+        self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
+        self.organization.refresh_from_db()
+        assert self.organization.flags.enhanced_privacy.is_set is True
+
+        url = f"/api/0/issues/{self.group.id}/"
+        with self.tasks():
+            response = self.client.put(url, format="json", data={"assignedTo": user.username})
+        assert response.status_code == 200, response.content
+
+        msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
+
+        assert "Suspect Commits" not in msg.body  # plaintext version
+        assert "feat: Add new feature" not in msg.body  # commit subject should not appear
+        assert "abc123d" not in msg.body  # shortened commit ID should not appear
+
+        html_content = msg.alternatives[0][0]
+        assert isinstance(html_content, str)
+        assert "Suspect Commits" not in html_content  # HTML version
+        assert "feat: Add new feature" not in html_content  # commit subject should not appear
+        assert "abc123d" not in html_content  # shortened commit ID should not appear
+
+        # assignment notification should still work normally
+        assert f"assigned {self.group.qualified_short_id} to themselves" in msg.body
+
+    @with_feature("organizations:suspect-commits-in-emails")
+    def test_enhanced_privacy_default_shows_suspect_commits_in_emails(self, mock_post):
+        """
+        Test that suspect commits are shown by default in assignment notification emails
+        when enhanced privacy is not set.
+        """
+        user = self.create_user()
+        self.setup_user(user, self.team)
+        self.login_as(user)
+
+        repo = self.create_repo(
+            project=self.project,
+            name="example/repo",
+        )
+        commit = self.create_commit(
+            project=self.project,
+            repo=repo,
+            author=self.create_commit_author(project=self.project, user=user),
+            key="abc123def456",
+            message="feat: Add new feature\n\nThis is a longer commit message with details.",
+        )
+        GroupOwner.objects.create(
+            group=self.group,
+            user_id=user.id,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": commit.id},
+        )
+
+        assert self.organization.flags.enhanced_privacy.is_set is False
+
+        url = f"/api/0/issues/{self.group.id}/"
+        with self.tasks():
+            response = self.client.put(url, format="json", data={"assignedTo": user.username})
+        assert response.status_code == 200, response.content
+
+        msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
+
+        assert "Suspect Commits" in msg.body  # plaintext version
+        assert "feat: Add new feature" in msg.body  # commit subject should appear
+        assert "abc123d" in msg.body  # shortened commit ID should appear
+
+        html_content = msg.alternatives[0][0]
+        assert isinstance(html_content, str)
+        assert "Suspect Commits" in html_content  # HTML version
+        assert "feat: Add new feature" in html_content  # commit subject should appear
+        assert "abc123d" in html_content  # shortened commit ID should appear
+
+        # assignment notification should still work normally
         assert f"assigned {self.group.qualified_short_id} to themselves" in msg.body
 
     @with_feature("organizations:suspect-commits-in-emails")
