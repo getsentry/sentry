@@ -4,13 +4,14 @@ import type {YAXisComponentOption} from 'echarts';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
+import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {Flex} from 'sentry/components/core/layout';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricDetector, SnubaQuery} from 'sentry/types/workflowEngine/detectors';
-import type {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import {useLocation} from 'sentry/utils/useLocation';
 import {getDetectorDataset} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {useIncidentMarkers} from 'sentry/views/detectors/hooks/useIncidentMarkers';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
@@ -18,7 +19,6 @@ import {useMetricDetectorThresholdSeries} from 'sentry/views/detectors/hooks/use
 
 interface MetricDetectorDetailsChartProps {
   detector: MetricDetector;
-  statsPeriod: TimePeriod;
 }
 const CHART_HEIGHT = 180;
 
@@ -26,13 +26,17 @@ interface MetricDetectorChartProps {
   detector: MetricDetector;
   snubaQuery: SnubaQuery;
   /**
-   * The time period for the chart data (optional, defaults to 7d)
+   * Relative time period (e.g., '7d'). Use either statsPeriod or absolute start/end.
    */
-  statsPeriod: TimePeriod;
+  end?: string;
+  start?: string;
+  statsPeriod?: string;
 }
 
 function MetricDetectorChart({
   statsPeriod,
+  start,
+  end,
   snubaQuery,
   detector,
 }: MetricDetectorChartProps) {
@@ -47,8 +51,10 @@ function MetricDetectorChart({
     query: snubaQuery.query,
     environment: snubaQuery.environment,
     projectId: detector.projectId,
-    statsPeriod,
     comparisonDelta,
+    statsPeriod,
+    start,
+    end,
   });
 
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
@@ -58,13 +64,17 @@ function MetricDetectorChart({
       comparisonSeries,
     });
 
-  // TODO: Fetch open periodos and transform them into the right format
+  // TODO: Fetch open periods and transform them into the right format
   const openPeriods: any[] = [];
   const openPeriodMarkerResult = useIncidentMarkers({
     incidents: openPeriods,
     seriesName: t('Open Periods'),
     seriesId: '__incident_marker__',
     yAxisIndex: 1, // Use index 1 to avoid conflict with main chart axis
+  });
+
+  const chartZoomProps = useChartZoom({
+    usePageDate: true,
   });
 
   // Calculate y-axis bounds to ensure all thresholds are visible
@@ -153,7 +163,6 @@ function MetricDetectorChart({
 
   return (
     <AreaChart
-      isGroupedByDate
       showTimeInTooltip
       height={CHART_HEIGHT}
       stacked={false}
@@ -164,16 +173,20 @@ function MetricDetectorChart({
       grid={grid}
       xAxis={openPeriodMarkerResult.incidentMarkerXAxis}
       ref={openPeriodMarkerResult.connectIncidentMarkerChartRef}
+      {...chartZoomProps}
     />
   );
 }
 
-export function MetricDetectorDetailsChart({
-  detector,
-  statsPeriod,
-}: MetricDetectorDetailsChartProps) {
+export function MetricDetectorDetailsChart({detector}: MetricDetectorDetailsChartProps) {
   const dataSource = detector.dataSources[0];
   const snubaQuery = dataSource.queryObj?.snubaQuery;
+  const location = useLocation();
+  const statsPeriod = location.query?.statsPeriod as string | undefined;
+  const start = location.query?.start as string | undefined;
+  const end = location.query?.end as string | undefined;
+  const dateParams =
+    start && end ? {start, end} : statsPeriod ? {statsPeriod} : {statsPeriod: '7d'};
 
   if (!snubaQuery) {
     // Unlikely, helps narrow types
@@ -187,7 +200,7 @@ export function MetricDetectorDetailsChart({
           detector={detector}
           // Pass snubaQuery separately to avoid checking null in all places
           snubaQuery={snubaQuery}
-          statsPeriod={statsPeriod}
+          {...dateParams}
         />
       </ChartContainerBody>
     </ChartContainer>
