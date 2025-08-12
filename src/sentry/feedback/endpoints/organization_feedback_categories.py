@@ -29,7 +29,7 @@ from sentry.utils.cache import cache
 logger = logging.getLogger(__name__)
 
 
-SEER_LABEL_GROUPS_ENDPOINT_URL = "v1/automation/summarize/feedback/label-groups"
+SEER_LABEL_GROUPS_ENDPOINT_PATH = "/v1/automation/summarize/feedback/label-groups"
 
 seer_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
@@ -199,7 +199,7 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
         try:
             response = make_signed_seer_api_request(
                 connection_pool=seer_connection_pool,
-                path=SEER_LABEL_GROUPS_ENDPOINT_URL,
+                path=SEER_LABEL_GROUPS_ENDPOINT_PATH,
                 body=json.dumps(seer_request).encode("utf-8"),
             )
             response_data = json.loads(response.data.decode("utf-8"))

@@ -33,7 +33,7 @@ MAX_FEEDBACKS_TO_SUMMARIZE_CHARS = 1000000
 # One day since the cache key includes the start and end dates at hour granularity
 SUMMARY_CACHE_TIMEOUT = 86400
 
-SEER_SUMMARIZE_FEEDBACKS_ENDPOINT_URL = "v1/automation/summarize/feedback/summarize"
+SEER_SUMMARIZE_FEEDBACKS_ENDPOINT_PATH = "/v1/automation/summarize/feedback/summarize"
 
 seer_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
@@ -148,7 +148,7 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         try:
             response = make_signed_seer_api_request(
                 connection_pool=seer_connection_pool,
-                path=SEER_SUMMARIZE_FEEDBACKS_ENDPOINT_URL,
+                path=SEER_SUMMARIZE_FEEDBACKS_ENDPOINT_PATH,
                 body=json.dumps(seer_request).encode("utf-8"),
             )
             response_data = json.loads(response.data.decode("utf-8"))

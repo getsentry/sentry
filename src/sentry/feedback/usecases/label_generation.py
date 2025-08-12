@@ -23,7 +23,7 @@ MAX_AI_LABELS = 15
 # Max length of the serialized list of labels, which matches the max length of a tag value, from https://docs.sentry.io/platforms/javascript/enriching-events/tags/
 MAX_AI_LABELS_JSON_LENGTH = 200
 
-SEER_LABEL_GENERATION_ENDPOINT_URL = "v1/automation/summarize/feedback/labels"
+SEER_LABEL_GENERATION_ENDPOINT_PATH = "/v1/automation/summarize/feedback/labels"
 
 seer_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
@@ -45,7 +45,7 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
     try:
         response = make_signed_seer_api_request(
             connection_pool=seer_connection_pool,
-            path=SEER_LABEL_GENERATION_ENDPOINT_URL,
+            path=SEER_LABEL_GENERATION_ENDPOINT_PATH,
             body=json.dumps(request).encode("utf-8"),
         )
         response_data = json.loads(response.data.decode("utf-8"))

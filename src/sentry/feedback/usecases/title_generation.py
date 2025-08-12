@@ -13,7 +13,7 @@ from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
-SEER_TITLE_GENERATION_ENDPOINT_URL = "v1/automation/summarize/feedback/title"
+SEER_TITLE_GENERATION_ENDPOINT_PATH = "/v1/automation/summarize/feedback/title"
 
 seer_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
@@ -99,7 +99,7 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
     try:
         response = make_signed_seer_api_request(
             connection_pool=seer_connection_pool,
-            path=SEER_TITLE_GENERATION_ENDPOINT_URL,
+            path=SEER_TITLE_GENERATION_ENDPOINT_PATH,
             body=json.dumps(seer_request).encode("utf-8"),
         )
         response_data = json.loads(response.data.decode("utf-8"))

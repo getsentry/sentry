@@ -31,8 +31,8 @@ logger = logging.getLogger(__name__)
 MAX_SEGMENTS_TO_SUMMARIZE = 100
 SEER_REQUEST_SIZE_LOG_THRESHOLD = 1e5  # Threshold for logging large Seer requests.
 
-SEER_START_TASK_ENDPOINT_URL = "v1/automation/summarize/replay/breadcrumbs/start"
-SEER_POLL_STATE_ENDPOINT_URL = "v1/automation/summarize/replay/breadcrumbs/state"
+SEER_START_TASK_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/start"
+SEER_POLL_STATE_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/state"
 
 seer_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
@@ -67,7 +67,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             "organizations:gen-ai-features",
         ]
 
-    def make_seer_request(self, url: str, post_body: dict[str, Any]) -> Response:
+    def make_seer_request(self, path: str, post_body: dict[str, Any]) -> Response:
         """Make a POST request to a Seer endpoint. Raises HTTPError and logs non-200 status codes."""
         data = json.dumps(post_body)
 
@@ -86,7 +86,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         try:
             response = make_signed_seer_api_request(
                 connection_pool=seer_connection_pool,
-                path=url,
+                path=path,
                 body=data.encode("utf-8"),
             )
             response_data = json.loads(response.data.decode("utf-8"))
@@ -102,7 +102,11 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         if response.status < 200 or response.status >= 300:
             logger.error(
                 "Seer replay breadcrumbs summary endpoint failed",
-                extra={"url": url, "status_code": response.status, "response_data": response.data},
+                extra={
+                    "path": path,
+                    "status_code": response.status,
+                    "response_data": response.data,
+                },
             )
             return self.respond("Failed to generate a replay breadcrumbs summary", status=500)
 
@@ -119,7 +123,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
 
         # Request Seer for the state of the summary task.
         return self.make_seer_request(
-            SEER_POLL_STATE_ENDPOINT_URL,
+            SEER_POLL_STATE_ENDPOINT_PATH,
             {
                 "replay_id": replay_id,
             },
@@ -188,7 +192,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         # XXX: Request isn't streaming. Limitation of Seer authentication. Would be much faster if we
         # could stream the request data since the GCS download will (likely) dominate latency.
         return self.make_seer_request(
-            SEER_START_TASK_ENDPOINT_URL,
+            SEER_START_TASK_ENDPOINT_PATH,
             {
                 "logs": logs,
                 "num_segments": num_segments,

@@ -54,7 +54,7 @@ SNUBA_RETRY_EXCEPTIONS = (
     UnexpectedResponseError,
 )
 
-SEER_DELETE_SUMMARIES_ENDPOINT_URL = "v1/automation/summarize/replay/breadcrumbs/delete"
+SEER_DELETE_SUMMARIES_ENDPOINT_PATH = "/v1/automation/summarize/replay/breadcrumbs/delete"
 
 seer_connection_pool = connection_from_url(
     settings.SEER_AUTOFIX_URL, timeout=getattr(settings, "SEER_DEFAULT_TIMEOUT", 5)
@@ -210,7 +210,7 @@ def delete_seer_replay_data(project_id: int, replay_ids: list[str]) -> bool:
     try:
         response = make_signed_seer_api_request(
             connection_pool=seer_connection_pool,
-            path=SEER_DELETE_SUMMARIES_ENDPOINT_URL,
+            path=SEER_DELETE_SUMMARIES_ENDPOINT_PATH,
             body=json.dumps(seer_request).encode("utf-8"),
         )
     except Exception as e:
