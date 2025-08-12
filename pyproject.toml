@@ -642,7 +642,6 @@ module = [
     "sentry.web.frontend.cli",
     "sentry.web.frontend.csv",
     "sentry.web.frontend.mixins.*",
-    "sentry.workflow_engine.handlers.action.*",
     "sentry.workflow_engine.handlers.condition.*",
     "sentry.workflow_engine.migrations.*",
     "sentry.workflow_engine.processors.*",

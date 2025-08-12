@@ -8,6 +8,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_consumer import update_status
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import Group
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.features import Feature
@@ -57,7 +58,16 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
             type=Condition.ISSUE_PRIORITY_DEESCALATING,
             condition_group=critical_dcg,
         )
-        critical_action = self.create_action()
+
+        critical_action = self.create_action(
+            integration_id=self.integration.id,
+            config={
+                "target_type": ActionTarget.SPECIFIC,
+                "target_identifier": "channel-123",
+                "target_display": "Test Channel",
+            },
+        )
+
         self.create_data_condition_group_action(critical_action, critical_dcg)
 
         warning_dcg = self.create_data_condition_group(organization=self.organization)
@@ -75,8 +85,15 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
             type=Condition.ISSUE_PRIORITY_DEESCALATING,
             condition_group=warning_dcg,
         )
+        warning_action = self.create_action(
+            integration_id=self.integration.id,
+            config={
+                "target_type": ActionTarget.SPECIFIC,
+                "target_identifier": "channel-456",
+                "target_display": "Test Channel",
+            },
+        )
 
-        warning_action = self.create_action()
         self.create_data_condition_group_action(warning_action, warning_dcg)
 
         return (
@@ -140,6 +157,30 @@ class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
         occurrence.save()
         self.call_post_process_group(occurrence)
         assert mock_trigger.call_count == 2  # warning + critical actions
+
+    def test_escalation_with_deduped_actions(self, mock_trigger: MagicMock) -> None:
+
+        # make the warning action same as the critical action
+        self.warning_action.config = self.critical_action.config
+        self.warning_action.save()
+
+        value = self.warning_detector_trigger.comparison + 1
+        data_packet = self.create_subscription_packet(value)
+        occurrence = self.process_packet_and_return_result(data_packet)
+        assert isinstance(occurrence, IssueOccurrence)
+        occurrence.save()
+        self.call_post_process_group(occurrence)
+        assert mock_trigger.call_count == 1  # just warning action
+
+        mock_trigger.reset_mock()
+
+        value = self.critical_detector_trigger.comparison + 1
+        data_packet = self.create_subscription_packet(value, 1000)
+        occurrence = self.process_packet_and_return_result(data_packet)
+        assert isinstance(occurrence, IssueOccurrence)
+        occurrence.save()
+        self.call_post_process_group(occurrence)
+        assert mock_trigger.call_count == 1  # just warning action (because we deduped the actions)
 
     def test_deescalation(self, mock_trigger: MagicMock) -> None:
         value = self.critical_detector_trigger.comparison + 1

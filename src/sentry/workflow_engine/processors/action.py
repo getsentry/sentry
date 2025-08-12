@@ -121,6 +121,22 @@ def update_workflow_action_group_statuses(
     )
 
 
+def deduplicate_actions(
+    actions_queryset: BaseQuerySet[Action],  # decorated with the workflow_ids
+) -> BaseQuerySet[Action]:
+    """
+    Deduplicates actions based on their handler's dedup_key method.
+    Returns a de-duplicated queryset of actions.
+    """
+    dedup_key_to_action_id: dict[str, int] = {}
+
+    for action in actions_queryset:
+        dedup_key = action.get_dedup_key()
+        dedup_key_to_action_id[dedup_key] = action.id
+
+    return actions_queryset.filter(id__in=dedup_key_to_action_id.values())
+
+
 def filter_recently_fired_workflow_actions(
     filtered_action_groups: set[DataConditionGroup], event_data: WorkflowEventData
 ) -> BaseQuerySet[Action]:
@@ -158,15 +174,19 @@ def filter_recently_fired_workflow_actions(
     )
     update_workflow_action_group_statuses(now, statuses_to_update, missing_statuses)
 
+    actions_queryset = Action.objects.filter(id__in=list(action_to_workflow_ids.keys()))
+
     # annotate actions with workflow_id they are firing for (deduped)
     workflow_id_cases = [
         When(id=action_id, then=Value(workflow_id))
         for action_id, workflow_id in action_to_workflow_ids.items()
     ]
 
-    return Action.objects.filter(id__in=list(action_to_workflow_ids.keys())).annotate(
+    decorated_actions = actions_queryset.annotate(
         workflow_id=Case(*workflow_id_cases, output_field=models.IntegerField()),
     )
+
+    return deduplicate_actions(decorated_actions)
 
 
 def get_available_action_integrations_for_org(organization: Organization) -> list[RpcIntegration]:
