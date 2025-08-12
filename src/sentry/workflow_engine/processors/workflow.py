@@ -1,3 +1,4 @@
+import random
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from enum import StrEnum
@@ -9,9 +10,9 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry import buffer, features
+from sentry.eventstore.models import GroupEvent
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
-from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json
 from sentry.workflow_engine.models import Action, DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
@@ -30,7 +31,6 @@ from sentry.workflow_engine.utils.metrics import metrics_incr
 
 logger = log_context.get_logger(__name__)
 
-WORKFLOW_ENGINE_BUFFER_LIST_KEY = "workflow_engine_delayed_processing_buffer"
 DetectorId = int | None
 DataConditionGroupId = int
 
@@ -99,6 +99,8 @@ class DelayedWorkflowItem:
 def enqueue_workflows(
     items_by_workflow: dict[Workflow, DelayedWorkflowItem],
 ) -> None:
+    from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
+
     items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
     for queue_item in items_by_workflow.values():
         if not queue_item.delayed_if_group_ids and not queue_item.passing_if_group_ids:
@@ -125,9 +127,8 @@ def enqueue_workflows(
 
     sentry_sdk.set_tag("delayed_workflow_items", items)
 
-    buffer.backend.push_to_sorted_set(
-        key=WORKFLOW_ENGINE_BUFFER_LIST_KEY, value=list(items_by_project_id.keys())
-    )
+    sharded_key = random.choice(DelayedWorkflow.get_buffer_keys())
+    buffer.backend.push_to_sorted_set(key=sharded_key, value=list(items_by_project_id.keys()))
 
     logger.debug(
         "workflow_engine.workflows.enqueued",

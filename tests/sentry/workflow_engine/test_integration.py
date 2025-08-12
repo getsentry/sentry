@@ -24,7 +24,7 @@ from sentry.workflow_engine.models import Detector, DetectorWorkflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors import process_data_source, process_detectors
 from sentry.workflow_engine.processors.delayed_workflow import process_delayed_workflows
-from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
+from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -213,6 +213,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         )
         self.workflow_triggers.conditions.all().delete()
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
+        self.buffer_keys = DelayedWorkflow.get_buffer_keys()
 
     @pytest.fixture(autouse=True)
     def with_feature_flags(self):
@@ -409,8 +410,8 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.post_process_error(event_1, is_new=True)
         assert not mock_trigger.called
 
-        project_ids = buffer.backend.get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+        project_ids = buffer.backend.bulk_get_sorted_set(
+            self.buffer_keys, 0, timezone.now().timestamp()
         )
         assert not project_ids
 
@@ -419,8 +420,8 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.post_process_error(event_2, is_new=True)
         assert not mock_trigger.called
 
-        project_ids = buffer.backend.get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+        project_ids = buffer.backend.bulk_get_sorted_set(
+            self.buffer_keys, 0, timezone.now().timestamp()
         )
         assert not project_ids
 
@@ -433,11 +434,13 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         self.post_process_error(event_5)
         assert not mock_trigger.called
 
-        project_ids = buffer.backend.get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+        project_ids = buffer.backend.bulk_get_sorted_set(
+            self.buffer_keys,
+            min=0,
+            max=timezone.now().timestamp(),
         )
 
-        process_delayed_workflows(project_ids[0][0])
+        process_delayed_workflows(list(project_ids.keys())[0])
         mock_trigger.assert_called_once()
 
     def test_slow_condition_subqueries(self, mock_trigger: MagicMock) -> None:
@@ -474,11 +477,13 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             self.post_process_error(event_3)
             assert not mock_trigger.called
 
-            project_ids = buffer.backend.get_sorted_set(
-                WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+            project_ids = buffer.backend.bulk_get_sorted_set(
+                self.buffer_keys,
+                min=0,
+                max=timezone.now().timestamp(),
             )
 
-            process_delayed_workflows(project_ids[0][0])
+            process_delayed_workflows(list(project_ids.keys())[0])
             assert not mock_trigger.called
 
         with freeze_time(now + timedelta(minutes=1)):
@@ -487,9 +492,11 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
             self.post_process_error(event_4)
             assert not mock_trigger.called
 
-            project_ids = buffer.backend.get_sorted_set(
-                WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+            project_ids = buffer.backend.bulk_get_sorted_set(
+                self.buffer_keys,
+                min=0,
+                max=timezone.now().timestamp(),
             )
 
-            process_delayed_workflows(project_ids[0][0])
+            process_delayed_workflows(list(project_ids.keys())[0])
             mock_trigger.assert_called_once()
