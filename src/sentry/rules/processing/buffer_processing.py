@@ -179,9 +179,7 @@ def process_buffer() -> None:
                     for project_id, timestamps in all_project_ids_and_timestamps.items()
                 )
                 log_name = f"{processing_type}.project_id_list"
-                logger.info(
-                    log_name, extra={"project_ids": log_str}
-                )
+                logger.info(log_name, extra={"project_ids": log_str})
 
             project_ids = list(all_project_ids_and_timestamps.keys())
             for project_id in project_ids:
