@@ -898,11 +898,11 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         self.group_to_groupevent[self.group1] = (
             self.event1.for_group(self.group1),
             None,
-        )  # FROZEN_TIME)
+        )
         self.group_to_groupevent[self.group2] = (
             self.event2.for_group(self.group2),
             None,
-        )  # FROZEN_TIME)
+        )
 
     def test_bulk_fetch_events(self) -> None:
         event_ids = [self.event1.event_id, self.event2.event_id]
