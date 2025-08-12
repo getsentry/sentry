@@ -86,7 +86,6 @@ import {
   traceNodeAdjacentAnalyticsProperties,
   traceNodeAnalyticsName,
 } from './traceTreeAnalytics';
-import TraceTypeWarnings from './traceTypeWarnings';
 import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
@@ -756,11 +755,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   return (
     <Flex direction="column" flex={1}>
-      <TraceTypeWarnings
-        tree={props.tree}
-        traceSlug={props.traceSlug}
-        organization={organization}
-      />
       <TraceToolbar>
         <TraceSearchInput onTraceSearch={onTraceSearch} organization={organization} />
         <TraceOpenInExploreButton
