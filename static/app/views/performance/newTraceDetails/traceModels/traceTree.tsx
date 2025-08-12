@@ -1109,6 +1109,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       let matchCount = 0;
 
       while (index < node.children.length) {
+        // console.log('node');
         // Skip until we find a span candidate
         if (
           !isSpanNode(node.children[index]!) &&
@@ -1124,7 +1125,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
           | TraceTreeNode<TraceTree.EAPSpan>;
         const next = node.children[index + 1] as
           | TraceTreeNode<TraceTree.Span>
-          | TraceTreeNode<TraceTree.EAPSpan>;
+          | TraceTreeNode<TraceTree.EAPSpan>
+          | undefined;
+
+        const areSpanLabelsMatching = options.organization.features.includes(
+          'performance-otel-friendly-ui'
+        )
+          ? areSpanNamesMatching
+          : areSpanDescriptionsMatching;
 
         if (
           next &&
@@ -1134,8 +1142,10 @@ export class TraceTree extends TraceTreeEventDispatcher {
           // skip `op: default` spans as `default` is added to op-less spans
           next.value.op !== 'default' &&
           next.value.op === current.value.op &&
-          next.value.description === current.value.description
+          areSpanLabelsMatching(next, current)
+          // next.value.description === current.value.description
         ) {
+          // console.log('are matching');
           matchCount++;
           // If the next node is the last node in the list, we keep iterating
           if (index + 1 < node.children.length) {
@@ -2564,4 +2574,18 @@ export function getNodeDescriptionPrefix(
   const isPrefetch =
     isSpanNode(node) && node.value.data && !!node.value.data['http.request.prefetch'];
   return isPrefetch ? '(prefetch) ' : '';
+}
+
+function areSpanDescriptionsMatching<
+  T extends TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>,
+>(nodeA: T, nodeB: T): boolean {
+  return nodeA.value.description === nodeB.value.description;
+}
+
+function areSpanNamesMatching<
+  T extends TraceTreeNode<TraceTree.Span> | TraceTreeNode<TraceTree.EAPSpan>,
+>(nodeA: T, nodeB: T): boolean {
+  return (
+    isEAPSpanNode(nodeA) && isEAPSpanNode(nodeB) && nodeA.value.name === nodeB.value.name
+  );
 }

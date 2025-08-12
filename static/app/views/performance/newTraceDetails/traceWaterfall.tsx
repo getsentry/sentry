@@ -468,6 +468,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
     TraceTree.ApplyPreferences(props.tree.root, {
       preferences: traceStateRef.current.preferences,
+      organization: props.organization,
     });
 
     // Construct the visual representation of the tree
