@@ -33,9 +33,9 @@ import {getNodeAgentMonitoringOnboarding} from 'sentry/utils/gettingStartedDocs/
 
 type Params = DocsParams;
 
-const getInstallSnippet = ({isSelfHosted, organization, projectSlug}: Params) => {
+const getInstallSnippet = ({isSelfHosted, organization, project}: Params) => {
   const urlParam = isSelfHosted ? '' : '--saas';
-  return `npx @sentry/wizard@latest -i nextjs ${urlParam} --org ${organization.slug} --project ${projectSlug}`;
+  return `npx @sentry/wizard@latest -i nextjs ${urlParam} --org ${organization.slug} --project ${project.slug}`;
 };
 
 const getInstallConfig = (params: Params) => {
@@ -185,8 +185,8 @@ Sentry.init({
 Sentry.init({
   dsn: "${params.dsn.public}",
   integrations: [
-    // send console.log, console.error, and console.warn calls as logs to Sentry
-    Sentry.consoleLoggingIntegration({ levels: ["log", "error", "warn"] }),
+    // send console.log, console.warn, and console.error calls as logs to Sentry
+    Sentry.consoleLoggingIntegration({ levels: ["log", "warn", "error"] }),
   ],
 });
 \`\`\`

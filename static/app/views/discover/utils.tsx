@@ -48,12 +48,12 @@ import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {
-  type DashboardWidgetSource,
   DEFAULT_WIDGET_NAME,
   DisplayType,
+  WidgetType,
+  type DashboardWidgetSource,
   type Widget,
   type WidgetQuery,
-  WidgetType,
 } from 'sentry/views/dashboards/types';
 import {convertWidgetToBuilderStateParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {

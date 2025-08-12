@@ -1,4 +1,4 @@
-import {type CSSProperties, Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState, type CSSProperties} from 'react';
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -26,11 +26,11 @@ import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
+  DisplayType,
+  WidgetType,
   type DashboardDetails,
   type DashboardFilters,
-  DisplayType,
   type Widget,
-  WidgetType,
 } from 'sentry/views/dashboards/types';
 import {animationTransitionSettings} from 'sentry/views/dashboards/widgetBuilder/components/common/animationSettings';
 import {

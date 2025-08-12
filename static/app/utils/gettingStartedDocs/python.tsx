@@ -1,9 +1,9 @@
 import {ExternalLink} from 'sentry/components/core/link';
 import {
+  StepType,
   type Configuration,
   type DocsParams,
   type OnboardingConfig,
-  StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {AlternativeConfiguration} from 'sentry/gettingStartedDocs/python/python';
 import {t, tct} from 'sentry/locale';

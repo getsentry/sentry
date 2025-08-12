@@ -11,12 +11,13 @@ import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import type {RawReplayError} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 interface Props {
-  replayErrors: ReplayError[];
+  replayErrors: RawReplayError[];
   replayRecord: ReplayRecord;
   showDeadRageClicks?: boolean;
 }

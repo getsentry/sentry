@@ -12,12 +12,12 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
-  type Configuration,
   DocsPageLocation,
-  type DocsParams,
-  type OnboardingStep,
   ProductSolution,
   StepType,
+  type Configuration,
+  type DocsParams,
+  type OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
@@ -296,8 +296,7 @@ export function Onboarding() {
     dsn,
     organization,
     platformKey: project.platform || 'other',
-    projectId: project.id,
-    projectSlug: project.slug,
+    project,
     isLogsSelected: false,
     isFeedbackSelected: false,
     isPerformanceSelected: true,

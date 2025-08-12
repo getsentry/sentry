@@ -1,8 +1,8 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
-import {ReplayErrorFixture} from 'sentry-fixture/replayError';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -15,7 +15,7 @@ import {
   useReplayOnboardingSidebarPanel,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import ReplayReader from 'sentry/utils/replays/replayReader';
-import type {ReplayError} from 'sentry/views/replays/types';
+import type {RawReplayError} from 'sentry/utils/replays/types';
 
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
@@ -32,25 +32,23 @@ jest.mock(
 const mockEventTimestamp = new Date('2022-09-22T16:59:41Z');
 const mockReplayId = '761104e184c64d439ee1014b72b4d83b';
 
-const mockErrors: ReplayError[] = [
-  ReplayErrorFixture({
+const mockErrors: RawReplayError[] = [
+  RawReplayErrorFixture({
     id: '1',
     issue: 'JAVASCRIPT-101',
     'issue.id': 101,
-    'error.value': ['Something bad happened.'],
     'error.type': ['error'],
     'project.name': 'javascript',
-    timestamp: mockEventTimestamp.toISOString(),
+    timestamp: mockEventTimestamp,
     title: 'Something bad happened.',
   }),
-  ReplayErrorFixture({
+  RawReplayErrorFixture({
     id: '2',
     issue: 'JAVASCRIPT-102',
     'issue.id': 102,
-    'error.value': ['Something bad happened 2.'],
     'error.type': ['error'],
     'project.name': 'javascript',
-    timestamp: mockEventTimestamp.toISOString(),
+    timestamp: mockEventTimestamp,
     title: 'Something bad happened 2.',
   }),
 ];

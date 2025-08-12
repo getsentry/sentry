@@ -10,6 +10,7 @@ import ListLayout from 'sentry/components/workflowEngine/layout/list';
 import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -27,7 +28,7 @@ export default function AutomationsList() {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const {selection} = usePageFilters();
+  const {selection, isReady} = usePageFilters();
 
   const {
     sort: sorts,
@@ -44,17 +45,36 @@ export default function AutomationsList() {
 
   const {
     data: automations,
-    isPending,
+    isLoading,
     isError,
     isSuccess,
     getResponseHeader,
-  } = useAutomationsQuery({
-    cursor,
-    query,
-    sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
-    projects: selection.projects,
-    limit: AUTOMATION_LIST_PAGE_LIMIT,
-  });
+  } = useAutomationsQuery(
+    {
+      cursor,
+      query,
+      sortBy: sort ? `${sort?.kind === 'asc' ? '' : '-'}${sort?.field}` : undefined,
+      projects: selection.projects,
+      limit: AUTOMATION_LIST_PAGE_LIMIT,
+    },
+    {enabled: isReady}
+  );
+
+  const hits = getResponseHeader?.('X-Hits') || '';
+  const hitsInt = hits ? parseInt(hits, 10) || 0 : 0;
+  // If maxHits is not set, we assume there is no max
+  const maxHits = getResponseHeader?.('X-Max-Hits') || '';
+  const maxHitsInt = maxHits ? parseInt(maxHits, 10) || Infinity : Infinity;
+
+  const pageLinks = getResponseHeader?.('Link');
+
+  const allResultsVisible = useCallback(() => {
+    if (!pageLinks) {
+      return false;
+    }
+    const links = parseLinkHeader(pageLinks);
+    return links && !links.previous!.results && !links.next!.results;
+  }, [pageLinks]);
 
   return (
     <SentryDocumentTitle title={t('Automations')} noSuffix>
@@ -64,13 +84,15 @@ export default function AutomationsList() {
           <div>
             <AutomationListTable
               automations={automations ?? []}
-              isPending={isPending}
+              isPending={isLoading}
               isError={isError}
               isSuccess={isSuccess}
               sort={sort}
+              queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
+              allResultsVisible={allResultsVisible()}
             />
             <Pagination
-              pageLinks={getResponseHeader?.('Link')}
+              pageLinks={pageLinks}
               onCursor={newCursor => {
                 navigate({
                   pathname: location.pathname,

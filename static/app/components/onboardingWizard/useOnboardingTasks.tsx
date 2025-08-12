@@ -5,8 +5,8 @@ import {
   taskIsDone,
 } from 'sentry/components/onboardingWizard/utils';
 import {
-  type OnboardingTask,
   OnboardingTaskGroup,
+  type OnboardingTask,
   type OnboardingTaskStatus,
 } from 'sentry/types/onboarding';
 import {useApiQuery} from 'sentry/utils/queryClient';

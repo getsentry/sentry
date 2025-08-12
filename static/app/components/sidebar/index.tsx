@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useContext, useEffect} from 'react';
-import {css, type Theme, useTheme} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
@@ -127,7 +127,7 @@ function Sidebar() {
   }, [collapsed]);
 
   // Close panel on any navigation
-  useEffect(() => void hidePanel(), [location?.pathname]);
+  useEffect(() => hidePanel(), [location?.pathname]);
 
   // Add classname to body
   useEffect(() => {
@@ -377,7 +377,7 @@ function Sidebar() {
           to={`/organizations/${organization.slug}/${DOMAIN_VIEW_BASE_URL}/${AGENTS_LANDING_SUB_PATH}/`}
           id="performance-domains-agents"
           icon={<SubitemDot collapsed />}
-          isBeta
+          isNew
         />
 
         <SidebarItem

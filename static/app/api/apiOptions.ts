@@ -1,17 +1,17 @@
-import {queryOptions} from '@tanstack/react-query';
+import {queryOptions, skipToken, type SkipToken} from '@tanstack/react-query';
 
 import type {ApiResult} from 'sentry/api';
 import {fetchDataQuery, type QueryKeyEndpointOptions} from 'sentry/utils/queryClient';
 
 import type {MaybeApiPath} from './apiDefinition';
-import {
-  type ExtractPathParams,
-  getApiUrl,
-  type OptionalPathParams,
-  type PathParamOptions,
-} from './getApiUrl';
+import {getApiUrl, type ExtractPathParams, type OptionalPathParams} from './getApiUrl';
 
 type Options = QueryKeyEndpointOptions & {staleTime: number};
+
+type PathParamOptions<TApiPath extends string> =
+  ExtractPathParams<TApiPath> extends never
+    ? {path?: never}
+    : {path: Record<ExtractPathParams<TApiPath>, string | number> | SkipToken};
 
 const selectContent = <TData>(data: ApiResult<TData>) => data[0];
 export const selectWithHeaders =
@@ -39,19 +39,26 @@ function _apiOptions<
     ? [Options & {path?: never}]
     : [Options & PathParamOptions<TApiPath>]
 ) {
-  const url = getApiUrl(
-    path,
-    ...([
-      {
-        path: pathParams,
-      },
-    ] as OptionalPathParams<TApiPath>)
-  );
+  const url =
+    pathParams === skipToken
+      ? null
+      : getApiUrl(
+          path,
+          ...([
+            {
+              path: pathParams,
+            },
+          ] as OptionalPathParams<TApiPath>)
+        );
 
   return queryOptions({
     queryKey:
-      Object.keys(options).length > 0 ? ([url, options] as const) : ([url] as const),
-    queryFn: fetchDataQuery<TActualData>,
+      url === null
+        ? [path]
+        : Object.keys(options).length > 0
+          ? ([url, options] as const)
+          : ([url] as const),
+    queryFn: url === null ? skipToken : fetchDataQuery<TActualData>,
     staleTime,
     select: selectContent,
   });

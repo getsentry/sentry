@@ -1,7 +1,7 @@
 import {defined} from 'sentry/utils';
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
   type UseApiQueryResult,
 } from 'sentry/utils/queryClient';

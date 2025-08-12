@@ -522,6 +522,7 @@ class ArtifactBundlePostAssembler:
                 file.size,
                 tags={"usecase": "artifact-bundles", "compression": "none"},
                 unit="byte",
+                precise=True,
             )
 
             artifact_bundle = ArtifactBundle.objects.create(
