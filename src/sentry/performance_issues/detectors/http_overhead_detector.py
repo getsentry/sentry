@@ -113,6 +113,16 @@ class HTTPOverheadDetector(PerformanceDetector):
 
         if not span_op or not span_op == "http.client" or not protocol_version == "1.1":
             return False
+
+        # Check if any spans have filtered URLs
+        event_spans = self._event.get("spans", [])
+        span_index = str(event_spans.index(span) if span in event_spans else -1)
+        meta = self._event.get("_meta", {}).get("spans", {})
+        if span_index in meta:
+            has_filtered_url = meta[span_index].get("data", {}).get("url", {})
+            if has_filtered_url:
+                return False
+
         return True
 
     def _store_performance_problem(self, location: str) -> None:
