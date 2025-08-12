@@ -242,20 +242,6 @@ def test_as_log_message() -> None:
     event = {
         "type": 5,
         "timestamp": 0.0,
-        "data": {
-            "tag": "performanceSpan",
-            "payload": {
-                "op": "web-vital",
-                "description": "first-contentful-paint",
-                "data": {"size": 0, "rating": "good"},
-            },
-        },
-    }
-    assert as_log_message(event) is not None
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "replay.hydrate-error"}},
     }
     assert as_log_message(event) is not None

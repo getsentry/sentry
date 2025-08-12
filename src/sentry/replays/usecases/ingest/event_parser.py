@@ -93,7 +93,7 @@ class EventType(Enum):
     CLICK = 1
     CONSOLE = 2
     DEAD_CLICK = 3
-    FCP = 4
+    # FCP = 4 deprecated
     FEEDBACK = 5
     HYDRATION_ERROR = 6
     LCP = 7
@@ -191,8 +191,6 @@ def which(event: dict[str, Any]) -> EventType:
                 elif op == "web-vital":
                     if payload["description"] == "largest-contentful-paint":
                         return EventType.LCP
-                    elif payload["description"] == "first-contentful-paint":
-                        return EventType.FCP
                     elif payload["description"] == "cumulative-layout-shift":
                         return EventType.CLS
                     else:
@@ -413,13 +411,11 @@ def as_trace_item_context(event_type: EventType, event: dict[str, Any]) -> Trace
                 "event_hash": uuid.uuid4().bytes,
                 "timestamp": float(event["data"]["payload"]["startTimestamp"]),
             }
-        case EventType.LCP | EventType.FCP | EventType.CLS:
+        case EventType.LCP | EventType.CLS:
             payload = event["data"]["payload"]
 
             if event_type == EventType.CLS:
                 category = "web-vital.cls"
-            elif event_type == EventType.FCP:
-                category = "web-vital.fcp"
             else:
                 category = "web-vital.lcp"
 
