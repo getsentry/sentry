@@ -875,7 +875,7 @@ export function SearchQueryBuilderValueCombobox({
           }
         }
         // case when user goes from input to first item
-        else if (currentKey === firstKey) {
+        else if (currentKey === firstKey && keyUpCounter.current === 0) {
           keyUpCounter.current = 2;
         } else {
           keyUpCounter.current = 0;
