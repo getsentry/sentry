@@ -47,6 +47,8 @@ export function getReleasesSeriesQueryOptions({
   projectId,
   query,
   statsPeriod,
+  start,
+  end,
   comparisonDelta,
 }: DetectorSeriesQueryOptions): ApiQueryKey {
   const field = fieldsToDerivedMetrics(aggregate);
@@ -62,6 +64,8 @@ export function getReleasesSeriesQueryOptions({
         per_page: 1,
         project: [projectId],
         statsPeriod,
+        start,
+        end,
         ...(environment && {environment: [environment]}),
         ...(query && {query}),
         ...(comparisonDelta && {comparisonDelta}),
