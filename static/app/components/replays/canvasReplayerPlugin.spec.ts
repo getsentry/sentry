@@ -1,3 +1,10 @@
+import {
+  canvasMutation,
+  EventType,
+  IncrementalSource,
+  Replayer,
+} from '@sentry-internal/rrweb';
+
 import {CanvasReplayerPlugin} from 'sentry/components/replays/canvasReplayerPlugin';
 
 // Mock rrweb pieces used by the plugin
@@ -35,13 +42,6 @@ jest.mock('lodash/debounce', () =>
     return debounced;
   })
 );
-
-import {
-  canvasMutation,
-  EventType,
-  IncrementalSource,
-  Replayer,
-} from '@sentry-internal/rrweb';
 
 type EventWithTime = {
   data: any;

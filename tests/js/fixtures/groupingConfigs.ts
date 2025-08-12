@@ -5,11 +5,7 @@ export function GroupingConfigsFixture(): EventGroupingConfig[] {
     {
       id: 'default:XXXX',
       base: null,
-      changelog: '',
       delegates: [],
-      hidden: false,
-      latest: true,
-      risk: 1,
       strategies: [],
     },
   ];

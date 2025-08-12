@@ -24,18 +24,17 @@ import {useDeleteQuery} from 'sentry/views/explore/hooks/useDeleteQuery';
 import {
   getSavedQueryDatasetLabel,
   getSavedQueryTraceItemDataset,
+  useGetSavedQueries,
   type SavedQuery,
   type SortOption,
-  useGetSavedQueries,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useFromSavedQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
-import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import {ExploreParams} from 'sentry/views/explore/savedQueries/exploreParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   confirmDeleteSavedQuery,
-  getExploreUrlFromSavedQueryUrl,
+  getSavedQueryTraceItemUrl,
 } from 'sentry/views/explore/utils';
 
 type Props = {
@@ -178,7 +177,7 @@ export function SavedQueriesTable({
         header={
           <SavedEntityTable.Header>
             <SavedEntityTable.HeaderCell data-column="star" />
-            <SavedEntityTable.HeaderCell data-column="name">
+            <SavedEntityTable.HeaderCell data-column="name" divider={false}>
               {t('Name')}
             </SavedEntityTable.HeaderCell>
             {hasLogsSavedQueriesEnabled && (
@@ -198,7 +197,7 @@ export function SavedQueriesTable({
             <SavedEntityTable.HeaderCell data-column="created-by">
               {t('Creator')}
             </SavedEntityTable.HeaderCell>
-            <SavedEntityTable.HeaderCell data-column="last-visited" noBorder>
+            <SavedEntityTable.HeaderCell data-column="last-visited">
               {t('Last Viewed')}
             </SavedEntityTable.HeaderCell>
             <SavedEntityTable.HeaderCell data-column="actions" />
@@ -228,11 +227,7 @@ export function SavedQueriesTable({
             </SavedEntityTable.Cell>
             <SavedEntityTable.Cell data-column="name">
               <SavedEntityTable.CellName
-                to={
-                  query.dataset === 'logs'
-                    ? getLogsUrlFromSavedQueryUrl(query, organization)
-                    : getExploreUrlFromSavedQueryUrl({savedQuery: query, organization})
-                }
+                to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
               >
                 {query.name}
               </SavedEntityTable.CellName>

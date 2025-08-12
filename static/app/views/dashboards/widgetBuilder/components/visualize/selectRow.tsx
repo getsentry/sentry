@@ -10,10 +10,10 @@ import type {SelectValue} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {
+  parseFunction,
   type AggregateParameter,
   type AggregationKeyWithAlias,
   type AggregationRefinement,
-  parseFunction,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';

@@ -4,17 +4,23 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/core/button';
 import {TabList, Tabs} from 'sentry/components/core/tabs';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {IconChevron, IconTable} from 'sentry/icons';
+import {IconChevron, IconRefresh, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {AggregationKey} from 'sentry/utils/fields';
+import {HOUR} from 'sentry/utils/formatters';
+import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
@@ -24,11 +30,7 @@ import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
-  useLogsAggregate,
-  useLogsAggregateFunction,
-  useLogsAggregateSortBys,
   useLogsFields,
-  useLogsGroupBy,
   useLogsSearch,
   useSetLogsFields,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -40,7 +42,6 @@ import {
   ChartIntervalUnspecifiedStrategy,
   useChartInterval,
 } from 'sentry/views/explore/hooks/useChartInterval';
-import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {
   HiddenColumnEditorLogFields,
   HiddenLogSearchFields,
@@ -61,9 +62,12 @@ import {
   TopSectionBody,
 } from 'sentry/views/explore/logs/styles';
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
-import {LogsInfiniteTable as LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {
+  OurLogKnownFieldKey,
+  type OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
 import {
   getIngestDelayFilterValue,
   getMaxIngestDelayTimestamp,
@@ -74,9 +78,14 @@ import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
 import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
 import {
+  useQueryParamsAggregateSortBys,
+  useQueryParamsGroupBys,
   useQueryParamsMode,
+  useQueryParamsTopEventsLimit,
+  useQueryParamsVisualizes,
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
+import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import type {PickableDays} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
@@ -89,11 +98,14 @@ export function LogsTabContent({
   relativeOptions,
 }: LogsTabProps) {
   const organization = useOrganization();
+  const pageFilters = usePageFilters();
   const logsSearch = useLogsSearch();
   const fields = useLogsFields();
-  const groupBy = useLogsGroupBy();
+  const groupBys = useQueryParamsGroupBys();
   const mode = useQueryParamsMode();
-  const sortBys = useLogsAggregateSortBys();
+  const topEventsLimit = useQueryParamsTopEventsLimit();
+  const queryClient = useQueryClient();
+  const sortBys = useQueryParamsAggregateSortBys();
   const setMode = useSetQueryParamsMode();
   const setFields = useSetLogsFields();
   const tableData = useLogsPageDataQueryResult();
@@ -108,8 +120,7 @@ export function LogsTabContent({
   const [interval] = useChartInterval({
     unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
   });
-  const aggregateFunction = useLogsAggregateFunction();
-  const aggregate = useLogsAggregate();
+  const visualizes = useQueryParamsVisualizes();
 
   const orderby: string | string[] | undefined = useMemo(() => {
     if (!sortBys.length) {
@@ -120,7 +131,14 @@ export function LogsTabContent({
   }, [sortBys]);
 
   const [sidebarOpen, setSidebarOpen] = useState(
-    !!((aggregateFunction && aggregateFunction !== 'count') || groupBy)
+    !!(
+      groupBys.some(Boolean) ||
+      visualizes.some(
+        visualize =>
+          isVisualizeFunction(visualize) &&
+          visualize.parsedFunction?.name !== AggregationKey.COUNT
+      )
+    )
   );
 
   useEffect(() => {
@@ -142,10 +160,13 @@ export function LogsTabContent({
   const _timeseriesResult = useSortedTimeSeries(
     {
       search,
-      yAxis: [aggregate],
+      yAxis: visualizes.map(visualize => visualize.yAxis),
       interval,
-      fields: [...(groupBy ? [groupBy] : []), aggregate],
-      topEvents: groupBy ? TOP_EVENTS_LIMIT : undefined,
+      fields: [
+        ...groupBys.filter(Boolean),
+        ...visualizes.map(visualize => visualize.yAxis),
+      ],
+      topEvents: topEventsLimit,
       orderby,
     },
     'explore.ourlogs.main-chart',
@@ -187,6 +208,23 @@ export function LogsTabContent({
     return [];
   }, []);
 
+  const refreshTable = useCallback(async () => {
+    queryClient.setQueryData(
+      tableData.queryKey,
+      (data: InfiniteData<OurLogsResponseItem[]>) => {
+        if (data?.pages) {
+          // We only want to keep the first page of data to avoid re-fetching multiple pages, since infinite query will otherwise fetch up to max pages (eg. 30) all at once.
+          return {
+            pages: data.pages.slice(0, 1),
+            pageParams: data.pageParams.slice(0, 1),
+          };
+        }
+        return data;
+      }
+    );
+    await tableData.refetch();
+  }, [tableData, queryClient]);
+
   const openColumnEditor = useCallback(() => {
     openModal(
       modalProps => (
@@ -221,13 +259,35 @@ export function LogsTabContent({
   );
 
   const saveAsItems = useSaveAsItems({
-    aggregate,
-    groupBy,
+    visualizes,
+    groupBys,
     interval,
     mode,
     search: logsSearch,
     sortBys,
   });
+
+  /**
+   * Manual refresh doesn't work for longer relative periods as it hits cacheing. Only allow manual refresh if the relative period or absolute time range is less than 1 day.
+   */
+  const canManuallyRefresh = useMemo(() => {
+    if (pageFilters.selection.datetime.period) {
+      const parsedPeriod = parsePeriodToHours(pageFilters.selection.datetime.period);
+      if (parsedPeriod <= 1) {
+        return true;
+      }
+    }
+
+    if (pageFilters.selection.datetime.start && pageFilters.selection.datetime.end) {
+      const start = new Date(pageFilters.selection.datetime.start).getTime();
+      const end = new Date(pageFilters.selection.datetime.end).getTime();
+      const difference = end - start;
+      const oneDayInMs = HOUR;
+      return difference <= oneDayInMs;
+    }
+
+    return false;
+  }, [pageFilters.selection.datetime]);
 
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
@@ -319,6 +379,20 @@ export function LogsTabContent({
                 <Feature features="organizations:ourlogs-live-refresh">
                   <AutorefreshToggle averageLogsPerSecond={averageLogsPerSecond} />
                 </Feature>
+                <Tooltip
+                  title={t(
+                    'Narrow your time range to 1hr or less for manually refreshing your logs.'
+                  )}
+                  disabled={canManuallyRefresh}
+                >
+                  <Button
+                    onClick={refreshTable}
+                    icon={<IconRefresh />}
+                    size="sm"
+                    aria-label={t('Refresh')}
+                    disabled={!canManuallyRefresh}
+                  />
+                </Tooltip>
                 <Button onClick={openColumnEditor} icon={<IconTable />} size="sm">
                   {t('Edit Table')}
                 </Button>

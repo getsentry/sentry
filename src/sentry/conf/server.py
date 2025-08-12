@@ -2050,8 +2050,8 @@ SENTRY_EMAIL_BACKEND_ALIASES = {
 
 SENTRY_FILESTORE_ALIASES = {
     "filesystem": "django.core.files.storage.FileSystemStorage",
-    "s3": "sentry.filestore.s3.S3Boto3Storage",
-    "gcs": "sentry.filestore.gcs.GoogleCloudStorage",
+    "s3": "sentry.services.filestore.s3.S3Boto3Storage",
+    "gcs": "sentry.services.filestore.gcs.GoogleCloudStorage",
 }
 
 # set of backends that do not support needing SMTP mail.* settings
@@ -2100,7 +2100,7 @@ SENTRY_ATTACHMENTS_OPTIONS: dict[str, str] = {}
 
 # Events blobs processing backend
 SENTRY_EVENT_PROCESSING_STORE = (
-    "sentry.eventstore.processing.redis.RedisClusterEventProcessingStore"
+    "sentry.services.eventstore.processing.redis.RedisClusterEventProcessingStore"
 )
 SENTRY_EVENT_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
 
@@ -2206,6 +2206,8 @@ SENTRY_TSDB_ROLLUPS = (
 # Internal metrics
 SENTRY_METRICS_BACKEND = "sentry.metrics.dummy.DummyMetricsBackend"
 SENTRY_METRICS_OPTIONS: dict[str, Any] = {}
+SENTRY_METRICS_PRECISE_BACKEND: str | None = None
+SENTRY_METRICS_PRECISE_OPTIONS: dict[str, Any] = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES: list[str] = []  # Order this by most frequent prefixes.
@@ -3529,7 +3531,7 @@ SENTRY_GROUPING_CONFIG_TRANSITION_DURATION = 30 * 24 * 3600  # 30 days
 SENTRY_USE_UWSGI = True
 
 # Configure service wrapper for reprocessing2 state
-SENTRY_REPROCESSING_STORE = "sentry.eventstore.reprocessing.redis.RedisReprocessingStore"
+SENTRY_REPROCESSING_STORE = "sentry.services.eventstore.reprocessing.redis.RedisReprocessingStore"
 # Which cluster is used to store auxiliary data for reprocessing. Note that
 # this cluster is not used to store attachments etc, that still happens on
 # rc-processing. This is just for buffering up event IDs and storing a counter
@@ -3613,6 +3615,8 @@ SEER_FIXABILITY_TIMEOUT = 0.6  # 600 milliseconds
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 
 SEER_GROUPING_BACKFILL_URL = SEER_DEFAULT_URL
+
+SEER_SCORING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL

@@ -18,9 +18,9 @@ import {
   getLogFieldsFromLocation,
 } from 'sentry/views/explore/contexts/logs/fields';
 import {
-  type AutoRefreshState,
   LOGS_AUTO_REFRESH_KEY,
   LogsAutoRefreshProvider,
+  type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   getLogAggregateSortBysFromLocation,
@@ -31,8 +31,8 @@ import {
 } from 'sentry/views/explore/contexts/logs/sortBys';
 import {
   getModeFromLocation,
-  type Mode,
   updateLocationWithMode,
+  type Mode,
 } from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
@@ -168,6 +168,8 @@ export function LogsPageParamsProvider({
     }
   }
 
+  const title = getLogTitleFromLocation(location);
+  const id = getLogIdFromLocation(location);
   const fields = isTableFrozen ? defaultLogFields() : getLogFieldsFromLocation(location);
   const sortBys = isTableFrozen
     ? [logsTimestampDescendingSortBy]
@@ -211,6 +213,8 @@ export function LogsPageParamsProvider({
         search,
         setSearchForFrozenPages,
         sortBys,
+        title,
+        id,
         cursor,
         setCursorForFrozenPages,
         isTableFrozen,
@@ -353,27 +357,6 @@ export function useLogsCursor() {
   return cursor;
 }
 
-export function useLogsAggregateFunction() {
-  const {aggregateFn} = useLogsPageParams();
-  return aggregateFn;
-}
-
-export function useLogsAggregateParam() {
-  const {aggregateParam} = useLogsPageParams();
-  return aggregateParam;
-}
-
-export function useLogsAggregate() {
-  const aggregateFn = useLogsAggregateFunction();
-  const aggregateParam = useLogsAggregateParam();
-  return `${aggregateFn}(${aggregateParam})`;
-}
-
-export function useLogsGroupBy() {
-  const {groupBy} = useLogsPageParams();
-  return groupBy;
-}
-
 export function useLogsLimitToTraceId() {
   const {limitToTraceId} = useLogsPageParams();
   return limitToTraceId;
@@ -410,11 +393,6 @@ export function usePersistedLogsPageParams() {
   });
 }
 
-export function useLogsAggregateSortBys() {
-  const {aggregateSortBys} = useLogsPageParams();
-  return aggregateSortBys;
-}
-
 export function useLogsAggregateCursor() {
   const {aggregateCursor} = useLogsPageParams();
   return aggregateCursor;
@@ -428,6 +406,16 @@ export function useLogsSortBys() {
 export function useLogsFields() {
   const {fields} = useLogsPageParams();
   return fields;
+}
+
+export function useLogsId() {
+  const {id} = useLogsPageParams();
+  return id;
+}
+
+export function useLogsTitle() {
+  const {title} = useLogsPageParams();
+  return title;
 }
 
 export function useLogsProjectIds() {
@@ -497,6 +485,14 @@ export function useSetLogsSortBys() {
 export function useLogsAnalyticsPageSource() {
   const {analyticsPageSource} = useLogsPageParams();
   return analyticsPageSource;
+}
+
+function getLogTitleFromLocation(location: Location): string {
+  return decodeScalar(location.query.title, '');
+}
+
+function getLogIdFromLocation(location: Location): string {
+  return decodeScalar(location.query.id, '');
 }
 
 function getLogCursorFromLocation(location: Location): string {

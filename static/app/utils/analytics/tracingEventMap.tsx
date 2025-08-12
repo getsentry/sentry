@@ -15,6 +15,9 @@ export type TracingEventParameters = {
     query: string;
     visualize_count: number;
   };
+  'trace.explorer.ai_query_example_clicked': {
+    example_query: string;
+  };
   'trace.explorer.ai_query_feedback': {
     correct_query_results: 'yes' | 'no';
     natural_language_query: string;
@@ -35,6 +38,7 @@ export type TracingEventParameters = {
     columns_count: number;
     confidences: string[];
     dataset: string;
+    gave_seer_consent: 'given' | 'not_given' | 'gen_ai_features_disabled';
     has_exceeded_performance_usage_limit: boolean | null;
     interval: string;
     page_source: 'explore' | 'compare';
@@ -217,6 +221,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.explorer.ai_query_submitted': 'Trace Explorer: AI Query Submitted',
   'trace.explorer.ai_query_interface': 'Trace Explorer: AI Query Interface',
   'trace.explorer.ai_query_feedback': 'Trace Explorer: AI Query Feedback',
+  'trace.explorer.ai_query_example_clicked': 'Trace Explorer: AI Query Example Clicked',
   'trace.explorer.metadata': 'Improved Trace Explorer Pageload Metadata',
   'trace.explorer.schema_hints_click':
     'Improved Trace Explorer: Schema Hints Click Events',

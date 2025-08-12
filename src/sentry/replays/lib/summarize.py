@@ -8,7 +8,6 @@ import sentry_sdk
 
 from sentry import nodestore
 from sentry.constants import ObjectStatus
-from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.replays.usecases.ingest.event_parser import (
     EventType,
@@ -17,6 +16,7 @@ from sentry.replays.usecases.ingest.event_parser import (
 )
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
+from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json
@@ -160,6 +160,7 @@ def fetch_trace_connected_errors(
         return []
 
 
+@sentry_sdk.trace
 def fetch_feedback_details(feedback_id: str | None, project_id) -> EventDict | None:
     """
     Fetch user feedback associated with a specific feedback event ID.
@@ -318,11 +319,6 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 duration = event["data"]["payload"]["data"]["size"]
                 rating = event["data"]["payload"]["data"]["rating"]
                 return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
-            case EventType.FCP:
-                timestamp_ms = timestamp * 1000
-                duration = event["data"]["payload"]["data"]["size"]
-                rating = event["data"]["payload"]["data"]["rating"]
-                return f"Application first contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
             case EventType.HYDRATION_ERROR:
                 return f"There was a hydration error on the page at {timestamp}"
             case EventType.RESOURCE_XHR:

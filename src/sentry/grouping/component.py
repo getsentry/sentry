@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from collections.abc import Generator, Iterator, Sequence
 from functools import cached_property
-from typing import Any, Self
+from typing import Any
 
 from sentry.grouping.utils import hash_from_values
 
@@ -148,13 +148,6 @@ class BaseGroupingComponent[ValuesType: str | int | BaseGroupingComponent[Any]](
             self.values = values
         if contributes is not None:
             self.contributes = contributes
-
-    def shallow_copy(self) -> Self:
-        """Creates a shallow copy."""
-        copy = object.__new__(self.__class__)
-        copy.__dict__.update(self.__dict__)
-        copy.values = list(self.values)
-        return copy
 
     def iter_values(self) -> Generator[str | int]:
         """
