@@ -5,7 +5,7 @@ import {decodeList} from 'sentry/utils/queryString';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 
-import {type DashboardDetails, DisplayType, type Widget} from './types';
+import {DisplayType, type DashboardDetails, type Widget} from './types';
 
 type Props = {
   dashboard: DashboardDetails | null;

@@ -10,7 +10,7 @@ import {
   recentSearchTypeToLabel,
   tokenIsInvalid,
 } from 'sentry/components/searchQueryBuilder/utils';
-import {type ParseResult, Token} from 'sentry/components/searchSyntax/parser';
+import {Token, type ParseResult} from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {SavedSearchType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';

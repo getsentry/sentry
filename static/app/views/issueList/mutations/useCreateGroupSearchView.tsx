@@ -2,8 +2,8 @@ import {useMutation} from '@tanstack/react-query';
 
 import {
   setApiQueryData,
-  type UseMutationOptions,
   useQueryClient,
+  type UseMutationOptions,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
