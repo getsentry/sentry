@@ -221,7 +221,7 @@ def which_iter(events: list[dict[str, Any]]) -> Iterator[tuple[EventType, dict[s
 
 def get_timestamp_unit(event_type: EventType) -> Literal["s", "ms"]:
     """
-    Returns the time unit for the event.timestamp field of a replay event.
+    Returns the time unit of event["timestamp"] for a replay event.
     This is not guaranteed to match event.data.payload.timestamp.
 
     We do not allow wildcard or default cases. Please be explicit when adding new types.
@@ -235,7 +235,6 @@ def get_timestamp_unit(event_type: EventType) -> Literal["s", "ms"]:
             | EventType.FEEDBACK
             | EventType.MEMORY
             | EventType.MUTATIONS
-            | EventType.NAVIGATION
             | EventType.NAVIGATION_SPAN
             | EventType.RESOURCE_FETCH
             | EventType.RESOURCE_IMAGE
@@ -253,6 +252,7 @@ def get_timestamp_unit(event_type: EventType) -> Literal["s", "ms"]:
             | EventType.RAGE_CLICK
             | EventType.SLOW_CLICK
             | EventType.HYDRATION_ERROR
+            | EventType.NAVIGATION
             | EventType.OPTIONS
             | EventType.UNKNOWN
         ):
