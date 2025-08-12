@@ -58,20 +58,6 @@ describe('useDashboardsLimit', function () {
     });
   });
 
-  it('returns loading state initially when subscription is loading', function () {
-    const wrapper = createWrapper(mockOrganization);
-
-    // No subscription set in store means loading state
-    const {result} = renderHook(() => useDashboardsLimit(), {wrapper});
-
-    expect(result.current).toEqual({
-      hasReachedDashboardLimit: false,
-      dashboardsLimit: 0,
-      isLoading: true,
-      limitMessage: null,
-    });
-  });
-
   it('handles unlimited dashboards plan without making dashboards request', async function () {
     const wrapper = createWrapper(mockOrganization);
 
@@ -109,7 +95,7 @@ describe('useDashboardsLimit', function () {
     expect(dashboardsRequest).not.toHaveBeenCalled();
   });
 
-  it('handles no subscription data (defaults to unlimited)', async function () {
+  it('handles no subscription data (defaults to 0)', function () {
     const wrapper = createWrapper(mockOrganization);
 
     SubscriptionStore.set(mockOrganization.slug, null as any);
@@ -121,16 +107,18 @@ describe('useDashboardsLimit', function () {
 
     const {result} = renderHook(() => useDashboardsLimit(), {wrapper});
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
+    expect(result.current.hasReachedDashboardLimit).toBe(true);
+    expect(result.current.dashboardsLimit).toBe(0);
+    expect(result.current.isLoading).toBe(false);
 
-    expect(result.current).toEqual({
-      hasReachedDashboardLimit: false,
-      dashboardsLimit: -1,
-      isLoading: false,
-      limitMessage: null,
-    });
+    render(<div>{result.current.limitMessage}</div>);
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          'You have reached the dashboard limit (0) for your plan. Upgrade to create more dashboards.'
+        )
+      )
+    ).toBeInTheDocument();
 
     // Should not make the dashboards request when no subscription
     expect(dashboardsRequest).not.toHaveBeenCalled();
@@ -342,7 +330,7 @@ describe('useDashboardsLimit', function () {
     });
   });
 
-  it('handles missing subscription planDetails gracefully', async function () {
+  it('handles missing subscription planDetails gracefully (defaults to 0)', function () {
     const wrapper = createWrapper(mockOrganization);
 
     const subscription = SubscriptionFixture({
@@ -359,17 +347,19 @@ describe('useDashboardsLimit', function () {
 
     const {result} = renderHook(() => useDashboardsLimit(), {wrapper});
 
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
+    // Should default to 0 when planDetails is missing
+    expect(result.current.hasReachedDashboardLimit).toBe(true);
+    expect(result.current.dashboardsLimit).toBe(0);
+    expect(result.current.isLoading).toBe(false);
 
-    // Should default to unlimited when planDetails is missing
-    expect(result.current).toEqual({
-      hasReachedDashboardLimit: false,
-      dashboardsLimit: -1,
-      isLoading: false,
-      limitMessage: null,
-    });
+    render(<div>{result.current.limitMessage}</div>);
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          'You have reached the dashboard limit (0) for your plan. Upgrade to create more dashboards.'
+        )
+      )
+    ).toBeInTheDocument();
 
     // Should not make dashboards request for unlimited plans
     expect(dashboardsRequest).not.toHaveBeenCalled();

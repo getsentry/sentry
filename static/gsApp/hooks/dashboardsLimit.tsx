@@ -20,9 +20,8 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
   const organization = useOrganization();
   const subscription = useSubscription();
 
-  // If there is no subscription, the user can create unlimited dashboards
-  const dashboardsLimit =
-    subscription?.planDetails?.dashboardLimit ?? UNLIMITED_DASHBOARDS_LIMIT;
+  // If there is no subscription, block dashboard creation
+  const dashboardsLimit = subscription?.planDetails?.dashboardLimit ?? 0;
 
   const isUnlimitedPlan = dashboardsLimit === UNLIMITED_DASHBOARDS_LIMIT;
 
@@ -42,7 +41,9 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
       {
         staleTime: 0,
         enabled:
-          organization.features.includes('dashboards-plan-limits') && !isUnlimitedPlan,
+          organization.features.includes('dashboards-plan-limits') &&
+          !isUnlimitedPlan &&
+          dashboardsLimit !== 0,
       }
     );
 
@@ -55,19 +56,11 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
     };
   }
 
-  if (!subscription) {
-    return {
-      hasReachedDashboardLimit: false,
-      dashboardsLimit: 0,
-      isLoading: true,
-      limitMessage: null,
-    };
-  }
-
   // Add 1 to dashboardsLimit to account for the General dashboard
   const hasReachedDashboardLimit =
-    (dashboardsTotalCount?.length ?? 0) >= dashboardsLimit + 1 &&
-    dashboardsLimit !== UNLIMITED_DASHBOARDS_LIMIT;
+    ((dashboardsTotalCount?.length ?? 0) >= dashboardsLimit + 1 &&
+      dashboardsLimit !== UNLIMITED_DASHBOARDS_LIMIT) ||
+    dashboardsLimit === 0;
   const limitMessage = hasReachedDashboardLimit
     ? tct(
         'You have reached the dashboard limit ([dashboardsLimit]) for your plan. Upgrade to create more dashboards.',

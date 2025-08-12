@@ -171,7 +171,6 @@ function DashboardGrid({
         <DashboardCreateLimitWrapper key={`${index}-${dashboard.id}`}>
           {dashboardLimitData => (
             <DashboardCard
-              key={`${index}-${dashboard.id}`}
               title={dashboard.title}
               to={{
                 pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
