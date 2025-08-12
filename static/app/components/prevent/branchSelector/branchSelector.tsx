@@ -69,7 +69,7 @@ export function BranchSelector() {
   useEffect(() => {
     // Only update displayedBranches if the hook returned something non-empty
     if (!isFetching) {
-      setDisplayedBranches(branches.map(item => item.name));
+      setDisplayedBranches((branches ?? []).map(item => item.name));
     }
   }, [branches, isFetching]);
 
@@ -115,16 +115,12 @@ export function BranchSelector() {
   );
 
   function getEmptyMessage() {
-    if (displayedBranches.length) {
-      return '';
+    if (isFetching) {
+      return t('Getting branches...');
     }
 
     if (searchValue && !displayedBranches.length) {
       return t('Sorry, no branches match your search query');
-    }
-
-    if (isFetching) {
-      return t('Getting branches...');
     }
 
     return t('No branches found');

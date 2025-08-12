@@ -102,11 +102,11 @@ export function RepoSelector() {
   }, [displayedRepos, repository]);
 
   function getEmptyMessage() {
-    if (displayedRepos.length) {
-      return '';
+    if (isFetching) {
+      return t('Getting repositories...');
     }
 
-    if (searchValue && !displayedRepos.length && !isFetching) {
+    if (searchValue && !repositories?.length) {
       return t('No repositories found. Please enter at least 3 characters to search.');
     }
 
@@ -114,9 +114,9 @@ export function RepoSelector() {
   }
 
   useEffect(() => {
-    // Only update displayedBranches if the hook returned something non-empty
+    // Only update displayedRepos if the hook returned something non-empty
     if (!isFetching) {
-      setDisplayedRepos(repositories.map(item => item.name));
+      setDisplayedRepos((repositories ?? []).map(item => item.name));
     }
   }, [isFetching, repositories]);
 
