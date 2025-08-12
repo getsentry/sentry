@@ -412,28 +412,29 @@ def test_deobfuscate_exception_type_instance_of_pattern() -> None:
     ):
         deobfuscate_exception_type(data)
 
-        # Only exception types should be deobfuscated, values remain unchanged
+        # Exception types should be deobfuscated
         assert data["exception"]["values"][0]["type"] == "NetworkException"
-        assert data["exception"]["values"][0]["value"] == "Instance of 'xyz'"
+        # Value starts with pattern: quoted symbol should be deobfuscated
+        assert data["exception"]["values"][0]["value"] == "Instance of 'NetworkException'"
 
         assert data["exception"]["values"][1]["type"] == "DatabaseException"
+        # Pattern can appear anywhere: deobfuscate occurrences
         assert (
             data["exception"]["values"][1]["value"]
-            == "Unhandled Exception: Instance of 'abc' was thrown"
+            == "Unhandled Exception: Instance of 'DatabaseException' was thrown"
         )
 
         assert data["exception"]["values"][2]["type"] == "FileException"
-        # No 'Instance of' pattern, so value should remain unchanged
+        # No pattern, value should remain unchanged
         assert (
             data["exception"]["values"][2]["value"]
             == "Error: def occurred outside of Instance pattern"
         )
 
         assert data["exception"]["values"][3]["type"] == "IOException"
-        # Values remain unchanged
         assert (
             data["exception"]["values"][3]["value"]
-            == "Instance of 'xyz' and Instance of 'ghi' both occurred"
+            == "Instance of 'NetworkException' and Instance of 'IOException' both occurred"
         )
 
 
@@ -480,18 +481,17 @@ def test_deobfuscate_exception_type_special_regex_chars() -> None:
     ):
         deobfuscate_exception_type(data)
 
-        # Exception types deobfuscated, values remain unchanged
+        # Exception types deobfuscated; values with the pattern are updated
         assert data["exception"]["values"][0]["type"] == "NetworkException"
-        assert data["exception"]["values"][0]["value"] == "Instance of 'a.b'"
+        assert data["exception"]["values"][0]["value"] == "Instance of 'NetworkException'"
 
         assert data["exception"]["values"][1]["type"] == "MathException"
-        assert data["exception"]["values"][1]["value"] == "Instance of 'x+y' occurred"
+        assert data["exception"]["values"][1]["value"] == "Instance of 'MathException' occurred"
 
         assert data["exception"]["values"][2]["type"] == "ArrayException"
-        # Values remain unchanged
         assert (
             data["exception"]["values"][2]["value"]
-            == "Instance of 'test[0]' and Instance of 'other' patterns"
+            == "Instance of 'ArrayException' and Instance of 'other' patterns"
         )
 
 

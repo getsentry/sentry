@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import MutableMapping
 from typing import Any
 
@@ -16,6 +17,7 @@ from sentry.utils.safe import get_path
 # the values to be more complicated such as "_xyz", so the regex should capture
 # any values other than "<" and ">".
 # VIEW_HIERARCHY_TYPE_REGEX = re.compile(r"([^<>]+)(?:<([^<>]+)>)?")
+INSTANCE_OF_VALUE_RE = re.compile(r"Instance of '([^']+)'")
 
 
 def get_debug_meta_image_ids(event: dict[str, Any]) -> set[str]:
@@ -63,9 +65,13 @@ def generate_dart_symbols_map(debug_ids: list[str], project: Project):
 
 def deobfuscate_exception_type(data: MutableMapping[str, Any]):
     """
-    Deobfuscates exception types in-place.
+    Deobfuscates exception types and certain values in-place.
 
-    If we're unable to fetch a dart symbols mapping file, then the exception types remain unmodified.
+    - Exception type: replaced directly via symbol map lookup
+    - Exception value: deobfuscate the quoted symbol for all occurrences of the
+      pattern "Instance of 'obfuscated_symbol'" in the value.
+
+    If we're unable to fetch a dart symbols mapping file, then the exception data remains unmodified.
     """
     project = Project.objects.get_from_cache(id=data["project"])
 
@@ -91,13 +97,20 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]):
             if deobfuscated_type is not None:
                 exception["type"] = deobfuscated_type
 
-        # TODO(buenaflor): Future enhancement - deobfuscate exception values
-        #
-        # Exception values may contain obfuscated symbols in patterns like:
-        # - "Instance of 'obfuscated_symbol'"
-        # - General text containing obfuscated symbols
-        # This could be implemented by extracting symbols from these patterns
-        # and looking them up in the symbol map for replacement.
+            # Deobfuscate occurrences of "Instance of 'xYz'" in the exception value
+            value = exception.get("value")
+            if isinstance(value, str):
+
+                def replace_symbol(match: re.Match[str]) -> str:
+                    symbol = match.group(1)
+                    deobfuscated_symbol = symbol_map.get(symbol)
+                    if deobfuscated_symbol is None:
+                        return match.group(0)
+                    return f"Instance of '{deobfuscated_symbol}'"
+
+                new_value = re.sub(INSTANCE_OF_VALUE_RE, replace_symbol, value)
+                if new_value != value:
+                    exception["value"] = new_value
 
 
 # TODO(buenaflor): Add this back in when we decide to deobfuscate view hierarchies
