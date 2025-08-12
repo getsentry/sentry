@@ -44,7 +44,7 @@ function MetricDetectorChart({
   const comparisonDelta =
     detectionType === 'percent' ? detector.config.comparisonDelta : undefined;
   const dataset = getDetectorDataset(snubaQuery.dataset, snubaQuery.eventTypes);
-  const {series, comparisonSeries, isLoading, isError} = useMetricDetectorSeries({
+  const {series, comparisonSeries, isLoading, error} = useMetricDetectorSeries({
     dataset,
     aggregate: snubaQuery.aggregate,
     interval: snubaQuery.timeWindow,
@@ -150,7 +150,7 @@ function MetricDetectorChart({
     );
   }
 
-  if (isError) {
+  if (error) {
     return (
       <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
         <ErrorPanel>
