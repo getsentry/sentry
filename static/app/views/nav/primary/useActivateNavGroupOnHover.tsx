@@ -2,7 +2,7 @@ import {useRef} from 'react';
 
 import {PRIMARY_SIDEBAR_WIDTH} from 'sentry/views/nav/constants';
 import {useNavContext} from 'sentry/views/nav/context';
-import useMouseMovement from 'sentry/views/nav/primary/useMouseMovement';
+import {useMouseMovement} from 'sentry/views/nav/primary/useMouseMovement';
 import {useWindowHeight} from 'sentry/views/nav/primary/useWindowHeight';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 

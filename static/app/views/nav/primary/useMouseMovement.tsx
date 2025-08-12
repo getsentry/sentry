@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useRef} from 'react';
 
-export type MouseMovementData = {
+type MouseMovementData = {
   horizontalDirection: number;
   horizontalSpeed: number;
   verticalDirection: number;
@@ -139,5 +139,3 @@ export const useMouseMovement = ({
 
   return mouseMovementDataRef;
 };
-
-export default useMouseMovement;
