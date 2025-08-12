@@ -22,7 +22,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import EventTag, get_tags_with_meta
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -30,6 +29,7 @@ from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer

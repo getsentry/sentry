@@ -4,8 +4,8 @@ import pytest
 import requests
 import responses
 
-from sentry import eventstore
 from sentry.models.eventattachment import EventAttachment
+from sentry.services import eventstore
 from sentry.testutils.helpers import get_auth_header
 
 if TYPE_CHECKING:

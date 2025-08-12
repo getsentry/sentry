@@ -9,7 +9,6 @@ import sentry_sdk
 
 from sentry import features
 from sentry.constants import ObjectStatus
-from sentry.eventstore.models import GroupEvent
 from sentry.incidents.grouptype import MetricIssueEvidenceData
 from sentry.incidents.models.incident import TriggerStatus
 from sentry.incidents.typings.metric_detector import (
@@ -25,6 +24,7 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.rules.processing.processor import activate_downstream_actions
+from sentry.services.eventstore.models import GroupEvent
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.utils.safe import safe_execute

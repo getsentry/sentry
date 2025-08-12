@@ -21,7 +21,6 @@ from sentry.event_manager import (
     get_event_type,
     save_grouphash_and_group,
 )
-from sentry.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
 from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.priority import PriorityChangeReason, update_priority
@@ -30,6 +29,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.release import Release
 from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
+from sentry.services.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
 from sentry.types.group import PriorityLevel
 from sentry.utils import json, metrics, redis
 from sentry.utils.strings import truncatechars

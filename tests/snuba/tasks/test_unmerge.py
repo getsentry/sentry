@@ -13,7 +13,6 @@ from django.utils import timezone
 
 from sentry import eventstream, tsdb
 from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
-from sentry.eventstore.models import Event
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
@@ -21,6 +20,7 @@ from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.models.userreport import UserReport
+from sentry.services.eventstore.models import Event
 from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.unmerge import (

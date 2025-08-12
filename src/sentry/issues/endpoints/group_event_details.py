@@ -11,7 +11,6 @@ from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Op, Or
 from snuba_sdk.legacy import is_condition, parse_condition
 
-from sentry import eventstore
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
@@ -29,7 +28,6 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import EventParams, GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.endpoints.project_event_details import (
     GroupEventDetailsResponse,
@@ -43,6 +41,8 @@ from sentry.search.events.filter import (
     convert_search_filter_to_snuba_query,
     format_search_filter,
 )
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User

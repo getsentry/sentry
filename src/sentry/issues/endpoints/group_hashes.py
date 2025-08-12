@@ -6,7 +6,6 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
@@ -14,6 +13,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, SimpleEventSerializer, serialize
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
+from sentry.services import eventstore
 from sentry.tasks.unmerge import unmerge
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser

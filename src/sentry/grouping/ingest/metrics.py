@@ -12,7 +12,7 @@ from sentry.utils import metrics
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 logger = logging.getLogger("sentry.events.grouping")
 

@@ -5,12 +5,12 @@ import responses
 from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.github import client
 from sentry.integrations.github.actions.create_ticket import GitHubCreateTicketAction
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.rule import Rule
+from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.skips import requires_snuba

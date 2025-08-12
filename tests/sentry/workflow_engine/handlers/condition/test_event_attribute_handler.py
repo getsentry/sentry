@@ -572,7 +572,7 @@ class TestEventAttributeCondition(ConditionTestCase):
         )
         self.assert_does_not_pass(self.dc, self.event_data)
 
-    @patch("sentry.eventstore.models.get_interfaces", return_value={})
+    @patch("sentry.services.eventstore.models.get_interfaces", return_value={})
     def test_exception_type_keyerror(self, mock_get_interfaces: MagicMock) -> None:
         self.dc.comparison.update(
             {
@@ -613,7 +613,7 @@ class TestEventAttributeCondition(ConditionTestCase):
         )
         self.assert_does_not_pass(self.dc, self.event_data)
 
-    @patch("sentry.eventstore.models.get_interfaces", return_value={})
+    @patch("sentry.services.eventstore.models.get_interfaces", return_value={})
     def test_error_handled_keyerror(self, mock_get_interfaces: MagicMock) -> None:
         self.error_setup()
         self.dc.comparison.update(

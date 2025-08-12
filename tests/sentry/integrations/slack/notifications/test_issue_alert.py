@@ -103,7 +103,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
     @responses.activate
     @mock.patch("sentry.integrations.slack.message_builder.issues.get_tags", new=fake_get_tags)
     @mock.patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
@@ -183,7 +183,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert len(blocks) == 5
 
     @patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
@@ -222,7 +222,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
@@ -271,7 +271,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )

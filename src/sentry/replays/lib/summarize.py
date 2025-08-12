@@ -8,7 +8,6 @@ import sentry_sdk
 
 from sentry import nodestore
 from sentry.constants import ObjectStatus
-from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.replays.usecases.ingest.event_parser import (
     EventType,
@@ -17,6 +16,7 @@ from sentry.replays.usecases.ingest.event_parser import (
 )
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
+from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json

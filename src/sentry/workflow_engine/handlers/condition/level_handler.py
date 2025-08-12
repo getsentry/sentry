@@ -1,8 +1,8 @@
 from typing import Any
 
 from sentry.constants import LOG_LEVELS_MAP
-from sentry.eventstore.models import GroupEvent
 from sentry.rules import MatchType
+from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData

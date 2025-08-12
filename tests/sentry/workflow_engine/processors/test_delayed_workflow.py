@@ -6,7 +6,6 @@ import pytest
 from django.utils import timezone
 
 from sentry import buffer
-from sentry.eventstore.models import Event
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -16,6 +15,7 @@ from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.match import MatchType
 from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import fetch_project
+from sentry.services.eventstore.models import Event
 from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer

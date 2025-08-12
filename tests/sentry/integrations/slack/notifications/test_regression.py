@@ -79,7 +79,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @mock.patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
@@ -107,7 +107,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @mock.patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
+        "sentry.services.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )

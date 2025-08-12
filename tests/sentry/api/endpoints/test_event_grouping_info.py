@@ -204,7 +204,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         javascript_event = self.store_event(data=data, project_id=self.project.id)
         # Force a hash mismatch by setting the variants to be for the python event
         with mock.patch(
-            "sentry.eventstore.models.BaseEvent.get_grouping_variants"
+            "sentry.services.eventstore.models.BaseEvent.get_grouping_variants"
         ) as mock_get_grouping_variants:
             mock_get_grouping_variants.return_value = python_grouping_variants
             default_grouping_config = _load_default_grouping_config()

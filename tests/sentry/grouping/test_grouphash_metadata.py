@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import Mock, patch
 
-from sentry.eventstore.models import Event
 from sentry.grouping.component import DefaultGroupingComponent, MessageGroupingComponent
 from sentry.grouping.ingest.grouphash_metadata import (
     check_grouphashes_for_positive_fingerprint_match,
@@ -16,6 +15,7 @@ from sentry.grouping.variants import ComponentVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata, HashBasis
 from sentry.models.project import Project
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.utils import json

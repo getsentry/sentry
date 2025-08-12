@@ -3,10 +3,10 @@ from unittest.mock import MagicMock
 
 from snuba_sdk import Column, Condition, Op
 
-from sentry.eventstore.base import Filter
-from sentry.eventstore.models import Event
-from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.services.eventstore.base import Filter
+from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.snuba.backend import SnubaEventStorage
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import snuba
@@ -173,7 +173,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
 
     def test_get_event_by_id_cached(self) -> None:
         # Simulate getting an event that exists in eventstore but has not yet been written to snuba.
-        with mock.patch("sentry.eventstore.snuba.backend.Event") as mock_event:
+        with mock.patch("sentry.services.eventstore.snuba.backend.Event") as mock_event:
             dummy_event = Event(
                 project_id=self.project2.id,
                 event_id="1" * 32,

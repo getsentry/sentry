@@ -145,8 +145,8 @@ def fetch_associated_groups(
         Request,
     )
 
-    from sentry.eventstore.base import EventStorage
-    from sentry.eventstore.snuba.backend import DEFAULT_LIMIT, DEFAULT_OFFSET
+    from sentry.services.eventstore.base import EventStorage
+    from sentry.services.eventstore.snuba.backend import DEFAULT_LIMIT, DEFAULT_OFFSET
     from sentry.snuba.dataset import Dataset
     from sentry.snuba.events import Columns
     from sentry.utils.snuba import DATASETS, raw_snql_query

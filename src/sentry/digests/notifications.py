@@ -9,12 +9,12 @@ import sentry_sdk
 
 from sentry import features, tsdb
 from sentry.digests.types import IdentifierKey, Notification, Record, RecordWithRuleObjects
-from sentry.eventstore.models import Event
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.services.eventstore.models import Event
 from sentry.tsdb.base import TSDBModel
 from sentry.workflow_engine.models import Workflow
 from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow

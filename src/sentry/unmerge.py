@@ -5,9 +5,9 @@ from dataclasses import dataclass
 from typing import Any, Union
 
 from sentry import eventstream
-from sentry.eventstore.models import Event
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
+from sentry.services.eventstore.models import Event
 from sentry.utils.datastructures import BidirectionalMapping
 
 _DEFAULT_UNMERGE_KEY = "default"

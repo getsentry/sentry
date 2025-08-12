@@ -91,13 +91,14 @@ import sentry_sdk
 from django.conf import settings
 from django.db import router
 
-from sentry import eventstore, models, nodestore, options
+from sentry import models, nodestore, options
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
-from sentry.eventstore.models import Event, GroupEvent
-from sentry.eventstore.processing import event_processing_store
-from sentry.eventstore.reprocessing import reprocessing_store
 from sentry.models.eventattachment import EventAttachment
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.services.eventstore.processing import event_processing_store
+from sentry.services.eventstore.reprocessing import reprocessing_store
 from sentry.snuba.dataset import Dataset
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics, snuba

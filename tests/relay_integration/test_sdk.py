@@ -6,9 +6,9 @@ import sentry_sdk
 from django.test.utils import override_settings
 from sentry_sdk import Scope
 
-from sentry import eventstore
-from sentry.eventstore.models import Event
 from sentry.receivers import create_default_projects
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.pytest.fixtures import django_db_all

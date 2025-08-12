@@ -8,7 +8,6 @@ import orjson
 from django.urls import reverse
 from urllib3.response import HTTPResponse
 
-from sentry.eventstore.models import Event
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models.alert_rule import (
@@ -56,6 +55,7 @@ from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.notifications.utils.actions import MessageAction
 from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.seer.autofix.constants import SeerAutomationSource
+from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType

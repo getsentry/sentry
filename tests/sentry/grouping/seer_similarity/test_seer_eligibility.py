@@ -3,7 +3,6 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid1
 
-from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.ingest.seer import (
     _event_content_is_seer_eligible,
@@ -12,6 +11,7 @@ from sentry.grouping.ingest.seer import (
 from sentry.grouping.utils import hash_from_values
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.utils import SEER_INELIGIBLE_EVENT_PLATFORMS, get_stacktrace_string
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.options import override_options

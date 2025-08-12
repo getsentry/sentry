@@ -18,7 +18,6 @@ from sentry.digests.utils import (
     get_personalized_digests,
     should_get_personalized_digests,
 )
-from sentry.eventstore.models import Event
 from sentry.integrations.types import ExternalProviders, IntegrationProviderSlug
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.notify import notify
@@ -34,6 +33,7 @@ from sentry.notifications.utils.links import (
     get_integration_link,
     get_rules,
 )
+from sentry.services.eventstore.models import Event
 from sentry.types.actor import Actor
 from sentry.types.rules import NotificationRuleDetails
 
