@@ -206,18 +206,19 @@ QUERY_MAP: dict[str, Expression] = {
         "min", parameters=[Column("replay_start_timestamp")], alias="started_at"
     ),
     "finished_at": conditional_function(
-        "maxIf",
-        Column("timestamp"),
-        Condition(Column("segment_id"), Op.IS_NOT_NULL),
-        alias="finished_at",
+        "maxIf", "timestamp", Condition(Column("segment_id"), Op.IS_NOT_NULL), alias="finished_at"
     ),
     "duration": Function(
         "dateDiff",
         parameters=[
             "second",
             Function("min", parameters=[Column("replay_start_timestamp")]),
-            conditional_function(
-                "maxIf", Column("timestamp"), Condition(Column("segment_id"), Op.IS_NOT_NULL)
+            Function(
+                "maxIf",
+                parameters=[
+                    Column("timestamp"),
+                    Function("isNotNull", parameters=[Column("segment_id")]),
+                ],
             ),
         ],
         alias="duration",
@@ -592,7 +593,7 @@ def get_replay_segments(
     project_id: int,
     replay_id: str,
     segment_id: int | None,
-    limit: int = 50,
+    limit: int = 100,
     offset: int = 0,
     referrer: str = "replays.get_replay_segments_unknown",
     tenant_ids: dict[str, Any] | None = None,
@@ -630,3 +631,39 @@ def get_replay_segments(
         }
         for result in execute_query(query, tenant_ids=tenant_ids, referrer=referrer)
     ]
+
+
+def get_replay_ids(
+    project_ids: list[int],
+    timestamp_start: datetime | None = None,
+    timestamp_end: datetime | None = None,
+    where: list[Condition] | None = None,
+    having: list[Condition] | None = None,
+    orderby: list[OrderBy] | None = None,
+    limit: int = 50,
+    offset: int = 0,
+    referrer: str = "replays.get_replay_ids_unknown",
+    tenant_ids: dict[str, Any] | None = None,
+) -> list[str]:
+    where = where or []
+    having = having or []
+    orderby = orderby or []
+
+    query = Query(
+        match=Entity("replays"),
+        select=[Column("replay_id")],
+        where=[
+            Condition(Column("project_id"), Op.IN, project_ids),
+            Condition(Column("timestamp"), Op.GTE, timestamp_start),
+            Condition(Column("timestamp"), Op.LT, timestamp_end),
+            *where,
+        ],
+        having=having,
+        orderby=orderby,
+        groupby=[Column("replay_id")],
+        limit=Limit(limit),
+        offset=Offset(offset),
+    )
+
+    results = execute_query(query, tenant_ids=tenant_ids, referrer=referrer)
+    return [result["replay_id"] for result in results]

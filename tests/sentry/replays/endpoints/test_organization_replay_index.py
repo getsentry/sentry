@@ -1113,6 +1113,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "count_infos": 0,
                     "has_viewed": False,
                     "replay_type": "session",
+                    "viewed_by_ids": [],
                 }
             ]
 
