@@ -121,11 +121,15 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     // doesn't show categories with <=1 reserved tier and no PAYG
     expect(
       screen.getByText(
-        /You’ve run out of errors, replays, spans, and continuous profile hours for this billing cycle./
+        /You have used up your quota for errors, replays, spans, and continuous profile hours. Monitoring and new data for these features are paused until your quota resets./
       )
     ).toBeInTheDocument();
     expect(screen.queryByText(/cron monitors/)).not.toBeInTheDocument();
-    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    expect(
+      screen.getByRole('button', {
+        name: 'Dismiss alert for the rest of the billing cycle',
+      })
+    ).toBeInTheDocument();
   });
 
   it('should render for single category', async function () {
@@ -147,9 +151,15 @@ describe('PrimaryNavigationQuotaExceeded', function () {
 
     expect(await screen.findByText('Error Quota Exceeded')).toBeInTheDocument();
     expect(
-      screen.getByText(/You’ve run out of errors for this billing cycle./)
+      screen.getByText(
+        /You have used up your quota for errors. Monitoring and new data are paused until your quota resets./
+      )
     ).toBeInTheDocument(); // doesn't show categories with <=1 reserved tier and no PAYG
-    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    expect(
+      screen.getByRole('button', {
+        name: 'Dismiss alert for the rest of the billing cycle',
+      })
+    ).toBeInTheDocument();
   });
 
   it('should not render for zero categories', function () {
@@ -183,10 +193,17 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
     expect(
       screen.getByText(
-        /You’ve run out of errors, replays, spans, cron monitors, and continuous profile hours for this billing cycle./
+        /You have used up your quota for errors, replays, spans, and continuous profile hours./
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    expect(
+      screen.getByText(/You have also reached your quota for cron monitors./)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: 'Dismiss alert for the rest of the billing cycle',
+      })
+    ).toBeInTheDocument();
 
     // reset
     subscription.onDemandMaxSpend = 0;
@@ -213,10 +230,17 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
     expect(
       screen.getByText(
-        /You’ve run out of errors, replays, spans, cron monitors, and continuous profile hours for this billing cycle./
+        /You have used up your quota for errors, replays, spans, and continuous profile hours./
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    expect(
+      screen.getByText(/You have also reached your quota for cron monitors./)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: 'Dismiss alert for the rest of the billing cycle',
+      })
+    ).toBeInTheDocument();
 
     // reset
     subscription.onDemandMaxSpend = 0;
@@ -236,7 +260,7 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     subscription.canSelfServe = true;
   });
 
-  it('should update prompts when checkbox is toggled', async function () {
+  it('should update prompts when dismissed', async function () {
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
 
     // open the alert
@@ -244,7 +268,11 @@ describe('PrimaryNavigationQuotaExceeded', function () {
     expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
 
     // stop the alert from animating
-    await userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'Dismiss alert for the rest of the billing cycle',
+      })
+    );
     expect(promptMock).toHaveBeenCalledTimes(4); // one for each category
   });
 
