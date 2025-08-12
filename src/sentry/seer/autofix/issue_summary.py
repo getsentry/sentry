@@ -185,7 +185,7 @@ fixability_connection_pool_gpu = connection_from_url(
 )
 
 
-def _generate_fixability_score(group: Group):
+def _generate_fixability_score(group: Group) -> SummarizeIssueResponse | None:
     payload = {
         "group_id": group.id,
         "organization_slug": group.organization.slug,
@@ -193,19 +193,34 @@ def _generate_fixability_score(group: Group):
         "project_id": group.project.id,
     }
 
-    if in_random_rollout("issues.fixability.gpu-rollout-rate"):
+    use_gpu = in_random_rollout("issues.fixability.gpu-rollout-rate")
+    if use_gpu:
         connection_pool = fixability_connection_pool_gpu
     else:
         connection_pool = fixability_connection_pool
 
-    response = make_signed_seer_api_request(
-        connection_pool,
-        "/v1/automation/summarize/fixability",
-        body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
-        timeout=settings.SEER_FIXABILITY_TIMEOUT,
-    )
+    # TODO(kddubey): rm this handling once we verify that the GPU deployment works
+    try:
+        response = make_signed_seer_api_request(
+            connection_pool,
+            "/v1/automation/summarize/fixability",
+            body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
+            timeout=settings.SEER_FIXABILITY_TIMEOUT,
+        )
+    except Exception:
+        if not use_gpu:
+            raise
+        else:
+            logger.warning("GPU fixability connection failed", exc_info=True)
+            return None
+
     if response.status >= 400:
-        raise Exception(f"Seer API error: {response.status}")
+        if not use_gpu:
+            raise Exception(f"Seer API error: {response.status}")
+        else:
+            logger.warning("GPU fixability endpoint failed", extra={"status": response.status})
+            return None
+
     response_data = orjson.loads(response.data)
     return SummarizeIssueResponse.validate(response_data)
 
@@ -301,6 +316,9 @@ def _run_automation(
 
     with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
         issue_summary = _generate_fixability_score(group)
+
+    if not issue_summary:
+        return
 
     if not issue_summary.scores:
         raise ValueError("Issue summary scores is None or empty.")
