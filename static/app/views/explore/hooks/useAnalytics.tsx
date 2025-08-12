@@ -107,7 +107,7 @@ function useTrackAnalytics({
     const columns = aggregatesTableResult.eventView.getColumns() as unknown as string[];
     const gaveSeerConsent = organization.hideAiFeatures
       ? 'gen_ai_features_disabled'
-      : seerSetup.orgHasAcknowledged
+      : seerSetup?.orgHasAcknowledged
         ? 'given'
         : 'not_given';
 
@@ -173,7 +173,7 @@ function useTrackAnalytics({
     query,
     queryType,
     query_status,
-    seerSetup.orgHasAcknowledged,
+    seerSetup?.orgHasAcknowledged,
     timeseriesResult.data,
     timeseriesResult.isPending,
     title,
@@ -194,7 +194,7 @@ function useTrackAnalytics({
     const search = new MutableSearch(query);
     const gaveSeerConsent = organization.hideAiFeatures
       ? 'gen_ai_features_disabled'
-      : seerSetup.orgHasAcknowledged
+      : seerSetup?.orgHasAcknowledged
         ? 'given'
         : 'not_given';
 
@@ -253,7 +253,7 @@ function useTrackAnalytics({
     query,
     queryType,
     query_status,
-    seerSetup.orgHasAcknowledged,
+    seerSetup?.orgHasAcknowledged,
     spansTableResult.result.data?.length,
     spansTableResult.result.isPending,
     timeseriesResult.data,
@@ -290,7 +290,7 @@ function useTrackAnalytics({
         .length ?? 0;
     const gaveSeerConsent = organization.hideAiFeatures
       ? 'gen_ai_features_disabled'
-      : seerSetup.orgHasAcknowledged
+      : seerSetup?.orgHasAcknowledged
         ? 'given'
         : 'not_given';
 
@@ -332,7 +332,7 @@ function useTrackAnalytics({
     query,
     queryType,
     query_status,
-    seerSetup.orgHasAcknowledged,
+    seerSetup?.orgHasAcknowledged,
     timeseriesResult.data,
     timeseriesResult.isPending,
     title,
