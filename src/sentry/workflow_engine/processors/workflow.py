@@ -25,7 +25,6 @@ from sentry.workflow_engine.processors.data_condition_group import process_data_
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
-from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 from sentry.workflow_engine.utils.metrics import metrics_incr
@@ -100,6 +99,8 @@ class DelayedWorkflowItem:
 def enqueue_workflows(
     items_by_workflow: dict[Workflow, DelayedWorkflowItem],
 ) -> None:
+    from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
+
     items_by_project_id = DefaultDict[int, list[DelayedWorkflowItem]](list)
     for queue_item in items_by_workflow.values():
         if not queue_item.delayed_if_group_ids and not queue_item.passing_if_group_ids:
