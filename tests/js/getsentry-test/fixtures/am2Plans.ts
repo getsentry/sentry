@@ -94,7 +94,6 @@ const AM2_BUSINESS_FEATURES = [
   'data-forwarding',
   'discard-groups',
   'discover-query',
-  'global-views',
   'integrations-codeowners',
   'integrations-enterprise-alert-rule',
   'integrations-enterprise-incident-management',
