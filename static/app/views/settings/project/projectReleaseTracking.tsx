@@ -20,10 +20,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {
-  type ApiQueryKey,
   setApiQueryData,
   useApiQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';

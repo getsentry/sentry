@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 from django.utils import timezone
 
-from sentry.eventstore.models import Event
+from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import SnubaTestCase
 from sentry.utils import snuba

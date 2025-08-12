@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {hasMCPInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {hasMCPInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {getIsMCPNode} from 'sentry/views/insights/mcp/utils/mcpTraceNodes';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';

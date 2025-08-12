@@ -140,7 +140,7 @@ const onboarding: OnboardingConfig = {
           content: (
             <StoreCrashReportsConfig
               organization={params.organization}
-              projectSlug={params.projectSlug}
+              projectSlug={params.project.slug}
             />
           ),
         },

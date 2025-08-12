@@ -14,11 +14,11 @@ from sentry import eventstore, features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import DataCategory, ObjectStatus
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.net.http import connection_from_url
+from sentry.options.rollout import in_random_rollout
 from sentry.seer.autofix.autofix import trigger_autofix
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
@@ -29,6 +29,7 @@ from sentry.seer.autofix.utils import get_autofix_state, is_seer_autotriggered_a
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
@@ -178,23 +179,48 @@ fixability_connection_pool = connection_from_url(
     settings.SEER_SEVERITY_URL,
     timeout=settings.SEER_FIXABILITY_TIMEOUT,
 )
+fixability_connection_pool_gpu = connection_from_url(
+    settings.SEER_SCORING_URL,
+    timeout=settings.SEER_FIXABILITY_TIMEOUT,
+)
 
 
-def _generate_fixability_score(group: Group):
+def _generate_fixability_score(group: Group) -> SummarizeIssueResponse | None:
     payload = {
         "group_id": group.id,
         "organization_slug": group.organization.slug,
         "organization_id": group.organization.id,
         "project_id": group.project.id,
     }
-    response = make_signed_seer_api_request(
-        fixability_connection_pool,
-        "/v1/automation/summarize/fixability",
-        body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
-        timeout=settings.SEER_FIXABILITY_TIMEOUT,
-    )
+
+    use_gpu = in_random_rollout("issues.fixability.gpu-rollout-rate")
+    if use_gpu:
+        connection_pool = fixability_connection_pool_gpu
+    else:
+        connection_pool = fixability_connection_pool
+
+    # TODO(kddubey): rm this handling once we verify that the GPU deployment works
+    try:
+        response = make_signed_seer_api_request(
+            connection_pool,
+            "/v1/automation/summarize/fixability",
+            body=orjson.dumps(payload, option=orjson.OPT_NON_STR_KEYS),
+            timeout=settings.SEER_FIXABILITY_TIMEOUT,
+        )
+    except Exception:
+        if not use_gpu:
+            raise
+        else:
+            logger.warning("GPU fixability connection failed", exc_info=True)
+            return None
+
     if response.status >= 400:
-        raise Exception(f"Seer API error: {response.status}")
+        if not use_gpu:
+            raise Exception(f"Seer API error: {response.status}")
+        else:
+            logger.warning("GPU fixability endpoint failed", extra={"status": response.status})
+            return None
+
     response_data = orjson.loads(response.data)
     return SummarizeIssueResponse.validate(response_data)
 
@@ -290,6 +316,9 @@ def _run_automation(
 
     with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
         issue_summary = _generate_fixability_score(group)
+
+    if not issue_summary:
+        return
 
     if not issue_summary.scores:
         raise ValueError("Issue summary scores is None or empty.")

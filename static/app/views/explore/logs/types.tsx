@@ -31,11 +31,17 @@ export enum OurLogKnownFieldKey {
   CODE_LINE_NUMBER = 'tags[code.line.number,number]',
   CODE_FUNCTION_NAME = 'code.function.name',
 
-  RELEASE = 'release',
   TEMPLATE = 'message.template',
   PARENT_SPAN_ID = 'trace.parent_span_id',
+  // SDK attributes https://develop.sentry.dev/sdk/telemetry/logs/#default-attributes
+  RELEASE = 'release',
   SDK_NAME = 'sdk.name',
   SDK_VERSION = 'sdk.version',
+  BROWSER_NAME = 'browser.name',
+  USER_ID = 'user.id',
+  USER_EMAIL = 'user.email',
+  USER_NAME = 'user.name',
+  SERVER_ADDRESS = 'server.address',
 
   // From the EAP dataset directly not using a column alias.
   ID = 'sentry.item_id',

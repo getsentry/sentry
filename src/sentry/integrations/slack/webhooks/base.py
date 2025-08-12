@@ -54,13 +54,18 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
             # If we cannot interpret the command, print help text.
             request_data = request.data
             unknown_command = request_data.get("text", "").lower()
-            return self.help(unknown_command)
+            return self.help(slack_request=request, command=unknown_command)
 
     def reply(self, slack_request: SlackDMRequest, message: str) -> Response:
         raise NotImplementedError
 
-    def help(self, command: str) -> Response:
-        return self.respond(SlackHelpMessageBuilder(command).build())
+    def help(self, slack_request: SlackDMRequest, command: str) -> Response:
+        return self.respond(
+            SlackHelpMessageBuilder(
+                command=command,
+                integration_id=slack_request.integration.id if slack_request.integration else None,
+            ).build()
+        )
 
     def link_user(self, slack_request: SlackDMRequest) -> Response:
         from sentry.integrations.slack.views.link_identity import build_linking_url
@@ -135,7 +140,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
         return SlackMessagingSpec()
 
     def help_handler(self, input: CommandInput) -> IntegrationResponse[Response]:
-        response = self.endpoint.help(input.cmd_value)
+        response = self.endpoint.help(slack_request=self.request, command=input.cmd_value)
         return IntegrationResponse(
             interaction_result=EventLifecycleOutcome.SUCCESS,
             response=response,
@@ -148,9 +153,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
                 interaction_result=EventLifecycleOutcome.SUCCESS,
                 response=response,
                 outcome_reason=str(MessageCommandHaltReason.ALREADY_LINKED),
-                context_data={
-                    "email": self.request.identity_str,
-                },
+                context_data={"email": self.request.identity_str},
             )
         return IntegrationResponse(
             interaction_result=EventLifecycleOutcome.SUCCESS,
@@ -164,9 +167,7 @@ class SlackCommandDispatcher(MessagingIntegrationCommandDispatcher[Response]):
                 interaction_result=EventLifecycleOutcome.SUCCESS,
                 response=response,
                 outcome_reason=str(MessageCommandHaltReason.NOT_LINKED),
-                context_data={
-                    "email": self.request.identity_str,
-                },
+                context_data={"email": self.request.identity_str},
             )
         return IntegrationResponse(
             interaction_result=EventLifecycleOutcome.SUCCESS,

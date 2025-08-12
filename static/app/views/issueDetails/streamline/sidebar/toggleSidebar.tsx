@@ -9,13 +9,13 @@ import {withChonk} from 'sentry/utils/theme/withChonk';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
 
-export function ToggleSidebar({size = 'lg'}: {size?: 'lg' | 'sm'}) {
+export function ToggleSidebar({size = 'md'}: {size?: 'md' | 'sm'}) {
   const organization = useOrganization();
   const {isSidebarOpen, dispatch} = useIssueDetails();
   const direction = isSidebarOpen ? 'right' : 'left';
   const theme = useTheme();
 
-  const props = {style: {height: size === 'lg' ? '40px' : '26px'}};
+  const props = size === 'md' ? undefined : {style: {height: '26px'}};
 
   return (
     <ToggleContainer sidebarOpen={isSidebarOpen ?? true}>

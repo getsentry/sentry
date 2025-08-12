@@ -34,7 +34,6 @@ class BuildDetectorFingerprintComponentTest(UptimeTestCase):
     def test_build_detector_fingerprint_component(self) -> None:
         project_subscription = self.create_project_uptime_subscription()
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector
 
         fingerprint_component = build_detector_fingerprint_component(detector)
         assert fingerprint_component == f"uptime-detector:{detector.id}"
@@ -44,7 +43,6 @@ class BuildFingerprintForProjectSubscriptionTest(UptimeTestCase):
     def test_build_fingerprint_for_project_subscription(self) -> None:
         project_subscription = self.create_project_uptime_subscription()
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector
 
         fingerprint = build_fingerprint(detector)
         expected_fingerprint = [build_detector_fingerprint_component(detector)]
@@ -68,7 +66,6 @@ class BuildEventDataTest(UptimeTestCase):
         result = self.create_uptime_result()
         project_subscription = self.create_project_uptime_subscription()
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector
 
         assert build_event_data(result, detector) == {
             "environment": "development",
@@ -107,19 +104,13 @@ class TestUptimeHandler(UptimeTestCase):
         project_subscription = self.create_project_uptime_subscription()
         uptime_subscription = project_subscription.uptime_subscription
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector
 
         assert uptime_subscription.uptime_status == UptimeStatus.OK
 
         now = datetime.now()
 
-        features = [
-            "organizations:uptime-create-issues",
-            "organizations:uptime-detector-create-issues",
-        ]
-
         with (
-            self.feature(features),
+            self.feature("organizations:uptime-create-issues"),
             mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=2),
         ):
             evaluation = self.handle_result(
@@ -156,14 +147,11 @@ class TestUptimeHandler(UptimeTestCase):
         project_subscription = self.create_project_uptime_subscription()
         uptime_subscription = project_subscription.uptime_subscription
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector
 
         assert uptime_subscription.uptime_status == UptimeStatus.OK
 
         with (
-            # Only uptime-create-issues enabled, will not create issues because
-            # uptime-detector-create-issues is not enabled
-            self.feature(["organizations:uptime-create-issues"]),
+            # uptime-create-issues flag not enabled. No issue created
             mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=1),
             mock.patch("sentry.uptime.grouptype.logger") as logger,
         ):
@@ -182,28 +170,11 @@ class TestUptimeHandler(UptimeTestCase):
                 },
             )
 
-            # the uptime_status does NOT change even though we did a full
-            # evaluation. This should only be updated when detectors are also
-            # creating issues
-            assert uptime_subscription.uptime_status == UptimeStatus.OK
+            # uptime_status is updated even when issue creation is disabled.
+            # This keeps the uptime_status in sync with DetectorState (until we
+            # remove it)
+            assert uptime_subscription.uptime_status == UptimeStatus.FAILED
 
-        with (
-            # Only uptime-detector-create-issues enabled, will not create
-            # issues because uptime-create-issues is not enabled
-            self.feature(["organizations:uptime-detector-create-issues"]),
-            mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=1),
-        ):
-            evaluation = self.handle_result(
-                detector,
-                uptime_subscription,
-                self.create_uptime_result(),
-            )
-            assert evaluation is None
-
-        features = [
-            "organizations:uptime-create-issues",
-            "organizations:uptime-detector-create-issues",
-        ]
         options = {
             "uptime.restrict-issue-creation-by-hosting-provider-id": [
                 uptime_subscription.host_provider_id
@@ -212,7 +183,7 @@ class TestUptimeHandler(UptimeTestCase):
 
         with (
             # All features enabled, but the host provider is disabled
-            self.feature(features),
+            self.feature(["organizations:uptime-create-issues"]),
             self.options(options),
             mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=1),
         ):
@@ -231,19 +202,13 @@ class TestUptimeHandler(UptimeTestCase):
         project_subscription = self.create_project_uptime_subscription()
         uptime_subscription = project_subscription.uptime_subscription
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector
 
         assert uptime_subscription.uptime_status == UptimeStatus.OK
 
         now = datetime.now()
 
-        features = [
-            "organizations:uptime-create-issues",
-            "organizations:uptime-detector-create-issues",
-        ]
-
         with (
-            self.feature(features),
+            self.feature(["organizations:uptime-create-issues"]),
             mock.patch("sentry.uptime.grouptype.get_active_failure_threshold", return_value=3),
         ):
             status_cycle: cycle[CheckStatus] = cycle(

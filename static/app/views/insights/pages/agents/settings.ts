@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {hasMCPInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+import {hasMCPInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {ModuleName} from 'sentry/views/insights/types';
 
 export const AGENTS_LANDING_SUB_PATH = 'ai';

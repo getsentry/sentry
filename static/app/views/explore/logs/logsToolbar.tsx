@@ -6,13 +6,17 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {TagCollection} from 'sentry/types/group';
 import {AggregationKey, prettifyTagKey} from 'sentry/utils/fields';
+import {useSetLogsPageParams} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
-  useLogsAggregateFunction,
-  useLogsAggregateParam,
-  useLogsGroupBy,
-  useSetLogsPageParams,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
-import type {OurLogsAggregate} from 'sentry/views/explore/logs/types';
+  OurLogKnownFieldKey,
+  type OurLogsAggregate,
+} from 'sentry/views/explore/logs/types';
+import {
+  useQueryParamsGroupBys,
+  useQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
+import type {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 
 export const LOG_AGGREGATES = [
   {
@@ -67,87 +71,104 @@ interface LogsToolbarProps {
 }
 
 export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
-  const aggregateFunction = useLogsAggregateFunction();
-  let aggregateParam = useLogsAggregateParam();
-  const groupBy = useLogsGroupBy();
+  const visualizes = useQueryParamsVisualizes();
+  const groupBys = useQueryParamsGroupBys();
   const setLogsPageParams = useSetLogsPageParams();
   const functionArgRef = useRef<HTMLDivElement>(null);
 
-  let aggregatableKeys = Object.keys(numberTags ?? {}).map(key => ({
-    label: prettifyTagKey(key),
-    value: key,
-  }));
-
-  if (aggregateFunction === AggregationKey.COUNT) {
-    aggregatableKeys = [{label: t('logs'), value: 'logs'}];
-    aggregateParam = 'logs';
-  }
-  if (aggregateFunction === AggregationKey.COUNT_UNIQUE) {
-    aggregatableKeys = Object.keys(stringTags ?? {}).map(key => ({
-      label: prettifyTagKey(key),
-      value: key,
-    }));
-  }
-
   return (
-    <Container>
+    <Container data-test-id="logs-toolbar">
       <ToolbarItem>
         <SectionHeader>
           <Label>{t('Visualize')}</Label>
         </SectionHeader>
-        <ToolbarSelectRow>
-          <Select
-            options={LOG_AGGREGATES}
-            onChange={val => {
-              if (val.value === 'count') {
-                setLogsPageParams({
-                  aggregateFn: val.value as string | undefined,
-                  aggregateParam: null,
-                });
-              } else {
-                setLogsPageParams({aggregateFn: val.value as string | undefined});
-                functionArgRef.current?.querySelector('button')?.click();
-              }
-            }}
-            value={aggregateFunction}
-          />
-          <SelectRefWrapper ref={functionArgRef}>
-            <Select
-              options={aggregatableKeys}
-              onChange={val => {
-                if (aggregateFunction !== 'count') {
-                  setLogsPageParams({aggregateParam: val.value as string | undefined});
-                }
-              }}
-              searchable
-              value={aggregateParam}
-            />
-          </SelectRefWrapper>
-        </ToolbarSelectRow>
+        {visualizes
+          .filter<VisualizeFunction>(isVisualizeFunction)
+          .map((visualize, index) => {
+            const aggregateFunction = visualize.parsedFunction?.name ?? 'count';
+
+            const aggregatableKeys =
+              aggregateFunction === AggregationKey.COUNT
+                ? [{label: t('logs'), value: OurLogKnownFieldKey.MESSAGE}]
+                : aggregateFunction === AggregationKey.COUNT_UNIQUE
+                  ? Object.keys(stringTags ?? {}).map(key => ({
+                      label: prettifyTagKey(key),
+                      value: key,
+                    }))
+                  : Object.keys(numberTags ?? {}).map(key => ({
+                      label: prettifyTagKey(key),
+                      value: key,
+                    }));
+
+            const aggregateParam =
+              aggregateFunction === AggregationKey.COUNT
+                ? OurLogKnownFieldKey.MESSAGE
+                : (visualize.parsedFunction?.arguments?.[0] ?? '');
+
+            return (
+              <ToolbarSelectRow key={index}>
+                <Select
+                  options={LOG_AGGREGATES}
+                  onChange={val => {
+                    if (val.value === 'count') {
+                      setLogsPageParams({
+                        aggregateFn: val.value as string | undefined,
+                        aggregateParam: null,
+                      });
+                    } else {
+                      setLogsPageParams({aggregateFn: val.value as string | undefined});
+                      functionArgRef.current?.querySelector('button')?.click();
+                    }
+                  }}
+                  value={visualize.parsedFunction?.name ?? ''}
+                />
+                <SelectRefWrapper ref={functionArgRef}>
+                  <Select
+                    options={aggregatableKeys}
+                    onChange={val => {
+                      if (aggregateFunction !== 'count') {
+                        setLogsPageParams({
+                          aggregateParam: val.value as string | undefined,
+                        });
+                      }
+                    }}
+                    searchable
+                    value={aggregateParam}
+                  />
+                </SelectRefWrapper>
+              </ToolbarSelectRow>
+            );
+          })}
       </ToolbarItem>
       <ToolbarItem>
         <SectionHeader>
           <Label>{t('Group By')}</Label>
         </SectionHeader>
-        <Select
-          options={[
-            {
-              label: '\u2014',
-              value: '',
-              textValue: '\u2014',
-            },
-            ...Object.keys(stringTags ?? {}).map(key => ({
-              label: key,
-              value: key,
-            })),
-          ]}
-          onChange={val =>
-            setLogsPageParams({groupBy: val.value ? (val.value as string) : null})
-          }
-          value={groupBy ?? ''}
-          searchable
-          triggerProps={{style: {width: '100%'}}}
-        />
+        {groupBys.map((groupBy, index) => {
+          return (
+            <Select
+              key={index}
+              options={[
+                {
+                  label: '\u2014',
+                  value: '',
+                  textValue: '\u2014',
+                },
+                ...Object.keys(stringTags ?? {}).map(key => ({
+                  label: key,
+                  value: key,
+                })),
+              ]}
+              onChange={val =>
+                // TODO: save the group bys separately
+                setLogsPageParams({groupBy: val.value ? (val.value as string) : null})
+              }
+              value={groupBy}
+              searchable
+              triggerProps={{style: {width: '100%'}}}
+            />
+          );
+        })}
       </ToolbarItem>
     </Container>
   );

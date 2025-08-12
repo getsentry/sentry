@@ -17,7 +17,11 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TaskActivation,
 )
 
-from sentry.taskworker.client.client import HostTemporarilyUnavailable, TaskworkerClient
+from sentry.taskworker.client.client import (
+    HostTemporarilyUnavailable,
+    TaskworkerClient,
+    make_broker_hosts,
+)
 from sentry.taskworker.client.processing_result import ProcessingResult
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -105,6 +109,27 @@ class MockGrpcError(grpc.RpcError):
         raise self
 
 
+def test_make_broker_hosts() -> None:
+    hosts = make_broker_hosts(host_prefix="broker:50051", num_brokers=3)
+    assert len(hosts) == 3
+    assert hosts == ["broker-0:50051", "broker-1:50051", "broker-2:50051"]
+
+    hosts = make_broker_hosts(
+        host_prefix="",
+        num_brokers=None,
+        host_list="broker:50051, broker-a:50051 ,  , broker-b:50051",
+    )
+    assert len(hosts) == 3
+    assert hosts == ["broker:50051", "broker-a:50051", "broker-b:50051"]
+
+
+@django_db_all
+def test_init_no_hosts() -> None:
+    with pytest.raises(AssertionError) as err:
+        TaskworkerClient(hosts=[])
+    assert "You must provide at least one RPC host" in str(err)
+
+
 @django_db_all
 def test_get_task_ok() -> None:
     channel = MockChannel()
@@ -123,7 +148,7 @@ def test_get_task_ok() -> None:
     )
     with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051", 1)
+        client = TaskworkerClient(["localhost-0:50051"])
         result = client.get_task()
 
         assert result
@@ -157,7 +182,7 @@ def test_get_task_with_interceptor() -> None:
     )
     with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051", 1)
+        client = TaskworkerClient(["localhost-0:50051"])
         result = client.get_task()
 
         assert result
@@ -184,7 +209,7 @@ def test_get_task_with_namespace() -> None:
     )
     with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051", 1)
+        client = TaskworkerClient(hosts=make_broker_hosts("localhost:50051", num_brokers=1))
         result = client.get_task(namespace="testing")
 
         assert result
@@ -202,7 +227,7 @@ def test_get_task_not_found() -> None:
     )
     with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051", 1)
+        client = TaskworkerClient(["localhost:50051"])
         result = client.get_task()
 
         assert result is None
@@ -217,7 +242,7 @@ def test_get_task_failure() -> None:
     )
     with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051", 1)
+        client = TaskworkerClient(["localhost:50051"])
         with pytest.raises(grpc.RpcError):
             client.get_task()
 
@@ -240,7 +265,7 @@ def test_update_task_ok_with_next() -> None:
     )
     with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051", 1)
+        client = TaskworkerClient(make_broker_hosts("localhost:50051", num_brokers=1))
         assert set(client._host_to_stubs.keys()) == {"localhost-0:50051"}
         result = client.update_task(
             ProcessingResult("abc123", TASK_ACTIVATION_STATUS_RETRY, "localhost-0:50051", 0),
@@ -270,7 +295,7 @@ def test_update_task_ok_with_next_namespace() -> None:
     )
     with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051", 1)
+        client = TaskworkerClient(make_broker_hosts("localhost:50051", num_brokers=1))
         result = client.update_task(
             ProcessingResult(
                 task_id="id",
@@ -293,7 +318,7 @@ def test_update_task_ok_no_next() -> None:
     )
     with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051", 1)
+        client = TaskworkerClient(make_broker_hosts("localhost:50051", num_brokers=1))
         result = client.update_task(
             ProcessingResult(
                 task_id="abc123",
@@ -315,7 +340,7 @@ def test_update_task_not_found() -> None:
     )
     with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051", 1)
+        client = TaskworkerClient(["localhost-0:50051"])
         result = client.update_task(
             ProcessingResult(
                 task_id="abc123",
@@ -337,7 +362,7 @@ def test_update_task_unavailable_retain_task_to_host() -> None:
     )
     with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient("localhost:50051", 1)
+        client = TaskworkerClient(["localhost-0:50051"])
         with pytest.raises(MockGrpcError) as err:
             client.update_task(
                 ProcessingResult(
@@ -435,7 +460,8 @@ def test_client_loadbalance() -> None:
                 "localhost-3:50051",
             ]
             client = TaskworkerClient(
-                "localhost:50051", num_brokers=4, max_tasks_before_rebalance=1
+                hosts=make_broker_hosts(host_prefix="localhost:50051", num_brokers=4),
+                max_tasks_before_rebalance=1,
             )
 
             task_0 = client.get_task()
@@ -524,7 +550,8 @@ def test_client_loadbalance_on_notfound() -> None:
                 "localhost-2:50051",
             ]
             client = TaskworkerClient(
-                "localhost:50051", num_brokers=3, max_tasks_before_rebalance=30
+                hosts=make_broker_hosts(host_prefix="localhost:50051", num_brokers=3),
+                max_tasks_before_rebalance=30,
             )
 
             # Fetch from the first channel, it should return notfound
@@ -588,7 +615,8 @@ def test_client_loadbalance_on_unavailable() -> None:
                 "localhost-1:50051",
             ]
             client = TaskworkerClient(
-                "localhost:50051", num_brokers=2, max_consecutive_unavailable_errors=3
+                hosts=make_broker_hosts(host_prefix="localhost:50051", num_brokers=2),
+                max_consecutive_unavailable_errors=3,
             )
 
             # Fetch from the first channel, host should be unavailable
@@ -644,8 +672,7 @@ def test_client_single_host_unavailable() -> None:
     with (patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel,):
         mock_channel.return_value = channel
         client = TaskworkerClient(
-            "localhost:50051",
-            num_brokers=1,
+            hosts=["localhost-0:50051"],
             max_consecutive_unavailable_errors=3,
             temporary_unavailable_host_timeout=2,
         )
@@ -690,9 +717,7 @@ def test_client_reset_errors_after_success() -> None:
 
     with patch("sentry.taskworker.client.client.grpc.insecure_channel") as mock_channel:
         mock_channel.return_value = channel
-        client = TaskworkerClient(
-            "localhost:50051", num_brokers=1, max_consecutive_unavailable_errors=3
-        )
+        client = TaskworkerClient(["localhost:50051"], max_consecutive_unavailable_errors=3)
 
         with pytest.raises(grpc.RpcError, match="host is unavailable"):
             client.get_task()
@@ -747,8 +772,7 @@ def test_client_update_task_host_unavailable() -> None:
     ):
         mock_channel.return_value = channel
         client = TaskworkerClient(
-            "localhost:50051",
-            num_brokers=1,
+            ["localhost:50051"],
             max_consecutive_unavailable_errors=3,
             temporary_unavailable_host_timeout=10,
         )

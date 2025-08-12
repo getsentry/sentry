@@ -32,6 +32,7 @@ from sentry.taskworker.namespaces import ingest_errors_postprocess_tasks
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
+from sentry.utils.event import track_event_since_received
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
@@ -43,16 +44,17 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_
 from sentry.utils.services import build_instance_from_options_of_type
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event, GroupEvent
     from sentry.eventstream.base import GroupState
     from sentry.issues.ownership.grammar import Rule
     from sentry.models.group import Group
     from sentry.models.groupinbox import InboxReasonDetails
     from sentry.models.project import Project
     from sentry.models.team import Team
+    from sentry.services.eventstore.models import Event, GroupEvent
     from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
+
 
 locks = LockManager(
     build_instance_from_options_of_type(
@@ -529,12 +531,12 @@ def post_process_group(
     from sentry.utils import snuba
 
     with snuba.options_override({"consistent": True}):
-        from sentry import eventstore
-        from sentry.eventstore.processing import event_processing_store
         from sentry.issues.occurrence_consumer import EventLookupError
         from sentry.models.organization import Organization
         from sentry.models.project import Project
         from sentry.reprocessing2 import is_reprocessed_event
+        from sentry.services import eventstore
+        from sentry.services.eventstore.processing import event_processing_store
 
         if occurrence_id is None:
             # We use the data being present/missing in the processing store
@@ -602,6 +604,11 @@ def post_process_group(
                 return retrieved
 
             event = fetch_retry_policy(get_event_raise_exception)
+
+        track_event_since_received(
+            step="start_post_process",
+            event_data=event.data,
+        )
 
         set_current_event_project(event.project_id)
 
@@ -672,6 +679,13 @@ def post_process_group(
                     instance=event.data["platform"],
                     tags=metric_tags,
                 )
+
+                track_event_since_received(
+                    step="end_post_process",
+                    event_data=event.data,
+                    tags=metric_tags,
+                )
+
             else:
                 metrics.incr("events.missing_received", tags=metric_tags)
 
@@ -735,8 +749,8 @@ def run_post_process_job(job: PostProcessJob) -> None:
 
 
 def process_event(data: MutableMapping[str, Any], group_id: int | None) -> Event:
-    from sentry.eventstore.models import Event
     from sentry.models.event import EventDict
+    from sentry.services.eventstore.models import Event
 
     event = Event(
         project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data

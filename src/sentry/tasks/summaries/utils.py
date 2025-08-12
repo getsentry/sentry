@@ -57,6 +57,15 @@ class OrganizationReportContext:
     def __repr__(self) -> str:
         return self.projects_context_map.__repr__()
 
+    def is_empty(self):
+        """
+        Returns True if every project context is empty.
+        """
+        return all(
+            project_ctx.check_if_project_is_empty()
+            for project_ctx in self.projects_context_map.values()
+        )
+
 
 class ProjectContext:
     accepted_error_count = 0

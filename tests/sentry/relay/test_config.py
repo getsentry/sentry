@@ -161,7 +161,10 @@ def test_get_project_config_with_logging(mock_logger, default_project, insta_sna
     )
 
     with Feature(
-        {"organizations:log-project-config": True, "organizations:dynamic-sampling": True}
+        {
+            "organizations:log-project-config": True,
+            "organizations:dynamic-sampling": True,
+        }
     ):
         project_cfg = get_project_config(default_project, project_keys=keys)
         cfg = project_cfg.to_dict()
@@ -169,23 +172,41 @@ def test_get_project_config_with_logging(mock_logger, default_project, insta_sna
     _validate_project_config(cfg["config"])
 
     # Verify that logging was called
-    mock_logger.info.assert_called_once()
-    call_args = mock_logger.info.call_args
+    assert mock_logger.info.call_count == 2
 
     # Check that the log message contains the expected project and org IDs
-    assert "Logging project config for project" in call_args[0][0]
-    assert call_args[0][1] == default_project.id
-    assert call_args[0][2] == default_project.organization.id
+    first_call_args = mock_logger.info.call_args_list[0]
+    second_call_args = mock_logger.info.call_args_list[1]
 
-    # Check that extra logging data is present
-    extra_data = call_args[1]["extra"]
-    assert "project_config" in extra_data
-    assert "project_id" in extra_data
-    assert "org_id" in extra_data
-    assert "dynamic_sampling_feature_flag" in extra_data
-    assert "dynamic_sampling_custom_feature_flag" in extra_data
-    assert "dynamic_sampling_mode" in extra_data
-    assert "dynamic_sampling_org_target_rate" in extra_data
+    assert "Logging sampling feature flags for project" in first_call_args[0][0]
+    assert first_call_args[0][1] == default_project.id
+    assert first_call_args[0][2] == default_project.organization.id
+    first_extra = first_call_args[1]["extra"]
+    assert "sampling_rule_count" in first_extra
+    assert "project_sampling_config" not in first_extra
+
+    assert "Logging project sampling config for project" in second_call_args[0][0]
+    assert second_call_args[0][1] == default_project.id
+    assert second_call_args[0][2] == default_project.organization.id
+    second_extra = second_call_args[1]["extra"]
+    assert "project_sampling_config" in second_extra
+
+    # Check that extra logging data is present for both logging calls
+    first_extra_data = first_call_args[1]["extra"]
+    assert "project_id" in first_extra_data
+    assert "org_id" in first_extra_data
+    assert "dynamic_sampling_feature_flag" in first_extra_data
+    assert "dynamic_sampling_custom_feature_flag" in first_extra_data
+    assert "dynamic_sampling_mode" in first_extra_data
+    assert "dynamic_sampling_org_target_rate" in first_extra_data
+
+    second_extra_data = second_call_args[1]["extra"]
+    assert "project_id" in second_extra_data
+    assert "org_id" in second_extra_data
+    assert "dynamic_sampling_feature_flag" in second_extra_data
+    assert "dynamic_sampling_custom_feature_flag" in second_extra_data
+    assert "dynamic_sampling_mode" in second_extra_data
+    assert "dynamic_sampling_org_target_rate" in second_extra_data
 
     # Verify that the custom dynamic sampling rule is included in the config
     sampling_config = get_path(cfg, "config", "sampling")
@@ -249,9 +270,11 @@ def test_get_experimental_config_transaction_metrics_exception(
 def test_project_config_uses_filter_features(
     default_project, has_custom_filters, has_blacklisted_ips
 ):
+    log_messages = ["some log"]
     error_messages = ["some_error"]
     releases = ["1.2.3", "4.5.6"]
     blacklisted_ips = ["112.69.248.54"]
+    default_project.update_option("sentry:log_messages", log_messages)
     default_project.update_option("sentry:error_messages", error_messages)
     default_project.update_option("sentry:releases", releases)
     default_project.update_option("filters:react-hydration-errors", "0")
@@ -260,11 +283,17 @@ def test_project_config_uses_filter_features(
     if has_blacklisted_ips:
         default_project.update_option("sentry:blacklisted_ips", blacklisted_ips)
 
-    with Feature({"projects:custom-inbound-filters": has_custom_filters}):
+    with Feature(
+        {
+            "projects:custom-inbound-filters": has_custom_filters,
+            "organizations:ourlogs-ingestion": True,
+        }
+    ):
         project_cfg = get_project_config(default_project)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
+    cfg_generic = get_path(cfg, "config", "filterSettings", "generic", "filters")
     cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
     cfg_releases = get_path(cfg, "config", "filterSettings", "releases")
     cfg_client_ips = get_path(cfg, "config", "filterSettings", "clientIps")
@@ -272,9 +301,19 @@ def test_project_config_uses_filter_features(
     if has_custom_filters:
         assert {"patterns": error_messages} == cfg_error_messages
         assert {"releases": releases} == cfg_releases
+        assert {
+            "id": "log-message",
+            "isEnabled": True,
+            "condition": {
+                "op": "glob",
+                "name": "log.body",
+                "value": ["some log"],
+            },
+        } in cfg_generic
     else:
         assert cfg_releases is None
         assert cfg_error_messages is None
+        assert cfg_generic is None
 
     if has_blacklisted_ips:
         assert {"blacklistedIps": ["112.69.248.54"]} == cfg_client_ips
@@ -370,7 +409,8 @@ def test_project_config_with_all_biases_enabled(
     # Set factor
     default_factor = 0.5
     redis_client.set(
-        f"ds::o:{default_project.organization.id}:rate_rebalance_factor2", default_factor
+        f"ds::o:{default_project.organization.id}:rate_rebalance_factor2",
+        default_factor,
     )
 
     with Feature(
@@ -627,7 +667,8 @@ def test_accept_transaction_names(default_project) -> None:
 @django_db_all
 def test_txnames_ready(default_project, num_clusterer_runs) -> None:
     with mock.patch(
-        "sentry.relay.config.get_clusterer_meta", return_value={"runs": num_clusterer_runs}
+        "sentry.relay.config.get_clusterer_meta",
+        return_value={"runs": num_clusterer_runs},
     ):
         config = get_project_config(default_project).to_dict()["config"]
     _validate_project_config(config)
@@ -763,7 +804,11 @@ def test_alert_metric_extraction_rules(default_project, factories) -> None:
                     "category": "transaction",
                     "mri": "c:transactions/on_demand@none",
                     "field": None,
-                    "condition": {"name": "event.duration", "op": "lt", "value": 600000.0},
+                    "condition": {
+                        "name": "event.duration",
+                        "op": "lt",
+                        "value": 600000.0,
+                    },
                     "tags": [{"key": "query_hash", "value": ANY}],
                 }
             ],
@@ -790,10 +835,34 @@ def test_desktop_performance_calculate_score(default_project) -> None:
     assert performance_score[0] == {
         "name": "Chrome",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": True},
-            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": True},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
-            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": True},
+            {
+                "measurement": "fcp",
+                "weight": 0.15,
+                "p10": 900,
+                "p50": 1600,
+                "optional": True,
+            },
+            {
+                "measurement": "lcp",
+                "weight": 0.3,
+                "p10": 1200,
+                "p50": 2400,
+                "optional": True,
+            },
+            {
+                "measurement": "cls",
+                "weight": 0.15,
+                "p10": 0.1,
+                "p50": 0.25,
+                "optional": True,
+            },
+            {
+                "measurement": "ttfb",
+                "weight": 0.1,
+                "p10": 200,
+                "p50": 400,
+                "optional": True,
+            },
         ],
         "condition": {
             "op": "eq",
@@ -819,7 +888,13 @@ def test_desktop_performance_calculate_score(default_project) -> None:
                 "p50": 2400.0,
                 "optional": True,
             },
-            {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
+            {
+                "measurement": "cls",
+                "weight": 0.0,
+                "p10": 0.1,
+                "p50": 0.25,
+                "optional": False,
+            },
             {
                 "measurement": "ttfb",
                 "weight": 0.1,
@@ -852,7 +927,13 @@ def test_desktop_performance_calculate_score(default_project) -> None:
                 "p50": 2400.0,
                 "optional": False,
             },
-            {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
+            {
+                "measurement": "cls",
+                "weight": 0.0,
+                "p10": 0.1,
+                "p50": 0.25,
+                "optional": False,
+            },
             {
                 "measurement": "ttfb",
                 "weight": 0.1,
@@ -871,10 +952,34 @@ def test_desktop_performance_calculate_score(default_project) -> None:
     assert performance_score[3] == {
         "name": "Edge",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": True},
-            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": True},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
-            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": True},
+            {
+                "measurement": "fcp",
+                "weight": 0.15,
+                "p10": 900,
+                "p50": 1600,
+                "optional": True,
+            },
+            {
+                "measurement": "lcp",
+                "weight": 0.3,
+                "p10": 1200,
+                "p50": 2400,
+                "optional": True,
+            },
+            {
+                "measurement": "cls",
+                "weight": 0.15,
+                "p10": 0.1,
+                "p50": 0.25,
+                "optional": True,
+            },
+            {
+                "measurement": "ttfb",
+                "weight": 0.1,
+                "p10": 200,
+                "p50": 400,
+                "optional": True,
+            },
         ],
         "condition": {
             "op": "eq",
@@ -886,10 +991,34 @@ def test_desktop_performance_calculate_score(default_project) -> None:
     assert performance_score[4] == {
         "name": "Opera",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": True},
-            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": True},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
-            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": True},
+            {
+                "measurement": "fcp",
+                "weight": 0.15,
+                "p10": 900,
+                "p50": 1600,
+                "optional": True,
+            },
+            {
+                "measurement": "lcp",
+                "weight": 0.3,
+                "p10": 1200,
+                "p50": 2400,
+                "optional": True,
+            },
+            {
+                "measurement": "cls",
+                "weight": 0.15,
+                "p10": 0.1,
+                "p50": 0.25,
+                "optional": True,
+            },
+            {
+                "measurement": "ttfb",
+                "weight": 0.1,
+                "p10": 200,
+                "p50": 400,
+                "optional": True,
+            },
         ],
         "condition": {
             "op": "eq",
@@ -902,7 +1031,13 @@ def test_desktop_performance_calculate_score(default_project) -> None:
     assert performance_score[5] == {
         "name": "Chrome INP",
         "scoreComponents": [
-            {"measurement": "inp", "weight": 1.0, "p10": 200, "p50": 500, "optional": False},
+            {
+                "measurement": "inp",
+                "weight": 1.0,
+                "p10": 200,
+                "p50": 500,
+                "optional": False,
+            },
         ],
         "condition": {
             "op": "or",
@@ -925,16 +1060,32 @@ def test_desktop_performance_calculate_score(default_project) -> None:
     assert performance_score[6] == {
         "name": "Edge INP",
         "scoreComponents": [
-            {"measurement": "inp", "weight": 1.0, "p10": 200.0, "p50": 500.0, "optional": False},
+            {
+                "measurement": "inp",
+                "weight": 1.0,
+                "p10": 200.0,
+                "p50": 500.0,
+                "optional": False,
+            },
         ],
-        "condition": {"op": "eq", "name": "event.contexts.browser.name", "value": "Edge"},
+        "condition": {
+            "op": "eq",
+            "name": "event.contexts.browser.name",
+            "value": "Edge",
+        },
         "version": "1",
     }
 
     assert performance_score[7] == {
         "name": "Opera INP",
         "scoreComponents": [
-            {"measurement": "inp", "weight": 1.0, "p10": 200.0, "p50": 500.0, "optional": False},
+            {
+                "measurement": "inp",
+                "weight": 1.0,
+                "p10": 200.0,
+                "p50": 500.0,
+                "optional": False,
+            },
         ],
         "condition": {
             "op": "eq",
@@ -959,10 +1110,34 @@ def test_mobile_performance_calculate_score(default_project) -> None:
     assert performance_score[8] == {
         "name": "Chrome Mobile",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
-            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": True},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
-            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
+            {
+                "measurement": "fcp",
+                "weight": 0.15,
+                "p10": 1800.0,
+                "p50": 3000.0,
+                "optional": True,
+            },
+            {
+                "measurement": "lcp",
+                "weight": 0.30,
+                "p10": 2500.0,
+                "p50": 4000.0,
+                "optional": True,
+            },
+            {
+                "measurement": "cls",
+                "weight": 0.15,
+                "p10": 0.1,
+                "p50": 0.25,
+                "optional": True,
+            },
+            {
+                "measurement": "ttfb",
+                "weight": 0.10,
+                "p10": 800.0,
+                "p50": 1800.0,
+                "optional": True,
+            },
         ],
         "condition": {
             "op": "eq",
@@ -974,10 +1149,34 @@ def test_mobile_performance_calculate_score(default_project) -> None:
     assert performance_score[9] == {
         "name": "Firefox Mobile",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
-            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": True},
-            {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
+            {
+                "measurement": "fcp",
+                "weight": 0.15,
+                "p10": 1800.0,
+                "p50": 3000.0,
+                "optional": True,
+            },
+            {
+                "measurement": "lcp",
+                "weight": 0.30,
+                "p10": 2500.0,
+                "p50": 4000.0,
+                "optional": True,
+            },
+            {
+                "measurement": "cls",
+                "weight": 0.0,
+                "p10": 0.1,
+                "p50": 0.25,
+                "optional": False,
+            },
+            {
+                "measurement": "ttfb",
+                "weight": 0.10,
+                "p10": 800.0,
+                "p50": 1800.0,
+                "optional": True,
+            },
         ],
         "condition": {
             "op": "eq",
@@ -989,10 +1188,34 @@ def test_mobile_performance_calculate_score(default_project) -> None:
     assert performance_score[10] == {
         "name": "Safari Mobile",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
-            {"measurement": "lcp", "weight": 0.0, "p10": 2500.0, "p50": 4000.0, "optional": False},
-            {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
+            {
+                "measurement": "fcp",
+                "weight": 0.15,
+                "p10": 1800.0,
+                "p50": 3000.0,
+                "optional": True,
+            },
+            {
+                "measurement": "lcp",
+                "weight": 0.0,
+                "p10": 2500.0,
+                "p50": 4000.0,
+                "optional": False,
+            },
+            {
+                "measurement": "cls",
+                "weight": 0.0,
+                "p10": 0.1,
+                "p50": 0.25,
+                "optional": False,
+            },
+            {
+                "measurement": "ttfb",
+                "weight": 0.10,
+                "p10": 800.0,
+                "p50": 1800.0,
+                "optional": True,
+            },
         ],
         "condition": {
             "op": "eq",
@@ -1004,10 +1227,34 @@ def test_mobile_performance_calculate_score(default_project) -> None:
     assert performance_score[11] == {
         "name": "Edge Mobile",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
-            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": True},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
-            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
+            {
+                "measurement": "fcp",
+                "weight": 0.15,
+                "p10": 1800.0,
+                "p50": 3000.0,
+                "optional": True,
+            },
+            {
+                "measurement": "lcp",
+                "weight": 0.30,
+                "p10": 2500.0,
+                "p50": 4000.0,
+                "optional": True,
+            },
+            {
+                "measurement": "cls",
+                "weight": 0.15,
+                "p10": 0.1,
+                "p50": 0.25,
+                "optional": True,
+            },
+            {
+                "measurement": "ttfb",
+                "weight": 0.10,
+                "p10": 800.0,
+                "p50": 1800.0,
+                "optional": True,
+            },
         ],
         "condition": {
             "op": "eq",
@@ -1020,10 +1267,34 @@ def test_mobile_performance_calculate_score(default_project) -> None:
     assert performance_score[12] == {
         "name": "Opera Mobile",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
-            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": True},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
-            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
+            {
+                "measurement": "fcp",
+                "weight": 0.15,
+                "p10": 1800.0,
+                "p50": 3000.0,
+                "optional": True,
+            },
+            {
+                "measurement": "lcp",
+                "weight": 0.30,
+                "p10": 2500.0,
+                "p50": 4000.0,
+                "optional": True,
+            },
+            {
+                "measurement": "cls",
+                "weight": 0.15,
+                "p10": 0.1,
+                "p50": 0.25,
+                "optional": True,
+            },
+            {
+                "measurement": "ttfb",
+                "weight": 0.10,
+                "p10": 800.0,
+                "p50": 1800.0,
+                "optional": True,
+            },
         ],
         "condition": {
             "op": "eq",
@@ -1035,7 +1306,13 @@ def test_mobile_performance_calculate_score(default_project) -> None:
     assert performance_score[13] == {
         "name": "Chrome Mobile INP",
         "scoreComponents": [
-            {"measurement": "inp", "weight": 1.0, "p10": 200.0, "p50": 500.0, "optional": False},
+            {
+                "measurement": "inp",
+                "weight": 1.0,
+                "p10": 200.0,
+                "p50": 500.0,
+                "optional": False,
+            },
         ],
         "condition": {
             "op": "or",
@@ -1052,7 +1329,13 @@ def test_mobile_performance_calculate_score(default_project) -> None:
     assert performance_score[14] == {
         "name": "Edge Mobile INP",
         "scoreComponents": [
-            {"measurement": "inp", "weight": 1.0, "p10": 200.0, "p50": 500.0, "optional": False},
+            {
+                "measurement": "inp",
+                "weight": 1.0,
+                "p10": 200.0,
+                "p50": 500.0,
+                "optional": False,
+            },
         ],
         "condition": {
             "op": "eq",
@@ -1064,7 +1347,13 @@ def test_mobile_performance_calculate_score(default_project) -> None:
     assert performance_score[15] == {
         "name": "Opera Mobile INP",
         "scoreComponents": [
-            {"measurement": "inp", "weight": 1.0, "p10": 200.0, "p50": 500.0, "optional": False}
+            {
+                "measurement": "inp",
+                "weight": 1.0,
+                "p10": 200.0,
+                "p50": 500.0,
+                "optional": False,
+            }
         ],
         "condition": {
             "op": "eq",

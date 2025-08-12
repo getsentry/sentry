@@ -3,7 +3,6 @@ from collections.abc import Callable
 from typing import Any, Literal, cast
 from unittest.mock import MagicMock, patch
 
-from sentry.eventstore.models import Event
 from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.variants import CustomFingerprintVariant
 from sentry.seer.similarity.utils import (
@@ -16,6 +15,7 @@ from sentry.seer.similarity.utils import (
     get_stacktrace_string,
     has_too_many_contributing_frames,
 )
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 
 

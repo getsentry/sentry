@@ -45,7 +45,6 @@ from sentry.constants import (
 )
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import record_latest_release
-from sentry.eventstore.processing import event_processing_store
 from sentry.eventstream.base import GroupState
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
@@ -92,11 +91,7 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import (
-    GroupOpenPeriod,
-    create_open_period,
-    has_initial_open_period,
-)
+from sentry.models.groupopenperiod import GroupOpenPeriod, create_open_period
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
@@ -118,6 +113,7 @@ from sentry.receivers.features import record_event_processed
 from sentry.receivers.onboarding import record_release_received
 from sentry.reprocessing2 import is_reprocessed_event
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.services.eventstore.processing import event_processing_store
 from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
@@ -151,7 +147,7 @@ from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 from .utils.event_tracker import TransactionStageStatus, track_sampled_event
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import BaseEvent, Event
+    from sentry.services.eventstore.models import BaseEvent, Event
 
 logger = logging.getLogger("sentry.events")
 
@@ -1822,8 +1818,7 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
-        if has_initial_open_period(group):
-            create_open_period(group, activity.datetime)
+        create_open_period(group, activity.datetime)
 
     return is_regression
 

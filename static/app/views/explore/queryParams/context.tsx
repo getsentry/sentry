@@ -1,9 +1,12 @@
 import type {ReactNode} from 'react';
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 
+import type {Sort} from 'sentry/utils/discover/fields';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
+import type {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 interface QueryParamsContextValue {
@@ -34,7 +37,54 @@ export function QueryParamsContextProvider({
   return <QueryParamsContext value={value}>{children}</QueryParamsContext>;
 }
 
-export function useQueryParamsMode(): Mode {
+function useQueryParams() {
   const {queryParams} = useQueryParamsContext();
+  return queryParams;
+}
+
+function useSetQueryParams() {
+  const {setQueryParams} = useQueryParamsContext();
+
+  return useCallback(
+    (writableQueryParams: WritableQueryParams) => {
+      setQueryParams(writableQueryParams);
+    },
+    [setQueryParams]
+  );
+}
+
+export function useQueryParamsMode(): Mode {
+  const queryParams = useQueryParams();
   return queryParams.mode;
+}
+
+export function useSetQueryParamsMode() {
+  const setQueryParams = useSetQueryParams();
+
+  return useCallback(
+    (mode: Mode) => {
+      setQueryParams({mode});
+    },
+    [setQueryParams]
+  );
+}
+
+export function useQueryParamsVisualizes(): readonly Visualize[] {
+  const queryParams = useQueryParams();
+  return queryParams.visualizes;
+}
+
+export function useQueryParamsGroupBys(): readonly string[] {
+  const queryParams = useQueryParams();
+  return queryParams.groupBys;
+}
+
+export function useQueryParamsTopEventsLimit(): number | undefined {
+  const groupBys = useQueryParamsGroupBys();
+  return groupBys.every(groupBy => groupBy === '') ? undefined : TOP_EVENTS_LIMIT;
+}
+
+export function useQueryParamsAggregateSortBys(): readonly Sort[] {
+  const queryParams = useQueryParams();
+  return queryParams.aggregateSortBys;
 }
