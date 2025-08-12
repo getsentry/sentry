@@ -300,7 +300,7 @@ def query_using_optimized_search(
         replay_ids,
         timestamp_start=period_start,
         timestamp_end=period_stop,
-        fields=set(fields),
+        only_query_for=set(fields),
         requesting_user_id=request_user_id,
         referrer="replays.query.browse_query",
         tenant_ids={"organization_id": organization.id},

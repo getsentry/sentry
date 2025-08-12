@@ -382,7 +382,7 @@ def get_replay(
     replay_id: str,
     timestamp_start: datetime | None = None,
     timestamp_end: datetime | None = None,
-    fields: set[str] | None = None,
+    only_query_for: set[str] | None = None,
     requesting_user_id: int | None = None,
     referrer: str = "replays.get_replay_unknown",
     tenant_ids: dict[str, Any] | None = None,
@@ -392,7 +392,7 @@ def get_replay(
         replay_ids=[replay_id],
         timestamp_start=timestamp_start,
         timestamp_end=timestamp_end,
-        fields=fields,
+        only_query_for=only_query_for,
         requesting_user_id=requesting_user_id,
         referrer=referrer,
         tenant_ids=tenant_ids,
@@ -408,7 +408,7 @@ def get_replays(
     replay_ids: list[str],
     timestamp_start: datetime | None = None,
     timestamp_end: datetime | None = None,
-    fields: set[str] | None = None,
+    only_query_for: set[str] | None = None,
     requesting_user_id: int | None = None,
     referrer: str = "replays.get_replays_unknown",
     tenant_ids: dict[str, Any] | None = None,
@@ -417,12 +417,12 @@ def get_replays(
     timestamp_end = timestamp_end or datetime.now(tz=timezone.utc)
 
     # Queryset can be reduced by specifying the fields you want to be returned.
-    if fields:
-        flat_field_set = {field for field in fields if field not in COMPOSITE_FIELD_MAP}
+    if only_query_for:
+        flat_field_set = {field for field in only_query_for if field not in COMPOSITE_FIELD_MAP}
         flat_field_set.add("is_archived")
 
         for field, value in COMPOSITE_FIELD_MAP.items():
-            if field in fields:
+            if field in only_query_for:
                 flat_field_set = flat_field_set.union(value)
 
         selected_expressions = [QUERY_MAP[field] for field in flat_field_set]
@@ -430,7 +430,7 @@ def get_replays(
         selected_expressions = list(QUERY_MAP.values())
 
     # If a requesting_user_id was specified we can compute the has_viewed value.
-    if requesting_user_id and (not fields or "has_viewed" in fields):
+    if requesting_user_id and (not only_query_for or "has_viewed" in only_query_for):
         selected_expressions.append(
             Function(
                 "sum",

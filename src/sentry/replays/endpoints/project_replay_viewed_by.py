@@ -72,7 +72,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
             replay_id=replay_id,
             timestamp_start=filter_params["start"],
             timestamp_stop=filter_params["end"],
-            fields={"viewed_by_ids"},
+            only_query_for={"viewed_by_ids"},
             requesting_user_id=request.user.id,
             referrer="project.replay_viewed_by.details",
             tenant_ids={"organization_id": project.organization_id},
@@ -118,7 +118,7 @@ class ProjectReplayViewedByEndpoint(ProjectEndpoint):
             timestamp_start=filter_params["start"],
             timestamp_stop=filter_params["end"],
             requesting_user_id=request.user.id,
-            fields={"finished_at"},
+            only_query_for={"finished_at"},
             referrer="project.replay.viewed_by.create",
             tenant_ids={"organization_id": project.organization_id},
         )

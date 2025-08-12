@@ -13,7 +13,6 @@ from sentry.apidocs.constants import RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.models.project import Project
 from sentry.replays.tasks import delete_replay
-from sentry.replays.usecases.reader import has_archived_segment
 from sentry.replays.usecases.replay import get_replay
 
 
@@ -86,7 +85,14 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
         ):
             return Response(status=404)
 
-        if has_archived_segment(project.id, replay_id):
+        replay = get_replay(
+            project_ids=[project.id],
+            replay_id=replay_id,
+            only_query_for={"is_archived"},
+            referrer="project.replay.details",
+            tenant_ids={"organization": project.organization_id},
+        )
+        if not replay or replay["is_archived"]:
             return Response(status=404)
 
         delete_replay.delay(

@@ -29,6 +29,7 @@ from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, filestore, storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.pack import unpack
+from sentry.replays.usecases.replay import get_replay
 from sentry.utils.snuba import raw_snql_query
 
 # METADATA QUERY BEHAVIOR.
@@ -139,9 +140,16 @@ def fetch_direct_storage_segments_meta(
     limit: int,
 ) -> list[RecordingSegmentStorageMeta]:
     """Return direct-storage metadata derived from our Clickhouse table."""
-    if not has_archived_segment(project_id, replay_id):
-        return _fetch_segments_from_snuba(project_id, replay_id, offset, limit)
-    return []
+    replay = get_replay(
+        project_ids=[project_id],
+        replay_id=replay_id,
+        only_query_for={"is_archived"},
+        referrer="project.recording_segments.index.has_archived",
+    )
+    if not replay or replay["is_archived"]:
+        return []
+
+    return _fetch_segments_from_snuba(project_id, replay_id, offset, limit)
 
 
 def fetch_direct_storage_segment_meta(
@@ -150,7 +158,13 @@ def fetch_direct_storage_segment_meta(
     segment_id: int,
 ) -> RecordingSegmentStorageMeta | None:
     """Return direct-storage metadata derived from our Clickhouse table."""
-    if has_archived_segment(project_id, replay_id):
+    replay = get_replay(
+        project_ids=[project_id],
+        replay_id=replay_id,
+        only_query_for={"is_archived"},
+        referrer="project.recording_segments.details.has_archived",
+    )
+    if not replay or replay["is_archived"]:
         return None
 
     results = _fetch_segments_from_snuba(
@@ -164,31 +178,6 @@ def fetch_direct_storage_segment_meta(
         return None
     else:
         return results[0]
-
-
-@sentry_sdk.trace
-def has_archived_segment(project_id: int, replay_id: str) -> bool:
-    """Return true if an archive row exists for this replay."""
-    snuba_request = Request(
-        dataset="replays",
-        app_id="replay-backend-web",
-        query=Query(
-            match=Entity("replays"),
-            select=[Column("is_archived")],
-            where=[
-                Condition(Column("is_archived"), Op.EQ, 1),
-                Condition(Column("project_id"), Op.EQ, project_id),
-                Condition(Column("replay_id"), Op.EQ, str(uuid.UUID(replay_id))),
-                # We request the full 90 day range. This is effectively an unbounded timestamp
-                # range.
-                Condition(Column("timestamp"), Op.LT, datetime.now()),
-                Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=90)),
-            ],
-            granularity=Granularity(3600),
-        ),
-    )
-    response = raw_snql_query(snuba_request, "replays.query.download_replay_segments")
-    return len(response["data"]) > 0
 
 
 def _fetch_segments_from_snuba(
