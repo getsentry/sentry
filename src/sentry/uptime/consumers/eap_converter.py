@@ -78,12 +78,26 @@ def convert_uptime_request_to_trace_item(
     if "region" in result:
         attributes["region"] = _anyvalue(result["region"])
 
-    attributes["scheduled_check_time_us"] = _anyvalue(ms_to_us(result["scheduled_check_time_ms"]))
-    attributes["actual_check_time_us"] = _anyvalue(ms_to_us(result["actual_check_time_ms"]))
+    if "scheduled_check_time_us" in result:
+        attributes["scheduled_check_time_us"] = _anyvalue(result["scheduled_check_time_us"])
+    else:
+        attributes["scheduled_check_time_us"] = _anyvalue(
+            ms_to_us(result["scheduled_check_time_ms"])
+        )
 
-    duration_ms = result["duration_ms"]
-    if duration_ms is not None:
-        attributes["check_duration_us"] = _anyvalue(ms_to_us(duration_ms))
+    if "actual_check_time_us" in result:
+        attributes["actual_check_time_us"] = _anyvalue(result["actual_check_time_us"])
+    else:
+        attributes["actual_check_time_us"] = _anyvalue(ms_to_us(result["actual_check_time_ms"]))
+
+    if "duration_us" in result:
+        duration_us = result["duration_us"]
+        if duration_us is not None:
+            attributes["check_duration_us"] = _anyvalue(duration_us)
+    else:
+        duration_ms = result["duration_ms"]
+        if duration_ms is not None:
+            attributes["check_duration_us"] = _anyvalue(ms_to_us(duration_ms))
 
     status_reason = result["status_reason"]
     if status_reason is not None:
