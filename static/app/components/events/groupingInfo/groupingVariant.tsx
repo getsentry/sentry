@@ -68,13 +68,7 @@ function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
   }
 }
 
-
-
-function GroupingVariant({
-  event,
-  variant,
-  showNonContributing,
-}: GroupingVariantProps) {
+function GroupingVariant({event, variant, showNonContributing}: GroupingVariantProps) {
   const getVariantData = (): [VariantData, EventGroupComponent | undefined] => {
     const data: VariantData = [];
     let component: EventGroupComponent | undefined;
