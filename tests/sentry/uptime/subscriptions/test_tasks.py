@@ -549,7 +549,6 @@ class BrokenMonitorCheckerTest(UptimeTestCase):
         assert proj_sub.uptime_subscription.uptime_status == expected_uptime_status
 
         detector = get_detector(proj_sub.uptime_subscription)
-        assert detector
         if expected_status == ObjectStatus.ACTIVE:
             assert detector.enabled
         else:

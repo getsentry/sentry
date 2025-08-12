@@ -28,7 +28,6 @@ class CreateIssuePlatformOccurrenceTest(UptimeTestCase):
         result = self.create_uptime_result()
         project_subscription = self.create_project_uptime_subscription()
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector
         create_issue_platform_occurrence(result, detector)
         assert mock_produce_occurrence_to_kafka.call_count == 1
         assert mock_produce_occurrence_to_kafka.call_args_list[0][0] == ()
@@ -51,7 +50,6 @@ class BuildOccurrenceFromResultTest(UptimeTestCase):
         result = self.create_uptime_result()
         project_subscription = self.create_project_uptime_subscription()
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector
 
         assert build_occurrence_from_result(result, detector) == IssueOccurrence(
             id=occurrence_id.hex,
@@ -85,7 +83,6 @@ class BuildEventDataForOccurrenceTest(UptimeTestCase):
         result = self.create_uptime_result()
         project_subscription = self.create_project_uptime_subscription()
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector
 
         event_id = uuid.uuid4()
         occurrence = IssueOccurrence(
@@ -130,7 +127,6 @@ class ResolveUptimeIssueTest(UptimeTestCase):
             uptime_subscription=subscription
         )
         detector = get_detector(project_subscription.uptime_subscription)
-        assert detector
         result = self.create_uptime_result(subscription.subscription_id)
         with self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()):
             create_issue_platform_occurrence(result, detector)

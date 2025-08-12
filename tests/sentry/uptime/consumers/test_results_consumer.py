@@ -73,9 +73,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
             uptime_subscription=self.subscription,
             owner=self.user,
         )
-        detector = get_detector(self.subscription)
-        assert detector
-        self.detector = detector
+        self.detector = get_detector(self.subscription)
 
     def send_result(
         self, result: CheckResult, consumer: ProcessingStrategy[KafkaPayload] | None = None
