@@ -57,7 +57,7 @@ export const enum EventGroupVariantType {
   PERFORMANCE_PROBLEM = 'performance_problem',
 }
 
-export function convertVariantTypeToUnderscore(type: string): EventGroupVariantType {
+function convertVariantTypeToUnderscore(type: string): EventGroupVariantType {
   const converted = type.replace(/-/g, '_');
   return converted as EventGroupVariantType;
 }
