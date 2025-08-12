@@ -108,7 +108,7 @@ describe('Logs Field Renderers', function () {
       expect(TimestampRenderer).toBeDefined();
       const preciseTimestamp = '1705329045123456789';
       const props = makeRendererProps(timestamp, {
-        'tags[sentry.timestamp_precise,number]': preciseTimestamp,
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestamp,
       });
       const result = TimestampRenderer!(props);
 
