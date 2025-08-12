@@ -2,7 +2,7 @@ import {useCallback, useMemo} from 'react';
 
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import type {TagCollection} from 'sentry/types/group';
-import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 import useAssignedSearchValues from 'sentry/utils/membersAndTeams/useAssignedSearchValues';
 
 const DETECTOR_FILTER_KEYS: Record<

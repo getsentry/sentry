@@ -17,9 +17,9 @@ import GroupStore from 'sentry/stores/groupStore';
 import type {NoteType} from 'sentry/types/alerts';
 import type {
   Group,
-  GroupActivity as GroupActivityType,
   GroupActivityNote,
   GroupActivityReprocess,
+  GroupActivity as GroupActivityType,
 } from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import type {MutateOptions} from 'sentry/utils/queryClient';
