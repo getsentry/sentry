@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {GroupInfoSummary} from 'sentry/components/events/groupingInfo/groupingSummary';
 import {useEventGroupingInfo} from 'sentry/components/events/groupingInfo/useEventGroupingInfo';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
@@ -83,6 +84,19 @@ export default function GroupingInfo({
           </div>
         )}
       </ConfigHeader>
+      <div style={{display: 'flex', justifyContent: 'flex-end', width: '100%'}}>
+        <SegmentedControl
+          aria-label={t('Filter by contribution')}
+          size="xs"
+          value={showNonContributing ? 'all' : 'relevant'}
+          onChange={key => setShowNonContributing(key === 'all')}
+        >
+          <SegmentedControl.Item key="relevant">
+            {t('Contributing values')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key="all">{t('All values')}</SegmentedControl.Item>
+        </SegmentedControl>
+      </div>
       {isError ? <LoadingError message={t('Failed to fetch grouping info.')} /> : null}
       {isPending && !hasPerformanceGrouping ? <LoadingIndicator /> : null}
       {hasPerformanceGrouping || isSuccess

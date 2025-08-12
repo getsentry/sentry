@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
@@ -18,7 +17,6 @@ import {EventGroupVariantType} from 'sentry/types/event';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
 import GroupingComponent from './groupingComponent';
-import {hasNonContributingComponent} from './utils';
 
 interface GroupingVariantProps {
   event: Event;
@@ -76,7 +74,6 @@ function GroupingVariant({
   event,
   variant,
   showNonContributing,
-  onShowNonContributingChange,
 }: GroupingVariantProps) {
   const getVariantData = (): [VariantData, EventGroupComponent | undefined] => {
     const data: VariantData = [];
@@ -163,22 +160,6 @@ function GroupingVariant({
     return [data, component];
   };
 
-  const renderContributionToggle = () => {
-    return (
-      <SegmentedControl
-        aria-label={t('Filter by contribution')}
-        size="xs"
-        value={showNonContributing ? 'all' : 'relevant'}
-        onChange={key => onShowNonContributingChange(key === 'all')}
-      >
-        <SegmentedControl.Item key="relevant">
-          {t('Contributing values')}
-        </SegmentedControl.Item>
-        <SegmentedControl.Item key="all">{t('All values')}</SegmentedControl.Item>
-      </SegmentedControl>
-    );
-  };
-
   const renderTitle = () => {
     const isContributing = variant.hash !== null;
 
@@ -208,13 +189,10 @@ function GroupingVariant({
     );
   };
 
-  const [data, component] = getVariantData();
+  const [data] = getVariantData();
   return (
     <VariantWrapper>
-      <Header>
-        {renderTitle()}
-        {hasNonContributingComponent(component) && renderContributionToggle()}
-      </Header>
+      <Header>{renderTitle()}</Header>
 
       <KeyValueList
         data={data.map(d => ({
