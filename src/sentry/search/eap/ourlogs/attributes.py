@@ -50,7 +50,8 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="observed_timestamp",
             internal_name="sentry.observed_timestamp_nanos",
-            search_type="string",
+            internal_type=constants.STRING,  # Stored as string, but we want to search as a number.
+            search_type="number",
         ),
         ResolvedAttribute(
             public_alias="payload_size",
