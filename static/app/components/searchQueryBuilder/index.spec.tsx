@@ -23,9 +23,9 @@ import {
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
 import {
+  QueryInterfaceType,
   type FieldDefinitionGetter,
   type FilterKeySection,
-  QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
 import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
@@ -3348,8 +3348,16 @@ describe('SearchQueryBuilder', function () {
           screen.getByLabelText('p95(transaction.duration):>300ms')
         ).toBeInTheDocument();
         expect(screen.getByLabelText('Edit function parameters')).toHaveFocus();
+
+        // XXX(malwilley): SearchQueryBuilderInput updates state in the render
+        // function which causes an act warning despite using userEvent.click.
+        // Cannot find a way to avoid this warning.
+        jest.spyOn(console, 'error').mockImplementation(jest.fn());
+
         await userEvent.keyboard('transaction');
         await userEvent.click(screen.getByRole('option', {name: 'transaction.duration'}));
+
+        jest.spyOn(console, 'error').mockRestore();
         expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
       });
 

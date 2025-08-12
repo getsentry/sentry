@@ -1,9 +1,9 @@
 import {
-  type AggregationOutputType,
-  type DataUnit,
   DurationUnit,
   RateUnit,
   SizeUnit,
+  type AggregationOutputType,
+  type DataUnit,
 } from 'sentry/utils/discover/fields';
 
 export const Y_AXIS_INTEGER_TOLERANCE = 0.000001;

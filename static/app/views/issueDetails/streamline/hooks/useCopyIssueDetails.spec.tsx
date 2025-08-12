@@ -6,9 +6,9 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {
-  type AutofixData,
   AutofixStatus,
   AutofixStepType,
+  type AutofixData,
 } from 'sentry/components/events/autofix/types';
 import * as autofixHooks from 'sentry/components/events/autofix/useAutofix';
 import type {GroupSummaryData} from 'sentry/components/group/groupSummary';

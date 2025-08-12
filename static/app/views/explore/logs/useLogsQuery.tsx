@@ -7,14 +7,16 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
-  type ApiQueryKey,
   fetchDataQuery,
-  type InfiniteData,
-  type QueryKeyEndpointOptions,
+  Query,
   useApiQuery,
   useInfiniteQuery,
   useQueryClient,
+  type ApiQueryKey,
+  type InfiniteData,
+  type QueryKeyEndpointOptions,
 } from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -43,9 +45,9 @@ import {
   QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
 } from 'sentry/views/explore/logs/constants';
 import {
+  OurLogKnownFieldKey,
   type EventsLogsResult,
   type LogsAggregatesResult,
-  OurLogKnownFieldKey,
 } from 'sentry/views/explore/logs/types';
 import {
   isRowVisibleInVirtualStream,
@@ -263,10 +265,19 @@ export function useLogsQuery({
   disabled,
   limit,
   referrer,
+  refetchInterval,
 }: {
   disabled?: boolean;
   limit?: number;
   referrer?: string;
+  refetchInterval?: (
+    query: Query<
+      ApiResult<EventsLogsResult>,
+      RequestError,
+      ApiResult<EventsLogsResult>,
+      ApiQueryKey
+    >
+  ) => number;
 }) {
   const _referrer = referrer ?? 'api.explore.logs-table';
   const {queryKey, other} = useLogsQueryKey({limit, referrer: _referrer});
@@ -276,6 +287,7 @@ export function useLogsQuery({
     staleTime: getStaleTimeForEventView(other.eventView),
     refetchOnWindowFocus: false,
     retry: false,
+    refetchInterval,
   });
 
   return {
