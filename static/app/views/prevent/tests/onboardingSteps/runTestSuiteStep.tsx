@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import testAnalyticsPRCommentDark from 'sentry-images/features/test-analytics-pr-comment-dark.png';
@@ -5,8 +6,6 @@ import testAnalyticsPRCommentLight from 'sentry-images/features/test-analytics-p
 import testAnalyticsWorkflowLogs from 'sentry-images/features/test-analytics-workflow-logs.svg';
 
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {OnboardingStep} from 'sentry/views/prevent/tests/onboardingSteps/onboardingStep';
 
 interface RunTestSuiteStepProps {
@@ -14,8 +13,8 @@ interface RunTestSuiteStepProps {
 }
 
 export function RunTestSuiteStep({step}: RunTestSuiteStepProps) {
-  const config = useLegacyStore(ConfigStore);
-  const isDarkMode = config.theme === 'dark';
+  const theme = useTheme();
+  const isDarkMode = theme.type === 'dark';
 
   const headerText = tct('Step [step]: Run your test suite', {
     step,
