@@ -2,7 +2,7 @@ import {useLayoutEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {setActiveOrganization} from 'sentry/actionCreators/organizations';
-import {type ApiResult, Client} from 'sentry/api';
+import {Client, type ApiResult} from 'sentry/api';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';

@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useMemo} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
@@ -25,8 +25,8 @@ import {
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useExploreDataset} from 'sentry/views/explore/contexts/pageParamsContext';
 import {
-  type TraceItemDetailsResponse,
   useTraceItemDetails,
+  type TraceItemDetailsResponse,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {TraceItemDataset} from 'sentry/views/explore/types';

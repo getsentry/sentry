@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 // eslint-disable-next-line import/no-nodejs-modules
 import path from 'node:path';
+
 import {TimeSeriesFixture} from 'sentry-fixture/discoverSeries';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';

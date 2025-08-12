@@ -13,10 +13,12 @@ import {
   type SearchItem,
 } from 'sentry/components/deprecatedSmartSearchBar/types';
 import {DeviceName} from 'sentry/components/deviceName';
+import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
+import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {
-  type CustomComboboxMenu,
   SearchQueryBuilderCombobox,
+  type CustomComboboxMenu,
 } from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
 import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
@@ -56,10 +58,10 @@ import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {
-  type FieldDefinition,
   FieldKey,
   FieldValueType,
   prettifyTagKey,
+  type FieldDefinition,
 } from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {keepPreviousData, useQuery} from 'sentry/utils/queryClient';
@@ -842,9 +844,16 @@ export function SearchQueryBuilderValueCombobox({
     useMemo(() => {
       if (!showDatePicker) {
         return function (props) {
+          // Removing the ask seer options from the value list box props as we don't
+          // display and ask seer option in this list box.
+          const hiddenOptions = new Set(props.hiddenOptions);
+          hiddenOptions.delete(ASK_SEER_ITEM_KEY);
+          hiddenOptions.delete(ASK_SEER_CONSENT_ITEM_KEY);
+
           return (
             <ValueListBox
               {...props}
+              hiddenOptions={hiddenOptions}
               wrapperRef={topLevelWrapperRef}
               isMultiSelect={canSelectMultipleValues}
               items={items}

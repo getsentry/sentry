@@ -3,8 +3,8 @@ import type {ECharts, SeriesOption} from 'echarts';
 import type {MarkLineOption} from 'echarts/types/dist/shared';
 
 import {
-  type ChartId,
   ChartWidgetLoader,
+  type ChartId,
 } from 'sentry/components/charts/chartWidgetLoader';
 import {
   EventDrawerBody,

@@ -706,3 +706,72 @@ class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSn
             assert (
                 "tags" in issue.events[0] or issue.events[0].get("transaction") == transaction_name
             )
+
+    def test_get_issues_for_transaction_with_quotes(self) -> None:
+        """Test that transaction names with quotes and search operators are properly escaped in search queries."""
+        # Test case 1: Transaction name with quotes that would break search syntax if not escaped
+        transaction_name_quotes = 'GET /api/users/"john"/profile'
+
+        # Create an event/issue for the transaction with quotes
+        event1 = self.store_event(
+            data={
+                "message": "Authentication failed for quoted user",
+                "tags": [["transaction", transaction_name_quotes]],
+                "fingerprint": ["auth-error-quotes"],
+                "platform": "python",
+                "timestamp": self.ten_mins_ago.isoformat(),
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+
+        # Test case 2: Transaction name with " IN " operator that could break search syntax
+        transaction_name_in = "POST /api/check IN database/users"
+
+        # Create an event/issue for the transaction with IN operator
+        event2 = self.store_event(
+            data={
+                "message": "Database operation failed",
+                "tags": [["transaction", transaction_name_in]],
+                "fingerprint": ["database-in-error"],
+                "platform": "python",
+                "timestamp": self.ten_mins_ago.isoformat(),
+                "level": "error",
+            },
+            project_id=self.project.id,
+        )
+
+        # Verify both events were stored with correct transaction names
+        latest_event1 = event1.group.get_latest_event()
+        transaction_tag1 = latest_event1.get_tag("transaction")
+        assert transaction_tag1 == transaction_name_quotes
+
+        latest_event2 = event2.group.get_latest_event()
+        transaction_tag2 = latest_event2.get_tag("transaction")
+        assert transaction_tag2 == transaction_name_in
+
+        # Test quotes case - this should not crash despite quotes in transaction name
+        result1 = get_issues_for_transaction(transaction_name_quotes, self.project.id)
+
+        # Verify the quotes result
+        assert result1 is not None
+        assert result1.transaction_name == transaction_name_quotes
+        assert result1.project_id == self.project.id
+        assert len(result1.issues) == 1
+
+        issue1 = result1.issues[0]
+        assert issue1.id == event1.group.id
+        assert issue1.transaction == transaction_name_quotes
+
+        # Test IN operator case - this should not crash despite IN operator in transaction name
+        result2 = get_issues_for_transaction(transaction_name_in, self.project.id)
+
+        # Verify the IN operator result
+        assert result2 is not None
+        assert result2.transaction_name == transaction_name_in
+        assert result2.project_id == self.project.id
+        assert len(result2.issues) == 1
+
+        issue2 = result2.issues[0]
+        assert issue2.id == event2.group.id
+        assert issue2.transaction == transaction_name_in
