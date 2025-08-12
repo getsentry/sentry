@@ -45,6 +45,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
@@ -73,6 +74,7 @@ export function SpanDescription({
   });
   const span = node.value;
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
+  const shouldUseOTelFriendlyUI = useOTelFriendlyUI();
 
   const category = findSpanAttributeValue(attributes, 'span.category');
   const dbSystem = findSpanAttributeValue(attributes, 'db.system');
@@ -185,6 +187,17 @@ export function SpanDescription({
         node={node}
         attributes={attributes}
       />
+    ) : shouldUseOTelFriendlyUI ? (
+      <DescriptionWrapper>
+        <FormattedDescription>{span.name}</FormattedDescription>
+        <CopyToClipboardButton
+          borderless
+          size="zero"
+          iconSize="xs"
+          text={span.name}
+          tooltipProps={{disabled: true}}
+        />
+      </DescriptionWrapper>
     ) : (
       <DescriptionWrapper>
         {formattedDescription ? (
