@@ -54,6 +54,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import organization_service
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
@@ -266,12 +267,9 @@ def get_organization_seer_consent_by_org_name(
     )
 
     for org_integration in org_integrations:
-        try:
-            org = Organization.objects.get(id=org_integration.organization_id)
-            if _can_use_prevent_ai_features(org):
-                return {"consent": True}
-        except Organization.DoesNotExist:
-            continue
+        org = organization_service.get(id=org_integration.organization_id)
+        if org is not None and _can_use_prevent_ai_features(org):
+            return {"consent": True}
 
     return {"consent": False}
 
