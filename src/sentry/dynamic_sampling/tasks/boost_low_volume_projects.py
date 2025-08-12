@@ -256,11 +256,12 @@ def boost_low_volume_projects_of_org(
             org_id, projects_with_tx_count_and_rates
         )
     except Exception as e:
-        logger.info(
-            "log-project-config: Error calculating sample rates of for org %s",
-            org_id,
-            extra={"org_id": org_id},
-        )
+        if features.has("organizations:log-project-config", org_id):
+            logger.info(
+                "log-project-config: Error calculating sample rates of for org %s",
+                org_id,
+                extra={"org_id": org_id},
+            )
         sentry_sdk.capture_exception(e, tags={"org_id": org_id})
         raise
 
