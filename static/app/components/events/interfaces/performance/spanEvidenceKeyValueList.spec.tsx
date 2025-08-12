@@ -204,7 +204,6 @@ describe('SpanEvidenceKeyValueList', () => {
         ...event.occurrence,
         evidenceData: {
           patternSize: 2,
-          patternSpanIds: ['aaa', 'bbb'],
         },
       } as EventTransaction['occurrence'];
 
@@ -252,10 +251,6 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.pattern-size')
       ).toHaveTextContent('2');
-      expect(screen.getByRole('cell', {name: 'Pattern Span IDs'})).toBeInTheDocument();
-      expect(
-        screen.getByTestId('span-evidence-key-value-list.pattern-span-i-ds')
-      ).toHaveTextContent('aaa, bbb');
     });
   });
 
