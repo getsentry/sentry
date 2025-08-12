@@ -80,11 +80,9 @@ export function isEventGroupVariantType(value: string): value is EventGroupVaria
 }
 
 export function convertVariantFromBackend(variant: any): EventGroupVariant {
-  const convertedType = convertVariantTypeToUnderscore(variant.type);
-
   const convertedVariant = {
     ...variant,
-    type: convertedType,
+    type: convertVariantTypeToUnderscore(variant.type);,
   };
 
   return convertedVariant as EventGroupVariant;
