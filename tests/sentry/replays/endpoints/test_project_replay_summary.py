@@ -8,12 +8,15 @@ import responses
 from django.conf import settings
 from django.urls import reverse
 
+from sentry.feedback.lib.utils import FeedbackCreationSource
+from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.replays.endpoints.project_replay_summary import SEER_POLL_STATE_URL, SEER_START_TASK_URL
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
 def mock_seer_response(method: str, **kwargs) -> None:
@@ -29,6 +32,7 @@ def mock_seer_response(method: str, **kwargs) -> None:
 @requires_snuba
 class ProjectReplaySummaryTestCase(
     TransactionTestCase,
+    SearchIssueTestMixin,
 ):
     endpoint = "sentry-api-0-project-replay-summary"
 
@@ -350,27 +354,28 @@ class ProjectReplaySummaryTestCase(
         trace_id_2 = uuid.uuid4().hex
         timestamp_2 = now.timestamp()
 
-        self.store_event(
-            data={
-                "type": "feedback",
-                "event_id": event_id_2,
-                "timestamp": timestamp_2,
-                "contexts": {
-                    "feedback": {
-                        "contact_email": "test@example.com",
-                        "name": "Test User",
-                        "message": "User submitted feedback",
-                        "replay_id": self.replay_id,
-                        "url": "https://example.com",
-                    },
-                    "trace": {
-                        "type": "trace",
-                        "trace_id": trace_id_2,
-                        "span_id": "2" + uuid.uuid4().hex[:15],
-                    },
+        feedback_data = {
+            "type": "feedback",
+            "event_id": event_id_2,
+            "timestamp": timestamp_2,
+            "contexts": {
+                "feedback": {
+                    "contact_email": "test@example.com",
+                    "name": "Test User",
+                    "message": "User submitted feedback!!!!",
+                    "replay_id": self.replay_id,
+                    "url": "https://example.com",
+                },
+                "trace": {
+                    "type": "trace",
+                    "trace_id": trace_id_2,
+                    "span_id": "2" + uuid.uuid4().hex[:15],
                 },
             },
-            project_id=project_2.id,
+        }
+
+        create_feedback_issue(
+            feedback_data, project_2, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         )
 
         # Store the replay with all trace IDs
@@ -407,6 +412,77 @@ class ProjectReplaySummaryTestCase(
 
         # Verify that feedback event is included
         assert any("User submitted feedback" in log for log in logs)
+
+    @patch("sentry.replays.endpoints.project_replay_summary.requests")
+    def test_post_with_trace_errors_duplicate_feedback(self, mock_requests):
+        """Test that duplicate feedback events are filtered."""
+        mock_requests.post.return_value = Mock(
+            status_code=200, json=lambda: {"summary": "Test summary"}
+        )
+
+        now = datetime.now(UTC)
+        feedback_event_id = uuid.uuid4().hex
+        trace_id = uuid.uuid4().hex
+
+        # Create feedback event - issuePlatform dataset
+        feedback_data = {
+            "type": "feedback",
+            "event_id": feedback_event_id,
+            "timestamp": now.timestamp(),
+            "contexts": {
+                "feedback": {
+                    "contact_email": "test@example.com",
+                    "name": "Test User",
+                    "message": "User submitted feedback",
+                    "replay_id": self.replay_id,
+                    "url": "https://example.com",
+                },
+                "trace": {
+                    "type": "trace",
+                    "trace_id": trace_id,
+                    "span_id": "1" + uuid.uuid4().hex[:15],
+                },
+            },
+        }
+
+        create_feedback_issue(
+            feedback_data, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
+
+        self.store_replay(trace_ids=[trace_id])
+
+        # mock SDK feedback event
+        data = [
+            {
+                "type": 5,
+                "timestamp": float(now.timestamp()),
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {
+                        "category": "sentry.feedback",
+                        "data": {"feedbackId": feedback_event_id},
+                    },
+                },
+            },
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url, data={"num_segments": 1}, content_type="application/json"
+            )
+
+        assert response.status_code == 200
+        assert response.get("Content-Type") == "application/json"
+        assert response.json() == {"summary": "Test summary"}
+
+        assert mock_requests.post.call_count == 1
+        data = mock_requests.post.call_args.kwargs["data"]
+        logs = json.loads(data)["logs"]
+
+        # Verify that only 1 feedback log is included
+        assert len(logs) == 1
+        assert "User submitted feedback" in logs[0]
 
     @responses.activate
     @patch("sentry.replays.endpoints.project_replay_summary.MAX_SEGMENTS_TO_SUMMARIZE", 1)

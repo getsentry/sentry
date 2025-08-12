@@ -153,7 +153,7 @@ def fetch_trace_connected_errors(
         for event in error_data:
             event_id = event["id"]
 
-            # Skip if we've already seen this event ID
+            # Skip if we've already seen this event
             if event_id in seen_event_ids:
                 continue
 
