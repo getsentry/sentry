@@ -40,7 +40,12 @@ export function EventGroupingInfoSection({
       initialCollapse
     >
       {!hasStreamlinedUI && (
-        <GroupInfoSummary event={event} group={group} projectSlug={projectSlug} />
+        <GroupInfoSummary
+          event={event}
+          group={group}
+          projectSlug={projectSlug}
+          showGroupingConfig={showGroupingConfig}
+        />
       )}
       {hasStreamlinedUI || isOpen ? (
         <LazyLoad
