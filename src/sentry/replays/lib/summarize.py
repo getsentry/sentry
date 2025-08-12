@@ -319,11 +319,6 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 duration = event["data"]["payload"]["data"]["size"]
                 rating = event["data"]["payload"]["data"]["rating"]
                 return f"Application largest contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
-            case EventType.FCP:
-                timestamp_ms = timestamp * 1000
-                duration = event["data"]["payload"]["data"]["size"]
-                rating = event["data"]["payload"]["data"]["rating"]
-                return f"Application first contentful paint: {duration} ms and has a {rating} rating at {timestamp_ms}"
             case EventType.HYDRATION_ERROR:
                 return f"There was a hydration error on the page at {timestamp}"
             case EventType.RESOURCE_XHR:
