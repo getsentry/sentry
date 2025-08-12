@@ -25,7 +25,6 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import (
     WORKFLOW_ENGINE_BUFFER_LIST_KEY,
-    WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS,
     DelayedWorkflowItem,
     delete_workflow,
     enqueue_workflows,
@@ -439,10 +438,8 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.get_sharded_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY,
-            separator=":",
-            shards=WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS,
+        project_ids = buffer.backend.bulk_get_sorted_set(
+            [WORKFLOW_ENGINE_BUFFER_LIST_KEY],
             min=0,
             max=self.buffer_timestamp,
         )
@@ -474,10 +471,8 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.get_sharded_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY,
-            separator=":",
-            shards=WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS,
+        project_ids = buffer.backend.bulk_get_sorted_set(
+            [WORKFLOW_ENGINE_BUFFER_LIST_KEY],
             min=0,
             max=self.buffer_timestamp,
         )
@@ -558,10 +553,8 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.get_sharded_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY,
-            separator=":",
-            shards=WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS,
+        project_ids = buffer.backend.bulk_get_sorted_set(
+            [WORKFLOW_ENGINE_BUFFER_LIST_KEY],
             min=0,
             max=self.buffer_timestamp,
         )
@@ -589,10 +582,8 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.get_sharded_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY,
-            separator=":",
-            shards=WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS,
+        project_ids = buffer.backend.bulk_get_sorted_set(
+            [WORKFLOW_ENGINE_BUFFER_LIST_KEY],
             min=0,
             max=self.buffer_timestamp,
         )
@@ -603,10 +594,8 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.get_sharded_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY,
-            separator=":",
-            shards=WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS,
+        project_ids = buffer.backend.bulk_get_sorted_set(
+            [WORKFLOW_ENGINE_BUFFER_LIST_KEY],
             min=0,
             max=self.buffer_timestamp,
         )
@@ -757,10 +746,8 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
 
         enqueue_workflows(queue_items)
 
-        project_ids = buffer.backend.get_sharded_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY,
-            separator=":",
-            shards=WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS,
+        project_ids = buffer.backend.bulk_get_sorted_set(
+            [WORKFLOW_ENGINE_BUFFER_LIST_KEY],
             min=0,
             max=timezone.now().timestamp(),
         )
