@@ -21,6 +21,7 @@ from sentry.integrations.coding_agent.integration import (
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.models.apitoken import generate_token
 from sentry.shared_integrations.exceptions import IntegrationError
 
 DESCRIPTION = """
@@ -97,12 +98,16 @@ class CursorAgentIntegrationProvider(CodingAgentIntegrationProvider):
         if not config:
             raise IntegrationError("Missing configuration data")
 
+        # Generate webhook secret for this integration
+        webhook_secret = generate_token()
+
         return {
             "external_id": "cursor",
             "name": "Cursor Agent",
             "metadata": {
                 "api_key": config["api_key"],
                 "domain_name": "cursor.sh",
+                "webhook_secret": webhook_secret,
             },
         }
 

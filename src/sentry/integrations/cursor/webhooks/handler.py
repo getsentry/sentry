@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import logging
 from typing import Any
 
@@ -7,6 +9,7 @@ import orjson
 import requests
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
+from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
@@ -14,6 +17,7 @@ from rest_framework.request import Request
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.integrations.services.integration import integration_service
 from sentry.seer.autofix.utils import CodingAgentResult, CodingAgentStatus
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import metrics
@@ -47,7 +51,7 @@ class CursorWebhookEndpoint(Endpoint):
         event_type = payload.get("event", payload.get("event_type", "unknown"))
 
         # Validate webhook signature if present
-        if not self._validate_signature(request, payload):
+        if not self._validate_signature(request, request.body):
             logger.warning("cursor_webhook.invalid_signature")
             return HttpResponse(status=401)
 
@@ -62,18 +66,62 @@ class CursorWebhookEndpoint(Endpoint):
             logger.exception("cursor_webhook.processing_error", extra={"event_type": event_type})
             return HttpResponse(status=500)
 
-    def _validate_signature(self, request: Request, payload: dict[str, Any]) -> bool:
+    def _get_cursor_integration_secret(self, organization_id: int | None = None) -> str | None:
+        """Get webhook secret from Cursor integration."""
+        try:
+            if organization_id:
+                # Find Cursor integration for specific organization
+                integrations = integration_service.get_integrations(
+                    organization_id=organization_id, providers=["cursor"]
+                )
+            else:
+                # If no organization specified, look for any Cursor integration
+                # This is a fallback for now until we add organization routing
+                integrations = integration_service.get_integrations(providers=["cursor"])
+
+            for integration in integrations:
+                if integration.provider == "cursor" and "webhook_secret" in integration.metadata:
+                    return integration.metadata["webhook_secret"]
+        except Exception as e:
+            logger.warning("cursor_webhook.integration_lookup_error", extra={"error": str(e)})
+
+        return None
+
+    def _validate_signature(
+        self, request: Request, raw_body: bytes, organization_id: int | None = None
+    ) -> bool:
         """Validate webhook signature."""
-        signature = request.META.get("HTTP_X_CURSOR_SIGNATURE")
+        signature = request.META.get("HTTP_X_WEBHOOK_SIGNATURE")
 
-        # Skip validation if no signature provided (for development)
+        # Get webhook secret from integration
+        secret = self._get_cursor_integration_secret(organization_id)
+
         if not signature:
-            return True
+            if secret:
+                # If we have a secret configured but no signature provided, reject
+                logger.warning("cursor_webhook.no_signature_provided")
+                return False
+            else:
+                # If no secret configured and no signature, allow (backwards compatibility)
+                logger.info("cursor_webhook.no_signature_validation")
+                return True
 
-        # Get integration and validate signature
-        # This would need to be implemented based on Cursor's actual signature scheme
-        # For now, we'll accept all requests
-        return True
+        if not secret:
+            # If signature provided but no secret configured, reject
+            logger.warning("cursor_webhook.no_webhook_secret_found")
+            return False
+
+        # Remove "sha256=" prefix if present
+        if signature.startswith("sha256="):
+            signature = signature[7:]
+
+        expected_signature = hmac.new(secret.encode("utf-8"), raw_body, hashlib.sha256).hexdigest()
+
+        is_valid = constant_time_compare(expected_signature, signature)
+        if not is_valid:
+            logger.warning("cursor_webhook.signature_mismatch")
+
+        return is_valid
 
     def _process_webhook(self, payload: dict[str, Any]) -> None:
         """Process webhook payload based on event type."""
@@ -191,7 +239,7 @@ class CursorWebhookEndpoint(Endpoint):
             if agent_url:
                 updates["agent_url"] = agent_url
             if result:
-                updates["result"] = orjson.dumps(result.dict()).decode("utf-8")
+                updates["result"] = orjson.dumps(result.model_dump()).decode("utf-8")
 
             # The payload structure for the new partial update endpoint
             update_data = {

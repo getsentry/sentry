@@ -20,6 +20,13 @@ class CursorIntegrationTest(IntegrationTestCase):
         assert integration_dict["metadata"]["api_key"] == "test_api_key_123"
         assert integration_dict["metadata"]["domain_name"] == "cursor.sh"
 
+        # Verify webhook secret is generated
+        assert "webhook_secret" in integration_dict["metadata"]
+        webhook_secret = integration_dict["metadata"]["webhook_secret"]
+        assert isinstance(webhook_secret, str)
+        assert len(webhook_secret) == 64  # generate_token() creates 64-char hex string
+        assert 32 <= len(webhook_secret) <= 256  # Meets Cursor requirements
+
     def test_build_integration_missing_config(self):
         """Test that build_integration raises error when config is missing"""
         state = {}
@@ -42,6 +49,7 @@ class CursorIntegrationTest(IntegrationTestCase):
             metadata={
                 "api_key": "test_api_key_123",
                 "domain_name": "cursor.sh",
+                "webhook_secret": "test_secret_123",
             },
         )
 
@@ -62,6 +70,7 @@ class CursorIntegrationTest(IntegrationTestCase):
             metadata={
                 "api_key": "test_api_key_123",
                 "domain_name": "cursor.sh",
+                "webhook_secret": "test_secret_123",
             },
         )
 
