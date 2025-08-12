@@ -33,13 +33,16 @@ interface EventAnomalyPayload {
 }
 
 interface UseMetricDetectorAnomaliesProps {
+  enabled: boolean;
   historicalSeries: Series[];
+  /**
+   * The metric detector interval in seconds
+   */
+  interval: number;
   projectId: string;
   sensitivity: AlertRuleSensitivity | undefined;
   series: Series[];
   thresholdType: AlertRuleThresholdType | undefined;
-  timePeriod: number;
-  enabled?: boolean;
 }
 
 function transformSeriesToDataPoints(series: Series[]): Array<[number, {count: number}]> {
@@ -62,9 +65,9 @@ export function useMetricDetectorAnomalies({
   historicalSeries,
   thresholdType,
   sensitivity,
-  timePeriod,
+  interval,
   projectId,
-  enabled = true,
+  enabled,
 }: UseMetricDetectorAnomaliesProps) {
   const organization = useOrganization();
 
@@ -89,7 +92,7 @@ export function useMetricDetectorAnomalies({
         : 'both',
       expected_seasonality: 'auto',
       sensitivity: sensitivity || 'medium',
-      time_period: timePeriod / 60,
+      time_period: interval / 60,
     },
     current_data: currentData,
     historical_data: filteredHistoricalData,
