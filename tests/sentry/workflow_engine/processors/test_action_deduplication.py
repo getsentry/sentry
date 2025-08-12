@@ -62,9 +62,8 @@ class TestActionDeduplication(TestCase):
         )
 
         actions_queryset = Action.objects.filter(id__in=[self.slack_action.id, email_action.id])
-        action_to_workflow_ids = {self.slack_action.id: 1, email_action.id: 2}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # Both actions should remain since they're different types
         result_ids = list(result.values_list("id", flat=True))
@@ -86,9 +85,8 @@ class TestActionDeduplication(TestCase):
         )
 
         actions_queryset = Action.objects.filter(id__in=[slack_action_1.id, slack_action_2.id])
-        action_to_workflow_ids = {slack_action_1.id: 1, slack_action_2.id: 2}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # Only one action should remain (the one with lower ID)
         result_ids = list(result.values_list("id", flat=True))
@@ -115,9 +113,8 @@ class TestActionDeduplication(TestCase):
         )
 
         actions_queryset = Action.objects.filter(id__in=[slack_action_1.id, slack_action_2.id])
-        action_to_workflow_ids = {slack_action_1.id: 1, slack_action_2.id: 2}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # Both actions should remain since they target different channels
         result_ids = list(result.values_list("id", flat=True))
@@ -140,9 +137,8 @@ class TestActionDeduplication(TestCase):
         )
 
         actions_queryset = Action.objects.filter(id__in=[slack_action_1.id, slack_action_2.id])
-        action_to_workflow_ids = {slack_action_1.id: 1, slack_action_2.id: 2}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # Only one action should remain
         result_ids = list(result.values_list("id", flat=True))
@@ -174,9 +170,8 @@ class TestActionDeduplication(TestCase):
         )
 
         actions_queryset = Action.objects.filter(id__in=[slack_action_1.id, slack_action_2.id])
-        action_to_workflow_ids = {slack_action_1.id: 1, slack_action_2.id: 2}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # Both actions should remain since they have different data
         result_ids = list(result.values_list("id", flat=True))
@@ -210,9 +205,8 @@ class TestActionDeduplication(TestCase):
         )
 
         actions_queryset = Action.objects.filter(id__in=[slack_action_1.id, slack_action_2.id])
-        action_to_workflow_ids = {slack_action_1.id: 1, slack_action_2.id: 2}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # Both actions should remain since they have different data
         result_ids = list(result.values_list("id", flat=True))
@@ -240,9 +234,8 @@ class TestActionDeduplication(TestCase):
         )
 
         actions_queryset = Action.objects.filter(id__in=[email_action_1.id, email_action_2.id])
-        action_to_workflow_ids = {email_action_1.id: 1, email_action_2.id: 2}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # Only one action should remain
         result_ids = list(result.values_list("id", flat=True))
@@ -269,9 +262,8 @@ class TestActionDeduplication(TestCase):
         )
 
         actions_queryset = Action.objects.filter(id__in=[email_action_1.id, email_action_2.id])
-        action_to_workflow_ids = {email_action_1.id: 1, email_action_2.id: 2}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # Both actions should remain since they have different targets
         result_ids = list(result.values_list("id", flat=True))
@@ -298,9 +290,8 @@ class TestActionDeduplication(TestCase):
         )
 
         actions_queryset = Action.objects.filter(id__in=[email_action_1.id, email_action_2.id])
-        action_to_workflow_ids = {email_action_1.id: 1, email_action_2.id: 2}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # Both actions should remain since they have different targets
         result_ids = list(result.values_list("id", flat=True))
@@ -333,9 +324,8 @@ class TestActionDeduplication(TestCase):
         )
 
         actions_queryset = Action.objects.filter(id__in=[email_action_1.id, email_action_2.id])
-        action_to_workflow_ids = {email_action_1.id: 1, email_action_2.id: 2}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # Both actions should remain since they have different targets
         result_ids = list(result.values_list("id", flat=True))
@@ -367,9 +357,8 @@ class TestActionDeduplication(TestCase):
         )
 
         actions_queryset = Action.objects.filter(id__in=[email_action_1.id, email_action_2.id])
-        action_to_workflow_ids = {email_action_1.id: 1, email_action_2.id: 2}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # Only one action should remain
         result_ids = list(result.values_list("id", flat=True))
@@ -400,9 +389,8 @@ class TestActionDeduplication(TestCase):
         actions_queryset = Action.objects.filter(
             id__in=[sentry_app_action_1.id, sentry_app_action_2.id]
         )
-        action_to_workflow_ids = {sentry_app_action_1.id: 1, sentry_app_action_2.id: 2}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # Only one action should remain
         result_ids = list(result.values_list("id", flat=True))
@@ -427,9 +415,8 @@ class TestActionDeduplication(TestCase):
         )
 
         actions_queryset = Action.objects.filter(id__in=[webhook_action_1.id, webhook_action_2.id])
-        action_to_workflow_ids = {webhook_action_1.id: 1, webhook_action_2.id: 2}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # Only one action should remain
         result_ids = list(result.values_list("id", flat=True))
@@ -442,9 +429,8 @@ class TestActionDeduplication(TestCase):
         plugin_action_2 = self.create_action(type=Action.Type.PLUGIN)
 
         actions_queryset = Action.objects.filter(id__in=[plugin_action_1.id, plugin_action_2.id])
-        action_to_workflow_ids = {plugin_action_1.id: 1, plugin_action_2.id: 2}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # One action should remain since its a plugin action
         result_ids = list(result.values_list("id", flat=True))
@@ -475,9 +461,8 @@ class TestActionDeduplication(TestCase):
         )
 
         actions_queryset = Action.objects.filter(id__in=[slack_action.id, pagerduty_action.id])
-        action_to_workflow_ids = {slack_action.id: 1, pagerduty_action.id: 2}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # Both actions should remain since they're for different integrations
         result_ids = list(result.values_list("id", flat=True))
@@ -511,9 +496,8 @@ class TestActionDeduplication(TestCase):
         )
 
         actions_queryset = Action.objects.filter(id__in=[jira_action_1.id, jira_action_2.id])
-        action_to_workflow_ids = {jira_action_1.id: 1, jira_action_2.id: 2}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # Both actions should remain since ticketing actions are deduplicated by integration_id and dynamic form field data
         result_ids = list(result.values_list("id", flat=True))
@@ -546,9 +530,8 @@ class TestActionDeduplication(TestCase):
         )
 
         actions_queryset = Action.objects.filter(id__in=[jira_action_1.id, jira_action_2.id])
-        action_to_workflow_ids = {jira_action_1.id: 1, jira_action_2.id: 2}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # Only 1 action should remain
         result_ids = list(result.values_list("id", flat=True))
@@ -558,9 +541,8 @@ class TestActionDeduplication(TestCase):
     def test_deduplicate_actions_empty_queryset(self) -> None:
         """Test deduplication with empty queryset."""
         actions_queryset = Action.objects.none()
-        action_to_workflow_ids: dict[int, int] = {}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # Should return empty queryset
         assert list(result) == []
@@ -570,9 +552,8 @@ class TestActionDeduplication(TestCase):
         single_action = self.slack_action
 
         actions_queryset = Action.objects.filter(id=single_action.id)
-        action_to_workflow_ids = {single_action.id: 1}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # Should return the single action
         result_ids = list(result.values_list("id", flat=True))
@@ -602,9 +583,8 @@ class TestActionDeduplication(TestCase):
         )
 
         actions_queryset = Action.objects.filter(id__in=[slack_action_1.id, slack_action_2.id])
-        action_to_workflow_ids = {slack_action_1.id: 1, slack_action_2.id: 2}
 
-        result = deduplicate_actions(actions_queryset, action_to_workflow_ids)
+        result = deduplicate_actions(actions_queryset)
 
         # The action with lower ID should be kept
         result_ids = list(result.values_list("id", flat=True))
