@@ -157,6 +157,7 @@ class RPCBase:
             query.selected_columns,
             has_aggregates=any(equation for equation in equations if equation.is_aggregate),
         )
+
         all_columns = columns + equations
         contexts = resolver.resolve_contexts(query_contexts + column_contexts)
         # We allow orderby function_aliases if they're a selected_column

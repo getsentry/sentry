@@ -301,6 +301,33 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase):
         assert response.data["data"] == [{"message": "foo", "count()": 1}]
         assert response.data["meta"]["fields"]["count()"] == "integer"
 
+    def test_payload_bytes_meta_type_is_byte(self) -> None:
+        one_day_ago = before_now(days=1).replace(microsecond=0)
+
+        log1 = self.create_ourlog(
+            {"body": "foo"},
+            attributes={"sentry.payload_size_bytes": 1234567},
+            timestamp=one_day_ago,
+        )
+        self.store_ourlogs([log1])
+
+        request = {
+            "field": ["message", "payload_size"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+        }
+
+        response = self.do_request(
+            {
+                **request,
+                "query": "message:foo payload_size:1234567",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"message": "foo", "payload_size": 1234567}]
+        assert response.data["meta"]["fields"]["payload_size"] == "size"
+        assert response.data["meta"]["units"]["payload_size"] == "byte"
+
     def test_pagelimit(self) -> None:
         log = self.create_ourlog(
             {"body": "test"},
