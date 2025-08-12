@@ -179,7 +179,6 @@ def process_buffer() -> None:
             for project_id in project_ids:
                 process_in_batches(project_id, processing_type)
 
-            buffer.backend.delete_key(handler.buffer_key, min=0, max=fetch_time)
             buffer.backend.delete_sharded_key(
                 handler.buffer_key,
                 separator=handler.buffer_separator,
