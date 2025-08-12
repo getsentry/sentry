@@ -70,6 +70,7 @@ from sentry.monitors.processing_errors.manager import handle_processing_errors
 from sentry.monitors.system_incidents import update_check_in_volume
 from sentry.monitors.types import CheckinItem
 from sentry.monitors.utils import (
+    ensure_cron_detector,
     get_new_timeout_at,
     get_timeout_at,
     signal_first_checkin,
@@ -165,6 +166,7 @@ def _ensure_monitor_with_config(
                 "is_upserting": True,
             },
         )
+        ensure_cron_detector(monitor)
         if created:
             signal_monitor_created(project, None, True, monitor, None)
 
