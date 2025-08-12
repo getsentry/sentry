@@ -1918,11 +1918,12 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
         );
-        // Should start with an empty input
-        await waitFor(() => {
-          expect(screen.getByRole('combobox', {name: 'Edit filter key'})).toHaveValue('');
-        });
 
+        // Should start with an input with the previous value
+        const combobox = screen.getByRole('combobox', {name: 'Edit filter key'});
+        await waitFor(() => expect(combobox).toHaveValue('browser.name'));
+
+        await userEvent.clear(combobox);
         await userEvent.click(screen.getByRole('option', {name: 'custom_tag_name'}));
 
         await waitFor(() => {
@@ -1955,11 +1956,11 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
         );
-        // Should start with an empty input
-        await waitFor(() => {
-          expect(screen.getByRole('combobox', {name: 'Edit filter key'})).toHaveValue('');
-        });
+        // Should start with an input with the previous value
+        const combobox = screen.getByRole('combobox', {name: 'Edit filter key'});
+        await waitFor(() => expect(combobox).toHaveValue('browser.name'));
 
+        await userEvent.clear(combobox);
         await userEvent.click(screen.getByRole('option', {name: 'age'}));
 
         await waitFor(() => {
@@ -3626,18 +3627,18 @@ describe('SearchQueryBuilder', function () {
         <SearchQueryBuilder {...builderProps} initialQuery="tags[foo,string]:foo" />
       );
 
-      expect(
-        screen.getByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
-      ).toHaveTextContent('foo');
-
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
-      );
+      const editKeyButton = screen.getByRole('button', {
+        name: 'Edit key for filter: tags[foo,string]',
+      });
+      expect(editKeyButton).toHaveTextContent('foo');
+      await userEvent.click(editKeyButton);
 
       const input = screen.getByPlaceholderText('foo');
       expect(input).toBeInTheDocument();
       expect(input).toHaveFocus();
+      await userEvent.clear(input);
       await userEvent.keyboard('foo');
+
       expect(screen.getByRole('option', {name: 'foo'})).toBeInTheDocument();
     });
 
@@ -3646,18 +3647,18 @@ describe('SearchQueryBuilder', function () {
         <SearchQueryBuilder {...builderProps} initialQuery="tags[bar,number]:<=100" />
       );
 
-      expect(
-        screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
-      ).toHaveTextContent('bar');
+      const editKeyButton = screen.getByRole('button', {
+        name: 'Edit key for filter: tags[bar,number]',
+      });
+      expect(editKeyButton).toHaveTextContent('bar');
+      await userEvent.click(editKeyButton);
 
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
-      );
-
-      const input = screen.getByPlaceholderText('bar');
+      const input = screen.getByRole('combobox', {name: 'Edit filter key'});
       expect(input).toBeInTheDocument();
       expect(input).toHaveFocus();
+      await userEvent.clear(input);
       await userEvent.keyboard('bar');
+
       expect(screen.getByRole('option', {name: 'bar'})).toBeInTheDocument();
     });
 
@@ -3793,6 +3794,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
       );
+      await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter key'}));
       await userEvent.keyboard('foo{Enter}{Escape}');
 
       expect(
@@ -3808,6 +3810,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
       );
+      await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter key'}));
       await userEvent.keyboard('bar{Enter}{Escape}');
 
       expect(

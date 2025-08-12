@@ -13,6 +13,8 @@ import {
   type SearchItem,
 } from 'sentry/components/deprecatedSmartSearchBar/types';
 import {DeviceName} from 'sentry/components/deviceName';
+import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
+import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {
   SearchQueryBuilderCombobox,
@@ -842,9 +844,16 @@ export function SearchQueryBuilderValueCombobox({
     useMemo(() => {
       if (!showDatePicker) {
         return function (props) {
+          // Removing the ask seer options from the value list box props as we don't
+          // display and ask seer option in this list box.
+          const hiddenOptions = new Set(props.hiddenOptions);
+          hiddenOptions.delete(ASK_SEER_ITEM_KEY);
+          hiddenOptions.delete(ASK_SEER_CONSENT_ITEM_KEY);
+
           return (
             <ValueListBox
               {...props}
+              hiddenOptions={hiddenOptions}
               wrapperRef={topLevelWrapperRef}
               isMultiSelect={canSelectMultipleValues}
               items={items}
