@@ -12,7 +12,6 @@ from django.db.models import Count
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.base import IntegrationFeatures, IntegrationProvider
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.services.integration import integration_service
@@ -37,6 +36,7 @@ from sentry.models.rule import Rule
 from sentry.performance_issues.base import get_url_from_span
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.performance_issues.types import Span
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import region_silo_function
 from sentry.types.rules import NotificationRuleDetails
 from sentry.users.services.user import RpcUser

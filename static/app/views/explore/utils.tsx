@@ -684,14 +684,16 @@ export function getSavedQueryTraceItemUrl({
 
 const TRACE_ITEM_TO_URL_FUNCTION: Record<
   TraceItemDataset,
-  ({
-    savedQuery,
-    organization,
-  }: {
-    organization: Organization;
-    savedQuery: SavedQuery;
-  }) => string
+  | (({
+      savedQuery,
+      organization,
+    }: {
+      organization: Organization;
+      savedQuery: SavedQuery;
+    }) => string)
+  | undefined
 > = {
   [TraceItemDataset.LOGS]: getLogsUrlFromSavedQueryUrl,
   [TraceItemDataset.SPANS]: getExploreUrlFromSavedQueryUrl,
+  [TraceItemDataset.UPTIME_RESULTS]: undefined,
 };
