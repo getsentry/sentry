@@ -48,12 +48,12 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
             search_type="number",
         ),
         ResolvedAttribute(
-            public_alias="observed_timestamp_nanos",
+            public_alias="observed_timestamp",
             internal_name="sentry.observed_timestamp_nanos",
             search_type="string",
         ),
         ResolvedAttribute(
-            public_alias="payload_size_bytes",
+            public_alias="payload_size",
             internal_name="sentry.payload_size_bytes",
             search_type="number",
         ),
