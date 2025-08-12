@@ -1633,6 +1633,8 @@ describe('SearchQueryBuilder', function () {
           screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
         );
 
+        await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter key'}));
+
         await userEvent.keyboard(arrow);
         const input = await screen.findByRole('combobox', {name: 'Edit filter key'});
         expect(input).toHaveAttribute(
