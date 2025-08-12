@@ -318,7 +318,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         :param string name: The name of the detector
         :param string type: The type of detector to create
         :param string projectId: The detector project
-        :param object dataSource: Configuration for the data source
+        :param array dataSources: Configuration for the data source
         :param array dataConditions: List of conditions to trigger the detector
         :param array workflowIds: List of workflow IDs to connect to the detector
         """
