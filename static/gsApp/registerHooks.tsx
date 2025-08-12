@@ -44,6 +44,7 @@ import SuperuserWarning, {
 } from 'getsentry/components/superuser/superuserWarning';
 import TryBusinessSidebarItem from 'getsentry/components/tryBusinessSidebarItem';
 import hookAnalyticsInitUser from 'getsentry/hooks/analyticsInitUser';
+import {DashboardsLimitProvider} from 'getsentry/hooks/dashboardsLimit';
 import DisabledCustomSymbolSources from 'getsentry/hooks/disabledCustomSymbolSources';
 import DisabledMemberTooltip from 'getsentry/hooks/disabledMemberTooltip';
 import DisabledMemberView from 'getsentry/hooks/disabledMemberView';
@@ -244,6 +245,7 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:partnership-agreement': p => (
     <LazyLoad LazyComponent={PartnershipAgreement} {...p} />
   ),
+  'component:dashboards-limit-provider': () => DashboardsLimitProvider,
   'component:data-consent-banner': () => DataConsentBanner,
   'component:data-consent-priority-learn-more': () => DataConsentPriorityLearnMore,
   'component:data-consent-org-creation-checkbox': () => DataConsentOrgCreationCheckbox,
