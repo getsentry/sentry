@@ -30,7 +30,7 @@ class AutofixIssue(TypedDict):
 class AutofixRequest(TypedDict):
     project_id: int
     issue: AutofixIssue
-    repos: list[dict]
+    repos: list[dict] = []
 
 
 class FileChange(BaseModel):
@@ -58,7 +58,7 @@ class CodingAgentState(BaseModel):
     status: CodingAgentStatus = CodingAgentStatus.PENDING
     agent_url: str | None = None
     name: str
-    started_at: datetime.datetime
+    started_at: datetime
     results: list[CodingAgentResult] = []
 
 
@@ -77,7 +77,7 @@ class AutofixState(BaseModel):
     status: AutofixStatus
     actor_ids: list[str] | None = None
     codebases: dict[str, CodebaseState] = {}
-    steps: list[dict]
+    steps: list[dict] = []
 
     class Config:
         extra = "allow"
