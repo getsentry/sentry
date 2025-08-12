@@ -24,11 +24,13 @@ logger = logging.getLogger(__name__)
 
 class AutofixIssue(TypedDict):
     id: int
+    title: str
 
 
 class AutofixRequest(TypedDict):
     project_id: int
     issue: AutofixIssue
+    repos: list[dict]
 
 
 class FileChange(BaseModel):
@@ -75,6 +77,7 @@ class AutofixState(BaseModel):
     status: AutofixStatus
     actor_ids: list[str] | None = None
     codebases: dict[str, CodebaseState] = {}
+    steps: list[dict]
 
     class Config:
         extra = "allow"

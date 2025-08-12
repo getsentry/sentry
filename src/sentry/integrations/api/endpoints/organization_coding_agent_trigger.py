@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import secrets
 import string
+from typing import cast
 
 import orjson
 import requests
@@ -224,7 +225,9 @@ class OrganizationCodingAgentTriggerEndpoint(OrganizationEndpoint):
                     if not integration:
                         continue
 
-                    installation = integration.get_installation(organization.id)
+                    installation = cast(
+                        CodingAgentIntegration, integration.get_installation(organization.id)
+                    )
 
                     integrations_data.append(
                         {
