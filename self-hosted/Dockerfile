@@ -72,7 +72,6 @@ RUN set -x \
 
 COPY . .
 RUN : \
-    && uv sync --frozen --quiet \
     && python3 -m tools.fast_editable --path . \
     && sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
 
@@ -82,9 +81,7 @@ COPY ./self-hosted/docker-entrypoint.sh /
 RUN : double-check some built files are available \
     && test -f /usr/src/sentry/src/sentry/loader/_registry.json \
     && test -f /usr/src/sentry/src/sentry/integration-docs/python.json \
-    && test -f /usr/src/sentry/src/sentry/static/sentry/dist/entrypoints/app.js \
-    && sentry help \
-    && :
+    && test -f /usr/src/sentry/src/sentry/static/sentry/dist/entrypoints/app.js
 
 EXPOSE 9000
 VOLUME /data
