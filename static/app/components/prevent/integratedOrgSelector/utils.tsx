@@ -1,9 +1,12 @@
+import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
+
+const EMPTY_MESSAGE = t('Select integrated organization');
 
 export const integratedOrgIdToName = (id?: string, integrations?: Integration[]) => {
   if (!id || !integrations) {
-    return 'No Integration';
+    return EMPTY_MESSAGE;
   }
   const result = integrations.find(item => item.id === id);
-  return result ? result.name : 'Select Integration';
+  return result ? result.name : EMPTY_MESSAGE;
 };
