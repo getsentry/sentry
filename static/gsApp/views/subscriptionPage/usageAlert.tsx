@@ -21,11 +21,13 @@ import {
   hasPerformance,
   isBizPlanFamily,
   isUnlimitedReserved,
+  MILLISECONDS_IN_HOUR,
   UsageAction,
 } from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
   isByteCategory,
+  isContinuousProfiling,
   sortCategoriesWithKeys,
 } from 'getsentry/utils/dataCategory';
 
@@ -92,14 +94,19 @@ function UsageAlert({subscription, usage}: Props) {
         const projected = usage.totals[category]?.projected || 0;
         const projectedWithReservedUnit = isByteCategory(category)
           ? projected / GIGABYTE
-          : projected;
+          : isContinuousProfiling(category)
+            ? projected / MILLISECONDS_IN_HOUR
+            : projected;
 
         const hasOverage =
           !!currentHistory.reserved &&
           projectedWithReservedUnit > (currentHistory.prepaid ?? 0);
 
         if (hasOverage) {
-          acc.push(formatProjected(projected, category as DataCategory));
+          const formattedValue = isContinuousProfiling(category)
+            ? projectedWithReservedUnit
+            : projected;
+          acc.push(formatProjected(formattedValue, category as DataCategory));
         }
         return acc;
       },
