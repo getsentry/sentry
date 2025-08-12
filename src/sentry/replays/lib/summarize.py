@@ -59,7 +59,7 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[EventDict
         return []
 
 
-def _parse_snuba_timestamp(timestamp: str | float, input_unit: Literal["s", "ms"]) -> float:
+def _parse_snuba_timestamp_to_ms(timestamp: str | float, input_unit: Literal["s", "ms"]) -> float:
     """
     Parse a numeric or ISO timestamp to float milliseconds. `input_unit` is only used for numeric inputs.
     """
@@ -135,9 +135,11 @@ def fetch_trace_connected_errors(
             error_data = query.process_results(result)["data"]
 
             for event in error_data:
-                timestamp = _parse_snuba_timestamp(
-                    event.get("timestamp_ms", 0.0), "ms"
-                ) or _parse_snuba_timestamp(event.get("timestamp", 0.0), "s")
+                snuba_ts_ms = event.get("timestamp_ms", 0.0)
+                snuba_ts_s = event.get("timestamp", 0.0)
+                timestamp = _parse_snuba_timestamp_to_ms(
+                    snuba_ts_ms, "ms"
+                ) or _parse_snuba_timestamp_to_ms(snuba_ts_s, "s")
 
                 if timestamp:
                     error_events.append(

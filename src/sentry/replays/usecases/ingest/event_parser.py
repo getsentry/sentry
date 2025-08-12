@@ -224,7 +224,8 @@ def get_timestamp_unit(event_type: EventType) -> Literal["s", "ms"]:
     Returns the time unit for the event.timestamp field of a replay event.
     This is not guaranteed to match event.data.payload.timestamp.
 
-    We do not allow wildcard or default cases, please be explicit when adding new types.
+    We do not allow wildcard or default cases. Please be explicit when adding new types.
+    Beware that EventType.UNKNOWN returns "ms" but there's no way to know the actual unit.
     """
     match event_type:
         case (
