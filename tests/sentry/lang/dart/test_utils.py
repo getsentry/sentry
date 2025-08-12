@@ -495,6 +495,52 @@ def test_deobfuscate_exception_type_special_regex_chars() -> None:
         )
 
 
+def test_deobfuscate_exception_value_without_type() -> None:
+    """Values should be deobfuscated even if the exception type is missing or None."""
+    mock_project = mock.Mock(id=123)
+
+    data: dict[str, Any] = {
+        "project": 123,
+        "debug_meta": {"images": [{"debug_id": "test-debug-id"}]},
+        "exception": {
+            "values": [
+                {"type": None, "value": "Instance of 'xyz'"},
+                {"value": "Unhandled Exception: Instance of 'xyz' was thrown"},
+                {"type": None, "value": "No pattern here"},
+            ]
+        },
+    }
+
+    mock_map = {"xyz": "NetworkException"}
+
+    with (
+        mock.patch(
+            "sentry.models.Project.objects.get_from_cache",
+            return_value=mock_project,
+        ),
+        mock.patch(
+            "sentry.lang.dart.utils.generate_dart_symbols_map",
+            return_value=mock_map,
+        ),
+    ):
+        deobfuscate_exception_type(data)
+
+        # First: type is None, value should be deobfuscated, type remains None
+        assert data["exception"]["values"][0]["type"] is None
+        assert data["exception"]["values"][0]["value"] == "Instance of 'NetworkException'"
+
+        # Second: type key missing, value should be deobfuscated
+        assert (
+            data["exception"]["values"][1]["value"]
+            == "Unhandled Exception: Instance of 'NetworkException' was thrown"
+        )
+        assert "type" not in data["exception"]["values"][1]
+
+        # Third: no pattern; unchanged
+        assert data["exception"]["values"][2]["type"] is None
+        assert data["exception"]["values"][2]["value"] == "No pattern here"
+
+
 # @mock.patch("sentry.lang.dart.utils.generate_dart_symbols_map", return_value=MOCK_DEBUG_MAP)
 # @mock.patch("sentry.lang.dart.utils.get_debug_meta_image_ids", return_value=["test-uuid"])
 # def test_view_hierarchy_deobfuscation(
