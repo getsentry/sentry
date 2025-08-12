@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Tag} from 'sentry/components/core/badge/tag';
 import useFeedbackCategories from 'sentry/components/feedback/list/useFeedbackCategories';
 import Placeholder from 'sentry/components/placeholder';
-import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -49,19 +48,12 @@ export default function FeedbackCategories() {
   const searchConditions = useMemo(() => new MutableSearch(currentQuery), [currentQuery]);
 
   if (isPending) {
-    return <SkeletonLine />;
+    return <LoadingPlaceholder />;
   }
 
-  if (isError) {
-    return <ErrorText>{t('Error loading feedback categories.')}</ErrorText>;
-  }
-
-  if (tooFewFeedbacks) {
-    return <ErrorText>{t('Not enough feedback to categorize and group')}</ErrorText>;
-  }
-
-  if (!categories || categories.length === 0) {
-    return <ErrorText>{t('No feedback categories found.')}</ErrorText>;
+  // The assumption is that if categories are enabled, then summaries are definitely enabled, so we won't just be showing nothing in the summary section if there is an error/too few feedbacks/etc.
+  if (isError || tooFewFeedbacks || !categories || categories.length === 0) {
+    return null;
   }
 
   const handleTagClick = (category: {
@@ -72,7 +64,7 @@ export default function FeedbackCategories() {
 
     const exactSearchTerm = getSearchTermForLabelList(allLabels);
 
-    const isSelected = isCategoryOnlySelected(category);
+    const isSelected = isCategorySelected(category);
 
     const newSearchConditions = new MutableSearch(currentQuery);
 
@@ -99,7 +91,7 @@ export default function FeedbackCategories() {
     });
   };
 
-  const isCategoryOnlySelected = (category: {
+  const isCategorySelected = (category: {
     associatedLabels: string[];
     primaryLabel: string;
   }) => {
@@ -112,10 +104,11 @@ export default function FeedbackCategories() {
     return currentFilters.length === 1 && currentFilters[0] === exactSearchTerm;
   };
 
+  // TODO: after all feedbacks have the .labels tag, uncomment the feedback count
   return (
     <TagsContainer>
       {categories.map((category, index) => {
-        const selected = isCategoryOnlySelected(category);
+        const selected = isCategorySelected(category);
         return (
           <ClickableTag
             key={index}
@@ -123,7 +116,8 @@ export default function FeedbackCategories() {
             onClick={() => handleTagClick(category)}
             selected={selected}
           >
-            {category.primaryLabel} ({category.feedbackCount})
+            {category.primaryLabel}
+            {/* ({category.feedbackCount}) */}
           </ClickableTag>
         );
       })}
@@ -148,14 +142,8 @@ const ClickableTag = styled(Tag)<{selected: boolean}>`
   }
 `;
 
-const SkeletonLine = styled(Placeholder)`
+const LoadingPlaceholder = styled(Placeholder)`
   height: 16px;
   width: 100%;
   border-radius: ${p => p.theme.borderRadius};
-`;
-
-const ErrorText = styled('p')`
-  font-size: ${p => p.theme.fontSize.sm};
-  color: ${p => p.theme.subText};
-  margin: 0;
 `;

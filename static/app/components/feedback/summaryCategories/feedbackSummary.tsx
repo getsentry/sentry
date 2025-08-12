@@ -8,7 +8,7 @@ export default function FeedbackSummary() {
   const {isError, isPending, summary, tooFewFeedbacks} = useFeedbackSummary();
 
   if (isPending) {
-    return <SkeletonLine />;
+    return <LoadingPlaceholder />;
   }
 
   if (isError) {
@@ -24,7 +24,7 @@ export default function FeedbackSummary() {
   return <SummaryContent>{summary}</SummaryContent>;
 }
 
-const SkeletonLine = styled(Placeholder)`
+const LoadingPlaceholder = styled(Placeholder)`
   height: 48px;
   width: 100%;
   border-radius: ${p => p.theme.borderRadius};
