@@ -192,7 +192,7 @@ export function AIInputSection({
 
   const toolArgs = getTraceNodeAttribute('gen_ai.tool.input', node, event, attributes);
 
-  if (!messages && !toolArgs) {
+  if ((!messages || messages.length === 0) && !toolArgs) {
     return null;
   }
 
