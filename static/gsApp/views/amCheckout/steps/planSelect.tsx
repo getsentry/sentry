@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
-import {IconWarning} from 'sentry/icons';
+import {IconLightning, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -27,6 +27,7 @@ import {
 } from 'getsentry/utils/promotionUtils';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import usePromotionTriggerCheck from 'getsentry/utils/usePromotionTriggerCheck';
+import PlanSelectCard from 'getsentry/views/amCheckout/steps/planSelectCard';
 import PlanSelectRow from 'getsentry/views/amCheckout/steps/planSelectRow';
 import ProductSelect from 'getsentry/views/amCheckout/steps/productSelect';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
@@ -152,7 +153,9 @@ function PlanSelect({
 
   const getBadge = (plan: Plan): React.ReactNode | undefined => {
     if (plan.id === subscription.plan) {
-      return <Tag>{t('Current plan')}</Tag>;
+      // TODO(checkout v3): Replace with custom badge
+      const copy = isNewCheckout ? t('Current') : t('Current plan');
+      return <Tag type="info">{copy}</Tag>;
     }
 
     if (
@@ -178,10 +181,23 @@ function PlanSelect({
       isNewPayingCustomer(subscription, organization) && checkoutTier === PlanTier.AM3; // TODO(isabella): Test if this behavior works as expected on older tiers
 
     const planOptions = getPlanOptions({billingConfig, activePlan});
+    const planToPriorPlan = planOptions.reduce(
+      (acc, plan, i) => {
+        if (i > 0) {
+          const nextPlan = planOptions[i - 1];
+          if (nextPlan) {
+            acc[nextPlan.id] = plan.name;
+          }
+        }
+        return acc;
+      },
+      {} as Record<string, string>
+    );
     return (
-      <PanelBody data-test-id="body-choose-your-plan">
+      <StyledPanelBody data-test-id="body-choose-your-plan">
         {planOptions.map(plan => {
           const isSelected = plan.id === formData.plan;
+          const priorPlanName = planToPriorPlan[plan.id];
 
           // calculate the price with discount
           const cents =
@@ -211,31 +227,47 @@ function PlanSelect({
             planContent.features.deactivated_member_header = t('Unlimited members');
           }
 
+          const commonProps = {
+            plan,
+            isSelected,
+            badge: getBadge(plan),
+            onUpdate,
+            planValue: plan.name,
+            planName: plan.name,
+            priceHeader: t('Starts At'),
+            price: basePrice,
+            planContent,
+            highlightedFeatures,
+            shouldShowDefaultPayAsYouGo,
+          };
+
+          if (isNewCheckout) {
+            return (
+              <PlanSelectCard
+                key={plan.id}
+                planIcon={<IconLightning />}
+                priorPlanName={priorPlanName}
+                shouldShowEventPrice={isBizPlanFamily(plan)}
+                {...commonProps}
+              />
+            );
+          }
+
           return (
             <PlanSelectRow
               key={plan.id}
-              plan={plan}
-              isSelected={isSelected}
-              badge={getBadge(plan)}
-              onUpdate={onUpdate}
-              planValue={plan.name}
-              planName={plan.name}
-              priceHeader={t('Starts At')}
-              price={basePrice}
-              planContent={planContent}
-              highlightedFeatures={highlightedFeatures}
               isFeaturesCheckmarked={isFeaturesCheckmarked}
               discountInfo={
                 showSubscriptionDiscount({activePlan, discountInfo})
                   ? discountInfo
                   : undefined
               }
-              shouldShowDefaultPayAsYouGo={shouldShowDefaultPayAsYouGo}
               shouldShowEventPrice
+              {...commonProps}
             />
           );
         })}
-      </PanelBody>
+      </StyledPanelBody>
     );
   };
 
@@ -356,4 +388,11 @@ const FooterWarningWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+`;
+
+// TODO(ISABELLA): DELETE THIS
+const StyledPanelBody = styled(PanelBody)`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: ${space(2)};
 `;

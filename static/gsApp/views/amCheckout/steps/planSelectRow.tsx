@@ -26,15 +26,15 @@ import {
   getShortInterval,
 } from 'getsentry/views/amCheckout/utils';
 
-type UpdateData = {
+export type PlanUpdateData = {
   plan: string;
   onDemandBudget?: SharedOnDemandBudget;
   onDemandMaxSpend?: number;
 };
 
-type Props = {
+export type PlanSelectRowProps = {
   isSelected: boolean;
-  onUpdate: (data: UpdateData) => void;
+  onUpdate: (data: PlanUpdateData) => void;
   plan: Plan;
   planContent: PlanContent;
   planName: string;
@@ -79,7 +79,7 @@ function PlanSelectRow({
   badge,
   shouldShowDefaultPayAsYouGo = false,
   shouldShowEventPrice = false,
-}: Props) {
+}: PlanSelectRowProps) {
   const billingInterval = getShortInterval(plan.billingInterval);
   const {features, description, hasMoreLink} = planContent;
 
@@ -113,7 +113,7 @@ function PlanSelectRow({
               value={planValue}
               checked={isSelected}
               onClick={() => {
-                const data: UpdateData = {plan: plan.id};
+                const data: PlanUpdateData = {plan: plan.id};
                 if (shouldShowDefaultPayAsYouGo) {
                   data.onDemandMaxSpend = isBizPlanFamily(plan)
                     ? PAYG_BUSINESS_DEFAULT
