@@ -76,7 +76,7 @@ import type {
   SelectedProductData,
 } from 'getsentry/views/amCheckout/types';
 import {SelectableProduct} from 'getsentry/views/amCheckout/types';
-import {getBucket} from 'getsentry/views/amCheckout/utils';
+import {getBucket, hasCheckoutV3} from 'getsentry/views/amCheckout/utils';
 import {
   getTotalBudget,
   hasOnDemandBudgetsFeature,
@@ -652,6 +652,7 @@ class AMCheckout extends Component<Props, State> {
       const isActive = currentStep === stepNumber;
       const isCompleted = !isActive && completedSteps.has(stepNumber);
       const prevStepCompleted = completedSteps.has(stepNumber - 1);
+      const isNewCheckout = hasCheckoutV3(organization); // TODO(checkout-v3): remove post-GA
 
       return (
         <CheckoutStep
@@ -662,6 +663,7 @@ class AMCheckout extends Component<Props, State> {
           isCompleted={isCompleted}
           prevStepCompleted={prevStepCompleted}
           referrer={this.referrer}
+          isNewCheckout={isNewCheckout}
         />
       );
     });

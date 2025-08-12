@@ -67,11 +67,42 @@ describe('ProductSelect', function () {
       {organization}
     );
 
-    expect(await screen.findByTestId('body-choose-your-plan')).toBeInTheDocument();
-    expect(screen.getByTestId('product-option-seer')).toBeInTheDocument();
+    expect(await screen.findByTestId('product-option-seer')).toBeInTheDocument();
     expect(screen.getAllByTestId(/product-option-feature/)).toHaveLength(2);
     expect(screen.getAllByTestId(/product-option/)).toHaveLength(3);
     expect(screen.getByText('Add to plan')).toBeInTheDocument();
+    expect(screen.getByTestId('footer-choose-your-plan')).toBeInTheDocument();
+  });
+
+  it('renders for checkout v3', async function () {
+    const organizationWithFlag = OrganizationFixture({
+      features: ['checkout-v3'],
+    });
+    const freeSubscription = SubscriptionFixture({
+      organization: organizationWithFlag,
+      plan: 'am3_f',
+      isFree: true,
+    });
+    SubscriptionStore.set(organizationWithFlag.slug, freeSubscription);
+
+    render(
+      <AMCheckout
+        {...RouteComponentPropsFixture()}
+        params={params}
+        api={api}
+        onToggleLegacy={jest.fn()}
+        checkoutTier={PlanTier.AM3}
+      />,
+      {organization: organizationWithFlag}
+    );
+
+    expect(await screen.findByTestId('product-option-seer')).toBeInTheDocument();
+    expect(screen.getAllByTestId(/product-option-feature/)).toHaveLength(3); // +1 for credits included
+    expect(screen.getAllByTestId(/product-option/)).toHaveLength(4); // +1 for credits included
+    expect(screen.queryByText('Add to plan')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', {name: /Add seer AI agent to plan/})
+    ).toBeInTheDocument();
     expect(screen.getByTestId('footer-choose-your-plan')).toBeInTheDocument();
   });
 
