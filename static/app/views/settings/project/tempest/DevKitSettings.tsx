@@ -313,12 +313,10 @@ const CardIllustration = styled('img')`
 
 const IntroText = styled('p')`
   margin-bottom: ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const AccordionHeader = styled('span')`
   font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const AccordionContentWrapper = styled('div')`
