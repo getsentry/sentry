@@ -20,7 +20,6 @@ import GroupingComponent from './groupingComponent';
 
 interface GroupingVariantProps {
   event: Event;
-  onShowNonContributingChange: (show: boolean) => void;
   showNonContributing: boolean;
   variant: EventGroupVariant;
 }

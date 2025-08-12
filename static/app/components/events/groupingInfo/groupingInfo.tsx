@@ -106,7 +106,6 @@ export default function GroupingInfo({
                 event={event}
                 variant={variant}
                 showNonContributing={showNonContributing}
-                onShowNonContributingChange={setShowNonContributing}
               />
               {index < variants.length - 1 && <VariantDivider />}
             </Fragment>
