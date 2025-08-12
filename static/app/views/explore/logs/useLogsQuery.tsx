@@ -28,7 +28,6 @@ import {
   useLogsBaseSearch,
   useLogsCursor,
   useLogsFields,
-  useLogsGroupBy,
   useLogsLimitToTraceId,
   useLogsProjectIds,
   useLogsSearch,
@@ -54,6 +53,7 @@ import {
   useVirtualStreaming,
 } from 'sentry/views/explore/logs/useVirtualStreaming';
 import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
+import {useQueryParamsGroupBys} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
@@ -115,14 +115,12 @@ function useLogsAggregatesQueryKey({
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsProjectIds();
-  const groupBy = useLogsGroupBy();
+  const groupBys = useQueryParamsGroupBys();
   const aggregate = useLogsAggregate();
   const aggregateSortBys = useLogsAggregateSortBys();
   const aggregateCursor = useLogsAggregateCursor();
   const fields: string[] = [];
-  if (groupBy) {
-    fields.push(groupBy);
-  }
+  fields.push(...groupBys.filter(Boolean));
   fields.push(aggregate);
 
   const search = baseSearch ? _search.copy() : _search;
@@ -201,14 +199,14 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsProjectIds();
-  const groupBy = useLogsGroupBy();
+  const groupBys = useQueryParamsGroupBys();
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
     search.tokens.push(...baseSearch.tokens);
   }
   const fields = Array.from(
-    new Set([...AlwaysPresentLogFields, ..._fields, ...(groupBy ? [groupBy] : [])])
+    new Set([...AlwaysPresentLogFields, ..._fields, ...groupBys.filter(Boolean)])
   );
   const sorts = sortBys ?? [];
   const pageFilters = selection;
