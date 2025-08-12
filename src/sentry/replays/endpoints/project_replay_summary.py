@@ -89,7 +89,6 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                 path=path,
                 body=data.encode("utf-8"),
             )
-            response_data = response.json()
         except Exception:
             logger.exception("Seer replay breadcrumbs summary endpoint failed")
             return self.respond("Failed to generate a replay breadcrumbs summary", status=500)
@@ -106,7 +105,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             return self.respond("Failed to generate a replay breadcrumbs summary", status=500)
 
         # Note any headers in the Seer response aren't returned.
-        return Response(data=response_data, status=response.status)
+        return Response(data=response.json(), status=response.status)
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         """Poll for the status of a replay summary task in Seer."""
