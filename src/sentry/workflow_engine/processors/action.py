@@ -130,11 +130,7 @@ def deduplicate_actions(
     """
     dedup_key_to_action_id: dict[str, int] = {}
 
-    # Sort actions by ID to ensure consistent ordering for deduplication
-    # We sort reverse since we rely on overwriting the dedup_key_to_action_id dict
-    sorted_actions = sorted(actions_queryset, key=lambda a: a.id, reverse=True)
-
-    for action in sorted_actions:
+    for action in actions_queryset:
         dedup_key = action.get_dedup_key()
         dedup_key_to_action_id[dedup_key] = action.id
 

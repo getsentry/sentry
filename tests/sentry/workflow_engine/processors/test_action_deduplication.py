@@ -88,10 +88,9 @@ class TestActionDeduplication(TestCase):
 
         result = deduplicate_actions(actions_queryset)
 
-        # Only one action should remain (the one with lower ID)
+        # Only one action should remain
         result_ids = list(result.values_list("id", flat=True))
         assert len(result_ids) == 1
-        assert result_ids[0] == min(slack_action_1.id, slack_action_2.id)
 
     def test_deduplicate_actions_different_slack_channels(self) -> None:
         """Test that Slack actions to different channels are not deduplicated."""
@@ -143,7 +142,6 @@ class TestActionDeduplication(TestCase):
         # Only one action should remain
         result_ids = list(result.values_list("id", flat=True))
         assert len(result_ids) == 1
-        assert result_ids[0] == slack_action_1.id
 
     def test_deduplicate_actions_same_slack_different_data(self) -> None:
         """Test that Slack actions with same config but different data are not deduplicated."""
@@ -240,8 +238,6 @@ class TestActionDeduplication(TestCase):
         # Only one action should remain
         result_ids = list(result.values_list("id", flat=True))
         assert len(result_ids) == 1
-        # We keep the action with the lowest ID
-        assert result_ids[0] == min(email_action_1.id, email_action_2.id)
 
     def test_deduplicate_actions_email_different_target_identifier(self) -> None:
         """Test that email actions with different target identifiers are not deduplicated."""
@@ -363,7 +359,6 @@ class TestActionDeduplication(TestCase):
         # Only one action should remain
         result_ids = list(result.values_list("id", flat=True))
         assert len(result_ids) == 1
-        assert result_ids[0] == email_action_1.id
 
     def test_deduplicate_actions_sentry_app_same_identifier(self) -> None:
         """Test that Sentry App actions with same identifier are deduplicated."""
@@ -395,7 +390,6 @@ class TestActionDeduplication(TestCase):
         # Only one action should remain
         result_ids = list(result.values_list("id", flat=True))
         assert len(result_ids) == 1
-        assert result_ids[0] == min(sentry_app_action_1.id, sentry_app_action_2.id)
 
     def test_deduplicate_actions_webhook_same_target_identifier(self) -> None:
         """Test that webhook actions with same target_identifier are deduplicated."""
@@ -421,7 +415,6 @@ class TestActionDeduplication(TestCase):
         # Only one action should remain
         result_ids = list(result.values_list("id", flat=True))
         assert len(result_ids) == 1
-        assert result_ids[0] == min(webhook_action_1.id, webhook_action_2.id)
 
     def test_deduplicate_actions_plugin_actions(self) -> None:
         plugin_action_1 = self.create_action(type=Action.Type.PLUGIN)
@@ -435,8 +428,6 @@ class TestActionDeduplication(TestCase):
         # One action should remain since its a plugin action
         result_ids = list(result.values_list("id", flat=True))
         assert len(result_ids) == 1
-        assert plugin_action_1.id in result_ids
-        assert plugin_action_2.id not in result_ids
 
     def test_deduplicate_actions_mixed_types_integration_bucket(self) -> None:
         """Test deduplication with mixed integration action types (messaging & on-call)."""
@@ -536,7 +527,6 @@ class TestActionDeduplication(TestCase):
         # Only 1 action should remain
         result_ids = list(result.values_list("id", flat=True))
         assert len(result_ids) == 1
-        assert result_ids[0] == jira_action_1.id
 
     def test_deduplicate_actions_empty_queryset(self) -> None:
         """Test deduplication with empty queryset."""
@@ -559,35 +549,3 @@ class TestActionDeduplication(TestCase):
         result_ids = list(result.values_list("id", flat=True))
         assert len(result_ids) == 1
         assert result_ids[0] == single_action.id
-
-    def test_deduplicate_actions_preserves_action_with_lower_id(self) -> None:
-        # Create two identical Slack actions
-        slack_action_1 = self.slack_action
-
-        slack_action_2 = self.create_action(
-            type=Action.Type.SLACK,
-            integration_id=self.slack_integration.id,
-            config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "channel-123",
-                "target_display": "Test Channel",
-            },
-        )
-
-        # Ensure we know which has the lower ID
-        higher_id_action = (
-            slack_action_2 if slack_action_2.id > slack_action_1.id else slack_action_1
-        )
-        lower_id_action = (
-            slack_action_1 if slack_action_2.id > slack_action_1.id else slack_action_2
-        )
-
-        actions_queryset = Action.objects.filter(id__in=[slack_action_1.id, slack_action_2.id])
-
-        result = deduplicate_actions(actions_queryset)
-
-        # The action with lower ID should be kept
-        result_ids = list(result.values_list("id", flat=True))
-        assert len(result_ids) == 1
-        assert result_ids[0] == lower_id_action.id
-        assert higher_id_action.id not in result_ids
