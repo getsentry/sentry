@@ -10,7 +10,6 @@ from sentry.feedback.usecases.label_generation import AI_LABEL_TAG_PREFIX
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -164,19 +163,16 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
                 insert_time=insert_time,
             )
 
-    @django_db_all
     def test_get_feedback_categories_without_feature_flag(self) -> None:
         response = self.get_error_response(self.org.slug)
         assert response.status_code == 403
 
-    @django_db_all
     def test_get_feedback_categories_without_seer_permissions(self) -> None:
         self.mock_has_seer_perms.return_value = False
         with self.feature(self.features):
             response = self.get_error_response(self.org.slug)
             assert response.status_code == 403
 
-    @django_db_all
     @responses.activate
     def test_get_feedback_categories_basic(self) -> None:
         mock_seer_category_response(
@@ -223,7 +219,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
             elif category["primaryLabel"] == "Authentication":
                 assert category["feedbackCount"] == 3
 
-    @django_db_all
     @responses.activate
     def test_get_feedback_categories_with_project_filter(self) -> None:
         mock_seer_category_response(
@@ -270,7 +265,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
             elif category["primaryLabel"] == "Authentication":
                 assert category["feedbackCount"] == 3
 
-    @django_db_all
     @responses.activate
     def test_seer_timeout(self) -> None:
         mock_seer_category_response(body=requests.exceptions.Timeout("Request timed out"))
@@ -280,7 +274,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
 
         assert response.status_code == 500
 
-    @django_db_all
     @responses.activate
     def test_seer_connection_error(self) -> None:
         mock_seer_category_response(body=requests.exceptions.ConnectionError("Connection error"))
@@ -290,7 +283,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
 
         assert response.status_code == 500
 
-    @django_db_all
     @responses.activate
     def test_seer_request_error(self) -> None:
         mock_seer_category_response(
@@ -302,7 +294,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
 
         assert response.status_code == 500
 
-    @django_db_all
     @responses.activate
     def test_seer_http_errors(self) -> None:
         for status in [400, 401, 403, 404, 429, 500, 502, 503, 504]:

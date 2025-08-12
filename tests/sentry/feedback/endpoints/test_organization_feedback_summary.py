@@ -6,7 +6,6 @@ from django.urls import reverse
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from tests.sentry.feedback import mock_feedback_event
@@ -42,19 +41,16 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         self.mock_has_seer_perms_patcher.stop()
         super().tearDown()
 
-    @django_db_all
     def test_get_feedback_summary_without_feature_flag(self) -> None:
         response = self.get_error_response(self.org.slug)
         assert response.status_code == 403
 
-    @django_db_all
     def test_get_feedback_summary_without_seer_permissions(self) -> None:
         self.mock_has_seer_perms.return_value = False
         with self.feature(self.features):
             response = self.get_error_response(self.org.slug)
             assert response.status_code == 403
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
@@ -74,7 +70,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 15
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
@@ -105,7 +100,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 12
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
@@ -136,7 +130,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 10
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
@@ -167,7 +160,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 22
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
@@ -197,7 +189,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 22
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
@@ -216,7 +207,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is False
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
@@ -250,7 +240,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 12
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
@@ -280,7 +269,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         mock_cache.get.assert_called_once()
         mock_cache.set.assert_not_called()
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_summary.make_seer_request",
         return_value=json.dumps({"data": "Test summary of feedback"}).encode(),
