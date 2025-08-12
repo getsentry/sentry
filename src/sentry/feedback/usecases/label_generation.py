@@ -35,7 +35,7 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
     """
     Generate labels for a feedback message.
 
-    Raises an exception if anything goes wrong during the API call or response processing.
+    Raises 500 if anything goes wrong during the API call or response processing.
     """
     request = LabelRequest(
         organization_id=organization_id,

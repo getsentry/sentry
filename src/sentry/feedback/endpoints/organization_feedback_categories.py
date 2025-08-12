@@ -100,6 +100,8 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
         }
         It is returned as a list in the order of feedback count.
 
+        Raises 500 if the Seer endpoint fails.
+
         :pparam string organization_id_or_slug: the id or slug of the organization.
         :qparam int project: project IDs to filter by
         :qparam string statsPeriod: filter feedbacks by date range (e.g. "14d")
@@ -203,21 +205,21 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
             response_data = json.loads(response.data.decode("utf-8"))
         except Exception as e:
             logger.exception(
-                "Failed to generate label groups",
+                "Failed to generate user feedback label groups",
                 extra={
                     "error": type(e).__name__,
                 },
             )
-            raise Exception("Seer label groups endpoint failed")
+            raise Exception("Seer feedback labels endpoint failed")
         if response.status < 200 or response.status >= 300:
             logger.error(
-                "Failed to generate label groups",
+                "Failed to generate user feedback label groups",
                 extra={
                     "status_code": response.status,
                     "response_data": response.data if response else None,
                 },
             )
-            raise Exception(f"Seer label groups endpoint returned status {response.status}")
+            raise Exception(f"Seer feedback labels endpoint returned status {response.status}")
         label_groups = response_data["data"]
 
         # If the LLM just forgets or adds extra primary labels, log it but still generate categories

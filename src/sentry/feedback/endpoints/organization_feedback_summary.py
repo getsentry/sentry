@@ -63,6 +63,8 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         - A list of projects
         - The date range that they were first seen in (defaults to the last 7 days)
 
+        Returns 500 Response if the Seer endpoint fails.
+
         :pparam string organization_id_or_slug: the id or slug of the organization.
         :qparam int project: project IDs to filter by
         :qparam string statsPeriod: filter feedbacks by date range (e.g. "14d")
