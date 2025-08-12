@@ -56,7 +56,7 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="payload_size",
             internal_name="sentry.payload_size_bytes",
-            search_type="number",
+            search_type="byte",
         ),
         simple_sentry_field("browser.name"),
         simple_sentry_field("browser.version"),
