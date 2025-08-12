@@ -23,7 +23,6 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
   useLogsAggregateCursor,
-  useLogsAggregateSortBys,
   useLogsBaseSearch,
   useLogsCursor,
   useLogsFields,
@@ -53,6 +52,7 @@ import {
 } from 'sentry/views/explore/logs/useVirtualStreaming';
 import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
 import {
+  useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
@@ -119,7 +119,7 @@ function useLogsAggregatesQueryKey({
   const projectIds = useLogsProjectIds();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
-  const aggregateSortBys = useLogsAggregateSortBys();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
   const aggregateCursor = useLogsAggregateCursor();
   const fields: string[] = [];
   fields.push(...groupBys.filter(Boolean));
@@ -135,7 +135,7 @@ function useLogsAggregatesQueryKey({
   const eventView = getEventView(
     search,
     fields,
-    aggregateSortBys,
+    aggregateSortBys.slice(),
     pageFilters,
     dataset,
     projectIds

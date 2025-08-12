@@ -30,7 +30,6 @@ import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
-  useLogsAggregateSortBys,
   useLogsFields,
   useLogsSearch,
   useSetLogsFields,
@@ -79,6 +78,7 @@ import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
 import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
 import {
+  useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsTopEventsLimit,
@@ -105,7 +105,7 @@ export function LogsTabContent({
   const mode = useQueryParamsMode();
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const queryClient = useQueryClient();
-  const sortBys = useLogsAggregateSortBys();
+  const sortBys = useQueryParamsAggregateSortBys();
   const setMode = useSetQueryParamsMode();
   const setFields = useSetLogsFields();
   const tableData = useLogsPageDataQueryResult();
