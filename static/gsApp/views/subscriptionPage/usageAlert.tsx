@@ -11,22 +11,21 @@ import useOrganization from 'sentry/utils/useOrganization';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import AddEventsCTA from 'getsentry/components/addEventsCTA';
-import {GIGABYTE, RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
+import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import OrgStatsBanner from 'getsentry/hooks/orgStatsBanner';
 import type {CustomerUsage, Subscription} from 'getsentry/types';
 import {
+  convertUsageToReservedUnit,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getBestActionToIncreaseEventLimits,
   hasPerformance,
   isBizPlanFamily,
   isUnlimitedReserved,
-  MILLISECONDS_IN_HOUR,
   UsageAction,
 } from 'getsentry/utils/billing';
 import {
   getPlanCategoryName,
-  isByteCategory,
   isContinuousProfiling,
   sortCategoriesWithKeys,
 } from 'getsentry/utils/dataCategory';
@@ -92,11 +91,7 @@ function UsageAlert({subscription, usage}: Props) {
           return acc;
         }
         const projected = usage.totals[category]?.projected || 0;
-        const projectedWithReservedUnit = isByteCategory(category)
-          ? projected / GIGABYTE
-          : isContinuousProfiling(category)
-            ? projected / MILLISECONDS_IN_HOUR
-            : projected;
+        const projectedWithReservedUnit = convertUsageToReservedUnit(projected, category);
 
         const hasOverage =
           !!currentHistory.reserved &&
