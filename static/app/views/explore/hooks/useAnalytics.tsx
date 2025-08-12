@@ -1,6 +1,7 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -86,6 +87,20 @@ function useTrackAnalytics({
   const chartError = timeseriesResult.error?.message ?? '';
   const query_status = tableError || chartError ? 'error' : 'success';
 
+  const {setupAcknowledgement: seerSetup} = useOrganizationSeerSetup({
+    enabled: !organization.hideAiFeatures,
+  });
+
+  const gaveSeerConsent = useMemo(
+    () =>
+      organization.hideAiFeatures
+        ? 'gen_ai_features_disabled'
+        : seerSetup.orgHasAcknowledged
+          ? 'given'
+          : 'not_given',
+    [organization.hideAiFeatures, seerSetup.orgHasAcknowledged]
+  );
+
   useEffect(() => {
     if (
       queryType !== 'aggregate' ||
@@ -98,6 +113,7 @@ function useTrackAnalytics({
 
     const search = new MutableSearch(query);
     const columns = aggregatesTableResult.eventView.getColumns() as unknown as string[];
+
     trackAnalytics('trace.explorer.metadata', {
       organization,
       dataset,
@@ -122,6 +138,7 @@ function useTrackAnalytics({
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
       interval,
+      gave_seer_consent: gaveSeerConsent,
     });
 
     /* eslint-disable @typescript-eslint/no-base-to-string */
@@ -139,30 +156,30 @@ function useTrackAnalytics({
       visualizes_count: ${String(String(visualizes).length)}
       has_exceeded_performance_usage_limit: ${String(hasExceededPerformanceUsageLimit)}
       page_source: ${page_source}
+      gave_seer_consent: ${gaveSeerConsent}
     `,
       {isAnalytics: true}
     );
     /* eslint-enable @typescript-eslint/no-base-to-string */
   }, [
-    organization,
-    dataset,
-    fields,
-    query,
-    visualizes,
-    title,
-    queryType,
-    aggregatesTableResult.result.isPending,
-    aggregatesTableResult.result.status,
-    aggregatesTableResult.result.data?.length,
     aggregatesTableResult.eventView,
-    timeseriesResult.isPending,
-    timeseriesResult.data,
+    aggregatesTableResult.result.data?.length,
+    aggregatesTableResult.result.isPending,
+    dataset,
+    gaveSeerConsent,
     hasExceededPerformanceUsageLimit,
-    isLoadingSubscriptionDetails,
-    query_status,
-    page_source,
     interval,
+    isLoadingSubscriptionDetails,
     isTopN,
+    organization,
+    page_source,
+    query,
+    queryType,
+    query_status,
+    timeseriesResult.data,
+    timeseriesResult.isPending,
+    title,
+    visualizes,
   ]);
 
   useEffect(() => {
@@ -200,6 +217,7 @@ function useTrackAnalytics({
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
       interval,
+      gave_seer_consent: gaveSeerConsent,
     });
 
     info(fmt`trace.explorer.metadata:
@@ -215,26 +233,27 @@ function useTrackAnalytics({
       visualizes_count: ${String(visualizes.length)}
       has_exceeded_performance_usage_limit: ${String(hasExceededPerformanceUsageLimit)}
       page_source: ${page_source}
+      gave_seer_consent: ${gaveSeerConsent}
     `);
   }, [
-    organization,
     dataset,
     fields,
-    query,
-    visualizes,
-    title,
-    queryType,
-    spansTableResult.result.isPending,
-    spansTableResult.result.status,
-    spansTableResult.result.data?.length,
-    timeseriesResult.isPending,
-    timeseriesResult.data,
+    gaveSeerConsent,
     hasExceededPerformanceUsageLimit,
-    isLoadingSubscriptionDetails,
-    query_status,
-    page_source,
     interval,
+    isLoadingSubscriptionDetails,
     isTopN,
+    organization,
+    page_source,
+    query,
+    queryType,
+    query_status,
+    spansTableResult.result.data?.length,
+    spansTableResult.result.isPending,
+    timeseriesResult.data,
+    timeseriesResult.isPending,
+    title,
+    visualizes,
   ]);
 
   const tracesTableResultDefined = defined(tracesTableResult);
@@ -287,27 +306,27 @@ function useTrackAnalytics({
       has_exceeded_performance_usage_limit: hasExceededPerformanceUsageLimit,
       page_source,
       interval,
+      gave_seer_consent: gaveSeerConsent,
     });
   }, [
-    organization,
     dataset,
-    fields,
-    query,
-    visualizes,
-    title,
-    queryType,
-    tracesTableResult?.result.isPending,
-    tracesTableResult?.result.status,
-    tracesTableResult?.result.data?.data,
-    timeseriesResult.isPending,
-    timeseriesResult.data,
+    gaveSeerConsent,
     hasExceededPerformanceUsageLimit,
-    isLoadingSubscriptionDetails,
-    query_status,
-    page_source,
-    tracesTableResultDefined,
     interval,
+    isLoadingSubscriptionDetails,
     isTopN,
+    organization,
+    page_source,
+    query,
+    queryType,
+    query_status,
+    timeseriesResult.data,
+    timeseriesResult.isPending,
+    title,
+    tracesTableResult?.result.data?.data,
+    tracesTableResult?.result.isPending,
+    tracesTableResultDefined,
+    visualizes,
   ]);
 }
 
