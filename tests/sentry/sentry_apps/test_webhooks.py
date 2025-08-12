@@ -218,7 +218,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
 
             # Verify info log was called for successful webhook
             mock_logger.info.assert_called_with(
-                "Queued webhook for %s to installation %s", "issue.created", mock_installation.id
+                "sentry_app.webhook_queued",
+                extra={"event_type": "issue.created", "installation_id": mock_installation.id},
             )
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
@@ -241,7 +242,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
 
         # Verify webhook queuing was logged
         mock_logger.info.assert_called_once_with(
-            "Queued webhook for %s to installation %s", "issue.created", self.installation_1.id
+            "sentry_app.webhook_queued",
+            extra={"event_type": "issue.created", "installation_id": self.installation_1.id},
         )
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
