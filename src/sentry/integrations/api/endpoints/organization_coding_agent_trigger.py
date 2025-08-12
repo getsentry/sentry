@@ -191,7 +191,7 @@ def make_coding_agent_prompt(
 
 @region_silo_endpoint
 class OrganizationCodingAgentTriggerEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.INTEGRATIONS
+    owner = ApiOwner.ML_AI
     permission_classes = (OrganizationIntegrationsPermission,)
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

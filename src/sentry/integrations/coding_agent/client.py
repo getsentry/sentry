@@ -5,6 +5,7 @@ import logging
 from typing import Any
 
 from sentry.integrations.client import ApiClient
+from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 
 logger = logging.getLogger(__name__)
 
@@ -12,12 +13,11 @@ logger = logging.getLogger(__name__)
 class CodingAgentClient(ApiClient, abc.ABC):
     """Abstract base API client for coding agents."""
 
-    def __init__(self, integration, api_key: str):
-        self.integration = integration
-        self.api_key = api_key
-        super().__init__()
-
     base_url: str
+
+    def __init__(self, integration):
+        self.integration = integration
+        super().__init__()
 
     @abc.abstractmethod
     def _get_auth_headers(self) -> dict[str, str]:
@@ -25,6 +25,6 @@ class CodingAgentClient(ApiClient, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def launch(self, webhook_url: str, **kwargs) -> dict[str, Any]:
+    def launch(self, webhook_url: str, request: CodingAgentLaunchRequest) -> dict[str, Any]:
         """Launch coding agent with webhook callback."""
         pass

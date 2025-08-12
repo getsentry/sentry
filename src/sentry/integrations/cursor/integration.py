@@ -127,3 +127,8 @@ class CursorAgentIntegration(CodingAgentIntegration):
             integration=self.model,
             api_key=self.api_key,
         )
+
+    @property
+    def api_key(self) -> str:
+        """Get the API key from integration metadata."""
+        return self.metadata["api_key"]

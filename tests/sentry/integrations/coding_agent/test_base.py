@@ -8,7 +8,7 @@ from sentry.integrations.coding_agent.integration import (
 from sentry.testutils.cases import TestCase
 
 
-class TestCodingAgentProvider(CodingAgentIntegrationProvider):
+class MockCodingAgentProvider(CodingAgentIntegrationProvider):
     """Concrete implementation for testing."""
 
     key = "test_agent"
@@ -31,14 +31,26 @@ class TestCodingAgentProvider(CodingAgentIntegrationProvider):
         }
 
 
-class TestCodingAgentInstallation(CodingAgentIntegration):
+class MockCodingAgentInstallation(CodingAgentIntegration):
     """Concrete implementation for testing."""
 
+    def __init__(self, model, organization_id):
+        super().__init__(model, organization_id)
+        self._metadata = {}
+
+    @property
+    def metadata(self):
+        return self._metadata
+
+    @metadata.setter
+    def metadata(self, value):
+        self._metadata = value
+
     def get_client(self):
-        return TestCodingAgentClient(integration=self.model, api_key=self.api_key)
+        return MockCodingAgentClient(integration=self.model, api_key=self.api_key)
 
 
-class TestCodingAgentClient(CodingAgentClient):
+class MockCodingAgentClient(CodingAgentClient):
     """Concrete implementation for testing."""
 
     @property
@@ -48,12 +60,16 @@ class TestCodingAgentClient(CodingAgentClient):
     def _get_auth_headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self.api_key}"}
 
+    def launch(self, webhook_url: str, **kwargs):
+        """Mock implementation of launch method."""
+        return {"status": "launched", "webhook_url": webhook_url, **kwargs}
+
 
 class CodingAgentBaseTest(TestCase):
 
     def test_provider_abstract_methods(self):
         """Test that the provider abstract methods work correctly."""
-        provider = TestCodingAgentProvider()
+        provider = MockCodingAgentProvider()
 
         assert provider.get_agent_name() == "Test Agent"
         assert provider.get_agent_key() == "test_agent"
@@ -61,7 +77,7 @@ class CodingAgentBaseTest(TestCase):
     def test_integration_api_key_property(self):
         """Test that the integration can access API key from metadata."""
         mock_model = MagicMock()
-        installation = TestCodingAgentInstallation(mock_model, 123)
+        installation = MockCodingAgentInstallation(mock_model, 123)
         installation.metadata = {"api_key": "test_api_key_123"}
 
         assert installation.api_key == "test_api_key_123"
@@ -72,7 +88,7 @@ class CodingAgentBaseTest(TestCase):
         mock_request.return_value = {"status": "launched"}
 
         mock_model = MagicMock()
-        installation = TestCodingAgentInstallation(mock_model, 123)
+        installation = MockCodingAgentInstallation(mock_model, 123)
         installation.metadata = {"api_key": "test_api_key_123"}
 
         webhook_url = "https://sentry.io/webhook"
@@ -86,14 +102,14 @@ class CodingAgentBaseTest(TestCase):
     def test_client_base_url_property(self):
         """Test that the client base_url property works."""
         mock_integration = MagicMock()
-        client = TestCodingAgentClient(mock_integration, "test_key")
+        client = MockCodingAgentClient(mock_integration, "test_key")
 
         assert client.base_url == "https://api.test-agent.com/v1"
 
     def test_client_auth_headers(self):
         """Test that the client auth headers work."""
         mock_integration = MagicMock()
-        client = TestCodingAgentClient(mock_integration, "test_key_123")
+        client = MockCodingAgentClient(mock_integration, "test_key_123")
 
         headers = client._get_auth_headers()
         assert headers == {"Authorization": "Bearer test_key_123"}
@@ -104,7 +120,7 @@ class CodingAgentBaseTest(TestCase):
         mock_request.return_value = {"success": True}
 
         mock_integration = MagicMock()
-        client = TestCodingAgentClient(mock_integration, "test_key")
+        client = MockCodingAgentClient(mock_integration, "test_key")
 
         result = client.request("GET", "/test")
 

@@ -11,6 +11,7 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.seer.autofix.utils import CodingAgentState
 from sentry.utils.http import absolute_uri
@@ -50,7 +51,7 @@ class CodingAgentIntegration(IntegrationInstallation, abc.ABC):
     """Abstract base class for coding agent integrations."""
 
     @abc.abstractmethod
-    def get_client(self):
+    def get_client(self) -> CodingAgentClient:
         """Get API client for the coding agent."""
         pass
 
@@ -66,8 +67,3 @@ class CodingAgentIntegration(IntegrationInstallation, abc.ABC):
         client = self.get_client()
 
         return client.launch(request=request, webhook_url=webhook_url, **kwargs)
-
-    @property
-    def api_key(self) -> str:
-        """Get the API key from integration metadata."""
-        return self.metadata["api_key"]
