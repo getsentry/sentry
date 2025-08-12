@@ -1,4 +1,5 @@
 from typing import Any, TypedDict
+from unittest.mock import patch
 
 import requests
 import responses
@@ -44,13 +45,22 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         self.project2 = self.create_project(teams=[self.team])
         self.features = {
             "organizations:user-feedback-ai-categorization-features": True,
-            "organizations:gen-ai-features": True,
         }
         self.url = reverse(
             self.endpoint,
             kwargs={"organization_id_or_slug": self.org.slug},
         )
+        self.mock_has_seer_perms_patcher = patch(
+            "sentry.feedback.endpoints.organization_feedback_categories.has_seer_permissions",
+            return_value=True,
+        )
+        self.mock_has_seer_perms = self.mock_has_seer_perms_patcher.start()
+
         self._create_standard_feedbacks(self.project1.id)
+
+    def tearDown(self) -> None:
+        self.mock_has_seer_perms_patcher.stop()
+        super().tearDown()
 
     def _create_standard_feedbacks(self, project_id: int) -> None:
         """Create a standard set of feedbacks for testing."""
@@ -157,7 +167,14 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
     @django_db_all
     def test_get_feedback_categories_without_feature_flag(self) -> None:
         response = self.get_error_response(self.org.slug)
-        assert response.status_code == 404
+        assert response.status_code == 403
+
+    @django_db_all
+    def test_get_feedback_categories_without_seer_permissions(self) -> None:
+        self.mock_has_seer_perms.return_value = False
+        with self.feature(self.features):
+            response = self.get_error_response(self.org.slug)
+            assert response.status_code == 403
 
     @django_db_all
     @responses.activate

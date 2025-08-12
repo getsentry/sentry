@@ -27,17 +27,32 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         self.project2 = self.create_project(teams=[self.team])
         self.features = {
             "organizations:user-feedback-ai-summaries": True,
-            "organizations:gen-ai-features": True,
         }
         self.url = reverse(
             self.endpoint,
             kwargs={"organization_id_or_slug": self.org.slug},
         )
+        self.mock_has_seer_perms_patcher = patch(
+            "sentry.feedback.endpoints.organization_feedback_summary.has_seer_permissions",
+            return_value=True,
+        )
+        self.mock_has_seer_perms = self.mock_has_seer_perms_patcher.start()
+
+    def tearDown(self) -> None:
+        self.mock_has_seer_perms_patcher.stop()
+        super().tearDown()
 
     @django_db_all
     def test_get_feedback_summary_without_feature_flag(self) -> None:
         response = self.get_error_response(self.org.slug)
         assert response.status_code == 403
+
+    @django_db_all
+    def test_get_feedback_summary_without_seer_permissions(self) -> None:
+        self.mock_has_seer_perms.return_value = False
+        with self.feature(self.features):
+            response = self.get_error_response(self.org.slug)
+            assert response.status_code == 403
 
     @django_db_all
     @patch(
