@@ -6,8 +6,8 @@ import {useWindowVirtualizer, type Virtualizer} from '@tanstack/react-virtual';
 
 import {ColorBar} from 'sentry/components/prevent/virtualRenderers/colorBar';
 import {
-  type CoverageValue,
   LINE_HEIGHT,
+  type CoverageValue,
 } from 'sentry/components/prevent/virtualRenderers/constants';
 import {
   LineNumber,
