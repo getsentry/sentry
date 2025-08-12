@@ -245,6 +245,20 @@ class ProcessBufferTest(ProcessDelayedAlertConditionsTestBase):
             self.project_two.id,
         }
 
+    @patch("sentry.rules.processing.buffer_processing.process_in_batches")
+    @patch("sentry.rules.processing.delayed_processing.DelayedRule.buffer_shards", 3)
+    def test_fetches_with_shards(self, mock_process_in_batches: MagicMock) -> None:
+        project = self.create_project()
+        buffer.backend.push_to_sorted_set(key=f"{PROJECT_ID_BUFFER_LIST_KEY}", value=project.id)
+        buffer.backend.push_to_sorted_set(
+            key=f"{PROJECT_ID_BUFFER_LIST_KEY}:1", value=self.project_two.id
+        )
+        buffer.backend.push_to_sorted_set(key=f"{PROJECT_ID_BUFFER_LIST_KEY}:2", value=project.id)
+
+        process_buffer()
+
+        assert mock_process_in_batches.call_count == 3
+
 
 class ProcessInBatchesTest(CreateEventTestCase):
     def setUp(self) -> None:
