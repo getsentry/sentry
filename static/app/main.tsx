@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {createBrowserRouter, RouterProvider} from 'react-router-dom';
 import {wrapCreateBrowserRouterV6} from '@sentry/react';
 import {ReactQueryDevtools} from '@tanstack/react-query-devtools';
+import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 
 import {AppQueryClientProvider} from 'sentry/appQueryClient';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
@@ -27,7 +28,9 @@ function Main() {
       <ThemeAndStyleProvider>
         <OnboardingContextProvider>
           <SentryTrackingProvider>
-            <RouterProvider router={router} />
+            <NuqsAdapter>
+              <RouterProvider router={router} />
+            </NuqsAdapter>
           </SentryTrackingProvider>
         </OnboardingContextProvider>
         {USE_REACT_QUERY_DEVTOOL && (
