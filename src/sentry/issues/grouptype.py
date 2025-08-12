@@ -690,6 +690,19 @@ class MetricIssuePOC(GroupType):
     enable_status_change_workflow_notifications = False
 
 
+@dataclass(frozen=True)
+class WebVitalsGroup(GroupType):
+    type_id = 10001
+    slug = "web_vitals"
+    description = "Web Vitals"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.FRONTEND.value
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    enable_status_change_workflow_notifications = False
+    enable_workflow_notifications = False
+
+
 def should_create_group(
     grouptype: type[GroupType],
     client: RedisCluster | StrictRedis,
