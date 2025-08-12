@@ -1,4 +1,5 @@
 from typing import Any, TypedDict
+from unittest.mock import patch
 
 import requests
 import responses
@@ -161,8 +162,13 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         assert response.status_code == 404
 
     @django_db_all
+    @patch(
+        "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
+        1,
+    )
     @responses.activate
     def test_get_feedback_categories_basic(self) -> None:
+        # Technically there are more than three labels, but we're abusing the fact that we only consider the labels that Seer gives us a response for
         mock_seer_category_response(
             status=200,
             json={
@@ -208,6 +214,10 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
                 assert category["feedbackCount"] == 3
 
     @django_db_all
+    @patch(
+        "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
+        1,
+    )
     @responses.activate
     def test_get_feedback_categories_with_project_filter(self) -> None:
         mock_seer_category_response(
@@ -255,6 +265,10 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
                 assert category["feedbackCount"] == 3
 
     @django_db_all
+    @patch(
+        "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
+        1,
+    )
     @responses.activate
     def test_max_group_labels_limit(self) -> None:
         """Test that MAX_GROUP_LABELS constant is respected when processing label groups."""
@@ -320,6 +334,10 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         assert "Extra Label 3" not in associated_labels
 
     @django_db_all
+    @patch(
+        "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
+        1,
+    )
     @responses.activate
     def test_filter_invalid_associated_labels_by_count_ratio(self) -> None:
         """Test that associated labels with too many feedbacks (relative to primary label) are filtered out."""
@@ -404,6 +422,10 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         assert associated_labels == ["Design"]
 
     @django_db_all
+    @patch(
+        "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
+        1,
+    )
     @responses.activate
     def test_seer_timeout(self) -> None:
         mock_seer_category_response(body=requests.exceptions.Timeout("Request timed out"))
@@ -414,6 +436,10 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         assert response.status_code == 500
 
     @django_db_all
+    @patch(
+        "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
+        1,
+    )
     @responses.activate
     def test_seer_connection_error(self) -> None:
         mock_seer_category_response(body=requests.exceptions.ConnectionError("Connection error"))
@@ -424,6 +450,10 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         assert response.status_code == 500
 
     @django_db_all
+    @patch(
+        "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
+        1,
+    )
     @responses.activate
     def test_seer_request_error(self) -> None:
         mock_seer_category_response(
@@ -436,6 +466,10 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         assert response.status_code == 500
 
     @django_db_all
+    @patch(
+        "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
+        1,
+    )
     @responses.activate
     def test_seer_http_errors(self) -> None:
         for status in [400, 401, 403, 404, 429, 500, 502, 503, 504]:
@@ -445,3 +479,53 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
                 response = self.get_error_response(self.org.slug)
 
             assert response.status_code == 500
+
+    @django_db_all
+    @responses.activate
+    def test_fallback_to_primary_labels_when_below_threshold(self) -> None:
+        """Test that when feedback count is below THRESHOLD_TO_GET_ASSOCIATED_LABELS, we fall back to primary labels only."""
+        # There are definitely less feedbacks than the threshold
+        # Create an extra feedback for Usability, thus making it the fourth-most-frequent label
+        self.store_search_issue(
+            project_id=self.project1.id,
+            user_id=1,
+            fingerprints=["feedback-project1-extra"],
+            tags=[(f"{AI_LABEL_TAG_PREFIX}.label.0", "Usability")],
+            event_data={"contexts": {"feedback": {"message": "Extra feedback"}}},
+            override_occurrence_data={"type": FeedbackGroup.type_id},
+            insert_time=before_now(hours=12),
+        )
+
+        # Mock Seer to return associated labels (but these should be ignored)
+        mock_seer_category_response(
+            status=200,
+            json={
+                "data": [
+                    {
+                        "primaryLabel": "User Interface",
+                        "associatedLabels": ["Usability"],
+                    },
+                    {"primaryLabel": "Performance", "associatedLabels": ["Speed", "Loading"]},
+                    {"primaryLabel": "Authentication", "associatedLabels": ["Security"]},
+                    {"primaryLabel": "Usability", "associatedLabels": ["Loading"]},
+                ]
+            },
+        )
+
+        # Test WITHOUT the patch - use the default threshold
+        with self.feature(self.features):
+            response = self.get_success_response(self.org.slug)
+
+        assert response.data["success"] is True
+        assert "categories" in response.data
+
+        categories = response.data["categories"]
+        assert len(categories) == 4
+
+        assert any(category["primaryLabel"] == "User Interface" for category in categories)
+        assert any(category["primaryLabel"] == "Performance" for category in categories)
+        assert any(category["primaryLabel"] == "Authentication" for category in categories)
+        assert any(category["primaryLabel"] == "Usability" for category in categories)
+
+        for category in categories:
+            assert category["associatedLabels"] == []

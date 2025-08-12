@@ -44,6 +44,9 @@ NUM_TOP_LABELS = 6
 # Two days because the largest granularity we cache at is the day
 CATEGORIES_CACHE_TIMEOUT = 172800
 
+# If the number of feedbacks is less than this, we don't ask for associated labels
+THRESHOLD_TO_GET_ASSOCIATED_LABELS = 50
+
 
 class LabelGroupFeedbacksContext(TypedDict):
     """Corresponds to LabelGroupFeedbacksContext in Seer."""
@@ -193,9 +196,16 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
             feedbacks_context=context_feedbacks,
         )
 
-        label_groups: list[FeedbackLabelGroup] = json.loads(
-            make_seer_request(seer_request).decode("utf-8")
-        )["data"]
+        if len(context_feedbacks) >= THRESHOLD_TO_GET_ASSOCIATED_LABELS:
+            label_groups: list[FeedbackLabelGroup] = json.loads(
+                make_seer_request(seer_request).decode("utf-8")
+            )["data"]
+        else:
+            # If there are less than THRESHOLD_TO_GET_ASSOCIATED_LABELS feedbacks, we don't ask for associated labels
+            # The more feedbacks there are, the LLM does a better job of generating associated labels since it has more context
+            label_groups = [
+                FeedbackLabelGroup(primaryLabel=label, associatedLabels=[]) for label in top_labels
+            ]
 
         # If the LLM just forgets or adds extra primary labels, log it but still generate categories
         if len(label_groups) != len(top_labels):
@@ -220,7 +230,7 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
         # In a case like that, "Usability" and "User Interface" are obviously more general, so will most likely have more feedbacks associated with them than "Navigation".
         # One way to filter these out is to check the counts of each associated label, and compare that to the counts of the primary label.
         # If the count of the associated label is >3/4 of the count of the primary label, we can assume that the associated label is not a valid associated label.
-        # Even if it is valid, we don't really care about it matters more that we get rid of it in the situations that it is invalid (which is pretty often).
+        # Even if it is valid, we don't really care, it matters more that we get rid of it in the situations that it is invalid (which is pretty often).
 
         # Stores each label as an individual label group (so a list of lists, each inside list containing a single label)
         # This is done to get the counts of each label individually, so we can filter out invalid associated labels
