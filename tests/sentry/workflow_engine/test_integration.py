@@ -24,7 +24,7 @@ from sentry.workflow_engine.models import Detector, DetectorWorkflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors import process_data_source, process_detectors
 from sentry.workflow_engine.processors.delayed_workflow import process_delayed_workflows
-from sentry.workflow_engine.processors.workflow import get_all_buffer_keys
+from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -213,7 +213,7 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         )
         self.workflow_triggers.conditions.all().delete()
         self.action_group, self.action = self.create_workflow_action(workflow=self.workflow)
-        self.buffer_keys = get_all_buffer_keys()
+        self.buffer_keys = DelayedWorkflow.get_buffer_keys()
 
     @pytest.fixture(autouse=True)
     def with_feature_flags(self):

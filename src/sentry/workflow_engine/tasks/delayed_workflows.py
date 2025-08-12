@@ -17,10 +17,6 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import workflow_engine_tasks
 from sentry.taskworker.retry import Retry
 from sentry.workflow_engine.models import Workflow
-from sentry.workflow_engine.processors.workflow import (
-    WORKFLOW_ENGINE_BUFFER_LIST_KEY,
-    WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS,
-)
 from sentry.workflow_engine.utils import log_context
 
 logger = log_context.get_logger("sentry.workflow_engine.tasks.delayed_workflows")
@@ -55,9 +51,8 @@ def process_delayed_workflows_shim(
 
 @delayed_processing_registry.register("delayed_workflow")
 class DelayedWorkflow(DelayedProcessingBase):
-    buffer_key = WORKFLOW_ENGINE_BUFFER_LIST_KEY
-    buffer_separator = ":"
-    buffer_shards = WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS
+    buffer_key = "workflow_engine_delayed_processing_buffer"
+    buffer_shards = 8
     option = "delayed_workflow.rollout"
 
     @property

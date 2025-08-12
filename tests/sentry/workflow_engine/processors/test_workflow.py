@@ -24,15 +24,14 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.workflow import (
-    WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     DelayedWorkflowItem,
     delete_workflow,
     enqueue_workflows,
     evaluate_workflow_triggers,
     evaluate_workflows_action_filters,
-    get_all_buffer_keys,
     process_workflows,
 )
+from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -416,7 +415,7 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
         self.action_group, _ = self.create_workflow_action(self.workflow)
 
-        self.buffer_keys = get_all_buffer_keys()
+        self.buffer_keys = DelayedWorkflow.get_buffer_keys()
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()
 
@@ -621,7 +620,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         )
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
-        self.buffer_keys = get_all_buffer_keys()
+        self.buffer_keys = DelayedWorkflow.get_buffer_keys()
 
     @patch("sentry.utils.metrics.incr")
     def test_metrics_issue_dual_processing_metrics(self, mock_incr: MagicMock) -> None:
@@ -788,10 +787,11 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
 
     @patch("sentry.buffer.backend.push_to_sorted_set")
     @patch("sentry.buffer.backend.push_to_hash_bulk")
-    @patch("random.randrange", return_value=5)
+    @patch("random.choice")
     def test_enqueue_workflows__adds_to_workflow_engine_buffer(
-        self, mock_randrange, mock_push_to_hash_bulk, mock_push_to_sorted_set
+        self, mock_randchoice, mock_push_to_hash_bulk, mock_push_to_sorted_set
     ):
+        mock_randchoice.return_value = f"{DelayedWorkflow.buffer_key}:{5}"
         enqueue_workflows(
             {
                 self.workflow: DelayedWorkflowItem(
@@ -806,7 +806,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
         )
 
         mock_push_to_sorted_set.assert_called_once_with(
-            key=f"{WORKFLOW_ENGINE_BUFFER_LIST_KEY}:{5}",
+            key=f"{DelayedWorkflow.buffer_key}:{5}",
             value=[self.group_event.project_id],
         )
 

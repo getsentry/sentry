@@ -10,9 +10,9 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry import buffer, features
+from sentry.eventstore.models import GroupEvent
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
-from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json
 from sentry.workflow_engine.models import Action, DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
@@ -25,14 +25,13 @@ from sentry.workflow_engine.processors.data_condition_group import process_data_
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
+from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 from sentry.workflow_engine.utils.metrics import metrics_incr
 
 logger = log_context.get_logger(__name__)
 
-WORKFLOW_ENGINE_BUFFER_LIST_KEY = "workflow_engine_delayed_processing_buffer"
-WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS = 8
 DetectorId = int | None
 DataConditionGroupId = int
 
@@ -98,18 +97,6 @@ class DelayedWorkflowItem:
         )
 
 
-def get_all_buffer_keys() -> list[str]:
-    return [_get_buffer_key(i) for i in range(WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS)]
-
-
-def _get_buffer_key(shard: int) -> str:
-    return (
-        f"{WORKFLOW_ENGINE_BUFFER_LIST_KEY}:{shard}"
-        if shard > 0
-        else WORKFLOW_ENGINE_BUFFER_LIST_KEY
-    )
-
-
 def enqueue_workflows(
     items_by_workflow: dict[Workflow, DelayedWorkflowItem],
 ) -> None:
@@ -139,7 +126,7 @@ def enqueue_workflows(
 
     sentry_sdk.set_tag("delayed_workflow_items", items)
 
-    sharded_key = _get_buffer_key(random.randrange(WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS))
+    sharded_key = random.choice(DelayedWorkflow.get_buffer_keys())
     buffer.backend.push_to_sorted_set(key=sharded_key, value=list(items_by_project_id.keys()))
 
     logger.debug(
