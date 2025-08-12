@@ -13,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getShortEventId} from 'sentry/utils/events';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {UptimeCheck, UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
@@ -94,6 +95,7 @@ function CheckInBodyCell({
   uptimeRule: UptimeRule;
 }) {
   const theme = useTheme();
+  const organization = useOrganization();
 
   const {
     timestamp,
@@ -108,6 +110,10 @@ function CheckInBodyCell({
   if (check[column.key] === undefined) {
     return <Cell />;
   }
+
+  const alwaysShowTraceLink = organization.features.includes(
+    'uptime-eap-uptime-results-query'
+  );
 
   switch (column.key) {
     case 'timestamp': {
@@ -182,8 +188,10 @@ function CheckInBodyCell({
 
       return (
         <TraceCell>
-          {spanCount ? (
-            <Link to={`/performance/trace/${traceId}/`}>{getShortEventId(traceId)}</Link>
+          {alwaysShowTraceLink || spanCount ? (
+            <Link to={`/performance/trace/${traceId}/?includeUptime=1`}>
+              {getShortEventId(traceId)}
+            </Link>
           ) : (
             getShortEventId(traceId)
           )}
