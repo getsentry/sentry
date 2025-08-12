@@ -2,12 +2,12 @@ import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import largeStarLight from 'sentry-images/spot/product-select-star-l.svg';
 import largeStarDark from 'sentry-images/spot/product-select-star-l-dark.svg';
-import mediumStarLight from 'sentry-images/spot/product-select-star-m.svg';
+import largeStarLight from 'sentry-images/spot/product-select-star-l.svg';
 import mediumStarDark from 'sentry-images/spot/product-select-star-m-dark.svg';
-import smallStarLight from 'sentry-images/spot/product-select-star-s.svg';
+import mediumStarLight from 'sentry-images/spot/product-select-star-m.svg';
 import smallStarDark from 'sentry-images/spot/product-select-star-s-dark.svg';
+import smallStarLight from 'sentry-images/spot/product-select-star-s.svg';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';

@@ -1,5 +1,5 @@
 import type React from 'react';
-import {type ReducerState, useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState, type ReducerState} from 'react';
 
 import type {ReducerAction} from 'sentry/types/reducerAction';
 

@@ -9,10 +9,10 @@ import {AggregationKey, prettifyTagKey} from 'sentry/utils/fields';
 import {
   useLogsAggregateFunction,
   useLogsAggregateParam,
-  useLogsGroupBy,
   useSetLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import type {OurLogsAggregate} from 'sentry/views/explore/logs/types';
+import {useQueryParamsGroupBys} from 'sentry/views/explore/queryParams/context';
 
 export const LOG_AGGREGATES = [
   {
@@ -69,7 +69,7 @@ interface LogsToolbarProps {
 export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
   const aggregateFunction = useLogsAggregateFunction();
   let aggregateParam = useLogsAggregateParam();
-  const groupBy = useLogsGroupBy();
+  const groupBys = useQueryParamsGroupBys();
   const setLogsPageParams = useSetLogsPageParams();
   const functionArgRef = useRef<HTMLDivElement>(null);
 
@@ -129,25 +129,31 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
         <SectionHeader>
           <Label>{t('Group By')}</Label>
         </SectionHeader>
-        <Select
-          options={[
-            {
-              label: '\u2014',
-              value: '',
-              textValue: '\u2014',
-            },
-            ...Object.keys(stringTags ?? {}).map(key => ({
-              label: key,
-              value: key,
-            })),
-          ]}
-          onChange={val =>
-            setLogsPageParams({groupBy: val.value ? (val.value as string) : null})
-          }
-          value={groupBy ?? ''}
-          searchable
-          triggerProps={{style: {width: '100%'}}}
-        />
+        {groupBys.map((groupBy, index) => {
+          return (
+            <Select
+              key={index}
+              options={[
+                {
+                  label: '\u2014',
+                  value: '',
+                  textValue: '\u2014',
+                },
+                ...Object.keys(stringTags ?? {}).map(key => ({
+                  label: key,
+                  value: key,
+                })),
+              ]}
+              onChange={val =>
+                // TODO: save the group bys separately
+                setLogsPageParams({groupBy: val.value ? (val.value as string) : null})
+              }
+              value={groupBy}
+              searchable
+              triggerProps={{style: {width: '100%'}}}
+            />
+          );
+        })}
       </ToolbarItem>
     </Container>
   );

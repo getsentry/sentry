@@ -18,9 +18,9 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay from 'sentry/utils/useOverlay';
 import {
-  type SeerSearchItem,
   useApplySeerSearchQuery,
   useSeerSearch,
+  type SeerSearchItem,
 } from 'sentry/views/explore/components/seerComboBox/hooks';
 import QueryTokens from 'sentry/views/explore/components/seerComboBox/queryTokens';
 import {SeerSearchHeader} from 'sentry/views/explore/components/seerComboBox/seerSearchHeader';

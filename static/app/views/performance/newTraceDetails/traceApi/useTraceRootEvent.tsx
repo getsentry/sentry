@@ -3,8 +3,8 @@ import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
-  type TraceItemDetailsResponse,
   useTraceItemDetails,
+  type TraceItemDetailsResponse,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
   OurLogKnownFieldKey,

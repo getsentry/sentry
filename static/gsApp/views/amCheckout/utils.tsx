@@ -37,9 +37,9 @@ import {isByteCategory} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
 import {
+  SelectableProduct,
   type CheckoutAPIData,
   type CheckoutFormData,
-  SelectableProduct,
   type SelectedProductData,
 } from 'getsentry/views/amCheckout/types';
 import {
