@@ -54,7 +54,10 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 interface LogFieldRendererProps extends AttributesFieldRendererProps<RendererExtra> {}
 
 export interface RendererExtra extends RenderFunctionBaggage {
-  attributeTypes: Record<string, TraceItemResponseAttribute['type']>;
+  attributeTypes: Record<
+    string,
+    TraceItemResponseAttribute['type'] | EventsMetaType['fields'][string]
+  >;
   attributes: Record<string, string | number | boolean>;
   highlightTerms: string[];
   logColors: ReturnType<typeof getLogColors>;
@@ -416,10 +419,22 @@ function BasicDiscoverRenderer(props: LogFieldRendererProps) {
   const attributeType = props.extra.attributeTypes[props.item.fieldKey];
   const align = logsFieldAlignment(props.item.fieldKey, attributeType as ColumnValueType);
   let castValue: string | number | boolean | null = props.item.value;
-  if (attributeType === 'int' || attributeType === 'float') {
+  // TODO: Values being emitted by ProjectTraceItemDetails and Events should be the same type, and their type names should match (or be casted from rpc types to discover types).
+  if (
+    attributeType === 'int' ||
+    attributeType === 'float' ||
+    attributeType === 'size' ||
+    attributeType === 'number' ||
+    attributeType === 'integer' ||
+    attributeType === 'duration' ||
+    attributeType === 'percentage' ||
+    attributeType === 'rate' ||
+    attributeType === 'percent_change' ||
+    attributeType === 'score'
+  ) {
     castValue = Number(props.item.value);
   }
-  if (attributeType === 'bool') {
+  if (attributeType === 'bool' || attributeType === 'boolean') {
     castValue = Boolean(props.item.value);
   }
   return (
