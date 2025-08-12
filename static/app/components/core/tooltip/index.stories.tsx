@@ -1,11 +1,10 @@
 import {Fragment} from 'react';
+import types from '!!type-loader!sentry/components/core/tooltip';
 
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Storybook from 'sentry/stories';
-
-import types from '!!type-loader!sentry/components/core/tooltip';
 
 export default Storybook.story('Tooltip', (story, APIReference) => {
   APIReference(types.Tooltip);

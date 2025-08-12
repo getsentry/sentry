@@ -33,7 +33,7 @@ class SentryAppDetailsDocsTest(APIDocsTestCase):
 
         self.login_as(user=self.user)
 
-    def test_delete(self):
+    def test_delete(self) -> None:
         response = self.client.delete(self.url)
         request = RequestFactory().delete(self.url)
 

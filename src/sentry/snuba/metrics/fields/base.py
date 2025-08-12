@@ -62,6 +62,8 @@ from sentry.snuba.metrics.fields.snql import (
     sum_if_column_snql,
     team_key_transaction_snql,
     tolerated_count_transaction,
+    unhandled_sessions,
+    unhandled_users,
     uniq_aggregation_on_metric,
     uniq_if_column_snql,
 )
@@ -1376,6 +1378,22 @@ DERIVED_METRICS = {
             ),
         ),
         SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.UNHANDLED.value,
+            metrics=[SessionMRI.RAW_SESSION.value],
+            unit="sessions",
+            snql=lambda project_ids, org_id, metric_ids, alias=None: unhandled_sessions(
+                org_id, metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.UNHANDLED_USER.value,
+            metrics=[SessionMRI.RAW_USER.value],
+            unit="users",
+            snql=lambda project_ids, org_id, metric_ids, alias=None: unhandled_users(
+                org_id, metric_ids, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
             metric_mri=SessionMRI.CRASHED.value,
             metrics=[SessionMRI.RAW_SESSION.value],
             unit="sessions",
@@ -1926,7 +1944,7 @@ def metric_object_factory(op: MetricOperationType | None, metric_mri: str) -> Me
 
 
 def generate_bottom_up_dependency_tree_for_metrics(
-    metrics_query_fields_set: set[tuple[MetricOperationType | None, str, str]]
+    metrics_query_fields_set: set[tuple[MetricOperationType | None, str, str]],
 ) -> list[tuple[MetricOperationType | None, str, str]]:
     """
     This function basically generates a dependency list for all instances of

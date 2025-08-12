@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
+import {AnimatePresence, motion, type AnimationProps} from 'framer-motion';
 
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
 import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
@@ -11,15 +11,16 @@ import {
 } from 'sentry/components/events/autofix/autofixRootCause';
 import {AutofixSolution} from 'sentry/components/events/autofix/autofixSolution';
 import {
+  AutofixStepType,
   type AutofixData,
   type AutofixProgressItem,
   type AutofixStep,
-  AutofixStepType,
 } from 'sentry/components/events/autofix/types';
 import {getAutofixRunErrorMessage} from 'sentry/components/events/autofix/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const animationProps: AnimationProps = {
   exit: {opacity: 0},
@@ -138,6 +139,9 @@ function Step({
 }
 
 export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
+  const organization = useOrganization();
+  const codingDisabled =
+    organization.enableSeerCoding === undefined ? false : !organization.enableSeerCoding;
   const steps = data.steps;
   const isMountedRef = useRef<boolean>(false);
 
@@ -182,6 +186,13 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
             ? previousDefaultStep.insights.length
             : undefined;
 
+        const hasSolutionStepBefore = steps
+          .slice(0, index)
+          .some(s => s.type === AutofixStepType.SOLUTION);
+        const hideStep =
+          (codingDisabled && hasSolutionStepBefore) ||
+          (codingDisabled && step.type === AutofixStepType.CHANGES);
+
         const previousStep = index > 0 ? steps[index - 1] : null;
         const previousStepErrored =
           previousStep !== null &&
@@ -197,6 +208,10 @@ export function AutofixSteps({data, groupId, runId}: AutofixStepsProps) {
           nextStep?.type === AutofixStepType.DEFAULT &&
           nextStep?.status === 'PROCESSING' &&
           nextStep?.insights?.length === 0;
+
+        if (hideStep) {
+          return null;
+        }
 
         return (
           <div key={step.id}>

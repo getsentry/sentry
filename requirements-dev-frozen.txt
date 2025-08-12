@@ -13,7 +13,7 @@ attrs==24.2.0
 avalara==20.9.0
 beautifulsoup4==4.7.1
 billiard==4.2.1
-black==24.10.0
+black==25.1.0
 boto3==1.34.128
 botocore==1.34.128
 brotli==1.1.0
@@ -45,7 +45,7 @@ django-crispy-forms==1.14.0
 django-csp==3.8
 django-pg-zero-downtime-migrations==0.18
 django-stubs-ext==5.2.2
-djangorestframework==3.16.0
+djangorestframework==3.16.1
 docker==7.1.0
 drf-spectacular==0.27.2
 ephemeral-port-reserve==1.1.4
@@ -173,7 +173,7 @@ redis-py-cluster==2.1.0
 referencing==0.30.2
 regex==2022.9.13
 reportlab==4.4.0
-requests==2.32.3
+requests==2.32.4
 requests-file==2.1.0
 requests-oauthlib==1.2.0
 responses==0.23.1
@@ -183,10 +183,10 @@ rpds-py==0.20.0
 rsa==4.8
 s3transfer==0.10.0
 selenium==4.16.0
-sentry-arroyo==2.28.2
+sentry-arroyo==2.28.3
 sentry-cli==2.16.0
 sentry-covdefaults-disable-branch-coverage==1.0.2
-sentry-devenv==1.21.0
+sentry-devenv==1.22.0
 sentry-forked-django-stubs==5.2.2.post1
 sentry-forked-djangorestframework-stubs==3.16.1.post1
 sentry-forked-email-reply-parser==0.5.12.post1
@@ -194,8 +194,8 @@ sentry-kafka-schemas==1.3.18
 sentry-ophio==1.1.3
 sentry-protos==0.3.1
 sentry-redis-tools==0.5.0
-sentry-relay==0.9.10
-sentry-sdk==3.0.0a4
+sentry-relay==0.9.11
+sentry-sdk==3.0.0a5
 sentry-usage-accountant==0.0.10
 simplejson==3.17.6
 six==1.17.0

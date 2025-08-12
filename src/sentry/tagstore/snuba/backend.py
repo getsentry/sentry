@@ -130,9 +130,7 @@ class _ValueCallable[U](Protocol):
     ) -> U: ...
 
 
-def _make_result[
-    T, U
-](
+def _make_result[T, U](
     key: str,
     totals: dict[str, int],
     result: dict[str, dict[str, Any]],

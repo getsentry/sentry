@@ -57,9 +57,9 @@ import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/group
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
-  type IssueDetailsTour,
   IssueDetailsTourContext,
   ORDERED_ISSUE_DETAILS_TOUR,
+  type IssueDetailsTour,
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/streamline/groupDetailsLayout';
@@ -917,4 +917,5 @@ const GroupTabPanels = styled(TabPanels)`
   display: flex;
   flex-direction: column;
   justify-content: stretch;
+  padding-top: 0;
 `;

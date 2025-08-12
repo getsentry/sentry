@@ -2,10 +2,10 @@ import {formatRootCauseText} from 'sentry/components/events/autofix/autofixRootC
 import {formatSolutionText} from 'sentry/components/events/autofix/autofixSolution';
 import {
   AUTOFIX_TTL_IN_DAYS,
-  type AutofixCodebaseChange,
-  type AutofixData,
   AutofixStatus,
   AutofixStepType,
+  type AutofixCodebaseChange,
+  type AutofixData,
 } from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -129,7 +129,7 @@ export const getCodeChangesIsLoading = (autofixData: AutofixData) => {
   return changesStep?.status === AutofixStatus.PROCESSING;
 };
 
-const supportedProviders = ['integrations:github'];
+const supportedProviders = ['integrations:github', 'integrations:github_enterprise'];
 
 export const isSupportedAutofixProvider = (provider?: {id: string; name: string}) => {
   if (!provider) {

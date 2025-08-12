@@ -369,7 +369,7 @@ class Project(Model):
 
     __repr__ = sane_repr("team_id", "name", "slug", "organization_id")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.slug})"
 
     def next_short_id(self, delta: int = 1) -> int:
@@ -443,10 +443,6 @@ class Project(Model):
     def get_option(
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
     ) -> Any:
-        # if the option is not set, check the template
-        if not self.option_manager.isset(self, key) and self.template is not None:
-            return self.template_manager.get_value(self.template, key, default, validate)
-
         return self.option_manager.get_value(self, key, default, validate)
 
     def update_option(self, key: str, value: Any, reload_cache: bool = True) -> bool:

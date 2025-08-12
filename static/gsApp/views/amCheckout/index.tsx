@@ -35,14 +35,14 @@ import {
   PAYG_TEAM_DEFAULT,
 } from 'getsentry/constants';
 import {
-  type BillingConfig,
   CheckoutType,
-  type EventBucket,
   OnDemandBudgetMode,
-  type OnDemandBudgets,
-  type Plan,
   PlanName,
   PlanTier,
+  type BillingConfig,
+  type EventBucket,
+  type OnDemandBudgets,
+  type Plan,
   type PromotionData,
   type Subscription,
 } from 'getsentry/types';

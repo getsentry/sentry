@@ -1,21 +1,19 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
+import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
+import {useReleaseStats} from 'sentry/utils/useReleaseStats';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {DatabaseSpanSummaryPage} from 'sentry/views/insights/database/views/databaseSpanSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/useParams');
 jest.mock('sentry/utils/usePageFilters');
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
-
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 jest.mock('sentry/utils/useReleaseStats');
 
@@ -186,10 +184,15 @@ describe('DatabaseSpanSummaryPage', function () {
       ],
     });
 
-    render(
-      <DatabaseSpanSummaryPage {...RouteComponentPropsFixture({params: {groupId}})} />,
-      {organization, deprecatedRouterMocks: true}
-    );
+    render(<DatabaseSpanSummaryPage />, {
+      organization,
+      initialRouterConfig: {
+        route: `/organizations/:orgId/insights/backend/database/spans/span/:groupId/`,
+        location: {
+          pathname: `/organizations/${organization.slug}/insights/backend/database/spans/span/${groupId}/`,
+        },
+      },
+    });
 
     // Metrics ribbon
     expect(eventsRequestMock).toHaveBeenNthCalledWith(
@@ -201,15 +204,10 @@ describe('DatabaseSpanSummaryPage', function () {
           dataset: 'spans',
           environment: [],
           field: [
-            'span.op',
-            'span.description',
-            'span.action',
-            'span.domain',
-            'count()',
+            'sentry.normalized_description',
             'epm()',
             'sum(span.self_time)',
             'avg(span.self_time)',
-            'http_response_count(5)',
           ],
           per_page: 50,
           project: [],

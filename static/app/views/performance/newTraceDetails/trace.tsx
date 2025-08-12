@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/core/tooltip';
@@ -250,14 +250,8 @@ export function Trace({
 
       treeRef.current.expand(node, value);
       rerenderRef.current();
-
-      if (traceStateRef.current.search.query) {
-        // If a query exists, we want to reapply the search after expanding
-        // so that new nodes are also highlighted if they match a query
-        onTraceSearch(traceStateRef.current.search.query, node, 'persist');
-      }
     },
-    [onTraceSearch]
+    []
   );
 
   const onRowKeyDown = useCallback(

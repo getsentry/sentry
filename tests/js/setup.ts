@@ -1,11 +1,13 @@
 'use strict';
+
 import '@testing-library/jest-dom';
+
+import {webcrypto} from 'node:crypto';
+import {TextDecoder, TextEncoder} from 'node:util';
 
 import type {ReactElement} from 'react';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {enableFetchMocks} from 'jest-fetch-mock';
-import {webcrypto} from 'node:crypto';
-import {TextDecoder, TextEncoder} from 'node:util';
 import {ConfigFixture} from 'sentry-fixture/config';
 
 import {resetMockDate} from 'sentry-test/utils';
@@ -183,17 +185,15 @@ declare global {
   /**
    * Generates a promise that resolves on the next macro-task
    */
-  // eslint-disable-next-line no-var
   var tick: () => Promise<void>;
   /**
    * Used to mock API requests
    */
-  // eslint-disable-next-line no-var
   var MockApiClient: typeof Client;
 }
 
 // needed by cbor-web for webauthn
-window.TextEncoder = TextEncoder;
+window.TextEncoder = TextEncoder as typeof window.TextEncoder;
 window.TextDecoder = TextDecoder as typeof window.TextDecoder;
 
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.

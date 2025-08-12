@@ -20,8 +20,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {
   DisplayType,
-  type ValidateWidgetResponse,
   WidgetType,
+  type ValidateWidgetResponse,
 } from 'sentry/views/dashboards/types';
 import {WidgetOnDemandQueryWarning} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';

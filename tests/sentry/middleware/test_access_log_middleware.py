@@ -16,7 +16,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, control_silo_test
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, RateLimitType
 from sentry.utils.snuba import RateLimitExceeded
 
 
@@ -38,6 +38,22 @@ class SnubaRateLimitedEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
     def get(self, request):
+
+        # Rate limit middleware will set metadata to indicate the request is not limited by the endpoint itself
+        request._request.rate_limit_metadata = RateLimitMeta(
+            rate_limit_type=RateLimitType.NOT_LIMITED,
+            concurrent_limit=123,
+            concurrent_requests=1,
+            reset_time=123,
+            group="test_group",
+            limit=123,
+            window=123,
+            current=1,
+            remaining=122,
+        )
+
+        # However, snuba's 429 will be caught by the custom handler and raise an exception
+        # with the snuba metadata
         raise RateLimitExceeded(
             "Query on could not be run due to allocation policies, ... 'rejection_threshold': 40, 'quota_used': 41, ...",
             policy="ConcurrentRateLimitAllocationPolicy",
@@ -133,7 +149,7 @@ access_log_fields = (
     "is_app",
     "token_type",
     "organization_id",
-    "auth_id",
+    "entity_id",
     "path",
     "caller_ip",
     "user_agent",
@@ -181,7 +197,7 @@ class LogCaptureAPITestCase(APITestCase):
 class TestAccessLogSnubaRateLimited(LogCaptureAPITestCase):
     endpoint = "snuba-ratelimit-endpoint"
 
-    def test_access_log_snuba_rate_limited(self):
+    def test_access_log_snuba_rate_limited(self) -> None:
         """Test that Snuba rate limits are properly logged by access log middleware."""
         self._caplog.set_level(logging.INFO, logger="sentry")
         self.get_error_response(status_code=429)
@@ -190,12 +206,12 @@ class TestAccessLogSnubaRateLimited(LogCaptureAPITestCase):
         assert self.captured_logs[0].rate_limit_type == "RateLimitType.SNUBA"
         assert self.captured_logs[0].rate_limited == "True"
 
-        # All the types from the standard rate limit metadata should not be set
-        assert self.captured_logs[0].remaining == "None"
-        assert self.captured_logs[0].concurrent_limit == "None"
-        assert self.captured_logs[0].concurrent_requests == "None"
-        assert self.captured_logs[0].limit == "None"
-        assert self.captured_logs[0].reset_time == "None"
+        # All the types from the standard rate limit metadata should be set
+        assert self.captured_logs[0].remaining == "122"
+        assert self.captured_logs[0].concurrent_limit == "123"
+        assert self.captured_logs[0].concurrent_requests == "1"
+        assert self.captured_logs[0].limit == "123"
+        assert self.captured_logs[0].reset_time == "123"
 
         # Snuba rate limit specific fields should be set
         assert self.captured_logs[0].snuba_policy == "ConcurrentRateLimitAllocationPolicy"
@@ -260,6 +276,7 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
         tested_log = self.get_tested_log()
         assert tested_log.token_type == "api_token"
         assert tested_log.token_last_characters == token.token_last_characters
+        assert tested_log.entity_id == str(token.id)
 
     def test_with_subdomain_redirect(self) -> None:
         # the subdomain middleware is in between this and the access log middelware

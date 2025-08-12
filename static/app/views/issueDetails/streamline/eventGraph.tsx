@@ -1,11 +1,11 @@
 import type React from 'react';
 import {
-  type CSSProperties,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
 } from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -628,7 +628,7 @@ const SummaryContainer = styled('div')`
   display: flex;
   gap: ${p => (p.theme.isChonk ? p.theme.space.sm : p.theme.space.xs)};
   flex-direction: column;
-  margin: ${p => p.theme.space.md};
+  margin: ${p => p.theme.space.lg};
   border-radius: ${p => p.theme.borderRadius} 0 0 ${p => p.theme.borderRadius};
 `;
 

@@ -1,12 +1,11 @@
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
-import {BASE_URL as AGENTS_BASE_URL} from 'sentry/views/insights/agentMonitoring/settings';
+import {BASE_URL as AGENTS_BASE_URL} from 'sentry/views/insights/agents/settings';
 import {BASE_URL as RESOURCES_BASE_URL} from 'sentry/views/insights/browser/resources/settings';
 import {BASE_URL as VITALS_BASE_URL} from 'sentry/views/insights/browser/webVitals/settings';
 import {BASE_URL as CACHE_BASE_URL} from 'sentry/views/insights/cache/settings';
 import {BASE_URL as DB_BASE_URL} from 'sentry/views/insights/database/settings';
 import {BASE_URL as HTTP_BASE_URL} from 'sentry/views/insights/http/settings';
-import {BASE_URL as AI_BASE_URL} from 'sentry/views/insights/llmMonitoring/settings';
 import {BASE_URL as MCP_BASE_URL} from 'sentry/views/insights/mcp/settings';
 import {BASE_URL as APP_STARTS_BASE_URL} from 'sentry/views/insights/mobile/appStarts/settings';
 import {BASE_URL as SCREEN_LOADS_BASE_URL} from 'sentry/views/insights/mobile/screenload/settings';
@@ -15,8 +14,8 @@ import {BASE_URL as MOBILE_SCREENS_BASE_URL} from 'sentry/views/insights/mobile/
 import {BASE_URL as MOBILE_UI_BASE_URL} from 'sentry/views/insights/mobile/ui/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 import {
-  type DomainView,
   useDomainViewFilters,
+  type DomainView,
 } from 'sentry/views/insights/pages/useFilters';
 import {getModuleView} from 'sentry/views/insights/pages/utils';
 import {BASE_URL as QUEUE_BASE_URL} from 'sentry/views/insights/queues/settings';
@@ -32,7 +31,6 @@ export const MODULE_BASE_URLS: Record<ModuleName, string> = {
   [ModuleName.APP_START]: APP_STARTS_BASE_URL,
   [ModuleName.VITAL]: VITALS_BASE_URL,
   [ModuleName.RESOURCE]: RESOURCES_BASE_URL,
-  [ModuleName.AI]: AI_BASE_URL,
   [ModuleName.AGENTS]: AGENTS_BASE_URL,
   [ModuleName.MCP]: MCP_BASE_URL,
   [ModuleName.MOBILE_UI]: MOBILE_UI_BASE_URL,

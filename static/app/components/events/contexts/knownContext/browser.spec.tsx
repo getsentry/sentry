@@ -4,8 +4,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ContextCard from 'sentry/components/events/contexts/contextCard';
 import {
-  type BrowserContext,
   getBrowserContextData,
+  type BrowserContext,
 } from 'sentry/components/events/contexts/knownContext/browser';
 
 const MOCK_BROWSER_CONTEXT: BrowserContext = {

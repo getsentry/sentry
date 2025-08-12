@@ -37,8 +37,8 @@ import {
   getColdAppStartPerformance,
   getDefaultMetricPerformance,
   getWarmAppStartPerformance,
-  type MetricValue,
   STATUS_UNKNOWN,
+  type MetricValue,
   type VitalItem,
   type VitalStatus,
 } from 'sentry/views/insights/mobile/screens/utils';

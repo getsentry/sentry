@@ -5,7 +5,7 @@ import * as qs from 'query-string';
 
 import ConfigStore from 'sentry/stores/configStore';
 
-import {type BaseAvatarStyleProps, baseAvatarStyles} from './baseAvatarComponentStyles';
+import {baseAvatarStyles, type BaseAvatarStyleProps} from './baseAvatarComponentStyles';
 
 interface GravatarProps extends BaseAvatarStyleProps {
   remoteSize: number;

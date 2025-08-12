@@ -1,17 +1,25 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import AnalyticsArea from 'sentry/components/analyticsArea';
+import {Grid} from 'sentry/components/core/layout';
+import {Flex} from 'sentry/components/core/layout/flex';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
+import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
-import ListContent from 'sentry/views/replays/list/listContent';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
+import ReplaysFilters from 'sentry/views/replays/list/filters';
+import ReplayIndexTable from 'sentry/views/replays/list/replayIndexTable';
+import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
+import ReplaysSearch from 'sentry/views/replays/list/search';
 import ReplayTabs from 'sentry/views/replays/tabs';
 
 const ReplayListPageHeaderHook = HookOrDefault({
@@ -19,13 +27,30 @@ const ReplayListPageHeaderHook = HookOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
-function ReplaysListContainer() {
+export default function ReplaysListContainer() {
   useReplayPageview('replay.list-time-spent');
   const organization = useOrganization();
+  const hasSentReplays = useHaveSelectedProjectsSentAnyReplayEvents();
+
+  const hasSessionReplay = organization.features.includes('session-replay');
+
+  const {
+    selection: {projects},
+  } = usePageFilters();
+  const rageClicksSdkVersion = useProjectSdkNeedsUpdate({
+    minVersion: MIN_DEAD_RAGE_CLICK_SDK.minVersion,
+    projectId: projects.map(String),
+  });
+
+  useRouteAnalyticsParams({
+    hasSessionReplay,
+    hasSentReplays: hasSentReplays.hasSentOneReplay,
+    hasRageClickMinSDK: !rageClicksSdkVersion.needsUpdate,
+  });
 
   return (
     <AnalyticsArea name="list">
-      <SentryDocumentTitle title={`Session Replay — ${organization.slug}`}>
+      <SentryDocumentTitle title="Session Replay" orgSlug={organization.slug}>
         <Layout.Header>
           <Layout.HeaderContent>
             <Layout.Title>
@@ -43,10 +68,20 @@ function ReplaysListContainer() {
         <PageFiltersContainer>
           <Layout.Body>
             <Layout.Main fullWidth>
-              <LayoutGap>
+              <Grid gap="xl">
                 <ReplayListPageHeaderHook />
-                <ListContent />
-              </LayoutGap>
+                {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
+                  <ReplayIndexTable />
+                ) : (
+                  <Fragment>
+                    <Flex gap="xl" wrap="wrap">
+                      <ReplaysFilters />
+                      <ReplaysSearch />
+                    </Flex>
+                    <ReplayOnboardingPanel />
+                  </Fragment>
+                )}
+              </Grid>
             </Layout.Main>
           </Layout.Body>
         </PageFiltersContainer>
@@ -54,10 +89,3 @@ function ReplaysListContainer() {
     </AnalyticsArea>
   );
 }
-
-const LayoutGap = styled('div')`
-  display: grid;
-  gap: ${space(2)};
-`;
-
-export default ReplaysListContainer;

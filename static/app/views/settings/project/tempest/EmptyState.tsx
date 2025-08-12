@@ -2,34 +2,23 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {
+  ALLOWLIST_IP_ADDRESSES_DESCRIPTION,
+  AllowListIPAddresses,
+} from 'sentry/views/settings/project/tempest/allowListIPAddresses';
 
 export default function EmptyState() {
   const navigate = useNavigate();
   const location = useLocation();
-
-  const {data: ipAddresses, isPending} = useApiQuery<string>(
-    [
-      '/tempest-ips/',
-      {
-        headers: {
-          Accept: 'text/html, text/plain, */*',
-        },
-      },
-    ],
-    {
-      staleTime: Infinity,
-    }
-  );
 
   return (
     <div>
@@ -44,6 +33,13 @@ export default function EmptyState() {
       <Body>
         <Setup>
           <BodyTitle>{t('Install instructions')}</BodyTitle>
+          <Alert.Container>
+            <Alert type="info">
+              {t(
+                "Note: You need PlayStation access to complete these instructions. Sentry admin access alone isn't sufficient."
+              )}
+            </Alert>
+          </Alert.Container>
           <GuidedSteps
             initialStep={decodeInteger(location.query.guidedStep)}
             onStepChange={step => {
@@ -70,18 +66,11 @@ export default function EmptyState() {
 
             <GuidedSteps.Step stepKey="step-2" title={t('Allow list our IP Addresses:')}>
               <DescriptionWrapper>
-                {t(
-                  'Allow list our Outbound IP addresses as they will be the once used for making the requests using the provided credentials'
-                )}
-                {isPending ? (
-                  <LoadingIndicator size={16} />
-                ) : (
-                  <CodeSnippetWrapper>
-                    <OnboardingCodeSnippet>{ipAddresses || ''}</OnboardingCodeSnippet>
-                  </CodeSnippetWrapper>
-                )}
+                {ALLOWLIST_IP_ADDRESSES_DESCRIPTION}
+                <CodeSnippetWrapper>
+                  <AllowListIPAddresses />
+                </CodeSnippetWrapper>
               </DescriptionWrapper>
-
               <GuidedSteps.StepButtons />
             </GuidedSteps.Step>
 
