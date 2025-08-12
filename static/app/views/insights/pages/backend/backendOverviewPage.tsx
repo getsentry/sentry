@@ -269,7 +269,7 @@ const StyledTransactionNameSearchBar = styled(TransactionNameSearchBar)`
 
 export default BackendOverviewPageWithProviders;
 
-export const StackedWidgetWrapper = styled('div')`
+const StackedWidgetWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
