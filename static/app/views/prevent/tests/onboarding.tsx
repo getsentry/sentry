@@ -2,6 +2,7 @@ import {useCallback, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {t, tct} from 'sentry/locale';
@@ -63,7 +64,7 @@ export default function TestsOnboardingPage() {
               ['cli', t("Use Sentry Prevent's CLI to upload testing reports")],
             ]}
           />
-          <StepsContainer>
+          <Flex direction="column" gap="2xl" maxWidth="1000px" padding="2xl 0 0 3xl">
             <OutputCoverageFileStep step="1" />
             {/* TODO coming soon: we will conditionally render this based on CLI vs GHAction and OIDC vs Token for CLI */}
             <ChooseUploadPermissionStep
@@ -87,7 +88,7 @@ export default function TestsOnboardingPage() {
                 ),
               })}
             </div>
-          </StepsContainer>
+          </Flex>
         </OnboardingContent>
       </OnboardingContainer>
     </LayoutGap>
@@ -130,10 +131,4 @@ const SelectOptionHeader = styled('h5')`
   font-size: ${p => p.theme.fontSize.xl};
   color: ${p => p.theme.tokens.content.primary};
   margin-top: ${p => p.theme.space['2xl']};
-`;
-
-const StepsContainer = styled('div')`
-  padding-top: ${p => p.theme.space['2xl']};
-  padding-left: ${p => p.theme.space['3xl']};
-  max-width: 1000px;
 `;
