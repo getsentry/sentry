@@ -300,7 +300,7 @@ def create_feedback_issue(
     if is_message_spam:
         metrics.incr(
             "feedback.ai_title_generation.skipped",
-            tags={"reason": "gen_ai_disabled"},
+            tags={"reason": "is_spam"},
         )
 
     if not has_seer_permissions(project.organization):
