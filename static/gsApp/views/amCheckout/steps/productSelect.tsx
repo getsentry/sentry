@@ -127,16 +127,8 @@ function ProductSelect({
             <ProductOption
               key={productInfo.apiName}
               aria-label={ariaLabel}
-              aria-checked={isSelected}
-              role="checkbox"
               data-test-id={`product-option-${productInfo.apiName}`}
               onClick={toggleProductOption}
-              tabIndex={0}
-              onKeyDown={({key}) => {
-                if (key === 'Enter') {
-                  toggleProductOption();
-                }
-              }}
             >
               <ProductOptionContent isSelected={isSelected} isNewCheckout>
                 <Column>
@@ -205,9 +197,15 @@ function ProductSelect({
                 </Column>
                 <Column>
                   <Checkbox
+                    aria-label={ariaLabel}
                     aria-checked={isSelected}
                     checked={isSelected}
                     onChange={toggleProductOption}
+                    onKeyDown={({key}) => {
+                      if (key === 'Enter') {
+                        toggleProductOption();
+                      }
+                    }}
                   />
                 </Column>
               </ProductOptionContent>
@@ -225,7 +223,7 @@ function ProductSelect({
             <AnimatedProductOptionContent
               gradientColor={checkoutInfo.gradientEndColor}
               buttonBorderColor={checkoutInfo.buttonBorderColor}
-              enabled={isSelected}
+              isSelected={isSelected}
               prefersDarkMode={prefersDarkMode}
             >
               <Row>
@@ -346,6 +344,7 @@ const ProductOptionContent = styled('div')<{
   border: 1px solid ${p => p.theme.innerBorder};
 
   ${p =>
+    p.isNewCheckout &&
     p.isSelected &&
     css`
       color: ${p.theme.activeText};
@@ -358,14 +357,14 @@ const AnimatedProductOptionContent = styled(ProductOptionContent)<{
   buttonBorderColor: string;
   gradientColor: string;
   prefersDarkMode: boolean;
-  enabled?: boolean;
 }>`
-  background-color: ${p => (p.enabled ? p.gradientColor : p.theme.backgroundSecondary)};
-  border: 1px solid ${p => (p.enabled ? p.gradientColor : p.theme.innerBorder)};
+  background-color: ${p =>
+    p.isSelected ? p.gradientColor : p.theme.backgroundSecondary};
+  border: 1px solid ${p => (p.isSelected ? p.gradientColor : p.theme.innerBorder)};
 
   button {
-    border-color: ${p => (p.enabled ? p.buttonBorderColor : p.theme.innerBorder)};
-    background-color: ${p => (p.enabled ? 'transparent' : p.theme.background)};
+    border-color: ${p => (p.isSelected ? p.buttonBorderColor : p.theme.innerBorder)};
+    background-color: ${p => (p.isSelected ? 'transparent' : p.theme.background)};
   }
 
   @keyframes gradient {
@@ -382,7 +381,7 @@ const AnimatedProductOptionContent = styled(ProductOptionContent)<{
   --star-3-translate: 0, 0;
 
   ${p =>
-    p.enabled &&
+    p.isSelected &&
     css`
       --star-1-translate: -3px, 7px;
       --star-2-translate: 6px, -2px;
@@ -406,7 +405,7 @@ const AnimatedProductOptionContent = styled(ProductOptionContent)<{
   }
 
   ${p =>
-    !p.enabled &&
+    !p.isSelected &&
     css`
       &:hover {
         background: linear-gradient(
