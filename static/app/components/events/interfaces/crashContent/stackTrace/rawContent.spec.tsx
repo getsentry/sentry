@@ -17,7 +17,8 @@ describe('RawStacktraceContent', () => {
             function: 'run',
             filename: 'QueuedThreadPool.java',
             lineNo: 582,
-          })
+          }),
+          true
         )
       ).toBe(
         '    at org.mortbay.thread.QueuedThreadPool$PoolThread.run(QueuedThreadPool.java:582)'
@@ -30,7 +31,8 @@ describe('RawStacktraceContent', () => {
             module: 'org.mortbay.thread.QueuedThreadPool$PoolThread',
             function: 'run',
             filename: 'QueuedThreadPool.java',
-          })
+          }),
+          true
         )
       ).toBe(
         '    at org.mortbay.thread.QueuedThreadPool$PoolThread.run(QueuedThreadPool.java)'
@@ -43,7 +45,8 @@ describe('RawStacktraceContent', () => {
             module: 'org.mortbay.thread.QueuedThreadPool$PoolThread',
             function: 'run',
             filename: 'QueuedThreadPool.java',
-          })
+          }),
+          true
         )
       ).toBe(
         '    at org.mortbay.thread.QueuedThreadPool$PoolThread.run(QueuedThreadPool.java)'

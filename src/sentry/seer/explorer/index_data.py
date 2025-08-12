@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -9,8 +10,6 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index.index import parse_and_convert_issue_search_query
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.event import EventSerializer
-from sentry.eventstore import backend as eventstore
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
@@ -28,10 +27,15 @@ from sentry.seer.sentry_data_models import (
     Transaction,
     TransactionIssues,
 )
+from sentry.services.eventstore import backend as eventstore
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
 logger = logging.getLogger(__name__)
+
+# Regex to match unescaped quotes (not preceded by backslash)
+UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 
 def get_transactions_for_project(project_id: int) -> list[Transaction]:
@@ -137,9 +141,10 @@ def get_trace_for_transaction(transaction_name: str, project_id: int) -> TraceDa
     )
 
     # Step 1: Get trace IDs with their span counts in a single query
+    escaped_transaction_name = UNESCAPED_QUOTE_RE.sub('\\"', transaction_name)
     traces_result = Spans.run_table_query(
         params=snuba_params,
-        query_string=f"transaction:{transaction_name} project.id:{project_id}",
+        query_string=f'transaction:"{escaped_transaction_name}" project.id:{project_id}',
         selected_columns=[
             "trace",
             "count()",  # This counts all spans in each trace
@@ -462,7 +467,8 @@ def get_issues_for_transaction(transaction_name: str, project_id: int) -> Transa
     start_time = end_time - timedelta(hours=24)
 
     # Step 1: Search for issues using transaction filter
-    query = f'is:unresolved transaction:"{transaction_name}"'
+    escaped_transaction_name = UNESCAPED_QUOTE_RE.sub('\\"', transaction_name)
+    query = f'is:unresolved transaction:"{escaped_transaction_name}"'
     search_filters = parse_and_convert_issue_search_query(
         query, project.organization, [project], [], AnonymousUser()
     )

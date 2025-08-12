@@ -1,8 +1,8 @@
 import {useCallback, useEffect, useState} from 'react';
 
 import {
-  type ExternalIssueAction,
   getDynamicFields,
+  type ExternalIssueAction,
 } from 'sentry/components/externalIssues/utils';
 import type {FieldValue} from 'sentry/components/forms/types';
 import type {IntegrationIssueConfig} from 'sentry/types/integrations';

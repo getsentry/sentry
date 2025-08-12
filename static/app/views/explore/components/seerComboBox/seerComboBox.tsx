@@ -18,9 +18,9 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOrganization from 'sentry/utils/useOrganization';
 import useOverlay from 'sentry/utils/useOverlay';
 import {
-  type SeerSearchItem,
   useApplySeerSearchQuery,
   useSeerSearch,
+  type SeerSearchItem,
 } from 'sentry/views/explore/components/seerComboBox/hooks';
 import QueryTokens from 'sentry/views/explore/components/seerComboBox/queryTokens';
 import {SeerSearchHeader} from 'sentry/views/explore/components/seerComboBox/seerSearchHeader';
@@ -225,12 +225,10 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
         return;
       }
 
-      trackAnalytics('trace.explorer.ai_query_submitted', {
-        organization,
-        natural_language_query: searchQuery.trim(),
-      });
       askSeerNLQueryRef.current = searchQuery.trim();
       applySeerSearchQuery(item);
+      setDisplayAskSeerFeedback(true);
+      setDisplayAskSeer(false);
       state.close();
     },
     children: item => {
@@ -296,6 +294,10 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
         switch (e.key) {
           case 'Escape':
             if (!state.isOpen) {
+              trackAnalytics('trace.explorer.ai_query_interface', {
+                organization,
+                action: 'closed',
+              });
               setDisplayAskSeerFeedback(false);
               setDisplayAskSeer(false);
             }
@@ -342,8 +344,12 @@ export function SeerComboBox({initialQuery, ...props}: SeerComboBoxProps) {
                 addErrorMessage(t('Failed to find AI query to apply'));
                 return;
               }
-              state.close();
+
+              askSeerNLQueryRef.current = searchQuery.trim();
               applySeerSearchQuery(item);
+              setDisplayAskSeerFeedback(true);
+              setDisplayAskSeer(false);
+              state.close();
               return;
             }
 

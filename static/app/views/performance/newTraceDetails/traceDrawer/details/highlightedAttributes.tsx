@@ -66,7 +66,7 @@ function getAISpanAttributes(
 ) {
   const highlightedAttributes = [];
 
-  const model = attributes['gen_ai.request.model'] || attributes['gen_ai.response.model'];
+  const model = attributes['gen_ai.response.model'] || attributes['gen_ai.request.model'];
   if (model) {
     highlightedAttributes.push({
       name: t('Model'),

@@ -60,6 +60,12 @@ def get_total_span_count(settings: ResolverSettings) -> Column:
     )
 
 
+def none_if_zero_processor(value: float) -> float | None:
+    if value == 0:
+        return None
+    return value
+
+
 def division_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
     extrapolation_mode = settings["extrapolation_mode"]
 
@@ -1115,6 +1121,7 @@ SPAN_FORMULA_DEFINITIONS = {
             ),
         ],
         formula_resolver=performance_score,
+        processor=none_if_zero_processor,
         is_aggregate=True,
     ),
     "avg_compare": FormulaDefinition(

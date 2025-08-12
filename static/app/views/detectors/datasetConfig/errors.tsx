@@ -27,4 +27,7 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
   transformComparisonSeriesData: data => {
     return [transformEventsStatsComparisonSeries(data)];
   },
+  fromApiAggregate: aggregate => aggregate,
+  toApiAggregate: aggregate => aggregate,
+  supportedDetectionTypes: ['static', 'percent', 'dynamic'],
 };
