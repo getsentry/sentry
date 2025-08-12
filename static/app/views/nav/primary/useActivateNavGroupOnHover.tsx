@@ -61,14 +61,14 @@ export function useActivateNavGroupOnHover({
         // moving their mouse into the secondary nav.
         // Similar to https://bjk5.com/post/44698559168/breaking-down-amazons-mega-dropdown
         const angleToTop =
-          Math.atan(distanceToTop / distanceToRightEdge) * (180 / Math.PI);
+          Math.atan2(distanceToTop, distanceToRightEdge) * (180 / Math.PI);
         const angleToBottom =
-          Math.atan(distanceToBottom / distanceToRightEdge) * (180 / Math.PI);
+          Math.atan2(distanceToBottom, distanceToRightEdge) * (180 / Math.PI);
 
         const mouseDirectionAngle =
           horizontalSpeed === 0
             ? 90
-            : Math.atan(verticalSpeed / horizontalSpeed) * (180 / Math.PI);
+            : Math.atan2(verticalSpeed, horizontalSpeed) * (180 / Math.PI);
 
         const isMovingTowardSecondaryNav =
           horizontalDirection > 0
