@@ -1,45 +1,41 @@
 import atexit
 from typing import Any
 
-from datadog import initialize
-from datadog.dogstatsd.base import statsd
+from datadog.dogstatsd.base import DogStatsd
 
 from .base import MetricsBackend, Tags
 
 __all__ = ["DogStatsdMetricsBackend"]
 
-# Set the maximum number of packets to queue for the sender.
-# How may packets to queue before blocking or dropping the packet if the packet queue is already full.
-# 0 means unlimited.
-SENDER_QUEUE_SIZE = 0
-
-# Set timeout for packet queue operations, in seconds
-# How long the application thread is willing to wait for the queue clear up before dropping the metric packet.
-# If set to None, wait forever.
-# If set to zero drop the packet immediately if the queue is full.
-SENDER_QUEUE_TIMEOUT = 0
-
 
 class DogStatsdMetricsBackend(MetricsBackend):
     def __init__(self, prefix: str | None = None, **kwargs: Any) -> None:
-        # TODO(dcramer): it'd be nice if the initialize call wasn't a global
         self.tags = kwargs.pop("tags", None)
-        kwargs["statsd_disable_buffering"] = False
 
-        initialize(**kwargs)
-        statsd.disable_telemetry()
+        instance_kwargs: dict[str, Any] = {
+            "disable_telemetry": True,
+            "disable_buffering": False,
+            # When enabled, a background thread will be used to send metric payloads to the Agent.
+            "disable_background_sender": False,
+        }
+        if socket_path := kwargs.get("statsd_socket_path"):
+            instance_kwargs["socket_path"] = socket_path
+        else:
+            if host := kwargs.get("statsd_host"):
+                instance_kwargs["host"] = host
+            if port := kwargs.get("statsd_port"):
+                instance_kwargs["port"] = int(port)
 
-        # When enabled, a background thread will be used to send metric payloads to the Agent.
-        statsd.enable_background_sender(
-            sender_queue_size=SENDER_QUEUE_SIZE, sender_queue_timeout=SENDER_QUEUE_TIMEOUT
-        )
-        # Applications should call wait_for_pending() before exiting to make sure all pending payloads are sent.
-        atexit.register(statsd.wait_for_pending)
+        self.statsd = DogStatsd(**instance_kwargs)
 
         # Origin detection is enabled after 0.45 by default.
         # Disable it since it silently fails.
         # Ref: https://github.com/DataDog/datadogpy/issues/764
-        statsd._container_id = None
+        self.statsd._container_id = None
+
+        # Applications should call wait_for_pending() before exiting to make sure all pending payloads are sent.
+        atexit.register(self.statsd.wait_for_pending)
+
         super().__init__(prefix=prefix)
 
     def incr(
@@ -60,7 +56,7 @@ class DogStatsdMetricsBackend(MetricsBackend):
             tags["instance"] = instance
 
         tags_list = [f"{k}:{v}" for k, v in tags.items()]
-        statsd.increment(self._get_key(key), amount, sample_rate=sample_rate, tags=tags_list)
+        self.statsd.increment(self._get_key(key), amount, sample_rate=sample_rate, tags=tags_list)
 
     def timing(
         self,
@@ -70,6 +66,7 @@ class DogStatsdMetricsBackend(MetricsBackend):
         tags: Tags | None = None,
         sample_rate: float = 1,
         stacklevel: int = 0,
+        precise: bool = False,
     ) -> None:
         tags = dict(tags or ())
 
@@ -79,7 +76,12 @@ class DogStatsdMetricsBackend(MetricsBackend):
             tags["instance"] = instance
 
         tags_list = [f"{k}:{v}" for k, v in tags.items()]
-        statsd.timing(self._get_key(key), value, sample_rate=sample_rate, tags=tags_list)
+        if not precise:
+            self.statsd.timing(self._get_key(key), value, sample_rate=sample_rate, tags=tags_list)
+        else:
+            self.statsd.distribution(
+                self._get_key(key), value, sample_rate=sample_rate, tags=tags_list
+            )
 
     def gauge(
         self,
@@ -99,7 +101,7 @@ class DogStatsdMetricsBackend(MetricsBackend):
             tags["instance"] = instance
 
         tags_list = [f"{k}:{v}" for k, v in tags.items()]
-        statsd.gauge(self._get_key(key), value, sample_rate=sample_rate, tags=tags_list)
+        self.statsd.gauge(self._get_key(key), value, sample_rate=sample_rate, tags=tags_list)
 
     def distribution(
         self,
@@ -124,7 +126,7 @@ class DogStatsdMetricsBackend(MetricsBackend):
             tags["instance"] = instance
 
         tags_list = [f"{k}:{v}" for k, v in tags.items()]
-        statsd.distribution(self._get_key(key), value, sample_rate=sample_rate, tags=tags_list)
+        self.statsd.distribution(self._get_key(key), value, sample_rate=sample_rate, tags=tags_list)
 
     def event(
         self,
@@ -146,7 +148,7 @@ class DogStatsdMetricsBackend(MetricsBackend):
             tags["instance"] = instance
 
         tags_list = [f"{k}:{v}" for k, v in tags.items()]
-        statsd.event(
+        self.statsd.event(
             title=title,
             message=message,
             alert_type=alert_type,
