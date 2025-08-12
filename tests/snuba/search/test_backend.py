@@ -7,7 +7,6 @@ import pytest
 from django.utils import timezone
 
 from sentry import options
-from sentry.api.issue_search import convert_query_values, issue_search_config, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -18,6 +17,7 @@ from sentry.issues.grouptype import (
     PerformanceRenderBlockingAssetSpanGroupType,
 )
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
+from sentry.issues.issue_search import convert_query_values, issue_search_config, parse_search_query
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee

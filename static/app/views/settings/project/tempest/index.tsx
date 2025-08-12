@@ -52,12 +52,15 @@ export default function TempestSettings({organization, project}: Props) {
   const tab = getCurrentTab();
 
   const handleTabChange = (newTab: Tab) => {
+    const newQuery: any = {
+      ...location.query,
+      tab: newTab,
+    };
+    // Reset guided step when switching tabs to avoid cross-tab bleed
+    delete newQuery.guidedStep;
     navigate({
       pathname: location.pathname,
-      query: {
-        ...location.query,
-        tab: newTab,
-      },
+      query: newQuery,
     });
   };
 

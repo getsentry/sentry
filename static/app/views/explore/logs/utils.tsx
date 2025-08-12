@@ -10,10 +10,10 @@ import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
-  type ColumnValueType,
   CurrencyUnit,
   DurationUnit,
   fieldAlignment,
+  type ColumnValueType,
   type Sort,
 } from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -37,11 +37,11 @@ import {
   LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
 } from 'sentry/views/explore/logs/constants';
 import {
+  OurLogKnownFieldKey,
   type EventsLogsResult,
   type LogAttributeUnits,
   type LogRowItem,
   type OurLogFieldKey,
-  OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import type {PickableDays} from 'sentry/views/explore/utils';

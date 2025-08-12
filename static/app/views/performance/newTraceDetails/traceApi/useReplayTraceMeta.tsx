@@ -9,7 +9,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {HydratedReplayRecord} from 'sentry/views/replays/types';
 
-import {type TraceMetaQueryResults, useTraceMeta} from './useTraceMeta';
+import {useTraceMeta, type TraceMetaQueryResults} from './useTraceMeta';
 
 // Fetches the meta data for all the traces in a replay and combines the results.
 export function useReplayTraceMeta(

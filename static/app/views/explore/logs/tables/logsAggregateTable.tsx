@@ -11,9 +11,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   LOGS_AGGREGATE_CURSOR_KEY,
-  useLogsAggregate,
   useLogsAggregateSortBys,
-  useLogsGroupBy,
   useSetLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
@@ -22,6 +20,10 @@ import {LogFieldRenderer} from 'sentry/views/explore/logs/fieldRenderers';
 import {getLogColors} from 'sentry/views/explore/logs/styles';
 import {useLogsAggregatesQuery} from 'sentry/views/explore/logs/useLogsQuery';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
+import {
+  useQueryParamsGroupBys,
+  useQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
 
 export function LogsAggregateTable() {
   const {data, pageLinks, isLoading, error} = useLogsAggregatesQuery({
@@ -29,18 +31,16 @@ export function LogsAggregateTable() {
   });
 
   const setLogsPageParams = useSetLogsPageParams();
-  const groupBy = useLogsGroupBy();
-  const aggregate = useLogsAggregate();
+  const groupBys = useQueryParamsGroupBys();
+  const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useLogsAggregateSortBys();
   const location = useLocation();
   const theme = useTheme();
   const organization = useOrganization();
 
   const fields: string[] = [];
-  if (groupBy) {
-    fields.push(groupBy);
-  }
-  fields.push(aggregate);
+  fields.push(...groupBys.filter(Boolean));
+  fields.push(...visualizes.map(visualize => visualize.yAxis));
 
   return (
     <TableContainer>

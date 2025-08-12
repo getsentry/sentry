@@ -5,8 +5,8 @@ import {DateTime} from 'sentry/components/dateTime';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {space} from 'sentry/styles/space';
 import {
-  type Column,
   RIGHT_ALIGNED_FIELDS,
+  type Column,
   type Row,
 } from 'sentry/views/prevent/tests/testAnalyticsTable/testAnalyticsTable';
 
