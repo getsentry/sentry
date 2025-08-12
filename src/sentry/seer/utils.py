@@ -8,11 +8,11 @@ from sentry.users.services.user.model import RpcUser
 
 
 def has_seer_permissions(
-    organization: Organization, user: User | AnonymousUser | RpcUser | None = None
+    organization: Organization, actor: User | AnonymousUser | RpcUser | None = None
 ) -> bool:
     return (
         features.has(
-            "organizations:gen-ai-features", organization, **({"actor": user} if user else {})
+            "organizations:gen-ai-features", organization, **({"actor": actor} if actor else {})
         )
         and bool(organization.get_option("sentry:hide_ai_features"))
         and get_seer_org_acknowledgement(org_id=organization.id)

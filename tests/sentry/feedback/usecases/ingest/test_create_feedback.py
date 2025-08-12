@@ -31,7 +31,7 @@ from tests.sentry.feedback import create_dummy_openai_response, mock_feedback_ev
 @pytest.fixture(autouse=True)
 def mock_has_seer_perms():
     """
-    Autouse for this file so has_seer_permissions returns false by default.
+    Auto mocks `has_seer_permissions` so it returns false by default.
     To enable, request the fixture and set mock_has_seer_perms.return_value = True
     """
     with patch(

@@ -23,6 +23,7 @@ from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
 from sentry.seer.signed_seer_api import sign_with_seer_secret
+from sentry.seer.utils import has_seer_permissions
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -69,11 +70,6 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
     def __init__(self, **options) -> None:
         storage.initialize_client()
         super().__init__(**options)
-        self.features = [
-            "organizations:session-replay",
-            "organizations:replay-ai-summaries",
-            "organizations:gen-ai-features",
-        ]
 
     def make_seer_request(self, url: str, post_body: dict[str, Any]) -> Response:
         """Make a POST request to a Seer endpoint. Raises HTTPError and logs non-200 status codes."""
@@ -129,11 +125,15 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         """Poll for the status of a replay summary task in Seer."""
-        if not all(
-            features.has(feature, project.organization, actor=request.user)
-            for feature in self.features
+        if not features.has(
+            "organizations:session-replay", project.organization, actor=request.user
+        ) or not features.has(
+            "organizations:replay-ai-summaries", project.organization, actor=request.user
         ):
             return self.respond(status=404)
+
+        if not has_seer_permissions(project.organization, actor=request.user):
+            return self.respond(status=403)
 
         # Request Seer for the state of the summary task.
         return self.make_seer_request(
@@ -145,11 +145,15 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
 
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
         """Download replay segment data and parse it into logs. Then post to Seer to start a summary task."""
-        if not all(
-            features.has(feature, project.organization, actor=request.user)
-            for feature in self.features
+        if not features.has(
+            "organizations:session-replay", project.organization, actor=request.user
+        ) or not features.has(
+            "organizations:replay-ai-summaries", project.organization, actor=request.user
         ):
             return self.respond(status=404)
+
+        if not has_seer_permissions(project.organization, actor=request.user):
+            return self.respond(status=403)
 
         filter_params = self.get_filter_params(request, project)
 
