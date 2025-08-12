@@ -59,7 +59,9 @@ function PerformanceSetupBanner({
 }: PerformanceSetupBannerProps) {
   const location = useLocation();
   const LOCAL_STORAGE_KEY = `${traceSlug}:performance-orphan-error-onboarding-banner-hide`;
-  const hideBanner = projectsWithNoPerformance.length === 0;
+  const hideBanner =
+    projectsWithNoPerformance.length === 0 ||
+    projectsWithOnboardingChecklist.length === 0;
 
   useEffect(() => {
     if (hideBanner) {
@@ -73,7 +75,7 @@ function PerformanceSetupBanner({
     }
   }, [projectsWithOnboardingChecklist, hideBanner, organization, location.hash]);
 
-  if (hideBanner || projectsWithOnboardingChecklist.length === 0) {
+  if (hideBanner) {
     return null;
   }
 

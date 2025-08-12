@@ -13,7 +13,6 @@ type Props = {
 function TraceTypeWarnings(props: Props) {
   if (
     props.tree.type !== 'trace' ||
-    props.tree.shape === TraceShape.ONE_ROOT ||
     // Note: Just handling the errors-only-trace banners for now.
     props.tree.shape !== TraceShape.ONLY_ERRORS
   ) {
