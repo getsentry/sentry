@@ -5,7 +5,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options, tagstore
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -14,6 +14,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.utils import clamp_date_range, handle_query_errors
 from sentry.models.organization import Organization
+from sentry.services import tagstore
 from sentry.snuba.dataset import Dataset
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import set_span_attribute

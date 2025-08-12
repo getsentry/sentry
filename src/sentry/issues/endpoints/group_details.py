@@ -8,7 +8,7 @@ from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, tagstore, tsdb
+from sentry import features, tsdb
 from sentry.api import client
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -44,6 +44,7 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer,
 )
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
+from sentry.services import tagstore
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
