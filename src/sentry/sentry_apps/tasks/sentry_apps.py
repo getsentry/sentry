@@ -914,18 +914,17 @@ def regenerate_service_hooks_for_installation(
             times=3,
             delay=60 * 5,
         ),
-        compression_type=CompressionType.ZSTD,
         processing_deadline_duration=30,
     ),
     **TASK_OPTIONS,
 )
-@retry_decorator
 def broadcast_webhooks_for_organization(
     *,
     resource_name: str,
     event_name: str,
     organization_id: int,
     payload: dict[str, Any],
+    **kwargs: Any,
 ) -> None:
     """
     Send a webhook event to all relevant installations for an organization.
@@ -947,7 +946,8 @@ def broadcast_webhooks_for_organization(
     try:
         SentryAppEventType(event_type)
     except ValueError:
-        logger.exception("Webhook received invalid event type: %s", event_type)
+        logger.exception("sentry_app.webhook_invalid_event_type", extra={"event_type": event_type})
+
         raise SentryAppSentryError(
             message=f"Invalid event type: {event_type}",
         )
@@ -970,19 +970,22 @@ def broadcast_webhooks_for_organization(
 
         if not relevant_installations:
             logger.error(
-                "No installations subscribed to '%s' events for organization %s",
-                resource_name,
-                organization_id,
+                "sentry_app.webhook_no_installations_subscribed",
+                extra={
+                    "resource_name": resource_name,
+                    "organization_id": organization_id,
+                },
             )
             return
 
         # Send the webhook to each relevant installation
         for installation in relevant_installations:
-            if not installation:
-                raise SentryAppSentryError(
-                    message=f"{SentryAppWebhookFailureReason.MISSING_INSTALLATION}"
+            if installation:
+                send_resource_change_webhook.delay(installation.id, event_type, payload)
+
+                logger.info("Queued webhook for %s to installation %s", event_type, installation.id)
+            else:
+                logger.error(
+                    "sentry_app.webhook_no_installation",
+                    extra={"installation_id": installation.id},
                 )
-
-            send_resource_change_webhook.delay(installation.id, event_type, payload)
-
-            logger.info("Queued webhook for %s to installation %s", event_type, installation.id)

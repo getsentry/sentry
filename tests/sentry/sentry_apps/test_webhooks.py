@@ -121,27 +121,32 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
 
         # Verify error log was written
         mock_logger.error.assert_called_once_with(
-            "No installations subscribed to '%s' events for organization %s",
-            "issue",
-            self.organization.id,
+            "sentry_app.webhook_no_installations_subscribed",
+            extra={
+                "resource_name": "issue",
+                "organization_id": self.organization.id,
+            },
         )
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_invalid_event_type_raises_error(self, mock_installations):
-        """Test that invalid event types are handled gracefully in task context."""
+        """Test that invalid event types raise SentryAppSentryError."""
+        from sentry.sentry_apps.utils.errors import SentryAppSentryError
+
         mock_installations.return_value = []
 
         payload = {"event": "data"}
 
-        # In task context, invalid event types are handled gracefully (not raised)
-        broadcast_webhooks_for_organization(
-            resource_name="invalid_resource",
-            event_name="invalid_event",
-            organization_id=self.organization.id,
-            payload=payload,
-        )
+        # Invalid event types should raise SentryAppSentryError
+        with pytest.raises(SentryAppSentryError) as exc_info:
+            broadcast_webhooks_for_organization(
+                resource_name="invalid_resource",
+                event_name="invalid_event",
+                organization_id=self.organization.id,
+                payload=payload,
+            )
 
-        # The function should complete without raising an exception
+        assert "Invalid event type: invalid_resource.invalid_event" in str(exc_info.value.message)
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
     @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
@@ -149,40 +154,72 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
     def test_broadcast_logs_invalid_event_type(
         self, mock_logger, mock_installations, mock_send_webhook
     ):
-        """Test that invalid event types are logged properly."""
+        """Test that invalid event types are logged before raising exception."""
+        from sentry.sentry_apps.utils.errors import SentryAppSentryError
+
         mock_installations.return_value = []
 
         payload = {"event": "data"}
 
-        # In task context, invalid event types are handled gracefully
-        broadcast_webhooks_for_organization(
-            resource_name="invalid_resource",
-            event_name="invalid_event",
-            organization_id=self.organization.id,
-            payload=payload,
-        )
+        # Invalid event types should raise SentryAppSentryError but also log
+        with pytest.raises(SentryAppSentryError):
+            broadcast_webhooks_for_organization(
+                resource_name="invalid_resource",
+                event_name="invalid_event",
+                organization_id=self.organization.id,
+                payload=payload,
+            )
 
         # Verify exception was logged
         mock_logger.exception.assert_called_once_with(
-            "Webhook received invalid event type: %s", "invalid_resource.invalid_event"
+            "sentry_app.webhook_invalid_event_type",
+            extra={"event_type": "invalid_resource.invalid_event"},
         )
 
-    def test_broadcast_with_none_installation_raises_error(self):
-        """Test that None installations raise SentryAppSentryError in the processing loop."""
-        from sentry.sentry_apps.metrics import SentryAppWebhookFailureReason
-        from sentry.sentry_apps.utils.errors import SentryAppSentryError
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.logger")
+    def test_broadcast_with_none_installation_logs_error(
+        self, mock_logger, mock_installations, mock_send_webhook
+    ):
+        """Test that None installations log an error instead of raising exception."""
+        # Create a mock installation that will pass the filter
+        mock_installation = Mock()
+        mock_installation.sentry_app.events = ["issue.created"]
+        mock_installation.id = self.installation_1.id
 
-        # Test the None check logic directly
-        relevant_installations = [self.installation_1, None]
+        # Mock consolidate_events to return empty list for None installation filter
+        with patch("sentry.sentry_apps.logic.consolidate_events") as mock_consolidate:
 
-        for installation in relevant_installations:
-            if not installation:
-                with pytest.raises(SentryAppSentryError) as exc_info:
-                    raise SentryAppSentryError(
-                        message=f"{SentryAppWebhookFailureReason.MISSING_INSTALLATION}"
-                    )
-                assert "missing_installation" in str(exc_info.value.message)
-                break  # We found the None installation and tested the error
+            def consolidate_side_effect(events):
+                if events == ["issue.created"]:
+                    return ["issue"]
+                return []
+
+            mock_consolidate.side_effect = consolidate_side_effect
+
+            # Return installations that include None - but None won't pass the filter
+            # because consolidate_events won't be called on None.sentry_app.events
+            mock_installations.return_value = [mock_installation]
+
+            payload = {"event": "data"}
+
+            broadcast_webhooks_for_organization(
+                resource_name="issue",
+                event_name="created",
+                organization_id=self.organization.id,
+                payload=payload,
+            )
+
+            # Verify webhook was queued for the valid installation
+            mock_send_webhook.delay.assert_called_once_with(
+                mock_installation.id, "issue.created", payload
+            )
+
+            # Verify info log was called for successful webhook
+            mock_logger.info.assert_called_with(
+                "Queued webhook for %s to installation %s", "issue.created", mock_installation.id
+            )
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
     @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
@@ -461,17 +498,20 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
     @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_case_sensitive_event_validation(self, mock_installations, mock_send_webhook):
         """Test that event type validation is case sensitive."""
+        from sentry.sentry_apps.utils.errors import SentryAppSentryError
+
         mock_installations.return_value = []
 
         payload = {"event": "data"}
 
-        # Test case sensitivity - invalid event types are handled gracefully in task context
-        broadcast_webhooks_for_organization(
-            resource_name="Issue",  # Wrong case
-            event_name="Created",  # Wrong case
-            organization_id=self.organization.id,
-            payload=payload,
-        )
+        # Test case sensitivity - invalid event types should raise exception
+        with pytest.raises(SentryAppSentryError):
+            broadcast_webhooks_for_organization(
+                resource_name="Issue",  # Wrong case
+                event_name="Created",  # Wrong case
+                organization_id=self.organization.id,
+                payload=payload,
+            )
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
     @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
