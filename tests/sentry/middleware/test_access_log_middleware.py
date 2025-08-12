@@ -208,7 +208,7 @@ class TestAccessLogSnubaRateLimited(LogCaptureAPITestCase):
         self.get_error_response(status_code=429)
         self.assert_access_log_recorded()
 
-        assert self.captured_logs[0].rate_limit_type == "RateLimitType.SNUBA"
+        assert self.captured_logs[0].rate_limit_type == "snuba"
         assert self.captured_logs[0].rate_limited == "True"
 
         # All the types from the standard rate limit metadata should be set
@@ -259,7 +259,7 @@ class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
             assert self.captured_logs[0].group == RateLimitedEndpoint.rate_limits.group
             assert self.captured_logs[i].concurrent_requests == "1"
             assert self.captured_logs[i].concurrent_limit == "1"
-            assert self.captured_logs[i].rate_limit_type == "RateLimitType.NOT_LIMITED"
+            assert self.captured_logs[i].rate_limit_type == "not_limited"
             assert self.captured_logs[i].limit == "20"
             # we cannot assert on the exact amount of remaining requests because
             # we may be crossing a second boundary during our test. That would make things
