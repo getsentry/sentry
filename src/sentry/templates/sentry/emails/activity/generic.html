@@ -2,6 +2,7 @@
 
 {% load sentry_helpers %}
 {% load sentry_assets %}
+{% load sentry_avatars %}
 
 {% block header %}
   {% block action %}
@@ -31,6 +32,8 @@
   {% if group and not enhanced_privacy %}
     {% include "sentry/emails/group_header.html" %}
   {% endif %}
+
+  {% include "sentry/emails/_suspect_commits.html" %}
 
   {% if reason %}
     <p class="via">
