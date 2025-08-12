@@ -1,6 +1,5 @@
 import {t} from 'sentry/locale';
 import {
-
   convertVariantFromBackend,
   EventGroupVariantType,
   isEventGroupVariantType,
