@@ -1,3 +1,4 @@
+import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -42,6 +43,16 @@ describe('MultiQueryModeContent', function () {
       },
       new Set()
     );
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/setup-check/`,
+      body: AutofixSetupFixture({
+        setupAcknowledgement: {
+          orgHasAcknowledged: true,
+          userHasAcknowledged: true,
+        },
+      }),
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
