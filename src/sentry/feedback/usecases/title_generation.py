@@ -124,7 +124,7 @@ def make_seer_request(request: GenerateFeedbackTitleRequest) -> bytes:
     return response.content
 
 
-def get_feedback_title(feedback_message: str, organization_id: int, use_seer: bool) -> str | None:
+def get_feedback_title(feedback_message: str, organization_id: int, use_seer: bool) -> str:
     if use_seer:
         # Message is fallback if Seer fails.
         raw_title = (
