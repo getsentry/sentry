@@ -156,6 +156,7 @@ class AssignedNotificationAPITest(APITestCase):
 
         # Check that suspect commits appear in HTML email
         html_content = msg.alternatives[0][0]
+        assert isinstance(html_content, str)
         assert "Suspect Commits" in html_content
         assert "feat: Add new feature" in html_content  # commit subject
         assert "abc123d" in html_content  # shortened commit ID
@@ -181,6 +182,7 @@ class AssignedNotificationAPITest(APITestCase):
         # Check that no suspect commits section appears
         assert "Suspect Commits" not in msg.body
         html_content = msg.alternatives[0][0]
+        assert isinstance(html_content, str)
         assert "Suspect Commits" not in html_content
 
         # But assignment notification should still work
