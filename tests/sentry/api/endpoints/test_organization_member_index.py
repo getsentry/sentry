@@ -424,7 +424,7 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
         assert response.data["email"] == "eric@localhost"
 
     def test_valid_for_invites(self) -> None:
-        data = {"email": "foo@example.com", "role": "manager", "teams": [self.team.slug]}
+        data = {"email": "foo@example.com", "orgRole": "manager", "teams": [self.team.slug]}
         with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
             self.get_success_response(self.organization.slug, method="post", **data)
 
