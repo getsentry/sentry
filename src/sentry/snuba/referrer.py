@@ -207,7 +207,6 @@ class Referrer(StrEnum):
     # Screenload
     API_INSIGHTS_SCREENLOAD_SCREEN_BAR_CHART = "api.insights.screenload.screen-bar-chart"
     API_INSIGHTS_SCREENLOAD_LANDING_DURATION_CHART = "api.insights.screenload.screen-charts"
-    API_INSIGHTS_SCREENLOAD_SCREEN_BAR_CHART = "api.insights.screenload.screen-bar-chart"
 
     # Caches
     API_INSIGHTS_CACHE_LANDING_CACHE_ONBOARDING = "api.insights.cache.landing-cache-onboarding"
