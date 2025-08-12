@@ -7,6 +7,7 @@ import {IconBranch} from 'sentry/components/codecov/branchSelector/iconBranch';
 import {UserAvatar} from 'sentry/components/core/avatar/userAvatar';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
+import {Tooltip} from 'sentry/components/core/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconCheckmark, IconGithub} from 'sentry/icons';
@@ -92,14 +93,19 @@ export default function CommitDetailWrapper() {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
+                  <IconGithub size="xs" />
                   {commitHash}
                 </CommitHashLink>
                 <span>•</span>
-                <TimestampLink>{mockCommitData.timestamp}</TimestampLink>
-                <CIStatus>
-                  <IconCheckmark size="xs" color="green300" />
-                  <span>CI Passed</span>
-                </CIStatus>
+                <Tooltip title="Aug 8, 2025 11:22:15 PM UTC">
+                  <TimestampLink>{mockCommitData.timestamp}</TimestampLink>
+                </Tooltip>
+                <Tooltip title="This CI status is based on all of your non-Code Coverage related checks">
+                  <CIStatus>
+                    <IconCheckmark size="xs" color="green300" />
+                    <span>CI Passed</span>
+                  </CIStatus>
+                </Tooltip>
                 <BranchInfo>
                   <IconBranch size="xs" />
                   <span>{mockCommitData.branchName}</span>
@@ -235,9 +241,10 @@ const AuthorName = styled('span')`
 `;
 
 const CommitHashLink = styled('a')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
   color: ${p => p.theme.subText};
-  text-decoration: underline;
-  text-decoration-style: dotted;
   font-family: ${p => p.theme.text.familyMono};
 
   &:hover {
@@ -246,12 +253,10 @@ const CommitHashLink = styled('a')`
 `;
 
 const TimestampLink = styled('span')`
-  text-decoration: underline;
-  text-decoration-style: dotted;
   cursor: pointer;
 
   &:hover {
-    color: ${p => p.theme.linkHoverColor};
+    color: ${p => p.theme.subText};
   }
 `;
 
@@ -260,8 +265,6 @@ const CIStatus = styled('div')`
   align-items: center;
   gap: ${p => p.theme.space.xs};
   color: ${p => p.theme.subText};
-  text-decoration: underline;
-  text-decoration-style: dotted;
 `;
 
 const BranchInfo = styled('div')`

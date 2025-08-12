@@ -1,115 +1,103 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import preventAiComment1 from 'sentry-images/codecov/prevent-ai-comment-1.png';
-import preventAiComment2 from 'sentry-images/codecov/prevent-ai-comment-2.png';
-import preventAiIllustration from 'sentry-images/features/preventai.svg';
 
+import {IconIntegratedOrg} from 'sentry/components/codecov/integratedOrgSelector/iconIntegratedOrg';
+import {IconRepository} from 'sentry/components/codecov/repoSelector/iconRepository';
+import {CompactSelect} from 'sentry/components/core/compactSelect';
+import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
-import {IconInfo} from 'sentry/icons';
+import DropdownButton from 'sentry/components/dropdownButton';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 
+// Mock data for demonstration - replace with actual data
+const organizationOptions = [
+  {value: 'turing-corp', label: 'Turing-Corp'},
+  {value: 'Example Org-1', label: 'Example Org-1'},
+  {value: 'Example Org-2', label: 'Example Org-2'},
+];
+
+const repositoryOptions = [
+  {value: 'enigma', label: 'enigma'},
+  {value: 'example-repo-1', label: 'example-repo-1'},
+  {value: 'example-repo-2', label: 'example-repo-2'},
+];
+
 export default function AIPage() {
+  const [selectedOrg, setSelectedOrg] = useState('turing-corp');
+  const [selectedRepo, setSelectedRepo] = useState('enigma');
   return (
     <Fragment>
-      <OnboardingPanel>
-        <Container>
-          <ImageColumn>
-            <IllustrationImage
-              src={preventAiIllustration}
-              alt="Prevent AI illustration"
-            />
-          </ImageColumn>
-          <TextColumn>
-            <Title>{t('Ship Code That Breaks Less With Code Reviews And Tests')}</Title>
-            <Description>
-              {t('Prevent AI is a generative AI agent that automates tasks in your PR:')}
-            </Description>
-            <ul>
-              <li>
-                {t(
-                  'It reviews your pull request, predicting errors and suggesting code fixes.'
-                )}
-              </li>
-              <li>{t('It generates unit tests for untested code in your PR.')}</li>
-            </ul>
-            {/* <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/sentry-prevent-ai/">
-              {t('Learn more')}
-            </ExternalLink> */}
-          </TextColumn>
-        </Container>
-      </OnboardingPanel>
+      <ControlsContainer>
+        <PageFilterBar condensed>
+          <CompactSelect
+            value={selectedOrg}
+            options={organizationOptions}
+            onChange={option => setSelectedOrg(String(option?.value))}
+            trigger={(triggerProps, isOpen) => (
+              <DropdownButton
+                isOpen={isOpen}
+                data-test-id="page-filter-org-selector"
+                {...triggerProps}
+              >
+                <TriggerLabelWrap>
+                  <Flex align="center" gap="sm">
+                    <IconContainer>
+                      <IconIntegratedOrg />
+                    </IconContainer>
+                    <TriggerLabel>
+                      {organizationOptions.find(opt => opt.value === selectedOrg)
+                        ?.label || t('Select organization')}
+                    </TriggerLabel>
+                  </Flex>
+                </TriggerLabelWrap>
+              </DropdownButton>
+            )}
+          />
+
+          <CompactSelect
+            value={selectedRepo}
+            options={repositoryOptions}
+            onChange={option => setSelectedRepo(String(option?.value))}
+            trigger={(triggerProps, isOpen) => (
+              <DropdownButton
+                isOpen={isOpen}
+                data-test-id="page-filter-repo-selector"
+                {...triggerProps}
+              >
+                <TriggerLabelWrap>
+                  <Flex align="center" gap="sm">
+                    <IconContainer>
+                      <IconRepository />
+                    </IconContainer>
+                    <TriggerLabel>
+                      {repositoryOptions.find(opt => opt.value === selectedRepo)?.label ||
+                        t('Select repo')}
+                    </TriggerLabel>
+                  </Flex>
+                </TriggerLabelWrap>
+              </DropdownButton>
+            )}
+          />
+        </PageFilterBar>
+      </ControlsContainer>
 
       <SetupGuidePanel>
         <SetupContainer>
           <SetupContentWrapper>
             <SetupContent>
               <SetupHeader>
-                <SetupTitle>{t('Set up Prevent AI')}</SetupTitle>
+                <SetupTitle>{t('Manage Repositories')}</SetupTitle>
                 <SetupDescription>
                   {t(
-                    "These setups must be installed or approved by an admin. If you're not an admin, reach out to your organization's admins to ensure they approve the installation."
+                    'To install more repositories, manage your Seer by Sentry app on GitHub. To uninstall the app, go to your GitHub Apps settings.'
                   )}
                 </SetupDescription>
               </SetupHeader>
 
               <Divider />
-
-              <StepsContainer>
-                <StepLine />
-                <StepsContent>
-                  <Step>
-                    <StepNumber>
-                      <StepCircle>1</StepCircle>
-                    </StepNumber>
-                    <StepContent>
-                      <StepTitle>{t('Enable Generative AI features')}</StepTitle>
-                      <StepDescription>
-                        {t('Make sure AI features are enabled in your ')}{' '}
-                        <ExternalLink href="https://sentry.io/settings/organization/">
-                          {t('organization settings')}
-                        </ExternalLink>
-                        .
-                      </StepDescription>
-                    </StepContent>
-                  </Step>
-
-                  <Step>
-                    <StepNumber>
-                      <StepCircle>2</StepCircle>
-                    </StepNumber>
-                    <StepContent>
-                      <StepTitle>{t('Set Up GitHub Integration')}</StepTitle>
-                      <StepDescription>
-                        {t('To grant Seer access to your codebase, follow these ')}{' '}
-                        <ExternalLink href="https://docs.sentry.io/product/integrations/source-code-mgmt/github/">
-                          {t('GitHub integration instructions')}
-                        </ExternalLink>
-                        :{' '}
-                        {t(
-                          '1. Install the Sentry GitHub app. 2. Connect your GitHub repositories.'
-                        )}
-                      </StepDescription>
-                    </StepContent>
-                  </Step>
-
-                  <Step>
-                    <StepNumber>
-                      <StepCircle>3</StepCircle>
-                    </StepNumber>
-                    <StepContent>
-                      <StepTitle>{t('Set Up Seer')}</StepTitle>
-                      <StepDescription>
-                        {t('Install the ')}{' '}
-                        <ExternalLink href="https://github.com/apps/seer-by-sentry">
-                          {t('Seer by Sentry GitHub App')}
-                        </ExternalLink>{' '}
-                        {t('within the same GitHub organization.')}
-                      </StepDescription>
-                    </StepContent>
-                  </Step>
-                </StepsContent>
-              </StepsContainer>
 
               <InfoBox>
                 <InfoContent>
@@ -151,110 +139,51 @@ export default function AIPage() {
             </SetupContent>
 
             <SetupImageColumn>
-              <PreventAiImage
+              <BasePreventAiImage
                 src={preventAiComment1}
                 alt="Prevent AI PR comment example 1"
-              />
-              <PreventAiImage
-                src={preventAiComment2}
-                alt="Prevent AI PR comment example 2"
               />
             </SetupImageColumn>
           </SetupContentWrapper>
         </SetupContainer>
-
-        <DisclaimerText>
-          <IconInfo size="xs" color="subText" />
-          {t('This page will remain visible after the app is installed.')}
-        </DisclaimerText>
       </SetupGuidePanel>
     </Fragment>
   );
 }
 
-const OnboardingPanel = styled('div')`
-  background: ${p => p.theme.tokens.background.primary};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  margin-bottom: ${p => p.theme.space.xl};
-  position: relative;
-`;
+const ControlsContainer = styled('div')`
+  display: flex;
+  gap: ${p => p.theme.space.xl};
+  flex-wrap: wrap;
+  align-items: center;
+  padding-bottom: 20px;
 
-const Container = styled('div')`
-  padding: ${p => p.theme.space['2xl']};
-  position: relative;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    display: flex;
-    align-items: center;
-    flex-direction: row;
-    justify-content: center;
-    flex-wrap: wrap;
-    min-height: 300px;
-    max-width: 1000px;
-    margin: 0 auto;
+  /* Mobile responsive adjustments */
+  @media (max-width: 767px) {
+    gap: ${p => p.theme.space.md};
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    min-height: 250px;
+  @media (max-width: 1023px) {
+    gap: ${p => p.theme.space.lg};
   }
 `;
 
-const ImageColumn = styled('div')`
+const TriggerLabelWrap = styled('span')`
   position: relative;
-  min-height: 100px;
-  max-width: 300px;
-  min-width: 150px;
-  margin: ${p => p.theme.space.xl} auto;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    flex: 1;
-    margin: ${p => p.theme.space['2xl']};
-    max-width: auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-`;
-
-const TextColumn = styled('div')`
   min-width: 0;
-  z-index: 1;
-  max-width: 600px;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    flex: 2;
-  }
+  max-width: 200px;
 `;
 
-const IllustrationImage = styled('img')`
-  width: 227px;
-  height: 157px;
-  object-fit: contain;
-  max-width: 100%;
+const TriggerLabel = styled('span')`
+  ${p => p.theme.overflowEllipsis}
+  width: auto;
 `;
 
-const Title = styled('h3')`
-  font-family: ${p => p.theme.text.family};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: 26px;
-  line-height: ${p => p.theme.text.lineHeightHeading};
-  color: ${p => p.theme.tokens.content.primary};
-  margin: 0 0 ${p => p.theme.space.xs} 0;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    font-size: ${p => p.theme.fontSize.xl};
-    text-align: center;
-  }
-`;
-
-const Description = styled('p')`
-  font-family: ${p => p.theme.text.family};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.md};
-  line-height: ${p => p.theme.text.lineHeightBody};
-  color: ${p => p.theme.tokens.content.primary};
-  margin: 0 0 ${p => p.theme.space.md} 0;
+const IconContainer = styled('div')`
+  flex: 1 0 14px;
+  height: 14px;
 `;
 
 const SetupGuidePanel = styled('div')`
@@ -298,81 +227,6 @@ const Divider = styled('div')`
   height: 1px;
   background: ${p => p.theme.tokens.border.primary};
   margin: ${p => p.theme.space['2xl']} 0;
-`;
-
-const StepsContainer = styled('div')`
-  position: relative;
-  margin-bottom: ${p => p.theme.space['2xl']};
-`;
-
-const StepLine = styled('div')`
-  position: absolute;
-  left: 13px;
-  top: 26px;
-  bottom: 26px;
-  width: 0;
-  border-left: 1px solid ${p => p.theme.tokens.border.primary};
-  z-index: 1;
-`;
-
-const StepsContent = styled('div')`
-  margin-left: ${p => p.theme.space['3xl']};
-`;
-
-const Step = styled('div')`
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: ${p => p.theme.space['3xl']};
-  position: relative;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
-
-const StepNumber = styled('div')`
-  position: absolute;
-  left: -${p => p.theme.space['3xl']};
-  top: ${p => p.theme.space.xs};
-  z-index: 2;
-`;
-
-const StepCircle = styled('div')`
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: ${p => p.theme.tokens.content.accent};
-  color: ${p => p.theme.white};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: ${p => p.theme.text.family};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.md};
-  line-height: 1.19;
-`;
-
-const StepContent = styled('div')`
-  flex: 1;
-`;
-
-const StepTitle = styled('h4')`
-  font-family: ${p => p.theme.text.family};
-  font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: 18px;
-  line-height: ${p => p.theme.text.lineHeightHeading};
-  letter-spacing: -0.31px;
-  color: ${p => p.theme.tokens.content.primary};
-  margin: 0 0 ${p => p.theme.space.xs} 0;
-`;
-
-const StepDescription = styled('p')`
-  font-family: ${p => p.theme.text.family};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.md};
-  line-height: ${p => p.theme.text.lineHeightBody};
-  color: ${p => p.theme.tokens.content.muted};
-  margin: 0;
 `;
 
 const InfoBox = styled('div')`
@@ -433,19 +287,6 @@ const InfoNote = styled('p')`
   margin: 0;
 `;
 
-const DisclaimerText = styled('div')`
-  padding: 0 ${p => p.theme.space['3xl']} ${p => p.theme.space['2xl']};
-  font-family: ${p => p.theme.text.family};
-  font-weight: ${p => p.theme.fontWeight.normal};
-  font-size: ${p => p.theme.fontSize.sm};
-  line-height: ${p => p.theme.text.lineHeightBody};
-  color: ${p => p.theme.tokens.content.muted};
-  text-align: left;
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-`;
-
 const SetupContentWrapper = styled('div')`
   display: flex;
   gap: ${p => p.theme.space['2xl']};
@@ -474,11 +315,10 @@ const SetupImageColumn = styled('div')`
   }
 `;
 
-const PreventAiImage = styled('img')`
+const BasePreventAiImage = styled('img')`
   width: 100%;
-  height: auto;
+  height: 650px;
   border-radius: 8px;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
   object-fit: contain;
 `;
 

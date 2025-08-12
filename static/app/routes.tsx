@@ -2491,6 +2491,11 @@ function buildRoutes(): RouteObject[] {
             },
           ],
         },
+        // Render AI onboarding without any layout wrapping
+        {
+          path: 'new/',
+          component: make(() => import('sentry/views/codecov/ai/onboarding')),
+        },
       ],
     },
     {
