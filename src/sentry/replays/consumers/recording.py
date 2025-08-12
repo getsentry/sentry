@@ -17,7 +17,6 @@ from sentry_sdk import set_tag
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.filestore.gcs import GCS_RETRYABLE_ERRORS
 from sentry.replays.usecases.ingest import (
     DropEvent,
     Event,
@@ -26,6 +25,7 @@ from sentry.replays.usecases.ingest import (
     process_recording_event,
     track_recording_metadata,
 )
+from sentry.services.filestore.gcs import GCS_RETRYABLE_ERRORS
 from sentry.utils import json, metrics
 
 RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
