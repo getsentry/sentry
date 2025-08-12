@@ -86,11 +86,7 @@ export default function GroupingInfo({
       {hasPerformanceGrouping || isSuccess
         ? variants.map((variant, index) => (
             <Fragment key={variant.key}>
-              <GroupingVariant
-                event={event}
-                showGroupingConfig={showGroupingConfig}
-                variant={variant}
-              />
+              <GroupingVariant event={event} variant={variant} />
               {index < variants.length - 1 && <VariantDivider />}
             </Fragment>
           ))
