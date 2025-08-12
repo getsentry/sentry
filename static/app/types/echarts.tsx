@@ -5,12 +5,12 @@ import type {
   LineSeriesOption,
   PatternObject,
 } from 'echarts';
+import type EChartsReact from 'echarts-for-react';
 import type {
   Dictionary,
   OptionDataItemObject,
   OptionDataValue,
 } from 'echarts/types/src/util/types';
-import type EChartsReact from 'echarts-for-react';
 
 import type {Confidence} from 'sentry/types/organization';
 

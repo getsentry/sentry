@@ -9,13 +9,13 @@ import {PercentChange, type Polarity} from 'sentry/components/percentChange';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {
-  type CountUnit,
   CurrencyUnit,
   DurationUnit,
-  type PercentageUnit,
-  type PercentChangeUnit,
   RateUnit,
   SizeUnit,
+  type CountUnit,
+  type PercentageUnit,
+  type PercentChangeUnit,
 } from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';

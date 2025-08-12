@@ -15,6 +15,7 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {escapeDoubleQuotes} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -407,7 +408,7 @@ class ReleaseIssues extends Component<Props, State> {
           <GroupList
             endpointPath={path}
             queryParams={queryParams}
-            query={`release:${version}`}
+            query={`release:"${escapeDoubleQuotes(version)}"`}
             canSelectGroups={false}
             queryFilterDescription={queryFilterDescription}
             withChart={withChart}

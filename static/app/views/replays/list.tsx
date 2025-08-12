@@ -39,7 +39,6 @@ export default function ReplaysListContainer() {
   } = usePageFilters();
   const rageClicksSdkVersion = useProjectSdkNeedsUpdate({
     minVersion: MIN_DEAD_RAGE_CLICK_SDK.minVersion,
-    organization,
     projectId: projects.map(String),
   });
 

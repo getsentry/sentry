@@ -17,6 +17,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');
@@ -101,8 +102,8 @@ describe('useSaveAsItems', () => {
     const {result} = renderHook(
       () =>
         useSaveAsItems({
-          aggregate: 'count()',
-          groupBy: 'message.template',
+          visualizes: [new VisualizeFunction('count()')],
+          groupBys: ['message.template'],
           interval: '5m',
           mode: Mode.AGGREGATE,
           search: new MutableSearch('message:"test error"'),
@@ -130,8 +131,8 @@ describe('useSaveAsItems', () => {
     const {result} = renderHook(
       () =>
         useSaveAsItems({
-          aggregate: 'count()',
-          groupBy: 'message.template',
+          visualizes: [new VisualizeFunction('count()')],
+          groupBys: ['message.template'],
           interval: '5m',
           mode: Mode.AGGREGATE,
           search: new MutableSearch('message:"test error"'),

@@ -8,8 +8,8 @@ import {
 import {openModal} from 'sentry/actionCreators/modal';
 
 import {
-  type FrameSourceMapDebuggerData,
   SourceMapsDebuggerModal,
+  type FrameSourceMapDebuggerData,
   type SourceMapsDebuggerModalProps,
 } from './sourceMapsDebuggerModal';
 
