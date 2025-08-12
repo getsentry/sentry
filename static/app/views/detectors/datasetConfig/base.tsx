@@ -2,6 +2,7 @@ import type {SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import type {MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -72,6 +73,7 @@ export interface DetectorDatasetConfig<SeriesResponse> {
     customMeasurements?: CustomMeasurementCollection
   ) => Record<string, SelectValue<FieldValue>>;
   getSeriesQueryOptions: (options: DetectorSeriesQueryOptions) => ApiQueryKey;
+  supportedDetectionTypes: Array<MetricDetectorConfig['detectionType']>;
   /**
    * Transform the user-friendly aggregate function to the API aggregate function.
    * This is currently only used for the releases dataset.

@@ -24,4 +24,5 @@ export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
   },
   fromApiAggregate: aggregate => aggregate,
   toApiAggregate: aggregate => aggregate,
+  supportedDetectionTypes: ['static', 'percent', 'dynamic'],
 };
