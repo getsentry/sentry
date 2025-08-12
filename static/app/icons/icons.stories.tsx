@@ -200,6 +200,21 @@ const SECTIONS: TSection[] = [
         name: 'AllProjects',
         defaultProps: {},
       },
+
+      {
+        id: 'business-plan',
+        groups: ['product'],
+        keywords: ['feature', 'plan'],
+        name: 'BusinessPlan',
+        defaultProps: {},
+      },
+      {
+        id: 'team-plan',
+        groups: ['product'],
+        keywords: ['feature', 'plan'],
+        name: 'TeamPlan',
+        defaultProps: {},
+      },
     ],
   },
   {
