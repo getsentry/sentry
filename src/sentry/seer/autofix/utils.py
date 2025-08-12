@@ -48,6 +48,8 @@ class CodingAgentStatus(str, enum.Enum):
 
 class CodingAgentResult(BaseModel):
     description: str
+    repo_external_id: str
+    branch_name: str | None = None
     pr_url: str | None = None
 
 
@@ -55,11 +57,9 @@ class CodingAgentState(BaseModel):
     id: str
     status: CodingAgentStatus = CodingAgentStatus.PENDING
     agent_url: str | None = None
-    pr_url: str | None = None
-    branch_name: str | None = None
     name: str
-    started_at: datetime
-    result: CodingAgentResult | None = None
+    started_at: datetime.datetime
+    results: list[CodingAgentResult] = []
 
 
 class CodebaseState(BaseModel):

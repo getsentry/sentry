@@ -59,16 +59,13 @@ def sanitize_branch_name(branch_name: str) -> str:
     return f"{sanitized}-{random_suffix}" if sanitized else f"branch-{random_suffix}"
 
 
-def store_coding_agent_state_to_seer(
-    run_id: int, repo_external_id: str, coding_agent_state: CodingAgentState
-) -> bool:
+def store_coding_agent_state_to_seer(run_id: int, coding_agent_state: CodingAgentState) -> bool:
     """Store coding agent state via Seer API."""
     try:
         path = "/v1/automation/autofix/coding-agent/state"
         body = orjson.dumps(
             {
                 "run_id": run_id,
-                "repo_external_id": repo_external_id,
                 "coding_agent_state": coding_agent_state.dict(),
             }
         )
@@ -88,7 +85,6 @@ def store_coding_agent_state_to_seer(
             "coding_agent.state_stored_to_seer",
             extra={
                 "run_id": run_id,
-                "repo_external_id": repo_external_id,
                 "status_code": response.status_code,
             },
         )
@@ -99,7 +95,6 @@ def store_coding_agent_state_to_seer(
             "coding_agent.seer_store_error",
             extra={
                 "run_id": run_id,
-                "repo_external_id": repo_external_id,
                 "error": str(e),
             },
         )
@@ -384,10 +379,8 @@ class OrganizationCodingAgentTriggerEndpoint(OrganizationEndpoint):
                 coding_agent_state = installation.launch(launch_request)
 
                 # Store the coding agent state to Seer
-                repo_external_id = repo["external_id"]
                 repo_store_success = store_coding_agent_state_to_seer(
                     run_id=run_id,
-                    repo_external_id=repo_external_id,
                     coding_agent_state=coding_agent_state,
                 )
 
@@ -397,7 +390,6 @@ class OrganizationCodingAgentTriggerEndpoint(OrganizationEndpoint):
                         extra={
                             "organization_id": organization.id,
                             "run_id": run_id,
-                            "repo_external_id": repo_external_id,
                             "repo_name": repo_name,
                         },
                     )
