@@ -52,7 +52,7 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
           }
         );
         setSampleIssueId((data.length > 0 && data[0].id) || '');
-      } catch (err) {
+      } catch (err: any) {
         setError(err?.responseJSON?.detail ?? true);
       }
     }

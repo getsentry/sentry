@@ -1,7 +1,7 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import type {Client, ResponseMeta} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/core/alert';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -12,6 +12,7 @@ import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import withApi from 'sentry/utils/withApi';
 
 type DetailsProps = {
@@ -22,7 +23,7 @@ type DetailsProps = {
 };
 
 type DetailsState = {
-  error: null | ResponseMeta;
+  error: null | RequestError;
   loading: boolean;
   project: null | Project;
 };
@@ -65,7 +66,7 @@ class ProjectDetailsInner extends Component<DetailsProps, DetailsState> {
     } catch (error) {
       this.setState({
         loading: false,
-        error,
+        error: error as RequestError,
         project: null,
       });
     }

@@ -244,7 +244,7 @@ export const useAiAutofix = (
         queryClient.invalidateQueries({
           queryKey: makeAutofixQueryKey(orgSlug, group.id, isUserWatching),
         });
-      } catch (e) {
+      } catch (e: any) {
         setWaitingForNextRun(false);
         setApiQueryData<AutofixResponse>(
           queryClient,

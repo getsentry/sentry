@@ -544,7 +544,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
         } else {
           this.handleRuleSuccess(isNew, data);
         }
-      } catch (err) {
+      } catch (err: any) {
         this.setState({
           detailedError: err.responseJSON || {__all__: 'Unknown error'},
           loading: false,
@@ -581,7 +581,7 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
           stepBack: -2,
         })
       );
-    } catch (err) {
+    } catch (err: any) {
       this.setState({
         detailedError: err.responseJSON || {__all__: 'Unknown error'},
       });

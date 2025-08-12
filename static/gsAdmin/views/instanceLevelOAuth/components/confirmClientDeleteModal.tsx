@@ -6,6 +6,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/core/button';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
 type Props = ModalRenderProps & {
@@ -25,7 +26,7 @@ function ConfirmClientDeleteModal({Body, Header, clientID, name}: Props) {
       browserHistory.push(`/_admin/instance-level-oauth/`);
     } catch (err) {
       const message = 'Unable to load client data';
-      handleXhrErrorResponse(message, err);
+      handleXhrErrorResponse(message, err as RequestError);
       addErrorMessage(message);
     }
   };

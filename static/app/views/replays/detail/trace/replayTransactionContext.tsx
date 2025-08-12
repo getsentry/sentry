@@ -132,7 +132,7 @@ export default function ReplayTransactionContext({children, replayRecord}: Optio
       } catch (error) {
         setState(prev => ({
           ...prev,
-          detailsErrors: prev.detailsErrors.concat(error),
+          detailsErrors: prev.detailsErrors.concat(error as Error),
         }));
       }
     },

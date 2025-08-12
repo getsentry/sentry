@@ -117,7 +117,7 @@ function ProjectGeneralSettings({onChangeSlug}: Props) {
       await transferProject(api, organization.slug, project, form.email);
       // Need to hard reload because lots of components do not listen to Projects Store
       window.location.assign('/');
-    } catch (err) {
+    } catch (err: any) {
       if (err.status >= 500) {
         handleXhrErrorResponse('Unable to transfer project', err);
       }

@@ -56,7 +56,7 @@ function ChangeBalanceModal({
       addSuccessMessage('Customer balance updated');
       onSuccess();
       closeModal();
-    } catch (err) {
+    } catch (err: any) {
       onSubmitError({
         responseJSON: err.responseJSON,
       });

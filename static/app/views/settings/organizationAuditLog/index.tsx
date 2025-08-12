@@ -121,7 +121,7 @@ function OrganizationAuditLog({location}: Props) {
         isLoading: false,
         entryListPageLinks: response?.getResponseHeader('Link') ?? null,
       }));
-    } catch (err) {
+    } catch (err: any) {
       if (err.status !== 401 && err.status !== 403) {
         Sentry.captureException(err);
       }

@@ -142,7 +142,7 @@ class DialogManager<P extends Props = Props, S extends State = State> extends Co
       });
       onSubmitSuccess(response);
       closeModal();
-    } catch (error) {
+    } catch (error: any) {
       this.handleErrorResponse(createTrustedRelaysResponseError(error));
     }
   };

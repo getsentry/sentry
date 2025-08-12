@@ -36,6 +36,7 @@ import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {makeIssuesINPObserver} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -482,7 +483,7 @@ function IssueListOverview({
           GroupStore.onPopulateStats(newGroupIds, data);
         }
       } catch (e) {
-        setError(parseApiError(e));
+        setError(parseApiError(e as RequestError));
       } finally {
         // End navigation transaction to prevent additional page requests from impacting page metrics.
         // Other transactions include stacktrace preview request
@@ -929,7 +930,7 @@ function IssueListOverview({
         actionTakenRef.current = true;
       },
       error: err => {
-        setError(parseApiError(err));
+        setError(parseApiError(err as RequestError));
         setIssuesLoading(false);
       },
       complete: () => {

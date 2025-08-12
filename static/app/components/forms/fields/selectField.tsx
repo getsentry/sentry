@@ -207,7 +207,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
                       onConfirm: () => this.handleChange(onBlur, onChange, val),
                       message: confirm[val?.value] ?? t('Continue with these changes?'),
                     });
-                  } catch (e) {
+                  } catch (e: any) {
                     // Swallow expected error to prevent bubbling up.
                     if (e.message === 'Invalid selection. Field cannot be empty.') {
                       return;
