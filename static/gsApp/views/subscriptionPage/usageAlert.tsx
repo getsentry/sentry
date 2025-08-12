@@ -24,11 +24,7 @@ import {
   isUnlimitedReserved,
   UsageAction,
 } from 'getsentry/utils/billing';
-import {
-  getPlanCategoryName,
-  isContinuousProfiling,
-  sortCategoriesWithKeys,
-} from 'getsentry/utils/dataCategory';
+import {getPlanCategoryName, sortCategoriesWithKeys} from 'getsentry/utils/dataCategory';
 
 import {ButtonWrapper, SubscriptionBody} from './styles';
 
@@ -98,10 +94,7 @@ function UsageAlert({subscription, usage}: Props) {
           projectedWithReservedUnit > (currentHistory.prepaid ?? 0);
 
         if (hasOverage) {
-          const formattedValue = isContinuousProfiling(category)
-            ? projectedWithReservedUnit
-            : projected;
-          acc.push(formatProjected(formattedValue, category as DataCategory));
+          acc.push(formatProjected(projectedWithReservedUnit, category as DataCategory));
         }
         return acc;
       },
