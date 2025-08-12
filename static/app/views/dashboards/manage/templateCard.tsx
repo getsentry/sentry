@@ -29,7 +29,11 @@ function TemplateCard({title, description, onPreview, onAdd}: Props) {
       </Header>
       <ButtonContainer>
         <DashboardCreateLimitWrapper>
-          {({hasReachedDashboardLimit, isLoadingDashboardsLimit, limitMessage}) => (
+          {({
+            hasReachedDashboardLimit,
+            isLoading: isLoadingDashboardsLimit,
+            limitMessage,
+          }) => (
             <StyledButton
               onClick={() => {
                 setIsAddingDashboardTemplate(true);
