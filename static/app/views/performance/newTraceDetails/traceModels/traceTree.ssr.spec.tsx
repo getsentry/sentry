@@ -14,7 +14,7 @@ import {TraceTree} from './traceTree';
 const organization = OrganizationFixture();
 const start = new Date('2024-02-29T00:00:00Z').getTime() / 1e3;
 
-const traceOptions = {replay: null, meta: null, organization};
+const traceMetadata = {replay: null, meta: null, organization};
 
 const ssrTrace = makeTrace({
   transactions: [
@@ -83,7 +83,7 @@ const ssrSpans = [
 
 describe('server side rendering', () => {
   it('reparents pageload transaction as parent of server handler', () => {
-    const tree = TraceTree.FromTrace(ssrTrace, traceOptions);
+    const tree = TraceTree.FromTrace(ssrTrace, traceMetadata);
 
     const pageload = tree.root.children[0]!.children[0]!;
     const serverHandler = pageload.children[0]!;
@@ -94,7 +94,7 @@ describe('server side rendering', () => {
   });
 
   it('reparents server handler under browser request span', () => {
-    const tree = TraceTree.FromTrace(ssrTrace, traceOptions);
+    const tree = TraceTree.FromTrace(ssrTrace, traceMetadata);
 
     TraceTree.FromSpans(
       tree.root.children[0]!.children[0]!,
@@ -124,14 +124,14 @@ describe('server side rendering', () => {
           }),
         ],
       }),
-      traceOptions
+      traceMetadata
     );
 
     expect(tree.build().serialize()).toMatchSnapshot();
   });
 
   it('does not reparent if server handler does not have SSR reparent reason', () => {
-    const tree = TraceTree.FromTrace(ssrTrace, traceOptions);
+    const tree = TraceTree.FromTrace(ssrTrace, traceMetadata);
 
     // The automatic pageload reparenting should have happened
     const pageload = tree.root.children[0]!.children[0]!;
@@ -162,7 +162,7 @@ describe('server side rendering', () => {
 
   describe('eap traces', () => {
     it('reparents pageload transaction as parent of server handler', () => {
-      const tree = TraceTree.FromTrace(ssrEAPTrace, traceOptions);
+      const tree = TraceTree.FromTrace(ssrEAPTrace, traceMetadata);
 
       const pageload = tree.root.children[0]!.children[0]!;
       const serverHandler = pageload.children[0]!;
@@ -173,7 +173,7 @@ describe('server side rendering', () => {
     });
 
     it('reparents server handler under browser request span', () => {
-      const tree = TraceTree.FromTrace(ssrEAPTrace, traceOptions);
+      const tree = TraceTree.FromTrace(ssrEAPTrace, traceMetadata);
 
       const pageload = tree.root.children[0]!.children[0]!;
       tree.expand(pageload, true);

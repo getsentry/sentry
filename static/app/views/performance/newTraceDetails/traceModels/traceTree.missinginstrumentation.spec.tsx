@@ -15,7 +15,7 @@ import {TraceTree} from './traceTree';
 const organization = OrganizationFixture();
 
 const start = new Date('2024-02-29T00:00:00Z').getTime() / 1e3;
-const traceOptions = {replay: null, meta: null, organization};
+const traceMetadata = {replay: null, meta: null, organization};
 
 const singleTransactionTrace = makeTrace({
   transactions: [
@@ -98,7 +98,7 @@ const eapChildrenMissingInstrumentationSpans = [
 
 describe('missing instrumentation', () => {
   it('adds missing instrumentation between sibling spans', () => {
-    const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+    const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
     TraceTree.FromSpans(
       tree.root.children[0]!.children[0]!,
       missingInstrumentationSpans,
@@ -110,7 +110,7 @@ describe('missing instrumentation', () => {
   });
 
   it('adds missing instrumentation between children spans', () => {
-    const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+    const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
     TraceTree.FromSpans(
       tree.root.children[0]!.children[0]!,
       childrenMissingInstrumentationSpans,
@@ -130,7 +130,7 @@ describe('missing instrumentation', () => {
           }),
         ],
       }),
-      traceOptions
+      traceMetadata
     );
 
     TraceTree.FromSpans(
@@ -169,7 +169,7 @@ describe('missing instrumentation', () => {
   });
 
   it('removes missing instrumentation nodes', () => {
-    const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+    const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
     TraceTree.FromSpans(
       tree.root.children[0]!.children[0]!,
       missingInstrumentationSpans,
@@ -193,7 +193,7 @@ describe('missing instrumentation', () => {
   });
 
   it('does not add missing instrumentation for browser SDKs', () => {
-    const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+    const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
     TraceTree.FromSpans(
       tree.root.children[0]!.children[0]!,
       missingInstrumentationSpans,
@@ -210,7 +210,7 @@ describe('missing instrumentation', () => {
     ['children', childrenMissingInstrumentationSpans],
     ['siblings', missingInstrumentationSpans],
   ])('idempotent - %s', (_type, setup) => {
-    const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+    const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
     TraceTree.FromSpans(
       tree.root.children[0]!.children[0]!,
       setup,
@@ -227,7 +227,7 @@ describe('missing instrumentation', () => {
     it('adds missing instrumentation between sibling eap spans', () => {
       const tree = TraceTree.FromTrace(
         makeEAPTrace(eapMissingInstrumentationSpans),
-        traceOptions
+        traceMetadata
       );
 
       TraceTree.DetectMissingInstrumentation(tree.root);
@@ -237,7 +237,7 @@ describe('missing instrumentation', () => {
     it('adds missing instrumentation between eap children spans', () => {
       const tree = TraceTree.FromTrace(
         makeEAPTrace(eapChildrenMissingInstrumentationSpans),
-        traceOptions
+        traceMetadata
       );
 
       TraceTree.DetectMissingInstrumentation(tree.root);
@@ -247,7 +247,7 @@ describe('missing instrumentation', () => {
     it('removes missing instrumentation nodes', () => {
       const tree = TraceTree.FromTrace(
         makeEAPTrace(eapMissingInstrumentationSpans),
-        traceOptions
+        traceMetadata
       );
 
       const snapshot = tree.build().serialize();

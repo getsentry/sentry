@@ -15,7 +15,7 @@ import {TraceTree} from './traceTree';
 const organization = OrganizationFixture();
 
 const start = new Date('2024-02-29T00:00:00Z').getTime() / 1e3;
-const traceOptions = {replay: null, meta: null, organization};
+const traceMetadata = {replay: null, meta: null, organization};
 
 const options = {
   organization,
@@ -155,7 +155,7 @@ const parentAutogroupSpansWithChilden = [
 describe('autogrouping', () => {
   describe('parent autogrouping', () => {
     it('groups parent chain with same op', () => {
-      const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
         parentAutogroupSpans,
@@ -167,7 +167,7 @@ describe('autogrouping', () => {
     });
 
     it('assigns children to tail node', () => {
-      const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
         [
@@ -200,7 +200,7 @@ describe('autogrouping', () => {
     });
 
     it('autogrouped chain points to tail', () => {
-      const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
         [
@@ -220,7 +220,7 @@ describe('autogrouping', () => {
     });
 
     it('expanding parent autogroup renders head to tail chain', () => {
-      const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
         parentAutogroupSpans,
@@ -239,7 +239,7 @@ describe('autogrouping', () => {
     });
 
     it('collapsing parent autogroup removes its children', () => {
-      const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
         parentAutogroupSpans,
@@ -266,7 +266,7 @@ describe('autogrouping', () => {
     });
 
     it('can expand and collapse', () => {
-      const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
         [
@@ -317,7 +317,7 @@ describe('autogrouping', () => {
     });
 
     it('autogroups siblings when they are children of a parent autogroup chain', () => {
-      const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
         [
@@ -343,7 +343,7 @@ describe('autogrouping', () => {
     });
 
     it('removes collapsed parent autogroup', () => {
-      const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
         parentAutogroupSpansWithChilden,
@@ -364,7 +364,7 @@ describe('autogrouping', () => {
     });
 
     it('removes expanded parent autogroup', () => {
-      const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
         parentAutogroupSpansWithChilden,
@@ -395,7 +395,7 @@ describe('autogrouping', () => {
       it('groups parent chain with same op', () => {
         const tree = TraceTree.FromTrace(
           makeEAPTrace(parentAutogroupEAPSpans),
-          traceOptions
+          traceMetadata
         );
 
         TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
@@ -435,7 +435,7 @@ describe('autogrouping', () => {
               ],
             }),
           ]),
-          traceOptions
+          traceMetadata
         );
 
         TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
@@ -445,7 +445,7 @@ describe('autogrouping', () => {
       it('collapsing parent autogroup removes its children', () => {
         const tree = TraceTree.FromTrace(
           makeEAPTrace(parentAutogroupEAPSpans),
-          traceOptions
+          traceMetadata
         );
         TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
 
@@ -469,7 +469,7 @@ describe('autogrouping', () => {
       it('removes collapsed parent autogroup', () => {
         const tree = TraceTree.FromTrace(
           makeEAPTrace(parentAutogroupEAPSpans),
-          traceOptions
+          traceMetadata
         );
         const snapshot = tree.build().serialize();
 
@@ -489,7 +489,7 @@ describe('autogrouping', () => {
 
   describe('sibling autogrouping', () => {
     it('groups spans with the same op and description', () => {
-      const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
         siblingAutogroupSpans,
@@ -502,7 +502,7 @@ describe('autogrouping', () => {
     });
 
     it('does not autogroup if count is less 5', () => {
-      const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
         siblingAutogroupSpans.slice(0, 4),
@@ -515,7 +515,7 @@ describe('autogrouping', () => {
     });
 
     it('autogroups multiple consecutive groups', () => {
-      const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
         [
@@ -531,7 +531,7 @@ describe('autogrouping', () => {
     });
 
     it('expanding sibling autogroup renders its children', () => {
-      const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
         siblingAutogroupSpans,
@@ -550,7 +550,7 @@ describe('autogrouping', () => {
     });
 
     it('collapsing sibling autogroup removes its children', () => {
-      const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
         siblingAutogroupSpans,
@@ -574,7 +574,7 @@ describe('autogrouping', () => {
     });
 
     it('removes sibling autogroup', () => {
-      const tree = TraceTree.FromTrace(singleTransactionTrace, traceOptions);
+      const tree = TraceTree.FromTrace(singleTransactionTrace, traceMetadata);
       TraceTree.FromSpans(
         tree.root.children[0]!.children[0]!,
         siblingAutogroupSpans,
@@ -601,7 +601,7 @@ describe('autogrouping', () => {
       it('groups spans with the same op and description', () => {
         const tree = TraceTree.FromTrace(
           makeEAPTrace(siblingAutogroupEAPSpans),
-          traceOptions
+          traceMetadata
         );
 
         TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
@@ -668,7 +668,7 @@ describe('autogrouping', () => {
               ],
             }),
           ]),
-          traceOptions
+          traceMetadata
         );
 
         TraceTree.AutogroupSiblingSpanNodes(tree.root, {
@@ -712,7 +712,7 @@ describe('autogrouping', () => {
               ],
             }),
           ]),
-          traceOptions
+          traceMetadata
         );
 
         TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
@@ -723,7 +723,7 @@ describe('autogrouping', () => {
       it('expanding sibling autogroup renders its children', () => {
         const tree = TraceTree.FromTrace(
           makeEAPTrace(siblingAutogroupEAPSpans),
-          traceOptions
+          traceMetadata
         );
 
         TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
@@ -740,7 +740,7 @@ describe('autogrouping', () => {
       it('collapsing sibling autogroup removes its children', () => {
         const tree = TraceTree.FromTrace(
           makeEAPTrace(siblingAutogroupEAPSpans),
-          traceOptions
+          traceMetadata
         );
 
         TraceTree.AutogroupSiblingSpanNodes(tree.root, options);
@@ -762,7 +762,7 @@ describe('autogrouping', () => {
       it('removes sibling autogroup', () => {
         const tree = TraceTree.FromTrace(
           makeEAPTrace(siblingAutogroupEAPSpans),
-          traceOptions
+          traceMetadata
         );
 
         const snapshot = tree.build().serialize();
