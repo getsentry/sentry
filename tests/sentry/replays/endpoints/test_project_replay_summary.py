@@ -95,15 +95,6 @@ class ProjectReplaySummaryTestCase(
                     )
                     assert response.status_code == 404, (replay, replay_ai, method)
 
-    def test_no_seer_permissions(self) -> None:
-        self.mock_has_seer_perms.return_value = False
-        with self.feature(self.features):
-            for method in ["GET", "POST"]:
-                response = (
-                    self.client.get(self.url) if method == "GET" else self.client.post(self.url)
-                )
-                assert response.status_code == 403, method
-
     @responses.activate
     def test_get_simple(self) -> None:
         mock_seer_response("GET", status=200, json={"hello": "world"})
@@ -164,6 +155,12 @@ class ProjectReplaySummaryTestCase(
             "organization_id": self.organization.id,
             "project_id": self.project.id,
         }
+
+    def test_post_without_seer_permissions(self) -> None:
+        self.mock_has_seer_perms.return_value = False
+        with self.feature(self.features):
+            response = self.client.post(self.url)
+            assert response.status_code == 403
 
     @patch("sentry.replays.endpoints.project_replay_summary.requests")
     def test_post_with_both_direct_and_trace_connected_errors(self, mock_requests) -> None:

@@ -132,8 +132,7 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         ):
             return self.respond(status=404)
 
-        if not has_seer_permissions(project.organization, actor=request.user):
-            return self.respond(status=403)
+        # We skip checking Seer permissions here for performance, and because summaries can't be created without them anyway.
 
         # Request Seer for the state of the summary task.
         return self.make_seer_request(
