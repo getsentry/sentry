@@ -99,6 +99,11 @@ export function SpanDescription({
     return formatter.toString(dbQueryText ?? span.description ?? '');
   }, [span.description, resolvedModule, dbSystem, dbQueryText]);
 
+  const exploreAttributeName = shouldUseOTelFriendlyUI
+    ? SpanFields.NAME
+    : SpanFields.SPAN_DESCRIPTION;
+  const exploreAttributeValue = shouldUseOTelFriendlyUI ? span.name : span.description;
+
   const actions = span.description ? (
     <BodyContentWrapper
       padding={
@@ -119,8 +124,8 @@ export function SpanDescription({
                 organization,
                 location,
                 node.event?.projectID,
-                SpanFields.SPAN_DESCRIPTION,
-                span.description,
+                exploreAttributeName,
+                exploreAttributeValue!,
                 TraceDrawerActionKind.INCLUDE
               )
             : spanDetailsRouteWithQuery({
@@ -135,8 +140,8 @@ export function SpanDescription({
           if (hasExploreEnabled) {
             traceAnalytics.trackExploreSearch(
               organization,
-              SpanFields.SPAN_DESCRIPTION,
-              span.description!,
+              exploreAttributeName,
+              exploreAttributeValue!,
               TraceDrawerActionKind.INCLUDE,
               'drawer'
             );
