@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PRIMARY_NAV_GROUP_CONFIG} from 'sentry/views/nav/primary/config';
@@ -39,15 +40,19 @@ function PreventSecondaryNav() {
       </SecondaryNav.Header>
       <SecondaryNav.Body>
         <SecondaryNav.Section id="prevent-main">
-          <SecondaryNav.Item
-            to={`${coveragePathname}commits/`}
-            activeTo={coveragePathname}
-          >
-            {t('Coverage')}
-          </SecondaryNav.Item>
-          <SecondaryNav.Item to={testsPathname} activeTo={testsPathname}>
-            {t('Tests')}
-          </SecondaryNav.Item>
+          <Feature features={['codecov-ui']}>
+            <SecondaryNav.Item
+              to={`${coveragePathname}commits/`}
+              activeTo={coveragePathname}
+            >
+              {t('Coverage')}
+            </SecondaryNav.Item>
+          </Feature>
+          <Feature features={['codecov-ui']}>
+            <SecondaryNav.Item to={testsPathname} activeTo={testsPathname}>
+              {t('Tests')}
+            </SecondaryNav.Item>
+          </Feature>
           <SecondaryNav.Item
             to={`${preventAIPathName}new/`}
             activeTo={`${preventAIPathName}new/`}
@@ -55,11 +60,13 @@ function PreventSecondaryNav() {
             {t('Prevent AI')}
           </SecondaryNav.Item>
         </SecondaryNav.Section>
-        <SecondaryNav.Section id="prevent-configure" title={t('Configure')}>
-          <SecondaryNav.Item to={`${tokensPathName}`} activeTo={tokensPathName}>
-            {t('Tokens')}
-          </SecondaryNav.Item>
-        </SecondaryNav.Section>
+        <Feature features={['codecov-ui']}>
+          <SecondaryNav.Section id="prevent-configure" title={t('Configure')}>
+            <SecondaryNav.Item to={`${tokensPathName}`} activeTo={tokensPathName}>
+              {t('Tokens')}
+            </SecondaryNav.Item>
+          </SecondaryNav.Section>
+        </Feature>
       </SecondaryNav.Body>
     </Fragment>
   );
