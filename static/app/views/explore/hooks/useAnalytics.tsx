@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef} from 'react';
+import {useEffect, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
@@ -87,32 +87,29 @@ function useTrackAnalytics({
   const chartError = timeseriesResult.error?.message ?? '';
   const query_status = tableError || chartError ? 'error' : 'success';
 
-  const {setupAcknowledgement: seerSetup} = useOrganizationSeerSetup({
-    enabled: !organization.hideAiFeatures,
-  });
-
-  const gaveSeerConsent = useMemo(
-    () =>
-      organization.hideAiFeatures
-        ? 'gen_ai_features_disabled'
-        : seerSetup.orgHasAcknowledged
-          ? 'given'
-          : 'not_given',
-    [organization.hideAiFeatures, seerSetup.orgHasAcknowledged]
-  );
+  const {setupAcknowledgement: seerSetup, isLoading: isLoadingSeerSetup} =
+    useOrganizationSeerSetup({
+      enabled: !organization.hideAiFeatures,
+    });
 
   useEffect(() => {
     if (
       queryType !== 'aggregate' ||
       aggregatesTableResult.result.isPending ||
       timeseriesResult.isPending ||
-      isLoadingSubscriptionDetails
+      isLoadingSubscriptionDetails ||
+      isLoadingSeerSetup
     ) {
       return;
     }
 
     const search = new MutableSearch(query);
     const columns = aggregatesTableResult.eventView.getColumns() as unknown as string[];
+    const gaveSeerConsent = organization.hideAiFeatures
+      ? 'gen_ai_features_disabled'
+      : seerSetup.orgHasAcknowledged
+        ? 'given'
+        : 'not_given';
 
     trackAnalytics('trace.explorer.metadata', {
       organization,
@@ -166,9 +163,9 @@ function useTrackAnalytics({
     aggregatesTableResult.result.data?.length,
     aggregatesTableResult.result.isPending,
     dataset,
-    gaveSeerConsent,
     hasExceededPerformanceUsageLimit,
     interval,
+    isLoadingSeerSetup,
     isLoadingSubscriptionDetails,
     isTopN,
     organization,
@@ -176,6 +173,7 @@ function useTrackAnalytics({
     query,
     queryType,
     query_status,
+    seerSetup.orgHasAcknowledged,
     timeseriesResult.data,
     timeseriesResult.isPending,
     title,
@@ -187,12 +185,19 @@ function useTrackAnalytics({
       queryType !== 'samples' ||
       spansTableResult.result.isPending ||
       timeseriesResult.isPending ||
-      isLoadingSubscriptionDetails
+      isLoadingSubscriptionDetails ||
+      isLoadingSeerSetup
     ) {
       return;
     }
 
     const search = new MutableSearch(query);
+    const gaveSeerConsent = organization.hideAiFeatures
+      ? 'gen_ai_features_disabled'
+      : seerSetup.orgHasAcknowledged
+        ? 'given'
+        : 'not_given';
+
     trackAnalytics('trace.explorer.metadata', {
       organization,
       dataset,
@@ -238,9 +243,9 @@ function useTrackAnalytics({
   }, [
     dataset,
     fields,
-    gaveSeerConsent,
     hasExceededPerformanceUsageLimit,
     interval,
+    isLoadingSeerSetup,
     isLoadingSubscriptionDetails,
     isTopN,
     organization,
@@ -248,6 +253,7 @@ function useTrackAnalytics({
     query,
     queryType,
     query_status,
+    seerSetup.orgHasAcknowledged,
     spansTableResult.result.data?.length,
     spansTableResult.result.isPending,
     timeseriesResult.data,
@@ -264,7 +270,8 @@ function useTrackAnalytics({
       queryType !== 'traces' ||
       tracesTableResult.result.isPending ||
       timeseriesResult.isPending ||
-      isLoadingSubscriptionDetails
+      isLoadingSubscriptionDetails ||
+      isLoadingSeerSetup
     ) {
       return;
     }
@@ -281,6 +288,11 @@ function useTrackAnalytics({
     const resultMissingRoot =
       tracesTableResult?.result?.data?.data?.filter(trace => !defined(trace.name))
         .length ?? 0;
+    const gaveSeerConsent = organization.hideAiFeatures
+      ? 'gen_ai_features_disabled'
+      : seerSetup.orgHasAcknowledged
+        ? 'given'
+        : 'not_given';
 
     trackAnalytics('trace.explorer.metadata', {
       organization,
@@ -310,9 +322,9 @@ function useTrackAnalytics({
     });
   }, [
     dataset,
-    gaveSeerConsent,
     hasExceededPerformanceUsageLimit,
     interval,
+    isLoadingSeerSetup,
     isLoadingSubscriptionDetails,
     isTopN,
     organization,
@@ -320,6 +332,7 @@ function useTrackAnalytics({
     query,
     queryType,
     query_status,
+    seerSetup.orgHasAcknowledged,
     timeseriesResult.data,
     timeseriesResult.isPending,
     title,
