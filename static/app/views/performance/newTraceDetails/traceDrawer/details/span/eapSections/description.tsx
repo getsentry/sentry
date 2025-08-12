@@ -76,6 +76,7 @@ export function SpanDescription({
 
   const category = findSpanAttributeValue(attributes, 'span.category');
   const dbSystem = findSpanAttributeValue(attributes, 'db.system');
+  const dbQueryText = findSpanAttributeValue(attributes, 'db.query.text');
   const group = findSpanAttributeValue(attributes, 'span.group');
 
   const resolvedModule: ModuleName = resolveSpanModule(span.op, category);
@@ -93,8 +94,8 @@ export function SpanDescription({
       return prettyPrintJsonString(span.description).prettifiedQuery;
     }
 
-    return formatter.toString(span.description ?? '');
-  }, [span.description, resolvedModule, dbSystem]);
+    return formatter.toString(dbQueryText ?? span.description ?? '');
+  }, [span.description, resolvedModule, dbSystem, dbQueryText]);
 
   const actions = span.description ? (
     <BodyContentWrapper
