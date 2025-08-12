@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import type {Series} from 'sentry/types/echarts';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
 import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
@@ -22,7 +23,7 @@ interface UseMetricDetectorSeriesProps {
 
 interface UseMetricDetectorSeriesResult {
   comparisonSeries: Series[];
-  isError: boolean;
+  error: RequestError | null;
   isLoading: boolean;
   series: Series[];
 }
@@ -55,7 +56,7 @@ export function useMetricDetectorSeries({
     comparisonDelta,
   });
 
-  const {data, isLoading, isError} = useApiQuery<
+  const {data, isLoading, error} = useApiQuery<
     Parameters<typeof datasetConfig.transformSeriesQueryData>[0]
   >(seriesQueryOptions, {
     // 5 minutes
@@ -82,5 +83,5 @@ export function useMetricDetectorSeries({
     };
   }, [datasetConfig, data, aggregate, comparisonDelta]);
 
-  return {series, comparisonSeries, isLoading, isError};
+  return {series, comparisonSeries, isLoading, error};
 }
