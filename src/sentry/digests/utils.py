@@ -78,7 +78,7 @@ def get_digest_as_context(digest: Digest) -> _DigestContext:
 
 
 def get_events_by_participant(
-    participants_by_provider_by_event: Mapping[Event, Mapping[ExternalProviders, set[Actor]]]
+    participants_by_provider_by_event: Mapping[Event, Mapping[ExternalProviders, set[Actor]]],
 ) -> Mapping[Actor, set[Event]]:
     """Invert a mapping of events to participants to a mapping of participants to events."""
     output = defaultdict(set)

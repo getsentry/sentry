@@ -80,7 +80,7 @@ class ApiApplication(Model):
 
     __repr__ = sane_repr("name", "owner_id")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
     def delete(self, *args, **kwargs):

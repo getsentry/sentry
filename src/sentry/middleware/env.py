@@ -7,7 +7,7 @@ from sentry.app import env
 
 
 def SentryEnvMiddleware(
-    get_response: Callable[[HttpRequest], HttpResponseBase]
+    get_response: Callable[[HttpRequest], HttpResponseBase],
 ) -> Callable[[HttpRequest], HttpResponseBase]:
     def SentryEnvMiddleware_impl(request: HttpRequest) -> HttpResponseBase:
         with env.active_request(request):

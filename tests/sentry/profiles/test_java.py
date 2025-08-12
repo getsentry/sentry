@@ -49,6 +49,6 @@ def mapper(tmp_path):
         ),
     ],
 )
-def test_deobfuscate_signature(mapper, obfuscated, expected):
+def test_deobfuscate_signature(mapper, obfuscated, expected) -> None:
     types = deobfuscate_signature(obfuscated, mapper)
     assert format_signature(types) == expected

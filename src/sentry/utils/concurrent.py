@@ -134,9 +134,7 @@ class Executor:
     to allow controlling whether or not queue insertion should be blocking.
     """
 
-    def submit[
-        T
-    ](
+    def submit[T](
         self,
         callable: Callable[[], T],
         priority: int = 0,
@@ -227,9 +225,9 @@ class ThreadedExecutor(Executor):
 
             self.__started = True
 
-    def submit[
-        T
-    ](self, callable: Callable[[], T], priority=0, block=True, timeout=None) -> TimedFuture[T]:
+    def submit[T](
+        self, callable: Callable[[], T], priority=0, block=True, timeout=None
+    ) -> TimedFuture[T]:
         """\
         Enqueue a task to be executed, returning a ``TimedFuture``.
 

@@ -14,7 +14,7 @@ class ApiApplicationTest(AcceptanceTestCase):
         self.login_as(self.user)
         self.path = "/api/applications/"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 

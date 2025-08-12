@@ -491,6 +491,13 @@ const SECTIONS: TSection[] = [
     label: 'Status',
     icons: [
       {
+        id: 'angry',
+        groups: ['status'],
+        keywords: ['angry', 'rage', 'face'],
+        name: 'Angry',
+        defaultProps: {},
+      },
+      {
         id: 'lock',
         groups: ['action', 'status'],
         keywords: ['secure'],
@@ -554,6 +561,13 @@ const SECTIONS: TSection[] = [
         groups: ['status'],
         keywords: ['shape', 'round'],
         name: 'CircleFill',
+        defaultProps: {},
+      },
+      {
+        id: 'dead',
+        groups: ['status'],
+        keywords: ['dead', 'face'],
+        name: 'Dead',
         defaultProps: {},
       },
       {
@@ -687,10 +701,31 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'ruler',
+        groups: ['ruler'],
+        keywords: ['ruler', 'measure'],
+        name: 'Ruler',
+        defaultProps: {},
+      },
+      {
         id: 'download',
         groups: ['action'],
         keywords: ['file', 'image', 'down'],
         name: 'Download',
+        defaultProps: {},
+      },
+      {
+        id: 'scrollHorizontally',
+        groups: ['action'],
+        keywords: ['scroll', 'swipe'],
+        name: 'ScrollHorizontally',
+        defaultProps: {},
+      },
+      {
+        id: 'scrollVertically',
+        groups: ['action'],
+        keywords: ['scroll', 'swipe'],
+        name: 'ScrollVertically',
         defaultProps: {},
       },
       {

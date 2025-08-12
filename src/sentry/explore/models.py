@@ -25,7 +25,7 @@ class ExploreSavedQueryDataset(TypesClass):
 
     TYPES = [
         (SPANS, "spans"),
-        (OURLOGS, "ourlogs"),
+        (OURLOGS, "logs"),
         (SEGMENT_SPANS, "segment_spans"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]

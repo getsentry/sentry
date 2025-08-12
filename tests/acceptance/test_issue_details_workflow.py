@@ -35,7 +35,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         )
         return event
 
-    def test_resolve_basic(self):
+    def test_resolve_basic(self) -> None:
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.resolve_issue()
@@ -45,7 +45,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         assert res.status_code == 200, res
         assert res.data["status"] == "resolved"
 
-    def test_archive_basic(self):
+    def test_archive_basic(self) -> None:
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.archive_issue()
@@ -55,7 +55,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         assert res.status_code == 200, res
         assert res.data["status"] == "ignored"
 
-    def test_bookmark(self):
+    def test_bookmark(self) -> None:
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.bookmark_issue()
@@ -65,7 +65,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         assert res.status_code == 200, res
         assert res.data["isBookmarked"]
 
-    def test_assign_issue(self):
+    def test_assign_issue(self) -> None:
         event = self.create_sample_event(platform="python")
         self.page.visit_issue(self.org.slug, event.group.id)
         self.page.assign_to(self.user.email)
@@ -74,7 +74,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
         assert res.status_code == 200, res
         assert res.data["assignedTo"]
 
-    def test_create_comment(self):
+    def test_create_comment(self) -> None:
         event = self.create_sample_event(platform="python")
         self.page.visit_issue_activity(self.org.slug, event.group.id)
 
@@ -84,7 +84,7 @@ class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):
 
         assert self.page.has_comment("this looks bad")
 
-    def test_mark_reviewed(self):
+    def test_mark_reviewed(self) -> None:
         event = self.create_sample_event(platform="python")
         add_group_to_inbox(event.group, GroupInboxReason.NEW)
         self.page.visit_issue(self.org.slug, event.group.id)

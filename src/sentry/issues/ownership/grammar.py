@@ -128,7 +128,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
     @staticmethod
     def munge_if_needed(
-        data: Mapping[str, Any]
+        data: Mapping[str, Any],
     ) -> tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
         keys = ["filename", "abs_path"]
         platform = data.get("platform")

@@ -264,7 +264,7 @@ class SlackRequestParserTest(TestCase):
             assert irrelevant_organization.id not in organization_ids
 
     @override_options({"hybrid_cloud.integration_region_targeting_rate": 1.0})
-    def test_targeting_issue_actions(self):
+    def test_targeting_issue_actions(self) -> None:
         # Install the integration on two organizations
         other_organization = self.create_organization()
         self.integration.add_organization(other_organization)

@@ -1,5 +1,5 @@
 import {useMemo, useState} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -166,10 +166,15 @@ const StyledTimelineHeader = styled('div')<{isActive?: boolean}>`
   justify-content: space-between;
   width: 100%;
   padding: ${space(0.25)};
+  padding-right: 0;
   border-radius: ${p => p.theme.borderRadius};
   cursor: pointer;
-  font-weight: ${p => (p.isActive ? p.theme.fontWeight.bold : p.theme.fontWeight.normal)};
+  font-weight: ${p => p.theme.fontWeight.normal};
   gap: ${space(1)};
+  text-decoration: ${p => (p.isActive ? 'underline dashed' : 'none')};
+  text-decoration-color: ${p => p.theme.pink300};
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 
   & > span:first-of-type {
     flex: 1;

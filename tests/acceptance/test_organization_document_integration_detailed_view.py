@@ -21,6 +21,6 @@ class OrganizationDocumentIntegrationDetailView(AcceptanceTestCase):
         self.browser.get(url)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def test_view_doc(self):
+    def test_view_doc(self) -> None:
         self.load_page(self.doc.slug)
         assert self.browser.element_exists('[data-test-id="learn-more"]')

@@ -2,6 +2,7 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
 import {SpanFields} from 'sentry/views/insights/types';
+
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
 export enum FieldKind {
@@ -471,7 +472,7 @@ export interface FieldDefinition {
   /**
    * Allow wildcard (*) matching for this field.
    * This is only valid for string fields and will default to true.
-   * Note that the `disallowWilcard` setting will override this.
+   * Note that the `disallowWildcardOperators` setting will override this.
    */
   allowWildcard?: boolean;
   /**
@@ -486,6 +487,12 @@ export interface FieldDefinition {
    * Description of the field
    */
   desc?: string;
+  /**
+   * Disallow wildcard (contains, starts with, ends with) operators for this field
+   * This is only valid for string fields and will default to false.
+   * Setting this to true will override `allowWildcard`.
+   */
+  disallowWildcardOperators?: boolean;
   /**
    * Feature flag that indicates gating of the field from use
    */
@@ -611,7 +618,12 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
         name: 'column',
         kind: 'column',
         columnTypes: validateAndDenyListColumns(
-          [FieldValueType.STRING, FieldValueType.NUMBER, FieldValueType.DURATION],
+          [
+            FieldValueType.STRING,
+            FieldValueType.NUMBER,
+            FieldValueType.DURATION,
+            FieldValueType.INTEGER,
+          ],
           ['id', 'issue', 'user.display']
         ),
         defaultValue: 'transaction.duration',
@@ -1990,6 +2002,7 @@ const RELEASE_FIELD_DEFINITION: Record<ReleaseFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowComparisonOperators: true,
+    disallowWildcardOperators: true,
   },
 };
 
@@ -2559,6 +2572,12 @@ export const REPLAY_FIELDS = [
   FieldKey.OTA_UPDATES_RUNTIME_VERSION,
   FieldKey.OTA_UPDATES_UPDATE_ID,
 ];
+
+export const REPLAY_TAG_ALIASES = {
+  [ReplayFieldKey.SCREEN]: ReplayFieldKey.URL,
+  [ReplayFieldKey.SCREENS]: ReplayFieldKey.URL,
+  [ReplayFieldKey.URLS]: ReplayFieldKey.URL,
+};
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   [ReplayFieldKey.ACTIVITY]: {

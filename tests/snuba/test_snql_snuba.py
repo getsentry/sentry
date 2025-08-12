@@ -70,7 +70,7 @@ class SnQLTest(TestCase, SnubaTestCase):
             "snql.sdk.api.new_referrers", tags={"referrer": "referrer_not_in_enum"}
         )
 
-    def test_cache(self):
+    def test_cache(self) -> None:
         """Minimal test to verify if use_cache works"""
         results = snuba.raw_snql_query(
             Request(

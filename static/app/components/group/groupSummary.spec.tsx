@@ -118,8 +118,8 @@ describe('GroupSummary', function () {
       organization,
     });
 
-    // Should show loading placeholders. Currently we load the whatsWrong and possibleCause sections
-    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(2);
+    // Should show loading placeholders. Currently we load the headline, whatsWrong, and possibleCause sections
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3);
   });
 
   it('shows error state', async function () {

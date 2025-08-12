@@ -20,3 +20,7 @@ export type DeepPartial<T> =
         [P in keyof T]?: DeepPartial<T[P]>;
       }
     : T;
+
+export type Nullable<T> = {
+  [P in keyof T]: T[P] | null;
+};

@@ -170,12 +170,12 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
-    def test_events_default_landing(self):
+    def test_events_default_landing(self) -> None:
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.landing_path)
             self.wait_until_loaded()
 
-    def test_all_events_query_empty_state(self):
+    def test_all_events_query_empty_state(self) -> None:
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + all_events_query())
             self.wait_until_loaded()
@@ -233,7 +233,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.wait_until_loaded()
             self.browser.wait_until('[data-test-id="grid-editable"] > tbody > tr:nth-child(2)')
 
-    def test_errors_query_empty_state(self):
+    def test_errors_query_empty_state(self) -> None:
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + errors_query())
             self.wait_until_loaded()
@@ -283,7 +283,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.result_path + "?" + errors_query())
             self.wait_until_loaded()
 
-    def test_transactions_query_empty_state(self):
+    def test_transactions_query_empty_state(self) -> None:
         with self.feature(FEATURE_NAMES):
             self.browser.get(self.result_path + "?" + transactions_query())
             self.wait_until_loaded()
@@ -378,7 +378,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.elements('[data-test-id="view-event"]')[0].click()
             self.wait_until_loaded()
 
-    def test_create_saved_query(self):
+    def test_create_saved_query(self) -> None:
         # Simulate a custom query
         query = {"field": ["project.id", "count()"], "query": "event.type:error"}
         query_name = "A new custom query"
@@ -403,7 +403,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         # Saved query should exist.
         assert DiscoverSavedQuery.objects.filter(name=query_name).exists()
 
-    def test_view_and_rename_saved_query(self):
+    def test_view_and_rename_saved_query(self) -> None:
         # Create saved query to rename
         query = DiscoverSavedQuery.objects.create(
             name="Custom query",
@@ -444,7 +444,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
         # Assert the name was updated.
         assert DiscoverSavedQuery.objects.filter(name=new_name).exists()
 
-    def test_delete_saved_query(self):
+    def test_delete_saved_query(self) -> None:
         # Create saved query with ORM
         query = DiscoverSavedQuery.objects.create(
             name="Custom query",
@@ -471,7 +471,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
 
             assert DiscoverSavedQuery.objects.filter(name=query.name).exists() is False
 
-    def test_duplicate_query(self):
+    def test_duplicate_query(self) -> None:
         # Create saved query with ORM
         query = DiscoverSavedQuery.objects.create(
             name="Custom query",

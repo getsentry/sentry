@@ -18,7 +18,7 @@ def mock_seer_response(**kwargs) -> None:
 
 class TestGenerateLabels(TestCase):
     @responses.activate
-    def test_generate_labels_success_response(self):
+    def test_generate_labels_success_response(self) -> None:
         mock_seer_response(
             status=200,
             json={"data": {"labels": ["User Interface", "Navigation", "Right Sidebar"]}},
@@ -39,7 +39,7 @@ class TestGenerateLabels(TestCase):
         assert test_response.status_code == 200
 
     @responses.activate
-    def test_generate_labels_failed_response(self):
+    def test_generate_labels_failed_response(self) -> None:
         mock_seer_response(
             status=500,
             json={"error": "Internal Server Error"},
@@ -60,7 +60,7 @@ class TestGenerateLabels(TestCase):
         }
 
     @responses.activate
-    def test_generate_labels_network_error(self):
+    def test_generate_labels_network_error(self) -> None:
         mock_seer_response(body=requests.exceptions.Timeout("Request timed out"))
 
         with pytest.raises(requests.exceptions.Timeout):

@@ -98,9 +98,7 @@ class RangeQuerySetWrapper[V]:
     Very efficient, but ORDER BY statements will not work.
     """
 
-    def __init__[
-        M: Model
-    ](
+    def __init__[M: Model](
         self,
         queryset: QuerySet[M, V],
         *,

@@ -44,7 +44,7 @@ index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 
 @patch.object(features, "index", new=index)
 class UnmergeTestCase(TestCase, SnubaTestCase):
-    def test_get_fingerprint(self):
+    def test_get_fingerprint(self) -> None:
         assert (
             get_fingerprint(
                 self.store_event(data={"message": "Hello world"}, project_id=self.project.id)
@@ -62,7 +62,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             == hashlib.md5(b"Not hello world").hexdigest()
         )
 
-    def test_get_group_creation_attributes(self):
+    def test_get_group_creation_attributes(self) -> None:
         now = timezone.now().replace(microsecond=0)
         e1 = self.store_event(
             data={
@@ -122,7 +122,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             "substatus": e1.group.substatus,
         }
 
-    def test_get_group_backfill_attributes(self):
+    def test_get_group_backfill_attributes(self) -> None:
         now = timezone.now().replace(microsecond=0)
 
         assert get_group_backfill_attributes(
@@ -176,7 +176,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
     @with_feature("projects:similarity-indexing")
     @with_feature("organizations:issue-open-periods")
     @mock.patch("sentry.analytics.record")
-    def test_unmerge(self, mock_record):
+    def test_unmerge(self, mock_record) -> None:
         now = before_now(minutes=5).replace(microsecond=0)
 
         def time_from_now(offset=0):

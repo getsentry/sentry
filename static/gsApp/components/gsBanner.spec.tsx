@@ -943,6 +943,40 @@ describe('GSBanner', function () {
     expect(openForcedTrialModal).toHaveBeenCalled();
   });
 
+  it('does not automatically start forced trial if already on a trial', async function () {
+    const organization = OrganizationFixture({
+      access: ['org:billing'],
+    });
+
+    const subscription = SubscriptionFixture({
+      plan: 'am1_f',
+      organization,
+      totalLicenses: 1,
+      usedLicenses: 2,
+      isTrial: true,
+      isForcedTrial: false,
+    });
+
+    SubscriptionStore.set(organization.slug, subscription);
+
+    const mockForceTrial = MockApiClient.addMockResponse({
+      method: 'POST',
+      url: `/organizations/${organization.slug}/over-member-limit-trial/`,
+      body: {},
+    });
+
+    const {container} = render(<GSBanner organization={organization} />, {
+      organization,
+    });
+
+    // wait for requests to finish
+    await act(tick);
+    expect(container).toBeEmptyDOMElement();
+
+    expect(mockForceTrial).not.toHaveBeenCalled();
+    expect(openForcedTrialModal).not.toHaveBeenCalled();
+  });
+
   it('automatically starts forced trial for restricted integration', async function () {
     const organization = OrganizationFixture({
       access: ['org:billing'],
@@ -2093,13 +2127,20 @@ describe('GSBanner Overage Alerts', function () {
       'profile_duration',
       'profile_duration_ui',
       'uptime',
+      'log_bytes',
       'seer_autofix',
       'seer_scanner',
     ]) {
       overagePrompts.push(`${category}_overage_alert`);
       warningPrompts.push(`${category}_warning_alert`);
       if (
-        ['profile_duration', 'replays', 'spans', 'profile_duration_ui'].includes(category)
+        [
+          'profile_duration',
+          'replays',
+          'spans',
+          'profile_duration_ui',
+          'log_bytes',
+        ].includes(category)
       ) {
         productTrialPrompts.push(`${category}_product_trial_alert`);
       }
@@ -2128,16 +2169,16 @@ describe('GSBanner Overage Alerts', function () {
       plan: 'am3_t',
       categories: {
         // this would never happen in practice, but we're asserting that we properly filter out non-billed categories
-        logBytes: MetricHistoryFixture({usageExceeded: true}),
         logItems: MetricHistoryFixture({usageExceeded: true}),
         profileChunks: MetricHistoryFixture({usageExceeded: true}),
+        profiles: MetricHistoryFixture({usageExceeded: true}),
       },
     });
     subscription.planDetails.categories = [
       ...subscription.planDetails.categories,
-      DataCategory.LOG_BYTE,
       DataCategory.LOG_ITEM,
       DataCategory.PROFILE_CHUNKS,
+      DataCategory.PROFILES,
     ];
     SubscriptionStore.set(organization.slug, subscription);
 
@@ -2158,9 +2199,9 @@ describe('GSBanner Overage Alerts', function () {
     expect(container).toBeEmptyDOMElement();
     const lastCall = promptsMock.mock.lastCall;
     const nonBilledOveragePrompts = [
-      'log_bytes_overage_alert',
       'log_items_overage_alert',
       'profile_chunks_overage_alert',
+      'profiles_overage_alert',
     ];
     expect(
       (lastCall[1].query.feature as string[]).some(prompt =>

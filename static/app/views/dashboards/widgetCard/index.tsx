@@ -185,7 +185,9 @@ function WidgetCard(props: Props) {
   const onDemandWarning = useOnDemandWarning({widget});
   const discoverSplitAlert = useDiscoverSplitAlert({widget, onSetTransactionsDataset});
   const sessionDurationWarning = hasSessionDuration ? SESSION_DURATION_ALERT_TEXT : null;
-  const spanTimeRangeWarning = useTimeRangeWarning({widget});
+
+  // TODO: DAIN-840 Enable this depending on user's plans
+  const spanTimeRangeWarning = useTimeRangeWarning({widget, enabled: false});
 
   const onDataFetchStart = () => {
     if (timeoutRef.current) {
@@ -226,7 +228,13 @@ function WidgetCard(props: Props) {
           pathname: `${location.pathname}${
             location.pathname.endsWith('/') ? '' : '/'
           }widget/${props.index}/`,
-          query: location.query,
+          query: {
+            ...location.query,
+            sort:
+              widget.displayType === DisplayType.TABLE
+                ? widget.queries[0]?.orderby
+                : location.query.sort,
+          },
         },
         {preventScrollReset: true}
       );
@@ -374,12 +382,12 @@ function useOnDemandWarning(props: {widget: Widget}): string | null {
   return null;
 }
 
-function useTimeRangeWarning(props: {widget: Widget}) {
+function useTimeRangeWarning(props: {enabled: boolean; widget: Widget}) {
   const {
     selection: {datetime},
   } = usePageFilters();
 
-  if (props.widget.widgetType !== WidgetType.SPANS) {
+  if (props.widget.widgetType !== WidgetType.SPANS || !props.enabled) {
     return null;
   }
 

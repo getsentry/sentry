@@ -23,7 +23,7 @@
 
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 
-import {type Matcher, waitFor, within} from 'sentry-test/reactTestingLibrary';
+import {waitFor, within, type Matcher} from 'sentry-test/reactTestingLibrary';
 
 /**
  * Find the react-select container from its input field

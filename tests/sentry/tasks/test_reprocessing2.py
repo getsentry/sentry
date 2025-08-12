@@ -661,7 +661,7 @@ def test_apply_new_stack_trace_rules(
 
 
 @django_db_all
-def test_finish_reprocessing(default_project):
+def test_finish_reprocessing(default_project) -> None:
     # Pretend that the old group has more than one activity still connected:
     old_group = Group.objects.create(project=default_project)
     new_group = Group.objects.create(project=default_project)

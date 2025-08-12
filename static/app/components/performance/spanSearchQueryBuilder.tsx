@@ -11,11 +11,11 @@ import {SavedSearchType, type Tag, type TagCollection} from 'sentry/types/group'
 import {defined} from 'sentry/utils';
 import {isAggregateField, isMeasurement} from 'sentry/utils/discover/fields';
 import {
-  type AggregationKey,
   DEVICE_CLASS_TAG_VALUES,
   FieldKind,
   getFieldDefinition,
   isDeviceClass,
+  type AggregationKey,
 } from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';

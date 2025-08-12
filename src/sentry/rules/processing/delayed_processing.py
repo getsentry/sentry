@@ -50,6 +50,7 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
+from sentry.utils.dates import ensure_aware
 from sentry.utils.iterators import chunked
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import safe_execute
@@ -72,7 +73,7 @@ class UniqueConditionQuery(NamedTuple):
     environment_id: int
     comparison_interval: str | None = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<UniqueConditionQuery:\nid: {self.cls_id},\ninterval: {self.interval},\nenv id: {self.environment_id},\n"
             f"comp interval: {self.comparison_interval}\n>"
@@ -84,7 +85,7 @@ class DataAndGroups(NamedTuple):
     group_ids: set[int]
     rule_id: int | None = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<DataAndGroups data: {self.data} group_ids: {self.group_ids} rule_id: {self.rule_id}>"
         )
@@ -573,6 +574,13 @@ def fire_rules(
 
                     notification_uuid = str(uuid.uuid4())
                     groupevent = group_to_groupevent[group]
+                    metrics.timing(
+                        "rule_fire_history.latency",
+                        (
+                            datetime.now(tz=timezone.utc) - ensure_aware(groupevent.datetime)
+                        ).total_seconds(),
+                        tags={"delayed": True, "group_type": group.issue_type.slug},
+                    )
                     rule_fire_history = history.record(
                         rule, group, groupevent.event_id, notification_uuid
                     )

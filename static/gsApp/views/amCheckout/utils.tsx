@@ -33,12 +33,13 @@ import type {
 } from 'getsentry/types';
 import {InvoiceItemType} from 'getsentry/types';
 import {getSlot, isTrialPlan} from 'getsentry/utils/billing';
+import {isByteCategory} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import trackMarketingEvent from 'getsentry/utils/trackMarketingEvent';
 import {
+  SelectableProduct,
   type CheckoutAPIData,
   type CheckoutFormData,
-  SelectableProduct,
   type SelectedProductData,
 } from 'getsentry/views/amCheckout/types';
 import {
@@ -346,7 +347,7 @@ export function getEventsWithUnit(
     return null;
   }
 
-  if (dataType === DataCategory.ATTACHMENTS || dataType === DataCategory.LOG_BYTE) {
+  if (isByteCategory(dataType)) {
     return getWithBytes(events).replace(' ', '');
   }
 

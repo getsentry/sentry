@@ -61,7 +61,7 @@ def post_event_with_sdk(settings, scope: Scope, relay_server, wait_for_ingest_co
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
-def test_simple(settings, post_event_with_sdk):
+def test_simple(settings, post_event_with_sdk) -> None:
     event = post_event_with_sdk({"message": "internal client test"})
 
     assert event
@@ -72,7 +72,7 @@ def test_simple(settings, post_event_with_sdk):
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
-def test_recursion_breaker(settings, post_event_with_sdk):
+def test_recursion_breaker(settings, post_event_with_sdk) -> None:
     # If this test terminates at all then we avoided recursion.
     settings.SENTRY_INGEST_CONSUMER_APM_SAMPLING = 1.0
     settings.SENTRY_PROJECT = 1
@@ -90,7 +90,7 @@ def test_recursion_breaker(settings, post_event_with_sdk):
 @no_silo_test
 @django_db_all
 @override_settings(SENTRY_PROJECT=1)
-def test_encoding(settings, post_event_with_sdk, scope: Scope):
+def test_encoding(settings, post_event_with_sdk, scope: Scope) -> None:
     class NotJSONSerializable:
         pass
 
@@ -105,7 +105,7 @@ def test_encoding(settings, post_event_with_sdk, scope: Scope):
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
-def test_bind_organization_context(default_organization, scope: Scope):
+def test_bind_organization_context(default_organization, scope: Scope) -> None:
     bind_organization_context(default_organization)
 
     assert scope._tags["organization"] == default_organization.id
@@ -119,7 +119,7 @@ def test_bind_organization_context(default_organization, scope: Scope):
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
-def test_bind_organization_context_with_callback(default_organization, scope: Scope):
+def test_bind_organization_context_with_callback(default_organization, scope: Scope) -> None:
     def add_context(scope, organization, **kwargs):
         scope.set_tag("organization.test", "1")
 
@@ -132,7 +132,7 @@ def test_bind_organization_context_with_callback(default_organization, scope: Sc
 @no_silo_test
 @override_settings(SENTRY_PROJECT=1)
 @django_db_all
-def test_bind_organization_context_with_callback_error(default_organization, scope: Scope):
+def test_bind_organization_context_with_callback_error(default_organization, scope: Scope) -> None:
 
     def add_context(scope, organization, **kwargs):
         1 / 0

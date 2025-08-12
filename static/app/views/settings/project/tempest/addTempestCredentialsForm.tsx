@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import {t} from 'sentry/locale';
@@ -25,33 +23,31 @@ export default function AddTempestCredentialsForm({
   ...props
 }: Props) {
   return (
-    <Fragment>
-      <Form
-        submitLabel={t('Add Credentials')}
-        apiEndpoint={`/projects/${organization.slug}/${project.slug}/tempest-credentials/`}
-        apiMethod="POST"
-        onSubmitSuccess={data => props.onSuccess?.(data)}
-        requireChanges
-        data-test-id="add-tempest-credentials-form"
-        {...formProps}
-      >
-        <TextField
-          name="clientId"
-          label={t('Client ID')}
-          required
-          stacked
-          flexibleControlStateSize
-          inline={false}
-        />
-        <TextField
-          name="clientSecret"
-          label={t('Client Secret')}
-          required
-          stacked
-          flexibleControlStateSize
-          inline={false}
-        />
-      </Form>
-    </Fragment>
+    <Form
+      submitLabel={t('Add Credentials')}
+      apiEndpoint={`/projects/${organization.slug}/${project.slug}/tempest-credentials/`}
+      apiMethod="POST"
+      onSubmitSuccess={data => props.onSuccess?.(data)}
+      requireChanges
+      data-test-id="add-tempest-credentials-form"
+      {...formProps}
+    >
+      <TextField
+        name="clientId"
+        label={t('Client ID')}
+        required
+        stacked
+        flexibleControlStateSize
+        inline={false}
+      />
+      <TextField
+        name="clientSecret"
+        label={t('Client Secret')}
+        required
+        stacked
+        flexibleControlStateSize
+        inline={false}
+      />
+    </Form>
   );
 }

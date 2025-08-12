@@ -12,10 +12,10 @@ import {
   ISSUE_CATEGORY_TO_DESCRIPTION,
   IssueCategory,
   PriorityLevel,
-  type Tag,
-  type TagCollection,
   VALID_ISSUE_CATEGORIES_V2,
   VISIBLE_ISSUE_TYPES,
+  type Tag,
+  type TagCollection,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {escapeIssueTagKey} from 'sentry/utils';

@@ -26,13 +26,12 @@ import {
   AlertRuleThresholdType,
 } from 'sentry/views/alerts/rules/metric/types';
 import {hasLogAlerts} from 'sentry/views/alerts/wizard/utils';
-import {AssigneeField} from 'sentry/views/detectors/components/forms/assigneeField';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
+import {AssignSection} from 'sentry/views/detectors/components/forms/common/assignSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
   DEFAULT_THRESHOLD_METRIC_FORM_DATA,
-  DetectorDataset,
   METRIC_DETECTOR_FORM_FIELDS,
   metricDetectorFormDataToEndpointPayload,
   metricSavedDetectorToFormData,
@@ -44,6 +43,7 @@ import {Visualize} from 'sentry/views/detectors/components/forms/metric/visualiz
 import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
 import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 
@@ -158,18 +158,6 @@ function ResolveSection() {
   return (
     <Container>
       <Section title={t('Resolve')} description={description} />
-    </Container>
-  );
-}
-
-function AssignSection() {
-  const projectId = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.projectId);
-
-  return (
-    <Container>
-      <Section title={t('Assign')}>
-        <AssigneeField projectId={projectId} />
-      </Section>
     </Container>
   );
 }

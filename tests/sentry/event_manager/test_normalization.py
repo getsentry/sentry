@@ -46,7 +46,7 @@ def test_interface_is_relabeled() -> None:
 
 
 @pytest.mark.parametrize("user", ["missing", None, {}, {"ip_address": None}])
-def test_does_default_ip_address_to_user(user):
+def test_does_default_ip_address_to_user(user) -> None:
     event = {
         "request": {"url": "http://example.com", "env": {"REMOTE_ADDR": "127.0.0.1"}},
         "platform": "javascript",
@@ -187,7 +187,7 @@ def test_event_id_lowercase() -> None:
 
 
 @pytest.mark.parametrize("key", ["applecrashreport", "device", "repos", "query"])
-def test_deprecated_attrs(key):
+def test_deprecated_attrs(key) -> None:
     event = make_event()
     event[key] = "some value"
 
@@ -200,7 +200,7 @@ def test_deprecated_attrs(key):
 
 
 @pytest.mark.parametrize("environment", ["", None, "production"])
-def test_environment_tag_removed(environment):
+def test_environment_tag_removed(environment) -> None:
     event = make_event()
     event["environment"] = environment
     event["tags"] = {"environment": "production"}

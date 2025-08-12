@@ -267,9 +267,7 @@ function ProjectSeer({project}: ProjectSeerProps) {
           ),
         })}
       />
-      {organization.features.includes('trigger-autofix-on-issue-summary') && (
-        <ProjectSeerGeneralForm project={project} />
-      )}
+      <ProjectSeerGeneralForm project={project} />
       <AutofixRepositories project={project} />
       <Center>
         <LinkButton

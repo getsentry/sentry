@@ -64,12 +64,12 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
         self.browser.refresh()
         self.page.wait_until_loaded()
 
-    def test_default_overview_dashboard_layout(self):
+    def test_default_overview_dashboard_layout(self) -> None:
         with self.feature(FEATURE_NAMES):
             self.page.visit_default_overview()
 
     @pytest.mark.skip(reason="TODO: Convert to new widget builder or test with jest")
-    def test_add_and_move_new_widget_on_existing_dashboard(self):
+    def test_add_and_move_new_widget_on_existing_dashboard(self) -> None:
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.page.visit_dashboard_detail()
             self.page.enter_edit_state()
@@ -86,7 +86,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.capture_screenshots("dashboards - save new widget layout in custom dashboard")
 
     @pytest.mark.skip(reason="TODO: Convert to new widget builder or test with jest")
-    def test_create_new_dashboard_with_modified_widget_layout(self):
+    def test_create_new_dashboard_with_modified_widget_layout(self) -> None:
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             # Create a new dashboard
             self.page.visit_create_dashboard()
@@ -111,7 +111,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
             self.capture_screenshots("dashboards - save widget layout in new custom dashboard")
 
-    def test_move_existing_widget_on_existing_dashboard(self):
+    def test_move_existing_widget_on_existing_dashboard(self) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=0,
@@ -137,7 +137,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.capture_screenshots("dashboards - move existing widget on existing dashboard")
 
     @pytest.mark.skip(reason="flaky: DD-1216")
-    def test_widget_edit_keeps_same_layout_after_modification(self):
+    def test_widget_edit_keeps_same_layout_after_modification(self) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=0,
@@ -192,7 +192,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             )
 
     @pytest.mark.skip(reason="TODO: Convert to new widget builder or test with jest")
-    def test_add_issue_widgets_do_not_overlap(self):
+    def test_add_issue_widgets_do_not_overlap(self) -> None:
         def add_issue_widget(widget_title):
             self.browser.wait_until_clickable('[data-test-id="widget-add"]')
             self.page.click_dashboard_add_widget_button()
@@ -214,7 +214,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.capture_screenshots("dashboards - issue widgets do not overlap")
 
     @pytest.mark.skip(reason="TODO: Convert to new widget builder or test with jest")
-    def test_resize_new_and_existing_widgets(self):
+    def test_resize_new_and_existing_widgets(self) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=0,
@@ -257,7 +257,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             self.capture_screenshots("dashboards - resize new and existing widgets")
 
     @pytest.mark.skip(reason="TODO: Convert to new widget builder or test with jest")
-    def test_delete_existing_widget_does_not_trigger_new_widget_layout_reset(self):
+    def test_delete_existing_widget_does_not_trigger_new_widget_layout_reset(self) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=0,
@@ -304,7 +304,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
                 "dashboards - delete existing widget does not reset new widget layout"
             )
 
-    def test_resize_big_number_widget(self):
+    def test_resize_big_number_widget(self) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=0,
@@ -333,7 +333,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
             self.capture_screenshots("dashboards - resize big number widget")
 
-    def test_default_layout_when_widgets_do_not_have_layout_set(self):
+    def test_default_layout_when_widgets_do_not_have_layout_set(self) -> None:
         existing_widgets = DashboardWidget.objects.bulk_create(
             [
                 DashboardWidget(
@@ -365,7 +365,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
             self.page.wait_until_loaded()
 
-    def test_delete_widget_in_view_mode(self):
+    def test_delete_widget_in_view_mode(self) -> None:
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=0,
@@ -693,12 +693,12 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
-    def test_dashboard_manager(self):
+    def test_dashboard_manager(self) -> None:
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
             self.browser.get(self.default_path)
             self.wait_until_loaded()
 
-    def test_dashboard_manager_with_unset_layouts_and_defined_layouts(self):
+    def test_dashboard_manager_with_unset_layouts_and_defined_layouts(self) -> None:
         dashboard_with_layouts = Dashboard.objects.create(
             title="Dashboard with some defined layouts",
             created_by_id=self.user.id,

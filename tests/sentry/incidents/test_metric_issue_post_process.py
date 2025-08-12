@@ -19,7 +19,7 @@ from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueT
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
-@patch("sentry.workflow_engine.tasks.actions.trigger_action.delay")
+@patch("sentry.workflow_engine.tasks.actions.trigger_action.apply_async")
 class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
     def setUp(self) -> None:
         super().setUp()

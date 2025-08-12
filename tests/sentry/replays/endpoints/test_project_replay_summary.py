@@ -32,7 +32,7 @@ class ProjectReplaySummaryTestCase(
 ):
     endpoint = "sentry-api-0-project-replay-summary"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.replay_id = uuid.uuid4().hex
@@ -46,7 +46,7 @@ class ProjectReplaySummaryTestCase(
             "organizations:gen-ai-features": True,
         }
 
-    def store_replay(self, dt: datetime | None = None, **kwargs):
+    def store_replay(self, dt: datetime | None = None, **kwargs) -> None:
         replay = mock_replay(dt or datetime.now(UTC), self.project.id, self.replay_id, **kwargs)
         response = requests.post(
             settings.SENTRY_SNUBA + "/tests/entities/replays/insert", json=[replay]
@@ -65,7 +65,7 @@ class ProjectReplaySummaryTestCase(
         )
         FilestoreBlob().set(metadata, zlib.compress(data) if compressed else data)
 
-    def test_feature_flag_disabled(self):
+    def test_feature_flag_disabled(self) -> None:
         self.save_recording_segment(0, json.dumps([]).encode())
 
         features = [
@@ -93,7 +93,7 @@ class ProjectReplaySummaryTestCase(
                     assert response.status_code == 404, (replay, replay_ai, gen_ai, method)
 
     @responses.activate
-    def test_get_simple(self):
+    def test_get_simple(self) -> None:
         mock_seer_response("GET", status=200, json={"hello": "world"})
         with self.feature(self.features):
             response = self.client.get(self.url)
@@ -108,7 +108,7 @@ class ProjectReplaySummaryTestCase(
         assert seer_request.body == json.dumps({"replay_id": self.replay_id})
 
     @responses.activate
-    def test_post_simple(self):
+    def test_post_simple(self) -> None:
         mock_seer_response("POST", status=200, json={"hello": "world"})
 
         data = [
@@ -154,7 +154,7 @@ class ProjectReplaySummaryTestCase(
         }
 
     @patch("sentry.replays.endpoints.project_replay_summary.requests")
-    def test_post_with_both_direct_and_trace_connected_errors(self, mock_requests):
+    def test_post_with_both_direct_and_trace_connected_errors(self, mock_requests) -> None:
         """Test handling of breadcrumbs with both direct and trace connected errors"""
         mock_requests.post.return_value = Mock(status_code=200, json=lambda: {"hello": "world"})
 
@@ -243,7 +243,7 @@ class ProjectReplaySummaryTestCase(
         assert any("Failed to connect to database" in log for log in logs)
 
     @patch("sentry.replays.endpoints.project_replay_summary.requests")
-    def test_post_with_feedback(self, mock_requests):
+    def test_post_with_feedback(self, mock_requests) -> None:
         """Test handling of breadcrumbs with user feedback"""
         mock_requests.post.return_value = Mock(
             status_code=200, json=lambda: {"feedback": "Feedback was submitted"}
@@ -309,7 +309,7 @@ class ProjectReplaySummaryTestCase(
 
     @responses.activate
     @patch("sentry.replays.endpoints.project_replay_summary.MAX_SEGMENTS_TO_SUMMARIZE", 1)
-    def test_post_max_segments_exceeded(self):
+    def test_post_max_segments_exceeded(self) -> None:
         mock_seer_response("POST", status=200, json={"hello": "world"})
 
         data1 = [
@@ -356,7 +356,7 @@ class ProjectReplaySummaryTestCase(
         }
 
     @responses.activate
-    def test_seer_timeout(self):
+    def test_seer_timeout(self) -> None:
         for method in ["GET", "POST"]:
             mock_seer_response(method, body=requests.exceptions.Timeout("Request timed out"))
             self.save_recording_segment(0, json.dumps([]).encode())
@@ -373,7 +373,7 @@ class ProjectReplaySummaryTestCase(
             assert response.status_code == 504, method
 
     @responses.activate
-    def test_seer_connection_error(self):
+    def test_seer_connection_error(self) -> None:
         for method in ["GET", "POST"]:
             mock_seer_response(method, body=requests.exceptions.ConnectionError("Connection error"))
             self.save_recording_segment(0, json.dumps([]).encode())
@@ -390,7 +390,7 @@ class ProjectReplaySummaryTestCase(
             assert response.status_code == 502, method
 
     @responses.activate
-    def test_seer_request_error(self):
+    def test_seer_request_error(self) -> None:
         for method in ["GET", "POST"]:
             mock_seer_response(
                 method, body=requests.exceptions.RequestException("Generic request error")
@@ -409,7 +409,7 @@ class ProjectReplaySummaryTestCase(
             assert response.status_code == 502, method
 
     @responses.activate
-    def test_seer_http_errors(self):
+    def test_seer_http_errors(self) -> None:
         for method in ["GET", "POST"]:
             for status in [400, 401, 403, 404, 429, 500, 502, 503, 504]:
                 mock_seer_response(method, status=status)

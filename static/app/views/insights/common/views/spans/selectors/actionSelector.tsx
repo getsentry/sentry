@@ -129,7 +129,6 @@ const LABEL_FOR_MODULE_NAME: Record<ModuleName, ReactNode> = {
   'mobile-ui': t('Action'),
   'mobile-vitals': t('Action'),
   'screen-rendering': t('Action'),
-  ai: 'Action',
   agents: t('Action'),
   mcp: t('Action'),
   sessions: t('Action'),

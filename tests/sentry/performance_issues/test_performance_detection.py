@@ -697,5 +697,5 @@ class EventPerformanceProblemTest(TestCase):
         ),
     ],
 )
-def test_total_span_time(spans, duration):
+def test_total_span_time(spans, duration) -> None:
     assert total_span_time(spans) == pytest.approx(duration, 0.01)

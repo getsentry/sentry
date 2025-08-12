@@ -210,7 +210,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         "sentry.feedback.endpoints.organization_feedback_summary.MAX_FEEDBACKS_TO_SUMMARIZE_CHARS",
         1000,
     )
-    def test_get_feedback_summary_character_limit(self, mock_make_seer_request):
+    def test_get_feedback_summary_character_limit(self, mock_make_seer_request) -> None:
         # Create 9 older feedbacks with normal size, skipped due to the middle one exceeding the character limit
         for _ in range(9):
             event = mock_feedback_event(self.project1.id, dt=datetime.now(UTC) - timedelta(hours=3))

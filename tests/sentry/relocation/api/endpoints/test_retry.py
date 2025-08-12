@@ -84,7 +84,7 @@ class RetryRelocationTest(APITestCase):
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
     @patch("sentry.relocation.tasks.process.uploading_start.delay")
-    def test_good_simple(self, uploading_start_mock: Mock, analytics_record_mock: Mock):
+    def test_good_simple(self, uploading_start_mock: Mock, analytics_record_mock: Mock) -> None:
         self.login_as(user=self.owner, superuser=False)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -287,7 +287,9 @@ class RetryRelocationTest(APITestCase):
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 2})
     @patch("sentry.relocation.tasks.process.uploading_start.delay")
-    def test_bad_file_not_found(self, uploading_start_mock: Mock, analytics_record_mock: Mock):
+    def test_bad_file_not_found(
+        self, uploading_start_mock: Mock, analytics_record_mock: Mock
+    ) -> None:
         self.login_as(user=self.owner, superuser=False)
         File.objects.all().delete()
 
@@ -330,7 +332,7 @@ class RetryRelocationTest(APITestCase):
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
     @patch("sentry.relocation.tasks.process.uploading_start.delay")
-    def test_bad_throttled(self, uploading_start_mock: Mock, analytics_record_mock: Mock):
+    def test_bad_throttled(self, uploading_start_mock: Mock, analytics_record_mock: Mock) -> None:
         self.login_as(user=self.owner, superuser=False)
 
         response = self.get_error_response(self.relocation.uuid, status_code=429)

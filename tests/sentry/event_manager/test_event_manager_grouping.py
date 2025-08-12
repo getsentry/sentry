@@ -427,7 +427,7 @@ class PlaceholderTitleTest(TestCase):
         (None, None, None),
     ],
 )
-def test_get_updated_group_title(existing_title, incoming_title, expected_title):
+def test_get_updated_group_title(existing_title, incoming_title, expected_title) -> None:
     existing_data = {"title": existing_title} if existing_title is not None else {}
     incoming_data = {"title": incoming_title} if incoming_title is not None else {}
 
@@ -436,7 +436,7 @@ def test_get_updated_group_title(existing_title, incoming_title, expected_title)
 
 class EventManagerGroupingMetricsTest(TestCase):
     @mock.patch("sentry.event_manager.metrics.incr")
-    def test_records_avg_calculations_per_event_metrics(self, mock_metrics_incr: MagicMock):
+    def test_records_avg_calculations_per_event_metrics(self, mock_metrics_incr: MagicMock) -> None:
         project = self.project
 
         cases: list[Any] = [

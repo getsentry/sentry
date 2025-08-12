@@ -64,7 +64,7 @@ class AuthIdentity(ReplicatedControlModel):
 
     __repr__ = sane_repr("user_id", "auth_provider_id")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.ident
 
     def get_audit_log_data(self):

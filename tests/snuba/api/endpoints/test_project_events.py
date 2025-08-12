@@ -5,7 +5,7 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class ProjectEventsTest(APITestCase, SnubaTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -31,7 +31,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
             [event_1.event_id, event_2.event_id]
         )
 
-    def test_message_search(self):
+    def test_message_search(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -58,7 +58,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         assert response.data[0]["eventID"] == event_2.event_id
         assert response.data[0]["message"] == "Delet the Data"
 
-    def test_filters_based_on_retention(self):
+    def test_filters_based_on_retention(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -81,30 +81,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["eventID"] == event_2.event_id
 
-    def test_limited_to_week(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-        event = self.store_event(
-            data={"timestamp": before_now(days=2).isoformat()}, project_id=project.id
-        )
-        self.store_event(data={"timestamp": before_now(days=8).isoformat()}, project_id=project.id)
-
-        url = reverse(
-            "sentry-api-0-project-events",
-            kwargs={
-                "organization_id_or_slug": project.organization.slug,
-                "project_id_or_slug": project.slug,
-            },
-        )
-
-        with self.feature("organizations:project-event-date-limit"):
-            response = self.client.get(url, format="json")
-            assert response.status_code == 200, response.content
-            assert len(response.data) == 1
-            assert response.data[0]["eventID"] == event.event_id
-
-    def test_with_stats_period_parameter(self):
+    def test_with_stats_period_parameter(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -132,7 +109,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
         assert response.data[0]["eventID"] == recent_event.event_id
 
-    def test_with_start_and_end_parameters(self):
+    def test_with_start_and_end_parameters(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -177,7 +154,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         assert old_event.event_id in event_ids
         assert intermediary_event.event_id in event_ids
 
-    def test_with_timezone_naive_start_and_end_parameters(self):
+    def test_with_timezone_naive_start_and_end_parameters(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -222,7 +199,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         assert old_event.event_id in event_ids
         assert intermediary_event.event_id in event_ids
 
-    def test_with_invalid_stats_period_parameter(self):
+    def test_with_invalid_stats_period_parameter(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -239,7 +216,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert response.data["detail"] == "Invalid date range parameters provided"
 
-    def test_with_invalid_start_parameter(self):
+    def test_with_invalid_start_parameter(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()
@@ -258,60 +235,7 @@ class ProjectEventsTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.content
         assert response.data["detail"] == "Invalid date range parameters provided"
 
-    def test_with_stats_period_parameter_with_event_date_limit_feature_flag(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        # Event from 10 days ago (outside feature flag limit)
-        self.store_event(data={"timestamp": before_now(days=10).isoformat()}, project_id=project.id)
-
-        # Event from 5 days ago (within feature flag limit)
-        recent_event = self.store_event(
-            data={"timestamp": before_now(days=5).isoformat()}, project_id=project.id
-        )
-
-        url = reverse(
-            "sentry-api-0-project-events",
-            kwargs={
-                "organization_id_or_slug": project.organization.slug,
-                "project_id_or_slug": project.slug,
-            },
-        )
-
-        with self.feature("organizations:project-event-date-limit"):
-            response = self.client.get(url, {"statsPeriod": "15d"}, format="json")
-
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0]["eventID"] == recent_event.event_id
-
-    def test_with_end_date_before_feature_flag_limit_with_event_date_limit_feature_flag(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        url = reverse(
-            "sentry-api-0-project-events",
-            kwargs={
-                "organization_id_or_slug": project.organization.slug,
-                "project_id_or_slug": project.slug,
-            },
-        )
-
-        with self.feature("organizations:project-event-date-limit"):
-            start_time = before_now(days=10)
-            end_time = before_now(days=8)
-            response = self.client.get(
-                url,
-                {"start": start_time.isoformat(), "end": end_time.isoformat()},
-                format="json",
-            )
-
-        assert response.status_code == 400, response.content
-        assert response.data["detail"] == "End date must be less than 7 days ago"
-
-    def test_sample(self):
+    def test_sample(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project()

@@ -69,13 +69,13 @@ class ProjectDetailTest(AcceptanceTestCase):
         self.login_as(self.user)
         self.path = f"/organizations/{self.org.slug}/projects/{self.project.slug}/"
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         with self.feature(FEATURE_NAME):
             self.browser.get(self.path)
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
     @pytest.mark.skip(reason="flaky: #96332")
-    def test_no_feature(self):
+    def test_no_feature(self) -> None:
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')

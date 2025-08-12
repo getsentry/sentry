@@ -129,6 +129,6 @@ def test_global_config_valid_with_generic_filters() -> None:
 
 
 @django_db_all
-def test_global_config_histogram_outliers(insta_snapshot):
+def test_global_config_histogram_outliers(insta_snapshot) -> None:
     config = get_global_config()
     insta_snapshot(config["metricExtraction"])

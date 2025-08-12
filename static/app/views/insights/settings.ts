@@ -5,20 +5,20 @@ import {
   MODULE_DOC_LINK as AGENTS_MODULE_DOC_LINK,
   MODULE_FEATURES as AGENTS_MODULE_FEATURES,
   MODULE_TITLE as AGENTS_MODULE_TITLE,
-} from 'sentry/views/insights/agentMonitoring/settings';
+} from 'sentry/views/insights/agents/settings';
 import {
   DATA_TYPE as RESOURCE_DATA_TYPE,
   DATA_TYPE_PLURAL as RESOURCE_DATA_TYPE_PLURAL,
-  MODULE_DOC_LINK as RESOURCES_MODULE_DOC_LINK,
   MODULE_FEATURES as RESOURCE_MODULE_FEATURES,
+  MODULE_DOC_LINK as RESOURCES_MODULE_DOC_LINK,
   MODULE_TITLE as RESOURCES_MODULE_TITLE,
 } from 'sentry/views/insights/browser/resources/settings';
 import {
-  DATA_TYPE as WEB_VITALS_DATA_TYPE,
-  DATA_TYPE_PLURAL as WEB_VITALS_DATA_TYPE_PLURAL,
   MODULE_DOC_LINK as VITALS_MODULE_DOC_LINK,
   MODULE_FEATURES as VITALS_MODULE_FEATURES,
   MODULE_TITLE as VITALS_MODULE_TITLE,
+  DATA_TYPE as WEB_VITALS_DATA_TYPE,
+  DATA_TYPE_PLURAL as WEB_VITALS_DATA_TYPE_PLURAL,
 } from 'sentry/views/insights/browser/webVitals/settings';
 import {
   DATA_TYPE as CACHE_DATA_TYPE,
@@ -42,13 +42,6 @@ import {
   MODULE_FEATURES as HTTP_MODULE_FEATURES,
   MODULE_TITLE as HTTP_MODULE_TITLE,
 } from 'sentry/views/insights/http/settings';
-import {
-  DATA_TYPE as AI_DATA_TYPE,
-  DATA_TYPE_PLURAL as AI_DATA_TYPE_PLURAL,
-  MODULE_DOC_LINK as AI_MODULE_DOC_LINK,
-  MODULE_FEATURES as AI_MODULE_FEATURES,
-  MODULE_TITLE as AI_MODULE_TITLE,
-} from 'sentry/views/insights/llmMonitoring/settings';
 import {
   DATA_TYPE as MCP_DATA_TYPE,
   DATA_TYPE_PLURAL as MCP_DATA_TYPE_PLURAL,
@@ -80,14 +73,14 @@ import {
 import {
   DATA_TYPE as MOBILE_SCREENS_DATA_TYPE,
   DATA_TYPE_PLURAL as MOBILE_SCREENS_DATA_TYPE_PLURAL,
-  MODULE_DOC_LINK as MODULE_SCREENS_DOC_LINK,
   MODULE_FEATURE as MOBILE_SCREENS_MODULE_FEATURE,
   MODULE_TITLE as MOBILE_SCREENS_MODULE_TITLE,
+  MODULE_DOC_LINK as MODULE_SCREENS_DOC_LINK,
 } from 'sentry/views/insights/mobile/screens/settings';
 import {
-  MODULE_DOC_LINK as MODULE_UI_DOC_LINK,
   MODULE_FEATURES as MOBILE_UI_MODULE_FEATURES,
   MODULE_TITLE as MOBILE_UI_MODULE_TITLE,
+  MODULE_DOC_LINK as MODULE_UI_DOC_LINK,
 } from 'sentry/views/insights/mobile/ui/settings';
 import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/settings';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
@@ -100,10 +93,10 @@ import {
   MODULE_TITLE as QUEUE_MODULE_TITLE,
 } from 'sentry/views/insights/queues/settings';
 import {
-  DATA_TYPE as SESSIONS_DATA_TYPE,
-  DATA_TYPE_PLURAL as SESSIONS_DATA_TYPE_PLURAL,
   FRONTEND_MODULE_DOC_LINK as FRONTEND_SESSIONS_MODULE_DOC_LINK,
   MOBILE_MODULE_DOC_LINK as MOBILE_SESSIONS_MODULE_DOC_LINK,
+  DATA_TYPE as SESSIONS_DATA_TYPE,
+  DATA_TYPE_PLURAL as SESSIONS_DATA_TYPE_PLURAL,
   MODULE_TITLE as SESSIONS_MODULE_TITLE,
   MODULE_VISIBLE_FEATURES as SESSIONS_MODULE_VISIBLE_FEATURES,
 } from 'sentry/views/insights/sessions/settings';
@@ -127,7 +120,6 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.APP_START]: APP_STARTS_MODULE_TITLE,
   [ModuleName.VITAL]: VITALS_MODULE_TITLE,
   [ModuleName.RESOURCE]: RESOURCES_MODULE_TITLE,
-  [ModuleName.AI]: AI_MODULE_TITLE,
   [ModuleName.AGENTS]: AGENTS_MODULE_TITLE,
   [ModuleName.MCP]: MCP_MODULE_TITLE,
   [ModuleName.MOBILE_UI]: MOBILE_UI_MODULE_TITLE,
@@ -146,7 +138,6 @@ export const MODULE_DATA_TYPES: Record<ModuleName, string> = {
   [ModuleName.APP_START]: APP_STARTS_DATA_TYPE,
   [ModuleName.VITAL]: WEB_VITALS_DATA_TYPE,
   [ModuleName.RESOURCE]: RESOURCE_DATA_TYPE,
-  [ModuleName.AI]: AI_DATA_TYPE,
   [ModuleName.AGENTS]: AGENTS_DATA_TYPE,
   [ModuleName.MCP]: MCP_DATA_TYPE,
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
@@ -165,7 +156,6 @@ export const MODULE_DATA_TYPES_PLURAL: Record<ModuleName, string> = {
   [ModuleName.APP_START]: APP_STARTS_DATA_TYPE_PLURAL,
   [ModuleName.VITAL]: WEB_VITALS_DATA_TYPE_PLURAL,
   [ModuleName.RESOURCE]: RESOURCE_DATA_TYPE_PLURAL,
-  [ModuleName.AI]: AI_DATA_TYPE_PLURAL,
   [ModuleName.AGENTS]: AGENTS_DATA_TYPE_PLURAL,
   [ModuleName.MCP]: MCP_DATA_TYPE_PLURAL,
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
@@ -187,7 +177,6 @@ export const MODULE_PRODUCT_DOC_LINKS = {
   [ModuleName.APP_START]: APP_STARTS_MODULE_DOC_LINK,
   [ModuleName.VITAL]: VITALS_MODULE_DOC_LINK,
   [ModuleName.RESOURCE]: RESOURCES_MODULE_DOC_LINK,
-  [ModuleName.AI]: AI_MODULE_DOC_LINK,
   [ModuleName.AGENTS]: AGENTS_MODULE_DOC_LINK,
   [ModuleName.MCP]: MCP_MODULE_DOC_LINK,
   [ModuleName.MOBILE_UI]: MODULE_UI_DOC_LINK,
@@ -211,7 +200,6 @@ export const MODULE_FEATURE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.VITAL]: VITALS_MODULE_FEATURES,
   [ModuleName.CACHE]: CACHE_MODULE_FEATURES,
   [ModuleName.QUEUE]: QUEUE_MODULE_FEATURES,
-  [ModuleName.AI]: AI_MODULE_FEATURES,
   [ModuleName.AGENTS]: AGENTS_MODULE_FEATURES,
   [ModuleName.SCREEN_LOAD]: SCREEN_LOADS_MODULE_FEATURES,
   [ModuleName.MCP]: MCP_MODULE_FEATURES,
@@ -233,7 +221,6 @@ export const MODULE_FEATURE_VISIBLE_MAP: Record<ModuleName, string[]> = {
   [ModuleName.VITAL]: ['insights-entry-points'],
   [ModuleName.CACHE]: ['insights-entry-points'],
   [ModuleName.QUEUE]: ['insights-entry-points'],
-  [ModuleName.AI]: ['insights-entry-points'],
   [ModuleName.AGENTS]: ['insights-entry-points'],
   [ModuleName.SCREEN_LOAD]: ['insights-entry-points'],
   [ModuleName.MCP]: ['insights-entry-points', 'mcp-insights'],
@@ -251,6 +238,11 @@ export const MODULES_CONSIDERED_NEW: Set<ModuleName> = new Set([
   ModuleName.MOBILE_VITALS,
   ModuleName.SESSIONS,
 ]);
+
+/**
+ * Modules that are in beta, e.g. used to show a badge on the tab.
+ */
+export const MODULES_CONSIDERED_BETA: Set<ModuleName> = new Set([ModuleName.MCP]);
 
 export const INGESTION_DELAY = 90;
 

@@ -17,6 +17,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
@@ -242,6 +243,9 @@ const docs: Docs<PlatformOptions> = {
     basePackage: '@sentry/aws-serverless',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'aws-serverless',
+  }),
+  mcpOnboarding: getNodeMcpOnboarding({
     basePackage: 'aws-serverless',
   }),
   platformOptions,

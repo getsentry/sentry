@@ -31,11 +31,11 @@ describe('WidgetBuilder utils', function () {
     });
 
     it('does not split aggregates with inner commas', function () {
-      const testFieldsString = 'p75(),count_if(transaction.duration,equal,200),p95()';
+      const testFieldsString = 'p75(),count_if(transaction.duration,equals,200),p95()';
       const actual = getFields(testFieldsString);
       expect(actual).toEqual([
         'p75()',
-        'count_if(transaction.duration,equal,200)',
+        'count_if(transaction.duration,equals,200)',
         'p95()',
       ]);
     });

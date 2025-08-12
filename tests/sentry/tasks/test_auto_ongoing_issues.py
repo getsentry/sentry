@@ -142,7 +142,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
     @mock.patch("sentry.tasks.auto_ongoing_issues.ITERATOR_CHUNK", new=2)
     @mock.patch("sentry.tasks.auto_ongoing_issues.CHILD_TASK_COUNT", new=50)
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_not_all_groups_get_updated(self, mock_backend, mock_metrics_incr):
+    def test_not_all_groups_get_updated(self, mock_backend, mock_metrics_incr) -> None:
         now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         groups_count = 110
@@ -306,7 +306,7 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
     @mock.patch("sentry.tasks.auto_ongoing_issues.ITERATOR_CHUNK", new=2)
     @mock.patch("sentry.tasks.auto_ongoing_issues.CHILD_TASK_COUNT", new=50)
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_not_all_groups_get_updated(self, mock_backend, mock_metrics_incr):
+    def test_not_all_groups_get_updated(self, mock_backend, mock_metrics_incr) -> None:
         now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         groups_count = 110
@@ -409,7 +409,7 @@ class ScheduleAutoEscalatingOngoingIssuesTest(TestCase):
     @mock.patch("sentry.tasks.auto_ongoing_issues.ITERATOR_CHUNK", new=2)
     @mock.patch("sentry.tasks.auto_ongoing_issues.CHILD_TASK_COUNT", new=50)
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
-    def test_not_all_groups_get_updated(self, mock_backend, mock_metrics_incr):
+    def test_not_all_groups_get_updated(self, mock_backend, mock_metrics_incr) -> None:
         now = datetime.now(tz=timezone.utc)
         project = self.create_project()
         groups_count = 110

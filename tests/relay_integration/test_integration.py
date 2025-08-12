@@ -61,12 +61,12 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         return relay_id, secret_key
 
     # used to be test_ungzipped_data
-    def test_simple_data(self):
+    def test_simple_data(self) -> None:
         event_data = {"message": "hello", "timestamp": before_now(seconds=1).isoformat()}
         event = self.post_and_retrieve_event(event_data)
         assert event.message == "hello"
 
-    def test_csp(self):
+    def test_csp(self) -> None:
         event_data = {
             "csp-report": {
                 "document-uri": "https://example.com/foo/bar",
@@ -80,7 +80,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         event = self.post_and_retrieve_security_report(event_data)
         assert event.message == "Blocked 'default-src' from 'evilhackerscripts.com'"
 
-    def test_hpkp(self):
+    def test_hpkp(self) -> None:
         event_data = {
             "date-time": "2014-04-06T13:00:50Z",
             "hostname": "www.example.com",
@@ -103,7 +103,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         assert event.message == "Public key pinning validation failed for 'www.example.com'"
         assert event.group.title == "Public key pinning validation failed for 'www.example.com'"
 
-    def test_expect_ct(self):
+    def test_expect_ct(self) -> None:
         event_data = {
             "expect-ct-report": {
                 "date-time": "2014-04-06T13:00:50Z",
@@ -131,7 +131,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         assert event.message == "Expect-CT failed for 'www.example.com'"
         assert event.group.title == "Expect-CT failed for 'www.example.com'"
 
-    def test_expect_staple(self):
+    def test_expect_staple(self) -> None:
         event_data = {
             "expect-staple-report": {
                 "date-time": "2014-04-06T13:00:50Z",
@@ -153,7 +153,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         assert event.message == "Expect-Staple failed for 'www.example.com'"
         assert event.group.title == "Expect-Staple failed for 'www.example.com'"
 
-    def test_standalone_attachment(self):
+    def test_standalone_attachment(self) -> None:
         event_id = uuid4().hex
 
         # First, ingest the attachment and ensure it is saved
@@ -169,7 +169,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         attachment = EventAttachment.objects.get(project_id=self.project.id, event_id=event_id)
         assert attachment.group_id == event.group_id
 
-    def test_blob_only_attachment(self):
+    def test_blob_only_attachment(self) -> None:
         event_id = uuid4().hex
 
         files = {"some_file": ("hello.txt", BytesIO(b"Hello World! default"))}
@@ -183,7 +183,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             assert blob.read() == b"Hello World! default"
         assert attachment.blob_path is not None
 
-    def test_transaction(self):
+    def test_transaction(self) -> None:
         event_data = {
             "event_id": "d2132d31b39445f1938d7e21b6bf0ec4",
             "type": "transaction",
@@ -270,7 +270,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
     # no change in the silo mode in which *this* case is run. The probable explanation
     # is that the test is sensitive to side effects (possibly in Redis?) of other test
     # cases, which *did* have their silo mode changed.
-    def test_project_config_compression(self):
+    def test_project_config_compression(self) -> None:
         # Populate redis cache with compressed config:
         invalidate_project_config(public_key=self.projectkey, trigger="test")
 
@@ -283,7 +283,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             event = self.post_and_retrieve_event(event_data)
             assert event.message == "hello"
 
-    def test_accepted_with_valid_signature(self):
+    def test_accepted_with_valid_signature(self) -> None:
         """
         Tests that events are properly received and processed through Relay if the signature
         can be verified by a stored public key in the "trustedRelays" project config field.
@@ -310,7 +310,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         assert event is not None
         assert event.message == "should be accepted with signature"
 
-    def test_not_trusted_relay(self):
+    def test_not_trusted_relay(self) -> None:
         """
         Tests that the event is dropped because the relay was not in the list of trusted relays.
         The signature itself is properly generated and valid for the given key pair, but since
@@ -358,7 +358,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
                 "detail": "event submission rejected with_reason: InvalidSignature"
             }
 
-    def test_expired_signature(self):
+    def test_expired_signature(self) -> None:
         """
         Tests that the event is dropped if the signature is expired.
         """
@@ -392,7 +392,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         assert resp.status_code == 403
         assert resp.json() == {"detail": "event submission rejected with_reason: InvalidSignature"}
 
-    def test_invalid_signature(self):
+    def test_invalid_signature(self) -> None:
         """
         Tests that the event is dropped if the signature is invalid.
         """
@@ -426,7 +426,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         assert resp.status_code == 403
         assert resp.json() == {"detail": "event submission rejected with_reason: InvalidSignature"}
 
-    def test_missing_signature(self):
+    def test_missing_signature(self) -> None:
         """
         Tests that the event is dropped if the signature is missing.
         """
@@ -459,7 +459,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         assert resp.status_code == 403
         assert resp.json() == {"detail": "event submission rejected with_reason: MissingSignature"}
 
-    def test_signature_header_is_none(self):
+    def test_signature_header_is_none(self) -> None:
         """
         Tests that the event is dropped if the signature is set to None.
         """
@@ -493,7 +493,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         assert resp.status_code == 403
         assert resp.json() == {"detail": "event submission rejected with_reason: MissingSignature"}
 
-    def test_signature_with_invalid_characters(self):
+    def test_signature_with_invalid_characters(self) -> None:
         url = self.get_relay_store_url(self.project.id)
         resp = requests.post(
             url,

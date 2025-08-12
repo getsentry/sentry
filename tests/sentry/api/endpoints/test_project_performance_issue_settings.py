@@ -316,7 +316,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
 
     @patch("sentry.api.base.create_audit_entry")
     @with_feature("organizations:performance-view")
-    def test_changing_admin_settings_creates_audit_log(self, create_audit_entry: MagicMock):
+    def test_changing_admin_settings_creates_audit_log(self, create_audit_entry: MagicMock) -> None:
         self.get_success_response(
             self.project.organization.slug,
             self.project.slug,

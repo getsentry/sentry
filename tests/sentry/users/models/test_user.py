@@ -256,7 +256,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         OrganizationMember,
         OrganizationMemberMapping,
     )
-    def test_duplicate_memberships(self, expected_models: list[type[Model]]):
+    def test_duplicate_memberships(self, expected_models: list[type[Model]]) -> None:
         from_user = self.create_user("foo@example.com")
         to_user = self.create_user("bar@example.com")
         org_slug = "org-with-duplicate-members-being-merged"
@@ -349,7 +349,9 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         RuleSnooze,
         SavedSearch,
     )
-    def test_only_source_user_is_member_of_organization(self, expected_models: list[type[Model]]):
+    def test_only_source_user_is_member_of_organization(
+        self, expected_models: list[type[Model]]
+    ) -> None:
         from_user = self.create_exhaustive_user("foo@example.com")
         to_user = self.create_exhaustive_user("bar@example.com")
         org_slug = "org-only-from-user-is-member-of"
@@ -391,7 +393,9 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         RuleSnooze,
         SavedSearch,
     )
-    def test_both_users_are_members_of_organization(self, expected_models: list[type[Model]]):
+    def test_both_users_are_members_of_organization(
+        self, expected_models: list[type[Model]]
+    ) -> None:
         from_user = self.create_exhaustive_user("foo@example.com")
         to_user = self.create_exhaustive_user("bar@example.com")
         random_user = self.create_user("random@example.com")
@@ -432,7 +436,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
             ).exists()
 
     @expect_models(ORG_MEMBER_MERGE_TESTED, OrganizationMemberInvite)
-    def test_member_invite(self, expected_models: list[type[Model]]):
+    def test_member_invite(self, expected_models: list[type[Model]]) -> None:
         """
         Member invite only depends on email and thus should not be transferred to the to user.
         """

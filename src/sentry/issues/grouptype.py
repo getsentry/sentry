@@ -214,6 +214,9 @@ class GroupType:
     # Controls whether status change (i.e. resolved, regressed) workflow notifications are enabled.
     # Defaults to true to maintain the default workflow notification behavior as it exists for error group types.
     enable_status_change_workflow_notifications: bool = True
+    # Controls whether _all_ workflow notification types are enabled (e.g. assignment).
+    # Useful when the group type is still in development
+    enable_workflow_notifications = True
 
     def __init_subclass__(cls: type[GroupType], **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -685,6 +688,19 @@ class MetricIssuePOC(GroupType):
     enable_auto_resolve = False
     enable_escalation_detection = False
     enable_status_change_workflow_notifications = False
+
+
+@dataclass(frozen=True)
+class WebVitalsGroup(GroupType):
+    type_id = 10001
+    slug = "web_vitals"
+    description = "Web Vitals"
+    category = GroupCategory.PERFORMANCE.value
+    category_v2 = GroupCategory.FRONTEND.value
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    enable_status_change_workflow_notifications = False
+    enable_workflow_notifications = False
 
 
 def should_create_group(

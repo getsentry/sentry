@@ -204,7 +204,7 @@ class GoodCompareCommandEncryptionTests(TestCase):
                     assert len(findings) == 0
 
     @patch("sentry.backup.crypto.KeyManagementServiceClient")
-    def test_compare_decrypt_with_gcp_kms(self, fake_kms_client: mock.Mock):
+    def test_compare_decrypt_with_gcp_kms(self, fake_kms_client: mock.Mock) -> None:
         with TemporaryDirectory() as tmp_dir:
             (tmp_priv_key_path, _, tmp_encrypted_path) = create_encryption_test_files(tmp_dir)
             gcp_kms_config_path = mock_gcp_kms_asymmetric_decrypt(
@@ -303,7 +303,7 @@ class GoodEncryptDecryptCommandTests(TransactionTestCase):
                 assert source_json == target_json
 
     @patch("sentry.backup.crypto.KeyManagementServiceClient")
-    def test_use_gcp_kms(self, fake_kms_client: mock.Mock):
+    def test_use_gcp_kms(self, fake_kms_client: mock.Mock) -> None:
         with TemporaryDirectory() as tmp_dir:
             tmp_decrypted_path = Path(tmp_dir).joinpath("decrypted.tar")
             tmp_encrypted_path = Path(tmp_dir).joinpath("encrypted.tar")
@@ -438,7 +438,9 @@ class GoodSanitizeCommandEncryptionTests(TestCase):
             assert rv.exit_code == 0, rv.output
 
     @patch("sentry.backup.crypto.KeyManagementServiceClient")
-    def test_sanitize_with_gcp_kms_decryption_and_encryption(self, fake_kms_client: mock.Mock):
+    def test_sanitize_with_gcp_kms_decryption_and_encryption(
+        self, fake_kms_client: mock.Mock
+    ) -> None:
         with TemporaryDirectory() as tmp_dir:
             tmp_sanitized_encrypted_path = Path(tmp_dir).joinpath("sanitized_encrypted.tar")
             (
@@ -719,7 +721,7 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
         self.cli_encrypted_import_then_export_use_local("users")
 
     @patch("sentry.backup.crypto.KeyManagementServiceClient")
-    def test_encryption_with_gcp_kms_decryption(self, fake_kms_client: mock.Mock):
+    def test_encryption_with_gcp_kms_decryption(self, fake_kms_client: mock.Mock) -> None:
         self.cli_encrypted_import_then_export_use_gcp_kms("global", fake_kms_client)
         self.cli_encrypted_import_then_export_use_gcp_kms("config", fake_kms_client)
         self.cli_encrypted_import_then_export_use_gcp_kms("organizations", fake_kms_client)

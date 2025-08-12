@@ -526,7 +526,7 @@ export function Control({
           </DropdownButton>
         )}
         <StyledPositionWrapper
-          zIndex={theme.zIndex?.tooltip}
+          zIndex={theme.zIndex?.dropdown}
           visible={overlayIsOpen}
           {...overlayProps}
         >

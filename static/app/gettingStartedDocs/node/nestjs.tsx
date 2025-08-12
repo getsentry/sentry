@@ -18,6 +18,7 @@ import {
   getImportInstrumentSnippet,
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
@@ -302,6 +303,9 @@ const docs: Docs = {
     basePackage: '@sentry/nestjs',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'nestjs',
+  }),
+  mcpOnboarding: getNodeMcpOnboarding({
     basePackage: 'nestjs',
   }),
 };

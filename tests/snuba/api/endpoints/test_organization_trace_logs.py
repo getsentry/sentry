@@ -22,7 +22,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         response = self.client.get(
             self.url,
             data={"traceId": uuid4().hex},
@@ -31,7 +31,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
 
         assert response.status_code == 404, response.content
 
-    def test_invalid_trace_id(self):
+    def test_invalid_trace_id(self) -> None:
         trace_id_1 = "1" * 32
         trace_id_2 = "2" * 32
         self.store_ourlogs(
@@ -54,7 +54,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
             )
             assert response.status_code == 400, response.content
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         trace_id_1 = "1" * 32
         trace_id_2 = "2" * 32
         self.store_ourlogs(
@@ -83,7 +83,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         assert log_data["trace"] == trace_id_1
         assert log_data["message"] == "foo"
 
-    def test_multiple_traces(self):
+    def test_multiple_traces(self) -> None:
         trace_id_1 = "1" * 32
         trace_id_2 = "2" * 32
         self.store_ourlogs(
@@ -116,7 +116,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         assert log_data["trace"] == trace_id_2
         assert log_data["message"] == "bar"
 
-    def test_orderby(self):
+    def test_orderby(self) -> None:
         trace_id_1 = "1" * 32
         trace_id_2 = "2" * 32
         self.store_ourlogs(
@@ -149,7 +149,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         assert log_data["trace"] == trace_id_1
         assert log_data["message"] == "foo"
 
-    def test_orderby_validation(self):
+    def test_orderby_validation(self) -> None:
         trace_id_1 = "1" * 32
         trace_id_2 = "2" * 32
         self.store_ourlogs(
@@ -172,7 +172,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         )
         assert response.status_code == 400, response.content
 
-    def test_cross_project_query(self):
+    def test_cross_project_query(self) -> None:
         trace_id_1 = "1" * 32
         trace_id_2 = "2" * 32
         project2 = self.create_project(organization=self.organization)
@@ -207,7 +207,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         assert log_data["trace"] == trace_id_2
         assert log_data["message"] == "bar"
 
-    def test_query_field(self):
+    def test_query_field(self) -> None:
         trace_id_1 = "1" * 32
         trace_id_2 = "2" * 32
         self.store_ourlogs(
@@ -236,7 +236,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsEndpointTestBase):
         assert log_data["trace"] == trace_id_1
         assert log_data["message"] == "foo"
 
-    def test_pagelimit(self):
+    def test_pagelimit(self) -> None:
         trace_id = "1" * 32
         log = self.create_ourlog(
             {"body": "test", "trace_id": trace_id},
