@@ -105,6 +105,7 @@ export function LogsAggregateTable() {
                 : (row[column.key] as string | number);
             const extra: RendererExtra = {
               attributes: row,
+              attributeTypes: data?.meta?.fields ?? {},
               highlightTerms: [],
               logColors: getLogColors(SeverityLevel.DEFAULT, theme),
               location,

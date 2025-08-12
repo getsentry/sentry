@@ -40,6 +40,7 @@ describe('Logs Field Renderers', function () {
       organization,
       location: {} as any,
       theme: ThemeFixture(),
+      attributeTypes: {},
       attributes,
       highlightTerms: [],
       logColors: {
