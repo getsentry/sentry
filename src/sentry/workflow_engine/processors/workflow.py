@@ -98,6 +98,18 @@ class DelayedWorkflowItem:
         )
 
 
+def get_all_buffer_keys() -> list[str]:
+    return [_get_buffer_key(i) for i in range(WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS)]
+
+
+def _get_buffer_key(shard: int) -> str:
+    return (
+        f"{WORKFLOW_ENGINE_BUFFER_LIST_KEY}:{shard}"
+        if shard > 0
+        else WORKFLOW_ENGINE_BUFFER_LIST_KEY
+    )
+
+
 def enqueue_workflows(
     items_by_workflow: dict[Workflow, DelayedWorkflowItem],
 ) -> None:
@@ -127,7 +139,7 @@ def enqueue_workflows(
 
     sentry_sdk.set_tag("delayed_workflow_items", items)
 
-    sharded_key = f"{WORKFLOW_ENGINE_BUFFER_LIST_KEY}:{random.randrange(WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS)}"
+    sharded_key = _get_buffer_key(random.randrange(WORKFLOW_ENGINE_BUFFER_LIST_KEY_SHARDS))
     buffer.backend.push_to_sorted_set(key=sharded_key, value=list(items_by_project_id.keys()))
 
     logger.debug(

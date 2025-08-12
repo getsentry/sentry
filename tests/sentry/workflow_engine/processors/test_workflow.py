@@ -30,6 +30,7 @@ from sentry.workflow_engine.processors.workflow import (
     enqueue_workflows,
     evaluate_workflow_triggers,
     evaluate_workflows_action_filters,
+    get_all_buffer_keys,
     process_workflows,
 )
 from sentry.workflow_engine.types import WorkflowEventData
@@ -414,6 +415,8 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
         )
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
         self.action_group, _ = self.create_workflow_action(self.workflow)
+
+        self.buffer_keys = get_all_buffer_keys()
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()
 
@@ -439,12 +442,11 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
         process_workflows(self.event_data)
 
         project_ids = buffer.backend.bulk_get_sorted_set(
-            [WORKFLOW_ENGINE_BUFFER_LIST_KEY],
+            self.buffer_keys,
             min=0,
             max=self.buffer_timestamp,
         )
-        assert project_ids
-        assert project_ids[0][0] == self.project.id
+        assert list(project_ids.keys()) == [self.project.id]
 
     def test_enqueues_workflow_any_logic_type(self) -> None:
         assert self.workflow.when_condition_group
@@ -472,11 +474,11 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
         process_workflows(self.event_data)
 
         project_ids = buffer.backend.bulk_get_sorted_set(
-            [WORKFLOW_ENGINE_BUFFER_LIST_KEY],
+            self.buffer_keys,
             min=0,
             max=self.buffer_timestamp,
         )
-        assert project_ids[0][0] == self.project.id
+        assert list(project_ids.keys()) == [self.project.id]
 
     def test_skips_enqueuing_any(self) -> None:
         # skips slow conditions if the condition group evaluates to True without evaluating them
@@ -554,11 +556,11 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
         process_workflows(self.event_data)
 
         project_ids = buffer.backend.bulk_get_sorted_set(
-            [WORKFLOW_ENGINE_BUFFER_LIST_KEY],
+            self.buffer_keys,
             min=0,
             max=self.buffer_timestamp,
         )
-        assert project_ids[0][0] == self.project.id
+        assert list(project_ids.keys()) == [self.project.id]
 
     def test_enqueues_event_if_meets_fast_conditions(self) -> None:
         assert self.workflow.when_condition_group
@@ -583,7 +585,7 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
         process_workflows(self.event_data)
 
         project_ids = buffer.backend.bulk_get_sorted_set(
-            [WORKFLOW_ENGINE_BUFFER_LIST_KEY],
+            self.buffer_keys,
             min=0,
             max=self.buffer_timestamp,
         )
@@ -595,11 +597,11 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
         process_workflows(self.event_data)
 
         project_ids = buffer.backend.bulk_get_sorted_set(
-            [WORKFLOW_ENGINE_BUFFER_LIST_KEY],
+            self.buffer_keys,
             min=0,
             max=self.buffer_timestamp,
         )
-        assert project_ids[0][0] == self.project.id
+        assert list(project_ids.keys()) == [self.project.id]
 
 
 @freeze_time(FROZEN_TIME)
@@ -619,6 +621,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         )
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        self.buffer_keys = get_all_buffer_keys()
 
     @patch("sentry.utils.metrics.incr")
     def test_metrics_issue_dual_processing_metrics(self, mock_incr: MagicMock) -> None:
@@ -747,12 +750,11 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
         enqueue_workflows(queue_items)
 
         project_ids = buffer.backend.bulk_get_sorted_set(
-            [WORKFLOW_ENGINE_BUFFER_LIST_KEY],
+            self.buffer_keys,
             min=0,
             max=timezone.now().timestamp(),
         )
-        assert project_ids
-        assert project_ids[0][0] == self.project.id
+        assert list(project_ids.keys()) == [self.project.id]
 
 
 class TestEnqueueWorkflows(BaseWorkflowTest):
