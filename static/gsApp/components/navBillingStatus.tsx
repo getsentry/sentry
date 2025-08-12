@@ -28,8 +28,8 @@ import {usePrefersStackedNav} from 'sentry/views/nav/usePrefersStackedNav';
 import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
 import useSubscription from 'getsentry/hooks/useSubscription';
 import {
-  type BillingMetricHistory,
   OnDemandBudgetMode,
+  type BillingMetricHistory,
   type Subscription,
 } from 'getsentry/types';
 import {

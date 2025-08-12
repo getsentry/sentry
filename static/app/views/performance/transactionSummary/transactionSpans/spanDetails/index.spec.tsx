@@ -1,8 +1,8 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
-  generateSuspectSpansResponse,
   initializeData as _initializeData,
+  generateSuspectSpansResponse,
 } from 'sentry-test/performance/initializePerformanceData';
 import {
   act,
