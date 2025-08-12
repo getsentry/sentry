@@ -14,6 +14,7 @@ import {
   LogsPageParamsProvider,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTable} from 'sentry/views/explore/logs/tables/logsTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {UseLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
@@ -145,11 +146,13 @@ describe('LogsTable', function () {
   function ProviderWrapper({children}: {children: React.ReactNode}) {
     return (
       <OrganizationContext.Provider value={organization}>
-        <LogsPageParamsProvider
-          analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-        >
-          <LogsPageDataProvider>{children}</LogsPageDataProvider>
-        </LogsPageParamsProvider>
+        <LogsQueryParamsProvider source="location">
+          <LogsPageParamsProvider
+            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+          >
+            <LogsPageDataProvider>{children}</LogsPageDataProvider>
+          </LogsPageParamsProvider>
+        </LogsQueryParamsProvider>
       </OrganizationContext.Provider>
     );
   }
