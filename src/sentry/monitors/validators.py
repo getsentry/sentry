@@ -22,7 +22,9 @@ from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.models import CheckInStatus, Monitor, ScheduleType
 from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
 from sentry.monitors.types import CrontabSchedule, slugify_monitor_slug
+from sentry.monitors.utils import create_issue_alert_rule, signal_monitor_created
 from sentry.utils.dates import AVAILABLE_TIMEZONES
+from sentry.utils.outcomes import Outcome
 
 MONITOR_STATUSES = {
     "active": ObjectStatus.ACTIVE,
@@ -316,7 +318,48 @@ class MonitorValidator(CamelSnakeSerializer):
         return instance
 
     def create(self, validated_data):
-        return validated_data
+        project = validated_data.get("project", self.context.get("project"))
+        organization = self.context["organization"]
+
+        owner = validated_data.get("owner")
+        owner_user_id = None
+        owner_team_id = None
+        if owner and owner.is_user:
+            owner_user_id = owner.id
+        elif owner and owner.is_team:
+            owner_team_id = owner.id
+
+        monitor = Monitor.objects.create(
+            project_id=project.id if project else self.context["project"].id,
+            organization_id=organization.id,
+            owner_user_id=owner_user_id,
+            owner_team_id=owner_team_id,
+            name=validated_data["name"],
+            slug=validated_data.get("slug"),
+            status=validated_data["status"],
+            is_muted=validated_data.get("is_muted", False),
+            config=validated_data["config"],
+        )
+
+        # Attempt to assign a seat for this monitor
+        seat_outcome = quotas.backend.assign_monitor_seat(monitor)
+        if seat_outcome != Outcome.ACCEPTED:
+            monitor.update(status=ObjectStatus.DISABLED)
+
+        request = self.context["request"]
+        signal_monitor_created(project, request.user, False, monitor, request)
+
+        validated_issue_alert_rule = validated_data.get("alert_rule")
+        if validated_issue_alert_rule:
+            issue_alert_rule_id = create_issue_alert_rule(
+                request, project, monitor, validated_issue_alert_rule
+            )
+
+            if issue_alert_rule_id:
+                config = monitor.config
+                config["alert_rule_id"] = issue_alert_rule_id
+                monitor.update(config=config)
+        return monitor
 
 
 class TraceContextValidator(serializers.Serializer):
