@@ -20,11 +20,6 @@ class CodingAgentClient(ApiClient, abc.ABC):
         super().__init__()
 
     @abc.abstractmethod
-    def _get_auth_headers(self) -> dict[str, str]:
-        """Return authentication headers for API requests."""
-        pass
-
-    @abc.abstractmethod
     def launch(self, webhook_url: str, request: CodingAgentLaunchRequest) -> dict[str, Any]:
         """Launch coding agent with webhook callback."""
         pass

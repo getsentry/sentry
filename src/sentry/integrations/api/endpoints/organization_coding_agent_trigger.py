@@ -14,12 +14,12 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.coding_agent.integration import CodingAgentIntegration
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.coding_agent.utils import get_coding_agent_providers
-from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import integration_service
 from sentry.seer.autofix.utils import AutofixState, CodingAgentState, get_autofix_state
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import metrics
@@ -193,10 +193,9 @@ def make_coding_agent_prompt(
 @region_silo_endpoint
 class OrganizationCodingAgentTriggerEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ML_AI
-    permission_classes = (OrganizationIntegrationsPermission,)
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "POST": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def get(self, request: Request, organization) -> Response:
@@ -205,18 +204,26 @@ class OrganizationCodingAgentTriggerEndpoint(OrganizationEndpoint):
             return Response({"detail": "Feature not available"}, status=404)
 
         try:
-            # Find all installed coding agent integrations
-            org_integrations = OrganizationIntegration.objects.filter(
+            # Find all installed coding agent integrations using hybrid cloud service
+            org_integrations = integration_service.get_organization_integrations(
                 organization_id=organization.id,
-                integration__provider__in=get_coding_agent_providers(),
+                providers=get_coding_agent_providers(),
                 status=ObjectStatus.ACTIVE,
-            ).select_related("integration")
+            )
 
             # Serialize the integrations
             integrations_data = []
             for org_integration in org_integrations:
                 try:
-                    integration = org_integration.integration
+                    # Get the full integration details using the integration service
+                    integration = integration_service.get_integration(
+                        organization_integration_id=org_integration.id,
+                        status=ObjectStatus.ACTIVE,
+                    )
+
+                    if not integration:
+                        continue
+
                     installation = integration.get_installation(organization.id)
 
                     integrations_data.append(
@@ -270,15 +277,26 @@ class OrganizationCodingAgentTriggerEndpoint(OrganizationEndpoint):
         if not integration_id:
             return Response({"error": "integration_id is required"}, status=400)
 
-        # Get the integration
+        # Get the integration using hybrid cloud service
         try:
-            org_integration = OrganizationIntegration.objects.select_related("integration").get(
-                organization_id=organization.id,
-                integration_id=integration_id,
-                status=ObjectStatus.ACTIVE,
-            )
-            integration = org_integration.integration
-        except OrganizationIntegration.DoesNotExist:
+            integration_id_int = int(integration_id)
+        except (ValueError, TypeError):
+            return Response({"error": "Invalid integration_id"}, status=400)
+
+        org_integration = integration_service.get_organization_integration(
+            organization_id=organization.id,
+            integration_id=integration_id_int,
+        )
+
+        if not org_integration or org_integration.status != ObjectStatus.ACTIVE:
+            return Response({"error": "Integration not found"}, status=404)
+
+        integration = integration_service.get_integration(
+            organization_integration_id=org_integration.id,
+            status=ObjectStatus.ACTIVE,
+        )
+
+        if not integration:
             return Response({"error": "Integration not found"}, status=404)
 
         # Verify it's a coding agent integration
