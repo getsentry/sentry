@@ -9,6 +9,7 @@ import windowToolImg from 'sentry-images/tempest/windows-tool-devkit.png';
 
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
+import Accordion from 'sentry/components/container/accordion';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -23,6 +24,7 @@ import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useProjectKeys} from 'sentry/utils/useProjectKeys';
+import {useState} from 'react';
 
 import {RequestSdkAccessButton} from './RequestSdkAccessButton';
 
@@ -34,6 +36,7 @@ interface Props {
 export default function DevKitSettings({organization, project}: Props) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [expandedAccordionIndex, setExpandedAccordionIndex] = useState<number>(-1);
 
   const {data: projectKeys, isPending: isLoadingKeys} = useProjectKeys({
     orgSlug: organization.slug,
@@ -93,65 +96,82 @@ export default function DevKitSettings({organization, project}: Props) {
 
                   <GuidedSteps.Step
                     stepKey="step-2"
-                    title={t('Using Windows tool to set up Upload URL')}
+                    title={t('Configure Upload URL')}
                   >
                     <DescriptionWrapper>
-                      <StepContentColumn>
-                        <StepTextSection>
-                          <p>
-                            {t(
-                              'Using Windows tool enter that link into the DevKit as the URL to the Recap Server.'
-                            )}
-                          </p>
-                        </StepTextSection>
-                        <StepImageSection>
-                          <CardIllustration
-                            src={windowToolImg}
-                            alt="Setup Configuration"
-                          />
-                        </StepImageSection>
-                      </StepContentColumn>
+                      <IntroText>
+                        {t(
+                          'There are two ways to configure the Upload URL on your DevKit. Choose one of the following methods:'
+                        )}
+                      </IntroText>
+                      
+                      <Accordion
+                        expandedIndex={expandedAccordionIndex}
+                        setExpandedIndex={setExpandedAccordionIndex}
+                        items={[
+                          {
+                            header: <AccordionHeader>{t('Using Windows tool to set up Upload URL')}</AccordionHeader>,
+                            content: (
+                              <AccordionContentWrapper>
+                                <StepContentColumn>
+                                  <StepTextSection>
+                                    <p>
+                                      {t(
+                                        'Using Windows tool enter that link into the DevKit as the URL to the Recap Server.'
+                                      )}
+                                    </p>
+                                  </StepTextSection>
+                                  <StepImageSection>
+                                    <CardIllustration
+                                      src={windowToolImg}
+                                      alt="Setup Configuration"
+                                    />
+                                  </StepImageSection>
+                                </StepContentColumn>
+                              </AccordionContentWrapper>
+                            ),
+                          },
+                          {
+                            header: <AccordionHeader>{t('Using DevKit Directly to set up Upload URL')}</AccordionHeader>,
+                            content: (
+                              <AccordionContentWrapper>
+                                <StepContentColumn>
+                                  <StepTextSection>
+                                    <p>
+                                      {t(
+                                        `If you haven't done it via Windows tool, you can set up the Upload URL directly in the DevKit. It is under 'Debug Settings' > 'Core Dump' > 'Upload' > 'Upload URL'.`
+                                      )}
+                                    </p>
+                                  </StepTextSection>
+                                  <StepImageSection>
+                                    <CardIllustration
+                                      src={devkitCrashesStep1}
+                                      alt="Setup Configuration"
+                                    />
+                                  </StepImageSection>
+                                  <StepImageSection>
+                                    <CardIllustration
+                                      src={devkitCrashesStep2}
+                                      alt="Setup Configuration"
+                                    />
+                                  </StepImageSection>
+                                  <StepImageSection>
+                                    <CardIllustration
+                                      src={devkitCrashesStep3}
+                                      alt="Setup Configuration"
+                                    />
+                                  </StepImageSection>
+                                </StepContentColumn>
+                              </AccordionContentWrapper>
+                            ),
+                          },
+                        ]}
+                      />
                     </DescriptionWrapper>
                     <GuidedSteps.StepButtons />
                   </GuidedSteps.Step>
 
-                  <GuidedSteps.Step
-                    stepKey="step-3"
-                    title={t('Using DevKit Directly to set up Upload URL')}
-                  >
-                    <DescriptionWrapper>
-                      <StepContentColumn>
-                        <StepTextSection>
-                          <p>
-                            {t(
-                              `If you haven't done it via Windows tool, you can set up the Upload URL directly in the DevKit. It is under 'Debug Settings' > 'Core Dump' > 'Upload' > 'Upload URL'.`
-                            )}
-                          </p>
-                        </StepTextSection>
-                        <StepImageSection>
-                          <CardIllustration
-                            src={devkitCrashesStep1}
-                            alt="Setup Configuration"
-                          />
-                        </StepImageSection>
-                        <StepImageSection>
-                          <CardIllustration
-                            src={devkitCrashesStep2}
-                            alt="Setup Configuration"
-                          />
-                        </StepImageSection>
-                        <StepImageSection>
-                          <CardIllustration
-                            src={devkitCrashesStep3}
-                            alt="Setup Configuration"
-                          />
-                        </StepImageSection>
-                      </StepContentColumn>
-                    </DescriptionWrapper>
-                    <GuidedSteps.StepButtons />
-                  </GuidedSteps.Step>
-
-                  <GuidedSteps.Step stepKey="step-4" title={t('Important Notes')}>
+                  <GuidedSteps.Step stepKey="step-3" title={t('Important Notes')}>
                     <DescriptionWrapper>
                       <p>
                         {t(
@@ -285,4 +305,18 @@ const CardIllustration = styled('img')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowLight};
+`;
+
+const IntroText = styled('p')`
+  margin-bottom: ${space(2)};
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const AccordionHeader = styled('span')`
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const AccordionContentWrapper = styled('div')`
+  padding: ${space(2)};
 `;
