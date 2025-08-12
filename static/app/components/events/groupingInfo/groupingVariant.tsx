@@ -105,10 +105,6 @@ function GroupingVariant({event, showGroupingConfig, variant}: GroupingVariantPr
     switch (variant.type) {
       case EventGroupVariantType.COMPONENT:
         component = variant.component;
-
-        if (showGroupingConfig && variant.config?.id) {
-          data.push([t('Grouping Config'), variant.config.id]);
-        }
         break;
       case EventGroupVariantType.CUSTOM_FINGERPRINT:
         addFingerprintInfo(data, variant);

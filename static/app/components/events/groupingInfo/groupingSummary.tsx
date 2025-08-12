@@ -8,10 +8,12 @@ export function GroupInfoSummary({
   event,
   group,
   projectSlug,
+  showGroupingConfig,
 }: {
   event: Event;
   group: Group | undefined;
   projectSlug: string;
+  showGroupingConfig: boolean;
 }) {
   const {groupInfo, isPending, hasPerformanceGrouping} = useEventGroupingInfo({
     event,
@@ -26,6 +28,11 @@ export function GroupInfoSummary({
         .join(', ')
     : t('nothing');
 
+  const groupingConfig =
+    showGroupingConfig && groupInfo
+      ? (Object.values(groupInfo).find(variant => 'config' in variant) as any)?.config?.id
+      : null;
+
   if (isPending && !hasPerformanceGrouping) {
     return <Placeholder height="20px" style={{marginBottom: '20px'}} />;
   }
@@ -33,6 +40,8 @@ export function GroupInfoSummary({
   return (
     <p data-test-id="loaded-grouping-info">
       <strong>{t('Grouped by:')}</strong> {groupedBy}
+      <br />
+      {groupingConfig && <strong>{t('Grouping Config:')}</strong>} {groupingConfig}
     </p>
   );
 }

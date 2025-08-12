@@ -66,7 +66,12 @@ export default function GroupingInfo({
     <Fragment>
       <ConfigHeader>
         {hasStreamlinedUI && (
-          <GroupInfoSummary event={event} group={group} projectSlug={projectSlug} />
+          <GroupInfoSummary
+            event={event}
+            group={group}
+            projectSlug={projectSlug}
+            showGroupingConfig={showGroupingConfig}
+          />
         )}
         {hasStreamlinedUI ? (
           feedbackComponent
