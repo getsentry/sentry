@@ -19,7 +19,7 @@ import {IconCheckmark, IconChevron, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import {space} from 'sentry/styles/space';
-import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
+import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {DemoTour, useDemoTours} from 'sentry/utils/demoMode/demoTours';

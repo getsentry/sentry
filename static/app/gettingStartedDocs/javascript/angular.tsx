@@ -3,12 +3,12 @@ import crashReportCallout from 'sentry/components/onboarding/gettingStartedDoc/f
 import widgetCallout from 'sentry/components/onboarding/gettingStartedDoc/feedback/widgetCallout';
 import TracePropagationMessage from 'sentry/components/onboarding/gettingStartedDoc/replay/tracePropagationMessage';
 import {
+  StepType,
   type BasePlatformOptions,
   type ContentBlock,
   type Docs,
   type DocsParams,
   type OnboardingConfig,
-  StepType,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {

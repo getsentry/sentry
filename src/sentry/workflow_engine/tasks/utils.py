@@ -1,12 +1,12 @@
 from google.api_core.exceptions import DeadlineExceeded, RetryError, ServiceUnavailable
 
 from sentry import nodestore
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.eventstream.base import GroupState
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.activity import ActivityType
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.workflow_engine.models.workflow import Workflow

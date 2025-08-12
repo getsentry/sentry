@@ -17,7 +17,6 @@ from sentry.issues.grouptype import (
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
-    MonitorIncidentType,
     NoiseConfig,
 )
 from sentry.issues.ingest import (
@@ -39,6 +38,7 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.ratelimits.sliding_windows import RequestedQuota
 from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset

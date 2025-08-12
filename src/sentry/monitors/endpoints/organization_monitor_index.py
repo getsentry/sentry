@@ -47,7 +47,11 @@ from sentry.monitors.serializers import (
     MonitorSerializer,
     MonitorSerializerResponse,
 )
-from sentry.monitors.utils import create_issue_alert_rule, signal_monitor_created
+from sentry.monitors.utils import (
+    create_issue_alert_rule,
+    ensure_cron_detector,
+    signal_monitor_created,
+)
 from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
 from sentry.types.actor import Actor
@@ -290,6 +294,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
             )
         except MonitorLimitsExceeded as e:
             return self.respond({type(e).__name__: str(e)}, status=403)
+
+        ensure_cron_detector(monitor)
 
         # Attempt to assign a seat for this monitor
         seat_outcome = quotas.backend.assign_monitor_seat(monitor)
