@@ -179,7 +179,7 @@ describe('ReleaseIssues', function () {
 
     const link = await screen.findByRole('link', {name: /RequestError/});
 
-    // Should pass the query param `query` with value `release:1.0.0`
+    // Should pass the query param `query` with value `release:"1.0.0"`
     expect(link).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/123/?_allp=1&project=2&query=release%3A%221.0.0%22&referrer=release-issue-stream'
