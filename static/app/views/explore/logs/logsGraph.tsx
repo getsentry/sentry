@@ -8,14 +8,17 @@ import {defined} from 'sentry/utils';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
-import {useLogsAggregate} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   ChartIntervalUnspecifiedStrategy,
   useChartInterval,
 } from 'sentry/views/explore/hooks/useChartInterval';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import {ConfidenceFooter} from 'sentry/views/explore/logs/confidenceFooter';
-import {useQueryParamsTopEventsLimit} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsTopEventsLimit,
+  useQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {
   combineConfidenceForSeries,
@@ -29,7 +32,25 @@ interface LogsGraphProps {
 }
 
 export function LogsGraph({timeseriesResult}: LogsGraphProps) {
-  const aggregate = useLogsAggregate();
+  const visualizes = useQueryParamsVisualizes();
+
+  return (
+    <Fragment>
+      {visualizes.map((visualize, index) => {
+        return (
+          <Graph key={index} visualize={visualize} timeseriesResult={timeseriesResult} />
+        );
+      })}
+    </Fragment>
+  );
+}
+
+interface GraphProps extends LogsGraphProps {
+  visualize: Visualize;
+}
+
+function Graph({timeseriesResult, visualize}: GraphProps) {
+  const aggregate = visualize.yAxis;
   const topEventsLimit = useQueryParamsTopEventsLimit();
 
   const [chartType, setChartType] = useState<ChartType>(ChartType.BAR);

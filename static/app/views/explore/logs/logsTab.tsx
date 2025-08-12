@@ -16,6 +16,7 @@ import {t} from 'sentry/locale';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {AggregationKey} from 'sentry/utils/fields';
 import {HOUR} from 'sentry/utils/formatters';
 import {useQueryClient, type InfiniteData} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -29,8 +30,6 @@ import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
-  useLogsAggregate,
-  useLogsAggregateFunction,
   useLogsAggregateSortBys,
   useLogsFields,
   useLogsSearch,
@@ -83,8 +82,10 @@ import {
   useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsTopEventsLimit,
+  useQueryParamsVisualizes,
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
+import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import type {PickableDays} from 'sentry/views/explore/utils';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
@@ -119,8 +120,7 @@ export function LogsTabContent({
   const [interval] = useChartInterval({
     unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
   });
-  const aggregateFunction = useLogsAggregateFunction();
-  const aggregate = useLogsAggregate();
+  const visualizes = useQueryParamsVisualizes();
 
   const orderby: string | string[] | undefined = useMemo(() => {
     if (!sortBys.length) {
@@ -132,8 +132,12 @@ export function LogsTabContent({
 
   const [sidebarOpen, setSidebarOpen] = useState(
     !!(
-      (aggregateFunction && aggregateFunction !== 'count') ||
-      groupBys.filter(Boolean).length
+      groupBys.some(Boolean) ||
+      visualizes.some(
+        visualize =>
+          isVisualizeFunction(visualize) &&
+          visualize.parsedFunction?.name !== AggregationKey.COUNT
+      )
     )
   );
 
@@ -156,9 +160,12 @@ export function LogsTabContent({
   const _timeseriesResult = useSortedTimeSeries(
     {
       search,
-      yAxis: [aggregate],
+      yAxis: visualizes.map(visualize => visualize.yAxis),
       interval,
-      fields: [...groupBys.filter(Boolean), aggregate],
+      fields: [
+        ...groupBys.filter(Boolean),
+        ...visualizes.map(visualize => visualize.yAxis),
+      ],
       topEvents: topEventsLimit,
       orderby,
     },
@@ -252,7 +259,7 @@ export function LogsTabContent({
   );
 
   const saveAsItems = useSaveAsItems({
-    aggregate,
+    visualizes,
     groupBys,
     interval,
     mode,

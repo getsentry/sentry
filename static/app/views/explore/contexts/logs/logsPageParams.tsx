@@ -357,22 +357,6 @@ export function useLogsCursor() {
   return cursor;
 }
 
-export function useLogsAggregateFunction() {
-  const {aggregateFn} = useLogsPageParams();
-  return aggregateFn;
-}
-
-export function useLogsAggregateParam() {
-  const {aggregateParam} = useLogsPageParams();
-  return aggregateParam;
-}
-
-export function useLogsAggregate() {
-  const aggregateFn = useLogsAggregateFunction();
-  const aggregateParam = useLogsAggregateParam();
-  return `${aggregateFn}(${aggregateParam})`;
-}
-
 export function useLogsLimitToTraceId() {
   const {limitToTraceId} = useLogsPageParams();
   return limitToTraceId;

@@ -13,14 +13,16 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import type {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {useLogsAggregate} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {
   getLogRowTimestampMillis,
   getLogTimestampBucketIndex,
 } from 'sentry/views/explore/logs/utils';
-import {useQueryParamsGroupBys} from 'sentry/views/explore/queryParams/context';
+import {
+  useQueryParamsGroupBys,
+  useQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
 import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 type BufferEntry = {
@@ -80,7 +82,11 @@ export function useStreamingTimeseriesResult(
 ): ReturnType<typeof useSortedTimeSeries> {
   const organization = useOrganization();
   const groupBys = useQueryParamsGroupBys();
-  const aggregate = useLogsAggregate();
+  const visualizes = useQueryParamsVisualizes();
+  if (!visualizes[0] || visualizes.length !== 1) {
+    throw new Error('single visualize only');
+  }
+  const aggregate = visualizes[0].yAxis;
 
   const autoRefresh = useLogsAutoRefreshEnabled();
   const {selection} = usePageFilters();
