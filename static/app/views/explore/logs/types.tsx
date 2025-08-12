@@ -28,7 +28,7 @@ export enum OurLogKnownFieldKey {
   TIMESTAMP_PRECISE = 'timestamp_precise',
   OBSERVED_TIMESTAMP_PRECISE = 'observed_timestamp',
 
-  PAYLOAD_SIZE = 'tags[sentry.payload_size_bytes,number]', // payload_size
+  PAYLOAD_SIZE = 'payload_size',
 
   TEMPLATE = 'message.template',
   PARENT_SPAN_ID = 'trace.parent_span_id',
