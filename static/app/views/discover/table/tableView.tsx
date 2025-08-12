@@ -39,10 +39,10 @@ import {
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
 import {
-  type DiscoverDatasets,
   DisplayModes,
   SavedQueryDatasets,
   TOP_N,
+  type DiscoverDatasets,
 } from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';

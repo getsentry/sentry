@@ -88,6 +88,7 @@ import {
   VersionContainer,
 } from './styles';
 import TeamKeyTransactionField from './teamKeyTransactionField';
+
 /**
  * Types, functions and definitions for rendering fields in discover results.
  */

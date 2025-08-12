@@ -7,14 +7,14 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
-  type ApiQueryKey,
   fetchDataQuery,
-  type InfiniteData,
   Query,
-  type QueryKeyEndpointOptions,
   useApiQuery,
   useInfiniteQuery,
   useQueryClient,
+  type ApiQueryKey,
+  type InfiniteData,
+  type QueryKeyEndpointOptions,
 } from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -22,13 +22,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
-  useLogsAggregate,
   useLogsAggregateCursor,
   useLogsAggregateSortBys,
   useLogsBaseSearch,
   useLogsCursor,
   useLogsFields,
-  useLogsGroupBy,
   useLogsLimitToTraceId,
   useLogsProjectIds,
   useLogsSearch,
@@ -45,15 +43,19 @@ import {
   QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
 } from 'sentry/views/explore/logs/constants';
 import {
+  OurLogKnownFieldKey,
   type EventsLogsResult,
   type LogsAggregatesResult,
-  OurLogKnownFieldKey,
 } from 'sentry/views/explore/logs/types';
 import {
   isRowVisibleInVirtualStream,
   useVirtualStreaming,
 } from 'sentry/views/explore/logs/useVirtualStreaming';
 import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
+import {
+  useQueryParamsGroupBys,
+  useQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
@@ -115,15 +117,13 @@ function useLogsAggregatesQueryKey({
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsProjectIds();
-  const groupBy = useLogsGroupBy();
-  const aggregate = useLogsAggregate();
+  const groupBys = useQueryParamsGroupBys();
+  const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useLogsAggregateSortBys();
   const aggregateCursor = useLogsAggregateCursor();
   const fields: string[] = [];
-  if (groupBy) {
-    fields.push(groupBy);
-  }
-  fields.push(aggregate);
+  fields.push(...groupBys.filter(Boolean));
+  fields.push(...visualizes.map(visualize => visualize.yAxis));
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
@@ -201,14 +201,14 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsProjectIds();
-  const groupBy = useLogsGroupBy();
+  const groupBys = useQueryParamsGroupBys();
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
     search.tokens.push(...baseSearch.tokens);
   }
   const fields = Array.from(
-    new Set([...AlwaysPresentLogFields, ..._fields, ...(groupBy ? [groupBy] : [])])
+    new Set([...AlwaysPresentLogFields, ..._fields, ...groupBys.filter(Boolean)])
   );
   const sorts = sortBys ?? [];
   const pageFilters = selection;

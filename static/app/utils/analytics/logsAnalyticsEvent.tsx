@@ -36,31 +36,40 @@ export type LogsAnalyticsEventParameters = {
   'logs.issue_details.drawer_opened': {
     organization: Organization;
   };
+  'logs.onboarding': {
+    organization: Organization;
+    platform: PlatformKey | 'unknown';
+    supports_onboarding_checklist: boolean;
+  };
+  'logs.onboarding_platform_docs_viewed': {
+    organization: Organization;
+    platform: PlatformKey | 'unknown';
+  };
+
   'logs.save_as': {
     save_type: 'alert' | 'dashboard' | 'update_query';
     ui_source: 'toolbar' | 'chart' | 'compare chart' | 'searchbar';
   };
+
   'logs.save_query_modal': {
     action: 'open' | 'submit';
     save_type: 'save_new_query' | 'rename_query';
     ui_source: 'toolbar' | 'table';
   };
+
   'logs.table.row_expanded': {
     log_id: string;
     page_source: LogsAnalyticsPageSource;
   };
-
   'logs.tracing_onboarding': {
     organization: Organization;
     platform: PlatformKey | 'unknown';
     supports_onboarding_checklist: boolean;
   };
-
   'logs.tracing_onboarding_performance_docs_viewed': {
     organization: Organization;
     platform: PlatformKey | 'unknown';
   };
-
   'logs.tracing_onboarding_platform_docs_viewed': {
     organization: Organization;
     platform: PlatformKey | 'unknown';
@@ -74,6 +83,7 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
   'logs.auto_refresh.toggled': 'Log Auto-refresh Toggled',
   'logs.doc_link.clicked': 'Logs documentation link clicked',
   'logs.explorer.metadata': 'Log Explorer Pageload Metadata',
+  'logs.onboarding': 'Logs Explore Empty State (Onboarding)',
   'logs.issue_details.drawer_opened': 'Issues Page Logs Drawer Opened',
   'logs.table.row_expanded': 'Expanded Log Row Details',
   'logs.tracing_onboarding': 'Logs Tracing Onboarding',
@@ -83,4 +93,6 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
     'Logs Tracing Onboarding Platform Docs Viewed',
   'logs.save_as': 'Logs Save As',
   'logs.save_query_modal': 'Logs Save Query Modal',
+  'logs.onboarding_platform_docs_viewed':
+    'Logs Explore Empty State (Onboarding) - Platform Docs Viewed',
 };

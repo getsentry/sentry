@@ -1,25 +1,27 @@
 import uniqBy from 'lodash/uniqBy';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {useOrganizationSDKUpdates} from 'sentry/utils/useOrganizationSDKUpdates';
+import type {ProjectSdkUpdates} from 'sentry/types/project';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
 import {semverCompare} from 'sentry/utils/versions/semverCompare';
 import {MIN_SDK_VERSION_BY_PLATFORM} from 'sentry/views/insights/database/settings';
 
 interface Options {
-  enabled?: boolean;
-  projectId?: string[];
+  enabled: boolean;
+  projectId: string[];
 }
 
 /**
  * Returns a list of projects that are not eligible for span metrics
  * due to SDK requirements.
- *
- * @param options Additional options
- * @param options.projectId List of project IDs to check against. If omitted, checks all organization projects
- * @returns List of projects
  */
-export function useOutdatedSDKProjects(options?: Options) {
-  const response = useOrganizationSDKUpdates(options ?? {});
+export function useOutdatedSDKProjects({enabled, projectId}: Options) {
+  const organization = useOrganization();
+  const response = useApiQuery<ProjectSdkUpdates[]>(
+    [`/organizations/${organization.slug}/sdk-updates/`, {query: {project: projectId}}],
+    {staleTime: 5000, enabled}
+  );
   const {data: availableUpdates} = response;
 
   const projects = (availableUpdates ?? [])
@@ -35,10 +37,7 @@ export function useOutdatedSDKProjects(options?: Options) {
 
       return semverCompare(update.sdkVersion, minimumRequiredVersion) === -1;
     })
-    .map(update => update.projectId)
-    .map(projectId => {
-      return ProjectsStore.getById(projectId);
-    })
+    .map(update => ProjectsStore.getById(update.projectId))
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
   return {

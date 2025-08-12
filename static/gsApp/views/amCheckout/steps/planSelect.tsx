@@ -13,7 +13,7 @@ import {space} from 'sentry/styles/space';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
 import {Oxfordize} from 'sentry/utils/oxfordizeArray';
 
-import {type Plan, PlanTier} from 'getsentry/types';
+import {PlanTier, type Plan} from 'getsentry/types';
 import {
   getBusinessPlanOfTier,
   isBizPlanFamily,
@@ -129,6 +129,7 @@ function PlanSelect({
   subscription,
   formData,
   referrer,
+  isNewCheckout,
   onEdit,
   onToggleLegacy,
   onUpdate,
@@ -330,7 +331,12 @@ function PlanSelect({
       />
       {isActive && renderBody()}
       {isActive && (
-        <ProductSelect activePlan={activePlan} formData={formData} onUpdate={onUpdate} />
+        <ProductSelect
+          activePlan={activePlan}
+          formData={formData}
+          onUpdate={onUpdate}
+          isNewCheckout={isNewCheckout}
+        />
       )}
       {isActive && renderFooter()}
     </Panel>
