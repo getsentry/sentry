@@ -2877,7 +2877,14 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
 
 export const getFieldDefinition = (
   key: string,
-  type: 'event' | 'replay' | 'replay_click' | 'feedback' | 'span' | 'log' = 'event',
+  type:
+    | 'event'
+    | 'replay'
+    | 'replay_click'
+    | 'feedback'
+    | 'span'
+    | 'log'
+    | 'uptime' = 'event',
   kind?: FieldKind
 ): FieldDefinition | null => {
   switch (type) {

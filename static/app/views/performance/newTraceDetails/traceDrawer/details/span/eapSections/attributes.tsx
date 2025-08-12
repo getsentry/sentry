@@ -87,7 +87,7 @@ export function Attributes({
 }: {
   attributes: TraceItemResponseAttribute[];
   location: Location;
-  node: TraceTreeNode<TraceTree.EAPSpan>;
+  node: TraceTreeNode<TraceTree.EAPSpan | TraceTree.UptimeCheck>;
   organization: Organization;
   project: Project | undefined;
   theme: Theme;
