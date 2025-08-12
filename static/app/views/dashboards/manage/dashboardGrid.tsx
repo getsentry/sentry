@@ -19,7 +19,7 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useQueryClient} from 'sentry/utils/queryClient';
 import withApi from 'sentry/utils/withApi';
-import {useDashboardsLimit} from 'sentry/views/dashboards/hooks/useDashboardsLimit';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {
@@ -59,11 +59,6 @@ function DashboardGrid({
   const handleDeleteDashboard = useDeleteDashboard({
     onSuccess: onDashboardsChange,
   });
-  const {
-    hasReachedDashboardLimit,
-    isLoading: isLoadingDashboardsLimit,
-    limitMessage,
-  } = useDashboardsLimit();
   // this acts as a cache for the dashboards being passed in. It preserves the previously populated dashboard list
   // to be able to show the 'previous' dashboards on resize
   const [currentDashboards, setCurrentDashboards] = useState<
@@ -92,7 +87,12 @@ function DashboardGrid({
     });
   }
 
-  function renderDropdownMenu(dashboard: DashboardListItem) {
+  function renderDropdownMenu(dashboard: DashboardListItem, dashboardLimitData: any) {
+    const {
+      hasReachedDashboardLimit,
+      isLoading: isLoadingDashboardsLimit,
+      limitMessage,
+    } = dashboardLimitData;
     const menuItems: MenuItemProps[] = [
       {
         key: 'dashboard-duplicate',
@@ -168,23 +168,29 @@ function DashboardGrid({
 
     return currentDashboards?.slice(0, rowCount * columnCount).map((dashboard, index) => {
       return (
-        <DashboardCard
-          key={`${index}-${dashboard.id}`}
-          title={dashboard.title}
-          to={{
-            pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
-            ...queryLocation,
-          }}
-          detail={tn('%s widget', '%s widgets', dashboard.widgetPreview.length)}
-          dateStatus={
-            dashboard.dateCreated ? <TimeSince date={dashboard.dateCreated} /> : undefined
-          }
-          createdBy={dashboard.createdBy}
-          renderWidgets={() => renderGridPreview(dashboard)}
-          renderContextMenu={() => renderDropdownMenu(dashboard)}
-          isFavorited={dashboard.isFavorited}
-          onFavorite={isFavorited => handleFavorite(dashboard, isFavorited)}
-        />
+        <DashboardCreateLimitWrapper key={`${index}-${dashboard.id}`}>
+          {dashboardLimitData => (
+            <DashboardCard
+              key={`${index}-${dashboard.id}`}
+              title={dashboard.title}
+              to={{
+                pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
+                ...queryLocation,
+              }}
+              detail={tn('%s widget', '%s widgets', dashboard.widgetPreview.length)}
+              dateStatus={
+                dashboard.dateCreated ? (
+                  <TimeSince date={dashboard.dateCreated} />
+                ) : undefined
+              }
+              createdBy={dashboard.createdBy}
+              renderWidgets={() => renderGridPreview(dashboard)}
+              renderContextMenu={() => renderDropdownMenu(dashboard, dashboardLimitData)}
+              isFavorited={dashboard.isFavorited}
+              onFavorite={isFavorited => handleFavorite(dashboard, isFavorited)}
+            />
+          )}
+        </DashboardCreateLimitWrapper>
       );
     });
   }

@@ -37,8 +37,8 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import {getDashboardTemplates} from 'sentry/views/dashboards/data';
-import {useDashboardsLimit} from 'sentry/views/dashboards/hooks/useDashboardsLimit';
 import {useOwnedDashboards} from 'sentry/views/dashboards/hooks/useOwnedDashboards';
 import {
   assignDefaultLayout,
@@ -275,12 +275,6 @@ function ManageDashboards() {
     organization,
     sortOptions,
   ]);
-
-  const {
-    hasReachedDashboardLimit,
-    isLoading: isLoadingDashboardsLimit,
-    limitMessage,
-  } = useDashboardsLimit();
 
   function getActiveSort() {
     const defaultSort = getDefaultSort({
@@ -569,20 +563,30 @@ function ManageDashboards() {
                         />
                       </TemplateSwitch>
                       <FeedbackWidgetButton />
-                      <Button
-                        data-test-id="dashboard-create"
-                        onClick={event => {
-                          event.preventDefault();
-                          onCreate();
-                        }}
-                        size="sm"
-                        priority="primary"
-                        icon={<IconAdd />}
-                        disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-                        title={limitMessage}
-                      >
-                        {t('Create Dashboard')}
-                      </Button>
+                      <DashboardCreateLimitWrapper>
+                        {({
+                          hasReachedDashboardLimit,
+                          isLoading: isLoadingDashboardsLimit,
+                          limitMessage,
+                        }) => (
+                          <Button
+                            data-test-id="dashboard-create"
+                            onClick={event => {
+                              event.preventDefault();
+                              onCreate();
+                            }}
+                            size="sm"
+                            priority="primary"
+                            icon={<IconAdd />}
+                            disabled={
+                              hasReachedDashboardLimit || isLoadingDashboardsLimit
+                            }
+                            title={limitMessage}
+                          >
+                            {t('Create Dashboard')}
+                          </Button>
+                        )}
+                      </DashboardCreateLimitWrapper>
                       <Feature features="dashboards-import">
                         <Button
                           onClick={() => {

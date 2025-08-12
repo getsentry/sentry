@@ -156,6 +156,11 @@ export type GithubInstallationInstallButtonProps = {
   installationID: SelectKey;
   isSaving: boolean;
 };
+
+type DashboardLimitProviderProps = {
+  children: ((data: any) => React.ReactNode) | React.ReactNode;
+};
+
 /**
  * Component wrapping hooks
  */
@@ -167,6 +172,7 @@ type ComponentHooks = {
   'component:continuous-profiling-beta-sdk-banner': () => React.ComponentType;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
   'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
+  'component:dashboard-limit-provider': () => React.ComponentType<DashboardLimitProviderProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:data-consent-banner': () => React.ComponentType<{source: string}> | null;
   'component:data-consent-org-creation-checkbox': () => React.ComponentType | null;

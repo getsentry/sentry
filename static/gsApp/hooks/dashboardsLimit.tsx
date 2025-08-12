@@ -1,14 +1,11 @@
+import {Fragment} from 'react';
+
 import {tct} from 'sentry/locale';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
-// A minimal version of the Subscription type that we need for this hook
-interface Subscription {
-  planDetails: {
-    dashboardLimit: number;
-  };
-}
+import useSubscription from 'getsentry/hooks/useSubscription';
 
 interface UseDashboardsLimitResult {
   dashboardsLimit: number;
@@ -21,11 +18,7 @@ const UNLIMITED_DASHBOARDS_LIMIT = -1;
 
 export function useDashboardsLimit(): UseDashboardsLimitResult {
   const organization = useOrganization();
-  const {data: subscription, isLoading: isLoadingSubscription} =
-    useApiQuery<Subscription>([`/subscriptions/${organization.slug}/`], {
-      staleTime: Infinity,
-      enabled: organization.features.includes('dashboards-plan-limits'),
-    });
+  const subscription = useSubscription();
 
   // If there is no subscription, the user can create unlimited dashboards
   const dashboardsLimit =
@@ -49,9 +42,7 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
       {
         staleTime: 0,
         enabled:
-          organization.features.includes('dashboards-plan-limits') &&
-          !isLoadingSubscription &&
-          !isUnlimitedPlan,
+          organization.features.includes('dashboards-plan-limits') && !isUnlimitedPlan,
       }
     );
 
@@ -64,7 +55,7 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
     };
   }
 
-  if (isLoadingSubscription) {
+  if (!subscription) {
     return {
       hasReachedDashboardLimit: false,
       dashboardsLimit: 0,
@@ -90,4 +81,23 @@ export function useDashboardsLimit(): UseDashboardsLimitResult {
     isLoading: isLoadingDashboardsTotalCount,
     limitMessage,
   };
+}
+
+export type DashboardLimitProviderProps = {
+  children: ((data: UseDashboardsLimitResult & any) => React.ReactNode) | React.ReactNode;
+};
+
+export function DashboardLimitProvider({
+  children,
+  ...props
+}: DashboardLimitProviderProps & any) {
+  const dashboardLimitData = useDashboardsLimit();
+
+  return (
+    <Fragment>
+      {typeof children === 'function'
+        ? children({...props, ...dashboardLimitData})
+        : children}
+    </Fragment>
+  );
 }

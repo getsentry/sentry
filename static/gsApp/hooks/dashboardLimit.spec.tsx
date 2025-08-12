@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, renderHook, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -7,7 +8,9 @@ import type {Organization} from 'sentry/types/organization';
 import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
-import {useDashboardsLimit} from './useDashboardsLimit';
+import SubscriptionStore from 'getsentry/stores/subscriptionStore';
+
+import {useDashboardsLimit} from './dashboardsLimit';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,6 +42,7 @@ describe('useDashboardsLimit', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     queryClient.clear();
+    SubscriptionStore.init();
   });
 
   it('returns no limits when feature flag is disabled', function () {
@@ -57,15 +61,7 @@ describe('useDashboardsLimit', function () {
   it('returns loading state initially when subscription is loading', function () {
     const wrapper = createWrapper(mockOrganization);
 
-    const subscriptionRequest = MockApiClient.addMockResponse({
-      url: '/subscriptions/org-slug/',
-      body: {
-        planDetails: {
-          dashboardLimit: 10,
-        },
-      },
-    });
-
+    // No subscription set in store means loading state
     const {result} = renderHook(() => useDashboardsLimit(), {wrapper});
 
     expect(result.current).toEqual({
@@ -74,21 +70,22 @@ describe('useDashboardsLimit', function () {
       isLoading: true,
       limitMessage: null,
     });
-
-    expect(subscriptionRequest).toHaveBeenCalledTimes(1);
   });
 
   it('handles unlimited dashboards plan without making dashboards request', async function () {
     const wrapper = createWrapper(mockOrganization);
 
-    const subscriptionRequest = MockApiClient.addMockResponse({
-      url: '/subscriptions/org-slug/',
-      body: {
-        planDetails: {
-          dashboardLimit: -1, // Unlimited
-        },
+    const subscription = SubscriptionFixture({
+      organization: mockOrganization,
+      planDetails: {
+        ...SubscriptionFixture({
+          organization: mockOrganization,
+        }).planDetails,
+        dashboardLimit: -1, // Unlimited
       },
     });
+
+    SubscriptionStore.set(mockOrganization.slug, subscription);
 
     const dashboardsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
@@ -108,18 +105,14 @@ describe('useDashboardsLimit', function () {
       limitMessage: null,
     });
 
-    // Should only make the subscription request, not the dashboards request
-    expect(subscriptionRequest).toHaveBeenCalledTimes(1);
+    // Should not make the dashboards request for unlimited plans
     expect(dashboardsRequest).not.toHaveBeenCalled();
   });
 
   it('handles no subscription data (defaults to unlimited)', async function () {
     const wrapper = createWrapper(mockOrganization);
 
-    const subscriptionRequest = MockApiClient.addMockResponse({
-      url: '/subscriptions/org-slug/',
-      body: null,
-    });
+    SubscriptionStore.set(mockOrganization.slug, null as any);
 
     const dashboardsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
@@ -139,22 +132,24 @@ describe('useDashboardsLimit', function () {
       limitMessage: null,
     });
 
-    // Should only make the subscription request
-    expect(subscriptionRequest).toHaveBeenCalledTimes(1);
+    // Should not make the dashboards request when no subscription
     expect(dashboardsRequest).not.toHaveBeenCalled();
   });
 
   it('returns under limit when dashboards count is below limit', async function () {
     const wrapper = createWrapper(mockOrganization);
 
-    const subscriptionRequest = MockApiClient.addMockResponse({
-      url: '/subscriptions/org-slug/',
-      body: {
-        planDetails: {
-          dashboardLimit: 10,
-        },
+    const subscription = SubscriptionFixture({
+      organization: mockOrganization,
+      planDetails: {
+        ...SubscriptionFixture({
+          organization: mockOrganization,
+        }).planDetails,
+        dashboardLimit: 10,
       },
     });
+
+    SubscriptionStore.set(mockOrganization.slug, subscription);
 
     const dashboardsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
@@ -179,22 +174,23 @@ describe('useDashboardsLimit', function () {
       limitMessage: null,
     });
 
-    // Should make both requests
-    expect(subscriptionRequest).toHaveBeenCalledTimes(1);
     expect(dashboardsRequest).toHaveBeenCalledTimes(1);
   });
 
   it('returns at limit when dashboards count equals limit', async function () {
     const wrapper = createWrapper(mockOrganization);
 
-    MockApiClient.addMockResponse({
-      url: '/subscriptions/org-slug/',
-      body: {
-        planDetails: {
-          dashboardLimit: 3,
-        },
+    const subscription = SubscriptionFixture({
+      organization: mockOrganization,
+      planDetails: {
+        ...SubscriptionFixture({
+          organization: mockOrganization,
+        }).planDetails,
+        dashboardLimit: 3,
       },
     });
+
+    SubscriptionStore.set(mockOrganization.slug, subscription);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
@@ -231,14 +227,17 @@ describe('useDashboardsLimit', function () {
   it('returns over limit when dashboards count exceeds limit', async function () {
     const wrapper = createWrapper(mockOrganization);
 
-    MockApiClient.addMockResponse({
-      url: '/subscriptions/org-slug/',
-      body: {
-        planDetails: {
-          dashboardLimit: 2,
-        },
+    const subscription = SubscriptionFixture({
+      organization: mockOrganization,
+      planDetails: {
+        ...SubscriptionFixture({
+          organization: mockOrganization,
+        }).planDetails,
+        dashboardLimit: 2,
       },
     });
+
+    SubscriptionStore.set(mockOrganization.slug, subscription);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
@@ -274,14 +273,17 @@ describe('useDashboardsLimit', function () {
   it('returns loading state when dashboards request is in progress', async function () {
     const wrapper = createWrapper(mockOrganization);
 
-    MockApiClient.addMockResponse({
-      url: '/subscriptions/org-slug/',
-      body: {
-        planDetails: {
-          dashboardLimit: 10,
-        },
+    const subscription = SubscriptionFixture({
+      organization: mockOrganization,
+      planDetails: {
+        ...SubscriptionFixture({
+          organization: mockOrganization,
+        }).planDetails,
+        dashboardLimit: 10,
       },
     });
+
+    SubscriptionStore.set(mockOrganization.slug, subscription);
 
     const dashboardsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
@@ -294,7 +296,7 @@ describe('useDashboardsLimit', function () {
     // Should still be loading while dashboards request is pending
     expect(result.current.isLoading).toBe(true);
 
-    // Wait for both requests to complete
+    // Wait for request to complete
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
@@ -302,40 +304,20 @@ describe('useDashboardsLimit', function () {
     expect(dashboardsRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('handles subscription API error gracefully', async function () {
-    const wrapper = createWrapper(mockOrganization);
-
-    MockApiClient.addMockResponse({
-      url: '/subscriptions/org-slug/',
-      statusCode: 500,
-    });
-
-    const {result} = renderHook(() => useDashboardsLimit(), {wrapper});
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    // Should default to unlimited when subscription fails
-    expect(result.current).toEqual({
-      hasReachedDashboardLimit: false,
-      dashboardsLimit: -1,
-      isLoading: false,
-      limitMessage: null,
-    });
-  });
-
   it('handles dashboards API error gracefully', async function () {
     const wrapper = createWrapper(mockOrganization);
 
-    MockApiClient.addMockResponse({
-      url: '/subscriptions/org-slug/',
-      body: {
-        planDetails: {
-          dashboardLimit: 10,
-        },
+    const subscription = SubscriptionFixture({
+      organization: mockOrganization,
+      planDetails: {
+        ...SubscriptionFixture({
+          organization: mockOrganization,
+        }).planDetails,
+        dashboardLimit: 10,
       },
     });
+
+    SubscriptionStore.set(mockOrganization.slug, subscription);
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
@@ -358,5 +340,38 @@ describe('useDashboardsLimit', function () {
       isLoading: false,
       limitMessage: null,
     });
+  });
+
+  it('handles missing subscription planDetails gracefully', async function () {
+    const wrapper = createWrapper(mockOrganization);
+
+    const subscription = SubscriptionFixture({
+      organization: mockOrganization,
+      planDetails: undefined as any,
+    });
+
+    SubscriptionStore.set(mockOrganization.slug, subscription);
+
+    const dashboardsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
+
+    const {result} = renderHook(() => useDashboardsLimit(), {wrapper});
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    // Should default to unlimited when planDetails is missing
+    expect(result.current).toEqual({
+      hasReachedDashboardLimit: false,
+      dashboardsLimit: -1,
+      isLoading: false,
+      limitMessage: null,
+    });
+
+    // Should not make dashboards request for unlimited plans
+    expect(dashboardsRequest).not.toHaveBeenCalled();
   });
 });

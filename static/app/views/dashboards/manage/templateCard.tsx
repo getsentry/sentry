@@ -6,7 +6,7 @@ import {Button} from 'sentry/components/core/button';
 import {IconAdd, IconGeneric} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useDashboardsLimit} from 'sentry/views/dashboards/hooks/useDashboardsLimit';
+import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 
 type Props = {
   description: string;
@@ -17,11 +17,6 @@ type Props = {
 
 function TemplateCard({title, description, onPreview, onAdd}: Props) {
   const [isAddingDashboardTemplate, setIsAddingDashboardTemplate] = useState(false);
-  const {
-    hasReachedDashboardLimit,
-    isLoading: isLoadingDashboardsLimit,
-    limitMessage,
-  } = useDashboardsLimit();
 
   return (
     <StyledCard>
@@ -33,20 +28,24 @@ function TemplateCard({title, description, onPreview, onAdd}: Props) {
         </Title>
       </Header>
       <ButtonContainer>
-        <StyledButton
-          onClick={() => {
-            setIsAddingDashboardTemplate(true);
-            onAdd().finally(() => {
-              setIsAddingDashboardTemplate(false);
-            });
-          }}
-          icon={<IconAdd isCircled />}
-          busy={isAddingDashboardTemplate}
-          disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-          title={limitMessage}
-        >
-          {t('Add Dashboard')}
-        </StyledButton>
+        <DashboardCreateLimitWrapper>
+          {({hasReachedDashboardLimit, isLoadingDashboardsLimit, limitMessage}) => (
+            <StyledButton
+              onClick={() => {
+                setIsAddingDashboardTemplate(true);
+                onAdd().finally(() => {
+                  setIsAddingDashboardTemplate(false);
+                });
+              }}
+              icon={<IconAdd isCircled />}
+              busy={isAddingDashboardTemplate}
+              disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
+              title={limitMessage}
+            >
+              {t('Add Dashboard')}
+            </StyledButton>
+          )}
+        </DashboardCreateLimitWrapper>
         <StyledButton priority="primary" onClick={onPreview}>
           {t('Preview')}
         </StyledButton>
