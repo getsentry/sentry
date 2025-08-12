@@ -393,11 +393,6 @@ export function usePersistedLogsPageParams() {
   });
 }
 
-export function useLogsAggregateSortBys() {
-  const {aggregateSortBys} = useLogsPageParams();
-  return aggregateSortBys;
-}
-
 export function useLogsAggregateCursor() {
   const {aggregateCursor} = useLogsPageParams();
   return aggregateCursor;

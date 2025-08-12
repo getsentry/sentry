@@ -11,7 +11,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   LOGS_AGGREGATE_CURSOR_KEY,
-  useLogsAggregateSortBys,
   useSetLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_AGGREGATE_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
@@ -21,6 +20,7 @@ import {getLogColors} from 'sentry/views/explore/logs/styles';
 import {useLogsAggregatesQuery} from 'sentry/views/explore/logs/useLogsQuery';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 import {
+  useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
@@ -33,7 +33,7 @@ export function LogsAggregateTable() {
   const setLogsPageParams = useSetLogsPageParams();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
-  const aggregateSortBys = useLogsAggregateSortBys();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
   const location = useLocation();
   const theme = useTheme();
   const organization = useOrganization();
