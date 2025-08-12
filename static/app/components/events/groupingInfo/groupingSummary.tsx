@@ -32,7 +32,11 @@ export function GroupInfoSummary({
 
   const groupingConfig =
     showGroupingConfig && groupInfo
-      ? (Object.values(groupInfo).find(variant => 'config' in variant) as any)?.config?.id
+      ? (
+          Object.values(groupInfo).find(
+            variant => 'config' in variant && variant.config?.id
+          ) as any
+        )?.config?.id
       : null;
 
   if (isPending && !hasPerformanceGrouping) {
