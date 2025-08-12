@@ -203,9 +203,6 @@ class Referrer(StrEnum):
     API_INSIGHTS_APP_STARTS_MOBILE_STARTUP_BAR_CHART = (
         "api.insights.app-starts.mobile-startup-bar-chart"
     )
-    API_INSIGHTS_APP_STARTS_MOBILE_STARTUP_BAR_CHART = (
-        "api.insights.appstarts.mobile-startup-bar-chart"
-    )
 
     # Screenload
     API_INSIGHTS_SCREENLOAD_SCREEN_BAR_CHART = "api.insights.screenload.screen-bar-chart"
