@@ -194,7 +194,7 @@ def process_buffer() -> None:
 
             project_ids = list(all_project_ids_and_timestamps.keys())
             for project_id in project_ids:
-                process_in_batches(project_id, processing_type)
+                process_in_batches(buffer, project_id, processing_type)
 
             buffer.delete_keys(
                 buffer_keys,
