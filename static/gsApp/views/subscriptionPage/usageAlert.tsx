@@ -17,7 +17,6 @@ import type {CustomerUsage, Subscription} from 'getsentry/types';
 import {
   convertUsageToReservedUnit,
   formatReservedWithUnits,
-  formatUsageWithUnits,
   getBestActionToIncreaseEventLimits,
   hasPerformance,
   isBizPlanFamily,
@@ -64,11 +63,13 @@ function UsageAlert({subscription, usage}: Props) {
       hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
     });
 
+    const formattedAmount = formatReservedWithUnits(projected, category, {
+      isAbbreviated: category !== DataCategory.ATTACHMENTS,
+    });
+
     return category === DataCategory.ATTACHMENTS
-      ? `${formatUsageWithUnits(projected, category)} of attachments`
-      : `${formatReservedWithUnits(projected, category, {
-          isAbbreviated: true,
-        })} ${displayName}`;
+      ? `${formattedAmount} of attachments`
+      : `${formattedAmount} ${displayName}`;
   }
 
   function projectedCategoryOverages() {
