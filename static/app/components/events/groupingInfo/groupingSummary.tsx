@@ -42,9 +42,9 @@ export function GroupInfoSummary({
   return (
     <p data-test-id="loaded-grouping-info">
       <strong>{t('Grouped by:')}</strong> {groupedBy}
-      <br />
       {groupingConfig && (
         <React.Fragment>
+          <br />
           <strong>{t('Grouping Config:')}</strong> {groupingConfig}
         </React.Fragment>
       )}
