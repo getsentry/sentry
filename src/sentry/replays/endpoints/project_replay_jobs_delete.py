@@ -12,6 +12,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, serialize
 from sentry.replays.models import ReplayDeletionJobModel
 from sentry.replays.tasks import run_bulk_replay_delete_job
+from sentry.seer.utils import has_seer_permissions
 
 
 class ReplayDeletionJobPermission(ProjectPermission):
@@ -102,7 +103,9 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
             status="pending",
         )
 
-        has_seer_data = features.has("organizations:replay-ai-summaries", project.organization)
+        has_seer_data = features.has(
+            "organizations:replay-ai-summaries", project.organization
+        ) and has_seer_permissions(project.organization, actor=request.user)
 
         # We always start with an offset of 0 (obviously) but future work doesn't need to obey
         # this. You're free to start from wherever you want.
