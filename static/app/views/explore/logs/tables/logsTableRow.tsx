@@ -234,6 +234,7 @@ export const LogRowContent = memo(function LogRowContent({
     location,
     organization,
     attributes: dataRow,
+    attributeTypes: meta?.fields ?? {},
     theme,
     projectSlug,
   };
@@ -406,6 +407,8 @@ function LogRowDetails({
     data?.attributes?.reduce((it, {name, value}) => ({...it, [name]: value}), {
       [OurLogKnownFieldKey.TIMESTAMP]: dataRow[OurLogKnownFieldKey.TIMESTAMP],
     }) ?? {};
+  const attributeTypes =
+    data?.attributes?.reduce((it, {name, type}) => ({...it, [name]: type}), {}) ?? {};
 
   if (missingLogId || isError) {
     return (
@@ -437,6 +440,7 @@ function LogRowDetails({
                     organization,
                     projectSlug,
                     attributes,
+                    attributeTypes,
                     theme,
                   },
                 })}
@@ -456,6 +460,7 @@ function LogRowDetails({
                     organization,
                     projectSlug,
                     attributes,
+                    attributeTypes,
                     theme,
                     disableLazyLoad: true, // We disable lazy loading in the log details view since a user has to open it first.
                   }}
