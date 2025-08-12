@@ -73,7 +73,6 @@ class EventInstance(BaseModel):
     event_id: str
     occurrence_id: str | None = None
     timestamp: datetime | None = None
-    start_timestamp: datetime | None = None
 
     class Config:
         # Ignore unknown fields; we'd like to be able to add new fields easily.
@@ -653,7 +652,7 @@ def get_group_to_groupevent(
                 group_event.occurrence = bulk_occurrence_id_to_occurrence.get(
                     instance.occurrence_id
                 )
-            group_to_groupevent[group] = (group_event, instance.start_timestamp)
+            group_to_groupevent[group] = (group_event, instance.timestamp)
 
     return group_to_groupevent
 

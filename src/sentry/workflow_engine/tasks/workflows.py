@@ -67,7 +67,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
         group=group,
     )
 
-    process_workflows(event_data, detector)
+    process_workflows(event_data, detector, event_start_time=activity.datetime)
     metrics.incr(
         "workflow_engine.tasks.process_workflows.activity_update.executed",
         tags={"activity_type": activity.type, "detector_type": detector.type},
@@ -120,9 +120,11 @@ def process_workflows_event(
         # We want to quietly retry these.
         retry_task(e)
 
-    start_timestamp = (
-        datetime.fromtimestamp(start_timestamp_seconds, tz=UTC) if start_timestamp_seconds else None
+    event_start_time = (
+        datetime.fromtimestamp(start_timestamp_seconds, tz=UTC)
+        if start_timestamp_seconds
+        else datetime.now(tz=UTC)
     )
-    process_workflows(event_data, start_timestamp=start_timestamp)
+    process_workflows(event_data, event_start_time=event_start_time)
 
     metrics.incr("workflow_engine.tasks.process_workflow_task_executed", sample_rate=1.0)
