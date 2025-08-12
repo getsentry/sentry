@@ -721,7 +721,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
     aggregation_defs = {
         "times_seen": ["count()", ""],
-        "first_seen": ["multiply(toUInt64(min(timestamp)), 1000)", ""],
+        "first_seen": ["min(coalesce(group_first_seen, timestamp))", ""],
         "last_seen": ["multiply(toUInt64(max(timestamp)), 1000)", ""],
         "trends": trends_aggregation,
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
