@@ -2815,7 +2815,8 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                     duration=1000,
                     start_ts=self.ten_mins_ago,
                 ),
-            ]
+            ],
+            is_eap=True,
         )
 
         response = self.do_request(
