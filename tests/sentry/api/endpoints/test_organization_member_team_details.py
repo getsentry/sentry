@@ -768,14 +768,8 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
         """
         self.login_as(self.member_on_team)
         rpc_user = user_service.get_user(user_id=self.member_on_team.user_id)
-        # one of the previous tests made it so this user is no longer a member of the team
-        self.create_member(
-            user=rpc_user, organization=self.organization, role="member", teams=[self.team]
-        )
         user2 = self.create_user()
-        self.create_member(
-            user=user2, organization=self.organization, role="member", teams=[self.team]
-        )
+        self.create_member(user=user2, organization=self.org, role="member", teams=[self.team])
         group = self.create_group()
         GroupAssignee.objects.create(group=group, team=self.team, project=self.project)
         for member in OrganizationMemberTeam.objects.filter(team=self.team):
