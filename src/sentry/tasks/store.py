@@ -717,6 +717,7 @@ def save_event_transaction(
         processing_deadline_duration=65,
     ),
 )
+@metrics.wraps("feedback_consumer.save_event_feedback_task")
 def save_event_feedback(
     cache_key: str | None = None,
     start_time: float | None = None,

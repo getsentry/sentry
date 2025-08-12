@@ -26,6 +26,7 @@ MAX_AI_LABELS_JSON_LENGTH = 200
 SEER_GENERATE_LABELS_URL = f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/labels"
 
 
+# TODO: remove sample_rate=1.0 once GA'd and we're confident Seer can handle the load.
 @metrics.wraps("feedback.generate_labels", sample_rate=1.0)
 def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
     """
