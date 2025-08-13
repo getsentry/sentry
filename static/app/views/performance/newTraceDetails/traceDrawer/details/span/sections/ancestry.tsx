@@ -66,15 +66,6 @@ export function useSpanAncestryAndGroupingItems({
     subject: t('Parent Span ID'),
   });
 
-  const childTransaction = childTransactions[0];
-  if (childTransaction) {
-    items.push({
-      key: 'child_transaction',
-      value: null,
-      subject: t('Child Transaction'),
-    });
-  }
-
   if (span.same_process_as_parent) {
     items.push({
       key: 'same_process_as_parent',
@@ -83,6 +74,7 @@ export function useSpanAncestryAndGroupingItems({
     });
   }
 
+  const childTransaction = childTransactions[0];
   const spanGroup = defined(span.hash) ? String(span.hash) : null;
   items.push({
     key: 'same_group',
