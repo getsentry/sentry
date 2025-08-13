@@ -67,6 +67,7 @@ EXCLUDED_PACKAGES = [
     "github.com/go-sql-driver/mysql",
     "sequelize",
     "gorm.io/gorm",
+    "typeorm",
     "@nestjs/typeorm",
     "@mikro-orm/nestjs",
     "typeorm",
