@@ -10,7 +10,6 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry import features
-from sentry.eventstore.models import GroupEvent
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
