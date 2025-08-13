@@ -253,7 +253,7 @@ if (
  * node_modules, but some packages which use ES6 syntax only NEED to be
  * transformed.
  */
-const ESM_NODE_MODULES = ['screenfull', 'cbor2'];
+const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs'];
 
 const config: Config.InitialOptions = {
   verbose: false,
@@ -283,6 +283,8 @@ const config: Config.InitialOptions = {
     // Disabled @sentry/toolbar in tests. It depends on iframes and global
     // window/cookies state.
     '@sentry/toolbar': '<rootDir>/tests/js/sentry-test/mocks/sentryToolbarMock.js',
+
+    '^nuqs$': '<rootDir>/node_modules/nuqs/dist/index.js',
   },
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
