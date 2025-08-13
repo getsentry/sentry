@@ -128,7 +128,7 @@ def start_service_monitoring() -> None:
             time.sleep(options.get("backpressure.monitoring.interval"))
             continue
 
-        with sentry_sdk.start_span(name="backpressure.monitoring", sampled=True):
+        with sentry_sdk.start_transaction(name="backpressure.monitoring", sampled=True):
             # first, check each base service and record its health
             unhealthy_services = check_service_health(services)
 
