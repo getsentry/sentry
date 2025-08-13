@@ -278,7 +278,7 @@ export function AutofixChanges({
                   <IconCode size="md" color="blue400" />
                 </HeaderIconWrapper>
                 {t('Code Changes')}
-                <ChatButton
+                <Button
                   size="zero"
                   borderless
                   title={t('Chat with Seer')}
@@ -287,7 +287,7 @@ export function AutofixChanges({
                   analyticsEventKey="autofix.changes.chat"
                 >
                   <IconChat />
-                </ChatButton>
+                </Button>
               </HeaderText>
               {!prsMade && (
                 <ButtonBar>
@@ -480,10 +480,6 @@ const HeaderIconWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
-`;
-
-const ChatButton = styled(Button)`
-  color: ${p => p.theme.subText};
 `;
 
 function CreatePRsButton({
