@@ -1532,7 +1532,7 @@ class CleanupRedisBufferTest(CreateEventTestCase):
         rules_to_groups[self.rule.id].add(group_two.id)
         rules_to_groups[self.rule.id].add(group_three.id)
 
-        process_in_batches(self.project.id, "delayed_processing")
+        process_in_batches(buffer.backend, self.project.id, "delayed_processing")
         batch_one_key = mock_apply_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
         batch_two_key = mock_apply_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
 

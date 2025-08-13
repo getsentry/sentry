@@ -12,7 +12,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 from django.db.models import OuterRef, Subquery
 
 from sentry import buffer, features, nodestore
-from sentry.buffer.base import BufferField
+from sentry.buffer.base import Buffer, BufferField
 from sentry.db import models
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -52,6 +52,7 @@ from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
 from sentry.utils.dates import ensure_aware
 from sentry.utils.iterators import chunked
+from sentry.utils.lazy_service_wrapper import LazyServiceWrapper
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.processors.log_util import track_batch_performance
@@ -787,3 +788,7 @@ class DelayedRule(DelayedProcessingBase):
     @property
     def processing_task(self) -> Task:
         return apply_delayed
+
+    @staticmethod
+    def buffer_backend() -> LazyServiceWrapper[Buffer]:
+        return buffer.backend

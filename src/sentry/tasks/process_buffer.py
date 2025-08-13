@@ -52,13 +52,13 @@ def process_pending_batch() -> None:
     """
     Process pending buffers in a batch.
     """
-    from sentry import buffer
+    from sentry.rules.processing.buffer_processing import process_buffer
 
     lock = get_process_lock("process_pending_batch")
 
     try:
         with lock.acquire():
-            buffer.backend.process_batch()
+            process_buffer()
     except UnableToAcquireLock as error:
         logger.warning("process_pending_batch.fail", extra={"error": error})
 

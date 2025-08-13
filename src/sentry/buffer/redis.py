@@ -57,32 +57,6 @@ def _validate_json_roundtrip(value: dict[str, Any], model: type[models.Model]) -
             logger.exception("buffer.invalid_value", extra={"value": value, "model": model})
 
 
-class BufferHookEvent(Enum):
-    FLUSH = "flush"
-
-
-class BufferHookRegistry:
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self._registry: dict[BufferHookEvent, Callable[..., Any]] = {}
-
-    def add_handler(self, key: BufferHookEvent, func: Callable[..., Any]) -> None:
-        self._registry[key] = func
-
-    def has(self, key: BufferHookEvent) -> bool:
-        return self._registry.get(key) is not None
-
-    def callback(self, buffer_hook_event: BufferHookEvent) -> bool:
-        try:
-            callback = self._registry[buffer_hook_event]
-        except KeyError:
-            logger.exception("buffer_hook_event.missing")
-
-        return callback()
-
-
-redis_buffer_registry = BufferHookRegistry()
-
-
 # Callable to get the queue name for the given model_key.
 # May return None to not assign a queue for the given model_key.
 ChooseQueueFunction = Callable[[str], str | None]
@@ -494,12 +468,6 @@ class RedisBuffer(Buffer):
     def get_hash_length(self, model: type[models.Model], field: dict[str, BufferField]) -> int:
         key = self._make_key(model, field)
         return self._execute_redis_operation(key, RedisOperation.HASH_LENGTH)
-
-    def process_batch(self) -> None:
-        try:
-            redis_buffer_registry.callback(BufferHookEvent.FLUSH)
-        except Exception:
-            logger.exception("process_batch.error")
 
     def incr(
         self,

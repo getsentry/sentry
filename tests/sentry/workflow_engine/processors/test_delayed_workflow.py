@@ -331,7 +331,7 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
     def test_delayed_workflow_shim(self, mock_process_delayed: MagicMock) -> None:
         self._push_base_events()
 
-        process_in_batches(self.project.id, "delayed_workflow")
+        process_in_batches(buffer.backend, self.project.id, "delayed_workflow")
         assert mock_process_delayed.call_count == 2
 
 
@@ -993,7 +993,7 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
         self._push_base_events()
         all_data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
 
-        process_in_batches(self.project.id, "delayed_workflow")
+        process_in_batches(buffer.backend, self.project.id, "delayed_workflow")
         batch_one_key = mock_process_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
         batch_two_key = mock_process_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
 
