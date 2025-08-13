@@ -92,7 +92,7 @@ def convert_span_to_item(span: Span) -> TraceItem:
         client_sample_rate=client_sample_rate,
         server_sample_rate=server_sample_rate,
         retention_days=span["retention_days"],
-        downsampled_retention_days=span["downsampled_retention_days"],
+        downsampled_retention_days=span.get("downsampled_retention_days", 0),
         received=_timestamp(span["received"]),
     )
 

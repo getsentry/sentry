@@ -1321,13 +1321,13 @@ class BaseSpansTestCase(SnubaTestCase):
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if sdk_name is not None:
-            payload["sentry_tags"]["sdk.name"] = sdk_name  # type: ignore[typeddict-unknown-key] # needs extra_items support
+            payload["sentry_tags"]["sdk.name"] = sdk_name
         if op is not None:
             payload["sentry_tags"]["op"] = op
         if status is not None:
             payload["sentry_tags"]["status"] = status
         if environment is not None:
-            payload["sentry_tags"]["environment"] = environment  # type: ignore[typeddict-unknown-key]  # needs extra_items support
+            payload["sentry_tags"]["environment"] = environment
 
         self.store_span(payload, is_eap=is_eap)
 
@@ -1393,7 +1393,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if category is not None:
-            payload["sentry_tags"]["category"] = category  # type: ignore[typeddict-unknown-key]  # needs extra_items support
+            payload["sentry_tags"]["category"] = category  # needs extra_items support
 
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.
