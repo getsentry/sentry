@@ -55,6 +55,9 @@ function SpanEvidenceInteriumSection({
             title={t('Disable detector or adjust thresholds')}
             analyticsEventName="Issue Details: Detector Settings Clicked"
             analyticsEventKey="issue_details.detector_settings_clicked"
+            analyticsParams={{
+              type: issueType,
+            }}
           >
             {t('Detector Settings')}
           </LinkButton>
