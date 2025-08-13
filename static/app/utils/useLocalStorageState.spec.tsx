@@ -12,20 +12,13 @@ describe('useLocalStorageState', () => {
     }
   });
 
-  it('throws if key is not a string', async () => {
-    let errorResult!: TypeError;
-
-    renderHook(() => {
-      try {
+  it('throws if key is not a string', () => {
+    expect(() => {
+      renderHook(() => {
         // @ts-expect-error force incorrect usage
         useLocalStorageState({}, 'default value');
-      } catch (err) {
-        errorResult = err;
-      }
-    });
-
-    await waitFor(() => expect(errorResult).toBeInstanceOf(TypeError));
-    expect(errorResult.message).toBe('useLocalStorage: key must be a string');
+      });
+    }).toThrow('useLocalStorage: key must be a string');
   });
 
   it('initialized with value', () => {
@@ -207,15 +200,9 @@ describe('useLocalStorageState', () => {
       {initialProps: ['key', recursiveReferenceMap]}
     );
 
-    try {
-      result.current[1](recursiveReferenceMap);
-    } catch (e) {
-      expect(
-        e.message.startsWith(
-          `useLocalStorage: Native serialization of Map is not supported`
-        )
-      ).toBe(true);
-    }
+    expect(() => result.current[1](recursiveReferenceMap)).toThrow(
+      `useLocalStorage: Native serialization of Map is not supported`
+    );
   });
 
   it('crashes with native error on recursive serialization of plain objects', () => {
@@ -230,11 +217,9 @@ describe('useLocalStorageState', () => {
       {initialProps: ['key', recursiveObject]}
     );
 
-    try {
-      result.current[1](recursiveObject);
-    } catch (e) {
-      expect(e.message.startsWith('Converting circular structure to JSON')).toBe(true);
-    }
+    expect(() => result.current[1](recursiveObject)).toThrow(
+      /Converting circular structure to JSON/
+    );
   });
 
   it.each([
@@ -260,16 +245,8 @@ describe('useLocalStorageState', () => {
     // Immediately execute microtask so that the error is not thrown from the current execution stack and can be caught by a try/catch
     jest.spyOn(window, 'queueMicrotask').mockImplementation(cb => cb());
 
-    try {
-      result.current[1](value);
-    } catch (e) {
-      expect(
-        e.message.startsWith(
-          `useLocalStorage: Native serialization of ${
-            type.split(' ')[0]
-          } is not supported`
-        )
-      ).toBe(true);
-    }
+    expect(() => result.current[1](value)).toThrow(
+      `useLocalStorage: Native serialization of ${type.split(' ')[0]} is not supported`
+    );
   });
 });

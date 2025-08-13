@@ -180,7 +180,6 @@ class MiddlewareWrapper(MetricsBackend):
         sample_rate: float = 1,
         unit: str | None = None,
         stacklevel: int = 0,
-        precise: bool = False,
     ) -> None:
         current_tags = get_current_global_tags()
         if tags is not None:
@@ -188,7 +187,7 @@ class MiddlewareWrapper(MetricsBackend):
         current_tags = _filter_tags(key, current_tags)
 
         return self.inner.distribution(
-            key, value, instance, current_tags, sample_rate, unit, stacklevel + 1, precise
+            key, value, instance, current_tags, sample_rate, unit, stacklevel + 1
         )
 
     def event(
