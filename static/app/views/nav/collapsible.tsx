@@ -25,14 +25,12 @@ export function Collapsible({
           initial={{height: 0, overflow: 'hidden'}}
           animate={{
             height: 'auto',
-            overflow: 'visible',
             transition: testableTransition({
               type: 'spring',
               damping: 50,
               stiffness: 600,
               bounce: 0,
               visualDuration,
-              overflow: {delay: visualDuration},
             }),
           }}
           exit={{
