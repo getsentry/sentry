@@ -34,6 +34,7 @@ from sentry.replays.usecases.query import (
     make_full_aggregation_query,
     query_using_optimized_search,
 )
+from sentry.search.events.types import SnubaParams
 from sentry.utils.snuba import raw_snql_query
 
 MAX_PAGE_SIZE = 100
@@ -908,9 +909,9 @@ def build_replay_events_query(
     dataset,
     selected_columns: list[str],
     query: str | None,
-    snuba_params: dict,
+    snuba_params: SnubaParams,
     equations: list[str] | None = None,
-    orderby: str | None = None,
+    orderby: list[str] | None = None,
     offset: int = 0,
     limit: int = 10,
     referrer: str = "api.replay.details-page",
