@@ -20,13 +20,14 @@ from sentry.seer.endpoints.seer_rpc import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, assume_test_silo_mode_of
 
 # Fernet key must be a base64 encoded string, exactly 32 bytes long
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
 
 @override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
+@all_silo_test
 class TestSeerRpc(APITestCase):
     @staticmethod
     def _get_path(method_name: str) -> str:
@@ -287,7 +288,6 @@ class TestSeerRpcMethods(APITestCase):
 
     @responses.activate
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    @assume_test_silo_mode(SiloMode.CONTROL)
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     def test_get_github_enterprise_integration_config(self, mock_get_jwt) -> None:
         """Test when organization has github enterprise integration"""
@@ -312,20 +312,21 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         # Create a GitHub Enterprise integration
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="github_enterprise",
-            external_id="github_external_id",
-            metadata={
-                "domain_name": "github.example.org",
-                "installation": {
-                    "private_key": private_key,
-                    "id": 1,
-                    "verify_ssl": True,
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                provider="github_enterprise",
+                external_id="github_external_id",
+                metadata={
+                    "domain_name": "github.example.org",
+                    "installation": {
+                        "private_key": private_key,
+                        "id": 1,
+                        "verify_ssl": True,
+                    },
+                    "installation_id": installation_id,
                 },
-                "installation_id": installation_id,
-            },
-        )
+            )
 
         result = get_github_enterprise_integration_config(
             organization_id=self.organization.id,
@@ -355,7 +356,6 @@ class TestSeerRpcMethods(APITestCase):
         mock_get_jwt.assert_called_once_with(github_id=1, github_private_key=private_key)
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    @assume_test_silo_mode(SiloMode.CONTROL)
     def test_get_github_enterprise_integration_config_invalid_integration_id(self) -> None:
         # Test with invalid integration_id
         with self._caplog.at_level(logging.ERROR):
@@ -368,26 +368,26 @@ class TestSeerRpcMethods(APITestCase):
         assert "Integration -1 does not exist" in self._caplog.text
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    @assume_test_silo_mode(SiloMode.CONTROL)
     def test_get_github_enterprise_integration_config_invalid_organization_id(self) -> None:
         installation_id = 1234
         private_key = "private_key_1"
 
         # Create a GitHub Enterprise integration
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="github_enterprise",
-            external_id="github_external_id",
-            metadata={
-                "domain_name": "github.example.org",
-                "installation": {
-                    "private_key": private_key,
-                    "id": 1,
-                    "verify_ssl": True,
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                provider="github_enterprise",
+                external_id="github_external_id",
+                metadata={
+                    "domain_name": "github.example.org",
+                    "installation": {
+                        "private_key": private_key,
+                        "id": 1,
+                        "verify_ssl": True,
+                    },
+                    "installation_id": installation_id,
                 },
-                "installation_id": installation_id,
-            },
-        )
+            )
 
         # Test with invalid organization_id
         with self._caplog.at_level(logging.ERROR):
@@ -400,30 +400,31 @@ class TestSeerRpcMethods(APITestCase):
         assert f"Integration {integration.id} does not exist" in self._caplog.text
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    @assume_test_silo_mode(SiloMode.CONTROL)
     def test_get_github_enterprise_integration_config_disabled_integration(self) -> None:
         installation_id = 1234
         private_key = "private_key_1"
 
         # Create a GitHub Enterprise integration
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="github_enterprise",
-            external_id="github_external_id",
-            metadata={
-                "domain_name": "github.example.org",
-                "installation": {
-                    "private_key": private_key,
-                    "id": 1,
-                    "verify_ssl": True,
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                provider="github_enterprise",
+                external_id="github_external_id",
+                metadata={
+                    "domain_name": "github.example.org",
+                    "installation": {
+                        "private_key": private_key,
+                        "id": 1,
+                        "verify_ssl": True,
+                    },
+                    "installation_id": installation_id,
                 },
-                "installation_id": installation_id,
-            },
-        )
+            )
 
         # Test with disabled integration
-        integration.status = ObjectStatus.DISABLED
-        integration.save()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration.status = ObjectStatus.DISABLED
+            integration.save()
 
         with self._caplog.at_level(logging.ERROR):
             result = get_github_enterprise_integration_config(
@@ -436,7 +437,6 @@ class TestSeerRpcMethods(APITestCase):
 
     @responses.activate
     @override_settings(SEER_GHE_ENCRYPT_KEY="invalid")
-    @assume_test_silo_mode(SiloMode.CONTROL)
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     def test_get_github_enterprise_integration_config_invalid_encrypt_key(
         self, mock_get_jwt
@@ -451,20 +451,21 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         # Create a GitHub Enterprise integration
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="github_enterprise",
-            external_id="github_external_id",
-            metadata={
-                "domain_name": "github.example.org",
-                "installation": {
-                    "private_key": private_key,
-                    "id": 1,
-                    "verify_ssl": True,
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                provider="github_enterprise",
+                external_id="github_external_id",
+                metadata={
+                    "domain_name": "github.example.org",
+                    "installation": {
+                        "private_key": private_key,
+                        "id": 1,
+                        "verify_ssl": True,
+                    },
+                    "installation_id": installation_id,
                 },
-                "installation_id": installation_id,
-            },
-        )
+            )
 
         with self._caplog.at_level(logging.ERROR):
             result = get_github_enterprise_integration_config(
@@ -582,7 +583,7 @@ class TestSeerRpcMethods(APITestCase):
         org3 = self.create_organization(owner=self.user)
         # org3 did not give us consent for AI features
         # so it should be excluded from the results
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode_of(OrganizationOption):
             OrganizationOption.objects.set_value(org3, "sentry:hide_ai_features", True)
 
         # repo in org 1
