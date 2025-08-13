@@ -463,7 +463,6 @@ def process_workflows(
     create_workflow_fire_histories(
         detector, actions, event_data, should_trigger_actions, is_delayed=False
     )
-    if should_trigger_actions:
-        fire_actions(actions, detector, event_data)
+    fire_actions(actions, detector, event_data)
 
     return triggered_workflows
