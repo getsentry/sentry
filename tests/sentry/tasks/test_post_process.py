@@ -14,7 +14,6 @@ from django.db import router
 from django.test import override_settings
 from django.utils import timezone
 
-from sentry import buffer
 from sentry.analytics.events.first_flag_sent import FirstFlagSentEvent
 from sentry.eventstream.types import EventStreamEventType
 from sentry.feedback.lib.utils import FeedbackCreationSource
@@ -51,6 +50,7 @@ from sentry.replays.lib import kafka as replays_kafka
 from sentry.replays.lib.kafka import clear_replay_publisher
 from sentry.rules import init_registry
 from sentry.rules.actions.base import EventAction
+from sentry.services import buffer
 from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.silo.base import SiloMode
@@ -395,8 +395,8 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         MOCK_RULES = ("sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",)
 
         with (
-            mock.patch("sentry.buffer.backend.get", buffer.backend.get),
-            mock.patch("sentry.buffer.backend.incr", buffer.backend.incr),
+            mock.patch("sentry.services.buffer.backend.get", buffer.backend.get),
+            mock.patch("sentry.services.buffer.backend.incr", buffer.backend.incr),
             patch("sentry.constants._SENTRY_RULES", MOCK_RULES),
             patch("sentry.rules.rules", init_registry()) as rules,
         ):
@@ -1751,15 +1751,15 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         assert mock_send_unignored_robust.called
 
     @mock_redis_buffer()
-    @override_settings(SENTRY_BUFFER="sentry.buffer.redis.RedisBuffer")
+    @override_settings(SENTRY_BUFFER="sentry.services.buffer.redis.RedisBuffer")
     @patch("sentry.signals.issue_unignored.send_robust")
     @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_invalidates_snooze_with_buffers(
         self, mock_processor: MagicMock, send_robust: MagicMock
     ) -> None:
         with (
-            mock.patch("sentry.buffer.backend.get", buffer.backend.get),
-            mock.patch("sentry.buffer.backend.incr", buffer.backend.incr),
+            mock.patch("sentry.services.buffer.backend.get", buffer.backend.get),
+            mock.patch("sentry.services.buffer.backend.incr", buffer.backend.incr),
         ):
             event = self.create_event(
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id

@@ -4,8 +4,7 @@ from unittest import mock
 from django.test import override_settings
 from django.utils import timezone
 
-from sentry import audit_log, buffer, tsdb
-from sentry.buffer.redis import RedisBuffer
+from sentry import audit_log, tsdb
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
@@ -28,6 +27,8 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.plugins.base import plugins
+from sentry.services import buffer
+from sentry.services.buffer.redis import RedisBuffer
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -289,8 +290,8 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         redis_buffer = RedisBuffer()
         with (
-            mock.patch("sentry.buffer.backend.get", redis_buffer.get),
-            mock.patch("sentry.buffer.backend.incr", redis_buffer.incr),
+            mock.patch("sentry.services.buffer.backend.get", redis_buffer.get),
+            mock.patch("sentry.services.buffer.backend.incr", redis_buffer.incr),
         ):
             event = self.store_event(
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id

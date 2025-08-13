@@ -11,17 +11,17 @@ import pytest
 from django.utils import timezone
 
 from sentry import options
-from sentry.buffer.redis import (
+from sentry.models.group import Group
+from sentry.models.project import Project
+from sentry.rules.processing.buffer_processing import process_buffer
+from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
+from sentry.services.buffer.redis import (
     BufferHookEvent,
     RedisBuffer,
     _get_model_key,
     redis_buffer_registry,
     redis_buffer_router,
 )
-from sentry.models.group import Group
-from sentry.models.project import Project
-from sentry.rules.processing.buffer_processing import process_buffer
-from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
@@ -55,8 +55,8 @@ class TestRedisBuffer:
     def test_coerce_val_handles_unicode(self) -> None:
         assert self.buf._coerce_val("\u201d") == "”".encode()
 
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
-    @mock.patch("sentry.buffer.redis.process_incr")
+    @mock.patch("sentry.services.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
+    @mock.patch("sentry.services.buffer.redis.process_incr")
     def test_process_pending_one_batch(self, process_incr) -> None:
         self.buf.incr_batch_size = 5
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
@@ -69,8 +69,8 @@ class TestRedisBuffer:
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         assert client.zrange("b:p", 0, -1) == []
 
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
-    @mock.patch("sentry.buffer.redis.process_incr")
+    @mock.patch("sentry.services.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
+    @mock.patch("sentry.services.buffer.redis.process_incr")
     def test_process_pending_multiple_batches(self, process_incr) -> None:
         self.buf.incr_batch_size = 2
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
@@ -84,8 +84,8 @@ class TestRedisBuffer:
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         assert client.zrange("b:p", 0, -1) == []
 
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
-    @mock.patch("sentry.buffer.base.Buffer.process")
+    @mock.patch("sentry.services.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
+    @mock.patch("sentry.services.buffer.base.Buffer.process")
     def test_process_does_bubble_up_json(self, process) -> None:
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
 
@@ -109,8 +109,8 @@ class TestRedisBuffer:
         self.buf.process("foo")
         process.assert_called_once_with(Group, columns, filters, extra, signal_only)
 
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
-    @mock.patch("sentry.buffer.base.Buffer.process")
+    @mock.patch("sentry.services.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
+    @mock.patch("sentry.services.buffer.base.Buffer.process")
     def test_process_does_bubble_up_pickle(self, process) -> None:
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
 
@@ -142,7 +142,7 @@ class TestRedisBuffer:
             {"pk": default_group.id},
             {"last_seen": timezone.now()},
         )
-        with task_runner(), mock.patch("sentry.buffer.backend", self.buf):
+        with task_runner(), mock.patch("sentry.services.buffer.backend", self.buf):
             self.buf.process_pending()
         group = Group.objects.get_from_cache(id=default_group.id)
         assert group.times_seen == orig_times_seen + times_seen_incr
@@ -411,8 +411,8 @@ class TestRedisBuffer:
         rule_group_pairs = self.buf.get_hash(Project, {"project_id": project_id})
         assert rule_group_pairs == {}
 
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
-    @mock.patch("sentry.buffer.base.Buffer.process")
+    @mock.patch("sentry.services.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
+    @mock.patch("sentry.services.buffer.base.Buffer.process")
     def test_process_uses_signal_only(self, process) -> None:
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
 
@@ -428,7 +428,7 @@ class TestRedisBuffer:
         self.buf.process("foo")
         process.assert_called_once_with(mock.Mock, {"times_seen": 1}, {"pk": 1}, {}, True)
 
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
+    @mock.patch("sentry.services.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     def test_get_hash_length(self) -> None:
         client = get_cluster_routing_client(self.buf.cluster, self.buf.is_redis_cluster)
         data: Mapping[str | bytes, bytes | float | int | str] = {
@@ -442,7 +442,7 @@ class TestRedisBuffer:
         buffer_length = self.buf.get_hash_length("foo", field={"bar": 1})
         assert buffer_length == len(data)
 
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
+    @mock.patch("sentry.services.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
     def test_push_to_hash_bulk(self) -> None:
         def decode_dict(d):
             return {k: v.decode("utf-8") if isinstance(v, bytes) else v for k, v in d.items()}
@@ -460,8 +460,8 @@ class TestRedisBuffer:
 
     @django_db_all
     @freeze_time()
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key")
-    @mock.patch("sentry.buffer.redis.process_incr")
+    @mock.patch("sentry.services.buffer.redis.RedisBuffer._make_key")
+    @mock.patch("sentry.services.buffer.redis.process_incr")
     def test_assign_custom_queue(
         self,
         mock_process_incr: mock.MagicMock,
@@ -502,7 +502,7 @@ class TestRedisBuffer:
             {"pk": default_group.id},
             {"last_seen": timezone.now()},
         )
-        with task_runner(), mock.patch("sentry.buffer.backend", self.buf):
+        with task_runner(), mock.patch("sentry.services.buffer.backend", self.buf):
             self.buf.process_pending()
 
         assert len(mock_process_incr.apply_async.mock_calls) == 2
@@ -523,8 +523,8 @@ class TestRedisBuffer:
 
     @django_db_all
     @freeze_time()
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key")
-    @mock.patch("sentry.buffer.redis.process_incr")
+    @mock.patch("sentry.services.buffer.redis.RedisBuffer._make_key")
+    @mock.patch("sentry.services.buffer.redis.process_incr")
     def test_assign_custom_queue_multiple_batches(
         self,
         mock_process_incr: mock.MagicMock,
@@ -573,7 +573,7 @@ class TestRedisBuffer:
             {"pk": default_group.id + 2},
             {"last_seen": timezone.now()},
         )
-        with task_runner(), mock.patch("sentry.buffer.backend", self.buf):
+        with task_runner(), mock.patch("sentry.services.buffer.backend", self.buf):
             self.buf.process_pending()
 
         assert len(mock_process_incr.apply_async.mock_calls) == 2
@@ -595,8 +595,8 @@ class TestRedisBuffer:
 
     @django_db_all
     @freeze_time()
-    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key")
-    @mock.patch("sentry.buffer.redis.process_incr")
+    @mock.patch("sentry.services.buffer.redis.RedisBuffer._make_key")
+    @mock.patch("sentry.services.buffer.redis.process_incr")
     def test_custom_queue_function_fallback(
         self,
         mock_process_incr: mock.MagicMock,
@@ -638,7 +638,7 @@ class TestRedisBuffer:
             {"pk": default_group.id},
             {"last_seen": timezone.now()},
         )
-        with task_runner(), mock.patch("sentry.buffer.backend", self.buf):
+        with task_runner(), mock.patch("sentry.services.buffer.backend", self.buf):
             self.buf.process_pending()
 
         assert len(mock_process_incr.apply_async.mock_calls) == 2
@@ -669,7 +669,7 @@ class TestRedisBuffer:
             {"last_seen": timezone.now()},
             signal_only=True,
         )
-        with task_runner(), mock.patch("sentry.buffer.backend", self.buf):
+        with task_runner(), mock.patch("sentry.services.buffer.backend", self.buf):
             self.buf.process_pending()
         group = Group.objects.get_from_cache(id=default_group.id)
 

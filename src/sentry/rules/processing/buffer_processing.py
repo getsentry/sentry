@@ -9,10 +9,10 @@ from typing import ClassVar
 
 from celery import Task
 
-from sentry import buffer, options
-from sentry.buffer.base import BufferField
-from sentry.buffer.redis import BufferHookEvent, redis_buffer_registry
 from sentry.db import models
+from sentry.services import buffer, options
+from sentry.services.buffer.base import BufferField
+from sentry.services.buffer.redis import BufferHookEvent, redis_buffer_registry
 from sentry.utils import metrics
 from sentry.utils.registry import NoRegistrationExistsError, Registry
 

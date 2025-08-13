@@ -29,7 +29,7 @@ def process_pending() -> None:
     """
     Process pending buffers.
     """
-    from sentry import buffer
+    from sentry.services import buffer
 
     lock = get_process_lock("process_pending")
 
@@ -52,7 +52,7 @@ def process_pending_batch() -> None:
     """
     Process pending buffers in a batch.
     """
-    from sentry import buffer
+    from sentry.services import buffer
 
     lock = get_process_lock("process_pending_batch")
 
@@ -81,7 +81,7 @@ def process_incr(
     """
     Processes a buffer event.
     """
-    from sentry import buffer
+    from sentry.services import buffer
 
     model = None
     if model_name:
@@ -102,7 +102,7 @@ def process_incr(
 
 
 def buffer_incr(model: type[Model], *args, **kwargs):
-    from sentry import buffer
+    from sentry.services import buffer
 
     sentry_sdk.set_tag("model", model._meta.model_name)
 

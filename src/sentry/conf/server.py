@@ -2085,7 +2085,7 @@ SENTRY_ALLOW_ORIGIN: str | None = None
 ALLOWED_CREDENTIAL_ORIGINS: list[str] = []
 
 # Buffer backend
-SENTRY_BUFFER = "sentry.buffer.Buffer"
+SENTRY_BUFFER = "sentry.services.buffer.Buffer"
 SENTRY_BUFFER_OPTIONS: dict[str, str] = {}
 
 # Cache backend

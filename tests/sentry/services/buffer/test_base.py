@@ -4,7 +4,6 @@ from unittest import mock
 from django.utils import timezone
 from pytest import raises
 
-from sentry.buffer.base import Buffer, BufferField
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -12,6 +11,7 @@ from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.team import Team
 from sentry.receivers import create_default_projects
+from sentry.services.buffer.base import Buffer, BufferField
 from sentry.testutils.cases import TestCase
 
 
@@ -20,7 +20,7 @@ class BufferTest(TestCase):
         create_default_projects()
         self.buf = Buffer()
 
-    @mock.patch("sentry.buffer.base.process_incr")
+    @mock.patch("sentry.services.buffer.base.process_incr")
     def test_incr_delays_task(self, process_incr: mock.MagicMock) -> None:
         model = Group
         columns = {"times_seen": 1}

@@ -11,7 +11,7 @@ from typing import Any
 from django.core.cache import cache
 from django.utils import timezone
 
-from sentry import analytics, buffer, features
+from sentry import analytics, features
 from sentry.analytics.events.issue_alert_fired import IssueAlertFiredEvent
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -25,6 +25,7 @@ from sentry.rules.actions.base import instantiate_action
 from sentry.rules.conditions.base import EventCondition
 from sentry.rules.conditions.event_frequency import EventFrequencyConditionData
 from sentry.rules.filters.base import EventFilter
+from sentry.services import buffer
 from sentry.services.eventstore.models import GroupEvent
 from sentry.types.rules import RuleFuture
 from sentry.utils import json, metrics

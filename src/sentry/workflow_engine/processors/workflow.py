@@ -9,9 +9,9 @@ from django.db import router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import buffer, features
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
+from sentry.services import buffer, features
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json
 from sentry.workflow_engine.models import Action, DataConditionGroup, Detector, Workflow

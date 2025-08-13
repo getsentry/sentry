@@ -18,7 +18,6 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.utils import timezone as django_timezone
 
-from sentry import buffer, roles, tsdb
 from sentry.constants import ObjectStatus
 from sentry.exceptions import HashDiscarded
 from sentry.feedback.lib.utils import FeedbackCreationSource
@@ -62,6 +61,7 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorStatus,
 )
+from sentry.services import buffer, roles, tsdb
 from sentry.services.organization import organization_provisioning_service
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
