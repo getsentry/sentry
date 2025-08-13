@@ -1,20 +1,24 @@
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {IssueType} from 'sentry/types/group';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {scoreToStatus} from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
+import {useCreateIssue} from 'sentry/views/insights/browser/webVitals/utils/useCreateIssue';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
 type Props = {
   webVital: WebVitals;
   score?: number;
+  transaction?: string;
   value?: string;
 };
 
@@ -111,17 +115,42 @@ export const VITAL_DESCRIPTIONS: Partial<
   },
 };
 
-export function WebVitalDetailHeader({score, value, webVital}: Props) {
+export function WebVitalDetailHeader({score, value, webVital, transaction}: Props) {
   const status = score === undefined ? undefined : scoreToStatus(score);
 
+  const {mutate: createIssue} = useCreateIssue();
   return (
-    <div>
-      <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}</WebVitalName>
-      <WebVitalScore>
-        <Value>{value ?? ' \u2014 '}</Value>
-        {status && score && <PerformanceBadge score={score} />}
-      </WebVitalScore>
-    </div>
+    <Flex>
+      <div>
+        <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}</WebVitalName>
+        <WebVitalScore>
+          <Value>{value ?? ' \u2014 '}</Value>
+          {status && score && <PerformanceBadge score={score} />}
+        </WebVitalScore>
+      </div>
+      {transaction && score && score < 90 && (
+        <div>
+          <Button
+            title={tct(
+              'Your [webVital] metric is below the recommended threshold. Create an issue to investigate.',
+              {
+                webVital: webVital.toUpperCase(),
+              }
+            )}
+            onClick={() => {
+              createIssue({
+                issueType: IssueType.WEB_VITALS,
+                vital: webVital,
+                score,
+                transaction,
+              });
+            }}
+          >
+            {t('Create Issue')}
+          </Button>
+        </div>
+      )}
+    </Flex>
   );
 }
 
@@ -194,4 +223,10 @@ const WebVitalScore = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
   gap: ${space(1)};
+`;
+
+const Flex = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 `;
