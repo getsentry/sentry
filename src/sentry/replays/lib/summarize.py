@@ -18,6 +18,7 @@ from sentry.replays.usecases.ingest.event_parser import (
 from sentry.replays.usecases.ingest.event_parser import parse_network_content_lengths, which
 from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.models import Event
+from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import get_dataset
 from sentry.utils import json
 
@@ -112,7 +113,7 @@ def fetch_trace_connected_errors(
                 snuba_params=snuba_params,
                 orderby=["id"],
                 limit=100,
-                referrer="api.replay.summarize.events",
+                referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
             )
             queries.append(error_query)
 
@@ -132,7 +133,7 @@ def fetch_trace_connected_errors(
                 snuba_params=snuba_params,
                 orderby=["id"],
                 limit=100,
-                referrer="api.replay.summarize.issues",
+                referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
             )
             queries.append(issue_query)
 
@@ -144,7 +145,6 @@ def fetch_trace_connected_errors(
         seen_event_ids = set()  # Track seen event IDs to avoid duplicates
 
         for query in queries:
-            # The query is already an EventsResponse object, not a query builder
             result = query
             error_data = result["data"]
 
