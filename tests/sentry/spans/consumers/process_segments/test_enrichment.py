@@ -364,9 +364,8 @@ def test_emit_ops_breakdown() -> None:
     }
 
     # Compute breakdowns for the segment span
-    enriched_segment, _ = Enricher.enrich_spans(spans)
-    assert enriched_segment is not None
-    updates = compute_breakdowns(enriched_segment, spans, breakdowns_config)
+    _ = Enricher.enrich_spans(spans)
+    updates = compute_breakdowns(spans, breakdowns_config)
 
     assert updates["span_ops.ops.http"]["value"] == 3600000.0
     assert updates["span_ops.ops.db"]["value"] == 7200000.0
