@@ -200,6 +200,14 @@ const SECTIONS: TSection[] = [
         name: 'AllProjects',
         defaultProps: {},
       },
+
+      {
+        id: 'building',
+        groups: ['product'],
+        keywords: ['business'],
+        name: 'Building',
+        defaultProps: {},
+      },
     ],
   },
   {

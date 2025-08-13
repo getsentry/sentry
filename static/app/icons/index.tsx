@@ -9,6 +9,7 @@ export {IconBitbucket} from './iconBitbucket';
 export {IconBookmark} from './iconBookmark';
 export {IconBroadcast} from './iconBroadcast';
 export {IconBusiness} from './iconBusiness';
+export {IconBuilding} from './iconBuilding';
 export {IconCalendar} from './iconCalendar';
 export {IconChat} from './iconChat';
 export {IconCheckmark} from './iconCheckmark';
