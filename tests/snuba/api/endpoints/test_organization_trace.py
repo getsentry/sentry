@@ -2,6 +2,7 @@ import logging
 from unittest import mock
 from uuid import uuid4
 
+import pytest
 from django.urls import reverse
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
@@ -532,6 +533,7 @@ class OrganizationEventsTraceEndpointTest(
 
         return span
 
+    @pytest.mark.skip(reason="flaky: #97779")
     def test_with_uptime_results(self):
         """Test that uptime results are included when include_uptime=1"""
         self.load_trace(is_eap=True)
