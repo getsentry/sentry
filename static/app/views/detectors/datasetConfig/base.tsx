@@ -2,11 +2,11 @@ import type {SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import type {MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 
 export interface DetectorSearchBarProps {
@@ -38,10 +38,12 @@ export interface DetectorSeriesQueryOptions {
    * The filter query. eg: `span.op:http`
    */
   query: string;
+  end?: string;
+  start?: string;
   /**
-   * The time period for the query. eg: `7d`
+   * Relative time period for the query. Example: '7d'.
    */
-  statsPeriod: TimePeriod;
+  statsPeriod?: string;
 }
 
 /**
@@ -72,6 +74,7 @@ export interface DetectorDatasetConfig<SeriesResponse> {
     customMeasurements?: CustomMeasurementCollection
   ) => Record<string, SelectValue<FieldValue>>;
   getSeriesQueryOptions: (options: DetectorSeriesQueryOptions) => ApiQueryKey;
+  supportedDetectionTypes: Array<MetricDetectorConfig['detectionType']>;
   /**
    * Transform the user-friendly aggregate function to the API aggregate function.
    * This is currently only used for the releases dataset.

@@ -112,6 +112,7 @@ export function getTraceQueryParams(
     demo,
     limit,
     timestamp: timestamp?.toString(),
+    include_uptime: query.includeUptime,
   };
 
   for (const key in queryParams) {

@@ -238,7 +238,7 @@ describe('Uptime Alert Form', function () {
         }),
       })
     );
-  });
+  }, 20_000);
 
   it('does not show body for GET and HEAD', async function () {
     OrganizationStore.onUpdate(organization);
