@@ -156,7 +156,7 @@ export default function PreventAIOnboarding() {
               <li>
                 <Text variant="muted" size="sm">
                   {tct(
-                    'It predicts which errors your code will cause. This happens automatically on every commit, when you mark a PR ready for review, and when you trigger a PR review with [sentryCommand].',
+                    'It predicts which errors your code will cause. This happens automatically when you mark a PR ready for review, and when you trigger a PR review with [sentryCommand].',
                     {
                       sentryCommand: (
                         <Text variant="accent" size="sm" bold>
