@@ -362,7 +362,9 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
-        expected_url = f"/organizations/{self.organization.slug}/preprod/internal/{artifact_id}"
+        expected_url = (
+            f"/organizations/{self.organization.slug}/preprod/{self.project.slug}/{artifact_id}"
+        )
         assert expected_url in response.data["artifactUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(
@@ -429,7 +431,9 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
-        expected_url = f"/organizations/{self.organization.slug}/preprod/internal/{artifact_id}"
+        expected_url = (
+            f"/organizations/{self.organization.slug}/preprod/{self.project.slug}/{artifact_id}"
+        )
         assert expected_url in response.data["artifactUrl"]
 
         mock_create_preprod_artifact.assert_called_once_with(
