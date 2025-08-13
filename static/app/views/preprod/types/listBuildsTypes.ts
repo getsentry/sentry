@@ -1,6 +1,6 @@
 import type {BuildDetailsApiResponse} from './buildDetailsTypes';
 
-export interface PaginationInfo {
+interface PaginationInfo {
   has_next: boolean;
   has_prev: boolean;
   next: number | null;
