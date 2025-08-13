@@ -59,6 +59,10 @@ export const HiddenLogDetailFields: OurLogFieldKey[] = [
   'span_id',
 ];
 
+export const DeprecatedLogDetailFields: OurLogFieldKey[] = [
+  OurLogKnownFieldKey.TIMESTAMP_NANOS,
+];
+
 export const HiddenColumnEditorLogFields: OurLogFieldKey[] = [...AlwaysHiddenLogFields];
 
 export const HiddenLogSearchFields: string[] = [...AlwaysHiddenLogFields];

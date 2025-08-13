@@ -53,6 +53,9 @@ export enum OurLogKnownFieldKey {
 
   // From the EAP dataset directly not using a column alias, should be hidden.
   ITEM_TYPE = 'sentry.item_type',
+
+  // Deprecated fields
+  TIMESTAMP_NANOS = 'sentry.timestamp_nanos',
 }
 
 export type OurLogFieldKey = OurLogCustomFieldKey | OurLogKnownFieldKey;
