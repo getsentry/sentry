@@ -82,7 +82,7 @@ describe('LogsTable', function () {
           '10.5.55.212 - - [05/May/2025:18:36:15 +0000] "POST /v1/automation/autofix/state HTTP/1.1" 200 293642 "-" "python-requests/2.32.3"',
         'sentry.release': '985bae16edc2f3f8132e346a4f6c5a559f7c968b',
         'code.file.path': '/usr/local/lib/python3.11/dist-packages/gunicorn/glogging.py',
-        'tags[sentry.timestamp_precise,number]': 1.7464701752771756e18,
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.7464701752771756e18,
       },
       {
         'sentry.item_id': '0196a1bc00e3720f8d47c84c53131891',
@@ -95,7 +95,7 @@ describe('LogsTable', function () {
           '10.5.58.189 - - [05/May/2025:18:36:14 +0000] "POST /v0/issues/similar-issues HTTP/1.1" 200 131 "-" "python-urllib3/2.2.2"',
         'sentry.release': '985bae16edc2f3f8132e346a4f6c5a559f7c968b',
         'code.file.path': '/usr/local/lib/python3.11/dist-packages/gunicorn/glogging.py',
-        'tags[sentry.timestamp_precise,number]': 1.746470174947077e18,
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.746470174947077e18,
       },
       {
         'sentry.item_id': '0196a1bc007c7dfbbe099b6328e41d12',
@@ -108,7 +108,7 @@ describe('LogsTable', function () {
           '10.5.62.140 - - [05/May/2025:18:36:14 +0000] "POST /v0/issues/similar-issues HTTP/1.1" 200 586 "-" "python-urllib3/2.2.2"',
         'sentry.release': '985bae16edc2f3f8132e346a4f6c5a559f7c968b',
         'code.file.path': '/usr/local/lib/python3.11/dist-packages/gunicorn/glogging.py',
-        'tags[sentry.timestamp_precise,number]': 1.7464701748443016e18,
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.7464701748443016e18,
       },
     ],
     meta: {
@@ -122,7 +122,7 @@ describe('LogsTable', function () {
         message: 'string',
         'sentry.release': 'string',
         'code.file.path': 'string',
-        'tags[sentry.timestamp_precise,number]': 'number',
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 'number',
       },
     },
     isLoading: false,
