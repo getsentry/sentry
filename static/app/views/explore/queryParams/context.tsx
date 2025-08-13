@@ -43,7 +43,7 @@ export function QueryParamsContextProvider({
   return <QueryParamsContext value={value}>{children}</QueryParamsContext>;
 }
 
-function useQueryParams() {
+export function useQueryParams() {
   const {queryParams} = useQueryParamsContext();
   return queryParams;
 }
@@ -129,7 +129,7 @@ export function useSetQueryParamsGroupBys() {
         if (isVisualize(aggregateField)) {
           aggregateFields.push({
             yAxes: [aggregateField.yAxis],
-            chartType: aggregateField.chartType,
+            chartType: aggregateField.selectedChartType,
           });
         } else if (isGroupBy(aggregateField)) {
           aggregateFields.push({groupBy: groupBys[i++]!});
