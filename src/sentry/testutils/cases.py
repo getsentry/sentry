@@ -1321,13 +1321,13 @@ class BaseSpansTestCase(SnubaTestCase):
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if sdk_name is not None:
-            payload["sentry_tags"]["sdk.name"] = sdk_name
+            payload["sentry_tags"]["sdk.name"] = sdk_name  # needs extra_items support
         if op is not None:
             payload["sentry_tags"]["op"] = op
         if status is not None:
             payload["sentry_tags"]["status"] = status
         if environment is not None:
-            payload["sentry_tags"]["environment"] = environment
+            payload["sentry_tags"]["environment"] = environment  # needs extra_items support
 
         self.store_span(payload, is_eap=is_eap)
 
