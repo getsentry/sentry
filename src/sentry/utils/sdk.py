@@ -179,8 +179,8 @@ def get_project_key():
 
 
 def traces_sampler(sampling_context):
-    wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
-    if wsgi_path and wsgi_path in SAMPLED_ROUTES:
+    wsgi_path = sampling_context.get("url.path")
+    if wsgi_path is not None and wsgi_path in SAMPLED_ROUTES:
         return SAMPLED_ROUTES[wsgi_path]
 
     # Apply sample_rate from custom_sampling_context
@@ -189,20 +189,17 @@ def traces_sampler(sampling_context):
         return float(custom_sample_rate)
 
     # If there's already a sampling decision, just use that
-    if sampling_context["parent_sampled"] is not None:
+    parent_sampled = sampling_context.get("parent_sampled")
+    if parent_sampled is not None:
         return sampling_context["parent_sampled"]
 
-    if "celery_job" in sampling_context:
-        task_name = sampling_context["celery_job"].get("task")
+    task_name = sampling_context.get("celery.job.task")
+    if task_name is not None and task_name in SAMPLED_TASKS:
+        return SAMPLED_TASKS[task_name]
 
-        if task_name in SAMPLED_TASKS:
-            return SAMPLED_TASKS[task_name]
-
-    if "taskworker" in sampling_context:
-        task_name = sampling_context["taskworker"].get("task")
-
-        if task_name in SAMPLED_TASKS:
-            return SAMPLED_TASKS[task_name]
+    task_name = sampling_context.get("taskworker.task")
+    if task_name is not None and task_name in SAMPLED_TASKS:
+        return SAMPLED_TASKS[task_name]
 
     # Default to the sampling rate in settings
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
@@ -307,13 +304,13 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options["traces_sampler"] = traces_sampler
     sdk_options["before_send_transaction"] = before_send_transaction
     sdk_options["before_send"] = before_send
+    sdk_options["enable_logs"] = True
+    sdk_options["before_send_log"] = before_send_log
     sdk_options["release"] = (
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
     sdk_options.setdefault("_experiments", {}).update(
         transport_http2=True,
-        before_send_log=before_send_log,
-        enable_logs=True,
     )
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
@@ -725,7 +722,7 @@ def get_trace_id():
 def set_span_attribute(data_name, value):
     span = sentry_sdk.get_current_span()
     if span is not None:
-        span.set_data(data_name, value)
+        span.set_attribute(data_name, value)
 
 
 def merge_context_into_scope(

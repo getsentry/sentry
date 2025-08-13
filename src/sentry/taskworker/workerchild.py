@@ -347,27 +347,26 @@ def child_process(
 
         args = parameters.get("args", [])
         kwargs = parameters.get("kwargs", {})
-
-        transaction = sentry_sdk.continue_trace(
-            environ_or_headers=headers,
-            op="queue.task.taskworker",
-            name=activation.taskname,
-            origin="taskworker",
-        )
-        sampling_context = {
-            "taskworker": {
-                "task": activation.taskname,
-            }
+        trace_headers_present = all((headers.get("sentry-trace"), headers.get("baggage")))
+        attributes = {
+            "taskworker.task": activation.taskname,
         }
+
         with (
+            sentry_sdk.isolation_scope(),
+            sentry_sdk.continue_trace(headers) if trace_headers_present else sentry_sdk.new_trace(),
             track_memory_usage(
                 "taskworker.worker.memory_change",
                 tags={"namespace": activation.namespace, "taskname": activation.taskname},
             ),
-            sentry_sdk.isolation_scope(),
-            sentry_sdk.start_transaction(transaction, custom_sampling_context=sampling_context),
+            sentry_sdk.start_span(
+                op="queue.task.taskworker",
+                name=activation.taskname,
+                origin="taskworker",
+                attributes=attributes,
+            ) as root_span,
         ):
-            transaction.set_data(
+            root_span.set_attribute(
                 "taskworker-task", {"args": args, "kwargs": kwargs, "id": activation.id}
             )
             task_added_time = activation.received_at.ToDatetime().timestamp()
@@ -379,13 +378,13 @@ def child_process(
                 name=activation.taskname,
                 origin="taskworker",
             ) as span:
-                span.set_data(SPANDATA.MESSAGING_DESTINATION_NAME, activation.namespace)
-                span.set_data(SPANDATA.MESSAGING_MESSAGE_ID, activation.id)
-                span.set_data(SPANDATA.MESSAGING_MESSAGE_RECEIVE_LATENCY, latency)
-                span.set_data(
+                span.set_attribute(SPANDATA.MESSAGING_DESTINATION_NAME, activation.namespace)
+                span.set_attribute(SPANDATA.MESSAGING_MESSAGE_ID, activation.id)
+                span.set_attribute(SPANDATA.MESSAGING_MESSAGE_RECEIVE_LATENCY, latency)
+                span.set_attribute(
                     SPANDATA.MESSAGING_MESSAGE_RETRY_COUNT, activation.retry_state.attempts
                 )
-                span.set_data(SPANDATA.MESSAGING_SYSTEM, "taskworker")
+                span.set_attribute(SPANDATA.MESSAGING_SYSTEM, "taskworker")
 
                 # TODO(taskworker) remove this when doing cleanup
                 # The `__start_time` parameter is spliced into task parameters by
@@ -396,9 +395,9 @@ def child_process(
 
                 try:
                     task_func(*args, **kwargs)
-                    transaction.set_status(SPANSTATUS.OK)
+                    root_span.set_status(SPANSTATUS.OK)
                 except Exception:
-                    transaction.set_status(SPANSTATUS.INTERNAL_ERROR)
+                    root_span.set_status(SPANSTATUS.INTERNAL_ERROR)
                     raise
 
     def record_task_execution(

@@ -83,7 +83,7 @@ dependencies = [
     "sentry-protos>=0.3.1",
     "sentry-redis-tools>=0.5.0",
     "sentry-relay>=0.9.11",
-    "sentry-sdk[http2]>=2.29.1",
+    "sentry-sdk[http2]==3.0.0a5",
     "sentry-usage-accountant>=0.0.10",
     # remove once there are no unmarked transitive dependencies on setuptools
     "setuptools>=70.0.0",
@@ -160,7 +160,7 @@ dev = [
     "pytest-fail-slow>=0.3.0",
     "pytest-json-report>=1.5.0",
     "pytest-rerunfailures>=15.0",
-    "pytest-sentry>=0.3.0",
+    "pytest-sentry==0.5.1",
     "pytest-workaround-12888>=1.0.0",
     "pytest-xdist>=3.0.2",
     "pyupgrade>=3.19.1",
