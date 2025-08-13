@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/core/button';
@@ -9,6 +9,17 @@ import {
   useNeedsJetpackComposePiiNotice,
 } from 'sentry/components/replays/jetpackComposePiiNotice';
 import ReplayTable from 'sentry/components/replays/table/replayTable';
+import {
+  ReplayActivityColumn,
+  ReplayBrowserColumn,
+  ReplayCountDeadClicksColumn,
+  ReplayCountErrorsColumn,
+  ReplayCountRageClicksColumn,
+  ReplayDurationColumn,
+  ReplayOSColumn,
+  ReplaySelectColumn,
+  ReplaySessionColumn,
+} from 'sentry/components/replays/table/replayTableColumns';
 import useReplayTableSort from 'sentry/components/replays/table/useReplayTableSort';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -25,7 +36,6 @@ import {
 } from 'sentry/utils/replays/sdkVersions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
-import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -35,9 +45,29 @@ import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import BulkDeleteAlert from 'sentry/views/replays/list/bulkDeleteAlert';
 import ReplaysFilters from 'sentry/views/replays/list/filters';
 import ReplaysSearch from 'sentry/views/replays/list/search';
-import useReplayIndexTableColumns from 'sentry/views/replays/list/useReplayIndexTableColumns';
 import DeadRageSelectorCards from 'sentry/views/replays/selectors/deadRageSelectorCards';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
+
+const COLUMNS_WEB = [
+  ReplaySelectColumn,
+  ReplaySessionColumn,
+  ReplayOSColumn,
+  ReplayBrowserColumn,
+  ReplayDurationColumn,
+  ReplayCountDeadClicksColumn,
+  ReplayCountRageClicksColumn,
+  ReplayCountErrorsColumn,
+  ReplayActivityColumn,
+] as const;
+
+const COLUMNS_MOBILE = [
+  ReplaySelectColumn,
+  ReplaySessionColumn,
+  ReplayOSColumn,
+  ReplayDurationColumn,
+  ReplayCountErrorsColumn,
+  ReplayActivityColumn,
+] as const;
 
 export default function ReplayIndexTable() {
   const queryClient = useQueryClient();
@@ -46,9 +76,6 @@ export default function ReplayIndexTable() {
   const {
     selection: {projects},
   } = usePageFilters();
-
-  const tableRef = useRef<HTMLDivElement>(null);
-  const tableDimensions = useDimensions({elementRef: tableRef});
 
   const rageClicksSdkVersion = useProjectSdkNeedsUpdate({
     minVersion: MIN_DEAD_RAGE_CLICK_SDK.minVersion,
@@ -82,7 +109,7 @@ export default function ReplayIndexTable() {
   const replays = data?.data?.map(mapResponseToReplayRecord) ?? [];
 
   const {allMobileProj} = useAllMobileProj({});
-  const columns = useReplayIndexTableColumns({allMobileProj, tableDimensions});
+  const columns = allMobileProj ? COLUMNS_MOBILE : COLUMNS_WEB;
 
   const needsSDKUpdateForClickSearch = useNeedsSDKUpdateForClickSearch(query);
 
@@ -142,7 +169,6 @@ export default function ReplayIndexTable() {
           </Fragment>
         ) : (
           <ReplayTable
-            ref={tableRef}
             columns={columns}
             error={error}
             isPending={isPending}
