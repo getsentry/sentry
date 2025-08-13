@@ -1,4 +1,5 @@
 import pickle
+from datetime import datetime
 from unittest import mock
 
 import pytest
@@ -13,7 +14,7 @@ from sentry.grouping.variants import ComponentVariant
 from sentry.interfaces.user import User
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.environment import Environment
-from sentry.services.eventstore.models import Event, GroupEvent, parse_date
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -697,8 +698,8 @@ class EventNodeStoreTest(TestCase):
         second_before_now = before_now(seconds=1)
         second_before_now_no_ms = second_before_now.replace(microsecond=0)
 
-        second_before_now = second_before_now.isoformat()
-        second_before_now_no_ms = second_before_now_no_ms.isoformat()
+        second_before_now_str = second_before_now.isoformat()
+        second_before_now_no_ms_str = second_before_now_no_ms.isoformat()
 
         self.store_event(
             data={
@@ -706,7 +707,7 @@ class EventNodeStoreTest(TestCase):
                 "message": "Hello World!",
                 "tags": {"logger": "foobar", "site": "foo", "server_name": "bar"},
                 "user": {"id": "test", "email": "test@test.com"},
-                "timestamp": second_before_now,
+                "timestamp": second_before_now_str,
             },
             project_id=self.project.id,
         )
@@ -715,8 +716,9 @@ class EventNodeStoreTest(TestCase):
 
         # If we have timestamp_ms, we should not hit nodestore
         with mock.patch(
-            "sentry.services.eventstore.models.parse_date", wraps=parse_date
-        ) as mock_parsedate:
+            "sentry.services.eventstore.models.datetime", wraps=datetime
+        ) as mock_datetime:
+            mock_datetime.fromisoformat = mock.Mock(wraps=datetime.fromisoformat)
             event_from_snuba = Event(
                 project_id=self.project.id,
                 event_id="a" * 32,
@@ -731,12 +733,13 @@ class EventNodeStoreTest(TestCase):
             )
 
             assert event_from_nodestore.timestamp == event_from_snuba.timestamp
-            assert mock_parsedate.call_count == 1
+            assert mock_datetime.fromisoformat.call_count == 1
 
         # If we have timestamp column but no timestamp_ms column, we fall back to timestamp
         with mock.patch(
-            "sentry.services.eventstore.models.parse_date", wraps=parse_date
-        ) as mock_parsedate:
+            "sentry.services.eventstore.models.datetime", wraps=datetime
+        ) as mock_datetime:
+            mock_datetime.fromisoformat = mock.Mock(wraps=datetime.fromisoformat)
             event_from_snuba = Event(
                 project_id=self.project.id,
                 event_id="a" * 32,
@@ -749,13 +752,14 @@ class EventNodeStoreTest(TestCase):
                 )["data"][0],
             )
 
-            assert second_before_now_no_ms == event_from_snuba.timestamp
-            assert mock_parsedate.call_count == 1
+            assert second_before_now_no_ms_str == event_from_snuba.timestamp
+            assert mock_datetime.fromisoformat.call_count == 1
 
         # If we have neither timestamp nor timestamp_ms, we have to hit nodestore
         with mock.patch(
-            "sentry.services.eventstore.models.parse_date", wraps=parse_date
-        ) as mock_parsedate:
+            "sentry.services.eventstore.models.datetime", wraps=datetime
+        ) as mock_datetime:
+            mock_datetime.fromisoformat = mock.Mock(wraps=datetime.fromisoformat)
             event_from_snuba = Event(
                 project_id=self.project.id,
                 event_id="a" * 32,
@@ -767,4 +771,4 @@ class EventNodeStoreTest(TestCase):
             )
 
             assert event_from_nodestore.timestamp == event_from_snuba.timestamp
-            assert mock_parsedate.call_count == 0
+            assert mock_datetime.fromisoformat.call_count == 0
