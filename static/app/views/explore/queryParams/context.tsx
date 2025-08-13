@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo} from 'react';
 
+import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
@@ -53,9 +54,24 @@ function useSetQueryParams() {
 
   return useCallback(
     (writableQueryParams: WritableQueryParams) => {
+      if (shouldResetCursors(writableQueryParams)) {
+        // setting it to null tells the implementer that it should be reset
+        writableQueryParams.cursor = null;
+        writableQueryParams.aggregateCursor = null;
+      }
       setQueryParams(writableQueryParams);
     },
     [setQueryParams]
+  );
+}
+
+function shouldResetCursors(queryParams: WritableQueryParams): boolean {
+  return (
+    defined(queryParams.aggregateFields) ||
+    defined(queryParams.aggregateSortBys) ||
+    defined(queryParams.fields) ||
+    defined(queryParams.query) ||
+    defined(queryParams.sortBys)
   );
 }
 
