@@ -134,20 +134,33 @@ class SnubaEventStorage(EventStorage):
             [group_id],
         )
 
+        match_entity = Entity(dataset.value)
+        event_filters = [
+            Condition(Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]), Op.GTE, start),
+            Condition(Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]), Op.LT, end),
+        ] + list(conditions)
+
+        common_request_kwargs = {
+            "app_id": "eventstore",
+            "dataset": dataset.value,
+            "tenant_ids": tenant_ids or dict(),
+        }
+
+        common_query_kwargs = {
+            "select": [Column(col) for col in cols],
+            "orderby": resolved_order_by,
+            "limit": Limit(limit),
+            "offset": Offset(offset),
+        }
+
         # If inner_limit provided, first limit to the most recent N rows, then apply final ordering
         # and pagination on top of that subquery.
         if inner_limit and inner_limit > 0:
             select_and_orderby_cols = set(cols) | order_by_col_names
             inner_query = Query(
-                match=Entity(dataset.value),
+                match=match_entity,
                 select=[Column(col) for col in select_and_orderby_cols],
-                where=[
-                    Condition(
-                        Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]), Op.GTE, start
-                    ),
-                    Condition(Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]), Op.LT, end),
-                ]
-                + list(conditions),
+                where=event_filters,
                 orderby=[
                     OrderBy(
                         Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
@@ -162,40 +175,19 @@ class SnubaEventStorage(EventStorage):
             )
 
             outer_query = Query(
+                **common_query_kwargs,
                 match=inner_query,
-                select=[Column(col) for col in cols],
-                orderby=resolved_order_by,
-                limit=Limit(limit),
-                offset=Offset(offset),
             )
 
-            snql_request = Request(
-                dataset=dataset.value,
-                app_id="eventstore",
-                query=outer_query,
-                tenant_ids=tenant_ids or dict(),
-            )
+            snql_request = Request(**common_request_kwargs, query=outer_query)
         else:
             snql_request = Request(
-                dataset=dataset.value,
-                app_id="eventstore",
+                **common_request_kwargs,
                 query=Query(
-                    match=Entity(dataset.value),
-                    select=[Column(col) for col in cols],
-                    where=[
-                        Condition(
-                            Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]), Op.GTE, start
-                        ),
-                        Condition(
-                            Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]), Op.LT, end
-                        ),
-                    ]
-                    + list(conditions),
-                    orderby=resolved_order_by,
-                    limit=Limit(limit),
-                    offset=Offset(offset),
+                    **common_query_kwargs,
+                    match=match_entity,
+                    where=event_filters,
                 ),
-                tenant_ids=tenant_ids or dict(),
             )
 
         result = raw_snql_query(snql_request, referrer, use_cache=False)
