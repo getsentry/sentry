@@ -190,7 +190,7 @@ export const useSeerExplorer = () => {
         queryClient.invalidateQueries({
           queryKey: makeSeerExplorerQueryKey(orgSlug, response.run_id),
         });
-      } catch (e) {
+      } catch (e: any) {
         setWaitingForResponse(false);
         setApiQueryData<SeerExplorerResponse>(
           queryClient,

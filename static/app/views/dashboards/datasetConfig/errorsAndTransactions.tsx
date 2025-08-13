@@ -662,7 +662,7 @@ export async function doOnDemandMetricsRequest(
     }
 
     return [response[0], response[1], response[2]];
-  } catch (err) {
+  } catch (err: any) {
     Sentry.captureMessage('Failed to fetch metrics estimation stats', {extra: err});
     return doEventsRequest<true>(api, requestData);
   }

@@ -214,7 +214,7 @@ export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
           ...prev,
           fetching: false,
           initiallyLoaded: true,
-          fetchError: err,
+          fetchError: err as RequestError,
         }));
       }
     },
@@ -252,7 +252,7 @@ export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
           ...prev,
           fetching: false,
           initiallyLoaded: true,
-          fetchError: err,
+          fetchError: err as RequestError,
         }));
       }
     },
@@ -306,7 +306,7 @@ export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
       } catch (err) {
         console.error(err); // eslint-disable-line no-console
 
-        setState(prev => ({...prev, fetching: false, fetchError: err}));
+        setState(prev => ({...prev, fetching: false, fetchError: err as RequestError}));
       }
     },
     [
