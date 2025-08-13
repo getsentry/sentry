@@ -174,7 +174,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
             response = self.get_error_response(self.org.slug)
             assert response.status_code == 403
 
-
     @patch(
         "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
         1,
@@ -226,7 +225,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
             elif category["primaryLabel"] == "Authentication":
                 assert category["feedbackCount"] == 3
 
-
     @patch(
         "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
         1,
@@ -276,7 +274,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
                 assert category["feedbackCount"] == 8
             elif category["primaryLabel"] == "Authentication":
                 assert category["feedbackCount"] == 3
-
 
     @patch(
         "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
@@ -345,7 +342,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         assert "Extra Label 1" not in associated_labels
         assert "Extra Label 2" not in associated_labels
         assert "Extra Label 3" not in associated_labels
-
 
     @patch(
         "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
@@ -447,7 +443,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
 
         assert response.status_code == 500
 
-
     @patch(
         "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
         1,
@@ -460,7 +455,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
             response = self.get_error_response(self.org.slug)
 
         assert response.status_code == 500
-
 
     @patch(
         "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
@@ -476,7 +470,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
             response = self.get_error_response(self.org.slug)
 
         assert response.status_code == 500
-
 
     @patch(
         "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
