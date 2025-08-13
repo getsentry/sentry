@@ -24,11 +24,7 @@ from sentry.performance_issues.performance_detection import detect_performance_p
 from sentry.receivers.features import record_generic_event_processed
 from sentry.receivers.onboarding import record_release_received
 from sentry.signals import first_insight_span_received, first_transaction_received
-from sentry.spans.consumers.process_segments.enrichment import (
-    Enricher,
-    Span,
-    segment_span_measurement_updates,
-)
+from sentry.spans.consumers.process_segments.enrichment import Enricher, Span, compute_breakdowns
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import metrics
 from sentry.utils.dates import to_datetime
@@ -56,11 +52,7 @@ def process_segment(unprocessed_spans: list[SegmentSpan], skip_produce: bool = F
         return []
 
     segment_span.setdefault("measurements", {}).update(
-        segment_span_measurement_updates(
-            segment_span,
-            unprocessed_spans,
-            project.get_option("sentry:breakdowns"),
-        )
+        compute_breakdowns(unprocessed_spans, project.get_option("sentry:breakdowns"))
     )
     _create_models(segment_span, project)
     _detect_performance_problems(segment_span, spans, project)
