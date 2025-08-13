@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {cloneElement, Fragment, isValidElement} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -7,14 +7,16 @@ import {Flex} from 'sentry/components/core/layout';
 import {Radio} from 'sentry/components/core/radio';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {IconCheckmark, IconInfo, IconLightning} from 'sentry/icons';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
+import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import type {Color} from 'sentry/utils/theme';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
-import {OnDemandBudgetMode} from 'getsentry/types';
-import {isBizPlanFamily} from 'getsentry/utils/billing';
-import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
+import {OnDemandBudgetMode, type Plan} from 'getsentry/types';
+import {isBizPlanFamily, isDeveloperPlan} from 'getsentry/utils/billing';
+import {getSingularCategoryName, listDisplayNames} from 'getsentry/utils/dataCategory';
 import MoreFeaturesLink from 'getsentry/views/amCheckout/moreFeaturesLink';
 import type {
   PlanSelectRowProps,
@@ -35,31 +37,32 @@ function PlanSelectCard({
   shouldShowDefaultPayAsYouGo = false,
   planIcon,
   shouldShowEventPrice = false,
-  priorPlanName,
+  priorPlan,
 }: Omit<
   PlanSelectRowProps,
   'isFeaturesCheckmarked' | 'discountInfo' | 'planWarning' | 'priceHeader'
 > & {
   planIcon: React.ReactNode;
-  priorPlanName?: string;
+  priorPlan?: Plan;
 }) {
   const theme = useTheme();
 
   const billingInterval = getShortInterval(plan.billingInterval);
   const {features, description, hasMoreLink} = planContent;
 
-  const describeId = `plan-details-${plan.id}`;
-  const errorsStartingPrice = shouldShowEventPrice
-    ? plan.planCategories.errors
-      ? plan.planCategories.errors[1]?.onDemandPrice
-      : null
-    : null;
-  const spansStartingPrice = shouldShowEventPrice
-    ? plan.planCategories.spans
-      ? plan.planCategories.spans[1]?.onDemandPrice
-      : null
-    : null;
-  const showEventPriceWarning = errorsStartingPrice && spansStartingPrice;
+  const perUnitPriceDiffs: Partial<Record<DataCategory, number>> = {};
+  if (shouldShowEventPrice && priorPlan && !isDeveloperPlan(priorPlan)) {
+    Object.entries(plan.planCategories).forEach(([category, eventBuckets]) => {
+      const priorPlanEventBuckets = priorPlan.planCategories[category as DataCategory];
+      const currentStartingPrice = eventBuckets[1]?.onDemandPrice ?? 0;
+      const priorStartingPrice = priorPlanEventBuckets?.[1]?.onDemandPrice ?? 0;
+      const perUnitPriceDiff = Math.max(currentStartingPrice - priorStartingPrice, 0);
+      if (perUnitPriceDiff > 0) {
+        perUnitPriceDiffs[category as DataCategory] = perUnitPriceDiff;
+      }
+    });
+  }
+  const showEventPriceWarning = Object.values(perUnitPriceDiffs).some(diff => diff > 0);
 
   const onPlanSelect = () => {
     const data: PlanUpdateData = {plan: plan.id};
@@ -75,16 +78,25 @@ function PlanSelectCard({
     onUpdate(data);
   };
 
+  const adjustedPlanIcon = isValidElement(planIcon)
+    ? cloneElement(planIcon, {size: 'md'} as SVGIconProps)
+    : planIcon;
+
   return (
-    <PlanOption isSelected={isSelected} onClick={onPlanSelect}>
+    <PlanOption
+      data-test-id={`plan-option-${plan.id}`}
+      isSelected={isSelected}
+      onClick={onPlanSelect}
+    >
       <Row>
         <PlanIconContainer>
-          {planIcon}
+          {adjustedPlanIcon}
           {badge}
         </PlanIconContainer>
         <StyledRadio
           readOnly
           id={plan.id}
+          aria-label={`${planName} plan`}
           value={planValue}
           checked={isSelected}
           onClick={onPlanSelect}
@@ -92,9 +104,7 @@ function PlanSelectCard({
       </Row>
       <div>
         <Title>{planName}</Title>
-        <Description id={describeId} isSelected={isSelected}>
-          {description}
-        </Description>
+        <Description isSelected={isSelected}>{description}</Description>
       </div>
       <div>
         <Price>{price === 'Free' ? price : `$${price}`}</Price>
@@ -102,10 +112,10 @@ function PlanSelectCard({
       </div>
       <Separator />
       <FeatureList>
-        {priorPlanName && (
+        {priorPlan && (
           <PriorPlanItem>
             {tct('Everything in [priorPlanName], plus:', {
-              priorPlanName,
+              priorPlanName: priorPlan.name,
             })}
           </PriorPlanItem>
         )}
@@ -167,25 +177,26 @@ function PlanSelectCard({
         <EventPriceWarning>
           <IconInfo size="xs" />
           <Tooltip
-            title={tct(
-              'Errors start at [errorsStartingPrice]/error and spans start at [spansStartingPrice]/span.',
-              {
-                errorsStartingPrice: displayUnitPrice({cents: errorsStartingPrice}),
-                spansStartingPrice: displayUnitPrice({cents: spansStartingPrice}),
-              }
-            )}
+            title={tct('Starting at [priceDiffs].', {
+              priceDiffs: oxfordizeArray(
+                Object.entries(perUnitPriceDiffs).map(([category, diff]) => {
+                  const formattedDiff = displayUnitPrice({cents: diff});
+                  const formattedCategory = getSingularCategoryName({
+                    plan,
+                    category: category as DataCategory,
+                    capitalize: false,
+                  });
+                  return `+${formattedDiff} / ${formattedCategory}`;
+                })
+              ),
+            })}
           >
             {/* TODO(checkout v3): verify tooltip copy */}
-            {tct('Excess usage for [errors] and [spans] costs more on [planName]', {
-              errors: getPlanCategoryName({
+            {tct('Excess usage for [categories] costs more on [planName]', {
+              categories: listDisplayNames({
                 plan,
-                category: DataCategory.ERRORS,
-                title: true,
-              }),
-              spans: getPlanCategoryName({
-                plan,
-                category: DataCategory.SPANS,
-                title: true,
+                categories: Object.keys(perUnitPriceDiffs) as DataCategory[],
+                shouldTitleCase: true,
               }),
               planName,
             })}
@@ -252,7 +263,7 @@ const FeatureItem = styled('div')`
   display: grid;
   grid-template-columns: min-content 1fr;
   align-items: start;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.subText};
 `;
 
 const FeatureIconContainer = styled('div')`

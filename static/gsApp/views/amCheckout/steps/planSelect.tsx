@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/core/button';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
-import {IconLightning, IconWarning} from 'sentry/icons';
+import {IconGroup, IconLightning, IconUser, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDaysSinceDate from 'sentry/utils/getDaysSinceDate';
@@ -186,18 +186,18 @@ function PlanSelect({
         if (i > 0) {
           const nextPlan = planOptions[i - 1];
           if (nextPlan) {
-            acc[nextPlan.id] = plan.name;
+            acc[nextPlan.id] = plan;
           }
         }
         return acc;
       },
-      {} as Record<string, string>
+      {} as Record<string, Plan>
     );
     return (
       <StyledPanelBody data-test-id="body-choose-your-plan">
         {planOptions.map(plan => {
           const isSelected = plan.id === formData.plan;
-          const priorPlanName = planToPriorPlan[plan.id];
+          const priorPlan = planToPriorPlan[plan.id];
 
           // calculate the price with discount
           const cents =
@@ -227,6 +227,14 @@ function PlanSelect({
             planContent.features.deactivated_member_header = t('Unlimited members');
           }
 
+          const planIcon = isBizPlanFamily(plan) ? (
+            <IconLightning />
+          ) : isTeamPlanFamily(plan) ? (
+            <IconGroup />
+          ) : (
+            <IconUser />
+          );
+
           const commonProps = {
             plan,
             isSelected,
@@ -245,8 +253,8 @@ function PlanSelect({
             return (
               <PlanSelectCard
                 key={plan.id}
-                planIcon={<IconLightning />}
-                priorPlanName={priorPlanName}
+                planIcon={planIcon}
+                priorPlan={priorPlan}
                 shouldShowEventPrice={isBizPlanFamily(plan)}
                 {...commonProps}
               />
@@ -394,5 +402,6 @@ const FooterWarningWrapper = styled('div')`
 const StyledPanelBody = styled(PanelBody)`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  padding: ${space(2)};
   gap: ${space(2)};
 `;
