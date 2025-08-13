@@ -24,7 +24,7 @@ export default function BuildList() {
   const buildsQuery: UseApiQueryResult<ListBuildsApiResponse, RequestError> =
     useApiQuery<ListBuildsApiResponse>(
       [
-        `/projects/${organization.slug}/${projectId}/preprodartifacts/`,
+        `/projects/${organization.slug}/${projectId}/preprodartifacts/list-builds/`,
         {query: {page, per_page: 25}},
       ],
       {
