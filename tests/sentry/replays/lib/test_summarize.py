@@ -1,5 +1,5 @@
 from collections.abc import Generator
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from sentry.replays.lib.summarize import (
     EventDict,
@@ -11,7 +11,7 @@ from sentry.utils import json
 
 
 @patch("sentry.replays.lib.summarize.fetch_feedback_details")
-def test_get_summary_logs(mock_fetch_feedback_details) -> None:
+def test_get_summary_logs(mock_fetch_feedback_details: Mock) -> None:
 
     def _mock_fetch_feedback(feedback_id: str | None, _project_id: int) -> EventDict | None:
         if feedback_id == "12345678123456781234567812345678":
