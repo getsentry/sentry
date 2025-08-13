@@ -145,6 +145,7 @@ class EventStorage(Service):
             Columns.EVENT_ID,
             Columns.GROUP_ID,
             Columns.PROJECT_ID,
+            Columns.TIMESTAMP,
             Columns.TIMESTAMP_MS,
         ],
         Dataset.Transactions: [
