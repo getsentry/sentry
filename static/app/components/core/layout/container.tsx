@@ -25,6 +25,12 @@ interface ContainerLayoutProps {
 
   padding?: Responsive<Shorthand<SpacingSize, 4>>;
 
+  /**
+   * Prefer using Flex or Grid gap as opposed to margin.
+   * @deprecated
+   */
+  margin?: Responsive<Shorthand<SpacingSize, 4>>;
+
   position?: Responsive<'static' | 'relative' | 'absolute' | 'fixed' | 'sticky'>;
 
   overflow?: Responsive<'visible' | 'hidden' | 'scroll' | 'auto'>;
@@ -52,6 +58,7 @@ interface ContainerLayoutProps {
   // Flex Item Properties
   flex?: Responsive<React.CSSProperties['flex']>;
   alignSelf?: Responsive<React.CSSProperties['alignSelf']>;
+  justifySelf?: Responsive<React.CSSProperties['justifySelf']>;
 }
 
 /* eslint-enable typescript-sort-keys/interface */
@@ -107,6 +114,7 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'display',
   'flex',
   'height',
+  'justifySelf',
   'maxHeight',
   'maxWidth',
   'minHeight',
@@ -150,6 +158,7 @@ export const Container = styled(
   ${p => rc('overflow-y', p.overflowY, p.theme)};
 
   ${p => rc('padding', p.padding, p.theme, getSpacing)};
+  ${p => rc('margin', p.margin, p.theme, getSpacing)};
 
   ${p => rc('background', p.background, p.theme, v => p.theme.tokens.background[v])};
 
@@ -164,12 +173,13 @@ export const Container = styled(
   ${p => rc('max-height', p.maxHeight, p.theme)};
 
   ${p => rc('grid-area', p.area, p.theme)};
-  ${p => rc('order', p.order, p.theme)};
   ${p => rc('grid-row', p.row, p.theme)};
   ${p => rc('grid-column', p.column, p.theme)};
 
+  ${p => rc('order', p.order, p.theme)};
   ${p => rc('flex', p.flex, p.theme)};
   ${p => rc('align-self', p.alignSelf, p.theme)};
+  ${p => rc('justify-self', p.justifySelf, p.theme)};
 
   ${p => rc('border', p.border, p.theme, getBorder)};
 
