@@ -114,7 +114,6 @@ class Dashboard extends Component<Props, State> {
     super(props);
     const {dashboard} = props;
     const desktopLayout = getDashboardLayout(dashboard.widgets);
-    this.trackEngagementAnalytics(dashboard.widgets);
     this.state = {
       isMobile: false,
       layouts: {
@@ -154,7 +153,7 @@ class Dashboard extends Component<Props, State> {
   }
 
   componentDidMount() {
-    const {newWidget} = this.props;
+    const {dashboard, newWidget} = this.props;
     window.addEventListener('resize', this.debouncedHandleResize);
 
     // Always load organization tags on dashboards
@@ -168,6 +167,7 @@ class Dashboard extends Component<Props, State> {
     this.fetchMemberList();
 
     connectDashboardCharts(DASHBOARD_CHART_GROUP);
+    this.trackEngagementAnalytics(dashboard.widgets);
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -486,17 +486,21 @@ class Dashboard extends Component<Props, State> {
     const {dashboard, organization} = this.props;
     // For attributing engagement metrics initially track the ratio
     // of widgets reading from Transactions, Spans, Errors, and Issues, and Logs.
-    const issuesWidgetTypes = new Set<string | undefined>(['error-events', 'issue']);
-    const tracingWidgetTypes = new Set<string | undefined>([
-      'transaction-like',
-      'spans',
-      'logs',
+    const issuesWidgetTypes = new Set<string | undefined>([
+      'error-events',
+      'issue',
+      'metrics',
     ]);
-    let tracingWidgetCount = 0.0;
+    const logWidgetTypes = new Set<string | undefined>(['logs']);
+    const tracingWidgetTypes = new Set<string | undefined>(['transaction-like', 'spans']);
     let issuesWidgetCount = 0.0;
+    let logWidgetCount = 0.0;
+    let tracingWidgetCount = 0.0;
     for (const widget of widgets) {
       if (issuesWidgetTypes.has(widget.widgetType)) {
         issuesWidgetCount += 1.0;
+      } else if (logWidgetTypes.has(widget.widgetType)) {
+        logWidgetCount += 1.0;
       } else if (tracingWidgetTypes.has(widget.widgetType)) {
         tracingWidgetCount += 1.0;
       }
@@ -504,9 +508,9 @@ class Dashboard extends Component<Props, State> {
     const analyticsPayload = {
       organization,
       title: dashboard.title,
-      id: dashboard.id,
       tracingRatio: tracingWidgetCount / widgets.length,
       issuesRatio: issuesWidgetCount / widgets.length,
+      logRatio: logWidgetCount / widgets.length,
     };
     trackAnalytics('dashboards_views.engagement.load', analyticsPayload);
   }
