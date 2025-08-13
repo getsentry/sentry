@@ -264,7 +264,7 @@ export function useMembers({ids, emails, limit}: Options = {}) {
           ...prev,
           fetching: false,
           initiallyLoaded: true,
-          fetchError: err,
+          fetchError: err as RequestError,
         }));
       }
     },
@@ -324,7 +324,7 @@ export function useMembers({ids, emails, limit}: Options = {}) {
       } catch (err) {
         console.error(err); // eslint-disable-line no-console
 
-        setState(prev => ({...prev, fetching: false, fetchError: err}));
+        setState(prev => ({...prev, fetching: false, fetchError: err as RequestError}));
       }
     },
     [

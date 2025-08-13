@@ -229,7 +229,7 @@ class AMCheckout extends Component<Props, State> {
       const formData = this.getInitialData(billingConfig);
 
       this.setState({billingConfig, formData});
-    } catch (error) {
+    } catch (error: any) {
       this.setState({error, loading: false});
       if (error.status !== 401 && error.status !== 403) {
         Sentry.captureException(error);

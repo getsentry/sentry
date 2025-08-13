@@ -144,7 +144,7 @@ export default function useFetchParallelPages<Data>({
           } catch (error) {
             responsePages.current.set(cursor, {
               data: undefined,
-              error,
+              error: error as RequestError,
               getResponseHeader: undefined,
               status: 'error',
               isError: true,

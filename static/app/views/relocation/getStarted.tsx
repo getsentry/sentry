@@ -46,7 +46,7 @@ function GetStarted({relocationState, onUpdateRelocationState, onComplete}: Step
         await api.requestPromise(`/promocodes-external/${promoCode}`, {
           method: 'GET',
         });
-      } catch (error) {
+      } catch (error: any) {
         if (error.status === 403) {
           addErrorMessage(PROMO_CODE_ERROR_MSG);
           return;

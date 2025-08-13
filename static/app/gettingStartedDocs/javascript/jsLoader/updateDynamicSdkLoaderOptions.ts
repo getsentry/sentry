@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
 const PRODUCT_MESSAGES = {
   [ProductSolution.PERFORMANCE_MONITORING]: {
@@ -94,7 +95,7 @@ export async function updateDynamicSdkLoaderOptions({
 
     handleXhrErrorResponse(
       'Unable to dynamically update the SDK loader configuration',
-      error
+      error as RequestError
     );
   }
 }

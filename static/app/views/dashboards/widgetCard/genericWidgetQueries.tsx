@@ -403,7 +403,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       } else {
         await this.fetchSeriesData(queryFetchID);
       }
-    } catch (err) {
+    } catch (err: any) {
       if (this._isMounted) {
         this.setState({
           errorMessage:

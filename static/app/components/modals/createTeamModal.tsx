@@ -28,7 +28,7 @@ function CreateTeamModal({Body, Header, ...props}: Props) {
       onClose?.(team);
       onSuccess(team);
     } catch (err) {
-      onError(err);
+      onError(err as Team);
     }
   };
 

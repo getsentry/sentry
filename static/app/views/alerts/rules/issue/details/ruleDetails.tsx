@@ -209,7 +209,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       );
 
       addSuccessMessage(t('Successfully re-enabled'));
-    } catch (err) {
+    } catch (err: any) {
       addErrorMessage(
         typeof err.responseJSON?.detail === 'string'
           ? err.responseJSON.detail

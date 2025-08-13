@@ -105,13 +105,9 @@ describe('JsonForm', function () {
 
     it('missing additionalFieldProps required in "valid" prop', function () {
       jest.spyOn(console, 'error').mockImplementation(jest.fn());
-      try {
-        render(<JsonForm forms={accountDetailsFields} />);
-      } catch (error) {
-        expect(error.message).toBe(
-          "Cannot read properties of undefined (reading 'email')"
-        );
-      }
+      expect(() => render(<JsonForm forms={accountDetailsFields} />)).toThrow(
+        "Cannot read properties of undefined (reading 'email')"
+      );
     });
 
     it('should ALWAYS hide panel, if all fields have visible set to false  AND there is no renderHeader & renderFooter -  visible prop is of type boolean', function () {
@@ -182,19 +178,15 @@ describe('JsonForm', function () {
 
     it('missing additionalFieldProps required in "valid" prop', function () {
       jest.spyOn(console, 'error').mockImplementation(jest.fn());
-      try {
+      expect(() =>
         render(
           <JsonForm
             fields={[
               {...jsonFormFields[0]!, visible: ({test}) => !!test.email} as FieldObject,
             ]}
           />
-        );
-      } catch (error) {
-        expect(error.message).toBe(
-          "Cannot read properties of undefined (reading 'email')"
-        );
-      }
+        )
+      ).toThrow("Cannot read properties of undefined (reading 'email')");
     });
 
     it('should NOT hide panel, if at least one field has visible set to true - no visible prop', function () {
