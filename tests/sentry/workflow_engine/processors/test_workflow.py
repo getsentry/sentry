@@ -12,7 +12,6 @@ from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
