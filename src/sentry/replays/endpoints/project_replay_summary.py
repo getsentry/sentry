@@ -130,7 +130,14 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         ) or not features.has(
             "organizations:replay-ai-summaries", project.organization, actor=request.user
         ):
-            return self.respond(status=404)
+            return self.respond(
+                {"detail": "Replay summaries are not available for this organization."}, status=404
+            )
+
+        if not has_seer_access(project.organization, actor=request.user):
+            return self.respond(
+                {"detail": "AI features are not enabled for this organization."}, status=403
+            )
 
         # We skip checking Seer permissions here for performance, and because summaries can't be created without them anyway.
 
@@ -149,10 +156,14 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         ) or not features.has(
             "organizations:replay-ai-summaries", project.organization, actor=request.user
         ):
-            return self.respond(status=404)
+            return self.respond(
+                {"detail": "Replay summaries are not available for this organization."}, status=404
+            )
 
         if not has_seer_access(project.organization, actor=request.user):
-            return self.respond(status=403)
+            return self.respond(
+                {"detail": "AI features are not enabled for this organization."}, status=403
+            )
 
         filter_params = self.get_filter_params(request, project)
 
