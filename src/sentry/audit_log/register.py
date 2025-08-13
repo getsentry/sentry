@@ -344,6 +344,14 @@ default_manager.add(
 )
 default_manager.add(
     AuditLogEvent(
+        event_id=142,
+        name="INVITE_REMOVE",
+        api_name="invite.remove",
+        template="removed the invite for {email}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
         event_id=160,
         name="ALERT_RULE_ADD",
         api_name="alertrule.create",

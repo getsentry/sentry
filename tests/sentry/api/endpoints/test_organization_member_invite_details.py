@@ -1,10 +1,17 @@
 from dataclasses import replace
 from unittest.mock import MagicMock, patch
 
-from sentry.models.organizationmemberinvite import InviteStatus
+from django.test import override_settings
+
+from sentry import audit_log
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberinvite import InviteStatus, OrganizationMemberInvite
 from sentry.roles import organization_roles
+from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.outbox import outbox_runner
 
 
 def mock_organization_roles_get_factory(original_organization_roles_get):
@@ -241,3 +248,155 @@ class UpdateOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
             response.data["detail"]
             == "This member is managed by an active partnership and cannot be modified until the end of the partnership."
         )
+
+
+@with_feature("organizations:new-organization-member-invite")
+class DeleteOrganizationMemberInviteTest(OrganizationMemberInviteTestBase):
+    method = "delete"
+
+    def setUp(self):
+        super().setUp()
+        self.regular_user = self.create_user("member@email.com")
+        self.curr_member = self.create_member(
+            organization=self.organization, role="member", user=self.regular_user
+        )
+
+        self.approved_invite = self.create_member_invite(
+            organization=self.organization,
+            email="matcha@tea.com",
+            role="member",
+            inviter_id=self.regular_user.id,
+        )
+        self.placeholder_om = self.approved_invite.organization_member
+
+    def test_simple(self):
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, self.approved_invite.id)
+        assert not OrganizationMember.objects.filter(id=self.placeholder_om.id).exists()
+        assert not OrganizationMemberInvite.objects.filter(id=self.approved_invite.id).exists()
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("INVITE_REMOVE"),
+        )
+
+    def test_reject_invite_request(self):
+        invite_request = self.create_member_invite(
+            organization=self.organization,
+            email="oolong@tea.com",
+            inviter_id=self.regular_user.id,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+        placeholder_om = invite_request.organization_member
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, invite_request.id)
+        assert not OrganizationMember.objects.filter(id=placeholder_om.id).exists()
+        assert not OrganizationMemberInvite.objects.filter(id=invite_request.id).exists()
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
+        )
+
+    def test_member_can_remove_invite(self):
+        """
+        Members can remove invites that they sent
+        """
+        self.login_as(self.regular_user)
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, self.approved_invite.id)
+        assert not OrganizationMember.objects.filter(id=self.placeholder_om.id).exists()
+        assert not OrganizationMemberInvite.objects.filter(id=self.approved_invite.id).exists()
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("INVITE_REMOVE"),
+        )
+
+    def test_member_can_remove_invite_request(self):
+        """
+        Members can remove invite requests that they sent
+        """
+        self.login_as(self.regular_user)
+        invite_request = self.create_member_invite(
+            organization=self.organization,
+            email="oolong@tea.com",
+            inviter_id=self.regular_user.id,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+        )
+        placeholder_om = invite_request.organization_member
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, invite_request.id)
+        assert not OrganizationMember.objects.filter(id=placeholder_om.id).exists()
+        assert not OrganizationMemberInvite.objects.filter(id=invite_request.id).exists()
+        assert_org_audit_log_exists(
+            organization=self.organization,
+            event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
+        )
+
+    def test_member_cannot_remove_other_invite(self):
+        """
+        Members cannot remove invitations that they didn't send
+        """
+        self.login_as(self.regular_user)
+        invite = self.create_member_invite(
+            organization=self.organization,
+            email="oolong@tea.com",
+            inviter_id=self.user.id,
+        )
+        response = self.get_error_response(self.organization.slug, invite.id)
+        assert response.data["detail"] == "You cannot modify invitations sent by someone else."
+        assert OrganizationMemberInvite.objects.filter(id=invite.id).exists()
+
+    def test_cannot_remove_idp_provisioned_invite(self):
+        invite = self.create_member_invite(
+            organization=self.organization,
+            email="oolong@tea.com",
+            inviter_id=self.user.id,
+            idp_provisioned=True,
+        )
+        response = self.get_error_response(self.organization.slug, invite.id)
+        assert (
+            response.data["detail"]
+            == "This invite is managed through your organization's identity provider."
+        )
+        assert OrganizationMemberInvite.objects.filter(id=invite.id).exists()
+
+    def test_cannot_remove_partnership_restricted_invite(self):
+        invite = self.create_member_invite(
+            organization=self.organization,
+            email="oolong@tea.com",
+            inviter_id=self.user.id,
+            partnership_restricted=True,
+        )
+        response = self.get_error_response(self.organization.slug, invite.id)
+        assert (
+            response.data["detail"]
+            == "This invite is managed by an active partnership and cannot be modified until the end of the partnership."
+        )
+        assert OrganizationMemberInvite.objects.filter(id=invite.id).exists()
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @override_options({"superuser.read-write.ga-rollout": True})
+    def test_cannot_delete_as_superuser_read(self):
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
+
+        self.get_error_response(self.organization.slug, self.approved_invite.id, status_code=403)
+        assert OrganizationMemberInvite.objects.filter(id=self.approved_invite.id).exists()
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    @override_options({"superuser.read-write.ga-rollout": True})
+    def test_can_delete_as_superuser_write(self):
+        superuser = self.create_user(is_superuser=True)
+        self.add_user_permission(superuser, "superuser.write")
+        self.login_as(superuser, superuser=True)
+
+        self.get_success_response(self.organization.slug, self.approved_invite.id)
+
+    def test_non_member_user_cannot_hit_endpoint(self):
+        other_user = self.create_user(email="other@email.com")
+        self.login_as(other_user)
+
+        response = self.get_error_response(
+            self.organization.slug, self.approved_invite.id, status_code=403
+        )
+        assert response.data["detail"] == "You do not have permission to perform this action."
+        assert OrganizationMemberInvite.objects.filter(id=self.approved_invite.id).exists()
