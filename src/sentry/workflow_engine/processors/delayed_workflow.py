@@ -44,7 +44,10 @@ from sentry.workflow_engine.models.data_condition import (
     SLOW_CONDITIONS,
     Condition,
 )
-from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
+from sentry.workflow_engine.processors.action import (
+    filter_recently_fired_workflow_actions,
+    fire_actions,
+)
 from sentry.workflow_engine.processors.data_condition_group import (
     evaluate_data_conditions,
     get_slow_conditions_for_groups,
@@ -52,7 +55,6 @@ from sentry.workflow_engine.processors.data_condition_group import (
 from sentry.workflow_engine.processors.detector import get_detectors_by_groupevents_bulk
 from sentry.workflow_engine.processors.log_util import track_batch_performance
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
-from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 
@@ -747,14 +749,7 @@ def fire_actions_for_groups(
                 total_actions += len(filtered_actions)
 
                 if should_trigger_actions(group_event.group.type):
-                    for action in filtered_actions:
-                        # TODO: populate workflow env in WorkflowEventData correctly
-                        task_params = build_trigger_action_task_params(
-                            action, detector, workflow_event_data
-                        )
-                        trigger_action.apply_async(
-                            kwargs=task_params, headers={"sentry-propagate-traces": False}
-                        )
+                    fire_actions(filtered_actions, detector, workflow_event_data)
 
     logger.info(
         "workflow_engine.delayed_workflow.triggered_actions_summary",
