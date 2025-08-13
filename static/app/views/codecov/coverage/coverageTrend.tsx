@@ -1,10 +1,11 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {Tag} from 'sentry/components/core/badge/tag';
+import {Checkbox} from 'sentry/components/core/checkbox';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -41,8 +42,11 @@ const SAMPLE_CHART_DATA = [
   {name: '2025-11-24T00:00:00Z', value: 98.98},
 ];
 
+const TARGET_COVERAGE = 80;
+
 export default function CoverageTrendPage() {
   const theme = useTheme();
+  const [showTargetLine, setShowTargetLine] = useState(true);
 
   return (
     <Fragment>
@@ -50,11 +54,22 @@ export default function CoverageTrendPage() {
         <HeaderTitle>
           {t('Coverage based on the selected branch: Main branch')}
         </HeaderTitle>
-        <TimeRangeSelector>
-          <IconCalendar size="sm" />
-          <span>30D</span>
-          <IconChevron direction="down" size="xs" />
-        </TimeRangeSelector>
+        <HeaderControls>
+          <TargetToggle>
+            <Checkbox
+              checked={showTargetLine}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setShowTargetLine(e.target.checked)
+              }
+            />
+            <TargetLabel>{t('Show Target (80%)')}</TargetLabel>
+          </TargetToggle>
+          <TimeRangeSelector>
+            <IconCalendar size="sm" />
+            <span>30D</span>
+            <IconChevron direction="down" size="xs" />
+          </TimeRangeSelector>
+        </HeaderControls>
       </PageHeader>
 
       <MainLayout>
@@ -90,6 +105,48 @@ export default function CoverageTrendPage() {
                         color: theme.chart.getColorPalette(0)[0],
                       },
                     ]}
+                    additionalSeries={
+                      showTargetLine
+                        ? [
+                            {
+                              type: 'line' as const,
+                              name: t('Target'),
+                              data: SAMPLE_CHART_DATA.map(({name}) => [
+                                name,
+                                TARGET_COVERAGE,
+                              ]),
+                              lineStyle: {
+                                color: theme.red300,
+                                type: 'dashed',
+                                width: 2,
+                              },
+                              itemStyle: {
+                                color: theme.red300,
+                              },
+                              symbol: 'none',
+                              markLine: {
+                                silent: true,
+                                lineStyle: {
+                                  color: theme.red300,
+                                  type: 'dashed',
+                                  width: 2,
+                                },
+                                data: [
+                                  {
+                                    yAxis: TARGET_COVERAGE,
+                                    label: {
+                                      show: true,
+                                      position: 'end',
+                                      formatter: `Target ${TARGET_COVERAGE}%`,
+                                      color: theme.red300,
+                                    },
+                                  },
+                                ],
+                              },
+                            },
+                          ]
+                        : []
+                    }
                     legend={{right: 10, top: 0}}
                     options={{
                       grid: {left: '10px', right: '10px', top: '40px', bottom: '0px'},
@@ -118,6 +175,26 @@ const PageHeader = styled('div')`
   align-items: center;
   margin-bottom: ${space(3)};
   gap: ${space(4)};
+`;
+
+const HeaderControls = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(3)};
+`;
+
+const TargetToggle = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const TargetLabel = styled('label')`
+  font-size: 14px;
+  font-weight: 500;
+  color: ${p => p.theme.textColor};
+  cursor: pointer;
+  user-select: none;
 `;
 
 const HeaderTitle = styled('h2')`
