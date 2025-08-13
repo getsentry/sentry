@@ -9,6 +9,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import StreamGroup, {LoadingStreamGroup} from 'sentry/components/stream/group';
 import TagStore from 'sentry/stores/tagStore';
 import IssueList from 'sentry/views/issueList/overview';
 
@@ -18,8 +19,6 @@ jest.mock('sentry/components/stream/group', () => ({
   default: jest.fn(({id}: {id: string}) => <div data-test-id={id} />),
   LoadingStreamGroup: jest.fn(({id}: {id: string}) => <div data-test-id={id} />),
 }));
-
-import StreamGroup, {LoadingStreamGroup} from 'sentry/components/stream/group';
 
 jest.mock('js-cookie', () => ({
   get: jest.fn(),
