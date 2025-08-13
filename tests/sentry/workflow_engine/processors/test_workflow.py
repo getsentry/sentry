@@ -277,7 +277,6 @@ class TestProcessWorkflows(BaseWorkflowTest):
         self, mock_trigger_action: MagicMock
     ) -> None:
         """Fire a single action, but record that it was fired for multiple workflows"""
-
         self.action_group, self.action = self.create_workflow_action(workflow=self.error_workflow)
 
         error_workflow_2 = self.create_workflow(
