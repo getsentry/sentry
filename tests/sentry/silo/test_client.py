@@ -438,7 +438,8 @@ def test_get_region_ip_addresses() -> None:
         assert mock_capture_exception.call_count == 1
 
 
-def test_get_region_ip_addresses_when_single_host_invalid() -> None:
+@mock.patch("sentry.utils.metrics.incr")
+def test_get_region_ip_addresses_when_single_host_invalid(mock_incr: MagicMock) -> None:
     eu_region_address = "http://i.am.eu.internal.hostname:9000"
     eu_region = Region("eu", 1, eu_region_address, RegionCategory.MULTI_TENANT)
 
@@ -472,3 +473,7 @@ def test_get_region_ip_addresses_when_single_host_invalid() -> None:
         )
         assert result == expected
         assert mock_capture_exception.call_count == 1
+
+        # Ensure we log a single metric when IP resolution fails
+        assert mock_incr.call_count == 1
+        assert mock_incr.call_args.args[0] == "hybrid_cloud.silo_client.ip_address_resolution_error"
