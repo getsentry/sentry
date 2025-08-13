@@ -126,7 +126,8 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
         # Create cursor for pagination
         # For OffsetPaginator: cursor.offset = page number, cursor.value = limit
         # Since we want page 1 to start at offset 0, we need to adjust
-        cursor = Cursor(per_page, page - 1, False)
+        indexed_page = page - 1
+        cursor = Cursor(per_page, indexed_page, False)
 
         # Get paginated results
         result = paginator.get_result(
@@ -152,7 +153,7 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
                 prev=result.prev.offset if result.prev.has_results else None,
                 has_next=result.next.has_results,
                 has_prev=result.prev.has_results,
-                page=page,
+                page=indexed_page,
                 per_page=per_page,
                 total_count=result.hits if result.hits is not None else "unknown",
             ),
