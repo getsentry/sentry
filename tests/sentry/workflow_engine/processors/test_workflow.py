@@ -302,9 +302,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         process_workflows(self.event_data)
 
         assert WorkflowFireHistory.objects.count() == 3
-        assert (
-            mock_trigger_action.call_count == 1
-        )  # TODO: determine if this is ideal, the actions are duped but not in the same workflows
+        assert mock_trigger_action.call_count == 3
 
 
 @mock_redis_buffer()
