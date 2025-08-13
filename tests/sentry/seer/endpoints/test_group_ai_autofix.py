@@ -35,7 +35,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={"project_id": 456, "issue": {"id": 789, "title": "Test Issue"}, "repos": []},
             updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
         )
@@ -83,7 +83,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         autofix_state = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={"project_id": 456, "issue": {"id": 789, "title": "Test Issue"}, "repos": []},
             updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
             codebases={
@@ -135,7 +135,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         autofix_state = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={"project_id": 456, "issue": {"id": 789, "title": "Test Issue"}, "repos": []},
             updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
             codebases={
@@ -213,7 +213,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         autofix_state = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={"project_id": 456, "issue": {"id": 789, "title": "Test Issue"}, "repos": []},
             updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
             codebases={
@@ -258,7 +258,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         autofix_state = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={"project_id": 456, "issue": {"id": 789, "title": "Test Issue"}, "repos": []},
             updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
             # Empty codebases dictionary
@@ -705,7 +705,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         # Mock the autofix state
         mock_get_autofix_state.return_value = AutofixState(
             run_id=123,
-            request={"project_id": 456, "issue": {"id": 789}},
+            request={"project_id": 456, "issue": {"id": 789, "title": "Test Issue"}, "repos": []},
             updated_at=datetime.fromisoformat("2023-07-18T12:00:00Z"),
             status=AutofixStatus.PROCESSING,
         )
