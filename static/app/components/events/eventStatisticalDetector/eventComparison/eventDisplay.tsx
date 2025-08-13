@@ -13,8 +13,9 @@ import {EventTags} from 'sentry/components/events/eventTags';
 import {noFilter} from 'sentry/components/events/interfaces/spans/filter';
 import {
   ActualMinimap,
+  MINIMAP_HEIGHT,
   MinimapBackground,
-} from 'sentry/components/events/interfaces/spans/header';
+} from 'sentry/components/events/interfaces/spans/minimap';
 import WaterfallModel from 'sentry/components/events/interfaces/spans/waterfallModel';
 import OpsBreakdown from 'sentry/components/events/opsBreakdown';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -329,8 +330,8 @@ const MinimapPositioningContainer = styled('div')`
 `;
 
 const MinimapContainer = styled('div')`
-  height: ${120}px;
-  max-height: ${120}px;
+  height: ${MINIMAP_HEIGHT}px;
+  max-height: ${MINIMAP_HEIGHT}px;
   position: relative;
   border-bottom: 1px solid ${p => p.theme.border};
 `;

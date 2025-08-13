@@ -9,6 +9,8 @@ import type {EnhancedProcessedSpanType, RawSpanType} from './types';
 import type {SpanBoundsType, SpanGeneratedBoundsType} from './utils';
 import {getSpanOperation} from './utils';
 
+export const MINIMAP_HEIGHT = 120;
+
 class ActualMinimap extends PureComponent<{
   dividerPosition: number;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
@@ -141,8 +143,8 @@ class ActualMinimap extends PureComponent<{
 }
 
 export const MinimapBackground = styled('div')`
-  height: ${120}px;
-  max-height: ${120}px;
+  height: ${MINIMAP_HEIGHT}px;
+  max-height: ${MINIMAP_HEIGHT}px;
   overflow: hidden;
   position: absolute;
   top: 0;

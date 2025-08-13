@@ -39,6 +39,8 @@ import type {
   TreeDepthType,
 } from './types';
 
+const MERGE_LABELS_THRESHOLD_PERCENT = 10;
+
 const isValidSpanID = (maybeSpanID: any) =>
   typeof maybeSpanID === 'string' && maybeSpanID.length > 0;
 
@@ -754,7 +756,7 @@ export function getMeasurements(
 
     for (const [otherPos] of mergedMeasurements) {
       const positionDelta = Math.abs(otherPos - roundedPos);
-      if (positionDelta <= 10) {
+      if (positionDelta <= MERGE_LABELS_THRESHOLD_PERCENT) {
         const verticalMark = mergedMeasurements.get(otherPos)!;
 
         const {poorThreshold} =

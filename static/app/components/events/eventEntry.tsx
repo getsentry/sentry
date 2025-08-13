@@ -122,20 +122,18 @@ function EventEntryContent({
       );
 
     case EntryType.SPANS:
-      // XXX: We currently do not show spans in the share view,
-      if (isShare) {
+      // XXX: We currently do not show spans in the share view.
+      if (isShare || !issueTypeConfig?.spanEvidence.enabled) {
         return null;
       }
-      if (issueTypeConfig?.spanEvidence.enabled) {
-        return (
-          <SpanEvidenceSection
-            event={event as EventTransaction}
-            organization={organization as Organization}
-            projectSlug={projectSlug}
-          />
-        );
-      }
-      return null;
+
+      return (
+        <SpanEvidenceSection
+          event={event as EventTransaction}
+          organization={organization as Organization}
+          projectSlug={projectSlug}
+        />
+      );
 
     // this should not happen
     default:
