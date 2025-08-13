@@ -138,7 +138,7 @@ function _handleMergeableQueries(mergeMap: MergeMap) {
       });
     } catch (e) {
       // On error fail all requests relying on this merged query (for now)
-      mergeList.forEach(q => q.reject(e));
+      mergeList.forEach(q => q.reject(e as string));
     }
   });
   return queriesSent;

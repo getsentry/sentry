@@ -643,7 +643,7 @@ export async function submitCheckout(
         }`
       )
     );
-  } catch (error) {
+  } catch (error: any) {
     const body = error.responseJSON;
 
     if (body?.previewToken) {

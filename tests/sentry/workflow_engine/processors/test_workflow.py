@@ -23,8 +23,8 @@ from sentry.workflow_engine.models import (
     Workflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 from sentry.workflow_engine.processors.workflow import (
-    WORKFLOW_ENGINE_BUFFER_LIST_KEY,
     DelayedWorkflowItem,
     delete_workflow,
     enqueue_workflows,
@@ -32,6 +32,7 @@ from sentry.workflow_engine.processors.workflow import (
     evaluate_workflows_action_filters,
     process_workflows,
 )
+from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -271,6 +272,38 @@ class TestProcessWorkflows(BaseWorkflowTest):
             tags={"detector_type": self.error_detector.type},
         )
 
+    @patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
+    def test_workflow_fire_history_with_action_deduping(
+        self, mock_trigger_action: MagicMock
+    ) -> None:
+        """Fire a single action, but record that it was fired for multiple workflows"""
+        self.action_group, self.action = self.create_workflow_action(workflow=self.error_workflow)
+
+        error_workflow_2 = self.create_workflow(
+            name="error_workflow_2",
+            when_condition_group=self.create_data_condition_group(),
+        )
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=error_workflow_2,
+        )
+        self.action_group_2, self.action_2 = self.create_workflow_action(workflow=error_workflow_2)
+
+        error_workflow_3 = self.create_workflow(
+            name="error_workflow_3",
+            when_condition_group=self.create_data_condition_group(),
+        )
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=error_workflow_3,
+        )
+        self.action_group_3, self.action_3 = self.create_workflow_action(workflow=error_workflow_3)
+
+        process_workflows(self.event_data)
+
+        assert WorkflowFireHistory.objects.count() == 3
+        assert mock_trigger_action.call_count == 3
+
 
 @mock_redis_buffer()
 class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
@@ -414,6 +447,8 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
         )
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
         self.action_group, _ = self.create_workflow_action(self.workflow)
+
+        self.buffer_keys = DelayedWorkflow.get_buffer_keys()
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()
 
@@ -438,11 +473,12 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        project_ids = buffer.backend.bulk_get_sorted_set(
+            self.buffer_keys,
+            min=0,
+            max=self.buffer_timestamp,
         )
-        assert project_ids
-        assert project_ids[0][0] == self.project.id
+        assert list(project_ids.keys()) == [self.project.id]
 
     def test_enqueues_workflow_any_logic_type(self) -> None:
         assert self.workflow.when_condition_group
@@ -469,10 +505,12 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        project_ids = buffer.backend.bulk_get_sorted_set(
+            self.buffer_keys,
+            min=0,
+            max=self.buffer_timestamp,
         )
-        assert project_ids[0][0] == self.project.id
+        assert list(project_ids.keys()) == [self.project.id]
 
     def test_skips_enqueuing_any(self) -> None:
         # skips slow conditions if the condition group evaluates to True without evaluating them
@@ -549,10 +587,12 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        project_ids = buffer.backend.bulk_get_sorted_set(
+            self.buffer_keys,
+            min=0,
+            max=self.buffer_timestamp,
         )
-        assert project_ids[0][0] == self.project.id
+        assert list(project_ids.keys()) == [self.project.id]
 
     def test_enqueues_event_if_meets_fast_conditions(self) -> None:
         assert self.workflow.when_condition_group
@@ -576,8 +616,10 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        project_ids = buffer.backend.bulk_get_sorted_set(
+            self.buffer_keys,
+            min=0,
+            max=self.buffer_timestamp,
         )
         assert not project_ids
 
@@ -586,10 +628,12 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        project_ids = buffer.backend.bulk_get_sorted_set(
+            self.buffer_keys,
+            min=0,
+            max=self.buffer_timestamp,
         )
-        assert project_ids[0][0] == self.project.id
+        assert list(project_ids.keys()) == [self.project.id]
 
 
 @freeze_time(FROZEN_TIME)
@@ -609,6 +653,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
             occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         )
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
+        self.buffer_keys = DelayedWorkflow.get_buffer_keys()
 
     @patch("sentry.utils.metrics.incr")
     def test_metrics_issue_dual_processing_metrics(self, mock_incr: MagicMock) -> None:
@@ -736,11 +781,12 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
 
         enqueue_workflows(queue_items)
 
-        project_ids = buffer.backend.get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+        project_ids = buffer.backend.bulk_get_sorted_set(
+            self.buffer_keys,
+            min=0,
+            max=timezone.now().timestamp(),
         )
-        assert project_ids
-        assert project_ids[0][0] == self.project.id
+        assert list(project_ids.keys()) == [self.project.id]
 
 
 class TestEnqueueWorkflows(BaseWorkflowTest):
@@ -774,9 +820,11 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
 
     @patch("sentry.buffer.backend.push_to_sorted_set")
     @patch("sentry.buffer.backend.push_to_hash_bulk")
+    @patch("random.choice")
     def test_enqueue_workflows__adds_to_workflow_engine_buffer(
-        self, mock_push_to_hash_bulk, mock_push_to_sorted_set
+        self, mock_randchoice, mock_push_to_hash_bulk, mock_push_to_sorted_set
     ):
+        mock_randchoice.return_value = f"{DelayedWorkflow.buffer_key}:{5}"
         enqueue_workflows(
             {
                 self.workflow: DelayedWorkflowItem(
@@ -791,7 +839,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
         )
 
         mock_push_to_sorted_set.assert_called_once_with(
-            key=WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+            key=f"{DelayedWorkflow.buffer_key}:{5}",
             value=[self.group_event.project_id],
         )
 
