@@ -404,10 +404,6 @@ class MonitorValidator(CamelSnakeSerializer):
         if "config" in validated_data:
             params["config"] = validated_data["config"]
 
-        # Update monitor slug in billing
-        if "slug" in params:
-            quotas.backend.update_monitor_slug(existing_slug, params["slug"], instance.project_id)
-
         if "status" in params:
             # Attempt to assign a monitor seat
             if params["status"] == ObjectStatus.ACTIVE and instance.status != ObjectStatus.ACTIVE:
@@ -435,6 +431,10 @@ class MonitorValidator(CamelSnakeSerializer):
                 event=audit_log.get_event_id("MONITOR_EDIT"),
                 data=instance.get_audit_log_data(),
             )
+
+        # Update monitor slug in billing
+        if "slug" in params:
+            quotas.backend.update_monitor_slug(existing_slug, params["slug"], instance.project_id)
 
         if "config" in validated_data:
             new_config = validated_data["config"]
