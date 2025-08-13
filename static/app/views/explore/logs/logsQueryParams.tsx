@@ -39,7 +39,7 @@ import {isVisualize, VisualizeFunction} from 'sentry/views/explore/queryParams/v
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 const LOGS_MODE_KEY = 'mode';
-const LOGS_AGGREGATE_FIELD_KEY = 'aggregateField';
+export const LOGS_AGGREGATE_FIELD_KEY = 'aggregateField';
 
 export function getReadableQueryParamsFromLocation(
   location: Location
