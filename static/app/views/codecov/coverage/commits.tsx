@@ -1255,9 +1255,13 @@ type SortDirection = 'asc' | 'desc';
 function UncoveredLinesTable({
   fileData,
   fileTree,
+  onBackToResults,
+  pathFilter,
 }: {
   fileData?: any;
   fileTree?: FileTreeNode[];
+  onBackToResults?: () => void;
+  pathFilter?: string;
 }) {
   const [sortField, setSortField] = useState<SortField>('uncoveredLines');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -1393,11 +1397,32 @@ function UncoveredLinesTable({
   return (
     <div>
       <TableTitleContainer>
-        <TableTitle>
-          {fileData && fileData.type === 'folder'
-            ? t('Uncovered lines in %s (%s)', fileData.name, filteredData.length)
-            : t('Uncovered lines (%s)', filteredData.length)}
-        </TableTitle>
+        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+          {onBackToResults && pathFilter && (
+            <button
+              onClick={onBackToResults}
+              style={{
+                background: 'none',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                padding: '4px 8px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                color: '#666',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              ← Back to "{pathFilter}" results
+            </button>
+          )}
+          <TableTitle>
+            {fileData && fileData.type === 'folder'
+              ? t('Uncovered lines in %s (%s)', fileData.name, filteredData.length)
+              : t('Uncovered lines (%s)', filteredData.length)}
+          </TableTitle>
+        </div>
         <CoverageLegend />
       </TableTitleContainer>
       <UncoveredLinesPanel>
@@ -1761,6 +1786,7 @@ export default function CommitsListPage() {
   const [selectedFileNode, setSelectedFileNode] = useState<FileTreeNode | null>(null);
   const [pathFilter, setPathFilter] = useState('');
   const [selectedPath, setSelectedPath] = useState('');
+  const [originalPathFilter, setOriginalPathFilter] = useState('');
   const [displayMode, setDisplayMode] = useState<'coverage' | 'uncovered'>('coverage');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
@@ -2527,15 +2553,32 @@ export default function CommitsListPage() {
               />
             </LeftPanel>
             <RightPanel>
-              {selectedPath ? (
+              {selectedFileNode ? (
+                <UncoveredLinesTable
+                  fileData={selectedFileNode}
+                  fileTree={fileTree}
+                  onBackToResults={
+                    originalPathFilter
+                      ? () => {
+                          setSelectedPath(originalPathFilter);
+                          setSelectedFileNode(null);
+                          setOriginalPathFilter('');
+                        }
+                      : undefined
+                  }
+                  pathFilter={originalPathFilter}
+                />
+              ) : selectedPath ? (
                 <PathFilterResults
                   fileTree={fileTree}
                   matchingFiles={getMatchingFiles(selectedPath)}
-                  onFileSelect={setSelectedFileNode}
+                  onFileSelect={file => {
+                    setSelectedFileNode(file);
+                    setOriginalPathFilter(selectedPath); // Store the original path filter
+                    setSelectedPath(''); // Clear the path filter to show coverage details
+                  }}
                   pathFilter={selectedPath}
                 />
-              ) : selectedFileNode ? (
-                <UncoveredLinesTable fileData={selectedFileNode} fileTree={fileTree} />
               ) : (
                 <SectionContent>
                   <RightPanelHeader>Coverage Information</RightPanelHeader>
