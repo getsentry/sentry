@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.coding_agent.client import CodingAgentClient
 from sentry.integrations.coding_agent.integration import (
     CodingAgentIntegration,
@@ -330,3 +331,473 @@ class OrganizationCodingAgentTriggerTest(APITestCase):
                 self.organization.slug, method="post", status_code=400, **data
             )
             assert response.data["error"] == "Autofix state not found"
+
+    def test_get_feature_flag_disabled(self):
+        """Test GET endpoint when feature flag is disabled."""
+        response = self.get_error_response(self.organization.slug, status_code=404)
+        assert response.data["detail"] == "Feature not available"
+
+    def test_post_feature_flag_disabled(self):
+        """Test POST endpoint when feature flag is disabled."""
+        data = {"integration_id": "123"}
+        response = self.get_error_response(
+            self.organization.slug, method="post", status_code=404, **data
+        )
+        assert response.data["detail"] == "Feature not available"
+
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integrations"
+    )
+    @patch("sentry.integrations.services.integration.integration_service.get_integration")
+    def test_get_integration_processing_error(
+        self, mock_get_integration, mock_get_org_integrations
+    ):
+        """Test GET endpoint handles integration processing errors gracefully."""
+        # Mock integration service calls - return mock integration first, then raise exception on get_installation
+        mock_get_org_integrations.return_value = [self.rpc_org_integration]
+
+        mock_rpc_integration = MagicMock()
+        mock_rpc_integration.id = self.integration.id
+        mock_rpc_integration.name = self.integration.name
+        mock_rpc_integration.provider = "github"
+        mock_rpc_integration.metadata = self.integration.metadata
+        # Make get_installation raise an exception
+        mock_rpc_integration.get_installation.side_effect = Exception("Installation error")
+        mock_get_integration.return_value = mock_rpc_integration
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_success_response(self.organization.slug)
+
+            # Should return empty integrations list when processing fails
+            assert "integrations" in response.data
+            assert len(response.data["integrations"]) == 0
+
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integrations"
+    )
+    def test_get_organization_integrations_error(self, mock_get_org_integrations):
+        """Test GET endpoint handles organization integrations service errors."""
+        # Mock service to raise an exception
+        mock_get_org_integrations.side_effect = Exception("Service unavailable")
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_error_response(self.organization.slug, status_code=500)
+            assert response.data["error"] == "Failed to retrieve coding agent integrations"
+
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integrations"
+    )
+    @patch("sentry.integrations.services.integration.integration_service.get_integration")
+    def test_get_integration_not_found(self, mock_get_integration, mock_get_org_integrations):
+        """Test GET endpoint handles case where integration is not found."""
+        # Mock organization integrations but integration lookup returns None
+        mock_get_org_integrations.return_value = [self.rpc_org_integration]
+        mock_get_integration.return_value = None
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_success_response(self.organization.slug)
+
+            # Should skip integrations that can't be found
+            assert "integrations" in response.data
+            assert len(response.data["integrations"]) == 0
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+    )
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    def test_post_integration_not_found(self, mock_get_org_integration, mock_get_providers):
+        """Test POST endpoint with integration that doesn't exist."""
+        mock_get_providers.return_value = ["github"]
+        mock_get_org_integration.return_value = None
+
+        data = {"integration_id": "999"}
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_error_response(
+                self.organization.slug, method="post", status_code=404, **data
+            )
+            assert response.data["error"] == "Integration not found"
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+    )
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    def test_post_inactive_integration(self, mock_get_org_integration, mock_get_providers):
+        """Test POST endpoint with inactive integration."""
+        mock_get_providers.return_value = ["github"]
+
+        # Create inactive organization integration
+        inactive_org_integration = MagicMock()
+        inactive_org_integration.status = ObjectStatus.PENDING_DELETION
+        mock_get_org_integration.return_value = inactive_org_integration
+
+        data = {"integration_id": str(self.integration.id)}
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_error_response(
+                self.organization.slug, method="post", status_code=404, **data
+            )
+            assert response.data["error"] == "Integration not found"
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+    )
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    @patch("sentry.integrations.services.integration.integration_service.get_integration")
+    def test_post_empty_run_id(
+        self, mock_get_integration, mock_get_org_integration, mock_get_providers
+    ):
+        """Test POST endpoint with empty run_id."""
+        mock_get_providers.return_value = ["github"]
+        mock_get_org_integration.return_value = self.rpc_org_integration
+
+        mock_rpc_integration = MagicMock()
+        mock_rpc_integration.id = self.integration.id
+        mock_rpc_integration.provider = "github"
+        mock_rpc_integration.get_installation = MagicMock(return_value=self.mock_installation)
+        mock_get_integration.return_value = mock_rpc_integration
+
+        data = {"integration_id": str(self.integration.id), "run_id": ""}
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_error_response(
+                self.organization.slug, method="post", status_code=400, **data
+            )
+            assert response.data["error"] == "Invalid run_id format"
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+    )
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    @patch("sentry.integrations.services.integration.integration_service.get_integration")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_autofix_state")
+    def test_post_null_run_id(
+        self,
+        mock_get_autofix_state,
+        mock_get_integration,
+        mock_get_org_integration,
+        mock_get_providers,
+    ):
+        """Test POST endpoint with null run_id."""
+        mock_get_providers.return_value = ["github"]
+        mock_get_org_integration.return_value = self.rpc_org_integration
+
+        mock_rpc_integration = MagicMock()
+        mock_rpc_integration.id = self.integration.id
+        mock_rpc_integration.provider = "github"
+        mock_rpc_integration.get_installation = MagicMock(return_value=self.mock_installation)
+        mock_get_integration.return_value = mock_rpc_integration
+
+        data = {"integration_id": str(self.integration.id), "run_id": None}
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_error_response(
+                self.organization.slug, method="post", status_code=400, **data
+            )
+            assert response.data["error"] == "Invalid run_id format"
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+    )
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    @patch("sentry.integrations.services.integration.integration_service.get_integration")
+    def test_post_string_run_id(
+        self, mock_get_integration, mock_get_org_integration, mock_get_providers
+    ):
+        """Test POST endpoint with non-numeric run_id."""
+        mock_get_providers.return_value = ["github"]
+        mock_get_org_integration.return_value = self.rpc_org_integration
+
+        mock_rpc_integration = MagicMock()
+        mock_rpc_integration.id = self.integration.id
+        mock_rpc_integration.provider = "github"
+        mock_rpc_integration.get_installation = MagicMock(return_value=self.mock_installation)
+        mock_get_integration.return_value = mock_rpc_integration
+
+        data = {"integration_id": str(self.integration.id), "run_id": "not_a_number"}
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_error_response(
+                self.organization.slug, method="post", status_code=400, **data
+            )
+            assert response.data["error"] == "Invalid run_id format"
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+    )
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    @patch("sentry.integrations.services.integration.integration_service.get_integration")
+    def test_post_invalid_coding_agent_installation(
+        self, mock_get_integration, mock_get_org_integration, mock_get_providers
+    ):
+        """Test POST endpoint when installation is not a CodingAgentIntegration."""
+        mock_get_providers.return_value = ["github"]
+        mock_get_org_integration.return_value = self.rpc_org_integration
+
+        # Mock integration that returns non-CodingAgentIntegration
+        mock_rpc_integration = MagicMock()
+        mock_rpc_integration.id = self.integration.id
+        mock_rpc_integration.provider = "github"
+        mock_rpc_integration.get_installation.return_value = (
+            MagicMock()
+        )  # Not CodingAgentIntegration
+        mock_get_integration.return_value = mock_rpc_integration
+
+        data = {"integration_id": str(self.integration.id)}
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_error_response(
+                self.organization.slug, method="post", status_code=400, **data
+            )
+            assert response.data["error"] == "Invalid coding agent integration"
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+    )
+    @patch("sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_autofix_state")
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    @patch("sentry.integrations.services.integration.integration_service.get_integration")
+    def test_post_multi_repo_launch(
+        self,
+        mock_get_integration,
+        mock_get_org_integration,
+        mock_get_autofix_state,
+        mock_get_providers,
+    ):
+        """Test POST endpoint launches agents for multiple repositories."""
+        mock_get_providers.return_value = ["github"]
+
+        # Create mock RPC integration
+        mock_rpc_integration = MagicMock()
+        mock_rpc_integration.id = self.integration.id
+        mock_rpc_integration.name = self.integration.name
+        mock_rpc_integration.provider = "github"
+        mock_rpc_integration.metadata = self.integration.metadata
+        mock_rpc_integration.get_installation = MagicMock(return_value=self.mock_installation)
+
+        mock_get_org_integration.return_value = self.rpc_org_integration
+        mock_get_integration.return_value = mock_rpc_integration
+
+        # Mock autofix state with multiple repos in solution
+        mock_autofix_state = MagicMock()
+        mock_autofix_state.steps = [
+            {
+                "key": "solution",
+                "solution": [
+                    {"relevant_code_file": {"repo_name": "owner1/repo1"}},
+                    {"relevant_code_file": {"repo_name": "owner2/repo2"}},
+                ],
+            }
+        ]
+        mock_autofix_state.request = {
+            "repos": [
+                {"owner": "owner1", "name": "repo1", "external_id": "123", "provider": "github"},
+                {"owner": "owner2", "name": "repo2", "external_id": "456", "provider": "github"},
+            ],
+            "issue": {"title": "Test Issue"},
+        }
+        mock_get_autofix_state.return_value = mock_autofix_state
+
+        data = {"integration_id": str(self.integration.id), "run_id": 123}
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_success_response(self.organization.slug, method="post", **data)
+            assert response.data["success"] is True
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+    )
+    @patch("sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_autofix_state")
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    @patch("sentry.integrations.services.integration.integration_service.get_integration")
+    def test_post_repo_launch_error_continues_with_others(
+        self,
+        mock_get_integration,
+        mock_get_org_integration,
+        mock_get_autofix_state,
+        mock_get_providers,
+    ):
+        """Test POST endpoint continues with other repos when one repo fails."""
+        mock_get_providers.return_value = ["github"]
+
+        # Create mock installation that fails for first repo
+        failing_installation = MockCodingAgentInstallation(self.integration, self.organization.id)
+        failing_installation.launch = MagicMock(
+            side_effect=[
+                Exception("Repository not accessible"),  # First call fails
+                CodingAgentState(  # Second call succeeds
+                    id="success-123",
+                    status=CodingAgentStatus.PENDING,
+                    name="Success Agent",
+                    started_at=datetime.now(UTC),
+                ),
+            ]
+        )
+
+        mock_rpc_integration = MagicMock()
+        mock_rpc_integration.id = self.integration.id
+        mock_rpc_integration.name = self.integration.name
+        mock_rpc_integration.provider = "github"
+        mock_rpc_integration.metadata = self.integration.metadata
+        mock_rpc_integration.get_installation = MagicMock(return_value=failing_installation)
+
+        mock_get_org_integration.return_value = self.rpc_org_integration
+        mock_get_integration.return_value = mock_rpc_integration
+
+        # Mock autofix state with two repos
+        mock_autofix_state = MagicMock()
+        mock_autofix_state.steps = [
+            {
+                "key": "solution",
+                "solution": [
+                    {"relevant_code_file": {"repo_name": "owner1/repo1"}},
+                    {"relevant_code_file": {"repo_name": "owner2/repo2"}},
+                ],
+            }
+        ]
+        mock_autofix_state.request = {
+            "repos": [
+                {"owner": "owner1", "name": "repo1", "external_id": "123", "provider": "github"},
+                {"owner": "owner2", "name": "repo2", "external_id": "456", "provider": "github"},
+            ],
+            "issue": {"title": "Test Issue"},
+        }
+        mock_get_autofix_state.return_value = mock_autofix_state
+
+        data = {"integration_id": str(self.integration.id), "run_id": 123}
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_success_response(self.organization.slug, method="post", **data)
+            # Should succeed because at least one repo launched successfully
+            assert response.data["success"] is True
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+    )
+    @patch("sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_autofix_state")
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    @patch("sentry.integrations.services.integration.integration_service.get_integration")
+    def test_post_all_repos_fail_returns_error(
+        self,
+        mock_get_integration,
+        mock_get_org_integration,
+        mock_get_autofix_state,
+        mock_get_providers,
+    ):
+        """Test POST endpoint returns error when all repos fail to launch."""
+        mock_get_providers.return_value = ["github"]
+
+        # Create mock installation that always fails
+        failing_installation = MockCodingAgentInstallation(self.integration, self.organization.id)
+        failing_installation.launch = MagicMock(side_effect=Exception("Repository not accessible"))
+
+        mock_rpc_integration = MagicMock()
+        mock_rpc_integration.id = self.integration.id
+        mock_rpc_integration.name = self.integration.name
+        mock_rpc_integration.provider = "github"
+        mock_rpc_integration.metadata = self.integration.metadata
+        mock_rpc_integration.get_installation = MagicMock(return_value=failing_installation)
+
+        mock_get_org_integration.return_value = self.rpc_org_integration
+        mock_get_integration.return_value = mock_rpc_integration
+
+        # Mock autofix state with two repos
+        mock_autofix_state = MagicMock()
+        mock_autofix_state.steps = [
+            {
+                "key": "solution",
+                "solution": [
+                    {"relevant_code_file": {"repo_name": "owner1/repo1"}},
+                    {"relevant_code_file": {"repo_name": "owner2/repo2"}},
+                ],
+            }
+        ]
+        mock_autofix_state.request = {
+            "repos": [
+                {"owner": "owner1", "name": "repo1", "external_id": "123", "provider": "github"},
+                {"owner": "owner2", "name": "repo2", "external_id": "456", "provider": "github"},
+            ],
+            "issue": {"title": "Test Issue"},
+        }
+        mock_get_autofix_state.return_value = mock_autofix_state
+
+        data = {"integration_id": str(self.integration.id), "run_id": 123}
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_error_response(
+                self.organization.slug, method="post", status_code=500, **data
+            )
+            assert response.data["error"] == "No agents were successfully launched"
+
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+    )
+    @patch("sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_autofix_state")
+    @patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    @patch("sentry.integrations.services.integration.integration_service.get_integration")
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.store_coding_agent_state_to_seer"
+    )
+    def test_post_seer_storage_failure_continues(
+        self,
+        mock_store_to_seer,
+        mock_get_integration,
+        mock_get_org_integration,
+        mock_get_autofix_state,
+        mock_get_providers,
+    ):
+        """Test POST endpoint continues when Seer storage fails."""
+        mock_get_providers.return_value = ["github"]
+        mock_store_to_seer.return_value = False  # Simulate Seer storage failure
+
+        mock_rpc_integration = MagicMock()
+        mock_rpc_integration.id = self.integration.id
+        mock_rpc_integration.name = self.integration.name
+        mock_rpc_integration.provider = "github"
+        mock_rpc_integration.metadata = self.integration.metadata
+        mock_rpc_integration.get_installation = MagicMock(return_value=self.mock_installation)
+
+        mock_get_org_integration.return_value = self.rpc_org_integration
+        mock_get_integration.return_value = mock_rpc_integration
+
+        # Mock autofix state
+        mock_autofix_state = MagicMock()
+        mock_autofix_state.steps = [
+            {"key": "solution", "solution": [{"relevant_code_file": {"repo_name": "test/repo"}}]}
+        ]
+        mock_autofix_state.request = {
+            "repos": [
+                {"owner": "test", "name": "repo", "external_id": "123", "provider": "github"}
+            ],
+            "issue": {"title": "Test Issue"},
+        }
+        mock_get_autofix_state.return_value = mock_autofix_state
+
+        data = {"integration_id": str(self.integration.id), "run_id": 123}
+
+        with self.feature("organizations:seer-coding-agent-integrations"):
+            response = self.get_success_response(self.organization.slug, method="post", **data)
+            # Should still succeed even if Seer storage fails
+            assert response.data["success"] is True
+            # Verify Seer storage was attempted
+            mock_store_to_seer.assert_called_once()
