@@ -637,18 +637,16 @@ class OrganizationCodingAgentTriggerTest(APITestCase):
         mock_get_providers.return_value = ["github"]
 
         # Create mock installation that fails for first repo
-        failing_installation = MockCodingAgentInstallation(self.integration, self.organization.id)
-        failing_installation.launch = MagicMock(
-            side_effect=[
-                Exception("Repository not accessible"),  # First call fails
-                CodingAgentState(  # Second call succeeds
-                    id="success-123",
-                    status=CodingAgentStatus.PENDING,
-                    name="Success Agent",
-                    started_at=datetime.now(UTC),
-                ),
-            ]
-        )
+        failing_installation = MagicMock(spec=MockCodingAgentInstallation)
+        failing_installation.launch.side_effect = [
+            Exception("Repository not accessible"),  # First call fails
+            CodingAgentState(  # Second call succeeds
+                id="success-123",
+                status=CodingAgentStatus.PENDING,
+                name="Success Agent",
+                started_at=datetime.now(UTC),
+            ),
+        ]
 
         mock_rpc_integration = MagicMock()
         mock_rpc_integration.id = self.integration.id
@@ -706,8 +704,8 @@ class OrganizationCodingAgentTriggerTest(APITestCase):
         mock_get_providers.return_value = ["github"]
 
         # Create mock installation that always fails
-        failing_installation = MockCodingAgentInstallation(self.integration, self.organization.id)
-        failing_installation.launch = MagicMock(side_effect=Exception("Repository not accessible"))
+        failing_installation = MagicMock(spec=MockCodingAgentInstallation)
+        failing_installation.launch.side_effect = Exception("Repository not accessible")
 
         mock_rpc_integration = MagicMock()
         mock_rpc_integration.id = self.integration.id
