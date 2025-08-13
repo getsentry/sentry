@@ -13,7 +13,7 @@ from sentry.grouping.variants import ComponentVariant
 from sentry.interfaces.user import User
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.environment import Environment
-from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.services.eventstore.models import Event, GroupEvent, parse_date
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -211,8 +211,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                 "message": "Hello World!",
                 "tags": {"logger": "foobar", "site": "foo", "server_name": "bar"},
                 "user": {"id": "test", "email": "test@test.com"},
-                # snuba does not store subsecond data
-                "timestamp": before_now(seconds=1).replace(microsecond=0).isoformat(),
+                "timestamp": before_now(seconds=1).isoformat(),
             },
             project_id=self.project.id,
         )
@@ -240,6 +239,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                     "ip_address",
                     "user_id",
                     "username",
+                    "timestamp_ms",
                 ],
                 filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
                 tenant_ids={"referrer": "r", "organization_id": 1234},
@@ -250,6 +250,8 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert event_from_nodestore.project_id == event_from_snuba.project_id
         assert event_from_nodestore.project == event_from_snuba.project
         assert event_from_nodestore.timestamp == event_from_snuba.timestamp
+        # snuba has timestamp, which does not have milliseconds, and has timestamp_ms, which does have milliseconds
+        # we use timestamp_ms for nodestore
         assert event_from_nodestore.datetime == event_from_snuba.datetime
         assert event_from_nodestore.title == event_from_snuba.title
         assert event_from_nodestore.message == event_from_snuba.message
@@ -691,3 +693,80 @@ class EventNodeStoreTest(TestCase):
     def test_basic_ref_binding(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.data.get_ref(event) == event.project.id
+
+    def test_datetime_uses_snuba_data(self) -> None:
+
+        second_before_now = before_now(seconds=1)
+        second_before_now_no_ms = second_before_now.replace(microsecond=0)
+
+        second_before_now = second_before_now.isoformat()
+        second_before_now_no_ms = second_before_now_no_ms.isoformat()
+
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "Hello World!",
+                "tags": {"logger": "foobar", "site": "foo", "server_name": "bar"},
+                "user": {"id": "test", "email": "test@test.com"},
+                "timestamp": second_before_now,
+            },
+            project_id=self.project.id,
+        )
+
+        event_from_nodestore = Event(project_id=self.project.id, event_id="a" * 32)
+
+        # If we have timestamp_ms, we should not hit nodestore
+        with mock.patch(
+            "sentry.services.eventstore.models.parse_date", wraps=parse_date
+        ) as mock_parsedate:
+            event_from_snuba = Event(
+                project_id=self.project.id,
+                event_id="a" * 32,
+                snuba_data=snuba.raw_query(
+                    selected_columns=[
+                        "timestamp",
+                        "timestamp_ms",
+                    ],
+                    filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
+                    tenant_ids={"referrer": "r", "organization_id": 1234},
+                )["data"][0],
+            )
+
+            assert event_from_nodestore.timestamp == event_from_snuba.timestamp
+            assert mock_parsedate.call_count == 1
+
+        # If we have timestamp column but no timestamp_ms column, we fall back to timestamp
+        with mock.patch(
+            "sentry.services.eventstore.models.parse_date", wraps=parse_date
+        ) as mock_parsedate:
+            event_from_snuba = Event(
+                project_id=self.project.id,
+                event_id="a" * 32,
+                snuba_data=snuba.raw_query(
+                    selected_columns=[
+                        "timestamp",
+                    ],
+                    filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
+                    tenant_ids={"referrer": "r", "organization_id": 1234},
+                )["data"][0],
+            )
+
+            assert second_before_now_no_ms == event_from_snuba.timestamp
+            assert mock_parsedate.call_count == 1
+
+        # If we have neither timestamp nor timestamp_ms, we have to hit nodestore
+        with mock.patch(
+            "sentry.services.eventstore.models.parse_date", wraps=parse_date
+        ) as mock_parsedate:
+            event_from_snuba = Event(
+                project_id=self.project.id,
+                event_id="a" * 32,
+                snuba_data=snuba.raw_query(
+                    selected_columns=["event_id"],
+                    filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
+                    tenant_ids={"referrer": "r", "organization_id": 1234},
+                )["data"][0],
+            )
+
+            assert event_from_nodestore.timestamp == event_from_snuba.timestamp
+            assert mock_parsedate.call_count == 0
