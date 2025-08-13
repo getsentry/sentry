@@ -250,8 +250,6 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert event_from_nodestore.project_id == event_from_snuba.project_id
         assert event_from_nodestore.project == event_from_snuba.project
         assert event_from_nodestore.timestamp == event_from_snuba.timestamp
-        # snuba has timestamp, which does not have milliseconds, and has timestamp_ms, which does have milliseconds
-        # we use timestamp_ms for nodestore
         assert event_from_nodestore.datetime == event_from_snuba.datetime
         assert event_from_nodestore.title == event_from_snuba.title
         assert event_from_nodestore.message == event_from_snuba.message
