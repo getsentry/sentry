@@ -130,8 +130,8 @@ function PlanSelectCard({
         <Description isSelected={isSelected}>{description}</Description>
       </div>
       <div>
-        <Price>{price === 'Free' ? price : `$${price}`}</Price>
-        {price !== 'Free' && <BillingInterval>{`/${billingInterval}`}</BillingInterval>}
+        <Price>{`$${price}`}</Price>
+        <BillingInterval>{`/${billingInterval}`}</BillingInterval>
       </div>
       <Separator />
       <FeatureList>
