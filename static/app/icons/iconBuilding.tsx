@@ -1,6 +1,6 @@
 import {SvgIcon, type SVGIconProps} from './svgIcon';
 
-function IconBusinessPlan(props: SVGIconProps) {
+function IconBuilding(props: SVGIconProps) {
   return (
     <SvgIcon {...props} kind={'path'} viewBox="12 10 50 50" strokeWidth={5}>
       <path
@@ -19,6 +19,6 @@ function IconBusinessPlan(props: SVGIconProps) {
   );
 }
 
-IconBusinessPlan.displayName = 'IconBusinessPlan';
+IconBuilding.displayName = 'IconBuilding';
 
-export {IconBusinessPlan};
+export {IconBuilding};
