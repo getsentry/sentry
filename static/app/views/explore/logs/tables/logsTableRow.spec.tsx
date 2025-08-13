@@ -383,4 +383,74 @@ describe('logsTableRow', () => {
       'https://github.com/example/repo/blob/main/file.py'
     );
   });
+
+  it('copies log as JSON when Copy as JSON button is clicked', async () => {
+    const mockWriteText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, 'clipboard', {
+      value: {
+        writeText: mockWriteText,
+      },
+      writable: true,
+    });
+
+    render(
+      <ProviderWrapper>
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={
+            {
+              current: null,
+            } as React.MutableRefObject<NodeJS.Timeout | null>
+          }
+          canDeferRenderElements={false}
+        />
+      </ProviderWrapper>,
+      {organization, initialRouterConfig}
+    );
+
+    // Expand the row to show the action buttons
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.click(logTableRow);
+
+    await waitFor(() => {
+      expect(rowDetailsMock).toHaveBeenCalledTimes(1);
+    });
+
+    // Find and click the Copy as JSON button
+    const copyButton = await screen.findByRole('button', {name: 'Copy as JSON'});
+    expect(copyButton).toBeInTheDocument();
+
+    await userEvent.click(copyButton);
+
+    // Verify clipboard was called with JSON representation of the log
+    await waitFor(() => {
+      expect(mockWriteText).toHaveBeenCalledTimes(1);
+    });
+
+    const callArgs = mockWriteText.mock.calls[0];
+    expect(callArgs).toBeDefined();
+    expect(callArgs).toHaveLength(1);
+
+    const copiedText = callArgs![0];
+    expect(typeof copiedText).toBe('string');
+
+    // Verify it's valid JSON
+    expect(() => JSON.parse(copiedText)).not.toThrow();
+
+    // Verify it contains expected log data
+    const parsedData = JSON.parse(copiedText);
+    expect(parsedData).toMatchObject({
+      message: 'test log body',
+      trace: '7b91699f',
+      severity: 'error',
+      item_id: '1',
+    });
+
+    // Verify the JSON structure matches what ourlogToJson produces
+    expect(parsedData).toHaveProperty('item_id', '1');
+    expect(parsedData[OurLogKnownFieldKey.TIMESTAMP_PRECISE]).toBeDefined();
+    expect(parsedData).not.toHaveProperty('sentry.item_id');
+  });
 });

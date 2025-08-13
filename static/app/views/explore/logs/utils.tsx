@@ -31,8 +31,12 @@ import {
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {
+  TraceItemDetailsResponse,
+  TraceItemResponseAttribute,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
+  DeprecatedLogDetailFields,
   LogAttributesHumanLabel,
   LOGS_GRID_SCROLL_MIN_ITEM_THRESHOLD,
 } from 'sentry/views/explore/logs/constants';
@@ -444,4 +448,49 @@ export function getLogsUrlFromSavedQueryUrl({
       projects: savedQuery.projects ? [...savedQuery.projects] : [],
     },
   });
+}
+
+export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): string {
+  if (!ourlog) {
+    warn(fmt`cannot copy undefined ourlog`);
+    return '';
+  }
+
+  const copy: Record<string, string | number | boolean> = {
+    ...ourlog.attributes.reduce((it, {name, value}) => ({...it, [name]: value}), {}),
+    id: ourlog.itemId,
+  };
+  let warned = false;
+  const warnAttributeOnce = (key: string) => {
+    if (!warned) {
+      warned = true;
+      warn(
+        fmt`Found sentry. prefix in ${key} while copying [project_id: ${copy.project_id ?? 'unknown'}, user_email: ${copy['user.email'] ?? 'unknown'}]`
+      );
+    }
+  };
+
+  // Trimming any sentry. prefixes
+  for (const key in copy) {
+    if (DeprecatedLogDetailFields.includes(key)) {
+      continue;
+    }
+    if (key.startsWith('sentry.')) {
+      const value = copy[key];
+      if (value !== undefined) {
+        warnAttributeOnce(key);
+        delete copy[key];
+        copy[key.replace('sentry.', '')] = value;
+      }
+    }
+    if (key.startsWith('tags[sentry.')) {
+      const value = copy[key];
+      if (value !== undefined) {
+        warnAttributeOnce(key);
+        delete copy[key];
+        copy[key.replace('tags[sentry.', 'tags[')] = value;
+      }
+    }
+  }
+  return JSON.stringify(copy, null, 2);
 }
