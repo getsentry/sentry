@@ -125,7 +125,7 @@ function PlanFeature({subscription, features, organization, children}: Props) {
         plan.features.push('dashboards-edit');
       }
     }
-    if (isTeamPlanFamily(plan)) {
+    if (isTeamPlanFamily(plan) || isBizPlanFamily(plan)) {
       if (!plan.features.includes('dashboards-basic')) {
         plan.features.push('dashboards-basic');
       }
