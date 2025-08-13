@@ -110,8 +110,8 @@ class Action(DefaultFieldsModel, JSONConfigBase):
             },
         )
 
-    def get_dedup_key(self) -> str:
-        key_parts = [self.type]
+    def get_dedup_key(self, workflow_id: int) -> str:
+        key_parts = [self.type, str(workflow_id)]
 
         if self.integration_id:
             key_parts.append(str(self.integration_id))
