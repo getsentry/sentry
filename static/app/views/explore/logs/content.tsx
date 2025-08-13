@@ -113,10 +113,11 @@ function LogsHeader() {
   return (
     <Layout.Header unified={prefersStackedNav}>
       <Layout.HeaderContent unified={prefersStackedNav}>
+        {title && defined(pageId) ? (
+          <ExploreBreadcrumb traceItemDataset={TraceItemDataset.LOGS} />
+        ) : null}
+
         <Layout.Title>
-          {title && defined(pageId) ? (
-            <ExploreBreadcrumb traceItemDataset={TraceItemDataset.LOGS} />
-          ) : null}
           {title ? title : t('Logs')}
           <FeatureBadge
             type="beta"
