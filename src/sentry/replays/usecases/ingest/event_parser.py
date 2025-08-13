@@ -7,7 +7,7 @@ from collections.abc import Callable, Iterator, MutableMapping
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, TypedDict, TypeVar
+from typing import Any, Literal, TypedDict, TypeVar
 
 import sentry_sdk
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
@@ -215,6 +215,51 @@ def which(event: dict[str, Any]) -> EventType:
 def which_iter(events: list[dict[str, Any]]) -> Iterator[tuple[EventType, dict[str, Any]]]:
     for event in events:
         yield (which(event), event)
+
+
+def get_timestamp_unit(event_type: EventType) -> Literal["s", "ms"]:
+    """
+    Returns the time unit of event["timestamp"] for a replay event.
+    This is not guaranteed to match event.data.payload.timestamp.
+
+    We do not allow wildcard or default cases. Please be explicit when adding new types.
+    Beware that EventType.UNKNOWN returns "ms" but there's no way to know the actual unit.
+    """
+    match event_type:
+        case (
+            EventType.CLS
+            | EventType.LCP
+            | EventType.FEEDBACK
+            | EventType.MEMORY
+            | EventType.MUTATIONS
+            | EventType.NAVIGATION_SPAN
+            | EventType.RESOURCE_FETCH
+            | EventType.RESOURCE_IMAGE
+            | EventType.RESOURCE_SCRIPT
+            | EventType.RESOURCE_XHR
+            | EventType.UI_BLUR
+            | EventType.UI_FOCUS
+        ):
+            return "s"
+        case (
+            EventType.CANVAS
+            | EventType.CONSOLE
+            | EventType.CLICK
+            | EventType.DEAD_CLICK
+            | EventType.RAGE_CLICK
+            | EventType.SLOW_CLICK
+            | EventType.HYDRATION_ERROR
+            | EventType.NAVIGATION
+            | EventType.OPTIONS
+            | EventType.UNKNOWN
+        ):
+            return "ms"
+
+
+def get_timestamp_ms(event: dict[str, Any], event_type: EventType) -> float:
+    if get_timestamp_unit(event_type) == "s":
+        return event.get("timestamp", 0) * 1000
+    return event.get("timestamp", 0)
 
 
 #
