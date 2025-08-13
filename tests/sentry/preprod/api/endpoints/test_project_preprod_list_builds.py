@@ -117,7 +117,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         resp_data = response.json()
         assert len(resp_data["builds"]) == 2
         assert resp_data["pagination"]["per_page"] == 2
-        assert resp_data["pagination"]["page"] == 1
+        assert resp_data["pagination"]["page"] == 0
         assert resp_data["pagination"]["has_next"] is True
         assert resp_data["pagination"]["has_prev"] is False
 
@@ -200,7 +200,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         resp_data = response.json()
-        assert resp_data["pagination"]["page"] == 1
+        assert resp_data["pagination"]["page"] == 0
 
     def test_list_builds_empty_builds(self) -> None:
         # Create a different project with no artifacts
