@@ -2100,7 +2100,7 @@ SENTRY_ATTACHMENTS_OPTIONS: dict[str, str] = {}
 
 # Events blobs processing backend
 SENTRY_EVENT_PROCESSING_STORE = (
-    "sentry.eventstore.processing.redis.RedisClusterEventProcessingStore"
+    "sentry.services.eventstore.processing.redis.RedisClusterEventProcessingStore"
 )
 SENTRY_EVENT_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
 
@@ -2206,8 +2206,6 @@ SENTRY_TSDB_ROLLUPS = (
 # Internal metrics
 SENTRY_METRICS_BACKEND = "sentry.metrics.dummy.DummyMetricsBackend"
 SENTRY_METRICS_OPTIONS: dict[str, Any] = {}
-SENTRY_METRICS_PRECISE_BACKEND: str | None = None
-SENTRY_METRICS_PRECISE_OPTIONS: dict[str, Any] = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
 SENTRY_METRICS_SKIP_INTERNAL_PREFIXES: list[str] = []  # Order this by most frequent prefixes.
@@ -3509,6 +3507,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.integrations.api.endpoints",
     "sentry.users.api.endpoints",
     "sentry.sentry_apps.api.endpoints",
+    "sentry.preprod.api.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
@@ -3531,7 +3530,7 @@ SENTRY_GROUPING_CONFIG_TRANSITION_DURATION = 30 * 24 * 3600  # 30 days
 SENTRY_USE_UWSGI = True
 
 # Configure service wrapper for reprocessing2 state
-SENTRY_REPROCESSING_STORE = "sentry.eventstore.reprocessing.redis.RedisReprocessingStore"
+SENTRY_REPROCESSING_STORE = "sentry.services.eventstore.reprocessing.redis.RedisReprocessingStore"
 # Which cluster is used to store auxiliary data for reprocessing. Note that
 # this cluster is not used to store attachments etc, that still happens on
 # rc-processing. This is just for buffering up event IDs and storing a counter
