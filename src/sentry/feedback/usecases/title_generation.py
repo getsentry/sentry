@@ -67,7 +67,7 @@ def format_feedback_title(title: str, max_words: int = 10) -> str:
     return title
 
 
-@metrics.wraps("feedback.ai_title_generation", sample_rate=1.0)
+@metrics.wraps("feedback.ai_title_generation")
 def get_feedback_title_from_seer(feedback_message: str, organization_id: int) -> str | None:
     """
     Generate an AI-powered title for user feedback using Seer, or None if generation fails.
@@ -92,7 +92,6 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
         metrics.incr(
             "feedback.ai_title_generation.error",
             tags={"reason": "seer_response_failed"},
-            sample_rate=1.0,
         )
         return None
 
@@ -103,7 +102,6 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
         metrics.incr(
             "feedback.ai_title_generation.error",
             tags={"reason": "invalid_response"},
-            sample_rate=1.0,
         )
         return None
 
@@ -111,7 +109,6 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
         metrics.incr(
             "feedback.ai_title_generation.error",
             tags={"reason": "invalid_response"},
-            sample_rate=1.0,
         )
         return None
 

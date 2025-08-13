@@ -105,7 +105,6 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
         # This metric confirms this behavior is still used.
         metrics.incr(
             "feedback.create_feedback_issue.filled_missing_replay_context",
-            sample_rate=1.0,
         )
         ret_event["contexts"]["replay"] = {
             "replay_id": event_data["contexts"].get("feedback", {}).get("replay_id")
@@ -245,7 +244,6 @@ def create_feedback_issue(
                     "reason": filter_reason,
                     "referrer": source.value,
                 },
-                sample_rate=1.0,
             )
 
         track_outcome(
@@ -279,7 +277,6 @@ def create_feedback_issue(
                 "is_spam": is_message_spam,
                 "referrer": source.value,
             },
-            sample_rate=1.0,
         )
 
     # Prepare the data for issue platform processing and attach useful tags.
@@ -355,7 +352,7 @@ def create_feedback_issue(
             event_fixed["tags"][f"{AI_LABEL_TAG_PREFIX}.labels"] = json.dumps(labels)
         except Exception:
             logger.exception("Error generating labels", extra={"project_id": project.id})
-            metrics.incr("feedback.label_generation.error", sample_rate=1.0)
+            metrics.incr("feedback.label_generation.error")
 
     # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
     # as well as be able to write alert conditions on it
@@ -405,7 +402,6 @@ def create_feedback_issue(
             "referrer": source.value,
             "platform": project.platform,
         },
-        sample_rate=1.0,
     )
 
     track_outcome(
