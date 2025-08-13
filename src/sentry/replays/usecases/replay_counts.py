@@ -8,7 +8,7 @@ from typing import Any, Literal, overload
 
 from sentry.api.event_search import ParenExpression, QueryToken, SearchFilter, parse_search_query
 from sentry.models.group import Group
-from sentry.replays.query import query_replays_count
+from sentry.replays.usecases.replay import get_replays
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover, issue_platform
 from sentry.snuba.dataset import Dataset
@@ -58,13 +58,19 @@ def get_replay_counts(
     if not replay_ids_mapping:
         return {}
 
-    replay_results = query_replays_count(
+    replays = get_replays(
         project_ids=[p.id for p in snuba_params.projects],
-        start=snuba_params.start,
-        end=snuba_params.end,
         replay_ids=list(replay_ids_mapping.keys()),
+        tiimestamp_start=snuba_params.start,
+        tiimestamp_end=snuba_params.end,
+        only_query_for={"id", "is_archived"},
+        referrer="replay.get_replay_counts",
         tenant_ids={"organization_id": snuba_params.organization.id},
     )
+
+    replay_results = {
+        "data": map(lambda r: {"rid": r["id"]}, filter(lambda r: not r["is_archived"], replays))
+    }
 
     if return_ids:
         return _get_replay_ids(replay_results, replay_ids_mapping)

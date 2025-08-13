@@ -15,8 +15,8 @@ from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models.organization import Organization
-from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
-from sentry.replays.query import query_replay_instance
+from sentry.replays.post_process import ReplayDetailsResponse
+from sentry.replays.usecases.replay import get_replay
 from sentry.replays.validators import ReplayValidator
 
 
@@ -70,21 +70,15 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization, include_all_accessible=True)
         project_ids = [project.id for project in projects]
 
-        snuba_response = query_replay_instance(
-            project_id=project_ids,
-            replay_id=replay_id,
-            start=filter_params["start"],
-            end=filter_params["end"],
-            organization=organization,
-            request_user_id=request.user.id,
+        replay = get_replay(
+            project_ids,
+            replay_id,
+            timestamp_start=filter_params["start"],
+            timestamp_end=filter_params["end"],
+            referrer="organization.replay.details",
+            tenant_ids={"organization": organization.id},
         )
-
-        response = process_raw_response(
-            snuba_response,
-            fields=request.query_params.getlist("field"),
-        )
-
-        if len(response) == 0:
+        if replay is None:
             return Response(status=404)
-        else:
-            return Response({"data": response[0]}, status=200)
+
+        return Response({"data": replay}, status=200)

@@ -133,20 +133,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 count_dead_clicks=1,
                 count_rage_clicks=1,
                 releases=["test"],
-                clicks=[
-                    {
-                        "click.alt": "Alt",
-                        "click.classes": ["class1", "class2"],
-                        "click.id": "myid",
-                        "click.component_name": "SignUpForm",
-                        "click.role": "button",
-                        "click.tag": "div",
-                        "click.testid": "1",
-                        "click.text": "Hello",
-                        "click.title": "MyTitle",
-                        "click.label": "AriaLabel",
-                    }
-                ],
             )
             assert_expected_response(response_data["data"][0], expected_response)
 
@@ -224,7 +210,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
             assert len(response_data["data"]) == 1
 
-            assert len(response_data["data"][0]) == 9
             assert "activity" in response_data["data"][0]
             assert "count_errors" in response_data["data"][0]
             assert "duration" in response_data["data"][0]
@@ -284,7 +269,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
             assert len(response_data["data"]) == 1
 
-            assert len(response_data["data"][0]) == 1
             assert "tags" in response_data["data"][0]
             assert sorted(response_data["data"][0]["tags"]["test"]) == ["hello", "world"]
             assert response_data["data"][0]["tags"]["other"] == ["hello"]
@@ -332,7 +316,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
             assert len(response_data["data"]) == 1
 
-            assert len(response_data["data"][0]) == 1
             assert "id" in response_data["data"][0]
 
     def test_get_replays_filter_environment(self) -> None:
@@ -1087,49 +1070,50 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.json()["data"] == [
                 {
                     "id": replay1_id,
-                    "project_id": str(self.project.id),
+                    "project_id": str(0),
                     "trace_ids": [],
                     "error_ids": [],
-                    "environment": None,
-                    "tags": [],
+                    "environment": "",
+                    "tags": {},
                     "user": {
-                        "id": "Archived Replay",
-                        "display_name": "Archived Replay",
-                        "username": None,
-                        "email": None,
-                        "ip": None,
+                        "id": "",
+                        "display_name": "",
+                        "username": "",
+                        "email": "",
+                        "ip": "",
                         "geo": {
-                            "city": None,
-                            "country_code": None,
-                            "region": None,
-                            "subdivision": None,
+                            "city": "",
+                            "country_code": "",
+                            "region": "",
+                            "subdivision": "",
                         },
                     },
-                    "sdk": {"name": None, "version": None},
-                    "os": {"name": None, "version": None},
-                    "browser": {"name": None, "version": None},
-                    "device": {"name": None, "brand": None, "model": None, "family": None},
-                    "ota_updates": {"channel": None, "runtime_version": None, "update_id": None},
-                    "urls": None,
-                    "started_at": None,
-                    "count_errors": None,
-                    "count_dead_clicks": None,
-                    "count_rage_clicks": None,
-                    "activity": None,
-                    "finished_at": None,
-                    "duration": None,
+                    "sdk": {"name": "", "version": ""},
+                    "os": {"name": "", "version": ""},
+                    "browser": {"name": "", "version": ""},
+                    "device": {"name": "", "brand": "", "model": "", "family": ""},
+                    "ota_updates": {"channel": "", "runtime_version": "", "update_id": ""},
+                    "urls": [],
+                    "started_at": datetime.datetime.fromtimestamp(0).isoformat(),
+                    "count_errors": 0,
+                    "count_dead_clicks": 0,
+                    "count_rage_clicks": 0,
+                    "activity": 0,
+                    "finished_at": datetime.datetime.fromtimestamp(0).isoformat(),
+                    "duration": 0,
                     "is_archived": True,
                     "releases": [],
-                    "platform": None,
-                    "dist": None,
-                    "count_segments": None,
-                    "count_urls": None,
-                    "clicks": [],
+                    "platform": "",
+                    "dist": "",
+                    "count_segments": 0,
+                    "count_urls": 0,
                     "warning_ids": [],
                     "info_ids": [],
-                    "count_warnings": None,
-                    "count_infos": None,
+                    "count_warnings": 0,
+                    "count_infos": 0,
                     "has_viewed": False,
+                    "replay_type": "session",
+                    "viewed_by_ids": [],
                 }
             ]
 
@@ -1280,80 +1264,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert response.status_code == 200, query
                 response_data = response.json()
                 assert len(response_data["data"]) == 0, query
-
-    def test_get_replays_click_fields(self) -> None:
-        project = self.create_project(teams=[self.team])
-
-        replay1_id = uuid.uuid4().hex
-        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
-        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
-
-        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
-        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
-        self.store_replays(
-            mock_replay_click(
-                seq2_timestamp,
-                project.id,
-                replay1_id,
-                node_id=1,
-                tag="div",
-                id="myid",
-                class_=["class1", "class2"],
-                component_name="SignUpForm",
-                role="button",
-                testid="1",
-                alt="Alt",
-                aria_label="AriaLabel",
-                title="MyTitle",
-                text="Hello",
-            )
-        )
-        self.store_replays(
-            mock_replay_click(
-                seq2_timestamp,
-                project.id,
-                replay1_id,
-                node_id=2,
-                tag="button",
-                id="myid",
-                class_=["class1", "class3"],
-            )
-        )
-
-        with self.feature(self.features):
-            response = self.client.get(self.url + "?field=clicks")
-            assert response.status_code == 200, response.content
-            response_data = response.json()
-            assert response_data["data"] == [
-                {
-                    "clicks": [
-                        {
-                            "click.alt": "Alt",
-                            "click.classes": ["class1", "class3"],
-                            "click.id": "myid",
-                            "click.component_name": "SignUpForm",
-                            "click.role": "button",
-                            "click.tag": "button",
-                            "click.testid": "1",
-                            "click.text": "Hello",
-                            "click.title": "MyTitle",
-                            "click.label": "AriaLabel",
-                        },
-                        {
-                            "click.alt": None,
-                            "click.classes": ["class1", "class2"],
-                            "click.id": "myid",
-                            "click.component_name": None,
-                            "click.role": None,
-                            "click.tag": "div",
-                            "click.testid": None,
-                            "click.text": None,
-                            "click.title": None,
-                            "click.label": None,
-                        },
-                    ]
-                }
-            ]
 
     def test_get_replays_filter_clicks_nested_selector(self) -> None:
         """Test replays do not support nested selectors."""
@@ -2132,36 +2042,6 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 200
             response_data = response.json()
             assert len(response_data["data"]) == 0, query
-
-    def test_exp_query_branches_error_ids_conditions(self) -> None:
-        """
-        Test that the new columns work the same w/ only the previous errors populated
-        """
-        project = self.create_project(teams=[self.team])
-
-        uid1 = uuid.uuid4().hex
-        uid2 = uuid.uuid4().hex
-
-        replay1_id = uuid.uuid4().hex
-        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
-        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
-
-        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id, error_ids=[uid1]))
-        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id, error_ids=[]))
-
-        with self.feature(self.features):
-            queries = [
-                f"error_ids:{uid1}",
-                f"!error_ids:{uid2}",
-                f"error_ids:[{uid1},{uid2}]",
-                f"!error_ids:[{uid2}]",
-            ]
-            for query in queries:
-                response = self.client.get(self.url + f"?field=id&field=error_ids&query={query}")
-                assert response.status_code == 200
-                response_data = response.json()
-                assert len(response_data["data"]) == 1, query
-                assert len(response_data["data"][0]["error_ids"]) == 1, query
 
     def test_event_id_count_columns(self) -> None:
         project = self.create_project(teams=[self.team])

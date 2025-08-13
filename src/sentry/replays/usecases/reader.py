@@ -1,35 +1,26 @@
 from __future__ import annotations
 
-import uuid
 import zlib
 from collections.abc import Generator, Iterator
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any
 
 import sentry_sdk
 from django.conf import settings
 from django.db.models import Prefetch
-from snuba_sdk import (
-    Column,
-    Condition,
-    Direction,
-    Entity,
-    Granularity,
-    Limit,
-    Offset,
-    Op,
-    OrderBy,
-    Query,
-    Request,
-)
 
 from sentry.models.files.file import File
 from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, filestore, storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.pack import unpack
-from sentry.utils.snuba import raw_snql_query
+from sentry.replays.usecases.replay import (
+    RecordingSegment,
+    get_replay,
+    get_replay_segment,
+    get_replay_segments,
+)
 
 # METADATA QUERY BEHAVIOR.
 
@@ -139,9 +130,26 @@ def fetch_direct_storage_segments_meta(
     limit: int,
 ) -> list[RecordingSegmentStorageMeta]:
     """Return direct-storage metadata derived from our Clickhouse table."""
-    if not has_archived_segment(project_id, replay_id):
-        return _fetch_segments_from_snuba(project_id, replay_id, offset, limit)
-    return []
+    replay = get_replay(
+        project_ids=[project_id],
+        replay_id=replay_id,
+        only_query_for={"is_archived"},
+        referrer="project.recording_segments.index.has_archived",
+    )
+    if not replay or replay["is_archived"]:
+        return []
+
+    return [
+        segment_row_to_storage_meta(segment)
+        for segment in get_replay_segments(
+            project_id,
+            replay_id,
+            segment_id=None,
+            limit=limit,
+            offset=offset,
+            referrer="project.recording_segments.index.get_replay_segments",
+        )
+    ]
 
 
 def fetch_direct_storage_segment_meta(
@@ -150,98 +158,34 @@ def fetch_direct_storage_segment_meta(
     segment_id: int,
 ) -> RecordingSegmentStorageMeta | None:
     """Return direct-storage metadata derived from our Clickhouse table."""
-    if has_archived_segment(project_id, replay_id):
-        return None
-
-    results = _fetch_segments_from_snuba(
-        project_id=project_id,
+    replay = get_replay(
+        project_ids=[project_id],
         replay_id=replay_id,
-        offset=0,
-        limit=1,
-        segment_id=segment_id,
+        only_query_for={"is_archived"},
+        referrer="project.recording_segments.details.has_archived",
     )
-    if len(results) == 0:
+    if not replay or replay["is_archived"]:
         return None
-    else:
-        return results[0]
 
-
-@sentry_sdk.trace
-def has_archived_segment(project_id: int, replay_id: str) -> bool:
-    """Return true if an archive row exists for this replay."""
-    snuba_request = Request(
-        dataset="replays",
-        app_id="replay-backend-web",
-        query=Query(
-            match=Entity("replays"),
-            select=[Column("is_archived")],
-            where=[
-                Condition(Column("is_archived"), Op.EQ, 1),
-                Condition(Column("project_id"), Op.EQ, project_id),
-                Condition(Column("replay_id"), Op.EQ, str(uuid.UUID(replay_id))),
-                # We request the full 90 day range. This is effectively an unbounded timestamp
-                # range.
-                Condition(Column("timestamp"), Op.LT, datetime.now()),
-                Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=90)),
-            ],
-            granularity=Granularity(3600),
-        ),
+    segment = get_replay_segment(
+        project_id,
+        replay_id,
+        segment_id,
+        referrer="project.recording_segments.details.get_replay_segment",
     )
-    response = raw_snql_query(snuba_request, "replays.query.download_replay_segments")
-    return len(response["data"]) > 0
+    if segment:
+        return segment_row_to_storage_meta(segment)
+
+    return None
 
 
-def _fetch_segments_from_snuba(
-    project_id: int,
-    replay_id: str,
-    offset: int,
-    limit: int,
-    segment_id: int | None = None,
-) -> list[RecordingSegmentStorageMeta]:
-    conditions = []
-    if segment_id:
-        conditions.append(Condition(Column("segment_id"), Op.EQ, segment_id))
-    else:
-        conditions.append(Condition(Column("segment_id"), Op.IS_NOT_NULL, None))
-
-    snuba_request = Request(
-        dataset="replays",
-        app_id="replay-backend-web",
-        query=Query(
-            match=Entity("replays"),
-            select=[Column("segment_id"), Column("retention_days"), Column("timestamp")],
-            where=[
-                Condition(Column("project_id"), Op.EQ, project_id),
-                Condition(Column("replay_id"), Op.EQ, str(uuid.UUID(replay_id))),
-                # We request the full 90 day range. This is effectively an unbounded timestamp
-                # range.
-                Condition(Column("timestamp"), Op.LT, datetime.now()),
-                Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=90)),
-                # Used to dynamically pass the "segment_id" condition for details requests.
-                *conditions,
-            ],
-            orderby=[OrderBy(Column("segment_id"), Direction.ASC)],
-            granularity=Granularity(3600),
-            limit=Limit(limit),
-            offset=Offset(offset),
-        ),
-    )
-    response = raw_snql_query(snuba_request, "replays.query.download_replay_segments")
-
-    return [segment_row_to_storage_meta(project_id, replay_id, item) for item in response["data"]]
-
-
-def segment_row_to_storage_meta(
-    project_id: int,
-    replay_id: str,
-    row,
-) -> RecordingSegmentStorageMeta:
+def segment_row_to_storage_meta(segment: RecordingSegment) -> RecordingSegmentStorageMeta:
     return RecordingSegmentStorageMeta(
-        project_id=project_id,
-        replay_id=replay_id,
-        segment_id=row["segment_id"],
-        retention_days=row["retention_days"],
-        date_added=datetime.fromisoformat(row["timestamp"]),
+        project_id=segment["project_id"],
+        replay_id=segment["replay_id"],
+        segment_id=segment["segment_id"],
+        retention_days=segment["retention_days"],
+        date_added=datetime.fromisoformat(segment["timestamp"]),
         file_id=None,
     )
 
