@@ -1,4 +1,4 @@
-import {cloneElement, Fragment, isValidElement} from 'react';
+import {cloneElement, Fragment, isValidElement, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -24,6 +24,21 @@ import type {
 } from 'getsentry/views/amCheckout/steps/planSelectRow';
 import {displayUnitPrice, getShortInterval} from 'getsentry/views/amCheckout/utils';
 
+interface PlanSelectCardProps
+  extends Omit<
+    PlanSelectRowProps,
+    'isFeaturesCheckmarked' | 'discountInfo' | 'planWarning' | 'priceHeader'
+  > {
+  /**
+   * Icon to use for the plan
+   */
+  planIcon: React.ReactNode;
+  /**
+   * Prior plan to compare against (ie. prior plan for Business is Team)
+   */
+  priorPlan?: Plan;
+}
+
 function PlanSelectCard({
   plan,
   isSelected,
@@ -34,35 +49,40 @@ function PlanSelectCard({
   price,
   highlightedFeatures,
   badge,
-  shouldShowDefaultPayAsYouGo = false,
+  shouldShowDefaultPayAsYouGo,
   planIcon,
-  shouldShowEventPrice = false,
+  shouldShowEventPrice,
   priorPlan,
-}: Omit<
-  PlanSelectRowProps,
-  'isFeaturesCheckmarked' | 'discountInfo' | 'planWarning' | 'priceHeader'
-> & {
-  planIcon: React.ReactNode;
-  priorPlan?: Plan;
-}) {
+}: PlanSelectCardProps) {
   const theme = useTheme();
 
   const billingInterval = getShortInterval(plan.billingInterval);
   const {features, description, hasMoreLink} = planContent;
 
-  const perUnitPriceDiffs: Partial<Record<DataCategory, number>> = {};
-  if (shouldShowEventPrice && priorPlan) {
-    Object.entries(plan.planCategories).forEach(([category, eventBuckets]) => {
-      const priorPlanEventBuckets = priorPlan.planCategories[category as DataCategory];
-      const currentStartingPrice = eventBuckets[1]?.onDemandPrice ?? 0;
-      const priorStartingPrice = priorPlanEventBuckets?.[1]?.onDemandPrice ?? 0;
-      const perUnitPriceDiff = Math.max(currentStartingPrice - priorStartingPrice, 0);
-      if (perUnitPriceDiff > 0) {
-        perUnitPriceDiffs[category as DataCategory] = perUnitPriceDiff;
-      }
-    });
-  }
-  const showEventPriceWarning = Object.values(perUnitPriceDiffs).some(diff => diff > 0);
+  const perUnitPriceDiffs: Partial<Record<DataCategory, number>> = useMemo(() => {
+    if (!shouldShowEventPrice || !priorPlan) {
+      return {};
+    }
+
+    return Object.entries(plan.planCategories).reduce(
+      (acc, [category, eventBuckets]) => {
+        const priorPlanEventBuckets = priorPlan.planCategories[category as DataCategory];
+        const currentStartingPrice = eventBuckets[1]?.onDemandPrice ?? 0;
+        const priorStartingPrice = priorPlanEventBuckets?.[1]?.onDemandPrice ?? 0;
+        const perUnitPriceDiff = currentStartingPrice - priorStartingPrice;
+        if (perUnitPriceDiff > 0) {
+          acc[category as DataCategory] = perUnitPriceDiff;
+        }
+        return acc;
+      },
+      {} as Partial<Record<DataCategory, number>>
+    );
+  }, [shouldShowEventPrice, priorPlan, plan]);
+
+  const showEventPriceWarning = useMemo(
+    () => Object.values(perUnitPriceDiffs).length > 0,
+    [perUnitPriceDiffs]
+  );
 
   const onPlanSelect = () => {
     const data: PlanUpdateData = {plan: plan.id};
@@ -87,6 +107,9 @@ function PlanSelectCard({
       data-test-id={`plan-option-${plan.id}`}
       isSelected={isSelected}
       onClick={onPlanSelect}
+      direction="column"
+      gap="md"
+      padding="2xl"
     >
       <Row>
         <PlanIconContainer>
@@ -210,9 +233,6 @@ function PlanSelectCard({
 export default PlanSelectCard;
 
 const PlanOption = styled(Flex)<{isSelected?: boolean}>`
-  padding: ${p => p.theme.space['2xl']};
-  gap: ${p => p.theme.space.md};
-  flex-direction: column;
   background: ${p => (p.isSelected ? `${p.theme.active}05` : p.theme.background)};
   color: ${p => (p.isSelected ? p.theme.activeText : p.theme.textColor)};
   border-radius: ${p => p.theme.borderRadius};

@@ -255,7 +255,7 @@ function PlanSelect({
                 key={plan.id}
                 planIcon={planIcon}
                 priorPlan={priorPlan}
-                shouldShowEventPrice={isBizPlanFamily(plan)}
+                shouldShowEventPrice={!!isBizPlanFamily(plan)}
                 {...commonProps}
               />
             );

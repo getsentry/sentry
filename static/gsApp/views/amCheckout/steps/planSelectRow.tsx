@@ -41,6 +41,14 @@ export type PlanSelectRowProps = {
   planValue: string;
   price: string;
   priceHeader: React.ReactNode;
+  /**
+   * Flag to show default pay as you go values
+   */
+  shouldShowDefaultPayAsYouGo: boolean;
+  /**
+   * Flag to show event price tags or warnings
+   */
+  shouldShowEventPrice: boolean;
   badge?: React.ReactNode;
   discountInfo?: Promotion['discountInfo'];
   highlightedFeatures?: string[];
@@ -53,14 +61,6 @@ export type PlanSelectRowProps = {
    * Optional warning at the bottom of the row
    */
   planWarning?: React.ReactNode;
-  /**
-   * Optional flag to show default pay as you go values
-   */
-  shouldShowDefaultPayAsYouGo?: boolean;
-  /**
-   * Optional flag to show event price tags
-   */
-  shouldShowEventPrice?: boolean;
 };
 
 function PlanSelectRow({
