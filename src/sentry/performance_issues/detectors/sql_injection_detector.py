@@ -228,7 +228,8 @@ class SQLInjectionDetector(PerformanceDetector):
             return False
 
         # Auto-generated rails queries can contain interpolated values
-        if span.get("origin") == "auto.db.rails":
+        origin = span.get("origin")
+        if origin == "auto.db.rails" or origin == "auto.db.otel.mysql2":
             return False
 
         # If bindings are present, we can assume the query is safe
