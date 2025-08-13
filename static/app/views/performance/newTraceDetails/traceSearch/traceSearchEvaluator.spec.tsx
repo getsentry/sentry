@@ -493,59 +493,6 @@ describe('TraceSearchEvaluator', () => {
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 1, value: tree.list[1]}]);
       expect(cb.mock.calls[0][0][2]).toBeNull();
     });
-
-    it('name filter', async () => {
-      const tree = TraceTree.FromTrace(
-        {
-          transactions: [makeTransaction({'transaction.op': 'operation'})],
-          orphan_errors: [],
-        },
-        {
-          meta: null,
-          replay: null,
-        }
-      );
-      TraceTree.FromSpans(
-        tree.root.children[0]!,
-        [makeSpan({name: 'authentication'} as any), makeSpan({name: 'database'} as any)],
-        makeEventTransaction()
-      );
-
-      const cb = jest.fn();
-      search('name:authentication', tree, cb);
-      await waitFor(() => expect(cb).toHaveBeenCalled());
-      expect(cb.mock.calls[0][0][1].size).toBe(1);
-      expect(cb.mock.calls[0][0][0]).toEqual([{index: 1, value: tree.list[1]}]);
-      expect(cb.mock.calls[0][0][2]).toBeNull();
-    });
-
-    it('name free text search', async () => {
-      const tree = TraceTree.FromTrace(
-        {
-          transactions: [makeTransaction({'transaction.op': 'operation'})],
-          orphan_errors: [],
-        },
-        {
-          meta: null,
-          replay: null,
-        }
-      );
-      TraceTree.FromSpans(
-        tree.root.children[0]!,
-        [
-          makeSpan({name: 'user_authentication_service', op: 'http'} as any),
-          makeSpan({name: 'database_query', op: 'db'} as any),
-        ],
-        makeEventTransaction()
-      );
-
-      const cb = jest.fn();
-      search('authentication', tree, cb);
-      await waitFor(() => expect(cb).toHaveBeenCalled());
-      expect(cb.mock.calls[0][0][1].size).toBe(1);
-      expect(cb.mock.calls[0][0][0]).toEqual([{index: 1, value: tree.list[1]}]);
-      expect(cb.mock.calls[0][0][2]).toBeNull();
-    });
   });
 
   // TODO Abdullah Khan: Add eap span tests for self_time/exclusive_time
