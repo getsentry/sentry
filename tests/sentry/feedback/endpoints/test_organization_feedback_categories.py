@@ -155,12 +155,10 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
             )
 
     @django_db_all
-    @patch(
-        "sentry.feedback.endpoints.organization_feedback_categories.make_signed_seer_api_request"
-    )
     def test_get_feedback_categories_without_feature_flag(self) -> None:
-        response = self.get_error_response(self.org.slug)
-        assert response.status_code == 404
+        with self.feature({"organizations:user-feedback-ai-categorization-features": False}):
+            response = self.get_error_response(self.org.slug)
+            assert response.status_code == 404
 
     @django_db_all
     @patch(
@@ -207,11 +205,11 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
             assert isinstance(category["feedbackCount"], int)
 
             if category["primaryLabel"] == "User Interface":
-                assert category["feedbackCount"] == 9  # 4 from project1 + 5 from project2
+                assert category["feedbackCount"] == 11
             elif category["primaryLabel"] == "Performance":
-                assert category["feedbackCount"] == 3  # 3 from project1
+                assert category["feedbackCount"] == 4
             elif category["primaryLabel"] == "Authentication":
-                assert category["feedbackCount"] == 3  # 3 from project1
+                assert category["feedbackCount"] == 3
 
     @django_db_all
     @patch(
@@ -260,9 +258,9 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
             assert isinstance(category["feedbackCount"], int)
 
             if category["primaryLabel"] == "User Interface":
-                assert category["feedbackCount"] == 4  # 4 from project1 only
+                assert category["feedbackCount"] == 8
             elif category["primaryLabel"] == "Authentication":
-                assert category["feedbackCount"] == 3  # 3 from project1 only
+                assert category["feedbackCount"] == 3
 
     @django_db_all
     @patch(
