@@ -33,7 +33,7 @@ type GroupListBodyProps = {
   error: string | null;
   groupIds: string[];
   groupStatsPeriod: string;
-  issuesSuccessfullyLoaded: boolean;
+  isIssueListLoaded: boolean;
   loading: boolean;
   memberList: IndexedMembersByProject;
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
@@ -58,19 +58,19 @@ function GroupListBody({
   query,
   displayReprocessingLayout,
   groupStatsPeriod,
+  isIssueListLoaded,
   loading,
   error,
   refetchGroups,
   selectedProjectIds,
   onActionTaken,
   pageSize,
-  issuesSuccessfullyLoaded,
 }: GroupListBodyProps) {
   const api = useApi();
   const organization = useOrganization();
 
   // initial loading state
-  if (!issuesSuccessfullyLoaded && loading) {
+  if (!isIssueListLoaded) {
     return (
       <LoadingSkeleton
         displayReprocessingLayout={displayReprocessingLayout}

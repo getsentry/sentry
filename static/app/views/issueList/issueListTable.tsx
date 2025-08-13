@@ -21,6 +21,7 @@ interface IssueListTableProps {
   displayReprocessingActions: boolean;
   error: string | null;
   groupIds: string[];
+  isIssueListLoaded: boolean;
   issuesLoading: boolean;
   issuesSuccessfullyLoaded: boolean;
   memberList: IndexedMembersByProject;
@@ -60,6 +61,7 @@ function IssueListTable({
   onCursor,
   paginationAnalyticsEvent,
   issuesSuccessfullyLoaded,
+  isIssueListLoaded,
   pageSize,
 }: IssueListTableProps) {
   const location = useLocation();
@@ -112,8 +114,8 @@ function IssueListTable({
                 displayReprocessingLayout={displayReprocessingActions}
                 query={query}
                 selectedProjectIds={selection.projects}
+                isIssueListLoaded={isIssueListLoaded}
                 loading={issuesLoading}
-                issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
                 error={error}
                 refetchGroups={refetchGroups}
                 onActionTaken={onActionTaken}

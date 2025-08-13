@@ -65,6 +65,14 @@ import {
 } from 'sentry/views/issueList/utils';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
+export const DEFAULT_STREAM_GROUP_COLUMNS: GroupListColumn[] = [
+  'graph',
+  'event',
+  'users',
+  'priority',
+  'assignee',
+  'lastTriggered',
+];
 
 type Props = {
   id: string;
@@ -72,7 +80,6 @@ type Props = {
   customStatsPeriod?: TimePeriodType;
   displayReprocessingLayout?: boolean;
   hasGuideAnchor?: boolean;
-  issuesSuccessfullyLoaded?: boolean;
   memberList?: User[];
   onPriorityChange?: (newPriority: PriorityLevel) => void;
   query?: string;
@@ -177,7 +184,7 @@ function GroupFirstSeen({group}: {group: Group}) {
 export function LoadingStreamGroup({
   displayReprocessingLayout,
   withChart = true,
-  withColumns = ['graph', 'event', 'users', 'priority', 'assignee', 'lastTriggered'],
+  withColumns = DEFAULT_STREAM_GROUP_COLUMNS,
   showLastTriggered = false,
 }: Pick<
   Props,
@@ -405,7 +412,8 @@ function StreamGroup({
       !defined(group?.lifetime) ||
       !defined(group?.lifetime?.lastSeen) ||
       !defined(group?.lifetime?.firstSeen) ||
-      (issueTypeConfig?.stats.enabled && !defined(groupStats)) ||
+      !defined(group?.priority) ||
+      (issueTypeConfig?.stats?.enabled && !defined(groupStats)) ||
       (showLastTriggered && !lastTriggeredDate) ||
       !defined(primaryCount) ||
       !defined(primaryUserCount);
@@ -615,7 +623,6 @@ function StreamGroup({
           {issueTypeConfig?.stats.enabled ? (
             <GroupStatusChart
               hideZeros
-              loading={!defined(groupStats)}
               stats={groupStats}
               secondaryStats={groupSecondaryStats}
               showSecondaryPoints={showSecondaryPoints}
