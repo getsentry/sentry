@@ -194,7 +194,7 @@ function PlanSelect({
       {} as Record<string, Plan>
     );
     return (
-      <StyledPanelBody data-test-id="body-choose-your-plan">
+      <PanelBody data-test-id="body-choose-your-plan">
         {planOptions.map(plan => {
           const isSelected = plan.id === formData.plan;
           const priorPlan = planToPriorPlan[plan.id];
@@ -228,7 +228,7 @@ function PlanSelect({
           }
 
           const planIcon = isBizPlanFamily(plan) ? (
-            <IconLightning />
+            <IconLightning /> // TODO(checkout v3): replace with building icon
           ) : isTeamPlanFamily(plan) ? (
             <IconGroup />
           ) : (
@@ -275,7 +275,7 @@ function PlanSelect({
             />
           );
         })}
-      </StyledPanelBody>
+      </PanelBody>
     );
   };
 
@@ -396,12 +396,4 @@ const FooterWarningWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-`;
-
-// TODO(ISABELLA): DELETE THIS
-const StyledPanelBody = styled(PanelBody)`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  padding: ${space(2)};
-  gap: ${space(2)};
 `;

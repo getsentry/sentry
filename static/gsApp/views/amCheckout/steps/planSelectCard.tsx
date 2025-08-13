@@ -15,7 +15,7 @@ import type {Color} from 'sentry/utils/theme';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {OnDemandBudgetMode, type Plan} from 'getsentry/types';
-import {isBizPlanFamily, isDeveloperPlan} from 'getsentry/utils/billing';
+import {isBizPlanFamily} from 'getsentry/utils/billing';
 import {getSingularCategoryName, listDisplayNames} from 'getsentry/utils/dataCategory';
 import MoreFeaturesLink from 'getsentry/views/amCheckout/moreFeaturesLink';
 import type {
@@ -51,7 +51,7 @@ function PlanSelectCard({
   const {features, description, hasMoreLink} = planContent;
 
   const perUnitPriceDiffs: Partial<Record<DataCategory, number>> = {};
-  if (shouldShowEventPrice && priorPlan && !isDeveloperPlan(priorPlan)) {
+  if (shouldShowEventPrice && priorPlan) {
     Object.entries(plan.planCategories).forEach(([category, eventBuckets]) => {
       const priorPlanEventBuckets = priorPlan.planCategories[category as DataCategory];
       const currentStartingPrice = eventBuckets[1]?.onDemandPrice ?? 0;
