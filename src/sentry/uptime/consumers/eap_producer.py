@@ -26,6 +26,7 @@ def _get_eap_items_producer() -> KafkaProducer:
     producer_config = get_kafka_producer_cluster_options(cluster_name)
     producer_config.pop("compression.type", None)
     producer_config.pop("message.max.bytes", None)
+    producer_config["client.id"] = "sentry.uptime.consumers.eap_producer"
     return KafkaProducer(build_kafka_configuration(default_config=producer_config))
 
 

@@ -66,6 +66,7 @@ def _get_dlq_producer(topic: Topic | None) -> KafkaDlqProducer | None:
 
     topic_defn = get_topic_definition(topic)
     config = get_kafka_producer_cluster_options(topic_defn["cluster"])
+    config["client.id"] = f"sentry.consumers.dlq.{topic.value}"
     real_topic = topic_defn["real_topic_name"]
     return KafkaDlqProducer(KafkaProducer(config), ArroyoTopic(real_topic))
 
