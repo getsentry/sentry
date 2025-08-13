@@ -133,7 +133,9 @@ def deduplicate_actions(
     dedup_key_to_action_id: dict[str, int] = {}
 
     for action in actions_queryset:
-        dedup_key = action.get_dedup_key()
+        # workflow_id is annotated in the queryset
+        workflow_id = getattr(action, "workflow_id")
+        dedup_key = action.get_dedup_key(workflow_id)
         dedup_key_to_action_id[dedup_key] = action.id
 
     return actions_queryset.filter(id__in=dedup_key_to_action_id.values())
