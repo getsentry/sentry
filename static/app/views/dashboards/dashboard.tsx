@@ -114,6 +114,7 @@ class Dashboard extends Component<Props, State> {
     super(props);
     const {dashboard} = props;
     const desktopLayout = getDashboardLayout(dashboard.widgets);
+    this.trackEngagementAnalytics(dashboard.widgets);
     this.state = {
       isMobile: false,
       layouts: {
@@ -478,6 +479,33 @@ class Dashboard extends Component<Props, State> {
     }
     this.setState({isMobile: false});
   };
+
+  trackEngagementAnalytics(widgets: Widget[]) {
+    // Handle edge-case of dashboard with no widgets.
+    if (!widgets.length) return;
+    const {dashboard, organization} = this.props;
+    // For attributing engagement metrics initially track the ratio
+    // of widgets reading from Transactions, Spans, Errors, and Issues, and Logs.
+    const issuesWidgetTypes = new Set<string | undefined>(['error-events', 'issue']);
+    const tracingWidgetTypes = new Set<string | undefined>(['transaction-like', 'spans', 'logs']);
+    let tracingWidgetCount = 0.0;
+    let issuesWidgetCount = 0.0;
+    for (const widget of widgets) {
+      if (issuesWidgetTypes.has(widget.widgetType)) {
+        issuesWidgetCount += 1.0;
+      } else if (tracingWidgetTypes.has(widget.widgetType)) {
+        tracingWidgetCount += 1.0;
+      }
+    }
+    const analyticsPayload = {
+      organization,
+      title: dashboard.title,
+      id: dashboard.id,
+      tracingRatio: tracingWidgetCount / widgets.length,
+      issuesRatio: issuesWidgetCount / widgets.length,
+    };
+    trackAnalytics('dashboards_views.engagement.load', analyticsPayload);
+  }
 
   get addWidgetLayout() {
     const {isMobile, layouts} = this.state;
