@@ -159,7 +159,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         with self.options({"deletions.nodestore.parallelization-task-enabled": True}):
             self.test_grouphistory_relation()
 
-    @mock.patch("sentry.nodestore.delete_multi")
+    @mock.patch("sentry.services.nodestore.delete_multi")
     def test_cleanup(self, nodestore_delete_multi: mock.Mock) -> None:
         os.environ["_SENTRY_CLEANUP"] = "1"
         try:

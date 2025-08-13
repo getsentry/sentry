@@ -404,7 +404,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.deletions",
     "sentry.discover",
     "sentry.analytics.events",
-    "sentry.nodestore",
+    "sentry.services.nodestore",
     "sentry.users",
     "sentry.sentry_apps",
     "sentry.integrations",
@@ -2164,7 +2164,7 @@ SENTRY_SNUBA_TIMEOUT = 30
 SENTRY_SNUBA_CACHE_TTL_SECONDS = 60
 
 # Node storage backend
-SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
+SENTRY_NODESTORE = "sentry.services.nodestore.django.DjangoNodeStorage"
 SENTRY_NODESTORE_OPTIONS: dict[str, Any] = {}
 
 # Tag storage backend
