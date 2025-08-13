@@ -13,6 +13,7 @@ import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/componen
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {scoreToStatus} from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 import {useCreateIssue} from 'sentry/views/insights/browser/webVitals/utils/useCreateIssue';
+import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
 type Props = {
@@ -116,6 +117,7 @@ export const VITAL_DESCRIPTIONS: Partial<
 };
 
 export function WebVitalDetailHeader({score, value, webVital, transaction}: Props) {
+  const hasSeerWebVitalsSuggestions = useHasSeerWebVitalsSuggestions();
   const status = score === undefined ? undefined : scoreToStatus(score);
 
   const {mutate: createIssue} = useCreateIssue();
@@ -128,7 +130,7 @@ export function WebVitalDetailHeader({score, value, webVital, transaction}: Prop
           {status && score && <PerformanceBadge score={score} />}
         </WebVitalScore>
       </div>
-      {transaction && score && score < 90 && (
+      {hasSeerWebVitalsSuggestions && transaction && score && score < 90 && (
         <div>
           <Button
             title={tct(
