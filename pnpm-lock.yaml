@@ -569,7 +569,7 @@ importers:
         specifier: 30.0.4
         version: 30.0.4(@babel/core@7.28.0)
       eslint:
-        specifier: github:eslint/eslint#rfc129
+        specifier: github:eslint/eslint#2aba68b25b3aeba070da493c7d9689fda796c7aa
         version: https://codeload.github.com/eslint/eslint/tar.gz/2aba68b25b3aeba070da493c7d9689fda796c7aa(jiti@2.4.2)
       eslint-config-prettier:
         specifier: 10.1.8
