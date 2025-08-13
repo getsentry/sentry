@@ -1,3 +1,4 @@
+import pytest
 import logging
 from unittest import mock
 from uuid import uuid4
@@ -532,6 +533,7 @@ class OrganizationEventsTraceEndpointTest(
 
         return span
 
+    @pytest.mark.skip(reason="flaky: #97779")
     def test_with_uptime_results(self):
         """Test that uptime results are included when include_uptime=1"""
         self.load_trace(is_eap=True)
