@@ -285,6 +285,8 @@ def create_feedback_issue(
             sample_rate=1.0,
         )
 
+    should_query_seer = not is_message_spam and has_seer_access(project.organization)
+
     # Prepare the data for issue platform processing and attach useful tags.
 
     # Note that some of the fields below like title and subtitle
@@ -302,7 +304,7 @@ def create_feedback_issue(
             "feedback.ai_title_generation.skipped",
             tags={"reason": "is_spam"},
         )
-    elif not has_seer_access(project.organization):
+    elif not should_query_seer:
         metrics.incr(
             "feedback.ai_title_generation.skipped",
             tags={"reason": "gen_ai_disabled"},
@@ -313,10 +315,8 @@ def create_feedback_issue(
             tags={"reason": "feedback_ai_titles_disabled"},
         )
 
-    use_ai_title = (
-        not is_message_spam
-        and has_seer_access(project.organization)
-        and features.has("organizations:user-feedback-ai-titles", project.organization)
+    use_ai_title = should_query_seer and features.has(
+        "organizations:user-feedback-ai-titles", project.organization
     )
     title = get_feedback_title(feedback_message, project.organization_id, use_ai_title)
 
@@ -347,10 +347,8 @@ def create_feedback_issue(
     )
 
     # Generating labels using Seer, which will later be used to categorize feedbacks
-    if (
-        not is_message_spam
-        and features.has("organizations:user-feedback-ai-categorization", project.organization)
-        and has_seer_access(project.organization)
+    if should_query_seer and features.has(
+        "organizations:user-feedback-ai-categorization", project.organization
     ):
         try:
             labels = generate_labels(feedback_message, project.organization_id)
