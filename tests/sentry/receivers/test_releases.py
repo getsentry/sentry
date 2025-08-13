@@ -2,7 +2,6 @@ from hashlib import sha1
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
-from sentry.buffer.base import Buffer
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -16,6 +15,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
+from sentry.services.buffer.base import Buffer
 from sentry.signals import buffer_incr_complete, receivers_raise_on_send
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase

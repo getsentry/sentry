@@ -4,11 +4,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
-from sentry import buffer
 from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
+from sentry.services import buffer
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -818,8 +818,8 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
             group=self.group_event.group,
         )
 
-    @patch("sentry.buffer.backend.push_to_sorted_set")
-    @patch("sentry.buffer.backend.push_to_hash_bulk")
+    @patch("sentry.services.buffer.backend.push_to_sorted_set")
+    @patch("sentry.services.buffer.backend.push_to_hash_bulk")
     @patch("random.choice")
     def test_enqueue_workflows__adds_to_workflow_engine_buffer(
         self, mock_randchoice, mock_push_to_hash_bulk, mock_push_to_sorted_set
@@ -843,8 +843,8 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
             value=[self.group_event.project_id],
         )
 
-    @patch("sentry.buffer.backend.push_to_sorted_set")
-    @patch("sentry.buffer.backend.push_to_hash_bulk")
+    @patch("sentry.services.buffer.backend.push_to_sorted_set")
+    @patch("sentry.services.buffer.backend.push_to_hash_bulk")
     def test_enqueue_workflow__adds_to_workflow_engine_set(
         self, mock_push_to_hash_bulk, mock_push_to_sorted_set
     ):

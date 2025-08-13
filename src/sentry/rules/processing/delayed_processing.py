@@ -11,8 +11,6 @@ from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
 from django.db.models import OuterRef, Subquery
 
-from sentry import buffer, features, nodestore
-from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -42,6 +40,8 @@ from sentry.rules.processing.processor import (
     is_condition_slow,
     split_conditions_and_filters,
 )
+from sentry.services import buffer, features, nodestore
+from sentry.services.buffer.base import BufferField
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task

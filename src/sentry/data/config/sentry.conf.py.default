@@ -77,7 +77,7 @@ SENTRY_RATELIMITER = 'sentry.ratelimits.redis.RedisRateLimiter'
 # numbers of the same events being sent to the API in a short amount of time.
 # (read: if you send any kind of real data to Sentry, you should enable buffers)
 
-SENTRY_BUFFER = 'sentry.buffer.redis.RedisBuffer'
+SENTRY_BUFFER = 'sentry.services.buffer.redis.RedisBuffer'
 
 ##########
 # Quotas #

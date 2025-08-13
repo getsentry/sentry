@@ -474,8 +474,8 @@ def fetch_buffered_group_stats(group):
     Fetches buffered increments to `times_seen` for this group and adds them to the current
     `times_seen`.
     """
-    from sentry import buffer
     from sentry.models.group import Group
+    from sentry.services import buffer
 
     result = buffer.backend.get(Group, ["times_seen"], {"id": group.id})
     group.times_seen_pending = result["times_seen"]
