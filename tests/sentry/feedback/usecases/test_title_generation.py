@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from unittest.mock import Mock, patch
 
+import pytest
+
 from sentry.feedback.usecases.title_generation import (
     format_feedback_title,
     get_feedback_title_from_seer,
@@ -11,9 +13,7 @@ from sentry.models.organization import Organization
 from sentry.testutils.helpers.features import Feature
 
 
-class MockResponse:
-    """Mock response object for testing."""
-
+class MockSeerResponse:
     def __init__(self, status: int, json_data: dict, raw_data: str | bytes):
         self.status = status
         self.json_data = json_data
@@ -54,52 +54,59 @@ def test_should_get_ai_title():
         assert should_get_ai_title(org) is True
 
 
+@pytest.mark.parametrize(
+    "status_code,json_data,raw_data",
+    [
+        pytest.param(
+            200,
+            {"invalid": "response"},
+            '{"invalid": "response"}',
+            id="missing_title_key",
+        ),
+        pytest.param(
+            200,
+            {"title": ""},
+            '{"title": ""}',
+            id="empty_title",
+        ),
+        pytest.param(
+            200,
+            {"title": "   "},
+            '{"title": "   "}',
+            id="whitespace_only_title",
+        ),
+        pytest.param(
+            200,
+            {"title": 123},
+            '{"title": 123}',
+            id="non_string_title",
+        ),
+        pytest.param(
+            200,
+            {},
+            '{"invalid": json}',
+            id="invalid_json",
+        ),
+    ],
+)
 @patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
-def test_get_feedback_title_from_seer_missing_title_key(mock_make_seer_request):
-    """Test the get_feedback_title_from_seer function with missing title key in response."""
-    mock_response = MockResponse(200, {"invalid": "response"}, '{"invalid": "response"}')
+def test_get_feedback_title_from_seer_invalid_response(
+    mock_make_seer_request, status_code, json_data, raw_data
+):
+    """Test the get_feedback_title_from_seer function with various invalid responses."""
+    mock_response = MockSeerResponse(status_code, json_data, raw_data)
     mock_make_seer_request.return_value = mock_response
     assert get_feedback_title_from_seer("Login button broken", 123) is None
-
-
-@patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
-def test_get_feedback_title_from_seer_empty_title(mock_make_seer_request):
-    """Test the get_feedback_title_from_seer function with empty title in response."""
-    mock_response = MockResponse(200, {"title": ""}, '{"title": ""}')
-    mock_make_seer_request.return_value = mock_response
-    assert get_feedback_title_from_seer("Login button broken", 123) is None
-
-
-@patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
-def test_get_feedback_title_from_seer_whitespace_only_title(mock_make_seer_request):
-    """Test the get_feedback_title_from_seer function with whitespace-only title in response."""
-    mock_response = MockResponse(200, {"title": "   "}, '{"title": "   "}')
-    mock_make_seer_request.return_value = mock_response
-    assert get_feedback_title_from_seer("Login button broken", 123) is None
-
-
-@patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
-def test_get_feedback_title_from_seer_non_string_title(mock_make_seer_request):
-    """Test the get_feedback_title_from_seer function with non-string title in response."""
-    mock_response = MockResponse(200, {"title": 123}, '{"title": 123}')
-    mock_make_seer_request.return_value = mock_response
-    assert get_feedback_title_from_seer("Login button broken", 123) is None
-
-
-@patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
-def test_get_feedback_title_from_seer_invalid_json(mock_make_seer_request):
-    """Test the get_feedback_title_from_seer function with invalid JSON response."""
-    mock_response = MockResponse(200, {}, '{"invalid": json}')
-    mock_make_seer_request.return_value = mock_response
-    assert get_feedback_title_from_seer("Login button broken", 123) is None
+    mock_make_seer_request.assert_called_once()
 
 
 @patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
 def test_get_feedback_title_from_seer_http_error(mock_make_seer_request):
     """Test the get_feedback_title_from_seer function with HTTP error response."""
-    mock_response = MockResponse(500, {}, "Internal Server Error")
+    mock_response = MockSeerResponse(500, {}, "Internal Server Error")
     mock_make_seer_request.return_value = mock_response
     assert get_feedback_title_from_seer("Login button broken", 123) is None
+    mock_make_seer_request.assert_called_once()
 
 
 @patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
@@ -107,12 +114,13 @@ def test_get_feedback_title_from_seer_exception(mock_make_seer_request):
     """Test the get_feedback_title_from_seer function with exception during API call."""
     mock_make_seer_request.side_effect = Exception("Network error")
     assert get_feedback_title_from_seer("Login button broken", 123) is None
+    mock_make_seer_request.assert_called_once()
 
 
 @patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
 def test_get_feedback_title_from_seer_success(mock_make_seer_request):
     """Test the get_feedback_title_from_seer function with successful response."""
-    mock_response = MockResponse(
+    mock_response = MockSeerResponse(
         200, {"title": "Login Button Issue"}, '{"title": "Login Button Issue"}'
     )
     mock_make_seer_request.return_value = mock_response
