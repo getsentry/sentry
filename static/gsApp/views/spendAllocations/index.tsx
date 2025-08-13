@@ -177,7 +177,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
           (resp?.getResponseHeader('Link') || resp?.getResponseHeader('link')) ??
           undefined;
         setPageLinks(links);
-      } catch (err) {
+      } catch (err: any) {
         if (err.status === 404) {
           setErrors('Error fetching spend allocations');
         } else if (err.status === 403) {
@@ -218,7 +218,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
           },
         });
         await fetchSpendAllocations();
-      } catch (err) {
+      } catch (err: any) {
         setErrors(err.statusText);
       }
     };
@@ -240,7 +240,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
         },
       });
       await fetchSpendAllocations();
-    } catch (err) {
+    } catch (err: any) {
       setShouldRetry(false);
       setErrors(err.responseJSON.detail);
     }
@@ -265,7 +265,7 @@ export function SpendAllocationsRoot({organization, subscription}: Props) {
           method: 'DELETE',
         }
       );
-    } catch (err) {
+    } catch (err: any) {
       if (err.status === 409) {
         setErrors('Spend Allocations are already disabled');
       }

@@ -6,7 +6,6 @@ import pytest
 from django.utils import timezone
 
 from sentry import buffer
-from sentry.eventstore.models import Event
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -16,6 +15,7 @@ from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.match import MatchType
 from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import fetch_project
+from sentry.services.eventstore.models import Event
 from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
@@ -60,7 +60,7 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     get_group_to_groupevent,
     get_groups_to_fire,
 )
-from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
+from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
@@ -119,12 +119,8 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()
 
-        buffer.backend.push_to_sorted_set(
-            key=WORKFLOW_ENGINE_BUFFER_LIST_KEY, value=self.project.id
-        )
-        buffer.backend.push_to_sorted_set(
-            key=WORKFLOW_ENGINE_BUFFER_LIST_KEY, value=self.project2.id
-        )
+        buffer.backend.push_to_sorted_set(key=DelayedWorkflow.buffer_key, value=self.project.id)
+        buffer.backend.push_to_sorted_set(key=DelayedWorkflow.buffer_key, value=self.project2.id)
 
     def tearDown(self):
         self.mock_redis_buffer.__exit__(None, None, None)

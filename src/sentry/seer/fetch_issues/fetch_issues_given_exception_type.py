@@ -127,4 +127,13 @@ def get_issues_related_to_exception_type(
         )
         .order_by("last_seen")[:max_num_issues]
     )
-    return {"issues": [issue.id for issue in query_set]}
+    return {
+        "issues": [issue.id for issue in query_set],
+        "issues_with_message": [
+            {
+                "id": issue.id,
+                "message": issue.data.get("title") if issue.data else "",
+            }
+            for issue in query_set
+        ],
+    }

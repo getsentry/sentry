@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 from django.db.models import Q
 
-from sentry.eventstore.models import GroupEvent
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.providers import get_provider_enum_from_string
 from sentry.models.commit import Commit
@@ -31,6 +30,7 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
+from sentry.services.eventstore.models import GroupEvent
 from sentry.types.actor import Actor, ActorType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -40,7 +40,7 @@ from sentry.utils import json, metrics
 from sentry.utils.committers import AuthorCommitsSerialized, get_serialized_event_file_committers
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 logger = logging.getLogger(__name__)
 

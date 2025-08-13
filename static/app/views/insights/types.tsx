@@ -508,6 +508,31 @@ export type SpanQueryFilters = Partial<Record<SpanStringFields, string>> & {
   [SpanFields.PROJECT_ID]?: string;
 };
 
+export enum ErrorField {
+  ISSUE = 'issue',
+  TITLE = 'title',
+}
+
+enum ErrorFunction {
+  COUNT = 'count',
+}
+
+type ErrorStringFields = ErrorField.TITLE;
+type ErrorNumberFields = ErrorField.ISSUE;
+
+type NoArgErrorFunction = ErrorFunction.COUNT;
+
+type ErrorResponseRaw = {
+  [Property in ErrorStringFields as `${Property}`]: string;
+} & {
+  [Property in ErrorNumberFields as `${Property}`]: number;
+} & {
+  [Property in NoArgErrorFunction as `${Property}()`]: number;
+};
+
+export type ErrorResponse = Flatten<ErrorResponseRaw>;
+export type ErrorProperty = keyof ErrorResponse;
+
 // Maps the subregion code to the subregion name according to UN m49 standard
 // We also define this in relay in `country_subregion.rs`
 export const subregionCodeToName = {

@@ -64,7 +64,6 @@ class DatadogMetricsBackend(MetricsBackend):
         tags: Tags | None = None,
         sample_rate: float = 1,
         stacklevel: int = 0,
-        precise: bool = False,
     ) -> None:
         tags = dict(tags or ())
 
@@ -74,14 +73,9 @@ class DatadogMetricsBackend(MetricsBackend):
             tags["instance"] = instance
 
         tags_list = [f"{k}:{v}" for k, v in tags.items()]
-        if not precise:
-            self.stats.timing(
-                self._get_key(key), value, sample_rate=sample_rate, tags=tags_list, host=self.host
-            )
-        else:
-            self.stats.distribution(
-                self._get_key(key), value, sample_rate=sample_rate, tags=tags_list, host=self.host
-            )
+        self.stats.timing(
+            self._get_key(key), value, sample_rate=sample_rate, tags=tags_list, host=self.host
+        )
 
     def gauge(
         self,
