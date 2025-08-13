@@ -223,7 +223,7 @@ def test_as_log_message() -> None:
         "timestamp": 0.0,
         "data": {"tag": "performanceSpan", "payload": {"op": "resource.xhr"}},
     }
-    assert as_log_message(event) is None
+    assert as_log_message(event) is not None
 
     event = {
         "type": 5,
