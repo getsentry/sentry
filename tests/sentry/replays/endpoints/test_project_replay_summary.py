@@ -419,12 +419,13 @@ class ProjectReplaySummaryTestCase(
             self.save_recording_segment(0, json.dumps([]).encode())
 
             with self.feature(self.features):
-                if method == "GET":
-                    response = self.client.get(self.url)
-                else:
-                    response = self.client.post(
+                response = (
+                    self.client.get(self.url)
+                    if method == "GET"
+                    else self.client.post(
                         self.url, data={"num_segments": 1}, content_type="application/json"
                     )
+                )
 
             assert response.status_code == 500, method
 
@@ -441,11 +442,12 @@ class ProjectReplaySummaryTestCase(
                 self.save_recording_segment(0, json.dumps([]).encode())
 
                 with self.feature(self.features):
-                    if method == "GET":
-                        response = self.client.get(self.url)
-                    else:
-                        response = self.client.post(
+                    response = (
+                        self.client.get(self.url)
+                        if method == "GET"
+                        else self.client.post(
                             self.url, data={"num_segments": 1}, content_type="application/json"
                         )
+                    )
 
                 assert response.status_code == 500, method

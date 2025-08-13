@@ -48,7 +48,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         return MockSeerResponse(
             200,
             json_data={"data": "Test summary of feedback"},
-            raw_data='{{"data": "Test summary of feedback"}}',
+            raw_data='{"data": "Test summary of feedback"}',
         )
 
     @django_db_all
