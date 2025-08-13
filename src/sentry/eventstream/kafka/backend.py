@@ -22,7 +22,7 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event, GroupEvent
+    from sentry.services.eventstore.models import Event, GroupEvent
 
 
 class KafkaEventStream(SnubaProtocolEventStream):

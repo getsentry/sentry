@@ -75,8 +75,9 @@ describe('useMetricDetectorAnomalies', () => {
           historicalSeries,
           thresholdType: AlertRuleThresholdType.ABOVE,
           sensitivity: AlertRuleSensitivity.MEDIUM,
-          timePeriod: 900, // 15 minutes
+          interval: 900, // 15 minutes
           projectId: '1',
+          enabled: true,
         }),
       {wrapper: TestContext}
     );

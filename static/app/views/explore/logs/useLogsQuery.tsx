@@ -22,13 +22,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
-  useLogsAggregate,
   useLogsAggregateCursor,
-  useLogsAggregateSortBys,
   useLogsBaseSearch,
   useLogsCursor,
   useLogsFields,
-  useLogsGroupBy,
   useLogsLimitToTraceId,
   useLogsProjectIds,
   useLogsSearch,
@@ -54,6 +51,11 @@ import {
   useVirtualStreaming,
 } from 'sentry/views/explore/logs/useVirtualStreaming';
 import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
+import {
+  useQueryParamsAggregateSortBys,
+  useQueryParamsGroupBys,
+  useQueryParamsVisualizes,
+} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
@@ -115,15 +117,13 @@ function useLogsAggregatesQueryKey({
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsProjectIds();
-  const groupBy = useLogsGroupBy();
-  const aggregate = useLogsAggregate();
-  const aggregateSortBys = useLogsAggregateSortBys();
+  const groupBys = useQueryParamsGroupBys();
+  const visualizes = useQueryParamsVisualizes();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
   const aggregateCursor = useLogsAggregateCursor();
   const fields: string[] = [];
-  if (groupBy) {
-    fields.push(groupBy);
-  }
-  fields.push(aggregate);
+  fields.push(...groupBys.filter(Boolean));
+  fields.push(...visualizes.map(visualize => visualize.yAxis));
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
@@ -135,7 +135,7 @@ function useLogsAggregatesQueryKey({
   const eventView = getEventView(
     search,
     fields,
-    aggregateSortBys,
+    aggregateSortBys.slice(),
     pageFilters,
     dataset,
     projectIds
@@ -201,14 +201,14 @@ function useLogsQueryKey({limit, referrer}: {referrer: string; limit?: number}) 
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const location = useLocation();
   const projectIds = useLogsProjectIds();
-  const groupBy = useLogsGroupBy();
+  const groupBys = useQueryParamsGroupBys();
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
     search.tokens.push(...baseSearch.tokens);
   }
   const fields = Array.from(
-    new Set([...AlwaysPresentLogFields, ..._fields, ...(groupBy ? [groupBy] : [])])
+    new Set([...AlwaysPresentLogFields, ..._fields, ...groupBys.filter(Boolean)])
   );
   const sorts = sortBys ?? [];
   const pageFilters = selection;

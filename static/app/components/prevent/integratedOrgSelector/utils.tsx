@@ -5,5 +5,5 @@ export const integratedOrgIdToName = (id?: string, integrations?: Integration[])
     return 'No Integration';
   }
   const result = integrations.find(item => item.id === id);
-  return result ? result.name : 'Unknown Integration';
+  return result ? result.name : 'Select Integration';
 };

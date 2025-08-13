@@ -16,11 +16,11 @@ from sentry_kafka_schemas.schema_types.monitors_incident_occurrences_v1 import I
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.issues.grouptype import MonitorIncidentType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.models import (
     CheckInStatus,
     MonitorCheckIn,

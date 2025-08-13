@@ -58,8 +58,13 @@ class Buffer(Service):
     def get_hash_length(self, model: type[models.Model], field: dict[str, BufferField]) -> int:
         raise NotImplementedError
 
-    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, datetime]]:
+    def get_sorted_set(self, key: str, min: float, max: float) -> list[tuple[int, float]]:
         return []
+
+    def bulk_get_sorted_set(
+        self, keys: list[str], min: float, max: float
+    ) -> dict[int, list[float]]:
+        return {}
 
     def push_to_sorted_set(self, key: str, value: list[int] | int) -> None:
         return None
@@ -90,6 +95,9 @@ class Buffer(Service):
         return None
 
     def delete_key(self, key: str, min: float, max: float) -> None:
+        return None
+
+    def delete_keys(self, keys: list[str], min: float, max: float) -> None:
         return None
 
     def incr(

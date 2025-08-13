@@ -643,7 +643,7 @@ export async function submitCheckout(
         }`
       )
     );
-  } catch (error) {
+  } catch (error: any) {
     const body = error.responseJSON;
 
     if (body?.previewToken) {
@@ -698,4 +698,8 @@ export function getToggleTier(checkoutTier: PlanTier | undefined) {
   }
 
   return SUPPORTED_TIERS[tierIndex + 1];
+}
+
+export function hasCheckoutV3(organization: Organization) {
+  return organization.features.includes('checkout-v3');
 }
