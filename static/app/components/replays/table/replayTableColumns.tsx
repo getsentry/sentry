@@ -584,11 +584,10 @@ export const ReplaySessionColumn: ReplayTableColumn = {
             size={24}
           />
           <SubText>
-            <Flex gap="xs" align="start">
-              <DisplayName data-underline-on-hover>
-                {replay.user.display_name || t('Anonymous User')}
-              </DisplayName>
-            </Flex>
+            <DisplayName data-underline-on-hover>
+              {replay.user.display_name || t('Anonymous User')}
+            </DisplayName>
+
             <Flex gap="xs">
               {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
               {project ? <ProjectAvatar size={12} project={project} /> : null}
@@ -667,6 +666,7 @@ const CellLink = styled(Link)`
   margin: -${p => p.theme.space.xl};
   padding: ${p => p.theme.space.xl};
   flex-grow: 1;
+  width: 100%;
 
   &:before {
     content: '';
