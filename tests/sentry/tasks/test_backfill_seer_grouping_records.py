@@ -452,7 +452,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
 
-    @patch("sentry.nodestore.backend.get_multi")
+    @patch("sentry.services.nodestore.backend.get_multi")
     def test_lookup_group_data_stacktrace_bulk_with_fallback_use_single_fallback(
         self, mock_get_multi
     ):
@@ -655,7 +655,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     @patch("time.sleep", return_value=None)
     @patch(
-        "sentry.nodestore.backend.get_multi",
+        "sentry.services.nodestore.backend.get_multi",
         side_effect=ServiceUnavailable(message="Service Unavailable"),
     )
     def test_failure(self, mock_get_multi: MagicMock, mock_sleep: MagicMock) -> None:
