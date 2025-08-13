@@ -11,6 +11,7 @@ import {QueryClientProvider, type InfiniteData} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {type AutoRefreshState} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {
   EventsLogsResult,
   OurLogsResponseItem,
@@ -58,12 +59,14 @@ describe('useVirtualStreaming', () => {
         <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
           <QueryClientProvider client={makeTestQueryClient()}>
             <OrganizationContext.Provider value={organization}>
-              <LogsPageParamsProvider
-                analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-                _testContext={testContext}
-              >
-                {children}
-              </LogsPageParamsProvider>
+              <LogsQueryParamsProvider source="location">
+                <LogsPageParamsProvider
+                  analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+                  _testContext={testContext}
+                >
+                  {children}
+                </LogsPageParamsProvider>
+              </LogsQueryParamsProvider>
             </OrganizationContext.Provider>
           </QueryClientProvider>
         </MemoryRouter>

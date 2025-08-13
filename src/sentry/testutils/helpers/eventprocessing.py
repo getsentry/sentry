@@ -1,9 +1,9 @@
 from typing import Any
 
 from sentry.event_manager import EventManager
-from sentry.eventstore.models import Event
-from sentry.eventstore.processing import event_processing_store
 from sentry.models.project import Project
+from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.processing import event_processing_store
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.outbox import outbox_runner
 

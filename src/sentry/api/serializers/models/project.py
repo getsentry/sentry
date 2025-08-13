@@ -27,7 +27,6 @@ from sentry.dynamic_sampling.utils import (
     has_dynamic_sampling,
     is_project_mode_sampling,
 )
-from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import HighlightPreset, get_highlight_preset_for_project
@@ -45,6 +44,7 @@ from sentry.models.userreport import UserReport
 from sentry.release_health.base import CurrentAndPreviousCrashFreeRate
 from sentry.roles import organization_roles
 from sentry.search.events.types import SnubaParams
+from sentry.services.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.snuba import discover
 from sentry.tempest.utils import has_tempest_access
 from sentry.users.models.user import User
@@ -342,7 +342,7 @@ class ProjectSerializer(Serializer):
     ) -> dict[Project, dict[str, Any]]:
         def measure_span(op_tag):
             span = sentry_sdk.start_span(op=f"serialize.get_attrs.project.{op_tag}")
-            span.set_data("Object Count", len(item_list))
+            span.set_attribute("Object Count", len(item_list))
             return span
 
         with measure_span("preamble"):

@@ -154,9 +154,11 @@ export function useTraceMeta(replayTraces: ReplayTrace[]): TraceMetaQueryResults
 
   const normalizedParams = useMemo(() => {
     const query = qs.parse(location.search);
-    return normalizeDateTimeParams(query, {
+    const params = normalizeDateTimeParams(query, {
       allowAbsolutePageDatetime: true,
     });
+
+    return {...params, include_uptime: query.includeUptime} as Record<string, any>;
   }, []);
 
   // demo has the format ${projectSlug}:${eventId}

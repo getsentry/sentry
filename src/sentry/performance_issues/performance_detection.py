@@ -9,7 +9,6 @@ from typing import Any
 import sentry_sdk
 
 from sentry import features, nodestore, options, projectoptions
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -20,6 +19,7 @@ from sentry.performance_issues.detectors.experiments.n_plus_one_db_span_detector
     NPlusOneDBSpanExperimentalDetector,
 )
 from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
@@ -513,8 +513,8 @@ def report_metrics_for_detectors(
     sdk_name = get_sdk_name(event)
 
     try:
-        # Setting a tag isn't critical, the transaction doesn't exist sometimes, if it's called outside prod code (eg. load-mocks / tests)
-        set_tag = sdk_span.containing_transaction.set_tag
+        # Setting a tag isn't critical, the root_span doesn't exist sometimes, if it's called outside prod code (eg. load-mocks / tests)
+        set_tag = sdk_span.root_span.set_tag
     except AttributeError:
         set_tag = lambda *args: None
 
