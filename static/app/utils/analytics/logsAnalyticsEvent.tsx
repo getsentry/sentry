@@ -57,6 +57,10 @@ export type LogsAnalyticsEventParameters = {
     ui_source: 'toolbar' | 'table';
   };
 
+  'logs.table.row_copied_as_json': {
+    log_id: string;
+    organization: Organization;
+  };
   'logs.table.row_expanded': {
     log_id: string;
     page_source: LogsAnalyticsPageSource;
@@ -100,4 +104,5 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
   'logs.save_query_modal': 'Logs Save Query Modal',
   'logs.onboarding_platform_docs_viewed':
     'Logs Explore Empty State (Onboarding) - Platform Docs Viewed',
+  'logs.table.row_copied_as_json': 'Logs Row Copied as JSON',
 };
