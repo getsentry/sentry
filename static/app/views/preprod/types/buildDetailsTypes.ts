@@ -2,6 +2,7 @@ import type {Platform} from './sharedTypes';
 
 export interface BuildDetailsApiResponse {
   app_info: BuildDetailsAppInfo;
+  id: string;
   state: BuildDetailsState;
   vcs_info: BuildDetailsVcsInfo;
   size_info?: BuildDetailsSizeInfo;
