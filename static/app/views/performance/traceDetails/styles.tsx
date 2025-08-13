@@ -39,23 +39,6 @@ export const TraceDetailHeader = styled('div')`
   }
 `;
 
-export const TraceDetailBody = styled('div')`
-  height: 100%;
-`;
-
-export const TraceViewContainer = styled('div')`
-  overflow-x: hidden;
-  border-bottom-left-radius: 3px;
-  border-bottom-right-radius: 3px;
-`;
-
-export const ProjectBadgeContainer = styled('span')`
-  margin-right: ${space(0.75)};
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-`;
-
 const StyledPills = styled(Pills)`
   padding-top: ${space(1.5)};
 `;

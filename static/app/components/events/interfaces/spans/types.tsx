@@ -191,12 +191,6 @@ export type ParsedTraceType = {
   total?: number;
 };
 
-export enum TickAlignment {
-  LEFT = 0,
-  RIGHT = 1,
-  CENTER = 2,
-}
-
 type AttributeValue = string | number | boolean | string[] | number[] | boolean[];
 
 type SpanLink = {

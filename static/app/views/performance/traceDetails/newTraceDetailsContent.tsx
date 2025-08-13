@@ -386,7 +386,6 @@ function NewTraceDetailsContent(props: Props) {
         <Margin>
           <VisuallyCompleteWithData id="PerformanceDetails-TraceView" hasData={hasData}>
             <NewTraceView
-              traceType={getTraceType()}
               rootEvent={rootEvent}
               traceInfo={traceInfo}
               location={location}
