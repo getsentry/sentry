@@ -98,11 +98,12 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
 
     ret_event["contexts"] = event_data.get("contexts", {})
 
-    # TODO: confirm whether we still need to fill in replay context, or if frontend looks in both feedback and replay context.
+    # TODO: investigate if this can be removed. If the frontend looks in both
+    # feedback and replay context for replay_id, this might not be needed.
     if not event_data["contexts"].get("replay") and event_data["contexts"].get("feedback", {}).get(
         "replay_id"
     ):
-        # This metric confirms this behavior is still used.
+        # This metric confirms this block is still entered.
         metrics.incr(
             "feedback.create_feedback_issue.filled_missing_replay_context",
         )
