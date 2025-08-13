@@ -391,7 +391,7 @@ function LogRowDetails({
   });
 
   const {onClick: betterCopyToClipboard} = useCopyToClipboard({
-    text: ourlogToJson(data),
+    text: isPending || isError ? '' : ourlogToJson(data),
     onCopy: () => {
       trackAnalytics('logs.table.row_copied_as_json', {
         log_id: String(dataRow[OurLogKnownFieldKey.ID]),
