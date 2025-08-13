@@ -47,7 +47,7 @@ const REPLAY_CLICK_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_CLICK
  * device.name, etc are effectively the same and included from REPLAY_FIELDS.
  * Displaying these would be redundant and confusing.
  */
-const EXCLUDED_TAGS = ['browser', 'device', 'os', 'user'];
+const EXCLUDED_TAGS = ['browser', 'device', 'os', 'user', 'feedback.num_feedbacks_used'];
 
 /**
  * Merges a list of supported tags and replay search properties

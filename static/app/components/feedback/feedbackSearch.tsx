@@ -35,6 +35,7 @@ const EXCLUDED_TAGS: string[] = [
   'os',
   'user',
   FieldKey.PLATFORM,
+  'feedback.num_feedbacks_used',
 ];
 
 const NON_TAG_FIELDS: string[] = [
