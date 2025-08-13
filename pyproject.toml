@@ -78,9 +78,9 @@ dependencies = [
     # [end] jsonschema format validators
     "sentry-arroyo>=2.29.0",
     "sentry-forked-email-reply-parser>=0.5.12.post1",
-    "sentry-kafka-schemas>=1.3.18",
+    "sentry-kafka-schemas>=2.1.0",
     "sentry-ophio>=1.1.3",
-    "sentry-protos>=0.3.1",
+    "sentry-protos>=0.3.4",
     "sentry-redis-tools>=0.5.0",
     "sentry-relay>=0.9.11",
     "sentry-sdk[http2]>=2.29.1",
@@ -212,26 +212,26 @@ addopts = "--tb=short -p no:celery --nomigrations"
 # TODO: --import-mode=importlib will become the default soon,
 # currently we have a few relative imports that don't work with that.
 markers = [
-  "snuba: test requires access to snuba",
-  "snuba_ci: test is run in snuba ci",
-  "sentry_metrics: test requires access to sentry metrics",
-  "symbolicator: test requires access to symbolicator",
-  "querybuilder: smoke tests for QueryBuilders",
-  "thread_leak_allowlist: temporarily allow known-issue thread leaks",
+    "snuba: test requires access to snuba",
+    "snuba_ci: test is run in snuba ci",
+    "sentry_metrics: test requires access to sentry metrics",
+    "symbolicator: test requires access to symbolicator",
+    "querybuilder: smoke tests for QueryBuilders",
+    "thread_leak_allowlist: temporarily allow known-issue thread leaks",
 ]
 filterwarnings = [
-  # Consider all warnings to be errors other than the ignored ones.
-  "error",
+    # Consider all warnings to be errors other than the ignored ones.
+    "error",
 
-  # TODO: we should fix these, but for now there's a lot
-  "ignore:datetime.datetime.utcfromtimestamp\\(\\) is deprecated.*",
-  "ignore:datetime.datetime.utcnow\\(\\) is deprecated.*",
+    # TODO: we should fix these, but for now there's a lot
+    "ignore:datetime.datetime.utcfromtimestamp\\(\\) is deprecated.*",
+    "ignore:datetime.datetime.utcnow\\(\\) is deprecated.*",
 
-  # The following warning filters are for pytest only.
-  "ignore:.*sentry.digests.backends.dummy.DummyBackend.*:sentry.utils.warnings.UnsupportedBackend",
+    # The following warning filters are for pytest only.
+    "ignore:.*sentry.digests.backends.dummy.DummyBackend.*:sentry.utils.warnings.UnsupportedBackend",
 
-  # pytest has not yet implemented the replacement for this yet
-  "ignore:The --looponfail command line argument.*",
+    # pytest has not yet implemented the replacement for this yet
+    "ignore:The --looponfail command line argument.*",
 ]
 looponfailroots = ["src", "tests"]
 
@@ -239,9 +239,9 @@ looponfailroots = ["src", "tests"]
 python_version = "3.13"
 mypy_path = ["fixtures/stubs-for-mypy"]
 plugins = [
-  "pydantic.mypy",
-  "mypy_django_plugin.main",
-  "tools.mypy_helpers.plugin",
+    "pydantic.mypy",
+    "mypy_django_plugin.main",
+    "tools.mypy_helpers.plugin",
 ]
 files = ["."]
 exclude = ["^.venv/", "^venv/", "^self-hosted/"]
@@ -254,7 +254,7 @@ warn_unused_configs = true
 warn_unused_ignores = true
 warn_redundant_casts = true
 enable_error_code = ["ignore-without-code", "redundant-self"]
-local_partial_types = true  # compat with dmypy
+local_partial_types = true                                    # compat with dmypy
 
 [tool.django-stubs]
 django_settings_module = "sentry.conf.server_mypy"
@@ -262,8 +262,8 @@ django_settings_module = "sentry.conf.server_mypy"
 # these have py.typed but incorrect types
 [[tool.mypy.overrides]]
 module = [
-  # TODO: these cause type errors when followed
-  "snuba_sdk.*",
+    # TODO: these cause type errors when followed
+    "snuba_sdk.*",
 ]
 follow_imports = "skip"
 
