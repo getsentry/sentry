@@ -900,12 +900,24 @@ if SILO_DEVSERVER:
 
 
 CELERY_QUEUES_CONTROL = [
-    Queue("app_platform.control", routing_key="app_platform.control", exchange=control_exchange),
+    Queue(
+        "app_platform.control",
+        routing_key="app_platform.control",
+        exchange=control_exchange,
+    ),
     Queue("auth.control", routing_key="auth.control", exchange=control_exchange),
     Queue("cleanup.control", routing_key="cleanup.control", exchange=control_exchange),
     Queue("email.control", routing_key="email.control", exchange=control_exchange),
-    Queue("integrations.control", routing_key="integrations.control", exchange=control_exchange),
-    Queue("files.delete.control", routing_key="files.delete.control", exchange=control_exchange),
+    Queue(
+        "integrations.control",
+        routing_key="integrations.control",
+        exchange=control_exchange,
+    ),
+    Queue(
+        "files.delete.control",
+        routing_key="files.delete.control",
+        exchange=control_exchange,
+    ),
     Queue(
         "hybrid_cloud.control_repair",
         routing_key="hybrid_cloud.control_repair",
@@ -914,7 +926,11 @@ CELERY_QUEUES_CONTROL = [
     Queue("options.control", routing_key="options.control", exchange=control_exchange),
     Queue("outbox.control", routing_key="outbox.control", exchange=control_exchange),
     Queue("webhook.control", routing_key="webhook.control", exchange=control_exchange),
-    Queue("relocation.control", routing_key="relocation.control", exchange=control_exchange),
+    Queue(
+        "relocation.control",
+        routing_key="relocation.control",
+        exchange=control_exchange,
+    ),
     Queue(
         "release_registry.control",
         routing_key="release_registry.control",
@@ -943,7 +959,8 @@ CELERY_QUEUES_REGION = [
     Queue("default", routing_key="default"),
     Queue("delayed_rules", routing_key="delayed_rules"),
     Queue(
-        "delete_seer_grouping_records_by_hash", routing_key="delete_seer_grouping_records_by_hash"
+        "delete_seer_grouping_records_by_hash",
+        routing_key="delete_seer_grouping_records_by_hash",
     ),
     Queue("digests.delivery", routing_key="digests.delivery"),
     Queue("digests.scheduling", routing_key="digests.scheduling"),
@@ -952,11 +969,16 @@ CELERY_QUEUES_REGION = [
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue("events.process_event", routing_key="events.process_event"),
     Queue(
-        "events.reprocessing.preprocess_event", routing_key="events.reprocessing.preprocess_event"
+        "events.reprocessing.preprocess_event",
+        routing_key="events.reprocessing.preprocess_event",
     ),
-    Queue("events.reprocessing.process_event", routing_key="events.reprocessing.process_event"),
     Queue(
-        "events.reprocessing.symbolicate_event", routing_key="events.reprocessing.symbolicate_event"
+        "events.reprocessing.process_event",
+        routing_key="events.reprocessing.process_event",
+    ),
+    Queue(
+        "events.reprocessing.symbolicate_event",
+        routing_key="events.reprocessing.symbolicate_event",
     ),
     Queue("events.save_event", routing_key="events.save_event"),
     Queue("events.save_event_highcpu", routing_key="events.save_event_highcpu"),
@@ -969,9 +991,13 @@ CELERY_QUEUES_REGION = [
     Queue("files.copy", routing_key="files.copy"),
     Queue("files.delete", routing_key="files.delete"),
     Queue(
-        "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
+        "group_owners.process_suspect_commits",
+        routing_key="group_owners.process_suspect_commits",
     ),
-    Queue("group_owners.process_commit_context", routing_key="group_owners.process_commit_context"),
+    Queue(
+        "group_owners.process_commit_context",
+        routing_key="group_owners.process_commit_context",
+    ),
     Queue("integrations", routing_key="integrations"),
     Queue(
         "releasemonitor",
@@ -1016,18 +1042,27 @@ CELERY_QUEUES_REGION = [
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
     Queue("relocation", routing_key="relocation"),
-    Queue("performance.statistical_detector", routing_key="performance.statistical_detector"),
+    Queue(
+        "performance.statistical_detector",
+        routing_key="performance.statistical_detector",
+    ),
     Queue("profiling.statistical_detector", routing_key="profiling.statistical_detector"),
     CELERY_ISSUE_STATES_QUEUE,
     Queue("nudge.invite_missing_org_members", routing_key="invite_missing_org_members"),
     Queue("auto_resolve_issues", routing_key="auto_resolve_issues"),
     Queue("on_demand_metrics", routing_key="on_demand_metrics"),
     Queue("check_new_issue_threshold_met", routing_key="check_new_issue_threshold_met"),
-    Queue("integrations_slack_activity_notify", routing_key="integrations_slack_activity_notify"),
+    Queue(
+        "integrations_slack_activity_notify",
+        routing_key="integrations_slack_activity_notify",
+    ),
     Queue("demo_mode", routing_key="demo_mode"),
     Queue("release_registry", routing_key="release_registry"),
     Queue("seer.seer_automation", routing_key="seer.seer_automation"),
-    Queue("workflow_engine.process_workflows", routing_key="workflow_engine.process_workflows"),
+    Queue(
+        "workflow_engine.process_workflows",
+        routing_key="workflow_engine.process_workflows",
+    ),
     Queue("workflow_engine.trigger_action", routing_key="workflow_engine.trigger_action"),
 ]
 
@@ -1400,7 +1435,10 @@ TIMEDELTA_ALLOW_LIST = {
 }
 
 BGTASKS: dict[str, BgTaskConfig] = {
-    "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {"interval": 5 * 60, "roles": ["worker"]},
+    "sentry.bgtasks.clean_dsymcache:clean_dsymcache": {
+        "interval": 5 * 60,
+        "roles": ["worker"],
+    },
 }
 
 #######################
@@ -1757,7 +1795,10 @@ if SILO_MODE == "CONTROL":
 elif SILO_MODE == "REGION":
     TASKWORKER_SCHEDULES = TASKWORKER_REGION_SCHEDULES
 else:
-    TASKWORKER_SCHEDULES = {**TASKWORKER_CONTROL_SCHEDULES, **TASKWORKER_REGION_SCHEDULES}
+    TASKWORKER_SCHEDULES = {
+        **TASKWORKER_CONTROL_SCHEDULES,
+        **TASKWORKER_REGION_SCHEDULES,
+    }
 
 TASKWORKER_HIGH_THROUGHPUT_NAMESPACES = {
     "ingest.profiling",
@@ -1783,7 +1824,10 @@ LOGGING: LoggingConfig = {
         # This `internal` logger is separate from the `Logging` integration in the SDK. Since
         # we have this to record events, in `sdk.py` we set the integration's `event_level` to
         # None, so that it records breadcrumbs for all log calls but doesn't send any events.
-        "internal": {"level": "ERROR", "class": "sentry_sdk.integrations.logging.EventHandler"},
+        "internal": {
+            "level": "ERROR",
+            "class": "sentry_sdk.integrations.logging.EventHandler",
+        },
         "metrics": {
             "level": "WARNING",
             "filters": ["important_django_request"],
@@ -1816,7 +1860,11 @@ LOGGING: LoggingConfig = {
         # This only needs to go to Sentry for now.
         "sentry.similarity": {"handlers": ["internal"], "propagate": False},
         "sentry.errors": {"handlers": ["console"], "propagate": False},
-        "sentry_sdk.errors": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        "sentry_sdk.errors": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
         "sentry.rules": {"handlers": ["console"], "propagate": False},
         "sentry.profiles": {"level": "INFO"},
         "multiprocessing": {
@@ -1836,7 +1884,11 @@ LOGGING: LoggingConfig = {
             "propagate": False,
         },
         "toronado": {"level": "ERROR", "handlers": ["null"], "propagate": False},
-        "urllib3.connectionpool": {"level": "ERROR", "handlers": ["console"], "propagate": False},
+        "urllib3.connectionpool": {
+            "level": "ERROR",
+            "handlers": ["console"],
+            "propagate": False,
+        },
         "boto3": {"level": "WARNING", "handlers": ["console"], "propagate": False},
         "botocore": {"level": "WARNING", "handlers": ["console"], "propagate": False},
     },
@@ -1887,7 +1939,10 @@ if os.environ.get("OPENAPIGENERATE", False):
         # We override the default behavior to skip adding the choice name to the bullet point if
         # it's identical to the choice value by monkey patching build_choice_description_list.
         "ENUM_GENERATE_CHOICE_DESCRIPTION": True,
-        "LICENSE": {"name": "Apache 2.0", "url": "http://www.apache.org/licenses/LICENSE-2.0.html"},
+        "LICENSE": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html",
+        },
         "PARSER_WHITELIST": ["rest_framework.parsers.JSONParser"],
         "POSTPROCESSING_HOOKS": [
             "sentry.apidocs.hooks.custom_postprocessing_hook",
@@ -2371,7 +2426,12 @@ SENTRY_SCOPE_SETS = (
         ("org:write", "Read and write access to organization details."),
         ("org:read", "Read access to organization details."),
     ),
-    (("org:integrations", "Read, write, and admin access to organization integrations."),),
+    (
+        (
+            "org:integrations",
+            "Read, write, and admin access to organization integrations.",
+        ),
+    ),
     (
         ("member:admin", "Read, write, and admin access to organization members."),
         ("member:write", "Read and write access to organization members."),
@@ -2737,7 +2797,10 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
         {
             "image": f"ghcr.io/getsentry/image-mirror-library-postgres:{PG_VERSION}-alpine",
             "ports": {"5432/tcp": 5432},
-            "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
+            "environment": {
+                "POSTGRES_DB": "sentry",
+                "POSTGRES_HOST_AUTH_METHOD": "trust",
+            },
             "volumes": {
                 "postgres": {"bind": "/var/lib/postgresql/data"},
                 "wal2json": {"bind": "/wal2json"},
@@ -3373,7 +3436,6 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "transactions-subscription-results": "default",
     "generic-metrics-subscription-results": "default",
     "metrics-subscription-results": "default",
-    "eap-spans-subscription-results": "default",
     "subscription-results-eap-items": "default",
     "ingest-events": "default",
     "ingest-feedback-events": "default",
@@ -3407,12 +3469,10 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
-    "snuba-spans": "default",
     "snuba-items": "default",
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
-    "snuba-ourlogs": "default",
     "preprod-artifact-events": "default",
     # Taskworker topics
     "taskworker": "default",

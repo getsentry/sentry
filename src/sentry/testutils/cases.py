@@ -42,7 +42,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.test import APITestCase as BaseAPITestCase
 from rest_framework.test import APITransactionTestCase as BaseAPITransactionTestCase
-from sentry_kafka_schemas.schema_types.snuba_spans_v1 import SpanEvent
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUSREASONTYPE_TIMEOUT,
@@ -136,6 +135,7 @@ from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.extraction import OnDemandMetricSpec
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
+from sentry.spans.consumers.process_segments.enrichment import Span
 from sentry.tagstore.snuba.backend import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now
@@ -1287,7 +1287,7 @@ class BaseSpansTestCase(SnubaTestCase):
 
         transaction = transaction or "/hello"
 
-        payload: SpanEvent = {
+        payload: Span = {
             "project_id": project_id,
             "organization_id": organization_id,
             "span_id": span_id,
@@ -1302,6 +1302,9 @@ class BaseSpansTestCase(SnubaTestCase):
             "start_timestamp_ms": int(timestamp.timestamp() * 1000),
             "sentry_tags": {"transaction": transaction},
             "retention_days": 90,
+            "downsampled_retention_days": 90,
+            "exclusive_time": exclusive_time,
+            "op": op or "http",
         }
 
         if tags:
@@ -1318,13 +1321,13 @@ class BaseSpansTestCase(SnubaTestCase):
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if sdk_name is not None:
-            payload["sentry_tags"]["sdk.name"] = sdk_name  # type: ignore[typeddict-unknown-key]  # needs extra_items support
+            payload["sentry_tags"]["sdk.name"] = sdk_name  # needs extra_items support
         if op is not None:
             payload["sentry_tags"]["op"] = op
         if status is not None:
             payload["sentry_tags"]["status"] = status
         if environment is not None:
-            payload["sentry_tags"]["environment"] = environment  # type: ignore[typeddict-unknown-key]  # needs extra_items support
+            payload["sentry_tags"]["environment"] = environment  # needs extra_items support
 
         self.store_span(payload, is_eap=is_eap)
 
@@ -1354,7 +1357,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if timestamp is None:
             timestamp = timezone.now()
 
-        payload: SpanEvent = {
+        payload: Span = {
             "project_id": project_id,
             "organization_id": organization_id,
             "span_id": span_id,
@@ -1372,8 +1375,10 @@ class BaseSpansTestCase(SnubaTestCase):
                 "group": group,
             },
             "retention_days": 90,
+            "downsampled_retention_days": 90,
+            "exclusive_time": exclusive_time,
+            "op": op or "http",
         }
-
         if tags:
             payload["tags"] = tags
         if measurements:
@@ -1388,7 +1393,7 @@ class BaseSpansTestCase(SnubaTestCase):
         if parent_span_id:
             payload["parent_span_id"] = parent_span_id
         if category is not None:
-            payload["sentry_tags"]["category"] = category  # type: ignore[typeddict-unknown-key]  # needs extra_items support
+            payload["sentry_tags"]["category"] = category  # needs extra_items support
 
         # We want to give the caller the possibility to store only a summary since the database does not deduplicate
         # on the span_id which makes the assumptions of a unique span_id in the database invalid.

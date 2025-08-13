@@ -147,6 +147,8 @@ def test_convert_span_to_item() -> None:
         "sentry.thread.id": AnyValue(string_value="8522009600"),
         "sentry.sdk.version": AnyValue(string_value="2.7.0"),
         "sentry.platform": AnyValue(string_value="python"),
+        "sentry.client_sample_rate": AnyValue(double_value=0.1),
+        "sentry.server_sample_rate": AnyValue(double_value=0.2),
         "sentry.user": AnyValue(string_value="ip:127.0.0.1"),
         "relay_use_post_or_schedule_rejected": AnyValue(string_value="version"),
         "sentry.normalized_description": AnyValue(string_value="normalized_description"),
@@ -183,7 +185,10 @@ def test_convert_span_links_to_json() -> None:
                 },
             },
             # A link with missing optional properties
-            {"trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b", "span_id": "873a988879faf06d"},
+            {
+                "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
+                "span_id": "873a988879faf06d",
+            },
         ],
     }
 

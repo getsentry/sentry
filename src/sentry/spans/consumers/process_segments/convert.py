@@ -48,8 +48,10 @@ def convert_span_to_item(span: Span) -> TraceItem:
         if k is not None and v is not None:
             if k == "client_sample_rate":
                 client_sample_rate = v["value"]
+                attributes["sentry.client_sample_rate"] = AnyValue(double_value=float(v["value"]))
             elif k == "server_sample_rate":
                 server_sample_rate = v["value"]
+                attributes["sentry.server_sample_rate"] = AnyValue(double_value=float(v["value"]))
             else:
                 attributes[k] = AnyValue(double_value=float(v["value"]))
 
@@ -90,6 +92,7 @@ def convert_span_to_item(span: Span) -> TraceItem:
         client_sample_rate=client_sample_rate,
         server_sample_rate=server_sample_rate,
         retention_days=span["retention_days"],
+        downsampled_retention_days=span.get("downsampled_retention_days", 0),
         received=_timestamp(span["received"]),
     )
 
