@@ -1,9 +1,16 @@
 import type {Location} from 'history';
 
+import {Link} from 'sentry/components/core/link';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Theme} from 'sentry/utils/theme';
-import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {
+  AttributesTree,
+  type AttributesFieldRendererProps,
+} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {
   type TraceItemResponseAttribute,
   type TraceItemResponseLink,
@@ -13,6 +20,8 @@ import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode';
+import {useTraceStateDispatch} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 interface TraceSpanLinksProps {
   links: TraceItemResponseLink[];
@@ -24,18 +33,88 @@ interface TraceSpanLinksProps {
 
 export function TraceSpanLinks({
   links,
+  node,
   organization,
   location,
   theme,
 }: TraceSpanLinksProps) {
-  // Render the links as a tree of attributes. This visual treatment requires
-  // that we format the trace ID and span ID as attributes, even though they are
-  // top level fields. I think we should convince Design to reconsider this
-  // treatment, but for now we'll need to create synthetic attributes for the
-  // span ID and trace ID, and prefix the actual attributes with a special key.
+  const currentLocation = useLocation();
+  const currentOrganization = useOrganization();
+  const traceDispatch = useTraceStateDispatch();
+
+  // Close span details drawer when navigating
+  function closeSpanDetailsDrawer() {
+    traceDispatch({
+      type: 'minimize drawer',
+      payload: true,
+    });
+  }
+
+  // Create custom renderers for trace_id and span_id attributes
+  const customRenderers: Record<
+    string,
+    (
+      props: AttributesFieldRendererProps<{
+        location: Location;
+        organization: Organization;
+        theme: Theme;
+      }>
+    ) => React.ReactNode
+  > = {};
+
   const linksAsAttributes: TraceItemResponseAttribute[] = links.flatMap(
     (link, linkIndex) => {
       const prefix = `span_link_${linkIndex + 1}`;
+      const dateSelection = normalizeDateTimeParams(currentLocation.query);
+
+      // Create custom renderer for trace_id using TraceLinkNavigationButton pattern
+      customRenderers[`${prefix}.trace_id`] = props => {
+        const traceTarget = getTraceDetailsUrl({
+          traceSlug: link.traceId,
+          dateSelection,
+          timestamp: node.value.start_timestamp,
+          location: currentLocation,
+          organization: currentOrganization,
+        });
+
+        return (
+          <Link
+            to={traceTarget}
+            onClick={closeSpanDetailsDrawer}
+            style={{
+              fontWeight: 'normal',
+              color: 'inherit',
+            }}
+          >
+            {props.basicRendered}
+          </Link>
+        );
+      };
+
+      // Create custom renderer for span_id using TraceLinkNavigationButton pattern
+      customRenderers[`${prefix}.span_id`] = props => {
+        const spanTarget = getTraceDetailsUrl({
+          traceSlug: link.traceId,
+          spanId: link.itemId,
+          dateSelection,
+          timestamp: node.value.start_timestamp,
+          location: currentLocation,
+          organization: currentOrganization,
+        });
+
+        return (
+          <Link
+            to={spanTarget}
+            onClick={closeSpanDetailsDrawer}
+            style={{
+              fontWeight: 'normal',
+              color: 'inherit',
+            }}
+          >
+            {props.basicRendered}
+          </Link>
+        );
+      };
 
       return [
         {
@@ -74,13 +153,13 @@ export function TraceSpanLinks({
         columnCount={1}
         config={{
           disableActions: true,
-          disableRichValue: true,
         }}
         rendererExtra={{
           theme,
           location,
           organization,
         }}
+        renderers={customRenderers}
       />
     </FoldSection>
   );
