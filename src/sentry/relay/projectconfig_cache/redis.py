@@ -67,6 +67,7 @@ class RedisProjectConfigCache(ProjectConfigCache):
         with self.cluster.pipeline() as p:
             for public_key in public_keys:
                 p.delete(self.__get_redis_key(public_key))
+                p.delete(self.__get_redis_rev_key(public_key))
             return_values = p.execute()
 
         metrics.incr(
