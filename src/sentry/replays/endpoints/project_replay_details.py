@@ -16,7 +16,6 @@ from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.replays.tasks import delete_replay
 from sentry.replays.usecases.reader import has_archived_segment
-from sentry.seer.seer_setup import has_seer_access
 
 
 class ReplayDetailsPermission(ProjectPermission):
@@ -97,9 +96,8 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
         if has_archived_segment(project.id, replay_id):
             return Response(status=404)
 
-        has_seer_data = features.has(
-            "organizations:replay-ai-summaries", project.organization
-        ) and has_seer_access(project.organization, actor=request.user)
+        # We don't check Seer features because an org may have previously had them on, then turned them off.
+        has_seer_data = features.has("organizations:replay-ai-summaries", project.organization)
 
         delete_replay.delay(
             project_id=project.id,

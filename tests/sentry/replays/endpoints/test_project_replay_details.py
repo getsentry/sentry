@@ -28,15 +28,6 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         self.url = reverse(
             self.endpoint, args=(self.organization.slug, self.project.slug, self.replay_id)
         )
-        self.mock_has_seer_access_patcher = mock.patch(
-            "sentry.replays.endpoints.project_replay_details.has_seer_access",
-            return_value=False,
-        )
-        self.mock_has_seer_access = self.mock_has_seer_access_patcher.start()
-
-    def tearDown(self) -> None:
-        self.mock_has_seer_access_patcher.stop()
-        super().tearDown()
 
     def test_feature_flag_disabled(self) -> None:
         response = self.client.get(self.url)
@@ -263,7 +254,7 @@ class ProjectReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(mock_replay(t1, self.project.id, kept_replay_id, segment_id=0))
 
         mock_make_seer_request.return_value = (None, 204)
-        self.mock_has_seer_access.return_value = True
+
         with self.feature({**REPLAYS_FEATURES, "organizations:replay-ai-summaries": True}):
             with TaskRunner():
                 response = self.client.delete(self.url)
