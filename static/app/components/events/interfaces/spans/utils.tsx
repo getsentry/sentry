@@ -24,7 +24,6 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 
-import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import type SpanTreeModel from './spanTreeModel';
 import type {
   AggregateSpanType,
@@ -755,7 +754,7 @@ export function getMeasurements(
 
     for (const [otherPos] of mergedMeasurements) {
       const positionDelta = Math.abs(otherPos - roundedPos);
-      if (positionDelta <= MERGE_LABELS_THRESHOLD_PERCENT) {
+      if (positionDelta <= 10) {
         const verticalMark = mergedMeasurements.get(otherPos)!;
 
         const {poorThreshold} =

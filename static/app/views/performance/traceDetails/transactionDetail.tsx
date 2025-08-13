@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
@@ -7,8 +7,6 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Link} from 'sentry/components/core/link';
-import {DateTime} from 'sentry/components/dateTime';
-import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
 import {
   ErrorDot,
   ErrorLevel,
@@ -24,7 +22,6 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
@@ -32,7 +29,7 @@ import {CustomProfiler} from 'sentry/utils/performanceForSentry';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
-import {Row, Tags, TransactionDetails, TransactionDetailsContainer} from './styles';
+import {Tags} from './styles';
 
 type Props = {
   location: Location;
@@ -168,19 +165,7 @@ class TransactionDetail extends Component<Props> {
       return null;
     }
 
-    return (
-      <Fragment>
-        {measurementKeys.map(measurement => (
-          <Row
-            key={measurement}
-            // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-            title={WEB_VITAL_DETAILS[`measurements.${measurement}`]?.name}
-          >
-            {`${Number(measurements[measurement]!.value.toFixed(3)).toLocaleString()}ms`}
-          </Row>
-        ))}
-      </Fragment>
-    );
+    return null;
   }
 
   scrollBarIntoView =
@@ -205,109 +190,41 @@ class TransactionDetail extends Component<Props> {
 
   renderTransactionDetail() {
     const {location, organization, transaction} = this.props;
-    const startTimestamp = Math.min(transaction.start_timestamp, transaction.timestamp);
-    const endTimestamp = Math.max(transaction.start_timestamp, transaction.timestamp);
-    const {start: startTimeWithLeadingZero, end: endTimeWithLeadingZero} =
-      getFormattedTimeRangeWithLeadingAndTrailingZero(startTimestamp, endTimestamp);
-    const duration = (endTimestamp - startTimestamp) * 1000;
-    const durationString = `${Number(duration.toFixed(3)).toLocaleString()}ms`;
 
     return (
-      <TransactionDetails>
-        <table className="table key-value">
-          <tbody>
-            <Row
-              title={
-                <TransactionIdTitle
-                  onClick={this.scrollBarIntoView(transaction.event_id)}
-                >
-                  {t('Event ID')}
-                </TransactionIdTitle>
-              }
-              extra={this.renderGoToTransactionButton()}
-            >
-              {transaction.event_id}
-              <CopyToClipboardButton
-                borderless
-                size="zero"
-                iconSize="xs"
-                text={`${window.location.href.replace(window.location.hash, '')}#txn-${
-                  transaction.event_id
-                }`}
-              />
-            </Row>
-            <Row title="Transaction" extra={this.renderGoToSummaryButton()}>
-              {transaction.transaction}
-            </Row>
-            <Row title="Transaction Status">{transaction['transaction.status']}</Row>
-            <Row title="Span ID">{transaction.span_id}</Row>
-            {transaction.profile_id && (
-              <Row title="Profile ID" extra={this.renderGoToProfileButton()}>
-                {transaction.profile_id}
-              </Row>
-            )}
-            <Row title="Project">{transaction.project_slug}</Row>
-            <Row title="Start Date">
-              {getDynamicText({
-                fixed: 'Mar 19, 2021 11:06:27 AM UTC',
-                value: (
-                  <Fragment>
-                    <DateTime date={startTimestamp * 1000} />
-                    {` (${startTimeWithLeadingZero})`}
-                  </Fragment>
-                ),
-              })}
-            </Row>
-            <Row title="End Date">
-              {getDynamicText({
-                fixed: 'Mar 19, 2021 11:06:28 AM UTC',
-                value: (
-                  <Fragment>
-                    <DateTime date={endTimestamp * 1000} />
-                    {` (${endTimeWithLeadingZero})`}
-                  </Fragment>
-                ),
-              })}
-            </Row>
-            <Row title="Duration">{durationString}</Row>
-            <Row title="Operation">{transaction['transaction.op'] || ''}</Row>
-            {this.renderMeasurements()}
-            <Tags
-              location={location}
-              organization={organization}
-              tags={transaction.tags ?? []}
-              event={transaction}
-            />
-          </tbody>
-        </table>
-      </TransactionDetails>
+      <table className="table key-value">
+        <tbody>
+          {transaction.event_id}
+          <CopyToClipboardButton
+            borderless
+            size="zero"
+            iconSize="xs"
+            text={`${window.location.href.replace(window.location.hash, '')}#txn-${
+              transaction.event_id
+            }`}
+          />
+          {transaction.transaction}
+          {this.renderMeasurements()}
+          <Tags
+            location={location}
+            organization={organization}
+            tags={transaction.tags ?? []}
+            event={transaction}
+          />
+        </tbody>
+      </table>
     );
   }
 
   render() {
     return (
       <CustomProfiler id="TransactionDetail">
-        <TransactionDetailsContainer
-          onClick={event => {
-            // prevent toggling the transaction detail
-            event.stopPropagation();
-          }}
-        >
-          {this.renderTransactionErrors()}
-          {this.renderTransactionDetail()}
-        </TransactionDetailsContainer>
+        {this.renderTransactionErrors()}
+        {this.renderTransactionDetail()}
       </CustomProfiler>
     );
   }
 }
-
-const TransactionIdTitle = styled('a')`
-  display: flex;
-  color: ${p => p.theme.textColor};
-  :hover {
-    color: ${p => p.theme.textColor};
-  }
-`;
 
 const StyledLinkButton = styled(LinkButton)`
   position: absolute;

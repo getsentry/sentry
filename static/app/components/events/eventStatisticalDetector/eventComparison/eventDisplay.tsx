@@ -10,7 +10,6 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {EventTags} from 'sentry/components/events/eventTags';
-import {MINIMAP_HEIGHT} from 'sentry/components/events/interfaces/spans/constants';
 import {noFilter} from 'sentry/components/events/interfaces/spans/filter';
 import {
   ActualMinimap,
@@ -330,8 +329,8 @@ const MinimapPositioningContainer = styled('div')`
 `;
 
 const MinimapContainer = styled('div')`
-  height: ${MINIMAP_HEIGHT}px;
-  max-height: ${MINIMAP_HEIGHT}px;
+  height: ${120}px;
+  max-height: ${120}px;
   position: relative;
   border-bottom: 1px solid ${p => p.theme.border};
 `;

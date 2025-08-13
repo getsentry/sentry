@@ -18,7 +18,6 @@ import {Generic} from './interfaces/generic';
 import {Message} from './interfaces/message';
 import {SpanEvidenceSection} from './interfaces/performance/spanEvidence';
 import {Request} from './interfaces/request';
-import {Spans} from './interfaces/spans';
 import {StackTrace} from './interfaces/stackTrace';
 import {Template} from './interfaces/template';
 import {Threads} from './interfaces/threads';
@@ -136,7 +135,7 @@ function EventEntryContent({
           />
         );
       }
-      return <Spans event={event as EventTransaction} />;
+      return null;
 
     // this should not happen
     default:
