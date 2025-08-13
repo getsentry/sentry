@@ -21,7 +21,7 @@ class ProjectUptimeAlertEndpoint(ProjectEndpoint):
         project = kwargs["project"]
 
         try:
-            kwargs["uptime_subscription"] = ProjectUptimeSubscription.objects.get(
+            kwargs["uptime_monitor"] = ProjectUptimeSubscription.objects.get(
                 project=project, id=uptime_project_subscription_id
             )
         except ProjectUptimeSubscription.DoesNotExist:
