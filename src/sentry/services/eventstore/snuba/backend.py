@@ -75,6 +75,7 @@ class SnubaEventStorage(EventStorage):
         conditions: Sequence[Condition],
         orderby: Sequence[str],
         limit: int = DEFAULT_LIMIT,
+        inner_limit: int | None = None,
         offset: int = DEFAULT_OFFSET,
         referrer: str = "eventstore.get_events_snql",
         dataset: Dataset = Dataset.Events,
@@ -83,6 +84,7 @@ class SnubaEventStorage(EventStorage):
         cols = self.__get_columns(dataset)
 
         resolved_order_by = []
+        order_by_col_names: set[str] = set()
         for order_field_alias in orderby:
             if order_field_alias.startswith("-"):
                 direction = Direction.DESC
@@ -91,6 +93,7 @@ class SnubaEventStorage(EventStorage):
                 direction = Direction.ASC
             resolved_column_or_none = DATASETS[dataset].get(order_field_alias)
             if resolved_column_or_none:
+                order_by_col_names.add(resolved_column_or_none)
                 # special-case handling for nullable column values and proper ordering based on direction
                 # null values are always last in the sort order regardless of Desc or Asc ordering
                 if order_field_alias == Columns.NUM_PROCESSING_ERRORS.value.alias:
@@ -131,25 +134,61 @@ class SnubaEventStorage(EventStorage):
             [group_id],
         )
 
-        snql_request = Request(
-            dataset=dataset.value,
-            app_id="eventstore",
-            query=Query(
-                match=Entity(dataset.value),
-                select=[Column(col) for col in cols],
-                where=[
-                    Condition(
-                        Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]), Op.GTE, start
+        match_entity = Entity(dataset.value)
+        event_filters = [
+            Condition(Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]), Op.GTE, start),
+            Condition(Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]), Op.LT, end),
+        ] + list(conditions)
+
+        common_request_kwargs = {
+            "app_id": "eventstore",
+            "dataset": dataset.value,
+            "tenant_ids": tenant_ids or dict(),
+        }
+
+        common_query_kwargs = {
+            "select": [Column(col) for col in cols],
+            "orderby": resolved_order_by,
+            "limit": Limit(limit),
+            "offset": Offset(offset),
+        }
+
+        # If inner_limit provided, first limit to the most recent N rows, then apply final ordering
+        # and pagination on top of that subquery.
+        if inner_limit and inner_limit > 0:
+            select_and_orderby_cols = set(cols) | order_by_col_names
+            inner_query = Query(
+                match=match_entity,
+                select=[Column(col) for col in select_and_orderby_cols],
+                where=event_filters,
+                orderby=[
+                    OrderBy(
+                        Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
+                        direction=Direction.DESC,
                     ),
-                    Condition(Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]), Op.LT, end),
-                ]
-                + list(conditions),
-                orderby=resolved_order_by,
-                limit=Limit(limit),
-                offset=Offset(offset),
-            ),
-            tenant_ids=tenant_ids or dict(),
-        )
+                    OrderBy(
+                        Column(DATASETS[dataset][Columns.EVENT_ID.value.alias]),
+                        direction=Direction.DESC,
+                    ),
+                ],
+                limit=Limit(inner_limit),
+            )
+
+            outer_query = Query(
+                **common_query_kwargs,
+                match=inner_query,
+            )
+
+            snql_request = Request(**common_request_kwargs, query=outer_query)
+        else:
+            snql_request = Request(
+                **common_request_kwargs,
+                query=Query(
+                    **common_query_kwargs,
+                    match=match_entity,
+                    where=event_filters,
+                ),
+            )
 
         result = raw_snql_query(snql_request, referrer, use_cache=False)
 

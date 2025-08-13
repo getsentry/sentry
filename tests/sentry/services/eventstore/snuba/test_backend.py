@@ -7,6 +7,7 @@ from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.services.eventstore.base import Filter
 from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.snuba.backend import SnubaEventStorage
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import snuba
@@ -197,6 +198,83 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert event.event_id == "1" * 32
         assert event.project_id == self.project2.id
         assert event.group_id == event.group.id
+
+    def test_get_events_snql_with_inner_limit(self) -> None:
+        project = self.create_project()
+        ts_old = before_now(minutes=6).isoformat()
+        ts_mid = before_now(minutes=5).isoformat()
+        ts_new = before_now(minutes=4).isoformat()
+
+        event_oldest = self.store_event(
+            data={
+                "event_id": "1" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["inner-limit-group"],
+                "timestamp": ts_old,
+            },
+            project_id=project.id,
+        )
+        event_middle = self.store_event(
+            data={
+                "event_id": "2" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["inner-limit-group"],
+                "timestamp": ts_mid,
+            },
+            project_id=project.id,
+        )
+        event_newest = self.store_event(
+            data={
+                "event_id": "3" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["inner-limit-group"],
+                "timestamp": ts_new,
+            },
+            project_id=project.id,
+        )
+
+        group_id = event_oldest.group_id
+        assert group_id is not None
+        eventstore = SnubaEventStorage()
+
+        # Ascending order should return oldest first when no inner limit is used
+        no_inner = eventstore.get_events_snql(
+            organization_id=project.organization.id,
+            group_id=group_id,
+            start=before_now(minutes=10),
+            end=before_now(minutes=0),
+            conditions=[
+                Condition(Column("project_id"), Op.IN, [project.id]),
+                Condition(Column("group_id"), Op.IN, [group_id]),
+            ],
+            orderby=["timestamp", "event_id"],
+            dataset=Dataset.Events,
+            tenant_ids={"organization_id": project.organization.id},
+            limit=2,
+        )
+        assert [e.event_id for e in no_inner] == [event_oldest.event_id, event_middle.event_id]
+
+        # With inner_limit=2 we first query for the two most recent events, THEN apply sorting
+        # The result of which should be [event_middle, event_newest]
+        with_inner = eventstore.get_events_snql(
+            organization_id=project.organization.id,
+            group_id=group_id,
+            start=before_now(minutes=10),
+            end=before_now(minutes=0),
+            conditions=[
+                Condition(Column("project_id"), Op.IN, [project.id]),
+                Condition(Column("group_id"), Op.IN, [group_id]),
+            ],
+            orderby=["timestamp", "event_id"],
+            dataset=Dataset.Events,
+            tenant_ids={"organization_id": project.organization.id},
+            limit=2,
+            inner_limit=2,
+        )
+        assert [e.event_id for e in with_inner] == [event_middle.event_id, event_newest.event_id]
 
     def test_get_event_beyond_retention(self) -> None:
         event = self.store_event(
