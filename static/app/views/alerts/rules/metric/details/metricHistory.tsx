@@ -13,7 +13,6 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import getDuration from 'sentry/utils/duration/getDuration';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import useOrganization from 'sentry/utils/useOrganization';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
@@ -122,22 +121,10 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
         )}
       </Cell>
       <Cell>
-        {activityDuration &&
-          getDynamicText({
-            value: <Duration abbreviation seconds={activityDuration / 1000} />,
-            fixed: '30s',
-          })}
+        {activityDuration && <Duration abbreviation seconds={activityDuration / 1000} />}
       </Cell>
       <Cell>
-        <StyledDateTime
-          date={getDynamicText({
-            value: incident.dateCreated,
-            fixed: 'Mar 4, 2022 10:44:13 AM UTC',
-          })}
-          year
-          seconds
-          timeZone
-        />
+        <StyledDateTime date={incident.dateCreated} year seconds timeZone />
       </Cell>
     </Fragment>
   );
