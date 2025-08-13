@@ -54,7 +54,7 @@ class Span(SegmentSpan, total=True):
 
     sentry_tags: dict[str, Any]  # type: ignore[misc]  # XXX: fix w/ TypedDict extra_items once available
 
-    # XXX: unclear where this comes from as it's not from enrichment!
+    # Added by `SpanGroupingResults.write_to_spans` in `_enrich_spans`
     hash: NotRequired[str]
 
 
@@ -221,8 +221,7 @@ def _us(timestamp: float) -> int:
     return int(timestamp * 1_000_000)
 
 
-def segment_span_measurement_updates(
-    segment: Span,
+def compute_breakdowns(
     spans: list[SegmentSpan],
     breakdowns_config: dict[str, dict[str, Any]],
 ) -> dict[str, MeasurementValue]:
