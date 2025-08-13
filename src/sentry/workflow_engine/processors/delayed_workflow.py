@@ -748,8 +748,7 @@ def fire_actions_for_groups(
                 )
                 total_actions += len(filtered_actions)
 
-                if should_trigger_actions(group_event.group.type):
-                    fire_actions(filtered_actions, detector, workflow_event_data)
+                fire_actions(filtered_actions, detector, workflow_event_data)
 
     logger.info(
         "workflow_engine.delayed_workflow.triggered_actions_summary",

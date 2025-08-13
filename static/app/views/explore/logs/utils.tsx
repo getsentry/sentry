@@ -473,6 +473,7 @@ export function ourlogToJson(ourlog: TraceItemDetailsResponse | undefined): stri
   // Trimming any sentry. prefixes
   for (const key in copy) {
     if (DeprecatedLogDetailFields.includes(key)) {
+      delete copy[key];
       continue;
     }
     if (key.startsWith('sentry.')) {
