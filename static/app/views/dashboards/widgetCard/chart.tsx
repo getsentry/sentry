@@ -4,7 +4,6 @@ import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
-import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -31,6 +30,7 @@ import type {
   EChartEventHandler,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
+import type {InjectedRouter, WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {
@@ -57,6 +57,8 @@ import {
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeSorts} from 'sentry/utils/queryString';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -90,39 +92,40 @@ type TableResultProps = Pick<
 type WidgetCardChartProps = Pick<
   GenericWidgetQueriesChildrenProps,
   'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
-> & {
-  location: Location;
-  organization: Organization;
-  selection: PageFilters;
-  theme: Theme;
-  widget: Widget;
-  widgetLegendState: WidgetLegendSelectionState;
-  chartGroup?: string;
-  confidence?: Confidence;
-  dashboardFilters?: DashboardFilters;
-  disableTableActions?: boolean;
-  disableZoom?: boolean;
-  expandNumbers?: boolean;
-  isMobile?: boolean;
-  isSampled?: boolean | null;
-  legendOptions?: LegendComponentOption;
-  minTableColumnWidth?: number;
-  noPadding?: boolean;
-  onLegendSelectChanged?: EChartEventHandler<{
-    name: string;
-    selected: Record<string, boolean>;
-    type: 'legendselectchanged';
-  }>;
-  onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
-  onWidgetTableSort?: (sort: Sort) => void;
-  onZoom?: EChartDataZoomHandler;
-  sampleCount?: number;
-  shouldResize?: boolean;
-  showConfidenceWarning?: boolean;
-  showLoadingText?: boolean;
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  windowWidth?: number;
-};
+> &
+  WithRouterProps & {
+    organization: Organization;
+    selection: PageFilters;
+    theme: Theme;
+    widget: Widget;
+    widgetLegendState: WidgetLegendSelectionState;
+    chartGroup?: string;
+    confidence?: Confidence;
+    dashboardFilters?: DashboardFilters;
+    disableTableActions?: boolean;
+    disableZoom?: boolean;
+    expandNumbers?: boolean;
+    isMobile?: boolean;
+    isSampled?: boolean | null;
+    legendOptions?: LegendComponentOption;
+    minTableColumnWidth?: number;
+    noPadding?: boolean;
+    onLegendSelectChanged?: EChartEventHandler<{
+      name: string;
+      selected: Record<string, boolean>;
+      type: 'legendselectchanged';
+    }>;
+    onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
+    onWidgetTableSort?: (sort: Sort) => void;
+    onZoom?: EChartDataZoomHandler;
+    router?: InjectedRouter;
+    sampleCount?: number;
+    shouldResize?: boolean;
+    showConfidenceWarning?: boolean;
+    showLoadingText?: boolean;
+    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+    windowWidth?: number;
+  };
 
 class WidgetCardChart extends Component<WidgetCardChartProps> {
   shouldComponentUpdate(nextProps: WidgetCardChartProps): boolean {
@@ -167,6 +170,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       onWidgetTableResizeColumn,
       disableTableActions,
       dashboardFilters,
+      router,
     } = this.props;
     if (loading || !tableResults?.[0]) {
       // Align height to other charts.
@@ -217,7 +221,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       if (disableTableActions || !useCellActionsV2) {
         cellActions = [];
       } else if (widget.widgetType === WidgetType.SPANS) {
-        cellActions = [...cellActions, Actions.OPEN_ROW_IN_EXPLORE];
+        cellActions = [...ALLOWED_CELL_ACTIONS, Actions.OPEN_ROW_IN_EXPLORE];
       }
 
       return (
@@ -263,7 +267,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                     organization,
                     dashboardFilters
                   );
-                  window.location.href = getExploreUrl(dataRow);
+                  router.push(getExploreUrl(dataRow));
                 }
               }}
             />
@@ -690,7 +694,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
   }
 }
 
-export default withTheme(WidgetCardChart);
+export default withSentryRouter(withTheme(WidgetCardChart));
 
 const StyledTransparentLoadingMask = styled((props: any) => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />

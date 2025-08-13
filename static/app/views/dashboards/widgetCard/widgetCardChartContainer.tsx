@@ -196,7 +196,6 @@ export function WidgetCardChartContainer({
               tableResults={tableResults}
               errorMessage={errorOrEmptyMessage}
               loading={loading}
-              location={location}
               widget={widget}
               selection={selection}
               organization={organization}

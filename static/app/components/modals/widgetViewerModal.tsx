@@ -921,7 +921,6 @@ function WidgetViewerModal(props: Props) {
                 tableResults={tableData}
                 errorMessage={undefined}
                 loading={false}
-                location={location}
                 widget={widget}
                 selection={selection}
                 organization={organization}
