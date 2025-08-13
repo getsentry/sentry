@@ -129,7 +129,7 @@ def fixup_json_fields[T: (str, str | bytes)](json_data: T) -> T:
         for k, v in dct["fields"].items():
             if isinstance(model._meta.get_field(k), JSONField) and isinstance(v, str):
                 try:
-                    # old PickledObjectField / JSONField is serialized to a string
+                    # old JSONField is serialized to a string
                     dct["fields"][k] = json.loads(v)
                 except ValueError:
                     pass  # new JSONField already represents data directly rather than encoding
