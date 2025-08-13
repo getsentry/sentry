@@ -652,6 +652,18 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             "workflowIds": [self.connected_workflow.id],
         }
 
+    def test_reject_upsampled_count_aggregate(self) -> None:
+        """Users should not be able to submit upsampled_count() directly in ACI."""
+        data = {**self.valid_data}
+        data["dataSource"] = {**self.valid_data["dataSource"], "aggregate": "upsampled_count()"}
+
+        response = self.get_error_response(
+            self.organization.slug,
+            **data,
+            status_code=400,
+        )
+        assert "upsampled_count() is not allowed as user input" in str(response.data)
+
     def test_missing_group_type(self) -> None:
         data = {**self.valid_data}
         del data["type"]

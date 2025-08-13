@@ -108,6 +108,18 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         # TODO: only accept time_window in seconds once AlertRuleSerializer is removed
         self.time_window_seconds = timeWindowSeconds
 
+    def validate_aggregate(self, aggregate: str) -> str:
+        """
+        Reject upsampled_count() as user input. This function is reserved for internal use
+        and will be applied automatically when appropriate. Users should specify count().
+        """
+        if aggregate == "upsampled_count()":
+            raise serializers.ValidationError(
+                "upsampled_count() is not allowed as user input. Use count() instead - "
+                "it will be automatically converted to upsampled_count() when appropriate."
+            )
+        return aggregate
+
     def validate_query_type(self, value: int) -> SnubaQuery.Type:
         try:
             return SnubaQuery.Type(value)
