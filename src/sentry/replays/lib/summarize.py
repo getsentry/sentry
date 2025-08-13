@@ -80,109 +80,114 @@ def fetch_trace_connected_errors(
     end: datetime | None,
 ) -> list[EventDict]:
     """Fetch error details given trace IDs and return a list of EventDict objects."""
-    if not trace_ids:
-        return []
+    try:
+        if not trace_ids:
+            return []
 
-    # Get projects in the organization that the user has access to
-    org_projects = list(
-        Project.objects.filter(organization=project.organization, status=ObjectStatus.ACTIVE)
-    )
-
-    queries = []
-    for trace_id in trace_ids:
-        snuba_params = SnubaParams(
-            projects=org_projects,
-            start=start,
-            end=end,
-            organization=project.organization,
+        # Get projects in the organization that the user has access to
+        org_projects = list(
+            Project.objects.filter(organization=project.organization, status=ObjectStatus.ACTIVE)
         )
 
-        # Query errors dataset
-        error_query = build_replay_events_query(
-            dataset=get_dataset("errors"),
-            selected_columns=[
-                "id",
-                "timestamp_ms",
-                "timestamp",
-                "title",
-                "message",
-            ],
-            query=f"trace:{trace_id}",
-            snuba_params=snuba_params,
-            orderby=["id"],
-            limit=100,
-            referrer="api.replay.summarize.events",
-        )
-        queries.append(error_query)
+        queries = []
+        for trace_id in trace_ids:
+            snuba_params = SnubaParams(
+                projects=org_projects,
+                start=start,
+                end=end,
+                organization=project.organization,
+            )
 
-        # Query issuePlatform dataset - this returns all other IP events,
-        # such as feedback and performance issues.
-        issue_query = build_replay_events_query(
-            dataset=get_dataset("issuePlatform"),
-            selected_columns=[
-                "id",
-                "event_id",
-                "title",
-                "subtitle",
-                "timestamp",
-                "occurrence_type_id",
-            ],
-            query=f"trace:{trace_id}",
-            snuba_params=snuba_params,
-            orderby=["id"],
-            limit=100,
-            referrer="api.replay.summarize.issues",
-        )
-        queries.append(issue_query)
+            # Query errors dataset
+            error_query = build_replay_events_query(
+                dataset=get_dataset("errors"),
+                selected_columns=[
+                    "id",
+                    "timestamp_ms",
+                    "timestamp",
+                    "title",
+                    "message",
+                ],
+                query=f"trace:{trace_id}",
+                snuba_params=snuba_params,
+                orderby=["id"],
+                limit=100,
+                referrer="api.replay.summarize.events",
+            )
+            queries.append(error_query)
 
-    if not queries:
-        return []
+            # Query issuePlatform dataset - this returns all other IP events,
+            # such as feedback and performance issues.
+            issue_query = build_replay_events_query(
+                dataset=get_dataset("issuePlatform"),
+                selected_columns=[
+                    "id",
+                    "event_id",
+                    "title",
+                    "subtitle",
+                    "timestamp",
+                    "occurrence_type_id",
+                ],
+                query=f"trace:{trace_id}",
+                snuba_params=snuba_params,
+                orderby=["id"],
+                limit=100,
+                referrer="api.replay.summarize.issues",
+            )
+            queries.append(issue_query)
 
-    # Process results and convert to EventDict objects
-    error_events = []
-    seen_event_ids = set()  # Track seen event IDs to avoid duplicates
+        if not queries:
+            return []
 
-    for query in queries:
-        # The query is already an EventsResponse object, not a query builder
-        result = query
-        error_data = result["data"]
+        # Process results and convert to EventDict objects
+        error_events = []
+        seen_event_ids = set()  # Track seen event IDs to avoid duplicates
 
-        for event in error_data:
-            event_id = event["id"]
+        for query in queries:
+            # The query is already an EventsResponse object, not a query builder
+            result = query
+            error_data = result["data"]
 
-            # Skip if we've already seen this event
-            if event_id in seen_event_ids:
-                continue
+            for event in error_data:
+                event_id = event["id"]
 
-            seen_event_ids.add(event_id)
+                # Skip if we've already seen this event
+                if event_id in seen_event_ids:
+                    continue
 
-            snuba_ts_ms = event.get("timestamp_ms", 0.0)
-            snuba_ts_s = event.get("timestamp", 0.0)
-            timestamp = _parse_snuba_timestamp_to_ms(
-                snuba_ts_ms, "ms"
-            ) or _parse_snuba_timestamp_to_ms(snuba_ts_s, "s")
-            message = event.get("subtitle", "") or event.get("message", "")
+                seen_event_ids.add(event_id)
 
-            if event.get("occurrence_type_id") == FeedbackGroup.type_id:
-                category = "feedback"
-            else:
-                category = "error"
+                snuba_ts_ms = event.get("timestamp_ms", 0.0)
+                snuba_ts_s = event.get("timestamp", 0.0)
+                timestamp = _parse_snuba_timestamp_to_ms(
+                    snuba_ts_ms, "ms"
+                ) or _parse_snuba_timestamp_to_ms(snuba_ts_s, "s")
+                message = event.get("subtitle", "") or event.get("message", "")
 
-            # NOTE: The issuePlatform dataset query can return feedback.
-            # We avoid fetching duplicate feedbacks from nodestore
-            # by filtering when we generate the log messages.
-            if timestamp:
-                error_events.append(
-                    EventDict(
-                        category=category,
-                        id=event_id,
-                        title=event.get("title", ""),
-                        timestamp=timestamp,
-                        message=message,
+                if event.get("occurrence_type_id") == FeedbackGroup.type_id:
+                    category = "feedback"
+                else:
+                    category = "error"
+
+                # NOTE: The issuePlatform dataset query can return feedback.
+                # We avoid fetching duplicate feedbacks from nodestore
+                # by filtering when we generate the log messages.
+                if timestamp:
+                    error_events.append(
+                        EventDict(
+                            category=category,
+                            id=event_id,
+                            title=event.get("title", ""),
+                            timestamp=timestamp,
+                            message=message,
+                        )
                     )
-                )
 
-    return error_events
+        return error_events
+
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return []
 
 
 @sentry_sdk.trace
@@ -267,7 +272,7 @@ def generate_summary_logs(
 
                 if error["category"] == "error":
                     yield generate_error_log_message(error)
-                elif error["category"] == "feedback":
+                elif error["category"] == "feedback" and error["id"] not in seen_feedback_ids:
                     seen_feedback_ids.add(error["id"])
                     yield generate_feedback_log_message(error)
 
@@ -290,8 +295,14 @@ def generate_summary_logs(
     # Yield any remaining error messages
     while error_idx < len(error_events):
         error = error_events[error_idx]
-        yield generate_error_log_message(error)
-        error_idx += 1
+
+        if error["category"] == "error":
+            yield generate_error_log_message(error)
+        elif error["category"] == "feedback" and error["id"] not in seen_feedback_ids:
+            seen_feedback_ids.add(error["id"])
+            yield generate_feedback_log_message(error)
+
+            error_idx += 1
 
 
 def as_log_message(event: dict[str, Any]) -> str | None:
