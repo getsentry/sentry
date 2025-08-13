@@ -96,14 +96,14 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         resp_data = response.json()
-        assert "results" in resp_data
+        assert "builds" in resp_data
         assert "pagination" in resp_data
-        assert len(resp_data["results"]) == 3  # Should return all 3 artifacts
+        assert len(resp_data["builds"]) == 3  # Should return all 3 artifacts
 
-        # Check that results are ordered by date_added (most recent first)
-        assert resp_data["results"][0]["app_info"]["app_id"] == "com.example.app3"
-        assert resp_data["results"][1]["app_info"]["app_id"] == "com.example.app2"
-        assert resp_data["results"][2]["app_info"]["app_id"] == "com.example.app"
+        # Check that builds are ordered by date_added (most recent first)
+        assert resp_data["builds"][0]["app_info"]["app_id"] == "com.example.app3"
+        assert resp_data["builds"][1]["app_info"]["app_id"] == "com.example.app2"
+        assert resp_data["builds"][2]["app_info"]["app_id"] == "com.example.app"
 
     def test_list_builds_with_pagination(self) -> None:
         url = self._get_url()
@@ -115,7 +115,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         resp_data = response.json()
-        assert len(resp_data["results"]) == 2
+        assert len(resp_data["builds"]) == 2
         assert resp_data["pagination"]["per_page"] == 2
         assert resp_data["pagination"]["page"] == 1
         assert resp_data["pagination"]["has_next"] is True
@@ -130,7 +130,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
 
         assert response.status_code == 200
         resp_data = response.json()
-        assert len(resp_data["results"]) == 1
+        assert len(resp_data["builds"]) == 1
         assert resp_data["pagination"]["has_next"] is False
         assert resp_data["pagination"]["has_prev"] is True
 
@@ -145,8 +145,8 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         resp_data = response.json()
-        assert len(resp_data["results"]) == 1
-        assert resp_data["results"][0]["app_info"]["app_id"] == "com.example.app2"
+        assert len(resp_data["builds"]) == 1
+        assert resp_data["builds"][0]["app_info"]["app_id"] == "com.example.app2"
 
         # Filter by platform
         response = self.client.get(
@@ -156,8 +156,8 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         resp_data = response.json()
-        assert len(resp_data["results"]) == 2  # APK and AAB are both Android
-        for result in resp_data["results"]:
+        assert len(resp_data["builds"]) == 2  # APK and AAB are both Android
+        for result in resp_data["builds"]:
             assert result["app_info"]["platform"] in ["android"]
 
         # Filter by state
@@ -168,7 +168,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         resp_data = response.json()
-        assert len(resp_data["results"]) == 2  # Only 2 artifacts are PROCESSED
+        assert len(resp_data["builds"]) == 2  # Only 2 artifacts are PROCESSED
 
     def test_list_builds_feature_flag_disabled(self) -> None:
         with self.feature({"organizations:preprod-frontend-routes": False}):
@@ -202,7 +202,7 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         resp_data = response.json()
         assert resp_data["pagination"]["page"] == 1
 
-    def test_list_builds_empty_results(self) -> None:
+    def test_list_builds_empty_builds(self) -> None:
         # Create a different project with no artifacts
         other_project = self.create_project(organization=self.org)
         url = reverse(
@@ -215,6 +215,6 @@ class ProjectPreprodListBuildsEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         resp_data = response.json()
-        assert len(resp_data["results"]) == 0
+        assert len(resp_data["builds"]) == 0
         assert resp_data["pagination"]["has_next"] is False
         assert resp_data["pagination"]["has_prev"] is False

@@ -89,7 +89,8 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
 
         platform = request.GET.get("platform")
         if platform:
-            if platform.lower() == "ios":
+            # For now, macos artifacts are also XCARCHIVE type
+            if platform.lower() == "ios" or platform.lower() == "macos":
                 queryset = queryset.filter(artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE)
             elif platform.lower() == "android":
                 queryset = queryset.filter(
@@ -98,16 +99,22 @@ class ProjectPreprodListBuildsEndpoint(ProjectEndpoint):
                         PreprodArtifact.ArtifactType.APK,
                     ]
                 )
-            elif platform.lower() == "macos":
-                # For now, macos artifacts are also XCARCHIVE type
-                queryset = queryset.filter(artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE)
+            else:
+                return Response(
+                    {"error": "Invalid platform: " + platform},
+                    status=400,
+                )
 
-        # Order by most recent first
         queryset = queryset.order_by("-date_added")
 
-        # Get pagination parameters
-        per_page = min(int(request.GET.get("per_page", 25)), 100)
-        page = max(int(request.GET.get("page", 1)), 1)
+        try:
+            per_page = min(int(request.GET.get("per_page", 25)), 100)
+            page = max(int(request.GET.get("page", 1)), 1)
+        except ValueError:
+            return Response(
+                {"error": "Invalid pagination parameters: 'per_page' and 'page' must be integers."},
+                status=400,
+            )
 
         # Create paginator
         paginator = OffsetPaginator(
