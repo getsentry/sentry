@@ -111,14 +111,9 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
             "organizations:user-feedback-ai-categorization-features",
             organization,
             actor=request.user,
-        ):
+        ) or not has_seer_access(organization, actor=request.user):
             return Response(
-                {"detail": "AI categorization is not available for this organization."}, status=404
-            )
-
-        if not has_seer_access(organization, actor=request.user):
-            return Response(
-                {"detail": "AI features are not enabled for this organization."}, status=403
+                {"detail": "AI categorization is not available for this organization."}, status=403
             )
 
         try:

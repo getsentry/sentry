@@ -68,14 +68,9 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
 
         if not features.has(
             "organizations:user-feedback-ai-summaries", organization, actor=request.user
-        ):
+        ) or not has_seer_access(organization, actor=request.user):
             return Response(
-                {"detail": "AI summaries are not available for this organization."}, status=404
-            )
-
-        if not has_seer_access(organization, actor=request.user):
-            return Response(
-                {"detail": "AI features are not enabled for this organization."}, status=403
+                {"detail": "AI summaries are not available for this organization."}, status=403
             )
 
         try:

@@ -123,20 +123,20 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
         # Note any headers in the Seer response aren't returned.
         return Response(data=response.json(), status=response.status_code)
 
+    def has_replay_summary_access(self, project: Project, request: Request) -> bool:
+        return (
+            features.has("organizations:session-replay", project.organization, actor=request.user)
+            and features.has(
+                "organizations:replay-ai-summaries", project.organization, actor=request.user
+            )
+            and has_seer_access(project.organization, actor=request.user)
+        )
+
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
         """Poll for the status of a replay summary task in Seer."""
-        if not features.has(
-            "organizations:session-replay", project.organization, actor=request.user
-        ) or not features.has(
-            "organizations:replay-ai-summaries", project.organization, actor=request.user
-        ):
+        if not self.has_replay_summary_access(project, request):
             return self.respond(
-                {"detail": "Replay summaries are not available for this organization."}, status=404
-            )
-
-        if not has_seer_access(project.organization, actor=request.user):
-            return self.respond(
-                {"detail": "AI features are not enabled for this organization."}, status=403
+                {"detail": "Replay summaries are not available for this organization."}, status=403
             )
 
         # We skip checking Seer permissions here for performance, and because summaries can't be created without them anyway.
@@ -151,18 +151,9 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
 
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
         """Download replay segment data and parse it into logs. Then post to Seer to start a summary task."""
-        if not features.has(
-            "organizations:session-replay", project.organization, actor=request.user
-        ) or not features.has(
-            "organizations:replay-ai-summaries", project.organization, actor=request.user
-        ):
+        if not self.has_replay_summary_access(project, request):
             return self.respond(
-                {"detail": "Replay summaries are not available for this organization."}, status=404
-            )
-
-        if not has_seer_access(project.organization, actor=request.user):
-            return self.respond(
-                {"detail": "AI features are not enabled for this organization."}, status=403
+                {"detail": "Replay summaries are not available for this organization."}, status=403
             )
 
         filter_params = self.get_filter_params(request, project)

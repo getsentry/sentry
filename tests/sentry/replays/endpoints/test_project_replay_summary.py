@@ -93,7 +93,7 @@ class ProjectReplaySummaryTestCase(
                     response = (
                         self.client.get(self.url) if method == "GET" else self.client.post(self.url)
                     )
-                    assert response.status_code == 404, (replay, replay_ai, method)
+                    assert response.status_code == 403, (replay, replay_ai, method)
 
     def test_no_seer_access(self) -> None:
         self.mock_has_seer_access.return_value = False

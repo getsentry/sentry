@@ -43,7 +43,7 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
     def test_get_feedback_summary_without_feature_flag(self) -> None:
         response = self.get_error_response(self.org.slug)
-        assert response.status_code == 404
+        assert response.status_code == 403
 
     def test_get_feedback_summary_without_seer_access(self) -> None:
         self.mock_has_seer_access.return_value = False
