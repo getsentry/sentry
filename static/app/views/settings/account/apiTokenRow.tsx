@@ -9,7 +9,6 @@ import {DateTime} from 'sentry/components/dateTime';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
 type Props = {
@@ -32,13 +31,7 @@ function ApiTokenRow({
       <div>
         {token.name}
         <TokenPreview aria-label={t('Token preview')}>
-          {tokenPreview(
-            getDynamicText({
-              value: token.tokenLastCharacters,
-              fixed: 'ABCD',
-            }),
-            tokenPrefix
-          )}
+          {tokenPreview(token.tokenLastCharacters, tokenPrefix)}
         </TokenPreview>
       </div>
       <div>

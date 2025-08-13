@@ -14,7 +14,6 @@ import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ApiApplication} from 'sentry/types/user';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import useApi from 'sentry/utils/useApi';
 
 const ROUTE_PREFIX = '/settings/account/api/';
@@ -52,11 +51,9 @@ function Row({app, onRemove}: Props) {
     <StyledPanelItem>
       <ApplicationNameWrapper>
         <ApplicationName to={`${ROUTE_PREFIX}applications/${app.id}/`}>
-          {getDynamicText({value: app.name, fixed: 'CI_APPLICATION_NAME'})}
+          {app.name}
         </ApplicationName>
-        <ClientId>
-          {getDynamicText({value: app.clientID, fixed: 'CI_CLIENT_ID'})}
-        </ClientId>
+        <ClientId>{app.clientID}</ClientId>
       </ApplicationNameWrapper>
 
       <ConfirmDelete
