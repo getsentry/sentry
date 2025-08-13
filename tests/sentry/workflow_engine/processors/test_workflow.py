@@ -23,6 +23,7 @@ from sentry.workflow_engine.models import (
     Workflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 from sentry.workflow_engine.processors.workflow import (
     DelayedWorkflowItem,
     delete_workflow,
@@ -270,6 +271,41 @@ class TestProcessWorkflows(BaseWorkflowTest):
             1,
             tags={"detector_type": self.error_detector.type},
         )
+
+    @patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
+    def test_workflow_fire_history_with_action_deduping(
+        self, mock_trigger_action: MagicMock
+    ) -> None:
+        """Fire a single action, but record that it was fired for multiple workflows"""
+
+        self.action_group, self.action = self.create_workflow_action(workflow=self.error_workflow)
+
+        error_workflow_2 = self.create_workflow(
+            name="error_workflow_2",
+            when_condition_group=self.create_data_condition_group(),
+        )
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=error_workflow_2,
+        )
+        self.action_group_2, self.action_2 = self.create_workflow_action(workflow=error_workflow_2)
+
+        error_workflow_3 = self.create_workflow(
+            name="error_workflow_3",
+            when_condition_group=self.create_data_condition_group(),
+        )
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=error_workflow_3,
+        )
+        self.action_group_3, self.action_3 = self.create_workflow_action(workflow=error_workflow_3)
+
+        process_workflows(self.event_data)
+
+        assert WorkflowFireHistory.objects.count() == 3
+        assert (
+            mock_trigger_action.call_count == 1
+        )  # TODO: determine if this is ideal, the actions are duped but not in the same workflows
 
 
 @mock_redis_buffer()
