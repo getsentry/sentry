@@ -276,10 +276,10 @@ class TestProcessWorkflows(BaseWorkflowTest):
     def test_workflow_fire_history_with_action_deduping(
         self, mock_trigger_action: MagicMock
     ) -> None:
-        # fire a single action, but record that it was fired for multiple workflows
+        """Fire a single action, but record that it was fired for multiple workflows"""
+        
         self.action_group, self.action = self.create_workflow_action(workflow=self.error_workflow)
 
-        # TODO: create new error workflow 2
         error_workflow_2 = self.create_workflow(
             name="error_workflow_2",
             when_condition_group=self.create_data_condition_group(),
