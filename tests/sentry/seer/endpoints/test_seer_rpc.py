@@ -20,7 +20,7 @@ from sentry.seer.endpoints.seer_rpc import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 # Fernet key must be a base64 encoded string, exactly 32 bytes long
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
@@ -56,6 +56,7 @@ class TestSeerRpc(APITestCase):
         assert response.status_code == 404
 
 
+@all_silo_test
 class TestSeerRpcMethods(APITestCase):
     """Test individual RPC methods"""
 
@@ -75,12 +76,13 @@ class TestSeerRpcMethods(APITestCase):
 
     def test_get_organization_seer_consent_by_org_name_no_consent(self) -> None:
         """Test when organization exists but has no consent"""
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org",
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=self.organization,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org",
+            )
 
         # Disable PR review test generation
         OrganizationOption.objects.set_value(
@@ -93,12 +95,13 @@ class TestSeerRpcMethods(APITestCase):
 
     def test_get_organization_seer_consent_by_org_name_with_default_pr_review_enabled(self) -> None:
         """Test when organization has seer acknowledgement"""
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org",
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=self.organization,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org",
+            )
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
@@ -111,18 +114,19 @@ class TestSeerRpcMethods(APITestCase):
         org_with_consent = self.create_organization(owner=self.user)
 
         # Create integrations for both organizations with the same name
-        self.create_integration(
-            organization=org_without_consent,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org-1",
-        )
-        self.create_integration(
-            organization=org_with_consent,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org-2",
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=org_without_consent,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org-1",
+            )
+            self.create_integration(
+                organization=org_with_consent,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org-2",
+            )
 
         # Disable PR review for first org, enable for second (or leave default)
         OrganizationOption.objects.set_value(
@@ -137,12 +141,13 @@ class TestSeerRpcMethods(APITestCase):
         self,
     ):
         """Test that when hide_ai_features is True, that org doesn't contribute consent"""
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org",
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=self.organization,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org",
+            )
 
         # Enable hide_ai_features
         OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", True)
@@ -161,12 +166,13 @@ class TestSeerRpcMethods(APITestCase):
         self,
     ):
         """Test that when hide_ai_features is False, PR review setting determines consent"""
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org",
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=self.organization,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org",
+            )
 
         # Explicitly disable hide_ai_features
         OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
@@ -185,18 +191,19 @@ class TestSeerRpcMethods(APITestCase):
         org_with_visible_ai = self.create_organization(owner=self.user)
 
         # Create integrations for both organizations with the same name
-        self.create_integration(
-            organization=org_with_hidden_ai,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org-1",
-        )
-        self.create_integration(
-            organization=org_with_visible_ai,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org-2",
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=org_with_hidden_ai,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org-1",
+            )
+            self.create_integration(
+                organization=org_with_visible_ai,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org-2",
+            )
 
         # First org has hide_ai_features enabled (so it won't contribute consent)
         OrganizationOption.objects.set_value(org_with_hidden_ai, "sentry:hide_ai_features", True)
@@ -217,18 +224,19 @@ class TestSeerRpcMethods(APITestCase):
         org2 = self.create_organization(owner=self.user)
 
         # Create integrations for both organizations with the same name
-        self.create_integration(
-            organization=org1,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org-1",
-        )
-        self.create_integration(
-            organization=org2,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org-2",
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=org1,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org-1",
+            )
+            self.create_integration(
+                organization=org2,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org-2",
+            )
 
         # Both orgs have hide_ai_features enabled
         OrganizationOption.objects.set_value(org1, "sentry:hide_ai_features", True)
@@ -243,12 +251,13 @@ class TestSeerRpcMethods(APITestCase):
         self,
     ):
         """Test that both conditions must be met: hide_ai_features=False AND pr_review_enabled=True"""
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org",
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=self.organization,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org",
+            )
 
         # Disable hide_ai_features but also disable PR review
         OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
