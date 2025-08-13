@@ -487,7 +487,11 @@ class Dashboard extends Component<Props, State> {
     // For attributing engagement metrics initially track the ratio
     // of widgets reading from Transactions, Spans, Errors, and Issues, and Logs.
     const issuesWidgetTypes = new Set<string | undefined>(['error-events', 'issue']);
-    const tracingWidgetTypes = new Set<string | undefined>(['transaction-like', 'spans', 'logs']);
+    const tracingWidgetTypes = new Set<string | undefined>([
+      'transaction-like',
+      'spans',
+      'logs',
+    ]);
     let tracingWidgetCount = 0.0;
     let issuesWidgetCount = 0.0;
     for (const widget of widgets) {
