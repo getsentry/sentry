@@ -9,11 +9,12 @@ from django.db import router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import buffer, features
+from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json
+from sentry.workflow_engine import buffer
 from sentry.workflow_engine.models import Action, DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
 from sentry.workflow_engine.processors.action import (
@@ -118,8 +119,9 @@ def enqueue_workflows(
         sentry_sdk.set_tag("delayed_workflow_items", items)
         return
 
+    backend = buffer.get_backend()
     for project_id, queue_items in items_by_project_id.items():
-        buffer.backend.push_to_hash_bulk(
+        backend.push_to_hash_bulk(
             model=Workflow,
             filters={"project_id": project_id},
             data={queue_item.buffer_key(): queue_item.buffer_value() for queue_item in queue_items},
@@ -130,7 +132,7 @@ def enqueue_workflows(
     sentry_sdk.set_tag("delayed_workflow_items", items)
 
     sharded_key = random.choice(DelayedWorkflow.get_buffer_keys())
-    buffer.backend.push_to_sorted_set(key=sharded_key, value=list(items_by_project_id.keys()))
+    backend.push_to_sorted_set(key=sharded_key, value=list(items_by_project_id.keys()))
 
     logger.debug(
         "workflow_engine.workflows.enqueued",

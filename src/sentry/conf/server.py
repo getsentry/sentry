@@ -2088,6 +2088,10 @@ ALLOWED_CREDENTIAL_ORIGINS: list[str] = []
 SENTRY_BUFFER = "sentry.buffer.Buffer"
 SENTRY_BUFFER_OPTIONS: dict[str, str] = {}
 
+# Workflow Buffer backend
+SENTRY_WORKFLOW_BUFFER = "sentry.buffer.Buffer"
+SENTRY_WORKFLOW_BUFFER_OPTIONS: dict[str, str] = {}
+
 # Cache backend
 # XXX: We explicitly require the cache to be configured as its not optional
 # and causes serious confusion with the default django cache
