@@ -404,7 +404,7 @@ class Quota(Service):
     def get_downsampled_event_retention(self, organization):
         """
         Returns the retention for downsampled events in the given organization in days.
-        Returns ``None`` if downsampled events are to be stored indefinitely.
+        Returning ``0`` means downsampled event retention will default to the value of ``get_event_retention``.
         """
         return 0
 
