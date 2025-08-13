@@ -55,6 +55,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
@@ -215,7 +216,7 @@ def get_organization_slug(*, org_id: int) -> dict:
     return {"slug": org.slug}
 
 
-def _can_use_prevent_ai_features(org: Organization) -> bool:
+def _can_use_prevent_ai_features(org: Organization | RpcOrganization) -> bool:
     hide_ai_features = org.get_option("sentry:hide_ai_features", HIDE_AI_FEATURES_DEFAULT)
     pr_review_test_generation_enabled = bool(
         org.get_option(
