@@ -1,8 +1,7 @@
 from typing import Any, TypedDict
+from unittest.mock import patch
 
 import requests
-import responses
-from django.conf import settings
 from django.urls import reverse
 
 from sentry.feedback.usecases.label_generation import AI_LABEL_TAG_PREFIX
@@ -14,13 +13,14 @@ from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
-def mock_seer_category_response(**kwargs) -> None:
-    """Use with @responses.activate to mock Seer category generation responses."""
-    responses.add(
-        responses.POST,
-        f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/feedback/label-groups",
-        **kwargs,
-    )
+class MockSeerResponse:
+    def __init__(self, status: int, json_data: dict, raw_data: str | bytes):
+        self.status = status
+        self.json_data = json_data
+        self.data = raw_data
+
+    def json(self):
+        return self.json_data
 
 
 class FeedbackData(TypedDict):
@@ -155,16 +155,21 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
             )
 
     @django_db_all
+    @patch(
+        "sentry.feedback.endpoints.organization_feedback_categories.make_signed_seer_api_request"
+    )
     def test_get_feedback_categories_without_feature_flag(self) -> None:
         response = self.get_error_response(self.org.slug)
         assert response.status_code == 404
 
     @django_db_all
-    @responses.activate
-    def test_get_feedback_categories_basic(self) -> None:
-        mock_seer_category_response(
-            status=200,
-            json={
+    @patch(
+        "sentry.feedback.endpoints.organization_feedback_categories.make_signed_seer_api_request"
+    )
+    def test_get_feedback_categories_basic(self, mock_seer_api_request) -> None:
+        mock_response = MockSeerResponse(
+            200,
+            json_data={
                 "data": [
                     {
                         "primaryLabel": "User Interface",
@@ -174,7 +179,9 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
                     {"primaryLabel": "Authentication", "associatedLabels": ["Security"]},
                 ]
             },
+            raw_data='{"data": [{"primaryLabel": "User Interface","associatedLabels": ["Usability"]},{"primaryLabel": "Performance", "associatedLabels": ["Speed", "Loading"]},{"primaryLabel": "Authentication", "associatedLabels": ["Security"]}]}',
         )
+        mock_seer_api_request.return_value = mock_response
 
         with self.feature(self.features):
             response = self.get_success_response(self.org.slug)
@@ -200,18 +207,20 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
             assert isinstance(category["feedbackCount"], int)
 
             if category["primaryLabel"] == "User Interface":
-                assert category["feedbackCount"] == 11
+                assert category["feedbackCount"] == 9  # 4 from project1 + 5 from project2
             elif category["primaryLabel"] == "Performance":
-                assert category["feedbackCount"] == 4
+                assert category["feedbackCount"] == 3  # 3 from project1
             elif category["primaryLabel"] == "Authentication":
-                assert category["feedbackCount"] == 3
+                assert category["feedbackCount"] == 3  # 3 from project1
 
     @django_db_all
-    @responses.activate
-    def test_get_feedback_categories_with_project_filter(self) -> None:
-        mock_seer_category_response(
-            status=200,
-            json={
+    @patch(
+        "sentry.feedback.endpoints.organization_feedback_categories.make_signed_seer_api_request"
+    )
+    def test_get_feedback_categories_with_project_filter(self, mock_seer_api_request) -> None:
+        mock_response = MockSeerResponse(
+            200,
+            json_data={
                 "data": [
                     {
                         "primaryLabel": "User Interface",
@@ -220,7 +229,9 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
                     {"primaryLabel": "Authentication", "associatedLabels": ["Security", "Login"]},
                 ]
             },
+            raw_data='{"data": [{"primaryLabel": "User Interface","associatedLabels": ["Performance", "Usability"]},{"primaryLabel": "Authentication", "associatedLabels": ["Security", "Login"]}]}',
         )
+        mock_seer_api_request.return_value = mock_response
 
         params = {
             "project": [self.project1.id],
@@ -249,49 +260,64 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
             assert isinstance(category["feedbackCount"], int)
 
             if category["primaryLabel"] == "User Interface":
-                assert category["feedbackCount"] == 8
+                assert category["feedbackCount"] == 4  # 4 from project1 only
             elif category["primaryLabel"] == "Authentication":
-                assert category["feedbackCount"] == 3
+                assert category["feedbackCount"] == 3  # 3 from project1 only
 
     @django_db_all
-    @responses.activate
-    def test_seer_timeout(self) -> None:
-        mock_seer_category_response(body=requests.exceptions.Timeout("Request timed out"))
+    @patch(
+        "sentry.feedback.endpoints.organization_feedback_categories.make_signed_seer_api_request"
+    )
+    def test_seer_timeout(self, mock_seer_api_request) -> None:
+        mock_seer_api_request.side_effect = requests.exceptions.Timeout("Request timed out")
 
         with self.feature(self.features):
             response = self.get_error_response(self.org.slug)
 
         assert response.status_code == 500
+        assert response.data["detail"] == "Failed to generate user feedback label groups"
 
     @django_db_all
-    @responses.activate
-    def test_seer_connection_error(self) -> None:
-        mock_seer_category_response(body=requests.exceptions.ConnectionError("Connection error"))
+    @patch(
+        "sentry.feedback.endpoints.organization_feedback_categories.make_signed_seer_api_request"
+    )
+    def test_seer_connection_error(self, mock_seer_api_request) -> None:
+        mock_seer_api_request.side_effect = requests.exceptions.ConnectionError("Connection error")
 
         with self.feature(self.features):
             response = self.get_error_response(self.org.slug)
 
         assert response.status_code == 500
+        assert response.data["detail"] == "Failed to generate user feedback label groups"
 
     @django_db_all
-    @responses.activate
-    def test_seer_request_error(self) -> None:
-        mock_seer_category_response(
-            body=requests.exceptions.RequestException("Generic request error")
+    @patch(
+        "sentry.feedback.endpoints.organization_feedback_categories.make_signed_seer_api_request"
+    )
+    def test_seer_request_error(self, mock_seer_api_request) -> None:
+        mock_seer_api_request.side_effect = requests.exceptions.RequestException(
+            "Generic request error"
         )
 
         with self.feature(self.features):
             response = self.get_error_response(self.org.slug)
 
         assert response.status_code == 500
+        assert response.data["detail"] == "Failed to generate user feedback label groups"
 
     @django_db_all
-    @responses.activate
-    def test_seer_http_errors(self) -> None:
+    @patch(
+        "sentry.feedback.endpoints.organization_feedback_categories.make_signed_seer_api_request"
+    )
+    def test_seer_http_errors(self, mock_seer_api_request) -> None:
         for status in [400, 401, 403, 404, 429, 500, 502, 503, 504]:
-            mock_seer_category_response(status=status)
+            mock_response = MockSeerResponse(
+                status=status, json_data={"error": "Test error"}, raw_data='{"error": "Test error"}'
+            )
+            mock_seer_api_request.return_value = mock_response
 
             with self.feature(self.features):
                 response = self.get_error_response(self.org.slug)
 
             assert response.status_code == 500
+            assert response.data["detail"] == "Failed to generate user feedback label groups"
