@@ -71,9 +71,7 @@ class RedisProjectConfigCache(ProjectConfigCache):
 
         # Count deletions of project configs, not deletions of individual Redis keys.
         amount = sum(1 for rv in return_values if rv >= 1)
-        metrics.incr(
-            "relay.projectconfig_cache.write", amount=amount, tags={"action": "delete"}
-        )
+        metrics.incr("relay.projectconfig_cache.write", amount=amount, tags={"action": "delete"})
 
     def get(self, public_key):
         rv_b = self.cluster_read.get(self.__get_redis_key(public_key))
