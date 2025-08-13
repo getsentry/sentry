@@ -392,59 +392,7 @@ class MonitorCheckInValidator(serializers.Serializer):
         allow_null=True,
         help_text="Name of the environment.",
     )
-    monitor_config = ConfigValidator(required=False)
     contexts = ContextsValidator(required=False, allow_null=True)
-
-    def validate(self, attrs):
-        attrs = super().validate(attrs)
-
-        # Support specifying monitor configuration via a check-in
-        #
-        # NOTE: Most monitor attributes are contextual (project, slug, etc),
-        #       the monitor config is passed in via this checkin serializer's
-        #       monitor_config attribute.
-        #
-        # NOTE: We have already validated the monitor_config in the
-        #       ConfigValidator field, to keep things simple, we'll just stick
-        #       the initial_data back into the monitor validator
-        monitor_config = self.initial_data.get("monitor_config")
-        if monitor_config:
-            project = self.context["project"]
-            instance = {}
-            monitor = self.context.get("monitor", None)
-            if monitor:
-                instance = {
-                    "name": monitor.name,
-                    "slug": monitor.slug,
-                    "status": monitor.status,
-                    "type": monitor.type,
-                    "config": monitor.config,
-                    "project": project,
-                }
-
-            # Use context to complete the full monitor validator object
-            monitor_validator = MonitorValidator(
-                data={
-                    "type": "cron_job",
-                    "name": self.context["monitor_slug"],
-                    "slug": self.context["monitor_slug"],
-                    "project": project.slug,
-                    "config": monitor_config,
-                },
-                instance=instance,
-                context={
-                    "organization": project.organization,
-                    "access": self.context["request"].access,
-                },
-            )
-            monitor_validator.is_valid(raise_exception=True)
-
-            # Drop the `monitor_config` attribute favor in favor of the fully
-            # validated monitor data
-            attrs["monitor"] = monitor_validator.validated_data
-            del attrs["monitor_config"]
-
-        return attrs
 
 
 class MonitorBulkEditValidator(MonitorValidator):
