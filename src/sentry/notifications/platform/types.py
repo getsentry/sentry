@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Protocol
 
@@ -127,7 +127,7 @@ class NotificationRenderedTemplate:
     keeping it concise and useful to the receiver. This string should not contain any formatting,
     and will be displayed as is.
     """
-    actions: list[NotificationRenderedAction] = []
+    actions: list[NotificationRenderedAction] = field(default_factory=list)
     """
     The list of actions that a receiver may take after having received the notification.
     """
