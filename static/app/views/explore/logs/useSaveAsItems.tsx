@@ -37,7 +37,7 @@ interface UseSaveAsItemsOptions {
   interval: string;
   mode: Mode;
   search: MutableSearch;
-  sortBys: Sort[];
+  sortBys: readonly Sort[];
   visualizes: readonly Visualize[];
 }
 

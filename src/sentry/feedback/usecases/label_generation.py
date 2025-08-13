@@ -30,7 +30,7 @@ seer_connection_pool = connection_from_url(
 )
 
 
-@metrics.wraps("feedback.generate_labels", sample_rate=1.0)
+@metrics.wraps("feedback.generate_labels")
 def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
     """
     Generate labels for a feedback message.

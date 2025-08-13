@@ -18,7 +18,6 @@ from sentry import options
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.eventstore.models import Event
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
@@ -26,6 +25,7 @@ from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import CreateGroupingRecordData
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
 from sentry.seer.similarity.utils import MAX_FRAME_COUNT
+from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project import (
