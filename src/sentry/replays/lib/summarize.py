@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Generator, Iterator
 from datetime import datetime
-from typing import Any, Literal, TypedDict
+from typing import Any, TypedDict
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -59,18 +59,18 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[EventDict
         return []
 
 
-def _parse_snuba_timestamp_to_ms(timestamp: str | float, input_unit: Literal["s", "ms"]) -> float:
+def _parse_iso_timestamp_to_ms(timestamp: str | None) -> float:
     """
-    Parse a numeric or ISO timestamp to float milliseconds. `input_unit` is only used for numeric inputs.
+    Parses a nullable ISO timestamp to float milliseconds. Errors default to 0.
     """
-    if isinstance(timestamp, str):
-        try:
-            dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-            return dt.timestamp() * 1000
-        except (ValueError, AttributeError):
-            return 0.0
+    if not timestamp:
+        return 0.0
 
-    return float(timestamp) * 1000 if input_unit == "s" else float(timestamp)
+    try:
+        dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        return dt.timestamp() * 1000
+    except (ValueError, AttributeError):
+        return 0.0
 
 
 @sentry_sdk.trace
@@ -135,11 +135,9 @@ def fetch_trace_connected_errors(
             error_data = query.process_results(result)["data"]
 
             for event in error_data:
-                snuba_ts_ms = event.get("timestamp_ms", 0.0)
-                snuba_ts_s = event.get("timestamp", 0.0)
-                timestamp = _parse_snuba_timestamp_to_ms(
-                    snuba_ts_ms, "ms"
-                ) or _parse_snuba_timestamp_to_ms(snuba_ts_s, "s")
+                timestamp = _parse_iso_timestamp_to_ms(
+                    event.get("timestamp_ms")
+                ) or _parse_iso_timestamp_to_ms(event.get("timestamp"))
 
                 if timestamp:
                     error_events.append(
