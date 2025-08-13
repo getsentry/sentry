@@ -608,8 +608,10 @@ def get_replay_segments(
         where=[
             Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column("replay_id"), Op.EQ, replay_id),
-            Condition(Column("timestamp"), Op.LT, datetime.now()),
-            Condition(Column("timestamp"), Op.GTE, datetime.now() - timedelta(days=90)),
+            Condition(Column("timestamp"), Op.LT, datetime.now(tz=timezone.utc)),
+            Condition(
+                Column("timestamp"), Op.GTE, datetime.now(tz=timezone.utc) - timedelta(days=90)
+            ),
             (
                 Condition(Column("segment_id"), Op.EQ, segment_id)
                 if segment_id is not None
