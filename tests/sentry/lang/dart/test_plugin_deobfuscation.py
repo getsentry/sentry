@@ -89,9 +89,11 @@ class DartPluginDeobfuscationTest(TestCase):
         preprocessor = preprocessors[0]
         preprocessor(data)
 
-        # Verify the exception type was deobfuscated, value remains unchanged
+        # Verify the exception type and value were deobfuscated
         assert data["exception"]["values"][0]["type"] == "NetworkException"
-        assert data["exception"]["values"][0]["value"] == "Instance of 'xyz' was thrown"
+        assert (
+            data["exception"]["values"][0]["value"] == "Instance of 'NetworkException' was thrown"
+        )
 
     def test_dart_multiple_exceptions_deobfuscation_direct(self) -> None:
         """Test that multiple Dart exceptions are deobfuscated."""
