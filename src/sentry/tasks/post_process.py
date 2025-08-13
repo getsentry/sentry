@@ -1086,7 +1086,6 @@ def process_rules(job: PostProcessJob) -> None:
         is_new_group_environment,
         has_reappeared,
         has_escalated,
-        start_timestamp=timezone.now(),
     )
     with sentry_sdk.start_span(op="tasks.post_process_group.rule_processor_callbacks"):
         # TODO(dcramer): ideally this would fanout, but serializing giant

@@ -300,7 +300,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         )
         self.action_group_3, self.action_3 = self.create_workflow_action(workflow=error_workflow_3)
 
-        process_workflows(self.event_data)
+        process_workflows(self.event_data, FROZEN_TIME)
 
         assert WorkflowFireHistory.objects.count() == 3
         assert mock_trigger_action.call_count == 3
