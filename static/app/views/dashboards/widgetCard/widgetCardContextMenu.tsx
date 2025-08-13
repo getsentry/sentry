@@ -418,7 +418,6 @@ export function getMenuOptions(
             layout: undefined,
           },
           actions: ['add-and-stay-on-current-page', 'open-in-widget-builder'],
-          allowCreateNewDashboard: true,
           source: DashboardWidgetSource.DASHBOARDS,
         });
       },
