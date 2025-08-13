@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from typing import cast
 
 import sentry_sdk
-import sentry_sdk.scope
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import RunTask, RunTaskInThreads
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
@@ -91,10 +90,10 @@ def process_message_with_options(
 def process_message(
     message: Message[KafkaPayload], profiling_enabled: bool = False
 ) -> ProcessedEvent | FilteredPayload:
-    with sentry_sdk.start_transaction(
+    with sentry_sdk.start_span(
         name="replays.consumer.recording_buffered.process_message",
         op="replays.consumer.recording_buffered.process_message",
-        custom_sampling_context={
+        attributes={
             "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
         },
     ):
@@ -197,11 +196,11 @@ def commit_message_with_options(message: Message[ProcessedEvent]) -> None:
 
 def commit_message(message: Message[ProcessedEvent], profiling_enabled: bool = False) -> None:
     isolation_scope = sentry_sdk.get_isolation_scope().fork()
-    with sentry_sdk.scope.use_isolation_scope(isolation_scope):
-        with sentry_sdk.start_transaction(
+    with sentry_sdk.use_isolation_scope(isolation_scope):
+        with sentry_sdk.start_span(
             name="replays.consumer.recording_buffered.commit_message",
             op="replays.consumer.recording_buffered.commit_message",
-            custom_sampling_context={
+            attributes={
                 "sample_rate": getattr(
                     settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
                 )
