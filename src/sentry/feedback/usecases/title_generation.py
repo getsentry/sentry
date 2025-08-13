@@ -67,7 +67,6 @@ def format_feedback_title(title: str, max_words: int = 10) -> str:
     return title
 
 
-# TODO: remove sample_rate=1.0 once GA'd and we're confident Seer can handle the load.
 @metrics.wraps("feedback.ai_title_generation", sample_rate=1.0)
 def get_feedback_title_from_seer(feedback_message: str, organization_id: int) -> str | None:
     """

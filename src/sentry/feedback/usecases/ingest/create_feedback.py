@@ -104,7 +104,8 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
     ):
         # This metric confirms this behavior is still used.
         metrics.incr(
-            "feedback.create_feedback_issue.filled_missing_replay_context", sample_rate=1.0
+            "feedback.create_feedback_issue.filled_missing_replay_context",
+            sample_rate=1.0,
         )
         ret_event["contexts"]["replay"] = {
             "replay_id": event_data["contexts"].get("feedback", {}).get("replay_id")
@@ -223,7 +224,6 @@ def create_feedback_issue(
                     "referrer": source.value,
                     "platform": project.platform,
                 },
-                sample_rate=1.0,
             )
             if random.random() < 0.1:
                 logger.info(
