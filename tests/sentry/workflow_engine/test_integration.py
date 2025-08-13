@@ -198,7 +198,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
             mock_process_workflow.assert_not_called()
 
 
-@mock.patch("sentry.workflow_engine.processors.workflow.trigger_action.apply_async")
+@mock.patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
 @mock_redis_buffer()
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):
     def setUp(self) -> None:
