@@ -13,7 +13,7 @@ from sentry.utils import json
 @patch("sentry.replays.lib.summarize.fetch_feedback_details")
 def test_get_summary_logs(mock_fetch_feedback_details) -> None:
 
-    def _mock_fetch_feedback(feedback_id, project_id):
+    def _mock_fetch_feedback(feedback_id: str | None, project_id: int) -> EventDict | None:
         if feedback_id == "12345678123456781234567812345678":
             return EventDict(
                 category="feedback",
