@@ -1,5 +1,5 @@
 version = 1
-revision = 1
+revision = 2
 requires-python = ">=3.13"
 resolution-markers = [
     "sys_platform == 'darwin' or sys_platform == 'linux'",
@@ -892,17 +892,6 @@ wheels = [
 ]
 
 [[package]]
-name = "importlib-metadata"
-version = "8.7.0"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-dependencies = [
-    { name = "zipp", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-]
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/importlib_metadata-8.7.0-py3-none-any.whl", hash = "sha256:e5dd1551894c77868a30651cef00984d50e1002d06942a7101d34870c5f02afd" },
-]
-
-[[package]]
 name = "inflection"
 version = "0.5.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -1247,43 +1236,6 @@ dependencies = [
 ]
 wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/openapi_spec_validator-0.7.1-py3-none-any.whl", hash = "sha256:3c81825043f24ccbcd2f4b149b11e8231abce5ba84f37065e14ec947d8f4e959" },
-]
-
-[[package]]
-name = "opentelemetry-api"
-version = "1.35.0"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-dependencies = [
-    { name = "importlib-metadata", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-]
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/opentelemetry_api-1.35.0-py3-none-any.whl", hash = "sha256:c4ea7e258a244858daf18474625e9cc0149b8ee354f37843415771a40c25ee06" },
-]
-
-[[package]]
-name = "opentelemetry-sdk"
-version = "1.35.0"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-dependencies = [
-    { name = "opentelemetry-api", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "opentelemetry-semantic-conventions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-]
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/opentelemetry_sdk-1.35.0-py3-none-any.whl", hash = "sha256:223d9e5f5678518f4842311bb73966e0b6db5d1e0b74e35074c052cd2487f800" },
-]
-
-[[package]]
-name = "opentelemetry-semantic-conventions"
-version = "0.56b0"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-dependencies = [
-    { name = "opentelemetry-api", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-]
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/opentelemetry_semantic_conventions-0.56b0-py3-none-any.whl", hash = "sha256:df44492868fd6b482511cc43a942e7194be64e94945f572db24df2e279a001a2" },
 ]
 
 [[package]]
@@ -1669,7 +1621,7 @@ wheels = [
 
 [[package]]
 name = "pytest-sentry"
-version = "0.5.1"
+version = "0.3.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "pytest", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -1677,7 +1629,7 @@ dependencies = [
     { name = "wrapt", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/pytest_sentry-0.5.1-py3-none-any.whl", hash = "sha256:a171ec311fe74106647cbbd14f4aefc8ff2932594c12e38b7983b0ae3f0dff6d" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pytest_sentry-0.3.0-py3-none-any.whl", hash = "sha256:ae182f11c18179533d4d760fd79f1992cc351062e69d253297a4cc7639535db7" },
 ]
 
 [[package]]
@@ -2219,7 +2171,7 @@ requires-dist = [
     { name = "sentry-protos", specifier = ">=0.3.1" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.11" },
-    { name = "sentry-sdk", extras = ["http2"], specifier = "==3.0.0a5" },
+    { name = "sentry-sdk", extras = ["http2"], specifier = ">=2.29.1" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "setuptools", specifier = ">=70.0.0" },
     { name = "simplejson", specifier = ">=3.17.6" },
@@ -2269,7 +2221,7 @@ dev = [
     { name = "pytest-fail-slow", specifier = ">=0.3.0" },
     { name = "pytest-json-report", specifier = ">=1.5.0" },
     { name = "pytest-rerunfailures", specifier = ">=15.0" },
-    { name = "pytest-sentry", specifier = "==0.5.1" },
+    { name = "pytest-sentry", specifier = ">=0.3.0" },
     { name = "pytest-workaround-12888", specifier = ">=1.0.0" },
     { name = "pytest-xdist", specifier = ">=3.0.2" },
     { name = "pyupgrade", specifier = ">=3.19.1" },
@@ -2450,15 +2402,14 @@ wheels = [
 
 [[package]]
 name = "sentry-sdk"
-version = "3.0.0a5"
+version = "2.29.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "certifi", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
-    { name = "opentelemetry-sdk", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "urllib3", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_sdk-3.0.0a5-py2.py3-none-any.whl", hash = "sha256:6e91d9783b3295a2fd431b7987332bd6fd6175f2493b1184ee09e7b7a4167fd0" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_sdk-2.29.1-py2.py3-none-any.whl", hash = "sha256:90862fe0616ded4572da6c9dadb363121a1ae49a49e21c418f0634e9d10b4c19" },
 ]
 
 [package.optional-dependencies]
@@ -3016,14 +2967,6 @@ wheels = [
     { url = "https://pypi.devinfra.sentry.io/wheels/xmlsec-1.3.14-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:ccd9759b024a7a888f1896f752a1c913ce861df18a444adf3eaad562cf55cf70" },
     { url = "https://pypi.devinfra.sentry.io/wheels/xmlsec-1.3.14-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:042dbde8f487d31fe7d276382057f2e7172c4c39fb681b37a7a91c48febe4000" },
     { url = "https://pypi.devinfra.sentry.io/wheels/xmlsec-1.3.14-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:b5e132c98df6abd344336aeebdff5189c890113bcb5ee5f14e86f3ef37e90434" },
-]
-
-[[package]]
-name = "zipp"
-version = "3.23.0"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/zipp-3.23.0-py3-none-any.whl", hash = "sha256:071652d6115ed432f5ce1d34c336c0adfd6a884660d1e9712a256d3d3bd4b14e" },
 ]
 
 [[package]]
