@@ -92,9 +92,9 @@ export default function GroupingInfo({
           onChange={key => setShowNonContributing(key === 'all')}
         >
           <SegmentedControl.Item key="relevant">
-            {t('Contributing values')}
+            {t('Contributing Values')}
           </SegmentedControl.Item>
-          <SegmentedControl.Item key="all">{t('All values')}</SegmentedControl.Item>
+          <SegmentedControl.Item key="all">{t('All Values')}</SegmentedControl.Item>
         </SegmentedControl>
       </div>
       {isError ? <LoadingError message={t('Failed to fetch grouping info.')} /> : null}
