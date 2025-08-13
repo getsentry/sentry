@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import React, {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
@@ -45,42 +45,84 @@ export default function BuildList() {
 
   const {data: buildsData, isLoading, error} = buildsQuery;
 
-  if (isLoading) {
-    return (
-      <SentryDocumentTitle title="Build list">
-        <Layout.Page>
-          <Layout.Header>
-            <Layout.Title>Builds</Layout.Title>
-          </Layout.Header>
-          <Layout.Body>
-            <Layout.Main>
-              <div>Loading builds...</div>
-            </Layout.Main>
-          </Layout.Body>
-        </Layout.Page>
-      </SentryDocumentTitle>
-    );
-  }
-
-  if (error) {
-    return (
-      <SentryDocumentTitle title="Build list">
-        <Layout.Page>
-          <Layout.Header>
-            <Layout.Title>Builds</Layout.Title>
-          </Layout.Header>
-          <Layout.Body>
-            <Layout.Main>
-              <div>Error loading builds: {error.message}</div>
-            </Layout.Main>
-          </Layout.Body>
-        </Layout.Page>
-      </SentryDocumentTitle>
-    );
-  }
-
   const builds = buildsData?.builds || [];
   const pagination = buildsData?.pagination;
+  let tableContent = null;
+  if (isLoading) {
+    tableContent = <SimpleTable.Empty>{t('Loading builds...')}</SimpleTable.Empty>;
+  } else if (error) {
+    tableContent = <SimpleTable.Empty>{t(`Error loading builds`)}</SimpleTable.Empty>;
+  } else {
+    if (builds.length === 0) {
+      tableContent = <SimpleTable.Empty>{t('No builds found')}</SimpleTable.Empty>;
+    } else {
+      tableContent = (
+        <React.Fragment>
+          {builds.map((build: BuildDetailsApiResponse) => (
+            <SimpleTable.Row key={build.id}>
+              <Link
+                to={`/organizations/${organization.slug}/preprod/${projectId}/${build.id}`}
+                style={{
+                  display: 'contents',
+                  cursor: 'pointer',
+                  color: theme.textColor,
+                }}
+              >
+                <InteractionStateLayer />
+                <SimpleTable.RowCell justify="flex-start">
+                  <BuildInfo>
+                    <BuildName>
+                      <PlatformIcon
+                        platform={getPlatformIconFromPlatform(build.app_info.platform)}
+                      />
+                      {build.app_info.name}
+                    </BuildName>
+                    <BuildDetails>{build.app_info.app_id}</BuildDetails>
+                  </BuildInfo>
+                </SimpleTable.RowCell>
+
+                <SimpleTable.RowCell justify="flex-start">
+                  <BuildInfo>
+                    <BuildNumber>
+                      {build.app_info.version}
+                      <span>({build.app_info.build_number})</span>
+                      {build.state === 3 && <IconCheckmark size="sm" color="green300" />}
+                    </BuildNumber>
+                    <BuildDetails>
+                      <IconCommit size="xs" />
+                      <span>#{build.vcs_info.head_sha?.slice(0, 6) || 'N/A'}</span>
+                      <span>-</span>
+                      <span>{build.vcs_info.head_ref || 'main'}</span>
+                    </BuildDetails>
+                  </BuildInfo>
+                </SimpleTable.RowCell>
+
+                <SimpleTable.RowCell>
+                  {build.size_info
+                    ? formatBytesBase10(build.size_info.install_size_bytes)
+                    : '-'}
+                </SimpleTable.RowCell>
+
+                <SimpleTable.RowCell>
+                  {build.size_info
+                    ? formatBytesBase10(build.size_info.download_size_bytes)
+                    : '-'}
+                </SimpleTable.RowCell>
+
+                <SimpleTable.RowCell>
+                  {build.app_info.date_added ? (
+                    <TimeSince date={build.app_info.date_added} unitStyle="short" />
+                  ) : (
+                    '-'
+                  )}
+                </SimpleTable.RowCell>
+              </Link>
+            </SimpleTable.Row>
+          ))}
+        </React.Fragment>
+      );
+    }
+  }
 
   return (
     <SentryDocumentTitle title="Build list">
@@ -101,80 +143,7 @@ export default function BuildList() {
                   <SimpleTable.HeaderCell>CREATED</SimpleTable.HeaderCell>
                 </SimpleTable.Header>
 
-                {builds.length === 0 ? (
-                  <SimpleTable.Empty>{t('No builds found')}</SimpleTable.Empty>
-                ) : (
-                  builds.map((build: BuildDetailsApiResponse) => (
-                    <SimpleTable.Row key={build.app_info.build_number}>
-                      <Link
-                        to={`/organizations/${organization.slug}/preprod/${projectId}/${build.id}`}
-                        style={{
-                          display: 'contents',
-                          cursor: 'pointer',
-                          color: theme.textColor,
-                        }}
-                      >
-                        <InteractionStateLayer />
-                        <SimpleTable.RowCell justify="flex-start">
-                          <BuildInfo>
-                            <BuildName>
-                              <PlatformIcon
-                                platform={getPlatformIconFromPlatform(
-                                  build.app_info.platform
-                                )}
-                              />
-                              {build.app_info.name}
-                            </BuildName>
-                            <BuildDetails>{build.app_info.app_id}</BuildDetails>
-                          </BuildInfo>
-                        </SimpleTable.RowCell>
-
-                        <SimpleTable.RowCell justify="flex-start">
-                          <BuildInfo>
-                            <BuildNumber>
-                              {build.app_info.version}
-                              <span>({build.app_info.build_number})</span>
-                              {build.state === 3 && (
-                                <IconCheckmark size="sm" color="green300" />
-                              )}
-                            </BuildNumber>
-                            <BuildDetails>
-                              <IconCommit size="xs" />
-                              <span>
-                                #{build.vcs_info.head_sha?.slice(0, 6) || 'N/A'}
-                              </span>
-                              <span>-</span>
-                              <span>{build.vcs_info.head_ref || 'main'}</span>
-                            </BuildDetails>
-                          </BuildInfo>
-                        </SimpleTable.RowCell>
-
-                        <SimpleTable.RowCell>
-                          {build.size_info
-                            ? formatBytesBase10(build.size_info.install_size_bytes)
-                            : '-'}
-                        </SimpleTable.RowCell>
-
-                        <SimpleTable.RowCell>
-                          {build.size_info
-                            ? formatBytesBase10(build.size_info.download_size_bytes)
-                            : '-'}
-                        </SimpleTable.RowCell>
-
-                        <SimpleTable.RowCell>
-                          {build.app_info.date_added ? (
-                            <TimeSince
-                              date={build.app_info.date_added}
-                              unitStyle="short"
-                            />
-                          ) : (
-                            '-'
-                          )}
-                        </SimpleTable.RowCell>
-                      </Link>
-                    </SimpleTable.Row>
-                  ))
-                )}
+                {tableContent}
               </SimpleTableWithColumns>
 
               {pagination && (
