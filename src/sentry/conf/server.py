@@ -404,7 +404,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.deletions",
     "sentry.discover",
     "sentry.analytics.events",
-    "sentry.nodestore",
+    "sentry.services.nodestore",
     "sentry.users",
     "sentry.sentry_apps",
     "sentry.integrations",
@@ -2088,6 +2088,10 @@ ALLOWED_CREDENTIAL_ORIGINS: list[str] = []
 SENTRY_BUFFER = "sentry.buffer.Buffer"
 SENTRY_BUFFER_OPTIONS: dict[str, str] = {}
 
+# Workflow Buffer backend
+SENTRY_WORKFLOW_BUFFER = "sentry.buffer.Buffer"
+SENTRY_WORKFLOW_BUFFER_OPTIONS: dict[str, str] = {}
+
 # Cache backend
 # XXX: We explicitly require the cache to be configured as its not optional
 # and causes serious confusion with the default django cache
@@ -2164,7 +2168,7 @@ SENTRY_SNUBA_TIMEOUT = 30
 SENTRY_SNUBA_CACHE_TTL_SECONDS = 60
 
 # Node storage backend
-SENTRY_NODESTORE = "sentry.nodestore.django.DjangoNodeStorage"
+SENTRY_NODESTORE = "sentry.services.nodestore.django.DjangoNodeStorage"
 SENTRY_NODESTORE_OPTIONS: dict[str, Any] = {}
 
 # Tag storage backend
