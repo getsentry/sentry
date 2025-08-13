@@ -89,7 +89,7 @@ def cluster_projects(project_ids: Sequence[int]) -> None:
     try:
         for project in projects:
             with sentry_sdk.start_span(op="txcluster_project") as span:
-                span.set_data("project_id", project.id)
+                span.set_attribute("project_id", project.id)
                 tx_names = list(redis.get_transaction_names(project))
                 new_rules = []
                 if len(tx_names) >= MERGE_THRESHOLD:

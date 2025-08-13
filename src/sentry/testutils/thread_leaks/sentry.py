@@ -8,7 +8,7 @@ from threading import Thread
 from traceback import FrameSummary
 from typing import TYPE_CHECKING
 
-import sentry_sdk.scope
+import sentry_sdk
 
 from .diff import get_relevant_frames
 
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 @functools.cache
-def get_scope() -> sentry_sdk.scope.Scope:
+def get_scope() -> sentry_sdk.Scope:
     """Create configured Sentry scope for thread leak reporting."""
     from os import environ
 
@@ -56,10 +56,10 @@ def capture_event(thread_leaks: set[Thread], strict: bool) -> dict[str, SentryEv
     # Report to Sentry
     scope = get_scope()
     events = {}
-    with sentry_sdk.scope.use_scope(scope):
+    with sentry_sdk.use_scope(scope):
         for thread_leak in thread_leaks:
             event = get_thread_leak_event(thread_leak, strict)
-            event_id = scope.capture_event(event)
+            event_id = sentry_sdk.capture_event(event)
             if event_id is not None:
                 events[event_id] = event
         scope.client.flush()
