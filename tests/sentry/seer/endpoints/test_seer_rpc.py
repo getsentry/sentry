@@ -85,9 +85,10 @@ class TestSeerRpcMethods(APITestCase):
             )
 
         # Disable PR review test generation
-        OrganizationOption.objects.set_value(
-            self.organization, "sentry:enable_pr_review_test_generation", False
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationOption.objects.set_value(
+                self.organization, "sentry:enable_pr_review_test_generation", False
+            )
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
@@ -129,9 +130,10 @@ class TestSeerRpcMethods(APITestCase):
             )
 
         # Disable PR review for first org, enable for second (or leave default)
-        OrganizationOption.objects.set_value(
-            org_without_consent, "sentry:enable_pr_review_test_generation", False
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationOption.objects.set_value(
+                org_without_consent, "sentry:enable_pr_review_test_generation", False
+            )
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
@@ -150,12 +152,13 @@ class TestSeerRpcMethods(APITestCase):
             )
 
         # Enable hide_ai_features
-        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", True)
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", True)
 
-        # Set up PR review to be enabled (but won't matter since hide_ai_features=True)
-        OrganizationOption.objects.set_value(
-            self.organization, "sentry:enable_pr_review_test_generation", True
-        )
+            # Set up PR review to be enabled (but won't matter since hide_ai_features=True)
+            OrganizationOption.objects.set_value(
+                self.organization, "sentry:enable_pr_review_test_generation", True
+            )
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
@@ -175,7 +178,10 @@ class TestSeerRpcMethods(APITestCase):
             )
 
         # Explicitly disable hide_ai_features
-        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationOption.objects.set_value(
+                self.organization, "sentry:hide_ai_features", False
+            )
 
         # PR review is enabled by default, so (NOT hide_ai_features AND pr_review_enabled) = True
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
@@ -206,10 +212,15 @@ class TestSeerRpcMethods(APITestCase):
             )
 
         # First org has hide_ai_features enabled (so it won't contribute consent)
-        OrganizationOption.objects.set_value(org_with_hidden_ai, "sentry:hide_ai_features", True)
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationOption.objects.set_value(
+                org_with_hidden_ai, "sentry:hide_ai_features", True
+            )
 
-        # Second org has hide_ai_features disabled and PR review enabled by default
-        OrganizationOption.objects.set_value(org_with_visible_ai, "sentry:hide_ai_features", False)
+            # Second org has hide_ai_features disabled and PR review enabled by default
+            OrganizationOption.objects.set_value(
+                org_with_visible_ai, "sentry:hide_ai_features", False
+            )
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
@@ -239,8 +250,9 @@ class TestSeerRpcMethods(APITestCase):
             )
 
         # Both orgs have hide_ai_features enabled
-        OrganizationOption.objects.set_value(org1, "sentry:hide_ai_features", True)
-        OrganizationOption.objects.set_value(org2, "sentry:hide_ai_features", True)
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationOption.objects.set_value(org1, "sentry:hide_ai_features", True)
+            OrganizationOption.objects.set_value(org2, "sentry:hide_ai_features", True)
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
@@ -260,10 +272,13 @@ class TestSeerRpcMethods(APITestCase):
             )
 
         # Disable hide_ai_features but also disable PR review
-        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
-        OrganizationOption.objects.set_value(
-            self.organization, "sentry:enable_pr_review_test_generation", False
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationOption.objects.set_value(
+                self.organization, "sentry:hide_ai_features", False
+            )
+            OrganizationOption.objects.set_value(
+                self.organization, "sentry:enable_pr_review_test_generation", False
+            )
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
@@ -567,7 +582,8 @@ class TestSeerRpcMethods(APITestCase):
         org3 = self.create_organization(owner=self.user)
         # org3 did not give us consent for AI features
         # so it should be excluded from the results
-        OrganizationOption.objects.set_value(org3, "sentry:hide_ai_features", True)
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationOption.objects.set_value(org3, "sentry:hide_ai_features", True)
 
         # repo in org 1
         Repository.objects.create(
