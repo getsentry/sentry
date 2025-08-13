@@ -47,7 +47,7 @@ def skip_filters():
 
 @pytest.fixture
 def skip_eventstore():
-    with mock.patch("sentry.eventstore.backend.get_event_by_id", return_value=None):
+    with mock.patch("sentry.services.eventstore.backend.get_event_by_id", return_value=None):
         yield
 
 
@@ -288,7 +288,7 @@ def test_save_user_report_shims_if_event_found(
 ):
     event = _mock_event(default_project.id, "prod")
     with (
-        mock.patch("sentry.eventstore.backend.get_event_by_id", return_value=event),
+        mock.patch("sentry.services.eventstore.backend.get_event_by_id", return_value=event),
         mock.patch(
             "sentry.feedback.usecases.ingest.userreport.shim_to_feedback"
         ) as mock_shim_to_feedback,
@@ -308,7 +308,7 @@ def test_save_user_report_does_not_shim_if_event_found_but_source_is_new_feedbac
 ):
     event = _mock_event(default_project.id, "prod")
     with (
-        mock.patch("sentry.eventstore.backend.get_event_by_id", return_value=event),
+        mock.patch("sentry.services.eventstore.backend.get_event_by_id", return_value=event),
         mock.patch(
             "sentry.feedback.usecases.ingest.userreport.shim_to_feedback"
         ) as mock_shim_to_feedback,

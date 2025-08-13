@@ -12,10 +12,12 @@ import {
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {AnomalyType} from 'sentry/views/alerts/types';
 import {
+  EAP_HISTORICAL_TIME_PERIOD_MAP,
   HISTORICAL_TIME_PERIOD_MAP,
   HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS,
 } from 'sentry/views/alerts/utils/timePeriods';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+import {isEapDataset} from 'sentry/views/detectors/datasetConfig/utils/isEapDataset';
 import {useMetricDetectorSeries} from 'sentry/views/detectors/hooks/useMetricDetectorSeries';
 
 import type {IncidentPeriod} from './useIncidentMarkers';
@@ -26,13 +28,17 @@ interface UseMetricDetectorAnomalyPeriodsProps {
   dataset: DetectorDataset;
   enabled: boolean;
   environment: string | undefined;
+  interval: number;
+  /**
+   * Should not fetch anomalies if series is loading
+   */
+  isLoadingSeries: boolean;
   projectId: string;
   query: string;
   sensitivity: AlertRuleSensitivity | undefined;
   series: Series[];
   statsPeriod: TimePeriod;
   thresholdType: AlertRuleThresholdType | undefined;
-  timePeriod: number;
 }
 
 interface UseMetricDetectorAnomalyPeriodsResult {
@@ -116,13 +122,14 @@ function groupAnomaliesForBubbles(
  */
 export function useMetricDetectorAnomalyPeriods({
   series,
+  isLoadingSeries,
   dataset,
   aggregate,
   query,
   environment,
   projectId,
   statsPeriod,
-  timePeriod,
+  interval,
   thresholdType,
   sensitivity,
   enabled,
@@ -130,53 +137,78 @@ export function useMetricDetectorAnomalyPeriods({
   const theme = useTheme();
 
   // Fetch historical data with extended time period for anomaly detection baseline comparison
-  const isFiveMinuteTimePeriod = timePeriod === 300;
-  const historicalPeriod = isFiveMinuteTimePeriod
-    ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[
-        statsPeriod as keyof typeof HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS
+  const isFiveMinuteInterval = interval === 300;
+  // EAP datasets have to select fewer historical data points
+  const historicalPeriod = isEapDataset(dataset)
+    ? EAP_HISTORICAL_TIME_PERIOD_MAP[
+        statsPeriod as keyof typeof EAP_HISTORICAL_TIME_PERIOD_MAP
       ]
-    : HISTORICAL_TIME_PERIOD_MAP[statsPeriod as keyof typeof HISTORICAL_TIME_PERIOD_MAP];
+    : // 5-minute intervals also require fewer historical data points
+      isFiveMinuteInterval
+      ? HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS[
+          statsPeriod as keyof typeof HISTORICAL_TIME_PERIOD_MAP_FIVE_MINS
+        ]
+      : HISTORICAL_TIME_PERIOD_MAP[
+          statsPeriod as keyof typeof HISTORICAL_TIME_PERIOD_MAP
+        ];
 
-  const {series: historicalSeries, isLoading: isHistoricalLoading} =
-    useMetricDetectorSeries({
-      dataset,
-      aggregate,
-      interval: timePeriod,
-      query,
-      environment,
-      projectId,
-      statsPeriod: historicalPeriod as TimePeriod,
-      options: {
-        enabled,
-      },
-    });
+  const {
+    series: historicalSeries,
+    isLoading: isHistoricalLoading,
+    error: historicalError,
+  } = useMetricDetectorSeries({
+    dataset,
+    aggregate,
+    interval,
+    query,
+    environment,
+    projectId,
+    statsPeriod: historicalPeriod as TimePeriod,
+    options: {
+      enabled,
+    },
+  });
 
   const {
     data: anomalies,
-    isLoading,
-    error,
+    isLoading: isAnomalyLoading,
+    error: anomalyError,
   } = useMetricDetectorAnomalies({
     series,
     historicalSeries,
     projectId,
     thresholdType,
     sensitivity,
-    timePeriod,
-    enabled,
+    interval,
+    // Wait until both regular series and historical series are loaded
+    enabled: enabled && !isLoadingSeries && !isHistoricalLoading,
   });
 
   const anomalyPeriods = useMemo<IncidentPeriod[]>(() => {
-    if (!anomalies || anomalies.length === 0 || isHistoricalLoading || isLoading) {
+    if (
+      !anomalies ||
+      anomalies.length === 0 ||
+      isHistoricalLoading ||
+      isAnomalyLoading ||
+      isLoadingSeries
+    ) {
       return [];
     }
     // Convert timePeriod from seconds to milliseconds for minimum anomaly width
-    const timePeriodMs = timePeriod ? timePeriod * 1000 : undefined;
+    const timePeriodMs = interval ? interval * 1000 : undefined;
     return groupAnomaliesForBubbles(anomalies, theme, timePeriodMs);
-  }, [anomalies, theme, timePeriod, isHistoricalLoading, isLoading]);
+  }, [
+    anomalies,
+    theme,
+    interval,
+    isHistoricalLoading,
+    isAnomalyLoading,
+    isLoadingSeries,
+  ]);
 
   return {
     anomalyPeriods,
-    isLoading: isHistoricalLoading || isLoading,
-    error,
+    isLoading: isHistoricalLoading || isAnomalyLoading,
+    error: historicalError || anomalyError,
   };
 }

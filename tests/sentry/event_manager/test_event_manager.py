@@ -19,7 +19,7 @@ from django.core.cache import cache
 from django.db.models import F
 from django.utils import timezone
 
-from sentry import eventstore, nodestore, tsdb
+from sentry import nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory, InsightModules
@@ -37,7 +37,6 @@ from sentry.event_manager import (
     materialize_metadata,
     save_grouphash_and_group,
 )
-from sentry.eventstore.models import Event
 from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import GroupingConfig, load_grouping_config
 from sentry.grouping.grouptype import ErrorGroupType
@@ -67,6 +66,8 @@ from sentry.models.pullrequest import PullRequest, PullRequestCommit
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
 from sentry.signals import (
     first_event_with_minified_stack_trace_received,
     first_insight_span_received,
@@ -2004,7 +2005,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert "sentry.tasks.process" in search_message
 
     def test_search_message_skips_requested_keys(self) -> None:
-        from sentry.eventstore import models
+        from sentry.services.eventstore import models
 
         with patch.object(models, "SEARCH_MESSAGE_SKIPPED_KEYS", ("dogs",)):
             manager = EventManager(
@@ -2032,7 +2033,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert "are great" not in search_message  # "dogs" key is skipped
 
     def test_search_message_skips_bools_and_numbers(self) -> None:
-        from sentry.eventstore import models
+        from sentry.services.eventstore import models
 
         with patch.object(models, "SEARCH_MESSAGE_SKIPPED_KEYS", ("dogs",)):
             manager = EventManager(
@@ -2586,7 +2587,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation(self) -> None:
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
+        with mock.patch("sentry_sdk.tracing.Span.root_span"):
             event = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
             )
@@ -2680,7 +2681,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_update(self) -> None:
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
+        with mock.patch("sentry_sdk.tracing.Span.root_span"):
             event = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
             )
@@ -2721,7 +2722,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_error_issue_no_associate_perf_event(self) -> None:
         """Test that you can't associate a performance event with an error issue"""
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
+        with mock.patch("sentry_sdk.tracing.Span.root_span"):
             event = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
             )
@@ -2742,7 +2743,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_no_associate_error_event(self) -> None:
         """Test that you can't associate an error event with a performance issue"""
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
+        with mock.patch("sentry_sdk.tracing.Span.root_span"):
             manager = EventManager(make_event())
             manager.normalize()
             event = manager.save(self.project.id)
@@ -2762,7 +2763,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation_ignored(self) -> None:
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
+        with mock.patch("sentry_sdk.tracing.Span.root_span"):
             event = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view")),
                 noise_limit=2,
@@ -2773,7 +2774,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation_over_ignored_threshold(self) -> None:
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
+        with mock.patch("sentry_sdk.tracing.Span.root_span"):
             event_1 = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view")), noise_limit=3
             )

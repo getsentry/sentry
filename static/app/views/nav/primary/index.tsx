@@ -28,7 +28,7 @@ import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew';
 import {NavTourElement, StackedNavigationTour} from 'sentry/views/nav/tour/tour';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
-import {COVERAGE_BASE_URL, PREVENT_BASE_URL} from 'sentry/views/prevent/settings';
+import {PREVENT_AI_BASE_URL, PREVENT_BASE_URL} from 'sentry/views/prevent/settings';
 
 function SidebarBody({children}: {children: React.ReactNode}) {
   const {layout} = useNavContext();
@@ -123,9 +123,9 @@ export function PrimaryNavigationItems() {
           </NavTourElement>
         </Feature>
 
-        <Feature features={['codecov-ui']}>
+        <Feature features={['prevent-ai']}>
           <SidebarLink
-            to={`/${prefix}/${PREVENT_BASE_URL}/${COVERAGE_BASE_URL}/commits/`}
+            to={`/${prefix}/${PREVENT_BASE_URL}/${PREVENT_AI_BASE_URL}/new/`}
             activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
             analyticsKey="prevent"
             group={PrimaryNavGroup.PREVENT}
