@@ -1,4 +1,5 @@
 import ipaddress
+import socket
 from hashlib import sha256
 from unittest import mock
 from unittest.mock import MagicMock, patch
@@ -434,4 +435,40 @@ def test_get_region_ip_addresses() -> None:
         mock_parse_url.return_value = MagicMock(host=None)
         assert get_region_ip_addresses() == frozenset([])
         assert mock_gethostbyname.call_count == 0
+        assert mock_capture_exception.call_count == 1
+
+
+def test_get_region_ip_addresses_when_single_host_invalid() -> None:
+    eu_region_address = "http://i.am.eu.internal.hostname:9000"
+    eu_region = Region("eu", 1, eu_region_address, RegionCategory.MULTI_TENANT)
+
+    us_region_address = "http://i.am.us.internal.hostname:9000"
+    us_region = Region("us", 1, us_region_address, RegionCategory.MULTI_TENANT)
+
+    dead_region_address = "http://i.am.dead.internal.hostname:9000"
+    dead_region = Region("dead", 1, dead_region_address, RegionCategory.MULTI_TENANT)
+
+    region_config = (eu_region, us_region, dead_region)
+
+    def mock_gethostbyname_for_regions(hostname):
+        if hostname == eu_region_address.split("//")[1].split(":")[0]:
+            return "172.31.10.1"
+        elif hostname == us_region_address.split("//")[1].split(":")[0]:
+            return "172.31.20.1"
+        elif hostname == dead_region_address.split("//")[1].split(":")[0]:
+            raise socket.gaierror("no_such_host")
+        else:
+            raise Exception(f"Unexpected hostname: {hostname}")
+
+    with (
+        override_regions(region_config),
+        patch("socket.gethostbyname") as mock_gethostbyname,
+        patch("sentry_sdk.capture_exception") as mock_capture_exception,
+    ):
+        mock_gethostbyname.side_effect = mock_gethostbyname_for_regions
+        result = get_region_ip_addresses()
+        expected = frozenset(
+            [ipaddress.ip_address("172.31.10.1"), ipaddress.ip_address("172.31.20.1")]
+        )
+        assert result == expected
         assert mock_capture_exception.call_count == 1

@@ -52,7 +52,13 @@ def get_region_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv
         if url.host:
             # This is an IPv4 address.
             # In the future we can consider adding IPv4/v6 dual stack support if and when we start using IPv6 addresses.
-            ip = socket.gethostbyname(url.host)
+            try:
+                ip = socket.gethostbyname(url.host)
+            except Exception:
+                sentry_sdk.capture_exception(
+                    RegionResolutionError(f"Unable to resolve region host for: {url.host}")
+                )
+                continue
             region_ip_addresses.add(ipaddress.ip_address(force_str(ip, strings_only=True)))
         else:
             sentry_sdk.capture_exception(
