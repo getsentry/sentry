@@ -46,6 +46,25 @@ class HookService(RpcService):
         webhook_url: str | None,
         events: list[str],
     ) -> list[RpcServiceHook]:
+        """
+        Update ALL webhooks for a given sentry app.
+        """
+        pass
+
+    @regional_rpc_method(ByOrganizationId())
+    @abc.abstractmethod
+    def create_or_update_webhook_and_events_for_installation(
+        self,
+        *,
+        installation_id: int,
+        organization_id: int,
+        webhook_url: str | None,
+        events: list[str],
+        application_id: int,
+    ) -> list[RpcServiceHook]:
+        """
+        Update the webhook and events for a given sentry app installation.
+        """
         pass
 
 

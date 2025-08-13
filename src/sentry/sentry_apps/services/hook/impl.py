@@ -20,14 +20,44 @@ class DatabaseBackedHookService(HookService):
     ) -> list[RpcServiceHook]:
         with transaction.atomic(router.db_for_write(ServiceHook)):
             hooks = ServiceHook.objects.filter(application_id=application_id)
+
             if webhook_url:
-                for hook in hooks:
-                    hook.url = webhook_url
-                    hook.events = expand_events(events)
-                    hook.save()
+                expanded_events = expand_events(events)
+                hooks.update(url=webhook_url, events=expanded_events)
                 return [serialize_service_hook(h) for h in hooks]
             else:
                 deletions.exec_sync_many(list(hooks))
+                return []
+
+    def create_or_update_webhook_and_events_for_installation(
+        self,
+        *,
+        installation_id: int,
+        organization_id: int,
+        webhook_url: str | None,
+        events: list[str],
+        application_id: int,
+    ) -> list[RpcServiceHook]:
+        with transaction.atomic(router.db_for_write(ServiceHook)):
+            if webhook_url:
+                hook, created = ServiceHook.objects.update_or_create(
+                    installation_id=installation_id,
+                    application_id=application_id,
+                    defaults={
+                        "url": webhook_url,
+                        "events": expand_events(events),
+                    },
+                )
+                return [serialize_service_hook(hook)]
+            else:
+                # If no webhook_url, try to find and delete existing hook
+                try:
+                    hook = ServiceHook.objects.get(
+                        installation_id=installation_id, application_id=application_id
+                    )
+                    deletions.exec_sync(hook)
+                except ServiceHook.DoesNotExist:
+                    pass
                 return []
 
     def create_service_hook(
