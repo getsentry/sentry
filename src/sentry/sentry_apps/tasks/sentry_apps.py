@@ -892,3 +892,91 @@ def regenerate_service_hooks_for_installation(
                 events=events,
                 url=webhook_url,
             )
+
+
+@instrumented_task(
+    name="sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization",
+    taskworker_config=TaskworkerConfig(
+        namespace=sentryapp_tasks,
+        retry=Retry(
+            times=3,
+            delay=60 * 5,
+        ),
+        processing_deadline_duration=30,
+    ),
+    **TASK_OPTIONS,
+)
+def broadcast_webhooks_for_organization(
+    *,
+    resource_name: str,
+    event_name: str,
+    organization_id: int,
+    payload: dict[str, Any],
+    **kwargs: Any,
+) -> None:
+    """
+    Send a webhook event to all relevant installations for an organization.
+
+    Args:
+        resource_name: The resource name (e.g., "seer", "issue", "error")
+        event_name: The event name (e.g., "root_cause_started", "created")
+        organization_id: The ID of the organization to send webhooks for
+        payload: The webhook payload data
+
+    Returns:
+        dict: Status of the webhook sending operation including success status,
+              message, and error details if applicable
+    """
+    # Construct full event type for validation
+    event_type = f"{resource_name}.{event_name}"
+
+    # Validate event type by checking if it's a valid SentryAppEventType
+    try:
+        SentryAppEventType(event_type)
+    except ValueError:
+        logger.exception("sentry_app.webhook_invalid_event_type", extra={"event_type": event_type})
+
+        raise SentryAppSentryError(
+            message=f"Invalid event type: {event_type}",
+        )
+
+    with SentryAppInteractionEvent(
+        operation_type=SentryAppInteractionType.PREPARE_WEBHOOK,
+        event_type=event_type,
+    ).capture():
+        # Get installations for this organization
+        installations = app_service.installations_for_organization(organization_id=organization_id)
+
+        # Filter for installations that subscribe to the event category
+        from sentry.sentry_apps.logic import consolidate_events
+
+        relevant_installations = [
+            installation
+            for installation in installations
+            if resource_name in consolidate_events(installation.sentry_app.events)
+        ]
+
+        if not relevant_installations:
+            logger.error(
+                "sentry_app.webhook_no_installations_subscribed",
+                extra={
+                    "resource_name": resource_name,
+                    "organization_id": organization_id,
+                },
+            )
+            return
+
+        # Send the webhook to each relevant installation
+        for installation in relevant_installations:
+            if installation:
+                send_resource_change_webhook.delay(installation.id, event_type, payload)
+
+                logger.info(
+                    "sentry_app.webhook_queued",
+                    extra={"event_type": event_type, "installation_id": installation.id},
+                )
+            else:
+                logger.error(
+                    "sentry_app.webhook_no_installation",
+                    extra={"event_type": event_type, "organization_id": organization_id},
+                )
