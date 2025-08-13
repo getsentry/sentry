@@ -191,7 +191,7 @@ class GroupList extends Component<Props, State> {
           this.props.onFetchSuccess?.(this.state, this.handleCursorChange);
         }
       );
-    } catch (error) {
+    } catch (error: any) {
       this.setState({error: true, errorData: error.responseJSON, loading: false});
     }
   };

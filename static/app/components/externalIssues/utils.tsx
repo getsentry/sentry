@@ -43,7 +43,7 @@ async function getOptionLoad({
   try {
     const response = await API_CLIENT.requestPromise(url + separator + query);
     callback(null, response);
-  } catch (err) {
+  } catch (err: any) {
     callback(err);
   }
 }
