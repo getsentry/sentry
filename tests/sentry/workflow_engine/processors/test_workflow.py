@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
-from sentry.eventstore.models import GroupEvent
 from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.activity import Activity
@@ -477,15 +476,10 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-<<<<<<< HEAD
-        project_ids = buffer.backend.bulk_get_sorted_set(
+        project_ids = workflow_buffer.get_backend().bulk_get_sorted_set(
             self.buffer_keys,
             min=0,
             max=self.buffer_timestamp,
-=======
-        project_ids = workflow_buffer.get_backend().get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
->>>>>>> 72e32fd402c (fixup)
         )
         assert list(project_ids.keys()) == [self.project.id]
 
@@ -514,15 +508,10 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-<<<<<<< HEAD
-        project_ids = buffer.backend.bulk_get_sorted_set(
+        project_ids = workflow_buffer.get_backend().bulk_get_sorted_set(
             self.buffer_keys,
             min=0,
             max=self.buffer_timestamp,
-=======
-        project_ids = workflow_buffer.get_backend().get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
->>>>>>> 72e32fd402c (fixup)
         )
         assert list(project_ids.keys()) == [self.project.id]
 
@@ -601,15 +590,10 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-<<<<<<< HEAD
-        project_ids = buffer.backend.bulk_get_sorted_set(
+        project_ids = workflow_buffer.get_backend().bulk_get_sorted_set(
             self.buffer_keys,
             min=0,
             max=self.buffer_timestamp,
-=======
-        project_ids = workflow_buffer.get_backend().get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
->>>>>>> 72e32fd402c (fixup)
         )
         assert list(project_ids.keys()) == [self.project.id]
 
@@ -635,15 +619,10 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-<<<<<<< HEAD
-        project_ids = buffer.backend.bulk_get_sorted_set(
+        project_ids = workflow_buffer.get_backend().bulk_get_sorted_set(
             self.buffer_keys,
             min=0,
             max=self.buffer_timestamp,
-=======
-        project_ids = workflow_buffer.get_backend().get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
->>>>>>> 72e32fd402c (fixup)
         )
         assert not project_ids
 
@@ -652,15 +631,10 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-<<<<<<< HEAD
-        project_ids = buffer.backend.bulk_get_sorted_set(
+        project_ids = workflow_buffer.get_backend().bulk_get_sorted_set(
             self.buffer_keys,
             min=0,
             max=self.buffer_timestamp,
-=======
-        project_ids = workflow_buffer.get_backend().get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, self.buffer_timestamp
->>>>>>> 72e32fd402c (fixup)
         )
         assert list(project_ids.keys()) == [self.project.id]
 
@@ -810,15 +784,10 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
 
         enqueue_workflows(queue_items)
 
-<<<<<<< HEAD
-        project_ids = buffer.backend.bulk_get_sorted_set(
+        project_ids = workflow_buffer.get_backend().bulk_get_sorted_set(
             self.buffer_keys,
             min=0,
             max=timezone.now().timestamp(),
-=======
-        project_ids = workflow_buffer.get_backend().get_sorted_set(
-            WORKFLOW_ENGINE_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
->>>>>>> 72e32fd402c (fixup)
         )
         assert list(project_ids.keys()) == [self.project.id]
 
@@ -854,14 +823,11 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
 
     @patch("sentry.buffer.backend.push_to_sorted_set")
     @patch("sentry.buffer.backend.push_to_hash_bulk")
-<<<<<<< HEAD
     @patch("random.choice")
-=======
     @override_options({"workflow_engine.buffer.use_new_buffer": False})
->>>>>>> 72e32fd402c (fixup)
     def test_enqueue_workflows__adds_to_workflow_engine_buffer(
         self, mock_randchoice, mock_push_to_hash_bulk, mock_push_to_sorted_set
-    ):
+    ) -> None:
         mock_randchoice.return_value = f"{DelayedWorkflow.buffer_key}:{5}"
         enqueue_workflows(
             {
@@ -883,10 +849,13 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
 
     @patch("sentry.workflow_engine.buffer._backend.push_to_sorted_set")
     @patch("sentry.workflow_engine.buffer._backend.push_to_hash_bulk")
+    @patch("random.choice")
     @override_options({"workflow_engine.buffer.use_new_buffer": True})
     def test_enqueue_workflows__adds_to_workflow_engine_buffer_new_buffer(
-        self, mock_push_to_hash_bulk, mock_push_to_sorted_set
-    ):
+        self, mock_randchoice, mock_push_to_hash_bulk, mock_push_to_sorted_set
+    ) -> None:
+        key_choice = f"{DelayedWorkflow.buffer_key}:{5}"
+        mock_randchoice.return_value = key_choice
         enqueue_workflows(
             {
                 self.workflow: DelayedWorkflowItem(
@@ -901,7 +870,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
         )
 
         mock_push_to_sorted_set.assert_called_once_with(
-            key=WORKFLOW_ENGINE_BUFFER_LIST_KEY,
+            key=key_choice,
             value=[self.group_event.project_id],
         )
 
@@ -910,7 +879,7 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
     @override_options({"workflow_engine.buffer.use_new_buffer": False})
     def test_enqueue_workflow__adds_to_workflow_engine_set(
         self, mock_push_to_hash_bulk, mock_push_to_sorted_set
-    ):
+    ) -> None:
         current_time = timezone.now()
         workflow_filter_group_2 = self.create_data_condition_group()
         self.create_workflow_data_condition_group(
