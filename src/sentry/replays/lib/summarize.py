@@ -302,7 +302,7 @@ def generate_summary_logs(
             seen_feedback_ids.add(error["id"])
             yield generate_feedback_log_message(error)
 
-            error_idx += 1
+        error_idx += 1
 
 
 def as_log_message(event: dict[str, Any]) -> str | None:
