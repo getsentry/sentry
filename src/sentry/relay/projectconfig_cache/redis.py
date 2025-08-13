@@ -57,6 +57,8 @@ class RedisProjectConfigCache(ProjectConfigCache):
             # made transactional.
             if rev := config.get("rev"):
                 p.setex(self.__get_redis_rev_key(public_key), REDIS_CACHE_TIMEOUT, rev)
+            else:
+                p.delete(self.__get_redis_rev_key(public_key))
 
         p.execute()
 

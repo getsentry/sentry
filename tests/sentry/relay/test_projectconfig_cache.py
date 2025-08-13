@@ -33,3 +33,8 @@ def test_read_write() -> None:
 
     assert cache.get_rev(dsn1) == "my_rev_123"
     assert cache.get_rev(dsn2) is None
+
+    del value1["rev"]
+    cache.set_many({dsn1: value1})
+    assert cache.get(dsn1) == value1
+    assert cache.get_rev(dsn1) is None
