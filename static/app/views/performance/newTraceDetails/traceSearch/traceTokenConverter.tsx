@@ -76,8 +76,10 @@ const SPAN_DURATION_SYNTHETIC_KEYS: SpanKey[] = [
   'self_time',
 ];
 
-// Span OTel fields - fields that exist on OTel/EAP spans but may not be on legacy spans
-const SPAN_OTEL_FIELDS = ['name'];
+// New span keys that are available on Span-First SDK and OTLP SDK spans for
+// now. In the future we'll backfill the `name` key for all spans, and this can
+// be moved into `SPAN_TEXT_KEYS`
+const SPAN_FIRST_TEXT_KEYS = ['name'];
 
 // @TODO the current date parsing does not support timestamps, so we
 // exclude these keys for now and parse them as numeric keys
@@ -101,7 +103,7 @@ const TEXT_KEYS = new Set([
   ...SYNTHETIC_KEYS,
   ...withPrefixedPermutation('transaction', TRANSACTION_TEXT_KEYS),
   ...withPrefixedPermutation('span', SPAN_TEXT_KEYS),
-  ...withPrefixedPermutation('span', SPAN_OTEL_FIELDS),
+  ...withPrefixedPermutation('span', SPAN_FIRST_TEXT_KEYS),
 ]);
 const NUMERIC_KEYS = new Set([
   ...withPrefixedPermutation('transaction', TRANSACTION_NUMERIC_KEYS),
