@@ -1,4 +1,3 @@
-import type {RefObject} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/core/alert';
@@ -26,7 +25,6 @@ type Props = SortProps & {
   isPending: boolean;
   replays: ReplayListRecord[];
   showDropdownFilters: boolean;
-  ref?: RefObject<HTMLDivElement | null>;
 };
 
 export default function ReplayTable({
@@ -34,7 +32,6 @@ export default function ReplayTable({
   error,
   isPending,
   onSortClick,
-  ref,
   replays,
   showDropdownFilters,
   sort,
@@ -46,7 +43,6 @@ export default function ReplayTable({
     return (
       <StyledSimpleTable
         data-test-id="replay-table-loading"
-        ref={ref}
         style={{gridTemplateColumns}}
       >
         <ReplayTableHeader
@@ -66,7 +62,6 @@ export default function ReplayTable({
     return (
       <StyledSimpleTable
         data-test-id="replay-table-errored"
-        ref={ref}
         style={{gridTemplateColumns}}
       >
         <ReplayTableHeader
@@ -87,11 +82,7 @@ export default function ReplayTable({
   }
 
   return (
-    <StyledSimpleTable
-      data-test-id="replay-table"
-      ref={ref}
-      style={{gridTemplateColumns}}
-    >
+    <StyledSimpleTable data-test-id="replay-table" style={{gridTemplateColumns}}>
       <ReplayTableHeader
         columns={columns}
         onSortClick={onSortClick}
@@ -150,6 +141,8 @@ function getErrorMessage(fetchError: RequestError) {
 }
 
 const RowCell = styled(SimpleTable.RowCell)`
+  overflow-x: auto;
+
   /* Used for cell menu items that are hidden by default */
   &:hover [data-visible-on-hover='true'] {
     opacity: 1;
