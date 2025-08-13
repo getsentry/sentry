@@ -7,26 +7,6 @@ import {space} from 'sentry/styles/space';
 import type {SpanBarType} from './constants';
 import {getSpanBarColors} from './constants';
 
-export const getBackgroundColor = ({
-  showStriping,
-  showDetail,
-  theme,
-}: {
-  theme: Theme;
-  showDetail?: boolean;
-  showStriping?: boolean;
-}) => {
-  if (showDetail) {
-    return theme.textColor;
-  }
-
-  if (showStriping) {
-    return theme.backgroundSecondary;
-  }
-
-  return theme.background;
-};
-
 export function getHatchPattern(spanBarType: SpanBarType | undefined, theme: Theme) {
   if (spanBarType) {
     const {primary, alternate} = getSpanBarColors(spanBarType, theme);
