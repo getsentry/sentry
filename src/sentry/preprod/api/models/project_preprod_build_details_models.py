@@ -46,6 +46,7 @@ class BuildDetailsSizeInfo(BaseModel):
 
 
 class BuildDetailsApiResponse(BaseModel):
+    id: str
     state: PreprodArtifact.ArtifactState
     app_info: BuildDetailsAppInfo
     vcs_info: BuildDetailsVcsInfo
@@ -110,6 +111,7 @@ def transform_preprod_artifact_to_build_details(
     )
 
     return BuildDetailsApiResponse(
+        id=artifact.id,
         state=artifact.state,
         app_info=app_info,
         vcs_info=vcs_info,
