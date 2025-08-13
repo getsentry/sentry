@@ -62,6 +62,7 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         # sime time, assuming some upper bound of spans per segment.
         self.kafka_queue_size = self.max_batch_size * self.num_processes * SPANS_PER_SEG_P95
         producer_config["queue.buffering.max.messages"] = self.kafka_queue_size
+        producer_config["client.id"] = "sentry.spans.consumers.process_segments"
 
         self.producer = KafkaProducer(
             build_kafka_producer_configuration(default_config=producer_config),

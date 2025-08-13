@@ -80,6 +80,7 @@ def _get_profiles_producer_from_topic(topic: Topic) -> KafkaProducer:
     producer_config = get_kafka_producer_cluster_options(cluster_name)
     producer_config.pop("compression.type", None)
     producer_config.pop("message.max.bytes", None)
+    producer_config["client.id"] = "sentry.profiles.task"
     return KafkaProducer(build_kafka_configuration(default_config=producer_config))
 
 
