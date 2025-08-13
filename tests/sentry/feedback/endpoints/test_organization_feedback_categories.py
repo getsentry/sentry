@@ -280,23 +280,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
     @patch(
         "sentry.feedback.endpoints.organization_feedback_categories.make_signed_seer_api_request"
     )
-    def test_seer_timeout(self, mock_seer_api_request) -> None:
-        mock_seer_api_request.side_effect = requests.exceptions.Timeout("Request timed out")
-
-        with self.feature(self.features):
-            response = self.get_error_response(self.org.slug)
-
-        assert response.status_code == 500
-        assert response.data["detail"] == "Failed to generate user feedback label groups"
-
-    @django_db_all
-    @patch(
-        "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
-        1,
-    )
-    @patch(
-        "sentry.feedback.endpoints.organization_feedback_categories.make_signed_seer_api_request"
-    )
     def test_max_group_labels_limit(self, mock_seer_api_request) -> None:
         """Test that MAX_GROUP_LABELS constant is respected when processing label groups."""
         # Mock Seer to return a label group with more than MAX_GROUP_LABELS associated labels
@@ -452,6 +435,23 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         # Verify that only valid associated labels remain
         assert len(associated_labels) == 1
         assert associated_labels == ["Design"]
+
+    @django_db_all
+    @patch(
+        "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
+        1,
+    )
+    @patch(
+        "sentry.feedback.endpoints.organization_feedback_categories.make_signed_seer_api_request"
+    )
+    def test_seer_timeout(self, mock_seer_api_request) -> None:
+        mock_seer_api_request.side_effect = requests.exceptions.Timeout("Request timed out")
+
+        with self.feature(self.features):
+            response = self.get_error_response(self.org.slug)
+
+        assert response.status_code == 500
+        assert response.data["detail"] == "Failed to generate user feedback label groups"
 
     @django_db_all
     @patch(

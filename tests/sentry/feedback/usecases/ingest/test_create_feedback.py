@@ -5,7 +5,6 @@ from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
-import responses
 
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import (
@@ -18,7 +17,6 @@ from sentry.feedback.usecases.label_generation import (
     MAX_AI_LABELS,
     MAX_AI_LABELS_JSON_LENGTH,
 )
-from sentry.feedback.usecases.title_generation import SEER_GENERATE_TITLE_URL
 from sentry.models.group import Group, GroupStatus
 from sentry.signals import first_feedback_received, first_new_feedback_received
 from sentry.testutils.helpers import Feature
@@ -28,13 +26,14 @@ from sentry.utils import json
 from tests.sentry.feedback import create_dummy_openai_response, mock_feedback_event
 
 
-def mock_seer_title_response(**kwargs) -> None:
-    """Use with @responses.activate to mock Seer title generation response."""
-    responses.add(
-        responses.POST,
-        SEER_GENERATE_TITLE_URL,
-        **kwargs,
-    )
+class MockSeerResponse:
+    def __init__(self, status: int, json_data: dict, raw_data: str | bytes):
+        self.status = status
+        self.json_data = json_data
+        self.data = raw_data
+
+    def json(self):
+        return self.json_data
 
 
 def test_fix_for_issue_platform() -> None:
@@ -930,9 +929,9 @@ def test_create_feedback_issue_title(default_project, mock_produce_occurrence_to
 
 
 @django_db_all
-@responses.activate
+@patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
 def test_create_feedback_issue_title_from_seer(
-    default_project, mock_produce_occurrence_to_kafka
+    mock_make_signed_seer_api_request, default_project, mock_produce_occurrence_to_kafka
 ) -> None:
     """Test that create_feedback_issue uses the generated title from Seer."""
     with Feature(
@@ -944,10 +943,13 @@ def test_create_feedback_issue_title_from_seer(
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
-        mock_seer_title_response(
+        mock_response = MockSeerResponse(
             status=200,
-            body='{"title": "Login Button Issue"}',
+            json_data={"title": "Login Button Issue"},
+            raw_data='{"title": "Login Button Issue"}',
         )
+        mock_make_signed_seer_api_request.return_value = mock_response
+
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
         assert mock_produce_occurrence_to_kafka.call_count == 1
@@ -956,9 +958,9 @@ def test_create_feedback_issue_title_from_seer(
 
 
 @django_db_all
-@responses.activate
+@patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
 def test_create_feedback_issue_title_from_seer_fallback(
-    default_project, mock_produce_occurrence_to_kafka
+    mock_make_signed_seer_api_request, default_project, mock_produce_occurrence_to_kafka
 ) -> None:
     """Test that the title falls back to message-based title if Seer call fails."""
     with Feature(
@@ -970,7 +972,7 @@ def test_create_feedback_issue_title_from_seer_fallback(
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
-        mock_seer_title_response(body=Exception("Network Error"))
+        mock_make_signed_seer_api_request.side_effect = Exception("Network Error")
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
         assert mock_produce_occurrence_to_kafka.call_count == 1
@@ -981,10 +983,9 @@ def test_create_feedback_issue_title_from_seer_fallback(
 
 
 @django_db_all
-@responses.activate
+@patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
 def test_create_feedback_issue_title_from_seer_skips_if_spam(
-    default_project,
-    mock_produce_occurrence_to_kafka,
+    mock_make_signed_seer_api_request, default_project
 ) -> None:
     """Test title generation endpoint is not called if marked as spam."""
     with (
@@ -1003,14 +1004,13 @@ def test_create_feedback_issue_title_from_seer_skips_if_spam(
     ):
         event = mock_feedback_event(default_project.id)
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
-        urls = [call.request.url for call in responses.calls]
-        assert SEER_GENERATE_TITLE_URL not in urls
+        mock_make_signed_seer_api_request.assert_not_called()
 
 
 @django_db_all
-@responses.activate
+@patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
 def test_create_feedback_issue_title_from_seer_none(
-    default_project, mock_produce_occurrence_to_kafka
+    mock_make_signed_seer_api_request, default_project, mock_produce_occurrence_to_kafka
 ) -> None:
     """Test that the title falls back to message-based title if Seer call returns None."""
     with Feature(
@@ -1022,10 +1022,13 @@ def test_create_feedback_issue_title_from_seer_none(
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
-        mock_seer_title_response(
+        mock_response = MockSeerResponse(
             status=200,
-            body='{"title": ""}',
+            json_data={"title": ""},
+            raw_data='{"title": ""}',
         )
+        mock_make_signed_seer_api_request.return_value = mock_response
+
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
         assert mock_produce_occurrence_to_kafka.call_count == 1
