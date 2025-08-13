@@ -61,12 +61,19 @@ export const GroupingComponentListItem = styled('li')<{isCollapsible?: boolean}>
     `}
 `;
 
-export const GroupingValue = styled('code')<{valueType: string}>`
+export const GroupingValue = styled('code')<{
+  valueType: string;
+  contributes?: boolean;
+  showNonContributing?: boolean;
+}>`
   display: inline-block;
   margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
   font-size: ${p => p.theme.fontSize.sm};
   padding: 0 ${space(0.25)};
-  background: rgba(112, 163, 214, 0.1);
+  background: ${p =>
+    p.contributes && p.showNonContributing
+      ? 'rgba(64, 123, 255, 0.15)'
+      : 'rgba(112, 163, 214, 0.1)'};
   color: ${p => p.theme.textColor};
 
   ${({valueType, theme}) =>
@@ -78,7 +85,7 @@ export const GroupingValue = styled('code')<{valueType: string}>`
 `;
 
 const GroupingComponentWrapper = styled('div')<{isContributing: boolean}>`
-  color: ${p => (p.isContributing ? null : p.theme.textColor)};
+  color: ${p => (p.isContributing ? p.theme.textColor : p.theme.subText)};
 
   ${GroupingValue}, button {
     opacity: 1;
