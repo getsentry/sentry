@@ -57,8 +57,6 @@ import {
 } from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeSorts} from 'sentry/utils/queryString';
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -694,7 +692,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
   }
 }
 
-export default withSentryRouter(withTheme(WidgetCardChart));
+export default withTheme(WidgetCardChart);
 
 const StyledTransparentLoadingMask = styled((props: any) => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />

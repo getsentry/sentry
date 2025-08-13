@@ -70,6 +70,8 @@ import useProjects from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import withPageFilters from 'sentry/utils/withPageFilters';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/detail';
 import {DiscoverSplitAlert} from 'sentry/views/dashboards/discoverSplitAlert';
@@ -171,7 +173,9 @@ const MemoizedWidgetCardChartContainer = memo(
   WidgetCardChartContainer,
   shouldWidgetCardChartMemo
 );
-const MemoizedWidgetCardChart = memo(WidgetCardChart, shouldWidgetCardChartMemo);
+const MemoizedWidgetCardChart = withSentryRouter(
+  memo(WidgetCardChart, shouldWidgetCardChartMemo)
+);
 
 async function fetchDiscoverTotal(
   api: Client,
