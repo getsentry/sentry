@@ -79,12 +79,27 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
   const setVisualizes = useSetQueryParamsVisualizes();
   const setGroupBys = useSetQueryParamsGroupBys();
 
-  const aggregateOptions = useMemo(() => {
+  const sortedNumberKeys: string[] = useMemo(() => {
+    const keys = Object.keys(numberTags);
+    keys.sort();
+    return keys;
+  }, [numberTags]);
+
+  const sortedStringKeys: string[] = useMemo(() => {
+    const keys = Object.keys(stringTags);
+    keys.sort();
+    return keys;
+  }, [stringTags]);
+
+  const aggregateOptions: Array<SelectOption<OurLogsAggregate>> = useMemo(() => {
     return LOG_AGGREGATES.map(aggregate => {
-      const defaultArgument = getDefaultArgument(aggregate.value, numberTags);
+      const defaultArgument = getDefaultArgument(
+        aggregate.value,
+        sortedNumberKeys[0] || null
+      );
       return {...aggregate, disabled: !defined(defaultArgument)};
     });
-  }, [numberTags]);
+  }, [sortedNumberKeys]);
 
   return (
     <Container data-test-id="logs-toolbar">
@@ -101,11 +116,11 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
               aggregateFunction === AggregationKey.COUNT
                 ? [{label: t('logs'), value: OurLogKnownFieldKey.MESSAGE}]
                 : aggregateFunction === AggregationKey.COUNT_UNIQUE
-                  ? Object.keys(stringTags).map(key => ({
+                  ? sortedStringKeys.map(key => ({
                       label: prettifyTagKey(key),
                       value: key,
                     }))
-                  : Object.keys(numberTags).map(key => ({
+                  : sortedNumberKeys.map(key => ({
                       label: prettifyTagKey(key),
                       value: key,
                     }));
@@ -137,7 +152,7 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
                         newAggregate: val.value,
                         oldAggregate: aggregateFn,
                         oldArgument: aggregateParam,
-                        numberTags,
+                        firstNumberKey: sortedNumberKeys[0] || null,
                       });
                       setVisualize(yAxis);
                     }
@@ -148,9 +163,7 @@ export function LogsToolbar({stringTags, numberTags}: LogsToolbarProps) {
                   <Select
                     options={aggregatableKeys}
                     onChange={val => {
-                      if (aggregateFunction !== 'count') {
-                        setVisualize(`${aggregateFn}(${val.value})`);
-                      }
+                      setVisualize(`${aggregateFn}(${val.value})`);
                     }}
                     searchable
                     value={aggregateParam}
@@ -205,10 +218,10 @@ function updateVisualizeAggregate({
   newAggregate,
   oldAggregate,
   oldArgument,
-  numberTags,
+  firstNumberKey,
 }: {
+  firstNumberKey: string | null;
   newAggregate: string;
-  numberTags: TagCollection;
   oldAggregate: string;
   oldArgument: string;
 }): string {
@@ -224,23 +237,21 @@ function updateVisualizeAggregate({
     oldAggregate === AggregationKey.COUNT ||
     oldAggregate === AggregationKey.COUNT_UNIQUE
   ) {
-    return `${newAggregate}(${getDefaultArgument(newAggregate, numberTags) || ''})`;
+    return `${newAggregate}(${getDefaultArgument(newAggregate, firstNumberKey) || ''})`;
   }
 
   return `${newAggregate}(${oldArgument})`;
 }
 
-function getDefaultArgument(aggregate: string, numberTags: TagCollection): string | null {
+function getDefaultArgument(
+  aggregate: string,
+  firstNumberKey: string | null
+): string | null {
   if (aggregate === AggregationKey.COUNT || aggregate === AggregationKey.COUNT_UNIQUE) {
     return OurLogKnownFieldKey.MESSAGE;
   }
 
-  const keys = Object.keys(numberTags);
-  if (keys[0]) {
-    return keys[0];
-  }
-
-  return null;
+  return firstNumberKey;
 }
 
 const Container = styled('div')`
