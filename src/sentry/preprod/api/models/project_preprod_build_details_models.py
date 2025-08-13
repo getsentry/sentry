@@ -1,8 +1,12 @@
+import logging
 from enum import StrEnum
 
 from pydantic import BaseModel
 
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.build_distribution_utils import is_installable_artifact
+from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
+
+logger = logging.getLogger(__name__)
 
 
 class Platform(StrEnum):
@@ -42,6 +46,7 @@ class BuildDetailsSizeInfo(BaseModel):
 
 
 class BuildDetailsApiResponse(BaseModel):
+    id: str
     state: PreprodArtifact.ArtifactState
     app_info: BuildDetailsAppInfo
     vcs_info: BuildDetailsVcsInfo
@@ -58,3 +63,57 @@ def platform_from_artifact_type(artifact_type: PreprodArtifact.ArtifactType) -> 
         return Platform.ANDROID
     else:
         raise ValueError(f"Unknown artifact type: {artifact_type}")
+
+
+def transform_preprod_artifact_to_build_details(
+    artifact: PreprodArtifact,
+) -> BuildDetailsApiResponse:
+    size_info = None
+    try:
+        size_metrics = PreprodArtifactSizeMetrics.objects.filter(
+            preprod_artifact=artifact,
+            metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
+        ).first()
+
+        if size_metrics and size_metrics.max_install_size and size_metrics.max_download_size:
+            size_info = BuildDetailsSizeInfo(
+                install_size_bytes=size_metrics.max_install_size,
+                download_size_bytes=size_metrics.max_download_size,
+            )
+    except Exception:
+        logger.debug("Failed to get size metrics for artifact %s", artifact.id)
+
+    app_info = BuildDetailsAppInfo(
+        app_id=artifact.app_id,
+        name=artifact.app_name,
+        version=artifact.build_version,
+        build_number=artifact.build_number,
+        date_added=(artifact.date_added.isoformat() if artifact.date_added else None),
+        date_built=(artifact.date_built.isoformat() if artifact.date_built else None),
+        artifact_type=artifact.artifact_type,
+        platform=platform_from_artifact_type(artifact.artifact_type),
+        is_installable=is_installable_artifact(artifact),
+    )
+
+    vcs_info = BuildDetailsVcsInfo(
+        head_sha=(artifact.commit_comparison.head_sha if artifact.commit_comparison else None),
+        base_sha=(artifact.commit_comparison.base_sha if artifact.commit_comparison else None),
+        provider=(artifact.commit_comparison.provider if artifact.commit_comparison else None),
+        head_repo_name=(
+            artifact.commit_comparison.head_repo_name if artifact.commit_comparison else None
+        ),
+        base_repo_name=(
+            artifact.commit_comparison.base_repo_name if artifact.commit_comparison else None
+        ),
+        head_ref=(artifact.commit_comparison.head_ref if artifact.commit_comparison else None),
+        base_ref=(artifact.commit_comparison.base_ref if artifact.commit_comparison else None),
+        pr_number=(artifact.commit_comparison.pr_number if artifact.commit_comparison else None),
+    )
+
+    return BuildDetailsApiResponse(
+        id=artifact.id,
+        state=artifact.state,
+        app_info=app_info,
+        vcs_info=vcs_info,
+        size_info=size_info,
+    )
