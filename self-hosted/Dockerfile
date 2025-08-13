@@ -22,16 +22,15 @@ RUN : \
 
 WORKDIR /usr/src/sentry
 
-ENV PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
+ENV PATH="/.venv/bin:$PATH" \
+    PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
     UV_COMPILE_BYTECODE=1 UV_NO_CACHE=1
-
-ENV PATH="/usr/src/sentry/.venv/bin:$PATH"
 
 RUN python3 -m pip install --index-url 'https://pypi.devinfra.sentry.io/simple' 'uv==0.8.2'
 
 # We don't want uv-managed python, we want to use python from the image.
 # We only want to use uv to manage dependencies.
-RUN python3 -m venv .venv
+RUN python3 -m venv /.venv
 
 ENV \
   # Sentry config params
