@@ -363,7 +363,7 @@ class ProjectReplaySummaryTestCase(
                 "feedback": {
                     "contact_email": "test@example.com",
                     "name": "Test User",
-                    "message": "User submitted feedback!!!!",
+                    "message": "Great website",
                     "replay_id": self.replay_id,
                     "url": "https://example.com",
                 },
@@ -430,7 +430,7 @@ class ProjectReplaySummaryTestCase(
                 "feedback": {
                     "contact_email": "test@example.com",
                     "name": "Test User",
-                    "message": "User submitted feedback",
+                    "message": "Great website",
                     "replay_id": self.replay_id,
                     "url": "https://example.com",
                 },
