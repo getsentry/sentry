@@ -63,10 +63,10 @@ type Props = {
 function ProjectIssues({organization, location, projectId, query, api}: Props) {
   const [pageLinks, setPageLinks] = useState<string | undefined>();
   const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
-  const [issuesType, setIssuesType] = useQueryState(
-    'issuesType',
-    parseAsStringLiteral(Object.values(IssuesType)).withDefault(IssuesType.UNHANDLED)
-  );
+  const [issuesType, setIssuesType] = useQueryState('issuesType', {
+    ...parseAsStringLiteral(Object.values(IssuesType)),
+    defaultValue: IssuesType.UNHANDLED,
+  });
   const [issuesCount, setIssuesCount] = useState<Count>({
     all: 0,
     new: 0,
