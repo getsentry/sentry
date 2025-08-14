@@ -332,10 +332,10 @@ export function AutofixChanges({
                   ) : (
                     <ScrollCarousel aria-label={t('Check out branches')}>
                       {step.changes.map(
-                        change =>
+                        (change, idx) =>
                           change.branch_name && (
                             <BranchButton
-                              key={`${change.repo_external_id}-${Math.random()}`}
+                              key={`${change.repo_external_id}-${idx}`}
                               change={change}
                             />
                           )
@@ -374,10 +374,10 @@ export function AutofixChanges({
               ) : (
                 <ScrollCarousel aria-label={t('View pull requests')}>
                   {step.changes.map(
-                    change =>
+                    (change, idx) =>
                       change.pull_request?.pr_url && (
                         <LinkButton
-                          key={`${change.repo_external_id}-${Math.random()}`}
+                          key={`${change.repo_external_id}-${idx}`}
                           size="xs"
                           priority="primary"
                           icon={<IconOpen size="xs" />}
