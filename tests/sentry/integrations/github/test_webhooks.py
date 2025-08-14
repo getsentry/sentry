@@ -735,12 +735,11 @@ class PullRequestEventWebhook(APITestCase):
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_integration(
-                organization=project.organization.id,
+                organization=project.organization,
                 external_id="12345",
                 provider="github",
                 metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
             )
-            integration.add_organization(org2.id, self.user)
             integration.add_organization(org2.id, self.user)
 
         response = self.client.post(
@@ -756,14 +755,16 @@ class PullRequestEventWebhook(APITestCase):
         assert response.status_code == 204
 
         repos = Repository.objects.all()
+
         assert len(repos) == 2
 
-        assert repos[0].organization_id == project.organization.id
-        assert repos[1].organization_id == org2.id
+        assert {repo.organization_id for repo in repos} == {project.organization.id, org2.id}
+
         for repo in repos:
             assert repo.external_id == "35129377"
             assert repo.provider == "integrations:github"
             assert repo.name == "baxterthehacker/public-repo"
+
         mock_metrics.incr.assert_any_call("github.webhook.repository_created")
 
     def test_multiple_orgs_ignores_hidden_repo(self) -> None:
