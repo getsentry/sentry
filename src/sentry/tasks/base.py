@@ -8,7 +8,6 @@ from typing import Any, ParamSpec, TypeVar
 
 import sentry_sdk
 from celery import Task
-from celery.exceptions import Ignore, MaxRetriesExceededError, Reject, Retry, SoftTimeLimitExceeded
 from django.conf import settings
 from django.db.models import Model
 
@@ -236,7 +235,7 @@ def retry(
         return retry()(func)
 
     timeout_exceptions: tuple[type[BaseException], ...]
-    timeout_exceptions = (ProcessingDeadlineExceeded, SoftTimeLimitExceeded)
+    timeout_exceptions = (ProcessingDeadlineExceeded,)
     if not timeouts:
         timeout_exceptions = ()
 
@@ -247,7 +246,7 @@ def retry(
                 return func(*args, **kwargs)
             except ignore:
                 return
-            except (RetryError, Retry, Ignore, Reject, MaxRetriesExceededError):
+            except RetryError:
                 # We shouldn't interfere with exceptions that exist to communicate
                 # retry state.
                 raise
