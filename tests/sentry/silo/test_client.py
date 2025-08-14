@@ -447,11 +447,11 @@ def test_get_region_ip_addresses() -> None:
         assert get_region_ip_addresses() == frozenset([])
         assert mock_gethostbyname.call_count == 1
         assert mock_capture_exception.call_count == 1
-        
+
     # Test URL parsing failure handling
     malformed_region = Region("malformed", 2, "not-a-valid-url", RegionCategory.MULTI_TENANT)
     malformed_region_config = (malformed_region,)
-    
+
     with (
         override_regions(malformed_region_config),
         patch("urllib3.util.parse_url") as mock_parse_url,

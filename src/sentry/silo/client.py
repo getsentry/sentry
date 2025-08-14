@@ -59,7 +59,9 @@ def get_region_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv
                 except (socket.gaierror, OSError) as dns_error:
                     # DNS resolution failed - log the error but continue processing other regions
                     sentry_sdk.capture_exception(
-                        RegionResolutionError(f"Unable to resolve hostname '{url.host}' for region address: {address}. DNS error: {dns_error}")
+                        RegionResolutionError(
+                            f"Unable to resolve hostname '{url.host}' for region address: {address}. DNS error: {dns_error}"
+                        )
                     )
             else:
                 sentry_sdk.capture_exception(
@@ -68,7 +70,9 @@ def get_region_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv
         except Exception as parse_error:
             # URL parsing failed - log the error but continue processing other regions
             sentry_sdk.capture_exception(
-                RegionResolutionError(f"Unable to parse region address: {address}. Parse error: {parse_error}")
+                RegionResolutionError(
+                    f"Unable to parse region address: {address}. Parse error: {parse_error}"
+                )
             )
 
     return frozenset(region_ip_addresses)
