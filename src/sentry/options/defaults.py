@@ -756,12 +756,24 @@ register("aws-lambda.host-region", default="us-east-2", flags=FLAG_AUTOMATOR_MOD
 register("aws-lambda.thread-count", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # BigQuery Integration
-register("bigquery.project-id", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register("bigquery.credentials-path", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
-register("bigquery.default-dataset", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "bigquery.project-id", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE
+)
+register(
+    "bigquery.credentials-path",
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "bigquery.default-dataset",
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register("bigquery.timeout", default=300, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("bigquery.job-retry-count", default=3, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("bigquery.enable-debug-logging", default=False, flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "bigquery.enable-debug-logging",
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Snuba
 register(

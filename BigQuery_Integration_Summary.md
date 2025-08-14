@@ -5,10 +5,12 @@
 I've successfully enabled BigQuery communication for your Sentry project with comprehensive data pulling capabilities. Here's what was completed:
 
 ### 1. **Dependencies Added**
+
 - Added `google-cloud-bigquery>=3.25.0` to `pyproject.toml`
 - Integrated with existing Google Cloud libraries
 
 ### 2. **Core Service Module** (`src/sentry/services/bigquery.py`)
+
 - **BigQueryService class** - Main service for BigQuery operations
 - **Authentication handling** - Multiple auth methods (ADC, service accounts, environment variables)
 - **Connection management** - Lazy-loaded client with connection testing
@@ -19,7 +21,9 @@ I've successfully enabled BigQuery communication for your Sentry project with co
   - Query result export to tables
 
 ### 3. **Configuration System** (`src/sentry/options/defaults.py`)
+
 Added BigQuery-specific options:
+
 - `bigquery.project-id` - Google Cloud project ID
 - `bigquery.credentials-path` - Service account JSON path
 - `bigquery.default-dataset` - Default dataset name
@@ -28,12 +32,14 @@ Added BigQuery-specific options:
 - `bigquery.enable-debug-logging` - Debug logging toggle
 
 ### 4. **Data Models & Schemas** (`src/sentry/services/bigquery_models.py`)
+
 - **TypedDict models** for Sentry data structures
 - **Predefined BigQuery schemas** for events, transactions, and issues
 - **Schema helper utilities** for table creation and validation
 - **Common query templates** for typical analytics use cases
 
 ### 5. **Analytics & Query Functions** (`src/sentry/services/bigquery_queries.py`)
+
 - **SentryBigQueryAnalytics class** with high-level methods:
   - `get_error_trends()` - Error trends over time
   - `get_top_errors()` - Most frequent errors
@@ -43,6 +49,7 @@ Added BigQuery-specific options:
   - `get_environment_health()` - Environment-specific metrics
 
 ### 6. **Comprehensive Examples** (`src/sentry/services/bigquery_examples.py`)
+
 - **7 detailed examples** covering:
   - Basic setup and connection testing
   - Dataset and table creation
@@ -55,6 +62,7 @@ Added BigQuery-specific options:
 ## 🚀 How to Use
 
 ### Quick Start
+
 ```python
 from sentry.services.bigquery import get_bigquery_service
 from sentry.services.bigquery_queries import SentryBigQueryAnalytics
@@ -73,6 +81,7 @@ top_errors = analytics.get_top_errors(limit=10)
 ```
 
 ### Configuration
+
 ```python
 # In your Sentry settings
 SENTRY_OPTIONS.update({
@@ -83,6 +92,7 @@ SENTRY_OPTIONS.update({
 ```
 
 ### Authentication Options
+
 1. **Application Default Credentials** (recommended)
 2. **Service Account JSON file**
 3. **Environment variables** (`GOOGLE_CLOUD_PROJECT`, `GOOGLE_APPLICATION_CREDENTIALS`)
@@ -90,6 +100,7 @@ SENTRY_OPTIONS.update({
 ## 📊 Example Analytics Queries
 
 ### Error Trends
+
 ```python
 analytics = SentryBigQueryAnalytics()
 trends = analytics.get_error_trends(days=30)
@@ -97,12 +108,14 @@ trends = analytics.get_error_trends(days=30)
 ```
 
 ### Performance Analysis
+
 ```python
 performance = analytics.get_performance_summary(hours=24, limit=20)
 # Returns transaction performance metrics with percentiles
 ```
 
 ### Custom Queries
+
 ```python
 service = get_bigquery_service()
 results = service.execute_query("""

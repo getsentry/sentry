@@ -8,6 +8,7 @@ from google.cloud import bigquery
 
 class BigQueryQueryConfig(TypedDict):
     """Configuration for BigQuery query execution."""
+
     query: str
     parameters: list[bigquery.ScalarQueryParameter] | None
     timeout: int | None
@@ -18,6 +19,7 @@ class BigQueryQueryConfig(TypedDict):
 
 class BigQueryTableReference(TypedDict):
     """Reference to a BigQuery table."""
+
     project_id: str
     dataset_id: str
     table_id: str
@@ -25,6 +27,7 @@ class BigQueryTableReference(TypedDict):
 
 class BigQueryDatasetInfo(TypedDict):
     """Information about a BigQuery dataset."""
+
     dataset_id: str
     project: str
     created: datetime | None
@@ -36,6 +39,7 @@ class BigQueryDatasetInfo(TypedDict):
 
 class BigQueryTableInfo(TypedDict):
     """Information about a BigQuery table."""
+
     table_id: str
     table_type: str
     created: datetime | None
@@ -46,6 +50,7 @@ class BigQueryTableInfo(TypedDict):
 
 class BigQueryFieldSchema(TypedDict):
     """Schema information for a BigQuery table field."""
+
     name: str
     field_type: str
     mode: str
@@ -54,6 +59,7 @@ class BigQueryFieldSchema(TypedDict):
 
 class SentryEventData(TypedDict):
     """Schema for Sentry event data that could be stored in BigQuery."""
+
     event_id: str
     project_id: int
     organization_id: int
@@ -75,6 +81,7 @@ class SentryEventData(TypedDict):
 
 class SentryPerformanceData(TypedDict):
     """Schema for Sentry performance/transaction data."""
+
     event_id: str
     project_id: int
     organization_id: int
@@ -93,6 +100,7 @@ class SentryPerformanceData(TypedDict):
 
 class SentryIssueData(TypedDict):
     """Schema for Sentry issue/group data."""
+
     issue_id: int
     project_id: int
     organization_id: int
@@ -167,7 +175,7 @@ SENTRY_ISSUE_SCHEMA = [
 
 class BigQuerySchemaHelper:
     """Helper class for working with BigQuery schemas."""
-    
+
     @staticmethod
     def create_table_with_schema(
         client: bigquery.Client,
@@ -176,14 +184,16 @@ class BigQuerySchemaHelper:
         description: str | None = None,
     ) -> bigquery.Table:
         """Create a table with the specified schema."""
-        full_table_id = f"{table_ref['project_id']}.{table_ref['dataset_id']}.{table_ref['table_id']}"
+        full_table_id = (
+            f"{table_ref['project_id']}.{table_ref['dataset_id']}.{table_ref['table_id']}"
+        )
         table = bigquery.Table(full_table_id, schema=schema)
-        
+
         if description:
             table.description = description
-        
+
         return client.create_table(table)
-    
+
     @staticmethod
     def validate_schema_compatibility(
         existing_schema: list[bigquery.SchemaField],
@@ -191,7 +201,7 @@ class BigQuerySchemaHelper:
     ) -> bool:
         """Check if new schema is compatible with existing schema."""
         existing_fields = {field.name: field for field in existing_schema}
-        
+
         for new_field in new_schema:
             if new_field.name in existing_fields:
                 existing_field = existing_fields[new_field.name]
@@ -200,9 +210,9 @@ class BigQuerySchemaHelper:
                     or existing_field.mode != new_field.mode
                 ):
                     return False
-        
+
         return True
-    
+
     @staticmethod
     def schema_to_dict(schema: list[bigquery.SchemaField]) -> list[dict[str, Any]]:
         """Convert schema fields to dictionary format."""
@@ -220,7 +230,7 @@ class BigQuerySchemaHelper:
 # Example query templates for common Sentry analytics
 COMMON_QUERIES = {
     "error_trends": """
-        SELECT 
+        SELECT
             DATE(timestamp) as date,
             COUNT(*) as error_count,
             COUNT(DISTINCT user_id) as affected_users
@@ -230,9 +240,8 @@ COMMON_QUERIES = {
         GROUP BY date
         ORDER BY date DESC
     """,
-    
     "top_errors": """
-        SELECT 
+        SELECT
             exception_type,
             exception_value,
             COUNT(*) as occurrence_count,
@@ -244,9 +253,8 @@ COMMON_QUERIES = {
         ORDER BY occurrence_count DESC
         LIMIT 10
     """,
-    
     "performance_summary": """
-        SELECT 
+        SELECT
             transaction_name,
             AVG(duration_ms) as avg_duration,
             PERCENTILE_CONT(duration_ms, 0.5) OVER() as p50_duration,
@@ -258,9 +266,8 @@ COMMON_QUERIES = {
         ORDER BY avg_duration DESC
         LIMIT 20
     """,
-    
     "user_impact": """
-        SELECT 
+        SELECT
             user_id,
             user_email,
             COUNT(*) as error_count,

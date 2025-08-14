@@ -22,19 +22,21 @@ logger = logging.getLogger(__name__)
 class SentryBigQueryAnalytics:
     """
     High-level analytics functions for querying Sentry data in BigQuery.
-    
+
     This class provides easy-to-use methods for common analytics queries
     that Sentry users would want to run on their data.
     """
-    
+
     def __init__(
         self,
         service: BigQueryService | None = None,
         default_dataset: str | None = None,
     ) -> None:
         self.service = service or get_bigquery_service()
-        self.default_dataset = default_dataset or options.get("bigquery.default-dataset") or "sentry_data"
-    
+        self.default_dataset = (
+            default_dataset or options.get("bigquery.default-dataset") or "sentry_data"
+        )
+
     def get_error_trends(
         self,
         project_id: int | None = None,
@@ -43,17 +45,17 @@ class SentryBigQueryAnalytics:
     ) -> list[dict[str, Any]]:
         """
         Get error trends over the specified number of days.
-        
+
         Args:
             project_id: Optional Sentry project ID to filter by
             days: Number of days to look back
             table_name: Name of the events table
-            
+
         Returns:
             List of dictionaries with date, error_count, and affected_users
         """
         query = """
-        SELECT 
+        SELECT
             DATE(timestamp) as date,
             COUNT(*) as error_count,
             COUNT(DISTINCT user_id) as affected_users
@@ -64,9 +66,9 @@ class SentryBigQueryAnalytics:
         GROUP BY date
         ORDER BY date DESC
         """
-        
+
         project_filter = f"AND project_id = {project_id}" if project_id else ""
-        
+
         formatted_query = query.format(
             project_id=self.service.project_id,
             dataset_id=self.default_dataset,
@@ -74,9 +76,9 @@ class SentryBigQueryAnalytics:
             days=days,
             project_filter=project_filter,
         )
-        
+
         return self.service.execute_query(formatted_query)
-    
+
     def get_top_errors(
         self,
         project_id: int | None = None,
@@ -86,18 +88,18 @@ class SentryBigQueryAnalytics:
     ) -> list[dict[str, Any]]:
         """
         Get the top errors by occurrence count.
-        
+
         Args:
             project_id: Optional Sentry project ID to filter by
             days: Number of days to look back
             limit: Maximum number of results to return
             table_name: Name of the events table
-            
+
         Returns:
             List of dictionaries with error details and counts
         """
         query = """
-        SELECT 
+        SELECT
             exception_type,
             exception_value,
             COUNT(*) as occurrence_count,
@@ -113,9 +115,9 @@ class SentryBigQueryAnalytics:
         ORDER BY occurrence_count DESC
         LIMIT {limit}
         """
-        
+
         project_filter = f"AND project_id = {project_id}" if project_id else ""
-        
+
         formatted_query = query.format(
             project_id=self.service.project_id,
             dataset_id=self.default_dataset,
@@ -124,9 +126,9 @@ class SentryBigQueryAnalytics:
             limit=limit,
             project_filter=project_filter,
         )
-        
+
         return self.service.execute_query(formatted_query)
-    
+
     def get_performance_summary(
         self,
         project_id: int | None = None,
@@ -136,18 +138,18 @@ class SentryBigQueryAnalytics:
     ) -> list[dict[str, Any]]:
         """
         Get performance summary for transactions.
-        
+
         Args:
             project_id: Optional Sentry project ID to filter by
             hours: Number of hours to look back
             limit: Maximum number of results to return
             table_name: Name of the transactions table
-            
+
         Returns:
             List of dictionaries with transaction performance metrics
         """
         query = """
-        SELECT 
+        SELECT
             transaction_name,
             COUNT(*) as transaction_count,
             AVG(duration_ms) as avg_duration,
@@ -162,9 +164,9 @@ class SentryBigQueryAnalytics:
         ORDER BY avg_duration DESC
         LIMIT {limit}
         """
-        
+
         project_filter = f"AND project_id = {project_id}" if project_id else ""
-        
+
         formatted_query = query.format(
             project_id=self.service.project_id,
             dataset_id=self.default_dataset,
@@ -173,9 +175,9 @@ class SentryBigQueryAnalytics:
             limit=limit,
             project_filter=project_filter,
         )
-        
+
         return self.service.execute_query(formatted_query)
-    
+
     def get_user_impact_analysis(
         self,
         project_id: int | None = None,
@@ -185,18 +187,18 @@ class SentryBigQueryAnalytics:
     ) -> list[dict[str, Any]]:
         """
         Analyze which users are most impacted by errors.
-        
+
         Args:
             project_id: Optional Sentry project ID to filter by
             days: Number of days to look back
             limit: Maximum number of results to return
             table_name: Name of the events table
-            
+
         Returns:
             List of dictionaries with user impact data
         """
         query = """
-        SELECT 
+        SELECT
             user_id,
             user_email,
             COUNT(*) as error_count,
@@ -214,9 +216,9 @@ class SentryBigQueryAnalytics:
         ORDER BY error_count DESC
         LIMIT {limit}
         """
-        
+
         project_filter = f"AND project_id = {project_id}" if project_id else ""
-        
+
         formatted_query = query.format(
             project_id=self.service.project_id,
             dataset_id=self.default_dataset,
@@ -225,9 +227,9 @@ class SentryBigQueryAnalytics:
             limit=limit,
             project_filter=project_filter,
         )
-        
+
         return self.service.execute_query(formatted_query)
-    
+
     def get_release_comparison(
         self,
         release_1: str,
@@ -237,19 +239,19 @@ class SentryBigQueryAnalytics:
     ) -> dict[str, Any]:
         """
         Compare error rates and types between two releases.
-        
+
         Args:
             release_1: First release version to compare
             release_2: Second release version to compare
             project_id: Optional Sentry project ID to filter by
             table_name: Name of the events table
-            
+
         Returns:
             Dictionary with comparison data
         """
         query = """
         WITH release_stats AS (
-            SELECT 
+            SELECT
                 release,
                 COUNT(*) as total_events,
                 COUNTIF(level IN ('error', 'fatal')) as error_events,
@@ -260,7 +262,7 @@ class SentryBigQueryAnalytics:
                 {project_filter}
             GROUP BY release
         )
-        SELECT 
+        SELECT
             release,
             total_events,
             error_events,
@@ -270,9 +272,9 @@ class SentryBigQueryAnalytics:
         FROM release_stats
         ORDER BY release
         """
-        
+
         project_filter = f"AND project_id = {project_id}" if project_id else ""
-        
+
         formatted_query = query.format(
             project_id=self.service.project_id,
             dataset_id=self.default_dataset,
@@ -281,9 +283,9 @@ class SentryBigQueryAnalytics:
             release_2=release_2,
             project_filter=project_filter,
         )
-        
+
         results = self.service.execute_query(formatted_query)
-        
+
         # Format the results into a comparison structure
         comparison = {"release_1": None, "release_2": None}
         for result in results:
@@ -291,9 +293,9 @@ class SentryBigQueryAnalytics:
                 comparison["release_1"] = result
             elif result["release"] == release_2:
                 comparison["release_2"] = result
-        
+
         return comparison
-    
+
     def get_environment_health(
         self,
         project_id: int | None = None,
@@ -302,17 +304,17 @@ class SentryBigQueryAnalytics:
     ) -> list[dict[str, Any]]:
         """
         Get health metrics for different environments.
-        
+
         Args:
             project_id: Optional Sentry project ID to filter by
             hours: Number of hours to look back
             table_name: Name of the events table
-            
+
         Returns:
             List of dictionaries with environment health data
         """
         query = """
-        SELECT 
+        SELECT
             environment,
             COUNT(*) as total_events,
             COUNTIF(level IN ('error', 'fatal')) as error_events,
@@ -327,9 +329,9 @@ class SentryBigQueryAnalytics:
         GROUP BY environment
         ORDER BY error_rate_percent DESC, total_events DESC
         """
-        
+
         project_filter = f"AND project_id = {project_id}" if project_id else ""
-        
+
         formatted_query = query.format(
             project_id=self.service.project_id,
             dataset_id=self.default_dataset,
@@ -337,7 +339,7 @@ class SentryBigQueryAnalytics:
             hours=hours,
             project_filter=project_filter,
         )
-        
+
         return self.service.execute_query(formatted_query)
 
 
@@ -350,20 +352,20 @@ def export_sentry_events_to_bigquery(
 ) -> None:
     """
     Example function to export Sentry events to BigQuery.
-    
+
     This would typically be called by a scheduled task or manual process
     to export Sentry data for analytics.
     """
     service = get_bigquery_service()
-    
+
     # This is a placeholder - in real implementation, you would:
     # 1. Connect to Sentry's database
     # 2. Query events for the date range
     # 3. Transform the data to match BigQuery schema
     # 4. Insert into BigQuery table
-    
+
     logger.info(f"Exporting Sentry events from {start_date} to {end_date} for project {project_id}")
-    
+
     # Example of creating a table if it doesn't exist
     try:
         dataset_id = options.get("bigquery.default-dataset") or "sentry_data"
@@ -376,7 +378,7 @@ def export_sentry_events_to_bigquery(
 def setup_bigquery_tables() -> None:
     """
     Set up the BigQuery tables with proper schemas for Sentry data.
-    
+
     This function creates the necessary tables with predefined schemas.
     """
     from sentry.services.bigquery_models import (
@@ -385,16 +387,16 @@ def setup_bigquery_tables() -> None:
         SENTRY_PERFORMANCE_SCHEMA,
         BigQuerySchemaHelper,
     )
-    
+
     service = get_bigquery_service()
     dataset_id = options.get("bigquery.default-dataset") or "sentry_data"
-    
+
     tables_to_create = [
         ("events", SENTRY_EVENT_SCHEMA, "Sentry error and event data"),
         ("transactions", SENTRY_PERFORMANCE_SCHEMA, "Sentry performance/transaction data"),
         ("issues", SENTRY_ISSUE_SCHEMA, "Sentry issue/group data"),
     ]
-    
+
     for table_name, schema, description in tables_to_create:
         try:
             table_ref = {
@@ -402,14 +404,14 @@ def setup_bigquery_tables() -> None:
                 "dataset_id": dataset_id,
                 "table_id": table_name,
             }
-            
+
             table = BigQuerySchemaHelper.create_table_with_schema(
                 service.client,
                 table_ref,
                 schema,
                 description,
             )
-            
+
             logger.info(f"Created table {table_name} in dataset {dataset_id}")
         except Exception as e:
             logger.error(f"Failed to create table {table_name}: {e}")
@@ -419,36 +421,36 @@ def setup_bigquery_tables() -> None:
 def run_analytics_examples() -> dict[str, Any]:
     """
     Run example analytics queries and return results.
-    
+
     This demonstrates how to use the BigQuery analytics functions.
     """
     analytics = SentryBigQueryAnalytics()
-    
+
     results = {}
-    
+
     try:
         # Get error trends for the last 7 days
         results["error_trends"] = analytics.get_error_trends(days=7)
         logger.info(f"Retrieved {len(results['error_trends'])} days of error trends")
-        
+
         # Get top 5 errors
         results["top_errors"] = analytics.get_top_errors(limit=5)
         logger.info(f"Retrieved {len(results['top_errors'])} top errors")
-        
+
         # Get performance summary for last 12 hours
         results["performance"] = analytics.get_performance_summary(hours=12, limit=10)
         logger.info(f"Retrieved {len(results['performance'])} transaction summaries")
-        
+
         # Get user impact analysis
         results["user_impact"] = analytics.get_user_impact_analysis(limit=25)
         logger.info(f"Retrieved {len(results['user_impact'])} user impact records")
-        
+
         # Get environment health
         results["environment_health"] = analytics.get_environment_health()
         logger.info(f"Retrieved {len(results['environment_health'])} environment health records")
-        
+
     except Exception as e:
         logger.error(f"Error running analytics examples: {e}")
         results["error"] = str(e)
-    
+
     return results
