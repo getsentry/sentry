@@ -12,7 +12,7 @@ import {
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import userEvent from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 
-import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
+import {NuqsTestingAdapter} from 'nuqs/adapters/testing';
 import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
@@ -182,9 +182,9 @@ function makeAllTheProviders(options: ProviderOptions) {
     return (
       <CacheProvider value={{...cache, compat: true}}>
         <QueryClientProvider client={makeTestQueryClient()}>
-          <NuqsAdapter defaultOptions={{shallow: false}}>
+          <NuqsTestingAdapter defaultOptions={{shallow: false}}>
             <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
-          </NuqsAdapter>
+          </NuqsTestingAdapter>
         </QueryClientProvider>
       </CacheProvider>
     );
