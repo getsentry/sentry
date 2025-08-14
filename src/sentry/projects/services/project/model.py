@@ -46,7 +46,6 @@ class RpcProjectFlags(RpcModel):
     has_cron_checkins: bool
     has_sourcemaps: bool
     has_custom_metrics: bool
-    has_high_priority_alerts: bool
     has_insights_http: bool
     has_insights_db: bool
     has_insights_assets: bool
