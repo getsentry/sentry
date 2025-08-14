@@ -60,6 +60,7 @@ class SentryAppWebhookFailureReason(StrEnum):
     EVENT_NOT_IN_SERVCEHOOK = "event_not_in_servicehook"
     MISSING_ISSUE_OCCURRENCE = "missing_issue_occurrence"
     MISSING_USER = "missing_user"
+    MISSING_WEBHOOK_URL = "missing_webhook_url"
 
 
 class SentryAppWebhookHaltReason(StrEnum):

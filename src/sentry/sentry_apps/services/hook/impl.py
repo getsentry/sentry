@@ -13,6 +13,7 @@ class DatabaseBackedHookService(HookService):
     def update_webhook_and_events(
         self,
         *,
+        region_name: str | None,
         organization_id: int,
         application_id: int | None,
         webhook_url: str | None,

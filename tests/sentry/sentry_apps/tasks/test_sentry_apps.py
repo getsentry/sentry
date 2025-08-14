@@ -54,9 +54,6 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
-from sentry.utils.sentry_apps.service_hook_manager import (
-    create_or_update_service_hooks_for_installation,
-)
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
@@ -943,11 +940,12 @@ class TestProcessResourceChange(TestCase):
     def test_project_filter_no_filters_sends_webhook(
         self, mock_record: MagicMock, safe_urlopen: MagicMock
     ) -> None:
-        create_or_update_service_hooks_for_installation(
-            installation=self.install,
-            webhook_url=self.sentry_app.webhook_url,
-            events=self.sentry_app.events,
-        )
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            regenerate_service_hooks_for_installation(
+                installation_id=self.install.id,
+                webhook_url=self.sentry_app.webhook_url,
+                events=self.sentry_app.events,
+            )
 
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
@@ -971,12 +969,13 @@ class TestProcessResourceChange(TestCase):
 
         # SLO assertions
         assert_success_metric(mock_record)
-        # PREPARE_WEBHOOK (success) -> SEND_WEBHOOK (success) -> SEND_WEBHOOK (success) SEND_WEBHOOK (success)
+        # INSTALLATION_WEBHOOK_UPDATE(success) -> PREPARE_WEBHOOK (success) ->
+        # SEND_WEBHOOK (success) -> SEND_WEBHOOK (success) SEND_WEBHOOK (success)
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=4
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=5
         )
         assert_count_of_metric(
-            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=4
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=5
         )
 
     @responses.activate
