@@ -3,14 +3,12 @@ import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
-import {Button} from 'sentry/components/core/button';
 import {Text} from 'sentry/components/core/text';
 import {useAiAutofix} from 'sentry/components/events/autofix/useAutofix';
 import ErrorLevel from 'sentry/components/events/errorLevel';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {SpanEvidenceKeyValueList} from 'sentry/components/events/interfaces/performance/spanEvidenceKeyValueList';
-import {GroupSummaryWithAutofix} from 'sentry/components/group/groupSummaryWithAutofix';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -26,7 +24,6 @@ import type {StacktraceType} from 'sentry/types/stacktrace';
 import {StackView} from 'sentry/types/stacktrace';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {Divider} from 'sentry/views/issueDetails/divider';
 
@@ -170,7 +167,6 @@ export type IssueCard = TypedMissionControlCard<'issue', IssueCardData>;
  */
 function IssueCardRenderer({card, onSetPrimaryAction}: CardRendererProps<IssueCardData>) {
   const organization = useOrganization();
-  const navigate = useNavigate();
   const {issueId, reason} = card.data;
 
   // Get the appropriate reason message
@@ -392,29 +388,6 @@ function IssueCardRenderer({card, onSetPrimaryAction}: CardRendererProps<IssueCa
 
         <IssueDetailsContainer>
           <IssuePreviewContainer>{renderIssuePreview()}</IssuePreviewContainer>
-
-          {latestEvent && issue && project && (
-            <SummaryContainer>
-              <SummaryContent>
-                <GroupSummaryWithAutofix
-                  group={issue}
-                  event={latestEvent}
-                  project={project}
-                  preview
-                />
-              </SummaryContent>
-              <BottomButtonContainer>
-                <Button
-                  size="md"
-                  onClick={() => {
-                    navigate(`/organizations/${organization.slug}/issues/${issue.id}/`);
-                  }}
-                >
-                  {t('View Full Issue')}
-                </Button>
-              </BottomButtonContainer>
-            </SummaryContainer>
-          )}
         </IssueDetailsContainer>
       </Content>
     </CardContainer>
@@ -453,19 +426,6 @@ const Content = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
-`;
-
-const SummaryContent = styled('div')`
-  flex: 1;
-  overflow-y: auto;
-`;
-
-const BottomButtonContainer = styled('div')`
-  margin-top: auto;
-  display: flex;
-  justify-content: center;
-  border-top: 1px solid ${p => p.theme.border};
-  padding-top: ${space(2)};
 `;
 
 const RowContainer = styled('div')`
@@ -545,17 +505,6 @@ const IssuePreviewContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
   @media (max-width: ${p => p.theme.breakpoints.lg}) {
     order: 2;
-  }
-`;
-
-const SummaryContainer = styled('div')`
-  flex: 3;
-  display: flex;
-  flex-direction: column;
-  max-height: 500px;
-  border-radius: ${p => p.theme.borderRadius};
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    order: 1;
   }
 `;
 

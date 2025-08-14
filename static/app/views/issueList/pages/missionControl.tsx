@@ -13,32 +13,32 @@ import {getCardRenderer} from './missionControl/cardRenderers';
 
 // Hardcoded example changelog cards for demo
 const EXAMPLE_CARDS: MissionControlCard[] = [
-  {
-    id: '1',
-    type: 'changelog',
-    createdAt: '2024-01-15T10:00:00Z',
-    priority: 10,
-    url: 'https://blog.sentry.io/performance-monitoring-2-0/',
-    data: {
-      id: '1',
-      title: 'Trigger alerts and build dashboards for Logs (in beta)',
-      message:
-        "We've completely rebuilt our performance monitoring system with better insights, faster loading times, and more detailed transaction traces.",
-      link: 'https://blog.sentry.io/performance-monitoring-2-0/',
-      cta: 'Read More',
-      category: 'feature',
-      dateCreated: '2025-08-15T10:00:00Z',
-      dateExpires: '2025-08-15T10:00:00Z',
-      hasSeen: false,
-      isActive: true,
-      mediaUrl:
-        'https://storage.googleapis.com/sentry-docs-changelog/HhKDUPE-Screenshot%202025-07-23%20at%204.30.03%E2%80%AFPM.png',
-    },
-    metadata: {
-      source: 'hardcoded-demo',
-      tags: ['feature'],
-    },
-  },
+  // {
+  //   id: '1',
+  //   type: 'changelog',
+  //   createdAt: '2024-01-15T10:00:00Z',
+  //   priority: 10,
+  //   url: 'https://blog.sentry.io/performance-monitoring-2-0/',
+  //   data: {
+  //     id: '1',
+  //     title: 'Trigger alerts and build dashboards for Logs (in beta)',
+  //     message:
+  //       "We've completely rebuilt our performance monitoring system with better insights, faster loading times, and more detailed transaction traces.",
+  //     link: 'https://blog.sentry.io/performance-monitoring-2-0/',
+  //     cta: 'Read More',
+  //     category: 'feature',
+  //     dateCreated: '2025-08-15T10:00:00Z',
+  //     dateExpires: '2025-08-15T10:00:00Z',
+  //     hasSeen: false,
+  //     isActive: true,
+  //     mediaUrl:
+  //       'https://storage.googleapis.com/sentry-docs-changelog/HhKDUPE-Screenshot%202025-07-23%20at%204.30.03%E2%80%AFPM.png',
+  //   },
+  //   metadata: {
+  //     source: 'hardcoded-demo',
+  //     tags: ['feature'],
+  //   },
+  // },
   {
     id: '4',
     type: 'issue',
