@@ -774,9 +774,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
             "organizations:workflow-engine-metric-detector-limit", organization, actor=request.user
         ):
             alert_count = (
-                AlertRule.objects.filter(
-                    organization=organization,
-                )
+                AlertRule.objects.fetch_for_organization(organization=organization)
                 .exclude(status=AlertRuleStatus.SNAPSHOT.value)
                 .count()
             )

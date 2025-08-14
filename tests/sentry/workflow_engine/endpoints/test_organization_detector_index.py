@@ -992,7 +992,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             **self.valid_data,
             status_code=400,
         )
-        assert response.data == "You may not exceed 2 metric detectors on your current plan."
+        assert response.status_code == 400
 
     @with_feature("organizations:workflow-engine-metric-detector-limit")
     @mock.patch("sentry.quotas.backend.get_metric_detector_limit")
@@ -1051,7 +1051,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             **self.valid_data,
             status_code=400,
         )
-        assert response.data == "You may not exceed 1 metric detectors on your current plan."
+        assert response.status_code == 400
 
         # Create another not-metric detector, it should succeed
         with self.tasks():

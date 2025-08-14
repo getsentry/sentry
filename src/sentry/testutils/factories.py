@@ -44,7 +44,6 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRuleDetectionType,
-    AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
@@ -1659,7 +1658,6 @@ class Factories:
         sensitivity=None,
         seasonality=None,
         detection_type=AlertRuleDetectionType.STATIC,
-        status=AlertRuleStatus.PENDING,
     ):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
@@ -1688,7 +1686,6 @@ class Factories:
             sensitivity=sensitivity,
             seasonality=seasonality,
             detection_type=detection_type,
-            status=status,
         )
 
         if date_added is not None:

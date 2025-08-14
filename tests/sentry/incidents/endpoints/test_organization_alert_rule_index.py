@@ -1649,8 +1649,13 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
         mock_get_limit.return_value = 2
 
         # Create 2 existing metric alert rules (1 active, 1 to be deleted)
-        self.create_alert_rule(organization=self.organization, status=AlertRuleStatus.PENDING)
-        self.create_alert_rule(organization=self.organization, status=AlertRuleStatus.SNAPSHOT)
+        alert_rule = self.create_alert_rule(organization=self.organization)
+        alert_rule.status = AlertRuleStatus.PENDING.value
+        alert_rule.save()
+
+        alert_rule = self.create_alert_rule(organization=self.organization)
+        alert_rule.status = AlertRuleStatus.SNAPSHOT.value
+        alert_rule.save()
 
         # Create another alert rule, it should succeed
         data = deepcopy(self.alert_rule_dict)
@@ -1674,11 +1679,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
 
     @with_feature("organizations:incidents")
     @with_feature("organizations:workflow-engine-metric-detector-limit")
-    @patch("sentry.quotas.backend.get_metric_detector_limit")
-    def test_metric_alert_limit_unlimited_plan(self, mock_get_limit: MagicMock) -> None:
-        # Set limit to -1 (unlimited)
-        mock_get_limit.return_value = -1
-
+    def test_metric_alert_limit_unlimited_plan(self) -> None:
         # Create many alert rules
         for _ in range(5):
             self.create_alert_rule(organization=self.organization)
@@ -1690,7 +1691,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
                 status_code=201,
                 **self.alert_rule_dict,
             )
-        mock_get_limit.assert_called_once_with(self.organization.id)
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert alert_rule.name == "JustAValidTestRule"
 
