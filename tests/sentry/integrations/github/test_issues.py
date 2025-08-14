@@ -24,7 +24,6 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, PerformanceIssueTestCase, TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import all_silo_test
@@ -436,66 +435,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
     @responses.activate
     def test_repo_dropdown_choices(self) -> None:
-        event = self.store_event(
-            data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=self.project.id
-        )
-
-        responses.add(
-            responses.GET,
-            "https://api.github.com/repos/getsentry/sentry/assignees",
-            json=[{"login": "MeredithAnya"}],
-        )
-        responses.add(
-            responses.GET,
-            "https://api.github.com/repos/getsentry/sentry/labels",
-            json=[{"name": "bug"}, {"name": "enhancement"}],
-        )
-
-        responses.add(
-            responses.GET,
-            "https://api.github.com/installation/repositories",
-            json={
-                "total_count": 2,
-                "repositories": [
-                    {"full_name": "getsentry/sentry", "name": "sentry"},
-                    {"full_name": "getsentry/other", "name": "other", "archived": True},
-                ],
-            },
-        )
-
-        resp = self.install.get_create_issue_config(group=event.group, user=self.user)
-        assert resp[0]["choices"] == [("getsentry/sentry", "sentry")]
-
-        responses.add(
-            responses.GET,
-            "https://api.github.com/repos/getsentry/hello/assignees",
-            json=[{"login": "MeredithAnya"}],
-        )
-        responses.add(
-            responses.GET,
-            "https://api.github.com/repos/getsentry/hello/labels",
-            json=[{"name": "bug"}, {"name": "enhancement"}],
-        )
-
-        # create an issue
-        data = {"params": {"repo": "getsentry/hello"}}
-        resp = self.install.get_create_issue_config(group=event.group, user=self.user, **data)
-        assert resp[0]["choices"] == [
-            ("getsentry/hello", "hello"),
-            ("getsentry/sentry", "sentry"),
-        ]
-        # link an issue
-        data = {"params": {"repo": "getsentry/hello"}}
-        assert event.group is not None
-        resp = self.install.get_link_issue_config(group=event.group, **data)
-        assert resp[0]["choices"] == [
-            ("getsentry/hello", "hello"),
-            ("getsentry/sentry", "sentry"),
-        ]
-
-    @responses.activate
-    @with_feature("organizations:github-get-repos-page-limit")
-    def test_repo_dropdown_choices_with_page_limit(self) -> None:
         event = self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=self.project.id
         )
