@@ -14,6 +14,6 @@ class AlertRuleWorkflowValidator(serializers.Serializer):
             and not attrs.get("workflow_id")
         ):
             raise serializers.ValidationError(
-                "'rule_id', 'alert_rule_id', or 'workflow_id' must be provided."
+                "One of 'rule_id', 'alert_rule_id', or 'workflow_id' must be provided."
             )
         return attrs
