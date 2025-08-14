@@ -3,13 +3,14 @@ import {useCallback, useEffect, useRef} from 'react';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';
+import useReplayPrompt from 'sentry/views/replays/detail/ai/useReplayPrompt';
 import {
   ReplaySummaryStatus,
   type SummaryResponse,
 } from 'sentry/views/replays/detail/ai/utils';
+import {asLogMessage} from 'sentry/views/replays/detail/ai/which';
 
 export interface UseFetchReplaySummaryResult {
   /**
@@ -71,11 +72,11 @@ const isPolling = (
 };
 
 function createAISummaryQueryKey(
-  orgSlug: string,
-  projectSlug: string | undefined,
-  replayId: string
+  _orgSlug: string,
+  _projectSlug: string | undefined,
+  _replayId: string
 ): ApiQueryKey {
-  return [`/projects/${orgSlug}/${projectSlug}/replays/${replayId}/summarize/`];
+  return [`/v1/automation/summarize/replay/breadcrumbs/state`];
 }
 
 export function useFetchReplaySummary(
@@ -85,8 +86,8 @@ export function useFetchReplaySummary(
   const organization = useOrganization();
   const replayRecord = replay.getReplay();
   const project = useProjectFromId({project_id: replayRecord?.project_id});
-  const api = useApi();
   const queryClient = useQueryClient();
+
   // Use this to track when the start summary request was made to compare to when the last time
   // the summary data query was made. This hook will be considered in a pending state if the summary
   // data query was made before the start summary request.
@@ -98,24 +99,49 @@ export function useFetchReplaySummary(
 
   const segmentCount = replayRecord?.count_segments ?? 0;
 
+  // Get the replay events and create logs
+  const allEvents = [
+    ...(replay?.getChapterFrames() ?? []), // includes all errors & feedback
+    ...(replay?.getNetworkFrames() ?? []).filter(
+      frame => !frame.op.startsWith('navigation')
+    ),
+    ...(replay?.getConsoleFrames() ?? []),
+  ].sort((a, b) => a.timestampMs - b.timestampMs);
+
+  const allData =
+    allEvents
+      .map(event => asLogMessage(event))
+      .filter((item): item is string => item !== null && item !== '') ?? [];
+
+  const logs = allData;
+  const {data: promptData} = useReplayPrompt(replayRecord, logs);
+
   const {
     mutate: startSummaryRequestMutate,
     isError: isStartSummaryRequestError,
     isPending: isStartSummaryRequestPending,
   } = useMutation({
-    mutationFn: () =>
-      api.requestPromise(
-        `/projects/${organization.slug}/${project?.slug}/replays/${replayRecord?.id}/summarize/`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          data: {
-            num_segments: segmentCount,
-          },
-        }
-      ),
+    mutationFn: async () => {
+      if (!promptData) {
+        throw new Error('No prompt data available');
+      }
+
+      // Call Seer using fetch
+      const response = await fetch(`/v1/automation/summarize/replay/breadcrumbs/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Rpcsignature rpc0:${promptData.signature}`,
+        },
+        body: JSON.stringify(promptData.body ?? {}),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to start summary task: ${response.status}`);
+      }
+
+      return response.json();
+    },
     onSuccess: () => {
       // invalidate the query when a summary task is requested
       // so the cached data is marked as stale.
