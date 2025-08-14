@@ -1,18 +1,31 @@
 from collections.abc import Generator
+from unittest.mock import Mock, patch
 
-from sentry.models.project import Project
 from sentry.replays.lib.summarize import (
     EventDict,
     _parse_iso_timestamp_to_ms,
     as_log_message,
     get_summary_logs,
 )
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
 
-@django_db_all
-def test_get_summary_logs(default_project: Project) -> None:
+@patch("sentry.replays.lib.summarize.fetch_feedback_details")
+def test_get_summary_logs(mock_fetch_feedback_details: Mock) -> None:
+
+    def _mock_fetch_feedback(feedback_id: str | None, _project_id: int) -> EventDict | None:
+        if feedback_id == "12345678123456781234567812345678":
+            return EventDict(
+                category="feedback",
+                id=feedback_id,
+                title="User Feedback",
+                timestamp=4.0,
+                message="Great website!",
+            )
+        return None
+
+    mock_fetch_feedback_details.side_effect = _mock_fetch_feedback
+
     def _faker() -> Generator[tuple[int, memoryview]]:
         yield 0, memoryview(
             json.dumps(
@@ -31,6 +44,17 @@ def test_get_summary_logs(default_project: Project) -> None:
                         "data": {
                             "tag": "breadcrumb",
                             "payload": {"category": "console", "message": "world"},
+                        },
+                    },
+                    {
+                        "type": 5,
+                        "timestamp": 4.0,
+                        "data": {
+                            "tag": "breadcrumb",
+                            "payload": {
+                                "category": "sentry.feedback",
+                                "data": {"feedbackId": "12345678123456781234567812345678"},
+                            },
                         },
                     },
                 ]
@@ -54,12 +78,13 @@ def test_get_summary_logs(default_project: Project) -> None:
         ),
     ]
 
-    result = get_summary_logs(_faker(), error_events=error_events, project_id=default_project.id)
+    result = get_summary_logs(_faker(), error_events=error_events, project_id=1)
     assert result == [
         "User experienced an error: 'BadError: something else bad' at 1.0",
         "Logged: hello at 1.5",
         "Logged: world at 2.0",
         "User experienced an error: 'ZeroDivisionError: division by zero' at 3.0",
+        "User submitted feedback: 'Great website!' at 4.0",
     ]
 
 

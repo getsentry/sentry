@@ -314,6 +314,7 @@ def get_recommended_event(
         referrer="Group.get_helpful",
         dataset=dataset,
         tenant_ids={"organization_id": group.project.organization_id},
+        inner_limit=1000,
     )
 
     if events:
