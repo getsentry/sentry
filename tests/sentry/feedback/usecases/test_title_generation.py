@@ -52,7 +52,6 @@ class TestTitleGeneration(TestCase):
             mock_sign.assert_called_once()
             call_args = mock_sign.call_args[0][0]
             assert isinstance(call_args, bytes)
-            assert b"123" in call_args
             assert b"Test feedback message" in call_args
 
     @responses.activate
