@@ -837,6 +837,19 @@ def create_or_update_service_hooks_for_sentry_app(
             )
 
 
+def get_regions_for_sentry_app(sentry_app_id: int) -> list[str]:
+    organizations_assoc_with_app = SentryAppInstallation.objects.filter(
+        sentry_app_id=sentry_app_id
+    ).values_list("organization_id", flat=True)
+
+    regions = (
+        OrganizationMapping.objects.filter(organization_id__in=organizations_assoc_with_app)
+        .values_list("region_name", flat=True)
+        .distinct()
+    )
+    return list(regions)
+
+
 @instrumented_task(
     "sentry.sentry_apps.tasks.sentry_apps.regenerate_service_hooks_for_installation",
     taskworker_config=TaskworkerConfig(
