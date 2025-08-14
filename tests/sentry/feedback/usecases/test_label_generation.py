@@ -25,7 +25,7 @@ class TestGenerateLabels(TestCase):
         )
 
         labels = generate_labels(
-            "I don't like the new right sidebar, it makes navigating everywhere hard!", 1
+            "I don't like the new right sidebar, it makes navigating everywhere hard!"
         )
 
         test_request = responses.calls[0].request
@@ -46,7 +46,7 @@ class TestGenerateLabels(TestCase):
 
         with pytest.raises(requests.exceptions.HTTPError):
             generate_labels(
-                "I don't like the new right sidebar, it makes navigating everywhere hard!", 1
+                "I don't like the new right sidebar, it makes navigating everywhere hard!"
             )
 
         test_request = responses.calls[0].request
@@ -63,7 +63,7 @@ class TestGenerateLabels(TestCase):
 
         with pytest.raises(requests.exceptions.Timeout):
             generate_labels(
-                "I don't like the new right sidebar, it makes navigating everywhere hard!", 1
+                "I don't like the new right sidebar, it makes navigating everywhere hard!"
             )
 
         test_request = responses.calls[0].request

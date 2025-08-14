@@ -54,7 +54,7 @@ def format_feedback_title(title: str, max_words: int = 10) -> str:
 
 
 @metrics.wraps("feedback.ai_title_generation")
-def get_feedback_title_from_seer(feedback_message: str, organization_id: int) -> str | None:
+def get_feedback_title_from_seer(feedback_message: str) -> str | None:
     """
     Generate an AI-powered title for user feedback using Seer, or None if generation fails.
 
@@ -120,12 +120,10 @@ def make_seer_request(request: GenerateFeedbackTitleRequest) -> bytes:
     return response.content
 
 
-def get_feedback_title(feedback_message: str, organization_id: int, use_seer: bool) -> str:
+def get_feedback_title(feedback_message: str, use_seer: bool) -> str:
     if use_seer:
         # Message is fallback if Seer fails.
-        raw_title = (
-            get_feedback_title_from_seer(feedback_message, organization_id) or feedback_message
-        )
+        raw_title = get_feedback_title_from_seer(feedback_message) or feedback_message
     else:
         raw_title = feedback_message
 

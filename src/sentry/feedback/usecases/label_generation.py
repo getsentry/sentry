@@ -26,7 +26,7 @@ SEER_GENERATE_LABELS_URL = f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize
 
 
 @metrics.wraps("feedback.generate_labels")
-def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
+def generate_labels(feedback_message: str) -> list[str]:
     """
     Generate labels for a feedback message.
 
