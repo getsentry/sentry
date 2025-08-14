@@ -101,11 +101,6 @@ describe('IssueList -> Polling', function () {
       body: [{}],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/replay-count/',
-      method: 'GET',
-      body: [{}],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/processingissues/',
       method: 'GET',
       body: [

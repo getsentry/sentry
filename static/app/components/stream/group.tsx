@@ -46,7 +46,6 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useMutation} from 'sentry/utils/queryClient';
-import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -65,7 +64,7 @@ import {
 } from 'sentry/views/issueList/utils';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
-export const DEFAULT_STREAM_GROUP_COLUMNS: GroupListColumn[] = [
+const DEFAULT_STREAM_GROUP_COLUMNS: GroupListColumn[] = [
   'graph',
   'event',
   'users',
@@ -387,12 +386,6 @@ function StreamGroup({
     return group.filtered ? group.stats?.[statsPeriod]! : [];
   }, [group, statsPeriod]);
 
-  const {getReplayCountForIssue} = useReplayCountForIssues();
-  const replayCount =
-    group?.id && group?.issueCategory
-      ? getReplayCountForIssue(group?.id, group?.issueCategory)
-      : undefined;
-
   // Use data.filtered to decide on which value to use
   // In case of the query has filters but we avoid showing both sets of filtered/unfiltered stats
   // we use useFilteredStats param passed to Group for deciding
@@ -406,27 +399,29 @@ function StreamGroup({
 
   const isLoading = useMemo(() => {
     const result =
-      !group ||
-      !defined(replayCount) ||
-      !defined(group?.isUnhandled) ||
-      !defined(group?.lifetime) ||
-      !defined(group?.lifetime?.lastSeen) ||
-      !defined(group?.lifetime?.firstSeen) ||
-      !defined(group?.priority) ||
-      (issueTypeConfig?.stats?.enabled && !defined(groupStats)) ||
-      (showLastTriggered && !lastTriggeredDate) ||
-      !defined(primaryCount) ||
-      !defined(primaryUserCount);
+      (withColumns.includes('firstSeen') && !defined(group?.lifetime)) || // firstseen is loading
+      (withColumns.includes('lastSeen') && !defined(group?.lifetime)) || // lastseen is loading
+      (withColumns.includes('event') &&
+        issueTypeConfig?.stats?.enabled &&
+        !defined(primaryCount)) || // counts is loading
+      (withColumns.includes('assignee') && assigneeLoading) || // assignee selector is loading
+      (withChart &&
+        !displayReprocessingLayout &&
+        issueTypeConfig?.stats?.enabled &&
+        !defined(groupStats)) || // groupstats chart is loading
+      (showLastTriggered && !defined(lastTriggeredDate)); // last triggered is loading
     return result;
   }, [
     group,
-    replayCount,
-    showLastTriggered,
     issueTypeConfig,
     groupStats,
+    showLastTriggered,
     lastTriggeredDate,
     primaryCount,
-    primaryUserCount,
+    assigneeLoading,
+    withColumns,
+    withChart,
+    displayReprocessingLayout,
   ]);
 
   if (isLoading) {
