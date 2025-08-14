@@ -43,8 +43,16 @@ class ProjectReplaySummaryTestCase(
         self.features = {
             "organizations:session-replay": True,
             "organizations:replay-ai-summaries": True,
-            "organizations:gen-ai-features": True,
         }
+        self.mock_has_seer_access_patcher = patch(
+            "sentry.replays.endpoints.project_replay_summary.has_seer_access",
+            return_value=True,
+        )
+        self.mock_has_seer_access = self.mock_has_seer_access_patcher.start()
+
+    def tearDown(self) -> None:
+        self.mock_has_seer_access_patcher.stop()
+        super().tearDown()
 
     def store_replay(self, dt: datetime | None = None, **kwargs) -> None:
         replay = mock_replay(dt or datetime.now(UTC), self.project.id, self.replay_id, **kwargs)
@@ -69,28 +77,32 @@ class ProjectReplaySummaryTestCase(
         self.save_recording_segment(0, json.dumps([]).encode())
 
         features = [
-            (False, True, True),
-            (True, False, True),
-            (True, True, False),
-            (True, False, False),
-            (False, True, False),
-            (False, False, True),
-            (False, False, False),
+            (False, True),
+            (True, False),
+            (False, False),
         ]
 
-        for replay, replay_ai, gen_ai in features:
+        for replay, replay_ai in features:
             with self.feature(
                 {
                     "organizations:session-replay": replay,
                     "organizations:replay-ai-summaries": replay_ai,
-                    "organizations:gen-ai-features": gen_ai,
                 }
             ):
                 for method in ["GET", "POST"]:
                     response = (
                         self.client.get(self.url) if method == "GET" else self.client.post(self.url)
                     )
-                    assert response.status_code == 404, (replay, replay_ai, gen_ai, method)
+                    assert response.status_code == 403, (replay, replay_ai, method)
+
+    def test_no_seer_access(self) -> None:
+        self.mock_has_seer_access.return_value = False
+        with self.feature(self.features):
+            for method in ["GET", "POST"]:
+                response = (
+                    self.client.get(self.url) if method == "GET" else self.client.post(self.url)
+                )
+                assert response.status_code == 403, method
 
     @responses.activate
     def test_get_simple(self) -> None:
