@@ -36,7 +36,7 @@ class OrganizationAlertRuleWorkflowIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
         ],
         responses={
-            201: AlertRuleWorkflowSerializer,
+            200: AlertRuleWorkflowSerializer,
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,

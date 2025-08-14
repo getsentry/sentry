@@ -63,6 +63,13 @@ class OrganizationAlertRuleWorkflowIndexGetTest(OrganizationAlertRuleWorkflowAPI
 
         assert response.data == serialize(self.alert_rule_workflow_1, self.user)
 
+    def test_get_with_multiple_filters_with_invalid_filter(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            workflow_id=str(self.workflow_1.id),
+            alert_rule_id="00000",
+        )
+
     def test_get_with_nonexistent_workflow_id(self) -> None:
         self.get_error_response(self.organization.slug, workflow_id="99999", status_code=404)
 
