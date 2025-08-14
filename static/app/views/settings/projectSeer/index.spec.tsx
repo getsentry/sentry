@@ -160,7 +160,7 @@ describe('ProjectSeer', () => {
         expect.anything(),
         expect.objectContaining({
           data: {
-            automated_run_stopping_point: 'solution',
+            automated_run_stopping_point: 'root_cause',
             repositories: [
               {
                 branch_name: '',
@@ -220,7 +220,7 @@ describe('ProjectSeer', () => {
         expect.anything(),
         expect.objectContaining({
           data: {
-            automated_run_stopping_point: 'solution',
+            automated_run_stopping_point: 'root_cause',
             repositories: [
               {
                 external_id: '101',
@@ -267,7 +267,7 @@ describe('ProjectSeer', () => {
         expect.anything(),
         expect.objectContaining({
           data: {
-            automated_run_stopping_point: 'solution',
+            automated_run_stopping_point: 'root_cause',
             repositories: [],
           },
         })
