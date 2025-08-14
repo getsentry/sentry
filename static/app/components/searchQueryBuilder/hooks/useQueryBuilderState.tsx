@@ -730,13 +730,11 @@ export function useQueryBuilderState({
             replacedQuery = newQuery;
           }
 
-          const committedQuery = action.shouldCommitQuery
-            ? (replacedQuery ?? query)
-            : currentCommittedQuery;
-
           return {
             focusOverride,
-            committedQuery,
+            committedQuery: action.shouldCommitQuery
+              ? (replacedQuery ?? query)
+              : currentCommittedQuery,
             query: replacedQuery ?? query,
             replacedRawSearchKey: replacedQuery ? true : state.replacedRawSearchKey,
             clearAskSeerFeedback:
@@ -746,7 +744,11 @@ export function useQueryBuilderState({
           };
         }
         case 'REPLACE_TOKENS_WITH_TEXT': {
-          const {query, focusOverride} = replaceTokensWithText(state, {
+          const {
+            query,
+            focusOverride,
+            committedQuery: currentCommittedQuery,
+          } = replaceTokensWithText(state, {
             tokens: action.tokens,
             text: action.text,
             focusOverride: action.focusOverride,
@@ -768,12 +770,10 @@ export function useQueryBuilderState({
             replacedQuery = newQuery;
           }
 
-          const committedQuery = replacedQuery ?? query;
-
           return {
             ...state,
             focusOverride,
-            committedQuery,
+            committedQuery: replacedQuery ?? currentCommittedQuery,
             query: replacedQuery ?? query,
             replacedRawSearchKey: replacedQuery ? true : state.replacedRawSearchKey,
           };
