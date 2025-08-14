@@ -162,6 +162,10 @@ function BaseExploreFieldRenderer({
     });
 
     rendered = <Link to={target}>{rendered}</Link>;
+
+    if (field === 'id') {
+      return rendered;
+    }
   }
 
   if (field === 'profile.id') {
