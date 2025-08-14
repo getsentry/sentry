@@ -46,8 +46,8 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
   const search = new MutableSearch(`has:span.group ${resourceQuery} ${query}`);
   const referrer = Referrer.ASSETS_BY_TIME_SPENT;
   const groupBy = SpanFields.NORMALIZED_DESCRIPTION;
-  const yAxes = 'sum(span.self_time)';
-  const totalTimeField = 'sum(span.self_time)';
+  const yAxes = 'p75(span.duration)';
+  const totalTimeField = 'sum(span.duration)';
 
   const {
     data: assetListData,
@@ -93,6 +93,12 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
 
   const colorPalette = theme.chart.getColorPalette(assetSeriesData.length - 1);
 
+  const aliases: Record<string, string> = {};
+
+  assetListData.forEach(item => {
+    aliases[item[groupBy]] = `${yAxes}, ${item[groupBy]}`;
+  });
+
   const visualization = (
     <WidgetVisualizationStates
       isEmpty={!hasData}
@@ -107,6 +113,7 @@ export default function OverviewAssetsByTimeSpentWidget(props: LoadableChartWidg
           (ts, index) =>
             new Line(convertSeriesToTimeseries(ts), {
               color: colorPalette[index],
+              alias: aliases[ts.seriesName],
             })
         ),
         ...props,
