@@ -1,13 +1,14 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
+import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {GroupInfoSummary} from 'sentry/components/events/groupingInfo/groupingSummary';
 import {useEventGroupingInfo} from 'sentry/components/events/groupingInfo/useEventGroupingInfo';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -27,6 +28,8 @@ export default function GroupingInfo({
   showGroupingConfig,
   group,
 }: GroupingSummaryProps) {
+  const [showNonContributing, setShowNonContributing] = useState(false);
+
   const hasStreamlinedUI = useHasStreamlinedUI();
 
   const {groupInfo, isPending, isError, isSuccess, hasPerformanceGrouping} =
@@ -81,12 +84,29 @@ export default function GroupingInfo({
           </div>
         )}
       </ConfigHeader>
+      <ToggleContainer>
+        <SegmentedControl
+          aria-label={t('Filter by contribution')}
+          size="xs"
+          value={showNonContributing ? 'all' : 'relevant'}
+          onChange={key => setShowNonContributing(key === 'all')}
+        >
+          <SegmentedControl.Item key="relevant">
+            {t('Contributing Values')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key="all">{t('All Values')}</SegmentedControl.Item>
+        </SegmentedControl>
+      </ToggleContainer>
       {isError ? <LoadingError message={t('Failed to fetch grouping info.')} /> : null}
       {isPending && !hasPerformanceGrouping ? <LoadingIndicator /> : null}
       {hasPerformanceGrouping || isSuccess
         ? variants.map((variant, index) => (
             <Fragment key={variant.key}>
-              <GroupingVariant event={event} variant={variant} />
+              <GroupingVariant
+                event={event}
+                variant={variant}
+                showNonContributing={showNonContributing}
+              />
               {index < variants.length - 1 && <VariantDivider />}
             </Fragment>
           ))
@@ -98,11 +118,16 @@ export default function GroupingInfo({
 const ConfigHeader = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
-  margin-bottom: ${space(2)};
+  gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space['2xs']};
+`;
+
+const ToggleContainer = styled(Flex)`
+  justify-content: flex-start;
+  padding-bottom: ${p => p.theme.space.lg};
 `;
 
 const VariantDivider = styled('hr')`
-  padding-top: ${space(1)};
+  padding-top: ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.border};
 `;
