@@ -360,7 +360,7 @@ def _serialize_columnar_uptime_item(
         row_dict["http_status_code"].val_int if "http_status_code" in row_dict else None
     )
     request_url = row_dict["request_url"].val_str
-    scheduled_check_time_us = row_dict["scheduled_check_time_us"].val_int
+    actual_check_time_us = row_dict["actual_check_time_us"].val_int
     check_duration_us = (
         row_dict["check_duration_us"].val_int if "check_duration_us" in row_dict else 0
     )
@@ -412,8 +412,8 @@ def _serialize_columnar_uptime_item(
             if resolved_val is not None:
                 additional_attrs[resolved_column.public_alias] = resolved_val
 
-    span["start_timestamp"] = scheduled_check_time_us / 1_000_000
-    span["end_timestamp"] = (scheduled_check_time_us + check_duration_us) / 1_000_000
+    span["start_timestamp"] = actual_check_time_us / 1_000_000
+    span["end_timestamp"] = (actual_check_time_us + check_duration_us) / 1_000_000
     span["duration"] = check_duration_us / 1_000.0
     description = f"Uptime Check [{check_status}] - {request_url}"
     if http_status_code:
