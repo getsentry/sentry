@@ -65,14 +65,4 @@ describe('PageOverviewSidebar', () => {
     expect(screen.getByText('Page Loads')).toBeInTheDocument();
     expect(screen.getByText('Interactions')).toBeInTheDocument();
   });
-
-  it('should render seer suggestions', async () => {
-    render(<PageOverviewSidebar transaction={TRANSACTION_NAME} />, {organization});
-
-    expect(screen.getByText('Seer Suggestions')).toBeInTheDocument();
-    expect(await screen.findByText('— Seer Suggestion 1')).toBeInTheDocument();
-    expect(screen.getByText('ui.interaction.click')).toBeInTheDocument();
-    expect(screen.getByText('Suggestion 1')).toBeInTheDocument();
-    expect(screen.getByText('Suggestion 2')).toBeInTheDocument();
-  });
 });

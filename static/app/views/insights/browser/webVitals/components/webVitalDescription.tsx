@@ -1,20 +1,28 @@
 import styled from '@emotion/styled';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {IssueType} from 'sentry/types/group';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {scoreToStatus} from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
+import {useCreateIssue} from 'sentry/views/insights/browser/webVitals/utils/useCreateIssue';
+import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
 type Props = {
   webVital: WebVitals;
   score?: number;
+  transaction?: string;
   value?: string;
 };
 
@@ -111,17 +119,59 @@ export const VITAL_DESCRIPTIONS: Partial<
   },
 };
 
-export function WebVitalDetailHeader({score, value, webVital}: Props) {
+export function WebVitalDetailHeader({score, value, webVital, transaction}: Props) {
+  const hasSeerWebVitalsSuggestions = useHasSeerWebVitalsSuggestions();
   const status = score === undefined ? undefined : scoreToStatus(score);
 
+  const {mutate: createIssue} = useCreateIssue();
   return (
-    <div>
-      <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}</WebVitalName>
-      <WebVitalScore>
-        <Value>{value ?? ' \u2014 '}</Value>
-        {status && score && <PerformanceBadge score={score} />}
-      </WebVitalScore>
-    </div>
+    <Flex justify="between">
+      <div>
+        <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}</WebVitalName>
+        <WebVitalScore>
+          <Value>{value ?? ' \u2014 '}</Value>
+          {status && score && <PerformanceBadge score={score} />}
+        </WebVitalScore>
+      </div>
+      {hasSeerWebVitalsSuggestions && transaction && score && score < 90 && (
+        <div>
+          <Button
+            title={
+              <div>
+                <FeatureBadge type="experimental" />
+                <div>
+                  {tct(
+                    'Your [webVital] metric is below the recommended threshold. Create an issue to investigate.',
+                    {
+                      webVital: webVital.toUpperCase(),
+                    }
+                  )}
+                </div>
+              </div>
+            }
+            onClick={() => {
+              createIssue(
+                {
+                  issueType: IssueType.WEB_VITALS,
+                  vital: webVital,
+                  score,
+                  transaction,
+                },
+                {
+                  onSuccess: () => {
+                    // TODO: The issue actually doesn't get created here immediately.
+                    // Issue creation is async, so we need to poll for the issue by event ID to confirm success.
+                    addSuccessMessage(t('Issue created successfully'));
+                  },
+                }
+              );
+            }}
+          >
+            {t('Create Issue')}
+          </Button>
+        </div>
+      )}
+    </Flex>
   );
 }
 

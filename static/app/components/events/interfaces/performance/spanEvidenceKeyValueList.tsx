@@ -366,6 +366,7 @@ const PREVIEW_COMPONENTS: Partial<
   [IssueType.PROFILE_FRAME_DROP]: MainThreadFunctionEvidence,
   [IssueType.PROFILE_FUNCTION_REGRESSION]: RegressionEvidence,
   [IssueType.QUERY_INJECTION_VULNERABILITY]: DBQueryInjectionVulnerabilityEvidence,
+  [IssueType.WEB_VITALS]: WebVitalsEvidence,
 };
 
 export function SpanEvidenceKeyValueList({
@@ -496,6 +497,17 @@ function UncompressedAssetSpanEvidence({
         ),
       ]}
     />
+  );
+}
+
+function WebVitalsEvidence({event}: SpanEvidenceKeyValueListProps) {
+  const transactionRow = makeRow(
+    t('Transaction'),
+    <pre>{event.tags.find(tag => tag.key === 'transaction')?.value}</pre>
+  );
+
+  return (
+    <PresortedKeyValueList data={[transactionRow].filter(Boolean) as KeyValueListData} />
   );
 }
 
