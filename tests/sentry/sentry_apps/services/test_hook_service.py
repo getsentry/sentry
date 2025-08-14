@@ -114,7 +114,7 @@ class TestHookService(TestCase):
         # Create 1000 webhooks
         with assume_test_silo_mode(SiloMode.REGION):
             hooks_to_create = []
-            for _ in range(1000):
+            for _ in range(10000):
                 # these hooks arent accurate to actual installation hooks
                 # but it's enough to test the performance of the update
                 hooks_to_create.append(
@@ -133,7 +133,7 @@ class TestHookService(TestCase):
                     application_id=self.sentry_app.application.id,
                     events=["comment.created", "error.created"],
                 ).count()
-                == 1000
+                == 10000
             )
 
         result = hook_service.update_webhook_and_events(
@@ -144,7 +144,7 @@ class TestHookService(TestCase):
         )
 
         with assume_test_silo_mode(SiloMode.REGION):
-            assert len(result) == 1000
+            assert len(result) == 10000
             assert (
                 ServiceHook.objects.filter(
                     application_id=self.sentry_app.application.id,
@@ -310,6 +310,11 @@ class TestHookService(TestCase):
         installation = self.create_sentry_app_installation(
             slug=self.sentry_app.slug, organization=self.org, user=self.user
         )
+        with assume_test_silo_mode(SiloMode.REGION):
+            existing_hook = ServiceHook.objects.get(
+                installation_id=installation.id, application_id=self.sentry_app.application.id
+            )
+            existing_hook.delete()
 
         # Call create_or_update with webhook_url=None (should handle gracefully)
         result = hook_service.create_or_update_webhook_and_events_for_installation(
