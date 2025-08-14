@@ -45,8 +45,8 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
   const [repoSettings, setRepoSettings] = useState<Record<string, RepoSettings>>({});
   const [showSaveNotice, setShowSaveNotice] = useState(false);
   const [automatedRunStoppingPoint, setAutomatedRunStoppingPoint] = useState<
-    'solution' | 'code_changes' | 'open_pr'
-  >('solution');
+    'root_cause' | 'solution' | 'code_changes' | 'open_pr'
+  >('root_cause');
 
   useEffect(() => {
     if (repositories) {
@@ -76,7 +76,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
 
         setRepoSettings(initialSettings);
         setAutomatedRunStoppingPoint(
-          preference.automated_run_stopping_point || 'solution'
+          preference.automated_run_stopping_point || 'root_cause'
         );
       } else if (codeMappingRepos?.length) {
         // Set default settings using codeMappingRepos when no preferences exist
@@ -93,7 +93,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
         });
 
         setRepoSettings(initialSettings);
-        setAutomatedRunStoppingPoint('solution');
+        setAutomatedRunStoppingPoint('root_cause');
       }
     }
   }, [preference, repositories, codeMappingRepos, updateProjectSeerPreferences]);
@@ -102,7 +102,7 @@ export function AutofixRepositories({project}: ProjectSeerProps) {
     (
       updatedIds?: string[],
       updatedSettings?: Record<string, RepoSettings>,
-      newStoppingPoint?: 'solution' | 'code_changes' | 'open_pr'
+      newStoppingPoint?: 'root_cause' | 'solution' | 'code_changes' | 'open_pr'
     ) => {
       if (!repositories) {
         return;

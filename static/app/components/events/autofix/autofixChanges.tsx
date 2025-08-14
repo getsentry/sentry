@@ -271,109 +271,43 @@ export function AutofixChanges({
     <AnimatePresence initial={isChangesFirstAppearance}>
       <AnimationWrapper key="card" {...cardAnimationProps}>
         <ChangesContainer>
+          <HeaderWrapper>
+            <HeaderText>
+              <HeaderIconWrapper ref={iconCodeRef}>
+                <IconCode size="md" color="blue400" />
+              </HeaderIconWrapper>
+              {t('Code Changes')}
+              <Button
+                size="zero"
+                borderless
+                title={t('Chat with Seer')}
+                onClick={handleSelectFirstChange}
+                analyticsEventName="Autofix: Changes Chat"
+                analyticsEventKey="autofix.changes.chat"
+              >
+                <IconChat />
+              </Button>
+            </HeaderText>
+          </HeaderWrapper>
+          <AnimatePresence>
+            {agentCommentThread && iconCodeRef.current && (
+              <AutofixHighlightPopup
+                selectedText=""
+                referenceElement={iconCodeRef.current}
+                groupId={groupId}
+                runId={runId}
+                stepIndex={previousDefaultStepIndex ?? 0}
+                retainInsightCardIndex={
+                  previousInsightCount !== undefined && previousInsightCount >= 0
+                    ? previousInsightCount
+                    : null
+                }
+                isAgentComment
+                blockName={t('Seer is uncertain of the code changes...')}
+              />
+            )}
+          </AnimatePresence>
           <ClippedBox clipHeight={408}>
-            <HeaderWrapper>
-              <HeaderText>
-                <HeaderIconWrapper ref={iconCodeRef}>
-                  <IconCode size="md" color="blue400" />
-                </HeaderIconWrapper>
-                {t('Code Changes')}
-                <Button
-                  size="zero"
-                  borderless
-                  title={t('Chat with Seer')}
-                  onClick={handleSelectFirstChange}
-                  analyticsEventName="Autofix: Changes Chat"
-                  analyticsEventKey="autofix.changes.chat"
-                >
-                  <IconChat />
-                </Button>
-              </HeaderText>
-              {!prsMade && (
-                <ButtonBar>
-                  {branchesMade ? (
-                    step.changes.length === 1 && step.changes[0] ? (
-                      <BranchButton change={step.changes[0]} />
-                    ) : (
-                      <ScrollCarousel aria-label={t('Check out branches')}>
-                        {step.changes.map(
-                          change =>
-                            change.branch_name && (
-                              <BranchButton
-                                key={`${change.repo_external_id}-${Math.random()}`}
-                                change={change}
-                              />
-                            )
-                        )}
-                      </ScrollCarousel>
-                    )
-                  ) : (
-                    <SetupAndCreateBranchButton
-                      changes={step.changes}
-                      groupId={groupId}
-                      runId={runId}
-                      isBusy={isBusy || isPrProcessing}
-                      onProcessingChange={setIsBranchProcessing}
-                    />
-                  )}
-                  <SetupAndCreatePRsButton
-                    changes={step.changes}
-                    groupId={groupId}
-                    runId={runId}
-                    isBusy={isBusy || isBranchProcessing}
-                    onProcessingChange={setIsPrProcessing}
-                  />
-                </ButtonBar>
-              )}
-              {prsMade &&
-                (step.changes.length === 1 && step.changes[0]?.pull_request?.pr_url ? (
-                  <LinkButton
-                    size="xs"
-                    priority="primary"
-                    icon={<IconOpen size="xs" />}
-                    href={step.changes[0].pull_request.pr_url}
-                    external
-                  >
-                    View PR in {step.changes[0].repo_name}
-                  </LinkButton>
-                ) : (
-                  <ScrollCarousel aria-label={t('View pull requests')}>
-                    {step.changes.map(
-                      change =>
-                        change.pull_request?.pr_url && (
-                          <LinkButton
-                            key={`${change.repo_external_id}-${Math.random()}`}
-                            size="xs"
-                            priority="primary"
-                            icon={<IconOpen size="xs" />}
-                            href={change.pull_request.pr_url}
-                            external
-                          >
-                            View PR in {change.repo_name}
-                          </LinkButton>
-                        )
-                    )}
-                  </ScrollCarousel>
-                ))}
-            </HeaderWrapper>
-            <AnimatePresence>
-              {agentCommentThread && iconCodeRef.current && (
-                <AutofixHighlightPopup
-                  selectedText=""
-                  referenceElement={iconCodeRef.current}
-                  groupId={groupId}
-                  runId={runId}
-                  stepIndex={previousDefaultStepIndex ?? 0}
-                  retainInsightCardIndex={
-                    previousInsightCount !== undefined && previousInsightCount >= 0
-                      ? previousInsightCount
-                      : null
-                  }
-                  isAgentComment
-                  blockName={t('Seer is uncertain of the code changes...')}
-                />
-              )}
-            </AnimatePresence>
             {step.changes.map((change, i) => (
               <Fragment key={change.repo_external_id}>
                 {i > 0 && <Separator />}
@@ -388,6 +322,75 @@ export function AutofixChanges({
               </Fragment>
             ))}
           </ClippedBox>
+          <BottomDivider />
+          <BottomButtonContainer>
+            {!prsMade && (
+              <ButtonBar>
+                {branchesMade ? (
+                  step.changes.length === 1 && step.changes[0] ? (
+                    <BranchButton change={step.changes[0]} />
+                  ) : (
+                    <ScrollCarousel aria-label={t('Check out branches')}>
+                      {step.changes.map(
+                        (change, idx) =>
+                          change.branch_name && (
+                            <BranchButton
+                              key={`${change.repo_external_id}-${idx}`}
+                              change={change}
+                            />
+                          )
+                      )}
+                    </ScrollCarousel>
+                  )
+                ) : (
+                  <SetupAndCreateBranchButton
+                    changes={step.changes}
+                    groupId={groupId}
+                    runId={runId}
+                    isBusy={isBusy || isPrProcessing}
+                    onProcessingChange={setIsBranchProcessing}
+                  />
+                )}
+                <SetupAndCreatePRsButton
+                  changes={step.changes}
+                  groupId={groupId}
+                  runId={runId}
+                  isBusy={isBusy || isBranchProcessing}
+                  onProcessingChange={setIsPrProcessing}
+                />
+              </ButtonBar>
+            )}
+            {prsMade &&
+              (step.changes.length === 1 && step.changes[0]?.pull_request?.pr_url ? (
+                <LinkButton
+                  size="xs"
+                  priority="primary"
+                  icon={<IconOpen size="xs" />}
+                  href={step.changes[0].pull_request.pr_url}
+                  external
+                >
+                  View PR in {step.changes[0].repo_name}
+                </LinkButton>
+              ) : (
+                <ScrollCarousel aria-label={t('View pull requests')}>
+                  {step.changes.map(
+                    (change, idx) =>
+                      change.pull_request?.pr_url && (
+                        <LinkButton
+                          key={`${change.repo_external_id}-${idx}`}
+                          size="xs"
+                          priority="primary"
+                          icon={<IconOpen size="xs" />}
+                          href={change.pull_request.pr_url}
+                          external
+                        >
+                          View PR in {change.repo_name}
+                        </LinkButton>
+                      )
+                  )}
+                </ScrollCarousel>
+              ))}
+          </BottomButtonContainer>
         </ChangesContainer>
       </AnimationWrapper>
     </AnimatePresence>
@@ -411,8 +414,7 @@ const ChangesContainer = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowMedium};
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
+  padding: ${p => p.theme.space.xl};
 `;
 
 const Content = styled('div')`
@@ -434,8 +436,6 @@ const PullRequestTitle = styled('div')`
 `;
 
 const RepoChangesHeader = styled('div')`
-  padding-top: ${space(2)};
-  padding-bottom: 0;
   display: grid;
   align-items: center;
   grid-template-columns: 1fr auto;
@@ -480,6 +480,17 @@ const HeaderIconWrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+`;
+
+const BottomDivider = styled('div')`
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  margin-top: ${p => p.theme.space.xl};
+  margin-bottom: ${p => p.theme.space.xl};
+`;
+
+const BottomButtonContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
 `;
 
 function CreatePRsButton({
@@ -641,7 +652,7 @@ function CreateBranchButton({
       analyticsEventKey="autofix.push_to_branch_clicked"
       analyticsParams={{group_id: groupId}}
     >
-      Check Out Locally
+      {t('Check Out Locally')}
     </Button>
   );
 }
