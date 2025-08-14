@@ -11,7 +11,6 @@ from sentry.feedback.usecases.label_generation import AI_LABEL_TAG_PREFIX
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -46,13 +45,22 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         self.project2 = self.create_project(teams=[self.team])
         self.features = {
             "organizations:user-feedback-ai-categorization-features": True,
-            "organizations:gen-ai-features": True,
         }
         self.url = reverse(
             self.endpoint,
             kwargs={"organization_id_or_slug": self.org.slug},
         )
+        self.mock_has_seer_access_patcher = patch(
+            "sentry.feedback.endpoints.organization_feedback_categories.has_seer_access",
+            return_value=True,
+        )
+        self.mock_has_seer_access = self.mock_has_seer_access_patcher.start()
+
         self._create_standard_feedbacks(self.project1.id)
+
+    def tearDown(self) -> None:
+        self.mock_has_seer_access_patcher.stop()
+        super().tearDown()
 
     def _create_standard_feedbacks(self, project_id: int) -> None:
         """Create a standard set of feedbacks for testing."""
@@ -156,12 +164,16 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
                 insert_time=insert_time,
             )
 
-    @django_db_all
     def test_get_feedback_categories_without_feature_flag(self) -> None:
         response = self.get_error_response(self.org.slug)
-        assert response.status_code == 404
+        assert response.status_code == 403
 
-    @django_db_all
+    def test_get_feedback_categories_without_seer_access(self) -> None:
+        self.mock_has_seer_access.return_value = False
+        with self.feature(self.features):
+            response = self.get_error_response(self.org.slug)
+            assert response.status_code == 403
+
     @patch(
         "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
         1,
@@ -213,7 +225,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
             elif category["primaryLabel"] == "Authentication":
                 assert category["feedbackCount"] == 3
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
         1,
@@ -264,7 +275,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
             elif category["primaryLabel"] == "Authentication":
                 assert category["feedbackCount"] == 3
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
         1,
@@ -333,7 +343,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         assert "Extra Label 2" not in associated_labels
         assert "Extra Label 3" not in associated_labels
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
         1,
@@ -421,7 +430,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
         assert len(associated_labels) == 1
         assert associated_labels == ["Design"]
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
         1,
@@ -435,7 +443,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
 
         assert response.status_code == 500
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
         1,
@@ -449,7 +456,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
 
         assert response.status_code == 500
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
         1,
@@ -465,7 +471,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
 
         assert response.status_code == 500
 
-    @django_db_all
     @patch(
         "sentry.feedback.endpoints.organization_feedback_categories.THRESHOLD_TO_GET_ASSOCIATED_LABELS",
         1,
@@ -480,7 +485,6 @@ class OrganizationFeedbackCategoriesTest(APITestCase, SnubaTestCase, SearchIssue
 
             assert response.status_code == 500
 
-    @django_db_all
     @responses.activate
     def test_fallback_to_primary_labels_when_below_threshold(self) -> None:
         """Test that when feedback count is below THRESHOLD_TO_GET_ASSOCIATED_LABELS, we fall back to primary labels only."""
