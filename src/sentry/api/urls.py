@@ -21,6 +21,10 @@ from sentry.api.endpoints.organization_member_invite.index import (
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_plugins_configs import OrganizationPluginsConfigsEndpoint
 from sentry.api.endpoints.organization_plugins_index import OrganizationPluginsEndpoint
+from sentry.api.endpoints.organization_releases import (
+    OrganizationReleasesEndpoint,
+    OrganizationReleasesStatsEndpoint,
+)
 from sentry.api.endpoints.organization_sampling_admin_metrics import (
     OrganizationDynamicSamplingAdminMetricsEndpoint,
 )
@@ -387,10 +391,6 @@ from sentry.releases.endpoints.organization_release_health_data import (
     OrganizationReleaseHealthDataEndpoint,
 )
 from sentry.releases.endpoints.organization_release_meta import OrganizationReleaseMetaEndpoint
-from sentry.releases.endpoints.organization_releases import (
-    OrganizationReleasesEndpoint,
-    OrganizationReleasesStatsEndpoint,
-)
 from sentry.releases.endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from sentry.releases.endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from sentry.releases.endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
