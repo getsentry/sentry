@@ -27,7 +27,6 @@ import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
@@ -513,25 +512,15 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
                 )}
               </Row>
               <Row title={t('Date Range')}>
-                {getDynamicText({
-                  fixed: 'Mar 16, 2020 9:10:12 AM UTC',
-                  value: (
-                    <Fragment>
-                      <DateTime date={startTimestamp * 1000} year seconds timeZone />
-                      {` (${startTimeWithLeadingZero})`}
-                    </Fragment>
-                  ),
-                })}
+                <Fragment>
+                  <DateTime date={startTimestamp * 1000} year seconds timeZone />
+                  {` (${startTimeWithLeadingZero})`}
+                </Fragment>
                 <br />
-                {getDynamicText({
-                  fixed: 'Mar 16, 2020 9:10:13 AM UTC',
-                  value: (
-                    <Fragment>
-                      <DateTime date={endTimestamp * 1000} year seconds timeZone />
-                      {` (${endTimeWithLeadingZero})`}
-                    </Fragment>
-                  ),
-                })}
+                <Fragment>
+                  <DateTime date={endTimestamp * 1000} year seconds timeZone />
+                  {` (${endTimeWithLeadingZero})`}
+                </Fragment>
               </Row>
               <Row title={t('Origin')}>
                 {span.origin === undefined ? null : String(span.origin)}

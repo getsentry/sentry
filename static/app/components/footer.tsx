@@ -9,7 +9,6 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type SentryLogoProps = SVGIconProps & {
@@ -42,16 +41,8 @@ function BaseFooter({className}: Props) {
         {isSelfHosted && (
           <Fragment>
             {'Sentry '}
-            {getDynamicText({
-              fixed: 'Acceptance Test',
-              value: version.current,
-            })}
-            <Build>
-              {getDynamicText({
-                fixed: 'test',
-                value: version.build.substring(0, 7),
-              })}
-            </Build>
+            {version.current}
+            <Build>{version.build.substring(0, 7)}</Build>
           </Fragment>
         )}
         {privacyUrl && <FooterLink href={privacyUrl}>{t('Privacy Policy')}</FooterLink>}

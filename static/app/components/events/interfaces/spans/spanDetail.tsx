@@ -39,7 +39,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import type {
   QuickTraceEvent,
   TraceErrorOrIssue,
@@ -513,26 +512,16 @@ function SpanDetail(props: Props) {
               </Row>
               <Row title="Status">{span.status || ''}</Row>
               <Row title="Start Date">
-                {getDynamicText({
-                  fixed: 'Mar 16, 2020 9:10:12 AM UTC',
-                  value: (
-                    <Fragment>
-                      <DateTime date={startTimestamp * 1000} year seconds timeZone />
-                      {` (${startTimeWithLeadingZero})`}
-                    </Fragment>
-                  ),
-                })}
+                <Fragment>
+                  <DateTime date={startTimestamp * 1000} year seconds timeZone />
+                  {` (${startTimeWithLeadingZero})`}
+                </Fragment>
               </Row>
               <Row title="End Date">
-                {getDynamicText({
-                  fixed: 'Mar 16, 2020 9:10:13 AM UTC',
-                  value: (
-                    <Fragment>
-                      <DateTime date={endTimestamp * 1000} year seconds timeZone />
-                      {` (${endTimeWithLeadingZero})`}
-                    </Fragment>
-                  ),
-                })}
+                <Fragment>
+                  <DateTime date={endTimestamp * 1000} year seconds timeZone />
+                  {` (${endTimeWithLeadingZero})`}
+                </Fragment>
               </Row>
               <Row title="Duration">{durationString}</Row>
               <Row title="Operation">{span.op || ''}</Row>
