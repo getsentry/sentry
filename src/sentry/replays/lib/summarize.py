@@ -122,7 +122,6 @@ def fetch_trace_connected_errors(
             issue_query = build_replay_events_query(
                 dataset=get_dataset("issuePlatform"),
                 selected_columns=[
-                    "id",
                     "event_id",
                     "title",
                     "subtitle",
@@ -131,7 +130,7 @@ def fetch_trace_connected_errors(
                 ],
                 query=f"trace:{trace_id}",
                 snuba_params=snuba_params,
-                orderby=["id"],
+                orderby=["event_id"],
                 limit=100,
                 referrer=Referrer.API_REPLAY_SUMMARIZE_BREADCRUMBS.value,
             )
@@ -149,7 +148,7 @@ def fetch_trace_connected_errors(
             error_data = result["data"]
 
             for event in error_data:
-                event_id = event["id"]
+                event_id = event.get("id") or event.get("event_id")
 
                 # Skip if we've already seen this event
                 if event_id in seen_event_ids:
