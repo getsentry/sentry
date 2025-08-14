@@ -28,7 +28,7 @@ class SiloRouter:
     - Monolith - all tables reside in the same database.
     - Siloed - tables for control and region are separated.
 
-    Within Siloed there are are two flavours:
+    Within Siloed there are two flavours:
 
     - simulated - If the application is configured with `control` and `default`
       connections, then we are in 'simulated' silo environment (like our testsuite).
