@@ -11,6 +11,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {decodeBoolean, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -19,6 +20,7 @@ import {
   eventViewFromWidget,
   getWidgetInterval,
 } from 'sentry/views/dashboards/utils';
+import type {TabularRow} from 'sentry/views/dashboards/widgets/common/types';
 import {
   LOGS_AGGREGATE_FN_KEY,
   LOGS_AGGREGATE_PARAM_KEY,
@@ -162,7 +164,8 @@ function _getWidgetExploreUrl(
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
   organization: Organization,
-  preferMode?: Mode
+  preferMode?: Mode,
+  overrideQuery?: MutableSearch
 ) {
   const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
   const locationQueryParams = eventView.generateQueryStringObject();
@@ -215,7 +218,9 @@ function _getWidgetExploreUrl(
 
   let groupBy: string[] =
     defined(query.fields) && widget.displayType === DisplayType.TABLE
-      ? query.fields.filter(field => !isAggregateFieldOrEquation(field))
+      ? query.fields.filter(
+          field => !isAggregateFieldOrEquation(field) && field !== 'timestamp'
+        )
       : [...query.columns];
   if (groupBy && groupBy.length === 0) {
     // Force the groupBy to be an array with a single empty string
@@ -226,7 +231,7 @@ function _getWidgetExploreUrl(
   }
 
   const yAxisFields: string[] = locationQueryParams.yAxes.flatMap(getAggregateArguments);
-  const fields = [...groupBy, ...yAxisFields].filter(Boolean);
+  const fields = [...new Set([...groupBy, ...yAxisFields])].filter(Boolean);
 
   const sortDirection = widget.queries[0]?.orderby?.startsWith('-') ? '-' : '';
   const sortColumn = trimStart(widget.queries[0]?.orderby ?? '', '-');
@@ -273,7 +278,7 @@ function _getWidgetExploreUrl(
     groupBy: visualize.length > 0 ? groupBy : [],
     field: fields,
     query: applyDashboardFilters(
-      decodeScalar(locationQueryParams.query),
+      overrideQuery?.formatString() ?? decodeScalar(locationQueryParams.query),
       dashboardFilters
     ),
     sort: sort || undefined,
@@ -324,4 +329,41 @@ function _getWidgetExploreUrlForMultipleQueries(
     })),
     interval: getWidgetInterval(widget, currentSelection.datetime),
   });
+}
+
+export function getWidgetTableRowExploreUrlFunction(
+  selection: PageFilters,
+  widget: Widget,
+  organization: Organization,
+  dashboardFilters?: DashboardFilters
+) {
+  return (dataRow: TabularRow) => {
+    let fields: string[] = [];
+    if (widget.queries[0]?.fields) {
+      fields = widget.queries[0].fields.filter(
+        (field: string) => !isAggregateFieldOrEquation(field)
+      );
+    }
+
+    const query = new MutableSearch('');
+    fields.map(field => {
+      const value = dataRow[field];
+      if (!defined(value)) {
+        return query.addFilterValue('!has', field);
+      }
+      if (Array.isArray(value)) {
+        return query.addFilterValues(field, value);
+      }
+      return query.addFilterValue(field, String(value));
+    });
+
+    return _getWidgetExploreUrl(
+      widget,
+      dashboardFilters,
+      selection,
+      organization,
+      Mode.SAMPLES,
+      query
+    );
+  };
 }
