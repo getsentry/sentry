@@ -104,11 +104,14 @@ export function useSetQueryParamsVisualizes() {
     (visualizes: BaseVisualize[]) => {
       const aggregateFields: WritableAggregateField[] = [];
 
-      let i = 0;
+      const iter = visualizes[Symbol.iterator]();
 
       for (const aggregateField of queryParams.aggregateFields) {
         if (isVisualize(aggregateField)) {
-          aggregateFields.push(visualizes[i++]!);
+          const {value: visualize, done} = iter.next();
+          if (!done) {
+            aggregateFields.push(visualize);
+          }
         } else if (isGroupBy(aggregateField)) {
           aggregateFields.push(aggregateField);
         } else {
@@ -116,8 +119,8 @@ export function useSetQueryParamsVisualizes() {
         }
       }
 
-      for (; i < visualizes.length; i++) {
-        aggregateFields.push(visualizes[i]!);
+      for (const visualize of iter) {
+        aggregateFields.push(visualize);
       }
 
       setQueryParams({aggregateFields});
@@ -139,7 +142,7 @@ export function useSetQueryParamsGroupBys() {
     (groupBys: string[]) => {
       const aggregateFields: WritableAggregateField[] = [];
 
-      let i = 0;
+      const iter = groupBys[Symbol.iterator]();
 
       for (const aggregateField of queryParams.aggregateFields) {
         if (isVisualize(aggregateField)) {
@@ -148,14 +151,17 @@ export function useSetQueryParamsGroupBys() {
             chartType: aggregateField.selectedChartType,
           });
         } else if (isGroupBy(aggregateField)) {
-          aggregateFields.push({groupBy: groupBys[i++]!});
+          const {value: groupBy, done} = iter.next();
+          if (!done) {
+            aggregateFields.push({groupBy});
+          }
         } else {
           throw new Error('Unknown aggregate field', aggregateField);
         }
       }
 
-      for (; i < groupBys.length; i++) {
-        aggregateFields.push({groupBy: groupBys[i]!});
+      for (const groupBy of iter) {
+        aggregateFields.push({groupBy});
       }
 
       setQueryParams({aggregateFields});
