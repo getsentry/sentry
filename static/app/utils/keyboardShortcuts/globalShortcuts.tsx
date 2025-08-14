@@ -3,8 +3,9 @@ import * as React from 'react';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import type {InjectedRouter} from 'sentry/types/legacyReactRouter';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import type {Shortcut} from './types';
+
 import {useShortcuts} from './shortcutsProvider';
+import type {Shortcut} from './types';
 
 /**
  * Initialize global keyboard shortcuts
@@ -29,7 +30,6 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
       id: 'global-help',
       key: 'shift+/',
       description: 'Show keyboard shortcuts',
-      category: 'global',
       handler: () => {
         // This is overridden in GlobalShortcuts component
       },
@@ -38,7 +38,6 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
       id: 'go-to-issues',
       key: 'g i',
       description: 'Go to Issues',
-      category: 'navigation',
       handler: () => {
         if (organizationSlug) {
           router.push(normalizeUrl(`/organizations/${organizationSlug}/issues/`));
@@ -49,7 +48,6 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
       id: 'go-to-projects',
       key: 'g p',
       description: 'Go to Projects',
-      category: 'navigation',
       handler: () => {
         if (organizationSlug) {
           router.push(normalizeUrl(`/organizations/${organizationSlug}/projects/`));
@@ -60,7 +58,6 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
       id: 'go-to-dashboards',
       key: 'g d',
       description: 'Go to Dashboards',
-      category: 'navigation',
       handler: () => {
         if (organizationSlug) {
           router.push(normalizeUrl(`/organizations/${organizationSlug}/dashboards/`));
@@ -71,7 +68,6 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
       id: 'go-to-releases',
       key: 'g r',
       description: 'Go to Releases',
-      category: 'navigation',
       handler: () => {
         if (organizationSlug) {
           router.push(normalizeUrl(`/organizations/${organizationSlug}/releases/`));
@@ -82,7 +78,6 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
       id: 'go-to-alerts',
       key: 'g a',
       description: 'Go to Alerts',
-      category: 'navigation',
       handler: () => {
         if (organizationSlug) {
           router.push(normalizeUrl(`/organizations/${organizationSlug}/alerts/`));
@@ -93,7 +88,6 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
       id: 'go-to-performance',
       key: 'g e',
       description: 'Go to Performance',
-      category: 'navigation',
       handler: () => {
         if (organizationSlug) {
           router.push(normalizeUrl(`/organizations/${organizationSlug}/performance/`));
@@ -104,7 +98,6 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
       id: 'go-to-replays',
       key: 'g v',
       description: 'Go to Replays',
-      category: 'navigation',
       handler: () => {
         if (organizationSlug) {
           router.push(normalizeUrl(`/organizations/${organizationSlug}/replays/`));
@@ -115,7 +108,6 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
       id: 'go-to-monitors',
       key: 'g m',
       description: 'Go to Monitors',
-      category: 'navigation',
       handler: () => {
         if (organizationSlug) {
           router.push(normalizeUrl(`/organizations/${organizationSlug}/monitors/`));
@@ -126,7 +118,6 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
       id: 'go-to-teams',
       key: 'g t',
       description: 'Go to Teams',
-      category: 'navigation',
       handler: () => {
         if (organizationSlug) {
           router.push(normalizeUrl(`/settings/${organizationSlug}/teams/`));
@@ -137,7 +128,6 @@ export function initializeGlobalShortcuts(router: InjectedRouter): Shortcut[] {
       id: 'go-to-organization',
       key: 'g o',
       description: 'Go to Organization Home',
-      category: 'navigation',
       handler: () => {
         if (organizationSlug) {
           router.push(normalizeUrl(`/organizations/${organizationSlug}/`));
@@ -174,9 +164,12 @@ export function GlobalShortcuts({router}: {router: InjectedRouter}) {
       return shortcut;
     });
 
-    console.log('[GlobalShortcuts] Registering global shortcuts:', shortcuts);
-    // Register global shortcuts using the context system
-    registerContext('global', shortcuts);
+    // Split shortcuts by context and register separately
+    const globalShortcuts = shortcuts.filter(s => s.id === 'global-help');
+    const navigationShortcuts = shortcuts.filter(s => s.id !== 'global-help');
+    
+    registerContext('global', globalShortcuts);
+    registerContext('navigation', navigationShortcuts);
 
     // No cleanup needed since global shortcuts persist
     // Only run once on mount

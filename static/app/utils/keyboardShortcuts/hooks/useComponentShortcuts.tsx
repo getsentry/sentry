@@ -1,7 +1,7 @@
 import {useEffect, useRef} from 'react';
 
-import type {Shortcut} from '../types';
-import {useShortcuts} from '../shortcutsProvider';
+import {useShortcuts} from 'sentry/utils/keyboardShortcuts/shortcutsProvider';
+import type {Shortcut} from 'sentry/utils/keyboardShortcuts/types';
 
 /**
  * Hook to register component-specific keyboard shortcuts

@@ -17,6 +17,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useEventNavigationShortcuts} from 'sentry/views/issueDetails/streamline/hooks/useEventNavigationShortcuts';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
@@ -46,6 +48,7 @@ export function IssueDetailsEventNavigation({
   const organization = useOrganization();
   const location = useLocation();
   const params = useParams<{eventId?: string}>();
+  const navigate = useNavigate();
   const theme = useTheme();
   const defaultIssueEvent = useDefaultIssueEvent();
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
@@ -112,6 +115,69 @@ export function IssueDetailsEventNavigation({
   };
 
   const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
+
+  // Event navigation functions for keyboard shortcuts
+  const navigateToPrevious = useCallback(() => {
+    if (event?.previousEventID) {
+      navigate({
+        pathname: `${baseEventsPath}${event.previousEventID}/`,
+        query: {...location.query, referrer: 'keyboard-previous'},
+      });
+      setShouldPreload({next: true, previous: true});
+    }
+  }, [event?.previousEventID, navigate, baseEventsPath, location.query]);
+
+  const navigateToNext = useCallback(() => {
+    if (event?.nextEventID) {
+      navigate({
+        pathname: `${baseEventsPath}${event.nextEventID}/`,
+        query: {...location.query, referrer: 'keyboard-next'},
+      });
+      setShouldPreload({next: true, previous: true});
+    }
+  }, [event?.nextEventID, navigate, baseEventsPath, location.query]);
+
+  const navigateToRecommended = useCallback(() => {
+    navigate({
+      pathname: `${baseEventsPath}${EventNavOptions.RECOMMENDED}/`,
+      query: {...location.query, referrer: 'keyboard-recommended'},
+    });
+    trackAnalytics('issue_details.event_navigation_selected', {
+      organization,
+      content: EventNavLabels[EventNavOptions.RECOMMENDED],
+    });
+  }, [navigate, baseEventsPath, location.query, organization]);
+
+  const navigateToLatest = useCallback(() => {
+    navigate({
+      pathname: `${baseEventsPath}${EventNavOptions.LATEST}/`,
+      query: {...location.query, referrer: 'keyboard-latest'},
+    });
+    trackAnalytics('issue_details.event_navigation_selected', {
+      organization,
+      content: EventNavLabels[EventNavOptions.LATEST],
+    });
+  }, [navigate, baseEventsPath, location.query, organization]);
+
+  const navigateToOldest = useCallback(() => {
+    navigate({
+      pathname: `${baseEventsPath}${EventNavOptions.OLDEST}/`,
+      query: {...location.query, referrer: 'keyboard-oldest'},
+    });
+    trackAnalytics('issue_details.event_navigation_selected', {
+      organization,
+      content: EventNavLabels[EventNavOptions.OLDEST],
+    });
+  }, [navigate, baseEventsPath, location.query, organization]);
+
+  // Initialize event navigation shortcuts
+  useEventNavigationShortcuts({
+    onNavigateToPrevious: navigateToPrevious,
+    onNavigateToNext: navigateToNext,
+    onNavigateToRecommended: navigateToRecommended,
+    onNavigateToLatest: navigateToLatest,
+    onNavigateToOldest: navigateToOldest,
+  });
 
   const grayText = css`
     color: ${theme.subText};

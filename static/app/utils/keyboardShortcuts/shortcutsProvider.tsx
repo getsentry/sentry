@@ -61,7 +61,6 @@ export function ShortcutsProvider({children}: ShortcutsProviderProps) {
   const openHelpModal = useCallback(() => {
     // Get the current shortcuts from the registry instead of using stale state
     const currentShortcuts = shortcutRegistry.getShortcuts();
-    console.log('[Shortcuts] Opening help modal with shortcuts:', currentShortcuts);
     openModal(modalProps => (
       <ShortcutsHelpModal
         {...modalProps}
@@ -83,7 +82,6 @@ export function ShortcutsProvider({children}: ShortcutsProviderProps) {
         }
       });
     });
-    console.log('[Shortcuts] Sequence keys:', Array.from(seqKeys));
     return seqKeys;
   }, [activeShortcuts]);
 
@@ -123,22 +121,13 @@ export function ShortcutsProvider({children}: ShortcutsProviderProps) {
           includeInputs: false,
           skipPreventDefault: false,
           callback: (e: KeyboardEvent) => {
-            console.log(
-              `[Shortcuts] Sequence key pressed: ${key}, current state:`,
-              sequenceKeysState
-            );
-
             // If we already have a sequence started, check for completion
             if (sequenceKeysState.length > 0) {
               const potentialSequence = [...sequenceKeysState, key].join(' ');
-              console.log(`[Shortcuts] Checking for sequence: "${potentialSequence}"`);
               const matchingShortcut =
                 shortcutRegistry.getShortcutForKey(potentialSequence);
 
               if (matchingShortcut && matchingShortcut.enabled !== false) {
-                console.log(
-                  `[Shortcuts] Executing sequence shortcut: ${matchingShortcut.id}`
-                );
                 e.preventDefault();
                 matchingShortcut.handler(e);
                 setSequenceKeys([]);
@@ -150,17 +139,12 @@ export function ShortcutsProvider({children}: ShortcutsProviderProps) {
             }
 
             // Start or continue sequence
-            console.log(`[Shortcuts] Starting/continuing sequence with key: ${key}`);
             handleSequenceKey(key);
           },
         });
       }
     });
 
-    console.log(
-      '[Shortcuts] Configured hotkeys:',
-      hotkeys.map(h => h.match)
-    );
     return hotkeys;
   }, [activeShortcuts, sequenceKeys, sequenceKeysState, handleSequenceKey]);
 
@@ -171,8 +155,6 @@ export function ShortcutsProvider({children}: ShortcutsProviderProps) {
   useEffect(() => {
     if (sequenceKeysState.length > 0) {
       // TODO: Show a visual indicator of the current sequence
-      // For now, show in console for debugging
-      console.log('[Shortcuts] Current sequence:', sequenceKeysState.join(' '));
     }
   }, [sequenceKeysState]);
 

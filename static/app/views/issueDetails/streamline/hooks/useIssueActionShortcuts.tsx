@@ -1,0 +1,89 @@
+import {useCallback} from 'react';
+
+import {useComponentShortcuts} from 'sentry/utils/keyboardShortcuts';
+
+interface UseIssueActionShortcutsProps {
+  onResolve?: () => void;
+  onArchive?: () => void;
+  onSubscribe?: () => void;
+  onShare?: () => void;
+  onBookmark?: () => void;
+  onMarkReviewed?: () => void;
+}
+
+/**
+ * Hook for issue action shortcuts (resolve, archive, etc.)
+ * Use this in components that handle issue actions (like GroupActions)
+ */
+export function useIssueActionShortcuts({
+  onResolve,
+  onArchive,
+  onSubscribe,
+  onShare,
+  onBookmark,
+  onMarkReviewed,
+}: UseIssueActionShortcutsProps) {
+  
+  const handleResolve = useCallback(() => {
+    onResolve?.();
+  }, [onResolve]);
+
+  const handleArchive = useCallback(() => {
+    onArchive?.();
+  }, [onArchive]);
+
+  const handleSubscribe = useCallback(() => {
+    onSubscribe?.();
+  }, [onSubscribe]);
+
+  const handleShare = useCallback(() => {
+    onShare?.();
+  }, [onShare]);
+
+  const handleBookmark = useCallback(() => {
+    onBookmark?.();
+  }, [onBookmark]);
+
+  const handleMarkReviewed = useCallback(() => {
+    onMarkReviewed?.();
+  }, [onMarkReviewed]);
+
+  useComponentShortcuts('issue-details-actions', [
+    {
+      id: 'resolve-issue',
+      key: 'r',
+      description: 'Resolve issue',
+      handler: handleResolve,
+    },
+    {
+      id: 'archive-issue',
+      key: 'i', 
+      description: 'Archive issue',
+      handler: handleArchive,
+    },
+    {
+      id: 'subscribe-issue',
+      key: 's',
+      description: 'Subscribe/unsubscribe',
+      handler: handleSubscribe,
+    },
+    {
+      id: 'share-issue',
+      key: 'u',
+      description: 'Share issue', 
+      handler: handleShare,
+    },
+    {
+      id: 'bookmark-issue',
+      key: 'b',
+      description: 'Bookmark/unbookmark issue',
+      handler: handleBookmark,
+    },
+    {
+      id: 'mark-reviewed',
+      key: 'shift+r',
+      description: 'Mark as reviewed',
+      handler: handleMarkReviewed,
+    },
+  ]);
+}

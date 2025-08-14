@@ -1,22 +1,22 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
+import {GroupStatus} from 'sentry/types/group';
 import {useComponentShortcuts} from 'sentry/utils/keyboardShortcuts';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useLocation} from 'sentry/utils/useLocation';
-import {createIssueLink} from 'sentry/views/issueList/utils';
-import GroupStore from 'sentry/stores/groupStore';
-import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
-import {GroupStatus} from 'sentry/types/group';
+import {createIssueLink} from 'sentry/views/issueList/utils';
 
 interface IssueListKeyboardNavigationProps {
-  groupIds: string[];
-  query: string;
-  onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   children: React.ReactNode;
+  groupIds: string[];
+  onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
+  query: string;
 }
 
 /**
@@ -138,50 +138,41 @@ export function IssueListKeyboardNavigation({
   }, [focusedIndex, groupIds, onActionTaken]);
 
   // Register keyboard shortcuts
-  console.log(
-    '[IssueListKeyboardNavigation] Registering shortcuts for issues-list context'
-  );
   useComponentShortcuts('issues-list', [
     {
       id: 'navigate-down',
       key: 'j',
       description: 'Next issue',
-      category: 'navigation',
       handler: () => moveFocus('down'),
     },
     {
       id: 'navigate-up',
       key: 'k',
       description: 'Previous issue',
-      category: 'navigation',
       handler: () => moveFocus('up'),
     },
     {
       id: 'select-issue',
       key: 'x',
       description: 'Toggle issue selection',
-      category: 'actions',
       handler: selectFocusedIssue,
     },
     {
       id: 'open-issue',
       key: 'enter',
       description: 'Open issue details',
-      category: 'actions',
       handler: openFocusedIssue,
     },
     {
       id: 'resolve-issue',
       key: 'r',
       description: 'Resolve issue',
-      category: 'actions',
       handler: resolveFocusedIssue,
     },
     {
       id: 'archive-issue',
       key: 'e',
       description: 'Archive issue',
-      category: 'actions',
       handler: archiveFocusedIssue,
     },
   ]);

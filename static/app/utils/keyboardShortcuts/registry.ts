@@ -30,10 +30,6 @@ export class KeyboardShortcutRegistry implements ShortcutRegistry {
   }
 
   registerContext(context: string, shortcuts: Shortcut[]): void {
-    console.log(
-      `[Registry] Registering context: ${context} with ${shortcuts.length} shortcuts`
-    );
-
     // Create context-specific shortcuts with unique IDs
     const contextShortcuts = shortcuts.map(shortcut => ({
       ...shortcut,
@@ -50,9 +46,6 @@ export class KeyboardShortcutRegistry implements ShortcutRegistry {
       shortcuts: contextShortcuts,
       registeredAt: Date.now(),
     });
-
-    console.log('[Registry] Active contexts:', Array.from(this.contexts.keys()));
-    console.log('[Registry] Total shortcuts:', this.shortcuts.size);
   }
 
   unregisterContext(context: string): void {
@@ -68,25 +61,14 @@ export class KeyboardShortcutRegistry implements ShortcutRegistry {
 
   getShortcuts(context?: string): Shortcut[] {
     const shortcuts = Array.from(this.shortcuts.values());
-    console.log(
-      `[Registry] getShortcuts called with context: ${context}, total shortcuts: ${shortcuts.length}`
-    );
 
     if (context) {
-      const filtered = shortcuts.filter(s => s.context === context);
-      console.log(
-        `[Registry] Filtered to ${filtered.length} shortcuts for context: ${context}`
-      );
-      return filtered;
+      return shortcuts.filter(s => s.context === context);
     }
 
-    console.log(`[Registry] Returning all ${shortcuts.length} shortcuts`);
     return shortcuts;
   }
 
-  getShortcutsByCategory(category: string): Shortcut[] {
-    return Array.from(this.shortcuts.values()).filter(s => s.category === category);
-  }
 
   getActiveContexts(): string[] {
     return Array.from(this.contexts.keys());
@@ -111,16 +93,11 @@ export class KeyboardShortcutRegistry implements ShortcutRegistry {
     });
 
     if (matchingShortcuts.length === 0) {
-      console.log(`[Registry] No shortcut found for key: "${key}"`);
       return undefined;
     }
 
     // Sort by priority (highest first) and return the highest priority shortcut
-    const result = matchingShortcuts.sort(
-      (a, b) => (b.priority || 0) - (a.priority || 0)
-    )[0];
-    console.log(`[Registry] Found shortcut for key "${key}":`, result.id);
-    return result;
+    return matchingShortcuts.sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
   }
 }
 

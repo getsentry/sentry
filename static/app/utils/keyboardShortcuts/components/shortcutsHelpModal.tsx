@@ -30,8 +30,6 @@ export function ShortcutsHelpModal({
 
   // Always get fresh shortcuts from registry
   const currentShortcuts = registry.getShortcuts();
-  console.log('[ShortcutsHelpModal] Received activeShortcuts:', activeShortcuts);
-  console.log('[ShortcutsHelpModal] Registry shortcuts:', currentShortcuts);
 
   // Group shortcuts by category
   const shortcutsByCategory = useMemo(() => {
@@ -40,18 +38,27 @@ export function ShortcutsHelpModal({
     // Use currentShortcuts from registry instead of activeShortcuts
     const shortcutsToUse =
       currentShortcuts.length > 0 ? currentShortcuts : activeShortcuts;
-    console.log('[ShortcutsHelpModal] Grouping shortcuts, count:', shortcutsToUse.length);
 
     shortcutsToUse.forEach(shortcut => {
-      const category = shortcut.category || 'other';
+      const category = shortcut.context || 'global';
       if (!grouped.has(category)) {
         grouped.set(category, []);
       }
       grouped.get(category)!.push(shortcut);
     });
 
-    // Sort categories with a specific order
-    const categoryOrder = ['global', 'navigation', 'actions', 'search'];
+    // Sort categories with contextual shortcuts first, global last
+    // Order: Issue Details contexts > Issues List > Navigation (g shortcuts) > Global
+    const categoryOrder = [
+      'issue-details-navigation', 
+      'issue-details-actions', 
+      'issue-details-events',
+      'issue-details-drawers', 
+      'issue-details-workflow',
+      'issues-list', 
+      'navigation', 
+      'global'
+    ];
     const sortedCategories = Array.from(grouped.keys()).sort((a, b) => {
       const aIndex = categoryOrder.indexOf(a);
       const bIndex = categoryOrder.indexOf(b);
@@ -66,19 +73,12 @@ export function ShortcutsHelpModal({
       result.set(category, grouped.get(category)!);
     });
 
-    console.log(
-      '[ShortcutsHelpModal] Grouped into categories:',
-      Array.from(result.keys())
-    );
-
     return result;
   }, [activeShortcuts, currentShortcuts]);
 
   // Filter shortcuts based on search term
   const filteredCategories = useMemo(() => {
-    console.log('[ShortcutsHelpModal] Filtering with searchTerm:', searchTerm);
     if (!searchTerm) {
-      console.log('[ShortcutsHelpModal] No search term, returning all categories');
       return shortcutsByCategory;
     }
 
@@ -104,12 +104,16 @@ export function ShortcutsHelpModal({
     return filtered;
   }, [shortcutsByCategory, searchTerm]);
 
-  console.log('[ShortcutsHelpModal] filteredCategories.size:', filteredCategories.size);
-
   const getCategoryTitle = (category: string): string => {
     const titles: Record<string, string> = {
       global: t('Global'),
       navigation: t('Navigation'),
+      'issues-list': t('Issues'),
+      'issue-details-navigation': t('Issue Details - Navigation'),
+      'issue-details-actions': t('Issue Details - Actions'),
+      'issue-details-events': t('Issue Details - Events'),
+      'issue-details-drawers': t('Issue Details - Drawers'),
+      'issue-details-workflow': t('Issue Details - Workflow'),
       actions: t('Actions'),
       search: t('Search & Filter'),
     };
