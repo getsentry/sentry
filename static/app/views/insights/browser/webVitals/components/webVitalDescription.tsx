@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {ExternalLink} from 'sentry/components/core/link';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
@@ -133,12 +134,19 @@ export function WebVitalDetailHeader({score, value, webVital, transaction}: Prop
       {hasSeerWebVitalsSuggestions && transaction && score && score < 90 && (
         <div>
           <Button
-            title={tct(
-              'Your [webVital] metric is below the recommended threshold. Create an issue to investigate.',
-              {
-                webVital: webVital.toUpperCase(),
-              }
-            )}
+            title={
+              <div>
+                <FeatureBadge type="experimental" />
+                <div>
+                  {tct(
+                    'Your [webVital] metric is below the recommended threshold. Create an issue to investigate.',
+                    {
+                      webVital: webVital.toUpperCase(),
+                    }
+                  )}
+                </div>
+              </div>
+            }
             onClick={() => {
               createIssue({
                 issueType: IssueType.WEB_VITALS,
