@@ -105,6 +105,37 @@ describe('ProjectDetail > ProjectIssues', function () {
     });
   });
 
+  it('renders a segmented control', async function () {
+    render(
+      <ProjectIssues
+        api={new MockApiClient()}
+        organization={organization}
+        location={router.location}
+        projectId={parseInt(project.id, 10)}
+      />,
+      {
+        router,
+        organization,
+        deprecatedRouterMocks: true,
+      }
+    );
+
+    // "Unhandled" segment is selected
+    const unhandledSegment = screen.getByRole('radio', {name: 'Unhandled 0'});
+    expect(unhandledSegment).toBeInTheDocument();
+    expect(unhandledSegment).toBeChecked();
+
+    // Select "New Issues" segment
+    const newIssuesSegment = screen.getByRole('radio', {name: 'New Issues 0'});
+    expect(newIssuesSegment).toBeInTheDocument();
+    expect(newIssuesSegment).not.toBeChecked();
+
+    await userEvent.click(newIssuesSegment);
+    await waitFor(() => expect(newIssuesSegment).toBeChecked());
+
+    expect(newIssuesEndpointMock).toHaveBeenCalled();
+  });
+
   it('renders a link to Discover', async function () {
     render(
       <ProjectIssues
@@ -173,36 +204,5 @@ describe('ProjectDetail > ProjectIssues', function () {
         sort: 'freq',
       },
     });
-  });
-
-  it('renders a segmented control', async function () {
-    render(
-      <ProjectIssues
-        api={new MockApiClient()}
-        organization={organization}
-        location={router.location}
-        projectId={parseInt(project.id, 10)}
-      />,
-      {
-        router,
-        organization,
-        deprecatedRouterMocks: true,
-      }
-    );
-
-    // "Unhandled" segment is selected
-    const unhandledSegment = screen.getByRole('radio', {name: 'Unhandled 0'});
-    expect(unhandledSegment).toBeInTheDocument();
-    expect(unhandledSegment).toBeChecked();
-
-    // Select "New Issues" segment
-    const newIssuesSegment = screen.getByRole('radio', {name: 'New Issues 0'});
-    expect(newIssuesSegment).toBeInTheDocument();
-    expect(newIssuesSegment).not.toBeChecked();
-
-    await userEvent.click(newIssuesSegment);
-    await waitFor(() => expect(newIssuesSegment).toBeChecked());
-
-    expect(newIssuesEndpointMock).toHaveBeenCalled();
   });
 });
