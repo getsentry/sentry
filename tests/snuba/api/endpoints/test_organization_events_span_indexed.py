@@ -5989,15 +5989,33 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         self.store_spans(
             [
                 self.create_span(
-                    {"sentry_tags": {"status": "ok", "transaction": "transactionA"}},
+                    {
+                        "sentry_tags": {"transaction": "transactionA", "browser.name": "Chrome"},
+                        "measurements": {
+                            "frames.total": {"value": 100},
+                            "frames.frozen": {"value": 70},
+                        },
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"sentry_tags": {"status": "failure", "transaction": "transactionA"}},
+                    {
+                        "sentry_tags": {"transaction": "transactionA", "browser.name": "Chrome"},
+                        "measurements": {
+                            "frames.total": {"value": 100},
+                            "frames.frozen": {"value": 70},
+                        },
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
                 self.create_span(
-                    {"sentry_tags": {"status": "ok", "transaction": "transactionB"}},
+                    {
+                        "sentry_tags": {"transaction": "transactionB", "browser.name": "Chrome"},
+                        "measurements": {
+                            "frames.total": {"value": 100},
+                            "frames.frozen": {"value": 20},
+                        },
+                    },
                     start_ts=self.ten_mins_ago,
                 ),
             ],
@@ -6006,8 +6024,11 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         response = self.do_request(
             {
-                "field": ["failure_rate()", "transaction"],
-                "query": "failure_rate():>0.4",
+                "field": [
+                    "division_if(mobile.frozen_frames,mobile.total_frames,browser.name,equals,Chrome)",
+                    "transaction",
+                ],
+                "query": "division_if(mobile.frozen_frames,mobile.total_frames,browser.name,equals,Chrome):>0.5",
                 "project": self.project.id,
                 "dataset": "spans",
             }
@@ -6017,6 +6038,11 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        assert data[0]["failure_rate()"] == 0.5
+        assert (
+            data[0][
+                "division_if(mobile.frozen_frames,mobile.total_frames,browser.name,equals,Chrome)"
+            ]
+            == 0.7
+        )
         assert data[0]["transaction"] == "transactionA"
         assert meta["dataset"] == "spans"
