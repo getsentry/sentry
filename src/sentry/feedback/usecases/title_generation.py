@@ -117,20 +117,7 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
 
     try:
         title = response_data["title"]
-    except KeyError:
-        logger.exception("Seer title generation endpoint returned invalid response")
-        metrics.incr(
-            "feedback.ai_title_generation.error",
-            tags={"reason": "invalid_response"},
-        )
-        return None
-
-    if not title or not isinstance(title, str) or not title.strip():
-        logger.error("Seer title generation endpoint returned invalid response")
-        metrics.incr(
-            "feedback.ai_title_generation.error",
-            tags={"reason": "invalid_response"},
-        )
+    except Exception:
         return None
 
     return title
