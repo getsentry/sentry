@@ -167,7 +167,7 @@ export function GlobalShortcuts({router}: {router: InjectedRouter}) {
     // Split shortcuts by context and register separately
     const globalShortcuts = shortcuts.filter(s => s.id === 'global-help');
     const navigationShortcuts = shortcuts.filter(s => s.id !== 'global-help');
-    
+
     registerContext('global', globalShortcuts);
     registerContext('navigation', navigationShortcuts);
 

@@ -69,7 +69,6 @@ export class KeyboardShortcutRegistry implements ShortcutRegistry {
     return shortcuts;
   }
 
-
   getActiveContexts(): string[] {
     return Array.from(this.contexts.keys());
   }

@@ -3,11 +3,11 @@ import {useCallback} from 'react';
 import {useComponentShortcuts} from 'sentry/utils/keyboardShortcuts';
 
 interface UseEventNavigationShortcutsProps {
-  onNavigateToPrevious?: () => void;
-  onNavigateToNext?: () => void;
-  onNavigateToRecommended?: () => void;
   onNavigateToLatest?: () => void;
+  onNavigateToNext?: () => void;
   onNavigateToOldest?: () => void;
+  onNavigateToPrevious?: () => void;
+  onNavigateToRecommended?: () => void;
 }
 
 /**
@@ -21,7 +21,6 @@ export function useEventNavigationShortcuts({
   onNavigateToLatest,
   onNavigateToOldest,
 }: UseEventNavigationShortcutsProps) {
-  
   const handlePreviousEvent = useCallback(() => {
     onNavigateToPrevious?.();
   }, [onNavigateToPrevious]);
@@ -50,7 +49,7 @@ export function useEventNavigationShortcuts({
       handler: handleNextEvent,
     },
     {
-      id: 'previous-event', 
+      id: 'previous-event',
       key: 'k',
       description: 'Previous event',
       handler: handlePreviousEvent,
@@ -63,7 +62,7 @@ export function useEventNavigationShortcuts({
     },
     {
       id: 'latest-event',
-      key: '2', 
+      key: '2',
       description: 'Go to Latest event',
       handler: handleLatestEvent,
     },

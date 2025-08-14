@@ -50,14 +50,14 @@ export function ShortcutsHelpModal({
     // Sort categories with contextual shortcuts first, global last
     // Order: Issue Details contexts > Issues List > Navigation (g shortcuts) > Global
     const categoryOrder = [
-      'issue-details-navigation', 
-      'issue-details-actions', 
+      'issue-details-navigation',
+      'issue-details-actions',
       'issue-details-events',
-      'issue-details-drawers', 
+      'issue-details-drawers',
       'issue-details-workflow',
-      'issues-list', 
-      'navigation', 
-      'global'
+      'issues-list',
+      'navigation',
+      'global',
     ];
     const sortedCategories = Array.from(grouped.keys()).sort((a, b) => {
       const aIndex = categoryOrder.indexOf(a);

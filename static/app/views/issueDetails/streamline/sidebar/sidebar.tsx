@@ -31,9 +31,9 @@ import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/streamline/sid
 import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
 import PeopleSection from 'sentry/views/issueDetails/streamline/sidebar/peopleSection';
+import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 import SeerSection from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
-import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 
 type Props = {group: Group; project: Project; event?: Event};
 

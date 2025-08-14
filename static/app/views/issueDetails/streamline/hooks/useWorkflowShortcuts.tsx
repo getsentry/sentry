@@ -3,8 +3,8 @@ import {useCallback} from 'react';
 import {useComponentShortcuts} from 'sentry/utils/keyboardShortcuts';
 
 interface UseWorkflowShortcutsProps {
-  onFocusPriority?: () => void;
   onFocusAssignee?: () => void;
+  onFocusPriority?: () => void;
 }
 
 /**
@@ -15,7 +15,6 @@ export function useWorkflowShortcuts({
   onFocusPriority,
   onFocusAssignee,
 }: UseWorkflowShortcutsProps) {
-  
   const handleFocusPriority = useCallback(() => {
     onFocusPriority?.();
   }, [onFocusPriority]);

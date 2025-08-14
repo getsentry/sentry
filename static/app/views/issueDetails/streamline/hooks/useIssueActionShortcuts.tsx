@@ -3,12 +3,12 @@ import {useCallback} from 'react';
 import {useComponentShortcuts} from 'sentry/utils/keyboardShortcuts';
 
 interface UseIssueActionShortcutsProps {
-  onResolve?: () => void;
   onArchive?: () => void;
-  onSubscribe?: () => void;
-  onShare?: () => void;
   onBookmark?: () => void;
   onMarkReviewed?: () => void;
+  onResolve?: () => void;
+  onShare?: () => void;
+  onSubscribe?: () => void;
 }
 
 /**
@@ -23,7 +23,6 @@ export function useIssueActionShortcuts({
   onBookmark,
   onMarkReviewed,
 }: UseIssueActionShortcutsProps) {
-  
   const handleResolve = useCallback(() => {
     onResolve?.();
   }, [onResolve]);
@@ -57,7 +56,7 @@ export function useIssueActionShortcuts({
     },
     {
       id: 'archive-issue',
-      key: 'i', 
+      key: 'i',
       description: 'Archive issue',
       handler: handleArchive,
     },
@@ -70,7 +69,7 @@ export function useIssueActionShortcuts({
     {
       id: 'share-issue',
       key: 'u',
-      description: 'Share issue', 
+      description: 'Share issue',
       handler: handleShare,
     },
     {

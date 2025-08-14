@@ -5,9 +5,9 @@ import {useComponentShortcuts} from 'sentry/utils/keyboardShortcuts';
 interface UseDrawerShortcutsProps {
   onOpenActivityDrawer?: () => void;
   onOpenDistributionsDrawer?: () => void;
-  onOpenSimilarIssuesDrawer?: () => void;
   onOpenMergedIssuesDrawer?: () => void;
   onOpenSeerDrawer?: () => void;
+  onOpenSimilarIssuesDrawer?: () => void;
 }
 
 /**
@@ -21,7 +21,6 @@ export function useDrawerShortcuts({
   onOpenMergedIssuesDrawer,
   onOpenSeerDrawer,
 }: UseDrawerShortcutsProps) {
-  
   const handleOpenActivityDrawer = useCallback(() => {
     onOpenActivityDrawer?.();
   }, [onOpenActivityDrawer]);
@@ -64,7 +63,7 @@ export function useDrawerShortcuts({
     {
       id: 'open-similar-issues',
       key: 'shift+s',
-      description: 'Open Similar Issues drawer', 
+      description: 'Open Similar Issues drawer',
       handler: handleOpenSimilarIssuesDrawer,
     },
     {

@@ -1,9 +1,9 @@
 import {useCallback} from 'react';
 
-import {useNavigate} from 'sentry/utils/useNavigate';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useComponentShortcuts} from 'sentry/utils/keyboardShortcuts';
 import type {Event} from 'sentry/types/event';
+import {useComponentShortcuts} from 'sentry/utils/keyboardShortcuts';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -39,21 +39,21 @@ export function useContentNavigationShortcuts({
       handler: () => navigateToTab(Tab.DETAILS),
     },
     {
-      id: 'navigate-replays', 
+      id: 'navigate-replays',
       key: 't r',
       description: 'Go to Replays view',
       handler: () => navigateToTab(Tab.REPLAYS),
     },
     {
       id: 'navigate-attachments',
-      key: 't a', 
+      key: 't a',
       description: 'Go to Attachments view',
       handler: () => navigateToTab(Tab.ATTACHMENTS),
     },
     {
       id: 'navigate-feedback',
       key: 't f',
-      description: 'Go to User Feedback view', 
+      description: 'Go to User Feedback view',
       handler: () => navigateToTab(Tab.USER_FEEDBACK),
     },
   ]);
