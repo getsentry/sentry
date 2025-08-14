@@ -9,14 +9,18 @@ from django.db import router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import buffer, features
-from sentry.eventstore.models import GroupEvent
+from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
+from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import json
+from sentry.workflow_engine import buffer
 from sentry.workflow_engine.models import Action, DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.workflow_data_condition_group import WorkflowDataConditionGroup
-from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
+from sentry.workflow_engine.processors.action import (
+    filter_recently_fired_workflow_actions,
+    fire_actions,
+)
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
     WorkflowEventContextData,
@@ -24,7 +28,6 @@ from sentry.workflow_engine.processors.contexts.workflow_event_context import (
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.detector import get_detector_by_event
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
-from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 from sentry.workflow_engine.utils.metrics import metrics_incr
@@ -116,8 +119,9 @@ def enqueue_workflows(
         sentry_sdk.set_tag("delayed_workflow_items", items)
         return
 
+    backend = buffer.get_backend()
     for project_id, queue_items in items_by_project_id.items():
-        buffer.backend.push_to_hash_bulk(
+        backend.push_to_hash_bulk(
             model=Workflow,
             filters={"project_id": project_id},
             data={queue_item.buffer_key(): queue_item.buffer_value() for queue_item in queue_items},
@@ -128,7 +132,7 @@ def enqueue_workflows(
     sentry_sdk.set_tag("delayed_workflow_items", items)
 
     sharded_key = random.choice(DelayedWorkflow.get_buffer_keys())
-    buffer.backend.push_to_sorted_set(key=sharded_key, value=list(items_by_project_id.keys()))
+    backend.push_to_sorted_set(key=sharded_key, value=list(items_by_project_id.keys()))
 
     logger.debug(
         "workflow_engine.workflows.enqueued",
@@ -458,13 +462,9 @@ def process_workflows(
         return triggered_workflows
 
     should_trigger_actions = should_fire_workflow_actions(organization, event_data.group.type)
-
     create_workflow_fire_histories(
         detector, actions, event_data, should_trigger_actions, is_delayed=False
     )
-
-    for action in actions:
-        task_params = build_trigger_action_task_params(action, detector, event_data)
-        trigger_action.apply_async(kwargs=task_params, headers={"sentry-propagate-traces": False})
+    fire_actions(actions, detector, event_data)
 
     return triggered_workflows

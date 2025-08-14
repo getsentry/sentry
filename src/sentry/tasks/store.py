@@ -399,8 +399,8 @@ def do_process_event(
     # Default event processors.
     for plugin in plugins.all(version=2):
         with sentry_sdk.start_span(op="task.store.process_event.preprocessors") as span:
-            span.set_attribute("plugin", plugin.slug)
-            span.set_attribute("from_symbolicate", from_symbolicate)
+            span.set_data("plugin", plugin.slug)
+            span.set_data("from_symbolicate", from_symbolicate)
             processors = safe_execute(plugin.get_event_preprocessors, data=data)
             for processor in processors or ():
                 try:
@@ -717,6 +717,7 @@ def save_event_transaction(
         processing_deadline_duration=65,
     ),
 )
+@metrics.wraps("feedback_consumer.save_event_feedback_task")
 def save_event_feedback(
     cache_key: str | None = None,
     start_time: float | None = None,
