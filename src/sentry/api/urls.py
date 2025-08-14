@@ -279,6 +279,9 @@ from sentry.issues.endpoints import (
     TeamGroupsOldEndpoint,
 )
 from sentry.issues.endpoints.browser_reporting_collector import BrowserReportingCollectorEndpoint
+from sentry.issues.endpoints.event_grouping_info import EventGroupingInfoEndpoint
+from sentry.issues.endpoints.event_owners import EventOwnersEndpoint
+from sentry.issues.endpoints.event_reprocessable import EventReprocessableEndpoint
 from sentry.issues.endpoints.group_attachments import GroupAttachmentsEndpoint
 from sentry.issues.endpoints.group_current_release import GroupCurrentReleaseEndpoint
 from sentry.issues.endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
@@ -307,6 +310,14 @@ from sentry.issues.endpoints.organization_group_suspect_tags import (
 from sentry.issues.endpoints.organization_issue_metrics import OrganizationIssueMetricsEndpoint
 from sentry.issues.endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
+)
+from sentry.issues.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
+from sentry.issues.endpoints.project_issues_resolved_in_release import (
+    ProjectIssuesResolvedInReleaseEndpoint,
+)
+from sentry.issues.endpoints.project_ownership import ProjectOwnershipEndpoint
+from sentry.issues.endpoints.project_performance_issue_settings import (
+    ProjectPerformanceIssueSettingsEndpoint,
 )
 from sentry.issues.endpoints.project_user_issue import ProjectUserIssueEndpoint
 from sentry.issues.endpoints.team_all_unresolved_issues import TeamAllUnresolvedIssuesEndpoint
@@ -595,9 +606,6 @@ from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.event_attachment_details import EventAttachmentDetailsEndpoint
 from .endpoints.event_attachments import EventAttachmentsEndpoint
 from .endpoints.event_file_committers import EventFileCommittersEndpoint
-from .endpoints.event_grouping_info import EventGroupingInfoEndpoint
-from .endpoints.event_owners import EventOwnersEndpoint
-from .endpoints.event_reprocessable import EventReprocessableEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal import (
@@ -717,14 +725,10 @@ from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
-from .endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
-from .endpoints.project_issues_resolved_in_release import ProjectIssuesResolvedInReleaseEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
-from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
 )
-from .endpoints.project_performance_issue_settings import ProjectPerformanceIssueSettingsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_profiling_profile import (
