@@ -36,20 +36,33 @@ class HookService(RpcService):
     ) -> RpcServiceHook:
         pass
 
-    @regional_rpc_method(ByRegionName())
     @regional_rpc_method(ByOrganizationId())
     @abc.abstractmethod
     def update_webhook_and_events(
         self,
         *,
-        region_name: str | None,
-        organization_id: int | None,
+        organization_id: int,
         application_id: int | None,
         webhook_url: str | None,
         events: list[str],
     ) -> list[RpcServiceHook]:
         """
-        Update ALL webhooks for a given sentry app.
+        Update ALL webhooks for a given sentry app (region determined by organization_id).
+        """
+        pass
+
+    @regional_rpc_method(ByRegionName())
+    @abc.abstractmethod
+    def update_webhook_and_events_for_app_by_region(
+        self,
+        *,
+        application_id: int | None,
+        webhook_url: str | None,
+        events: list[str],
+        region_name: str,
+    ) -> list[RpcServiceHook]:
+        """
+        Update ALL webhooks in a given region for a sentry app.
         """
         pass
 

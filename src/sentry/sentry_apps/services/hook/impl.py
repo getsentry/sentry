@@ -21,14 +21,29 @@ class DatabaseBackedHookService(HookService):
     ) -> list[RpcServiceHook]:
         with transaction.atomic(router.db_for_write(ServiceHook)):
             hooks = ServiceHook.objects.filter(application_id=application_id)
-
             if webhook_url:
                 expanded_events = expand_events(events)
                 hooks.update(url=webhook_url, events=expanded_events)
-                return [serialize_service_hook(h) for h in hooks]
             else:
                 deletions.exec_sync_many(list(hooks))
-                return []
+            return [serialize_service_hook(h) for h in hooks]
+
+    def update_webhook_and_events_for_app_by_region(
+        self,
+        *,
+        application_id: int | None,
+        webhook_url: str | None,
+        events: list[str],
+        region_name: str,
+    ) -> list[RpcServiceHook]:
+        with transaction.atomic(router.db_for_write(ServiceHook)):
+            hooks = ServiceHook.objects.filter(application_id=application_id)
+            if webhook_url:
+                expanded_events = expand_events(events)
+                hooks.update(url=webhook_url, events=expanded_events)
+            else:
+                deletions.exec_sync_many(list(hooks))
+            return [serialize_service_hook(h) for h in hooks]
 
     def create_or_update_webhook_and_events_for_installation(
         self,
