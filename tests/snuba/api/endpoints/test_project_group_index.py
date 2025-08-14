@@ -1342,7 +1342,10 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         mock_eventstream.start_merge.assert_called_once_with(
-            group1.project_id, [group3.id, group1.id], group2.id
+            group1.project_id,
+            [group3.id, group1.id],
+            group2.id,
+            group2.first_seen,
         )
 
         assert len(merge_groups.mock_calls) == 1
