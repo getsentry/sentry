@@ -24,7 +24,7 @@ import type {
   SentryAppWebhookRequest,
 } from 'sentry/types/integrations';
 import {shouldUse24Hours} from 'sentry/utils/dates';
-import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
 
 const ALL_EVENTS = t('All Events');
 const MAX_PER_PAGE = 10;

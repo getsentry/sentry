@@ -95,7 +95,6 @@ const BannerWrapper = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(2)} ${space(3)};
-  margin-bottom: ${space(2)};
   background: linear-gradient(
     90deg,
     ${p => p.theme.backgroundSecondary}00 0%,

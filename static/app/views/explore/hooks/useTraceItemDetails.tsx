@@ -2,10 +2,10 @@ import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
 
 import {
-  type ApiQueryKey,
   fetchDataQuery,
   useApiQuery,
   useQueryClient,
+  type ApiQueryKey,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromId from 'sentry/utils/useProjectFromId';

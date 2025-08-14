@@ -26,8 +26,8 @@ import {
 } from 'sentry/views/insights/browser/webVitals/queries/useWebVitalsIssuesQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import {
-  type ProjectScore,
   WEB_VITAL_PERFORMANCE_ISSUES,
+  type ProjectScore,
   type WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 

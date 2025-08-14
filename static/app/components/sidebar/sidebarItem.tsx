@@ -1,6 +1,5 @@
 import {Fragment, isValidElement, useCallback, useContext, useMemo} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 

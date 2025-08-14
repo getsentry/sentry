@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import {COL_WIDTH_MINIMUM} from 'sentry/components/tables/gridEditable';
 import type {Alignments} from 'sentry/components/tables/gridEditable/sortLink';
 import {
-  Body as _TableWrapper,
   Grid as _Table,
+  Body as _TableWrapper,
   GridBody,
   GridBodyCell,
   GridBodyCellStatus,

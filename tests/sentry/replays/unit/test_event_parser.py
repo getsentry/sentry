@@ -694,16 +694,6 @@ def test_which() -> None:
     event = {
         "type": 5,
         "timestamp": 0.0,
-        "data": {
-            "tag": "performanceSpan",
-            "payload": {"op": "web-vital", "description": "first-contentful-paint"},
-        },
-    }
-    assert which(event) == EventType.FCP
-
-    event = {
-        "type": 5,
-        "timestamp": 0.0,
         "data": {"tag": "breadcrumb", "payload": {"category": "replay.hydrate-error"}},
     }
     assert which(event) == EventType.HYDRATION_ERROR
@@ -1193,32 +1183,6 @@ def test_as_trace_item_context_lcp_event() -> None:
     assert result["attributes"]["rating"] == "good"
     assert result["attributes"]["size"] == 1024
     assert result["attributes"]["value"] == 1500
-    assert "event_hash" in result and len(result["event_hash"]) == 16
-
-
-def test_as_trace_item_context_fcp_event() -> None:
-    event = {
-        "type": 5,
-        "timestamp": 1753712471.43,
-        "data": {
-            "tag": "performanceSpan",
-            "payload": {
-                "op": "web-vital",
-                "description": "first-contentful-paint",
-                "startTimestamp": 1674298825.0,
-                "endTimestamp": 1674298825.0,
-                "data": {"rating": "needs-improvement", "size": 512, "value": 2000},
-            },
-        },
-    }
-
-    result = as_trace_item_context(which(event), event)
-    assert result is not None
-    assert result["attributes"]["category"] == "web-vital.fcp"
-    assert result["attributes"]["duration"] == 0
-    assert result["attributes"]["rating"] == "needs-improvement"
-    assert result["attributes"]["size"] == 512
-    assert result["attributes"]["value"] == 2000
     assert "event_hash" in result and len(result["event_hash"]) == 16
 
 
