@@ -766,7 +766,10 @@ export default Storybook.story('SearchQueryBuilder', story => {
         <p>
           The raw search will be replaced with option(s) in the dropdown. The options will
           be the values for the provided keys. The following example shows the prop set as{' '}
-          <code>{`replaceRawSearchKeys={['span.description']}`}</code>.
+          <code>{`replaceRawSearchKeys={['span.description']}`}</code>. This will also
+          augment the search bar when a user types in a free text value, and hits enter,
+          it will be transformed to <code>{`'span.description':<free text value>`}</code>,
+          the replacement will choose the first key in the prop array.
         </p>
         <SearchQueryBuilder
           initialQuery=""
