@@ -9,7 +9,6 @@ import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
@@ -119,8 +118,8 @@ export default function GroupingInfo({
 const ConfigHeader = styled('div')`
   display: flex;
   justify-content: space-between;
-  gap: ${space(1)};
-  margin-bottom: ${space(0.25)};
+  gap: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space['2xs']};
 `;
 
 const ToggleContainer = styled(Flex)`
@@ -129,6 +128,6 @@ const ToggleContainer = styled(Flex)`
 `;
 
 const VariantDivider = styled('hr')`
-  padding-top: ${space(1)};
+  padding-top: ${p => p.theme.space.md};
   border-top: 1px solid ${p => p.theme.border};
 `;
