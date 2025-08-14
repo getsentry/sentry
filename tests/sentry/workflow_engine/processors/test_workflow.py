@@ -310,7 +310,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         self.group_event.occurrence = issue_occurrence
         self.group.update(type=issue_occurrence.type.type_id)
 
-        triggered_workflows = process_workflows(self.event_data)
+        triggered_workflows = process_workflows(self.event_data, FROZEN_TIME)
         assert triggered_workflows == {self.error_workflow}
 
 
