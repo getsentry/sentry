@@ -164,12 +164,12 @@ class EventLifecycle:
         )
         should_log = effective_sample_log_rate >= 1.0 or random.random() < effective_sample_log_rate
 
-        if "organization_id" in extra:
-            org_id = extra["organization_id"]
-            if org_id in options.get("integration.debugging.org-ids"):
-                create_issue = True
-                effective_sample_log_rate = 1.0
-                should_log = True
+        if (org_id := extra.get("organization_id")) and org_id in options.get(
+            "integration.debugging.org-ids"
+        ):
+            create_issue = True
+            effective_sample_log_rate = 1.0
+            should_log = True
 
         if isinstance(outcome_reason, BaseException):
             # Capture exception in Sentry if create_issue is True
