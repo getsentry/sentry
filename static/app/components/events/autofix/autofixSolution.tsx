@@ -23,7 +23,7 @@ import {
   type AutofixResponse,
 } from 'sentry/components/events/autofix/useAutofix';
 import {Timeline} from 'sentry/components/timeline';
-import {IconAdd, IconChat, IconCode, IconCopy, IconFix} from 'sentry/icons';
+import {IconAdd, IconChat, IconCopy, IconFix} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -602,7 +602,6 @@ function AutofixSolutionDisplay({
               analyticsEventName="Autofix: Code It Up"
               analyticsEventKey="autofix.solution.code"
               title={t('Implement this solution in code with Seer')}
-              icon={<IconCode />}
             >
               {t('Code It Up')}
             </Button>

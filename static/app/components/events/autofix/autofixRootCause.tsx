@@ -14,15 +14,7 @@ import {
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {makeAutofixQueryKey} from 'sentry/components/events/autofix/useAutofix';
-import {
-  IconArrow,
-  IconChat,
-  IconClose,
-  IconCopy,
-  IconFix,
-  IconFocus,
-  IconInput,
-} from 'sentry/icons';
+import {IconArrow, IconChat, IconClose, IconCopy, IconFocus} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {singleLineRenderer} from 'sentry/utils/marked/marked';
@@ -437,7 +429,6 @@ function AutofixRootCauseDisplay({
               size="sm"
               onClick={handleMySolution}
               title={t('Specify your own solution for Seer to follow')}
-              icon={<IconInput />}
             >
               {t('Give Solution')}
             </Button>
@@ -450,7 +441,6 @@ function AutofixRootCauseDisplay({
               }
               busy={isSelectingRootCause}
               onClick={handleSelectRootCause}
-              icon={<IconFix />}
               title={t('Let Seer plan a solution to this issue')}
             >
               {t('Find Solution')}
