@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Change} from 'diff';
 import {diffChars, diffLines, diffWords} from 'diff';
@@ -55,7 +56,7 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
   const results = diffFn(base, target, {newlineIsToken: true});
 
   // split one change that includes multiple lines into one change per line (for formatting)
-  const processResults = (): Change[][] => {
+  const groupedChanges = useMemo((): Change[][] => {
     let currentLine: Change[] = [];
     const processedLines: Change[][] = [];
     for (const change of results) {
@@ -79,9 +80,7 @@ function SplitDiff({className, type = 'lines', base, target}: Props) {
       processedLines.push(currentLine);
     }
     return processedLines;
-  };
-
-  const groupedChanges = processResults();
+  }, [results]);
 
   return (
     <SplitTable className={className} data-test-id="split-diff">
