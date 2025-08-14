@@ -25,7 +25,10 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/replayOnboarding';
 import {featureFlagOnboarding} from 'sentry/gettingStartedDocs/javascript/javascript';
 import {t, tct} from 'sentry/locale';
-import {getJavascriptProfilingOnboarding} from 'sentry/utils/gettingStartedDocs/javascript';
+import {
+  getJavascriptLogsOnboarding,
+  getJavascriptProfilingOnboarding,
+} from 'sentry/utils/gettingStartedDocs/javascript';
 
 export enum AngularConfigType {
   APP = 'standalone',
@@ -537,6 +540,12 @@ const profilingOnboarding = getJavascriptProfilingOnboarding({
     'https://docs.sentry.io/platforms/javascript/guides/angular/profiling/browser-profiling/',
 });
 
+const logsOnboarding: OnboardingConfig = getJavascriptLogsOnboarding({
+  installSnippetBlock,
+  docsPlatform: 'angular',
+  sdkPackage: '@sentry/angular',
+});
+
 const docs: Docs<PlatformOptions> = {
   onboarding,
   feedbackOnboardingNpm: feedbackOnboarding,
@@ -545,6 +554,7 @@ const docs: Docs<PlatformOptions> = {
   platformOptions,
   profilingOnboarding,
   featureFlagOnboarding,
+  logsOnboarding,
 };
 
 export default docs;
