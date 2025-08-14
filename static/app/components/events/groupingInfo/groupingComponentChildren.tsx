@@ -32,7 +32,6 @@ function GroupingComponentChildren({component, showNonContributing}: Props) {
                   component.contributes ||
                   (typeof value === 'object' && value?.contributes)
                 }
-                showNonContributing={showNonContributing}
               >
                 {typeof value === 'string' || typeof value === 'number'
                   ? value
