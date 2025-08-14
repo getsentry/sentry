@@ -116,7 +116,7 @@ export function ScreenLoadSpansTable({
         `sum(${SPAN_SELF_TIME})`,
       ],
     },
-    'api.starfish.mobile-span-table'
+    'api.insights.mobile-span-table'
   );
 
   const columnNameMap = {
