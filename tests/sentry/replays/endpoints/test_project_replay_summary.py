@@ -382,7 +382,16 @@ class ProjectReplaySummaryTestCase(
         # Store the replay with all trace IDs
         self.store_replay(trace_ids=[trace_id_1, trace_id_2])
 
-        data = []
+        data = [
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "hello"},
+                },
+            },
+        ]
         self.save_recording_segment(0, json.dumps(data).encode())
 
         with self.feature(self.features):
@@ -397,16 +406,16 @@ class ProjectReplaySummaryTestCase(
         assert mock_requests.post.call_count == 1
         data = mock_requests.post.call_args.kwargs["data"]
         logs = json.loads(data)["logs"]
-        assert len(logs) == 2
+        assert len(logs) == 3
 
         # Verify that regular error event is included
-        assert "ValueError" in logs[0]
-        assert "Invalid input" in logs[0]
-        assert "User experienced an error" in logs[0]
+        assert "ValueError" in logs[1]
+        assert "Invalid input" in logs[1]
+        assert "User experienced an error" in logs[1]
 
         # Verify that feedback event is included
-        assert "Great website" in logs[1]
-        assert "User submitted feedback" in logs[1]
+        assert "Great website" in logs[2]
+        assert "User submitted feedback" in logs[2]
 
     @patch("sentry.replays.endpoints.project_replay_summary.requests")
     def test_post_with_trace_errors_duplicate_feedback(self, mock_requests):
