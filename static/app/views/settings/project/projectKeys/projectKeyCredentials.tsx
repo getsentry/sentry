@@ -7,6 +7,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ProjectKey} from 'sentry/types/project';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 type Props = {
   data: ProjectKey;
@@ -52,7 +53,12 @@ function ProjectKeyCredentials({
             ) : null,
           })}
         >
-          <TextCopyInput aria-label={t('DSN URL')}>{data.dsn.public}</TextCopyInput>
+          <TextCopyInput aria-label={t('DSN URL')}>
+            {getDynamicText({
+              value: data.dsn.public,
+              fixed: '__DSN__',
+            })}
+          </TextCopyInput>
           {showDeprecatedDsn && (
             <StyledField
               label={null}
@@ -62,7 +68,12 @@ function ProjectKeyCredentials({
               inline={false}
               flexibleControlStateSize
             >
-              <TextCopyInput>{data.dsn.secret}</TextCopyInput>
+              <TextCopyInput>
+                {getDynamicText({
+                  value: data.dsn.secret,
+                  fixed: '__DSN_DEPRECATED__',
+                })}
+              </TextCopyInput>
             </StyledField>
           )}
         </FieldGroup>
@@ -78,7 +89,12 @@ function ProjectKeyCredentials({
           inline={false}
           flexibleControlStateSize
         >
-          <TextCopyInput>{data.dsn.secret}</TextCopyInput>
+          <TextCopyInput>
+            {getDynamicText({
+              value: data.dsn.secret,
+              fixed: '__DSN_DEPRECATED__',
+            })}
+          </TextCopyInput>
         </FieldGroup>
       )}
 
@@ -91,7 +107,10 @@ function ProjectKeyCredentials({
             flexibleControlStateSize
           >
             <TextCopyInput aria-label={t('OTLP Traces Endpoint')}>
-              {data.dsn.otlp_traces}
+              {getDynamicText({
+                value: data.dsn.otlp_traces,
+                fixed: '__OTLP_ENDPOINT__',
+              })}
             </TextCopyInput>
           </FieldGroup>
 
@@ -102,7 +121,10 @@ function ProjectKeyCredentials({
             flexibleControlStateSize
           >
             <TextCopyInput aria-label={t('OTLP Traces Endpoint Headers')}>
-              {`x-sentry-auth=sentry sentry_key=${data.public}`}
+              {getDynamicText({
+                value: `x-sentry-auth=sentry sentry_key=${data.public}`,
+                fixed: '__OTLP_ENDPOINT_HEADERS__',
+              })}
             </TextCopyInput>
           </FieldGroup>
         </Fragment>
@@ -122,7 +144,10 @@ function ProjectKeyCredentials({
           flexibleControlStateSize
         >
           <TextCopyInput aria-label={t('Security Header Endpoint URL')}>
-            {data.dsn.security}
+            {getDynamicText({
+              value: data.dsn.security,
+              fixed: '__SECURITY_HEADER_ENDPOINT__',
+            })}
           </TextCopyInput>
         </FieldGroup>
       )}
@@ -144,7 +169,10 @@ function ProjectKeyCredentials({
           flexibleControlStateSize
         >
           <TextCopyInput aria-label={t('Minidump Endpoint URL')}>
-            {data.dsn.minidump}
+            {getDynamicText({
+              value: data.dsn.minidump,
+              fixed: '__MINIDUMP_ENDPOINT__',
+            })}
           </TextCopyInput>
         </FieldGroup>
       )}
@@ -157,26 +185,44 @@ function ProjectKeyCredentials({
           flexibleControlStateSize
         >
           <TextCopyInput aria-label={t('Unreal Engine Endpoint URL')}>
-            {data.dsn.unreal || ''}
+            {getDynamicText({
+              value: data.dsn.unreal || '',
+              fixed: '__UNREAL_ENDPOINT__',
+            })}
           </TextCopyInput>
         </FieldGroup>
       )}
 
       {showPublicKey && (
         <FieldGroup label={t('Public Key')} inline flexibleControlStateSize>
-          <TextCopyInput>{data.public}</TextCopyInput>
+          <TextCopyInput>
+            {getDynamicText({
+              value: data.public,
+              fixed: '__PUBLICKEY__',
+            })}
+          </TextCopyInput>
         </FieldGroup>
       )}
 
       {showSecretKey && (
         <FieldGroup label={t('Secret Key')} inline flexibleControlStateSize>
-          <TextCopyInput>{data.secret}</TextCopyInput>
+          <TextCopyInput>
+            {getDynamicText({
+              value: data.secret,
+              fixed: '__SECRETKEY__',
+            })}
+          </TextCopyInput>
         </FieldGroup>
       )}
 
       {showProjectId && (
         <FieldGroup label={t('Project ID')} inline flexibleControlStateSize>
-          <TextCopyInput>{projectId}</TextCopyInput>
+          <TextCopyInput>
+            {getDynamicText({
+              value: projectId,
+              fixed: '__PROJECTID__',
+            })}
+          </TextCopyInput>
         </FieldGroup>
       )}
 

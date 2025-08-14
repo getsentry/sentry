@@ -191,7 +191,6 @@ class EventStorage(Service):
         conditions: Sequence[Condition],
         orderby: Sequence[str],
         limit: int = 100,
-        inner_limit: int | None = None,
         offset: int = 0,
         referrer: str = "eventstore.get_events_snql",
         dataset: Dataset = Dataset.Events,

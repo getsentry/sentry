@@ -191,7 +191,6 @@ export function initializeSdk(config: Config) {
       return event;
     },
     enableLogs: true,
-    sendDefaultPii: true,
   });
 
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations

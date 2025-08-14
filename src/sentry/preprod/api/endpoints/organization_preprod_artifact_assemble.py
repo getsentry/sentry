@@ -12,7 +12,6 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
-from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
 from sentry.preprod.tasks import assemble_preprod_artifact, create_preprod_artifact
 from sentry.preprod.url_utils import get_preprod_artifact_url
@@ -97,7 +96,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
         }
     }
 
-    def post(self, request: Request, project: Project) -> Response:
+    def post(self, request: Request, project) -> Response:
         """
         Assembles a preprod artifact (mobile build, etc.) and stores it in the database.
         """
@@ -176,7 +175,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             if is_org_auth_token_auth(request.auth):
                 update_org_auth_token_last_used(request.auth, [project.id])
 
-        artifact_url = get_preprod_artifact_url(project.organization_id, project.slug, artifact_id)
+        artifact_url = get_preprod_artifact_url(project.organization_id, artifact_id)
 
         return Response(
             {

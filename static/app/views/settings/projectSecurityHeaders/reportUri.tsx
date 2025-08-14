@@ -7,12 +7,16 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
+import getDynamicText from 'sentry/utils/getDynamicText';
 
 const DEFAULT_ENDPOINT = 'https://sentry.example.com/api/security-report/';
 
 export function getSecurityDsn(keyList: ProjectKey[]) {
   const endpoint = keyList.length ? keyList[0]!.dsn.security : DEFAULT_ENDPOINT;
-  return endpoint;
+  return getDynamicText({
+    value: endpoint,
+    fixed: DEFAULT_ENDPOINT,
+  });
 }
 
 type Props = {

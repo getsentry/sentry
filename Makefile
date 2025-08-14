@@ -4,6 +4,7 @@ all: develop
 WEBPACK := pnpm run build-acceptance
 
 freeze-requirements:
+	@python3 -S -m tools.freeze_requirements
 	@uv lock
 
 bootstrap:

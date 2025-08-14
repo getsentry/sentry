@@ -31,6 +31,7 @@ def test_dlq(consumer_def) -> None:
         "transactions-subscription-results",
         "generic-metrics-subscription-results",
         "metrics-subscription-results",
+        "eap-spans-subscription-results",
         "subscription-results-eap-items",
     ]
     consumers_that_should_have_dlq_but_dont = [

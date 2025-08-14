@@ -41,6 +41,7 @@ import type {Avatar, Scope} from 'sentry/types/core';
 import type {SentryApp, SentryAppAvatar} from 'sentry/types/integrations';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
+import getDynamicText from 'sentry/utils/getDynamicText';
 import {
   setApiQueryData,
   useApiQuery,
@@ -461,7 +462,11 @@ export default function SentryApplicationDetails(props: Props) {
               <PanelBody>
                 {app.status !== 'internal' && (
                   <FormField name="clientId" label="Client ID">
-                    {({value, id}: any) => <TextCopyInput id={id}>{value}</TextCopyInput>}
+                    {({value, id}: any) => (
+                      <TextCopyInput id={id}>
+                        {getDynamicText({value, fixed: 'CI_CLIENT_ID'})}
+                      </TextCopyInput>
+                    )}
                   </FormField>
                 )}
                 <FormField
@@ -480,7 +485,9 @@ export default function SentryApplicationDetails(props: Props) {
                           'Only Manager or Owner can view these credentials, or the permissions for this integration exceed those of your role.'
                         )}
                       >
-                        <TextCopyInput id={id}>{value}</TextCopyInput>
+                        <TextCopyInput id={id}>
+                          {getDynamicText({value, fixed: 'CI_CLIENT_SECRET'})}
+                        </TextCopyInput>
                       </Tooltip>
                     ) : (
                       <ClientSecret>

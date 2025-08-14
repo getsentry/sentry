@@ -125,8 +125,6 @@ class ContractSelect extends Component<Props> {
               priceHeader={priceHeader}
               price={price}
               planWarning={hasWarning ? this.annualContractWarning : undefined}
-              shouldShowDefaultPayAsYouGo={false}
-              shouldShowEventPrice={false}
             />
           );
         })}

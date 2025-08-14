@@ -11,8 +11,7 @@ import sentry_sdk
 from django.utils import timezone
 from pydantic import BaseModel, validator
 
-import sentry.workflow_engine.buffer as buffer
-from sentry import features, nodestore, options
+from sentry import buffer, features, nodestore, options
 from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -313,7 +312,7 @@ def fetch_group_to_event_data(
     if batch_key:
         field["batch_key"] = batch_key
 
-    return buffer.get_backend().get_hash(model=model, field=field)
+    return buffer.backend.get_hash(model=model, field=field)
 
 
 def fetch_workflows_envs(
@@ -766,7 +765,7 @@ def cleanup_redis_buffer(
     if batch_key:
         filters["batch_key"] = batch_key
 
-    buffer.get_backend().delete_hash(model=Workflow, filters=filters, fields=hashes_to_delete)
+    buffer.backend.delete_hash(model=Workflow, filters=filters, fields=hashes_to_delete)
 
 
 def repr_keys[T, V](d: dict[T, V]) -> dict[str, V]:

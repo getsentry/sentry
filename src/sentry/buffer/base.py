@@ -30,6 +30,7 @@ class Buffer(Service):
         "incr",
         "process",
         "process_pending",
+        "process_batch",
         "validate",
         "push_to_sorted_set",
         "push_to_hash",
@@ -145,6 +146,9 @@ class Buffer(Service):
         )
 
     def process_pending(self) -> None:
+        return
+
+    def process_batch(self) -> None:
         return
 
     def process(

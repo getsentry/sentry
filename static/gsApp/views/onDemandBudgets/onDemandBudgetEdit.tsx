@@ -172,17 +172,12 @@ class OnDemandBudgetEdit extends Component<Props> {
             organization={organization}
             subscription={subscription}
           />
-          {(organization.features.includes('seer-billing') ||
-            organization.features.includes('logs-billing')) && (
+          {organization.features.includes('seer-billing') && (
             <Alert.Container>
               <Alert type="warning">
-                {organization.features.includes('logs-billing')
-                  ? t(
-                      'Logs and additional Seer usage require a shared on-demand budget. Individual budgets cannot be used for these products.'
-                    )
-                  : t(
-                      "Additional Seer usage is only available through a shared on-demand budget. To ensure you'll have access to additional Seer usage, set up a shared on-demand budget instead."
-                    )}
+                {t(
+                  "Additional Seer usage is only available through a shared on-demand budget. To ensure you'll have access to additional Seer usage, set up a shared on-demand budget instead."
+                )}
               </Alert>
             </Alert.Container>
           )}

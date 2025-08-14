@@ -13,6 +13,7 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {Project, ProjectKey} from 'sentry/types/project';
+import getDynamicText from 'sentry/utils/getDynamicText';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
@@ -56,7 +57,10 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
     : [];
 
   const apiEndpoint = `/projects/${orgSlug}/${project.slug}/keys/${keyId}/`;
-  const loaderLink = data.dsn.cdn;
+  const loaderLink = getDynamicText({
+    value: data.dsn.cdn,
+    fixed: '__JS_SDK_LOADER_URL__',
+  });
 
   const updateLoaderOption = useCallback(
     async (changes: {

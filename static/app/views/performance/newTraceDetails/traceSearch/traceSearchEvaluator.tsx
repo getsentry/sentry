@@ -604,13 +604,6 @@ function evaluateNodeFreeText(
     if (node.value.description?.includes(query)) {
       return true;
     }
-    if (
-      'name' in node.value &&
-      typeof node.value.name === 'string' &&
-      node.value.name.includes(query)
-    ) {
-      return true;
-    }
 
     const spanId = 'span_id' in node.value ? node.value.span_id : node.value.event_id;
     if (spanId && spanId === query) {
@@ -635,13 +628,6 @@ function evaluateNodeFreeText(
       return true;
     }
     if (node.value.description?.includes(query)) {
-      return true;
-    }
-    if (
-      'name' in node.value &&
-      typeof node.value.name === 'string' &&
-      node.value.name.includes(query)
-    ) {
       return true;
     }
   }

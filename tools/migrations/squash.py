@@ -73,8 +73,6 @@ def _migration_root(app: str) -> str:
         return "src/sentry/migrations"
     elif app == "social_auth":
         return "src/social_auth/migrations"
-    elif app == "nodestore":
-        return "src/sentry/services/nodestore/migrations"
     else:
         return f"src/sentry/{app}/migrations"
 

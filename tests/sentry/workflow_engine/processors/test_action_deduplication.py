@@ -1,6 +1,3 @@
-from django.db import models
-from django.db.models import Value
-
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -64,9 +61,7 @@ class TestActionDeduplication(TestCase):
             },
         )
 
-        actions_queryset = Action.objects.filter(
-            id__in=[self.slack_action.id, email_action.id]
-        ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
+        actions_queryset = Action.objects.filter(id__in=[self.slack_action.id, email_action.id])
 
         result = deduplicate_actions(actions_queryset)
 
@@ -89,9 +84,7 @@ class TestActionDeduplication(TestCase):
             },
         )
 
-        actions_queryset = Action.objects.filter(
-            id__in=[slack_action_1.id, slack_action_2.id]
-        ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
+        actions_queryset = Action.objects.filter(id__in=[slack_action_1.id, slack_action_2.id])
 
         result = deduplicate_actions(actions_queryset)
 
@@ -118,9 +111,7 @@ class TestActionDeduplication(TestCase):
             },
         )
 
-        actions_queryset = Action.objects.filter(
-            id__in=[slack_action_1.id, slack_action_2.id]
-        ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
+        actions_queryset = Action.objects.filter(id__in=[slack_action_1.id, slack_action_2.id])
 
         result = deduplicate_actions(actions_queryset)
 
@@ -144,9 +135,7 @@ class TestActionDeduplication(TestCase):
             },
         )
 
-        actions_queryset = Action.objects.filter(
-            id__in=[slack_action_1.id, slack_action_2.id]
-        ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
+        actions_queryset = Action.objects.filter(id__in=[slack_action_1.id, slack_action_2.id])
 
         result = deduplicate_actions(actions_queryset)
 
@@ -178,9 +167,7 @@ class TestActionDeduplication(TestCase):
             data={"notes": "second action"},
         )
 
-        actions_queryset = Action.objects.filter(
-            id__in=[slack_action_1.id, slack_action_2.id]
-        ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
+        actions_queryset = Action.objects.filter(id__in=[slack_action_1.id, slack_action_2.id])
 
         result = deduplicate_actions(actions_queryset)
 
@@ -215,9 +202,7 @@ class TestActionDeduplication(TestCase):
             data={"notes": "second action"},
         )
 
-        actions_queryset = Action.objects.filter(
-            id__in=[slack_action_1.id, slack_action_2.id]
-        ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
+        actions_queryset = Action.objects.filter(id__in=[slack_action_1.id, slack_action_2.id])
 
         result = deduplicate_actions(actions_queryset)
 
@@ -246,9 +231,7 @@ class TestActionDeduplication(TestCase):
             },
         )
 
-        actions_queryset = Action.objects.filter(
-            id__in=[email_action_1.id, email_action_2.id]
-        ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
+        actions_queryset = Action.objects.filter(id__in=[email_action_1.id, email_action_2.id])
 
         result = deduplicate_actions(actions_queryset)
 
@@ -274,9 +257,7 @@ class TestActionDeduplication(TestCase):
             },
         )
 
-        actions_queryset = Action.objects.filter(
-            id__in=[email_action_1.id, email_action_2.id]
-        ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
+        actions_queryset = Action.objects.filter(id__in=[email_action_1.id, email_action_2.id])
 
         result = deduplicate_actions(actions_queryset)
 
@@ -304,9 +285,7 @@ class TestActionDeduplication(TestCase):
             },
         )
 
-        actions_queryset = Action.objects.filter(
-            id__in=[email_action_1.id, email_action_2.id]
-        ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
+        actions_queryset = Action.objects.filter(id__in=[email_action_1.id, email_action_2.id])
 
         result = deduplicate_actions(actions_queryset)
 
@@ -340,9 +319,7 @@ class TestActionDeduplication(TestCase):
             },
         )
 
-        actions_queryset = Action.objects.filter(
-            id__in=[email_action_1.id, email_action_2.id]
-        ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
+        actions_queryset = Action.objects.filter(id__in=[email_action_1.id, email_action_2.id])
 
         result = deduplicate_actions(actions_queryset)
 
@@ -375,9 +352,7 @@ class TestActionDeduplication(TestCase):
             },
         )
 
-        actions_queryset = Action.objects.filter(
-            id__in=[email_action_1.id, email_action_2.id]
-        ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
+        actions_queryset = Action.objects.filter(id__in=[email_action_1.id, email_action_2.id])
 
         result = deduplicate_actions(actions_queryset)
 
@@ -408,7 +383,7 @@ class TestActionDeduplication(TestCase):
 
         actions_queryset = Action.objects.filter(
             id__in=[sentry_app_action_1.id, sentry_app_action_2.id]
-        ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
+        )
 
         result = deduplicate_actions(actions_queryset)
 
@@ -433,9 +408,7 @@ class TestActionDeduplication(TestCase):
             },
         )
 
-        actions_queryset = Action.objects.filter(
-            id__in=[webhook_action_1.id, webhook_action_2.id]
-        ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
+        actions_queryset = Action.objects.filter(id__in=[webhook_action_1.id, webhook_action_2.id])
 
         result = deduplicate_actions(actions_queryset)
 
@@ -448,9 +421,7 @@ class TestActionDeduplication(TestCase):
 
         plugin_action_2 = self.create_action(type=Action.Type.PLUGIN)
 
-        actions_queryset = Action.objects.filter(
-            id__in=[plugin_action_1.id, plugin_action_2.id]
-        ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
+        actions_queryset = Action.objects.filter(id__in=[plugin_action_1.id, plugin_action_2.id])
 
         result = deduplicate_actions(actions_queryset)
 
@@ -480,9 +451,7 @@ class TestActionDeduplication(TestCase):
             },
         )
 
-        actions_queryset = Action.objects.filter(
-            id__in=[slack_action.id, pagerduty_action.id]
-        ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
+        actions_queryset = Action.objects.filter(id__in=[slack_action.id, pagerduty_action.id])
 
         result = deduplicate_actions(actions_queryset)
 
@@ -517,9 +486,7 @@ class TestActionDeduplication(TestCase):
             },
         )
 
-        actions_queryset = Action.objects.filter(
-            id__in=[jira_action_1.id, jira_action_2.id]
-        ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
+        actions_queryset = Action.objects.filter(id__in=[jira_action_1.id, jira_action_2.id])
 
         result = deduplicate_actions(actions_queryset)
 
@@ -553,9 +520,7 @@ class TestActionDeduplication(TestCase):
             },
         )
 
-        actions_queryset = Action.objects.filter(
-            id__in=[jira_action_1.id, jira_action_2.id]
-        ).annotate(workflow_id=Value(1, output_field=models.IntegerField()))
+        actions_queryset = Action.objects.filter(id__in=[jira_action_1.id, jira_action_2.id])
 
         result = deduplicate_actions(actions_queryset)
 
@@ -576,9 +541,7 @@ class TestActionDeduplication(TestCase):
         """Test deduplication with single action."""
         single_action = self.slack_action
 
-        actions_queryset = Action.objects.filter(id=single_action.id).annotate(
-            workflow_id=Value(1, output_field=models.IntegerField())
-        )
+        actions_queryset = Action.objects.filter(id=single_action.id)
 
         result = deduplicate_actions(actions_queryset)
 
@@ -586,45 +549,3 @@ class TestActionDeduplication(TestCase):
         result_ids = list(result.values_list("id", flat=True))
         assert len(result_ids) == 1
         assert result_ids[0] == single_action.id
-
-    def test_deduplicate_actions_same_actions_different_workflows(self) -> None:
-        """Test that identical actions from different workflows are NOT deduplicated."""
-        # Create two identical Slack actions
-        slack_action_1 = self.create_action(
-            type=Action.Type.SLACK,
-            integration_id=self.slack_integration.id,
-            config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "channel-123",
-                "target_display": "Test Channel",
-            },
-        )
-
-        slack_action_2 = self.create_action(
-            type=Action.Type.SLACK,
-            integration_id=self.slack_integration.id,
-            config={
-                "target_type": ActionTarget.SPECIFIC,
-                "target_identifier": "channel-123",
-                "target_display": "Test Channel",
-            },
-        )
-
-        # Annotate with different workflow IDs
-        actions_queryset = Action.objects.filter(
-            id__in=[slack_action_1.id, slack_action_2.id]
-        ).annotate(
-            workflow_id=models.Case(
-                models.When(id=slack_action_1.id, then=models.Value(1)),
-                models.When(id=slack_action_2.id, then=models.Value(2)),
-                output_field=models.IntegerField(),
-            )
-        )
-
-        result = deduplicate_actions(actions_queryset)
-
-        # Both actions should remain since they're from different workflows
-        result_ids = list(result.values_list("id", flat=True))
-        assert len(result_ids) == 2
-        assert slack_action_1.id in result_ids
-        assert slack_action_2.id in result_ids

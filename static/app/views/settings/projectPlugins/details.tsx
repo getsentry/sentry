@@ -19,6 +19,7 @@ import {space} from 'sentry/styles/space';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import getDynamicText from 'sentry/utils/getDynamicText';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -201,7 +202,12 @@ function ProjectPluginDetails({organization, plugins, project}: Props) {
                 </div>
               )}
               <dt>{t('Version')}</dt>
-              <dd>{pluginDetails.version}</dd>
+              <dd>
+                {getDynamicText({
+                  value: pluginDetails.version,
+                  fixed: '1.0.0',
+                })}
+              </dd>
             </dl>
 
             {pluginDetails.description && (

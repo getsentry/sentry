@@ -26,29 +26,21 @@ import {
   getShortInterval,
 } from 'getsentry/views/amCheckout/utils';
 
-export type PlanUpdateData = {
+type UpdateData = {
   plan: string;
   onDemandBudget?: SharedOnDemandBudget;
   onDemandMaxSpend?: number;
 };
 
-export type PlanSelectRowProps = {
+type Props = {
   isSelected: boolean;
-  onUpdate: (data: PlanUpdateData) => void;
+  onUpdate: (data: UpdateData) => void;
   plan: Plan;
   planContent: PlanContent;
   planName: string;
   planValue: string;
   price: string;
   priceHeader: React.ReactNode;
-  /**
-   * Flag to show default pay as you go values
-   */
-  shouldShowDefaultPayAsYouGo: boolean;
-  /**
-   * Flag to show event price tags or warnings
-   */
-  shouldShowEventPrice: boolean;
   badge?: React.ReactNode;
   discountInfo?: Promotion['discountInfo'];
   highlightedFeatures?: string[];
@@ -61,6 +53,14 @@ export type PlanSelectRowProps = {
    * Optional warning at the bottom of the row
    */
   planWarning?: React.ReactNode;
+  /**
+   * Optional flag to show default pay as you go values
+   */
+  shouldShowDefaultPayAsYouGo?: boolean;
+  /**
+   * Optional flag to show event price tags
+   */
+  shouldShowEventPrice?: boolean;
 };
 
 function PlanSelectRow({
@@ -79,7 +79,7 @@ function PlanSelectRow({
   badge,
   shouldShowDefaultPayAsYouGo = false,
   shouldShowEventPrice = false,
-}: PlanSelectRowProps) {
+}: Props) {
   const billingInterval = getShortInterval(plan.billingInterval);
   const {features, description, hasMoreLink} = planContent;
 
@@ -113,7 +113,7 @@ function PlanSelectRow({
               value={planValue}
               checked={isSelected}
               onClick={() => {
-                const data: PlanUpdateData = {plan: plan.id};
+                const data: UpdateData = {plan: plan.id};
                 if (shouldShowDefaultPayAsYouGo) {
                   data.onDemandMaxSpend = isBizPlanFamily(plan)
                     ? PAYG_BUSINESS_DEFAULT
