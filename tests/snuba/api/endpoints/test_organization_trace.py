@@ -466,7 +466,7 @@ class OrganizationEventsTraceEndpointTest(
             guid = (
                 item.attributes.get("guid", ProtoAttributeValue(val_str="")).string_value
                 if hasattr(item, "attributes")
-                else item.get("event_id", "")
+                else item.get("additional_attributes", {}).get("guid", "")
             )
             seq = (
                 item.attributes.get("request_sequence", ProtoAttributeValue(val_int=0)).int_value
