@@ -52,7 +52,7 @@ export function TransactionSelector({
     pageLinks,
   });
 
-  const projectIds = pageFilters.selection.projects.map(project => project.id).sort();
+  const projectIds = pageFilters.selection.projects.sort();
   const cacheKey = [...projectIds].join(' ');
 
   const {options: transactionOptions} = useCompactSelectOptionsCache(
