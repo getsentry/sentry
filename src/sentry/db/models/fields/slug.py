@@ -1,7 +1,7 @@
 from django.db.models import SlugField
 from django.db.models.lookups import Lookup
 
-from sentry.slug.validators import no_numeric_validator, org_slug_validator
+from sentry.utils.slug import no_numeric_validator, org_slug_validator
 
 DEFAULT_SLUG_MAX_LENGTH = 50
 

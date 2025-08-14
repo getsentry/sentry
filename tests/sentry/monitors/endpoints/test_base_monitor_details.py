@@ -21,10 +21,10 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.utils import get_timeout_at
 from sentry.quotas.base import SeatAssignmentResult
-from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.outcomes import Outcome
+from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 
 
 class BaseMonitorDetailsTest(MonitorTestCase):
