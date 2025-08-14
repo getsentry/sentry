@@ -112,7 +112,7 @@ export function useSetQueryParamsVisualizes() {
         } else if (isGroupBy(aggregateField)) {
           aggregateFields.push(aggregateField);
         } else {
-          throw new Error('Unknown aggregate field', aggregateField);
+          throw new Error(`Unknown aggregate field: ${JSON.stringify(aggregateField)}`);
         }
       }
 
