@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {Flex} from 'sentry/components/core/layout';
@@ -11,6 +11,7 @@ import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/use
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -60,6 +61,22 @@ export default function DetectorsList() {
     {enabled: isReady}
   );
 
+  const hits = getResponseHeader?.('X-Hits') || '';
+  const hitsInt = hits ? parseInt(hits, 10) || 0 : 0;
+  // If maxHits is not set, we assume there is no max
+  const maxHits = getResponseHeader?.('X-Max-Hits') || '';
+  const maxHitsInt = maxHits ? parseInt(maxHits, 10) || Infinity : Infinity;
+
+  const pageLinks = getResponseHeader?.('Link');
+
+  const allResultsVisible = useCallback(() => {
+    if (!pageLinks) {
+      return false;
+    }
+    const links = parseLinkHeader(pageLinks);
+    return links && !links.previous!.results && !links.next!.results;
+  }, [pageLinks]);
+
   return (
     <SentryDocumentTitle title={t('Monitors')} noSuffix>
       <PageFiltersContainer>
@@ -72,9 +89,11 @@ export default function DetectorsList() {
               isError={isError}
               isSuccess={isSuccess}
               sort={sort}
+              queryCount={hitsInt > maxHitsInt ? `${maxHits}+` : hits}
+              allResultsVisible={allResultsVisible()}
             />
             <Pagination
-              pageLinks={getResponseHeader?.('Link')}
+              pageLinks={pageLinks}
               onCursor={newCursor => {
                 navigate({
                   pathname: location.pathname,
