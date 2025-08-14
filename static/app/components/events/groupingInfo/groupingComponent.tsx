@@ -70,7 +70,7 @@ export const GroupingValue = styled('code')<{
   margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
   font-size: ${p => p.theme.fontSize.sm};
   padding: 0 ${space(0.25)};
-  background: rgba(112, 163, 214, 0.1);
+  background: ${p => (p.contributes ? 'rgba(112, 163, 214, 0.1)' : 'transparent')};
   color: ${p => (p.contributes ? p.theme.textColor : p.theme.subText)};
 
   ${({valueType, theme, contributes}) =>
