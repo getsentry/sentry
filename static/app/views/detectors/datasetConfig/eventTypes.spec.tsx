@@ -1,15 +1,13 @@
-import {
-  DEFAULT_EVENT_TYPES_BY_DATASET,
-  parseEventTypesFromQuery,
-} from 'sentry/views/detectors/datasetConfig/eventTypes';
-import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+import {DetectorErrorsConfig} from 'sentry/views/detectors/datasetConfig/errors';
+import {parseEventTypesFromQuery} from 'sentry/views/detectors/datasetConfig/eventTypes';
+import {DetectorTransactionsConfig} from 'sentry/views/detectors/datasetConfig/transactions';
 
 describe('eventTypes.parseEventTypesFromQuery', () => {
   it('extracts list and cleans query (errors)', () => {
     const input = 'event.type:[error, default] is:unresolved';
     const {eventTypes, query} = parseEventTypesFromQuery(
       input,
-      DEFAULT_EVENT_TYPES_BY_DATASET[DetectorDataset.ERRORS]
+      DetectorErrorsConfig.defaultEventTypes
     );
 
     expect(eventTypes.toSorted()).toEqual(['default', 'error']);
@@ -20,7 +18,7 @@ describe('eventTypes.parseEventTypesFromQuery', () => {
     const input = 'event.type:transaction transaction.duration:>0';
     const {eventTypes, query} = parseEventTypesFromQuery(
       input,
-      DEFAULT_EVENT_TYPES_BY_DATASET[DetectorDataset.TRANSACTIONS]
+      DetectorTransactionsConfig.defaultEventTypes
     );
 
     expect(eventTypes).toEqual(['transaction']);
@@ -31,11 +29,11 @@ describe('eventTypes.parseEventTypesFromQuery', () => {
     const input = 'is:unresolved';
     const {eventTypes, query} = parseEventTypesFromQuery(
       input,
-      DEFAULT_EVENT_TYPES_BY_DATASET[DetectorDataset.ERRORS]
+      DetectorErrorsConfig.defaultEventTypes
     );
 
     expect(eventTypes.toSorted()).toEqual(
-      DEFAULT_EVENT_TYPES_BY_DATASET[DetectorDataset.ERRORS].toSorted()
+      DetectorErrorsConfig.defaultEventTypes.toSorted()
     );
     expect(query).toBe('is:unresolved');
   });
@@ -44,11 +42,11 @@ describe('eventTypes.parseEventTypesFromQuery', () => {
     const input = 'event.type:[foo, bar] message:"oops"';
     const {eventTypes, query} = parseEventTypesFromQuery(
       input,
-      DEFAULT_EVENT_TYPES_BY_DATASET[DetectorDataset.ERRORS]
+      DetectorErrorsConfig.defaultEventTypes
     );
 
     expect(eventTypes.toSorted()).toEqual(
-      DEFAULT_EVENT_TYPES_BY_DATASET[DetectorDataset.ERRORS].toSorted()
+      DetectorErrorsConfig.defaultEventTypes.toSorted()
     );
     expect(query).toBe('message:"oops"');
   });

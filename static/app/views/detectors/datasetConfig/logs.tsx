@@ -8,18 +8,20 @@ import {
 } from 'sentry/views/detectors/datasetConfig/utils/discoverSeries';
 
 import type {DetectorDatasetConfig} from './base';
-import {DEFAULT_EVENT_TYPES_BY_DATASET, parseEventTypesFromQuery} from './eventTypes';
-import {DetectorDataset} from './types';
+import {parseEventTypesFromQuery} from './eventTypes';
 
 type LogsSeriesRepsonse = EventsStats;
 
+const DEFAULT_EVENT_TYPES = ['trace_item_log'];
+
 export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
+  SearchBar: TraceSearchBar,
+  defaultEventTypes: DEFAULT_EVENT_TYPES,
   defaultField: LogsConfig.defaultField,
   getAggregateOptions: LogsConfig.getTableFieldOptions,
-  SearchBar: TraceSearchBar,
   getSeriesQueryOptions: getDiscoverSeriesQueryOptions,
   separateEventTypesFromQuery: query =>
-    parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES_BY_DATASET[DetectorDataset.LOGS]),
+    parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
   toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',
   transformSeriesQueryData: (data, aggregate) => {
     return [transformEventsStatsToSeries(data, aggregate)];

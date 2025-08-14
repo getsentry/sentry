@@ -12,8 +12,7 @@ import {
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
 
 import type {DetectorDatasetConfig} from './base';
-import {DEFAULT_EVENT_TYPES_BY_DATASET, parseEventTypesFromQuery} from './eventTypes';
-import {DetectorDataset} from './types';
+import {parseEventTypesFromQuery} from './eventTypes';
 
 type ErrorsSeriesResponse = EventsStats;
 
@@ -62,10 +61,13 @@ const DEFAULT_FIELD: QueryFieldValue = {
   kind: FieldValueKind.FUNCTION,
 };
 
+const DEFAULT_EVENT_TYPES = ['error', 'default'];
+
 export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> = {
+  SearchBar: EventsSearchBar,
+  defaultEventTypes: DEFAULT_EVENT_TYPES,
   defaultField: DEFAULT_FIELD,
   getAggregateOptions: () => AGGREGATE_OPTIONS,
-  SearchBar: EventsSearchBar,
   getSeriesQueryOptions: options =>
     getDiscoverSeriesQueryOptions({
       ...options,
@@ -85,8 +87,7 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
       return '';
     }
 
-    const defaultsSorted =
-      DEFAULT_EVENT_TYPES_BY_DATASET[DetectorDataset.ERRORS].toSorted();
+    const defaultsSorted = DEFAULT_EVENT_TYPES.toSorted();
     const current = snubaQuery.eventTypes;
     const sameAsDefaults =
       current.length === defaultsSorted.length &&
@@ -104,8 +105,5 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
     return [eventTypeFilter, snubaQuery.query].filter(Boolean).join(' ');
   },
   separateEventTypesFromQuery: query =>
-    parseEventTypesFromQuery(
-      query,
-      DEFAULT_EVENT_TYPES_BY_DATASET[DetectorDataset.ERRORS]
-    ),
+    parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
 };

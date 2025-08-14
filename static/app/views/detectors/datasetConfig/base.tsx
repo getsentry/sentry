@@ -60,6 +60,10 @@ export interface DetectorDatasetConfig<SeriesResponse> {
    */
   SearchBar: (props: DetectorSearchBarProps) => React.JSX.Element;
   /**
+   * Default event types for this dataset
+   */
+  defaultEventTypes: string[];
+  /**
    * Default field to use when the dataset is first selected
    */
   defaultField: QueryFieldValue;

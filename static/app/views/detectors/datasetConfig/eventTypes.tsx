@@ -5,20 +5,6 @@ import {
   Token,
 } from 'sentry/components/searchSyntax/parser';
 
-import {DetectorDataset} from './types';
-
-/**
- * The allowed event types are also the default event types for each dataset.
- * This may change in the future.
- */
-export const DEFAULT_EVENT_TYPES_BY_DATASET: Record<DetectorDataset, string[]> = {
-  [DetectorDataset.ERRORS]: ['error', 'default'],
-  [DetectorDataset.TRANSACTIONS]: ['transaction'],
-  [DetectorDataset.SPANS]: ['trace_item_span'],
-  [DetectorDataset.LOGS]: ['trace_item_log'],
-  [DetectorDataset.RELEASES]: [],
-};
-
 export function parseEventTypesFromQuery(
   query: string,
   defaultEventTypes: string[]

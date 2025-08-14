@@ -14,8 +14,7 @@ import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 import type {DetectorDatasetConfig} from './base';
-import {DEFAULT_EVENT_TYPES_BY_DATASET, parseEventTypesFromQuery} from './eventTypes';
-import {DetectorDataset} from './types';
+import {parseEventTypesFromQuery} from './eventTypes';
 
 type ReleasesSeriesResponse = SessionApiResponse;
 
@@ -78,6 +77,8 @@ const DEFAULT_FIELD: QueryFieldValue = {
   kind: FieldValueKind.FUNCTION,
 };
 
+const DEFAULT_EVENT_TYPES: string[] = [];
+
 const fromApiAggregate = (aggregate: string) => {
   return (
     Object.keys(AGGREGATE_FUNCTION_MAP).find(
@@ -92,6 +93,7 @@ const toApiAggregate = (aggregate: string) => {
 
 export const DetectorReleasesConfig: DetectorDatasetConfig<ReleasesSeriesResponse> = {
   defaultField: DEFAULT_FIELD,
+  defaultEventTypes: DEFAULT_EVENT_TYPES,
   getAggregateOptions: () => AGGREGATE_OPTIONS,
   SearchBar: ReleaseSearchBar,
   getSeriesQueryOptions: getReleasesSeriesQueryOptions,
@@ -99,10 +101,7 @@ export const DetectorReleasesConfig: DetectorDatasetConfig<ReleasesSeriesRespons
   fromApiAggregate,
   toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',
   separateEventTypesFromQuery: query =>
-    parseEventTypesFromQuery(
-      query,
-      DEFAULT_EVENT_TYPES_BY_DATASET[DetectorDataset.RELEASES]
-    ),
+    parseEventTypesFromQuery(query, DEFAULT_EVENT_TYPES),
   transformSeriesQueryData: (data, aggregate) => {
     return [transformMetricsResponseToSeries(data, aggregate)];
   },
