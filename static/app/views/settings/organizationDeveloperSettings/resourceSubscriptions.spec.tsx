@@ -23,10 +23,11 @@ describe('Resource Subscriptions', function () {
         </Form>
       );
 
-      expect(screen.getAllByRole('checkbox')).toHaveLength(3);
+      expect(screen.getAllByRole('checkbox')).toHaveLength(4);
       expect(screen.getByRole('checkbox', {name: 'issue'})).toBeDisabled();
       expect(screen.getByRole('checkbox', {name: 'error'})).toBeDisabled();
       expect(screen.getByRole('checkbox', {name: 'comment'})).toBeDisabled();
+      expect(screen.getByRole('checkbox', {name: 'seer'})).toBeDisabled();
     });
 
     it('updates events state when new permissions props is passed', function () {
