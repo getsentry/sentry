@@ -94,5 +94,5 @@ class SlackClientTest(TestCase):
         mock_metrics.incr.assert_called_with(
             SLACK_DATADOG_METRIC,
             sample_rate=1.0,
-            tags={"status": "timeout"},
+            tags={"ok": False, "status": "429"},
         )
