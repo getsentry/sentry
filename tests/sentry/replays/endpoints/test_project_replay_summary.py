@@ -258,6 +258,7 @@ class ProjectReplaySummaryTestCase(
 
         self.store_event(
             data={
+                "type": "feedback",
                 "event_id": feedback_event_id,
                 "timestamp": now.timestamp(),
                 "contexts": {
@@ -422,7 +423,9 @@ class ProjectReplaySummaryTestCase(
 
         now = datetime.now(UTC)
         feedback_event_id = uuid.uuid4().hex
+        feedback_event_id_2 = uuid.uuid4().hex
         trace_id = uuid.uuid4().hex
+        trace_id_2 = uuid.uuid4().hex
 
         # Create feedback event - issuePlatform dataset
         feedback_data = {
@@ -445,11 +448,36 @@ class ProjectReplaySummaryTestCase(
             },
         }
 
+        # Create another feedback event - issuePlatform dataset
+        feedback_data_2 = {
+            "type": "feedback",
+            "event_id": feedback_event_id_2,
+            "timestamp": now.timestamp() + 2,
+            "contexts": {
+                "feedback": {
+                    "contact_email": "test@example.com",
+                    "name": "Test User",
+                    "message": "Broken website",
+                    "replay_id": self.replay_id,
+                    "url": "https://example.com",
+                },
+                "trace": {
+                    "type": "trace",
+                    "trace_id": trace_id_2,
+                    "span_id": "1" + uuid.uuid4().hex[:15],
+                },
+            },
+        }
+
         create_feedback_issue(
             feedback_data, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         )
 
-        self.store_replay(trace_ids=[trace_id])
+        create_feedback_issue(
+            feedback_data_2, self.project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
+        )
+
+        self.store_replay(trace_ids=[trace_id, trace_id_2])
 
         # mock SDK feedback event
         data = [
@@ -480,9 +508,10 @@ class ProjectReplaySummaryTestCase(
         data = mock_requests.post.call_args.kwargs["data"]
         logs = json.loads(data)["logs"]
 
-        # Verify that only 1 feedback log is included
-        assert len(logs) == 1
+        # Verify that only the unique feedback logs are included
+        assert len(logs) == 2
         assert "User submitted feedback" in logs[0]
+        assert "Broken website" in logs[1]
 
     @responses.activate
     @patch("sentry.replays.endpoints.project_replay_summary.MAX_SEGMENTS_TO_SUMMARIZE", 1)
