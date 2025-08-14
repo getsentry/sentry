@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, type AnimationProps} from 'framer-motion';
+import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
 import {
@@ -50,7 +50,7 @@ type IssueListActionsProps = {
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 };
 
-const animationProps: AnimationProps = {
+const animationProps: MotionNodeAnimationOptions = {
   initial: {translateY: 8, opacity: 0},
   animate: {translateY: 0, opacity: 1},
   exit: {translateY: -8, opacity: 0},

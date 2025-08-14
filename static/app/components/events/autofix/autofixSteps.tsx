@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, type AnimationProps} from 'framer-motion';
+import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
 import AutofixInsightCards from 'sentry/components/events/autofix/autofixInsightCards';
@@ -22,7 +22,7 @@ import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const animationProps: AnimationProps = {
+const animationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0},
   initial: {opacity: 0},
   animate: {opacity: 1},
