@@ -37,7 +37,6 @@ import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingRedu
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {

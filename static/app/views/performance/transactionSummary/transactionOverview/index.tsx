@@ -68,8 +68,6 @@ function TransactionOverview(props: Props) {
   const {location, selection, organization, projects} = props;
 
   useEffect(() => {
-    console.log('re-running effect', selection);
-
     loadOrganizationTags(api, organization.slug, selection);
     addRoutePerformanceContext(selection);
     trackAnalytics('performance_views.transaction_summary.view', {
