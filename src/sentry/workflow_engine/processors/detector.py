@@ -36,7 +36,6 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
 
     try:
         if issue_occurrence is None or evt.group.issue_type.detector_settings is None:
-            # TODO - @saponifi3d - check to see if there's a way to confirm these are for the error detector
             # if there are no detector settings, default to the error detector
             detector = Detector.objects.get(project_id=evt.project_id, type=ErrorGroupType.slug)
         else:
