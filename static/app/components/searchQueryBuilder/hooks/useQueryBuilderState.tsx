@@ -548,19 +548,19 @@ function updateFilterKey(
 export function replaceFreeTextTokens(
   action: UpdateQueryAction,
   getFieldDefinition: FieldDefinitionGetter,
-  rawSearchReplacement: string[],
+  replaceRawSearchKeys: string[],
   queryToCommit: string
 ) {
   const tokens = parseQueryBuilderValue(action.query, getFieldDefinition) ?? [];
 
-  if (tokens.length === 0 || rawSearchReplacement.length === 0) {
+  if (tokens.length === 0 || replaceRawSearchKeys.length === 0) {
     return {newQuery: queryToCommit, focusOverride: null};
   }
 
   // Single pass to collect free text tokens and find replace token
   const freeTextTokens: Array<TokenResult<Token.FREE_TEXT>> = [];
   let replaceToken: TokenResult<Token.FILTER> | undefined;
-  const rawSearchFirst = rawSearchReplacement[0] ?? '';
+  const rawSearchFirst = replaceRawSearchKeys[0] ?? '';
 
   for (const token of tokens) {
     if (token.type === Token.FREE_TEXT && /[a-zA-Z0-9]/.test(token.value)) {
@@ -587,7 +587,7 @@ export function replaceFreeTextTokens(
     .filter(
       token =>
         token.type !== Token.FREE_TEXT &&
-        !token.text.includes(rawSearchReplacement[0] ?? '')
+        !token.text.includes(replaceRawSearchKeys[0] ?? '')
     )
     .map(token => token.text);
 
@@ -602,10 +602,10 @@ export function replaceFreeTextTokens(
       previousValue = previousValue.slice(0, -1);
     }
 
-    filteredTokens.push(`${rawSearchReplacement[0]}:[${previousValue},${values}]`);
+    filteredTokens.push(`${replaceRawSearchKeys[0]}:[${previousValue},${values}]`);
   } else {
     filteredTokens.push(
-      `${rawSearchReplacement[0]}:${values.length > 1 ? `[${values}]` : values}`
+      `${replaceRawSearchKeys[0]}:${values.length > 1 ? `[${values}]` : values}`
     );
   }
 
@@ -621,14 +621,14 @@ export function useQueryBuilderState({
   disabled,
   displayAskSeerFeedback,
   setDisplayAskSeerFeedback,
-  rawSearchReplacement,
+  replaceRawSearchKeys,
 }: {
   disabled: boolean;
   displayAskSeerFeedback: boolean;
   getFieldDefinition: FieldDefinitionGetter;
   initialQuery: string;
   setDisplayAskSeerFeedback: (value: boolean) => void;
-  rawSearchReplacement?: string[];
+  replaceRawSearchKeys?: string[];
 }) {
   const organization = useOrganization();
   const hasWildcardOperators = organization.features.includes(
@@ -675,14 +675,14 @@ export function useQueryBuilderState({
 
           let replacedQuery: string | undefined;
           if (
-            rawSearchReplacement &&
-            rawSearchReplacement.length > 0 &&
+            replaceRawSearchKeys &&
+            replaceRawSearchKeys.length > 0 &&
             hasRawSearchReplacement
           ) {
             const {newQuery, focusOverride} = replaceFreeTextTokens(
               action,
               getFieldDefinition,
-              rawSearchReplacement,
+              replaceRawSearchKeys,
               queryToCommit
             );
             replacedQuery = newQuery;
@@ -757,7 +757,7 @@ export function useQueryBuilderState({
       displayAskSeerFeedback,
       getFieldDefinition,
       hasRawSearchReplacement,
-      rawSearchReplacement,
+      replaceRawSearchKeys,
     ]
   );
 
