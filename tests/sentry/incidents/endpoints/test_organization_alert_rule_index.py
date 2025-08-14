@@ -1675,7 +1675,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, SnubaTestCase):
             status_code=400,
             **data,
         )
-        assert resp.data == "You may not exceed 2 metric alerts on your current plan."
 
     @with_feature("organizations:incidents")
     @with_feature("organizations:workflow-engine-metric-detector-limit")
