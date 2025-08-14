@@ -17,8 +17,10 @@
   },
   "request": {
     "url": "http://localhost:3001/vulnerable-login",
-    "method": "GET",
-    "query_string": [["type", "account"]]
+    "method": "POST",
+    "data": {
+      "username": "hello"
+    }
   },
   "spans": [
     {
@@ -138,17 +140,22 @@
       "parent_span_id": "91fa92ff0205967d",
       "trace_id": "375a86eca09a4a4e91903838dd771f50",
       "status": "ok",
-      "description": "SELECT account.id, \"account\".name, account_type FROM data WHERE type = ?",
+      "description": "SELECT * FROM users WHERE username = 'hello'",
+      "origin": "auto.db.otel.mysql2",
+      "sentry_tags": {
+        "description": "SELECT * FROM users WHERE username = %s"
+      },
       "data": {
         "db.system": "mysql",
         "db.connection_string": "jdbc:mysql://localhost:3306/injection_test",
         "db.name": "injection_test",
-        "db.statement": "SELECT account.id, \"account\".name, account_type FROM data WHERE type = ?",
+        "db.statement": "SELECT * FROM users WHERE username = 'hello'",
         "db.user": "root",
         "net.peer.name": "localhost",
         "net.peer.port": 3306,
         "otel.kind": "CLIENT",
-        "sentry.op": "db"
+        "sentry.op": "db",
+        "sentry.origin": "auto.db.otel.mysql2"
       },
       "hash": "45330ba0cafa5997"
     }
