@@ -285,7 +285,7 @@ describe('TableWidgetVisualization', function () {
 
     it('Uses onTriggerCellAction if supplied on action click', async function () {
       const onTriggerCellActionMock = jest.fn(
-        (_actions: Actions, _value: string | number) => {}
+        (_actions: Actions, _value: string | number, _dataRow: TabularRow) => {}
       );
       Object.assign(navigator, {
         clipboard: {
@@ -307,7 +307,8 @@ describe('TableWidgetVisualization', function () {
       await waitFor(() =>
         expect(onTriggerCellActionMock).toHaveBeenCalledWith(
           Actions.COPY_TO_CLIPBOARD,
-          sampleHTTPRequestTableData.data[0]!['http.request_method']
+          sampleHTTPRequestTableData.data[0]!['http.request_method'],
+          sampleHTTPRequestTableData.data[0]
         )
       );
     });

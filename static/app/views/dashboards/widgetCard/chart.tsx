@@ -4,7 +4,6 @@ import type {Theme} from '@emotion/react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
-import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -31,6 +30,7 @@ import type {
   EChartEventHandler,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
+import type {InjectedRouter, WithRouterProps} from 'sentry/types/legacyReactRouter';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {
@@ -58,19 +58,22 @@ import {
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import type {Widget} from 'sentry/views/dashboards/types';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getBucketSize} from 'sentry/views/dashboards/utils/getBucketSize';
+import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type WidgetLegendSelectionState from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
+import {ALLOWED_CELL_ACTIONS} from 'sentry/views/dashboards/widgets/common/settings';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
 import {
   convertTableDataToTabularData,
   decodeColumnAliases,
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 
@@ -87,38 +90,40 @@ type TableResultProps = Pick<
 type WidgetCardChartProps = Pick<
   GenericWidgetQueriesChildrenProps,
   'timeseriesResults' | 'tableResults' | 'errorMessage' | 'loading'
-> & {
-  location: Location;
-  organization: Organization;
-  selection: PageFilters;
-  theme: Theme;
-  widget: Widget;
-  widgetLegendState: WidgetLegendSelectionState;
-  chartGroup?: string;
-  confidence?: Confidence;
-  disableTableActions?: boolean;
-  disableZoom?: boolean;
-  expandNumbers?: boolean;
-  isMobile?: boolean;
-  isSampled?: boolean | null;
-  legendOptions?: LegendComponentOption;
-  minTableColumnWidth?: number;
-  noPadding?: boolean;
-  onLegendSelectChanged?: EChartEventHandler<{
-    name: string;
-    selected: Record<string, boolean>;
-    type: 'legendselectchanged';
-  }>;
-  onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
-  onWidgetTableSort?: (sort: Sort) => void;
-  onZoom?: EChartDataZoomHandler;
-  sampleCount?: number;
-  shouldResize?: boolean;
-  showConfidenceWarning?: boolean;
-  showLoadingText?: boolean;
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  windowWidth?: number;
-};
+> &
+  WithRouterProps & {
+    organization: Organization;
+    selection: PageFilters;
+    theme: Theme;
+    widget: Widget;
+    widgetLegendState: WidgetLegendSelectionState;
+    chartGroup?: string;
+    confidence?: Confidence;
+    dashboardFilters?: DashboardFilters;
+    disableTableActions?: boolean;
+    disableZoom?: boolean;
+    expandNumbers?: boolean;
+    isMobile?: boolean;
+    isSampled?: boolean | null;
+    legendOptions?: LegendComponentOption;
+    minTableColumnWidth?: number;
+    noPadding?: boolean;
+    onLegendSelectChanged?: EChartEventHandler<{
+      name: string;
+      selected: Record<string, boolean>;
+      type: 'legendselectchanged';
+    }>;
+    onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
+    onWidgetTableSort?: (sort: Sort) => void;
+    onZoom?: EChartDataZoomHandler;
+    router?: InjectedRouter;
+    sampleCount?: number;
+    shouldResize?: boolean;
+    showConfidenceWarning?: boolean;
+    showLoadingText?: boolean;
+    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
+    windowWidth?: number;
+  };
 
 class WidgetCardChart extends Component<WidgetCardChartProps> {
   shouldComponentUpdate(nextProps: WidgetCardChartProps): boolean {
@@ -162,6 +167,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       onWidgetTableSort,
       onWidgetTableResizeColumn,
       disableTableActions,
+      dashboardFilters,
+      router,
     } = this.props;
     if (loading || !tableResults?.[0]) {
       // Align height to other charts.
@@ -208,6 +215,13 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       }
 
       const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
+      let cellActions = ALLOWED_CELL_ACTIONS;
+      if (disableTableActions || !useCellActionsV2) {
+        cellActions = [];
+      } else if (widget.widgetType === WidgetType.SPANS) {
+        cellActions = [...ALLOWED_CELL_ACTIONS, Actions.OPEN_ROW_IN_EXPLORE];
+      }
+
       return (
         <TableWrapper key={`table:${result.title}`}>
           {organization.features.includes('dashboards-use-widget-table-visualization') ? (
@@ -242,9 +256,18 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                 } satisfies RenderFunctionBaggage;
               }}
               onResizeColumn={onWidgetTableResizeColumn}
-              allowedCellActions={
-                disableTableActions || !useCellActionsV2 ? [] : undefined
-              }
+              allowedCellActions={cellActions}
+              onTriggerCellAction={(action, _value, dataRow) => {
+                if (action === Actions.OPEN_ROW_IN_EXPLORE) {
+                  const getExploreUrl = getWidgetTableRowExploreUrlFunction(
+                    selection,
+                    widget,
+                    organization,
+                    dashboardFilters
+                  );
+                  router.push(getExploreUrl(dataRow));
+                }
+              }}
             />
           ) : (
             <StyledSimpleTableChart

@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 
 // NOTE: This is a subset! Some types like `"string"`, `"date"`, and
 // `"percent_change"` are not supported yet. Once we support them, we can remove
@@ -26,3 +27,9 @@ export const DEFAULT_FIELD = 'unknown'; // Numeric data might, in theory, have a
 export const MISSING_DATA_MESSAGE = t('No Data');
 export const NO_PLOTTABLE_VALUES = t('The data does not contain any plottable values.');
 export const NON_FINITE_NUMBER_MESSAGE = t('Value is not a finite number.');
+
+export const ALLOWED_CELL_ACTIONS = [
+  Actions.OPEN_INTERNAL_LINK,
+  Actions.COPY_TO_CLIPBOARD,
+  Actions.OPEN_EXTERNAL_LINK,
+];
