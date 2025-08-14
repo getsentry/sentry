@@ -11,7 +11,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features, quotas
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -314,28 +314,11 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         if not detector_type:
             raise ValidationError({"type": ["This field is required."]})
 
-        # restrict creating metric issue detectors by plan type
-        if detector_type == MetricIssue.slug:
-            if not features.has("organizations:incidents", organization, actor=request.user):
-                raise ResourceDoesNotExist
-
-            if features.has(
-                "organizations:workflow-engine-metric-detector-limit",
-                organization,
-                actor=request.user,
-            ):
-                alert_count = Detector.objects.filter(
-                    project__organization=organization,
-                    type=detector_type,
-                    status=ObjectStatus.ACTIVE,
-                ).count()
-                alert_limit = quotas.backend.get_metric_detector_limit(organization.id)
-
-                if alert_limit >= 0 and alert_count >= alert_limit:
-                    return Response(
-                        f"You may not exceed {alert_limit} metric detectors on your current plan.",
-                        status=400,
-                    )
+        # Restrict creating metric issue detectors by plan type
+        if detector_type == MetricIssue.slug and not features.has(
+            "organizations:incidents", organization, actor=request.user
+        ):
+            raise ResourceDoesNotExist
 
         try:
             project_id = request.data.get("projectId")

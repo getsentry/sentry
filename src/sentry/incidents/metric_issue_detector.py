@@ -3,6 +3,8 @@ from typing import Any
 
 from rest_framework import serializers
 
+from sentry import features, quotas
+from sentry.constants import ObjectStatus
 from sentry.incidents.logic import enable_disable_subscriptions
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.snuba_query_validator import SnubaQueryValidator
@@ -87,6 +89,32 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 raise serializers.ValidationError("Too many conditions")
 
         return attrs
+
+    def enforce_quota_on_create(self) -> None:
+        """
+        Enforce quota limits for metric detector creation.
+        Raises ValidationError if quota limits are exceeded.
+        """
+        organization = self.context.get("organization")
+        request = self.context.get("request")
+
+        if not organization or not request:
+            raise serializers.ValidationError()
+
+        if features.has(
+            "organizations:workflow-engine-metric-detector-limit", organization, actor=request.user
+        ):
+            detector_limit = quotas.backend.get_metric_detector_limit(organization.id)
+            detector_count = Detector.objects.filter(
+                project__organization=organization,
+                type="metric_issue",  # Avoided circular import. TODO: move magic strings to constant file
+                status=ObjectStatus.ACTIVE,
+            ).count()
+
+            if detector_limit >= 0 and detector_count >= detector_limit:
+                raise serializers.ValidationError(
+                    f"You may not exceed {detector_limit} metric detectors on your current plan."
+                )
 
     def update_data_source(self, instance: Detector, data_source: SnubaQueryDataSourceType):
         try:
