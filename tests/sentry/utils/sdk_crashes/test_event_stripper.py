@@ -467,7 +467,7 @@ def test_strip_event_with_multiple_exceptions_only_keep_last_one(store_and_strip
 
     exception_values.append(crash_exception)
 
-    set_path(event_data, "exception", value=exception_values)
+    set_path(event_data, "exception", "values", value=exception_values)
 
     stripped_event_data = store_and_strip_event(data=event_data)
 
@@ -493,7 +493,7 @@ def test_strip_event_with_multiple_exceptions_last_without_frames_discard_event(
     set_path(crash_exception, "stacktrace", value=None)
     exception_values.append(crash_exception)
 
-    set_path(event_data, "exception", value=exception_values)
+    set_path(event_data, "exception", "values", value=exception_values)
 
     stripped_event_data = store_and_strip_event(data=event_data)
 
@@ -517,7 +517,7 @@ def test_strip_event_with_multiple_exceptions_first_without_frames_keeps_last_ex
     # Remove the stacktrace from the first exception.
     exception_values[0]["stacktrace"] = None
 
-    set_path(event_data, "exception", value=exception_values)
+    set_path(event_data, "exception", "values", value=exception_values)
 
     stripped_event_data = store_and_strip_event(data=event_data)
 
