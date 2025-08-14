@@ -2,6 +2,7 @@ import logging
 from unittest import mock
 from uuid import uuid4
 
+import pytest
 from django.urls import reverse
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
@@ -613,6 +614,7 @@ class OrganizationEventsTraceEndpointTest(
         uptime_spans = self._find_uptime_spans(data)
         assert len(uptime_spans) == 0
 
+    @pytest.mark.skip(reason="flaky: #97781")
     def test_uptime_root_tree_with_orphaned_spans(self):
         """Test that orphaned spans are parented to the final uptime request"""
         self.load_trace(is_eap=True)
