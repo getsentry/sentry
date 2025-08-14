@@ -657,6 +657,12 @@ def post_process_group(
             )
             metric_tags["occurrence_type"] = group_event.group.issue_type.slug
 
+        track_event_since_received(
+            step="end_post_process",
+            event_data=event.data,
+            tags=metric_tags,
+        )
+
         if not is_reprocessed:
             received_at = event.data.get("received")
             saved_at = event.data.get("nodestore_insert")
@@ -677,12 +683,6 @@ def post_process_group(
                     "events.time-to-post-process",
                     post_processed_at - received_at,
                     instance=event.data["platform"],
-                    tags=metric_tags,
-                )
-
-                track_event_since_received(
-                    step="end_post_process",
-                    event_data=event.data,
                     tags=metric_tags,
                 )
 
