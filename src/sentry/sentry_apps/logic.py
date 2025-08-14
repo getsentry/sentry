@@ -14,10 +14,10 @@ from rest_framework.exceptions import ValidationError
 from sentry_sdk.api import isolation_scope
 
 from sentry import analytics, audit_log
+from sentry.api.exceptions import BadRequest
 from sentry.api.helpers.slugs import sentry_slugify
 from sentry.auth.staff import has_staff_option
 from sentry.constants import SentryAppStatus
-from sentry.coreapi import APIError
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.apiapplication import ApiApplication
@@ -141,7 +141,7 @@ class SentryAppUpdater:
     def _update_features(self, user: User | RpcUser) -> None:
         if self.features is not None:
             if not _is_elevated_user(user) and self.sentry_app.status == SentryAppStatus.PUBLISHED:
-                raise APIError("Cannot update features on a published integration.")
+                raise BadRequest("Cannot update features on a published integration.")
 
             IntegrationFeature.objects.clean_update(
                 incoming_features=self.features,
@@ -173,7 +173,7 @@ class SentryAppUpdater:
             if self.sentry_app.status == SentryAppStatus.PUBLISHED and set(
                 self.sentry_app.scope_list
             ) != set(self.scopes):
-                raise APIError("Cannot update permissions on a published integration.")
+                raise BadRequest("Cannot update permissions on a published integration.")
 
             # We are using a pre_save signal to enforce scope hierarchy on the ApiToken model.
             # Because we're using bulk_update here to update all the tokens for the SentryApp,
@@ -198,7 +198,7 @@ class SentryAppUpdater:
             for event in self.events:
                 needed_scope = REQUIRED_EVENT_PERMISSIONS[event]
                 if needed_scope not in self.sentry_app.scope_list:
-                    raise APIError(f"{event} webhooks require the {needed_scope} permission.")
+                    raise BadRequest(f"{event} webhooks require the {needed_scope} permission.")
 
             self.sentry_app.events = expand_events(self.events)
 
@@ -243,7 +243,7 @@ class SentryAppUpdater:
     def _update_verify_install(self) -> None:
         if self.verify_install is not None:
             if self.sentry_app.is_internal and self.verify_install:
-                raise APIError("Internal integrations cannot have verify_install=True.")
+                raise BadRequest("Internal integrations cannot have verify_install=True.")
             self.sentry_app.verify_install = self.verify_install
 
     def _update_overview(self) -> None:

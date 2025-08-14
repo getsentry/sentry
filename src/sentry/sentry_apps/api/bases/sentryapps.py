@@ -12,10 +12,10 @@ from rest_framework.response import Response
 
 from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
+from sentry.api.exceptions import BadRequest
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
-from sentry.coreapi import APIError
 from sentry.integrations.api.bases.integration import PARANOID_GET
 from sentry.models.organization import OrganizationStatus
 from sentry.organizations.services.organization import (
@@ -44,8 +44,8 @@ def catch_raised_errors(func):
     def wrapped(self, *args, **kwargs):
         try:
             return func(self, *args, **kwargs)
-        except APIError as e:
-            return Response({"detail": e.msg}, status=400)
+        except BadRequest as e:
+            return Response({"detail": str(e)}, status=400)
 
     return wrapped
 
