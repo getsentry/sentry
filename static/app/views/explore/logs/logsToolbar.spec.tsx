@@ -103,17 +103,8 @@ describe('LogsToolbar', function () {
 
       let options: HTMLElement[];
 
-      // count only has 1 option available
-      await userEvent.click(screen.getByRole('button', {name: 'logs'}));
-      options = screen.getAllByRole('option');
-      expect(options).toHaveLength(1);
-      expect(options[0]).toHaveTextContent('logs');
-      await userEvent.click(options[0]!);
-      expect(router.location.query.aggregateField).toEqual(
-        [{groupBy: ''}, {yAxes: ['count(message)']}].map(aggregateField =>
-          JSON.stringify(aggregateField)
-        )
-      );
+      // count has no user changable argument
+      expect(screen.getByRole('button', {name: 'logs'})).toBeDisabled();
 
       // count unique only shows string attributes
       await userEvent.click(screen.getByRole('button', {name: 'count'}));
