@@ -117,6 +117,7 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
 
 const BreadcrumbContainer = styled('div')`
   display: flex;
+  align-items: center;
   gap: ${space(0.5)};
 `;
 
