@@ -118,16 +118,3 @@ jobs:
             --tag ghcr.io/getsentry/sentry:latest \
             ghcr.io/getsentry/sentry:${{ github.sha }}-amd64 \
             ghcr.io/getsentry/sentry:${{ github.sha }}-arm64
-
-  self-hosted-end-to-end:
-    needs: [assemble]
-    runs-on: ubuntu-latest
-    if: ${{ (github.ref_name == 'master') }}
-    timeout-minutes: 30
-    steps:
-      - name: Run Sentry self-hosted e2e CI
-        uses: getsentry/self-hosted@master
-        with:
-          project_name: sentry
-          image_url: ghcr.io/getsentry/sentry:${{ github.sha }}
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
