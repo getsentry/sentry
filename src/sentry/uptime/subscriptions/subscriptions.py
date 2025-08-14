@@ -2,6 +2,10 @@ import logging
 from collections.abc import Sequence
 
 from django.db import router
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUS_SUCCESS,
+)
 
 from sentry import quotas
 from sentry.constants import DataCategory, ObjectStatus
@@ -17,7 +21,6 @@ from sentry.uptime.models import (
     UptimeStatus,
     UptimeSubscription,
     UptimeSubscriptionRegion,
-    create_detector_from_project_subscription,
     get_detector,
     get_project_subscription,
     load_regions_for_uptime_subscription,
@@ -30,11 +33,18 @@ from sentry.uptime.subscriptions.tasks import (
     send_uptime_config_deletion,
     update_remote_uptime_subscription,
 )
-from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.types import (
+    DATA_SOURCE_UPTIME_SUBSCRIPTION,
+    GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+    UptimeMonitorMode,
+)
 from sentry.utils.db import atomic_transaction
 from sentry.utils.not_set import NOT_SET, NotSet, default_if_not_set
 from sentry.utils.outcomes import Outcome
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
+from sentry.workflow_engine.models.data_condition import Condition, DataCondition
+from sentry.workflow_engine.models.data_condition_group import DataConditionGroup
+from sentry.workflow_engine.types import DetectorPriorityLevel
 
 logger = logging.getLogger(__name__)
 
@@ -164,7 +174,7 @@ def delete_uptime_subscription(uptime_subscription: UptimeSubscription):
     delete_remote_uptime_subscription.delay(uptime_subscription.id)
 
 
-def create_project_uptime_subscription(
+def create_uptime_detector(
     project: Project,
     environment: Environment | None,
     url: str,
@@ -179,8 +189,7 @@ def create_project_uptime_subscription(
     owner: Actor | None = None,
     trace_sampling: bool = False,
     override_manual_org_limit: bool = False,
-    uptime_status: UptimeStatus = UptimeStatus.OK,
-) -> ProjectUptimeSubscription:
+) -> Detector:
     """
     Creates an UptimeSubscription and associated ProjectUptimeSubscription
     """
@@ -209,10 +218,12 @@ def create_project_uptime_subscription(
     with atomic_transaction(
         using=(
             router.db_for_write(UptimeSubscription),
-            router.db_for_write(ProjectUptimeSubscription),
             router.db_for_write(DataSource),
-            router.db_for_write(Detector),
+            router.db_for_write(DataCondition),
+            router.db_for_write(DataConditionGroup),
             router.db_for_write(DataSourceDetector),
+            router.db_for_write(Detector),
+            router.db_for_write(ProjectUptimeSubscription),
         )
     ):
         uptime_subscription = create_uptime_subscription(
@@ -223,7 +234,7 @@ def create_project_uptime_subscription(
             headers=headers,
             body=body,
             trace_sampling=trace_sampling,
-            uptime_status=uptime_status,
+            uptime_status=UptimeStatus.OK,
         )
         owner_user_id = None
         owner_team_id = None
@@ -232,6 +243,42 @@ def create_project_uptime_subscription(
                 owner_user_id = owner.id
             if owner.is_team:
                 owner_team_id = owner.id
+
+        data_source = DataSource.objects.create(
+            type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
+            organization=project.organization,
+            source_id=str(uptime_subscription.id),
+        )
+        condition_group = DataConditionGroup.objects.create(
+            organization=project.organization,
+        )
+        DataCondition.objects.create(
+            comparison=CHECKSTATUS_FAILURE,
+            type=Condition.EQUAL,
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=condition_group,
+        )
+        DataCondition.objects.create(
+            comparison=CHECKSTATUS_SUCCESS,
+            type=Condition.EQUAL,
+            condition_result=DetectorPriorityLevel.OK,
+            condition_group=condition_group,
+        )
+        env = environment.name if environment else None
+        detector = Detector.objects.create(
+            type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
+            project=project,
+            name=name,
+            owner_user_id=owner_user_id,
+            owner_team_id=owner_team_id,
+            config={
+                "environment": env,
+                "mode": mode,
+            },
+            workflow_condition_group=condition_group,
+        )
+        DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+
         uptime_monitor = ProjectUptimeSubscription.objects.create(
             project=project,
             environment=environment,
@@ -241,7 +288,6 @@ def create_project_uptime_subscription(
             owner_user_id=owner_user_id,
             owner_team_id=owner_team_id,
         )
-        detector = create_detector_from_project_subscription(uptime_monitor)
 
         # Don't consume a seat if we're still in onboarding mode
         if mode != UptimeMonitorMode.AUTO_DETECTED_ONBOARDING:
@@ -263,8 +309,9 @@ def create_project_uptime_subscription(
     # ProjectUptimeSubscription may have been updated as part of
     # {enable,disable}_uptime_detector
     uptime_monitor.refresh_from_db()
+    detector.refresh_from_db()
 
-    return uptime_monitor
+    return detector
 
 
 def update_project_uptime_subscription(
