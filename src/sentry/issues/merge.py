@@ -56,7 +56,7 @@ def handle_merge(
 
     group_ids_to_merge = [g.id for g in groups_to_merge]
     eventstream_state = eventstream.backend.start_merge(
-        primary_group.project_id, group_ids_to_merge, primary_group.id
+        primary_group.project_id, group_ids_to_merge, primary_group.id, primary_group.first_seen
     )
 
     Group.objects.filter(id__in=group_ids_to_merge).update(

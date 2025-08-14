@@ -14,7 +14,6 @@ from sentry import eventstore, features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import DataCategory, ObjectStatus
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -30,6 +29,7 @@ from sentry.seer.autofix.utils import get_autofix_state, is_seer_autotriggered_a
 from sentry.seer.models import SummarizeIssueResponse
 from sentry.seer.seer_setup import get_seer_org_acknowledgement
 from sentry.seer.signed_seer_api import make_signed_seer_api_request, sign_with_seer_secret
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import seer_tasks
