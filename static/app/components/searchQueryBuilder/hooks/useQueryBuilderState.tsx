@@ -60,7 +60,7 @@ type CommitQueryAction = {
   type: 'COMMIT_QUERY';
 };
 
-type UpdateQueryAction = {
+export type UpdateQueryAction = {
   query: string;
   type: 'UPDATE_QUERY';
   focusOverride?: FocusOverride | null;
@@ -527,7 +527,10 @@ function updateFilterMultipleValues(
     new Set(values.filter(value => value.length > 0))
   );
   if (uniqNonEmptyValues.length === 0) {
-    return {...state, query: replaceQueryToken(state.query, token.value, '""')};
+    return {
+      ...state,
+      query: replaceQueryToken(state.query, token.value, '""'),
+    };
   }
 
   const newValue =
@@ -535,7 +538,10 @@ function updateFilterMultipleValues(
       ? `[${uniqNonEmptyValues.join(',')}]`
       : uniqNonEmptyValues[0]!;
 
-  return {...state, query: replaceQueryToken(state.query, token.value, newValue)};
+  return {
+    ...state,
+    query: replaceQueryToken(state.query, token.value, newValue),
+  };
 }
 
 function multiSelectTokenValue(
@@ -630,21 +636,97 @@ function updateFilterKey(
   };
 }
 
+export function replaceFreeTextTokens(
+  action: UpdateQueryAction,
+  getFieldDefinition: FieldDefinitionGetter,
+  rawSearchReplacement: string[],
+  queryToCommit: string
+) {
+  const tokens = parseQueryBuilderValue(action.query, getFieldDefinition) ?? [];
+
+  if (tokens.length === 0 || rawSearchReplacement.length === 0) {
+    return {newQuery: queryToCommit, focusOverride: null};
+  }
+
+  // Single pass to collect free text tokens and find replace token
+  const freeTextTokens: Array<TokenResult<Token.FREE_TEXT>> = [];
+  let replaceToken: TokenResult<Token.FILTER> | undefined;
+  const rawSearchFirst = rawSearchReplacement[0] ?? '';
+
+  for (const token of tokens) {
+    if (token.type === Token.FREE_TEXT && /[a-zA-Z0-9]/.test(token.value)) {
+      freeTextTokens.push(token);
+    } else if (token.type === Token.FILTER && token.text.includes(rawSearchFirst)) {
+      replaceToken = token;
+    }
+  }
+
+  // return early if there are no free text tokens
+  if (freeTextTokens.length === 0) {
+    return {newQuery: queryToCommit, focusOverride: null};
+  }
+
+  const values = freeTextTokens
+    .map(token =>
+      token.value.trim().includes(' ')
+        ? `"*${token.value.trim()}*"`
+        : `*${token.value.trim()}*`
+    )
+    .join(',');
+
+  const filteredTokens = tokens
+    .filter(
+      token =>
+        token.type !== Token.FREE_TEXT &&
+        !token.text.includes(rawSearchReplacement[0] ?? '')
+    )
+    .map(token => token.text);
+
+  // case when there is a span.description already present
+  if (replaceToken) {
+    let previousValue = replaceToken.value.text;
+    if (replaceToken.value.text.startsWith('[')) {
+      previousValue = previousValue.slice(1);
+    }
+
+    if (replaceToken.value.text.endsWith(']')) {
+      previousValue = previousValue.slice(0, -1);
+    }
+
+    filteredTokens.push(`${rawSearchReplacement[0]}:[${previousValue},${values}]`);
+  } else {
+    filteredTokens.push(
+      `${rawSearchReplacement[0]}:${values.length > 1 ? `[${values}]` : values}`
+    );
+  }
+
+  return {
+    newQuery: filteredTokens.join(' '),
+    focusOverride: {itemKey: 'end'},
+  };
+}
+
 export function useQueryBuilderState({
   initialQuery,
   getFieldDefinition,
   disabled,
   displayAskSeerFeedback,
   setDisplayAskSeerFeedback,
+  rawSearchReplacement,
 }: {
   disabled: boolean;
   displayAskSeerFeedback: boolean;
   getFieldDefinition: FieldDefinitionGetter;
   initialQuery: string;
   setDisplayAskSeerFeedback: (value: boolean) => void;
+  rawSearchReplacement?: string[];
 }) {
-  const hasWildcardOperators = useOrganization().features.includes(
+  const organization = useOrganization();
+  const hasWildcardOperators = organization.features.includes(
     'search-query-builder-wildcard-operators'
+  );
+  const hasRawSearchReplacement = organization.features.includes(
+    'search-query-builder-raw-search-replacement'
   );
 
   const initialState: QueryBuilderState = {
@@ -666,21 +748,42 @@ export function useQueryBuilderState({
             ...state,
             query: '',
             committedQuery: '',
-            focusOverride: {
-              itemKey: `${Token.FREE_TEXT}:0`,
-            },
+            focusOverride: {itemKey: `${Token.FREE_TEXT}:0`},
           };
-        case 'COMMIT_QUERY':
+        case 'COMMIT_QUERY': {
           if (state.query === state.committedQuery) {
             return state;
           }
-          return {...state, committedQuery: state.query};
-        case 'UPDATE_QUERY': {
-          const shouldCommitQuery = action.shouldCommitQuery ?? true;
           return {
             ...state,
-            query: action.query,
-            committedQuery: shouldCommitQuery ? action.query : state.committedQuery,
+            committedQuery: state.query,
+          };
+        }
+        case 'UPDATE_QUERY': {
+          const shouldCommitQuery = action.shouldCommitQuery ?? true;
+
+          const queryToCommit = shouldCommitQuery ? action.query : state.committedQuery;
+
+          let replacedQuery: string | undefined;
+          if (
+            rawSearchReplacement &&
+            rawSearchReplacement.length > 0 &&
+            hasRawSearchReplacement
+          ) {
+            const {newQuery, focusOverride} = replaceFreeTextTokens(
+              action,
+              getFieldDefinition,
+              rawSearchReplacement,
+              queryToCommit
+            );
+            replacedQuery = newQuery;
+            action.focusOverride = focusOverride;
+          }
+
+          return {
+            ...state,
+            query: replacedQuery ?? action.query,
+            committedQuery: replacedQuery ?? queryToCommit,
             focusOverride: action.focusOverride ?? null,
           };
         }
@@ -740,7 +843,14 @@ export function useQueryBuilderState({
           return state;
       }
     },
-    [disabled, displayAskSeerFeedback, getFieldDefinition, hasWildcardOperators]
+    [
+      disabled,
+      displayAskSeerFeedback,
+      getFieldDefinition,
+      hasRawSearchReplacement,
+      hasWildcardOperators,
+      rawSearchReplacement,
+    ]
   );
 
   const [state, dispatch] = useReducer(reducer, initialState);
