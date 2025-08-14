@@ -37,12 +37,20 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         self.project2 = self.create_project(teams=[self.team])
         self.features = {
             "organizations:user-feedback-ai-summaries": True,
-            "organizations:gen-ai-features": True,
         }
         self.url = reverse(
             self.endpoint,
             kwargs={"organization_id_or_slug": self.org.slug},
         )
+        self.mock_has_seer_access_patcher = patch(
+            "sentry.feedback.endpoints.organization_feedback_summary.has_seer_access",
+            return_value=True,
+        )
+        self.mock_has_seer_access = self.mock_has_seer_access_patcher.start()
+
+    def tearDown(self) -> None:
+        self.mock_has_seer_access_patcher.stop()
+        super().tearDown()
 
     def _make_valid_seer_response(self) -> MockSeerResponse:
         return MockSeerResponse(
@@ -55,6 +63,12 @@ class OrganizationFeedbackSummaryTest(APITestCase):
     def test_get_feedback_summary_without_feature_flag(self) -> None:
         response = self.get_error_response(self.org.slug)
         assert response.status_code == 403
+
+    def test_get_feedback_summary_without_seer_access(self) -> None:
+        self.mock_has_seer_access.return_value = False
+        with self.feature(self.features):
+            response = self.get_error_response(self.org.slug)
+            assert response.status_code == 403
 
     @django_db_all
     @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
@@ -136,7 +150,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 10
 
-    @django_db_all
     @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
     def test_get_feedback_summary_with_many_project_filter_as_list(
         self, mock_make_seer_api_request: MagicMock

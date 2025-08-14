@@ -19,6 +19,7 @@ from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.net.http import connection_from_url
+from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -75,8 +76,10 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
 
         if not features.has(
             "organizations:user-feedback-ai-summaries", organization, actor=request.user
-        ) or not features.has("organizations:gen-ai-features", organization, actor=request.user):
-            return Response(status=403)
+        ) or not has_seer_access(organization, actor=request.user):
+            return Response(
+                {"detail": "AI summaries are not available for this organization."}, status=403
+            )
 
         try:
             start, end = get_date_range_from_stats_period(

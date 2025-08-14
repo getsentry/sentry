@@ -136,7 +136,7 @@ function OTelOverviewContentWrapper(props: ChildProps) {
     location,
     transactionThreshold,
     transactionThresholdMetric,
-    referrer: 'api.performance.transaction-summary',
+    referrer: 'api.insights.transaction-summary',
     options: {
       refetchOnWindowFocus: false,
     },
@@ -150,7 +150,7 @@ function OTelOverviewContentWrapper(props: ChildProps) {
     location,
     transactionThreshold,
     transactionThresholdMetric,
-    referrer: 'api.performance.transaction-summary',
+    referrer: 'api.insights.transaction-summary',
   });
 
   useEffect(() => {
@@ -241,7 +241,7 @@ function OverviewContentWrapper(props: ChildProps) {
     location,
     transactionThreshold,
     transactionThresholdMetric,
-    referrer: 'api.performance.transaction-summary',
+    referrer: 'api.insights.transaction-summary',
     queryExtras,
     options: {
       refetchOnWindowFocus: false,
@@ -256,7 +256,7 @@ function OverviewContentWrapper(props: ChildProps) {
     location,
     transactionThreshold,
     transactionThresholdMetric,
-    referrer: 'api.performance.transaction-summary',
+    referrer: 'api.insights.transaction-summary',
   });
 
   useEffect(() => {

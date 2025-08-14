@@ -46,8 +46,16 @@ class ProjectReplaySummaryTestCase(
         self.features = {
             "organizations:session-replay": True,
             "organizations:replay-ai-summaries": True,
-            "organizations:gen-ai-features": True,
         }
+        self.mock_has_seer_access_patcher = patch(
+            "sentry.replays.endpoints.project_replay_summary.has_seer_access",
+            return_value=True,
+        )
+        self.mock_has_seer_access = self.mock_has_seer_access_patcher.start()
+
+    def tearDown(self) -> None:
+        self.mock_has_seer_access_patcher.stop()
+        super().tearDown()
 
     def store_replay(self, dt: datetime | None = None, **kwargs) -> None:
         replay = mock_replay(dt or datetime.now(UTC), self.project.id, self.replay_id, **kwargs)
@@ -72,28 +80,32 @@ class ProjectReplaySummaryTestCase(
         self.save_recording_segment(0, json.dumps([]).encode())
 
         features = [
-            (False, True, True),
-            (True, False, True),
-            (True, True, False),
-            (True, False, False),
-            (False, True, False),
-            (False, False, True),
-            (False, False, False),
+            (False, True),
+            (True, False),
+            (False, False),
         ]
 
-        for replay, replay_ai, gen_ai in features:
+        for replay, replay_ai in features:
             with self.feature(
                 {
                     "organizations:session-replay": replay,
                     "organizations:replay-ai-summaries": replay_ai,
-                    "organizations:gen-ai-features": gen_ai,
                 }
             ):
                 for method in ["GET", "POST"]:
                     response = (
                         self.client.get(self.url) if method == "GET" else self.client.post(self.url)
                     )
-                    assert response.status_code == 404, (replay, replay_ai, gen_ai, method)
+                    assert response.status_code == 403, (replay, replay_ai, method)
+
+    def test_no_seer_access(self) -> None:
+        self.mock_has_seer_access.return_value = False
+        with self.feature(self.features):
+            for method in ["GET", "POST"]:
+                response = (
+                    self.client.get(self.url) if method == "GET" else self.client.post(self.url)
+                )
+                assert response.status_code == 403, method
 
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
     def test_get_simple(self, mock_make_seer_api_request: Mock) -> None:
@@ -158,6 +170,7 @@ class ProjectReplaySummaryTestCase(
             "replay_id": self.replay_id,
             "organization_id": self.organization.id,
             "project_id": self.project.id,
+            "temperature": None,
         }
 
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
@@ -370,6 +383,48 @@ class ProjectReplaySummaryTestCase(
             "replay_id": self.replay_id,
             "organization_id": self.organization.id,
             "project_id": self.project.id,
+            "temperature": None,
+        }
+
+    @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")
+    def test_post_with_temperature(self, mock_make_seer_api_request: Mock) -> None:
+        mock_response = MockSeerResponse(
+            200, json_data={"hello": "world"}, raw_data='{"hello": "world"}'
+        )
+        mock_make_seer_api_request.return_value = mock_response
+
+        data = [
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "hello"},
+                },
+            },
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={"num_segments": 1, "temperature": 0.73},
+                content_type="application/json",
+            )
+
+        assert response.status_code == 200
+
+        mock_make_seer_api_request.assert_called_once()
+        call_args = mock_make_seer_api_request.call_args
+        assert call_args[1]["path"] == SEER_START_TASK_ENDPOINT_PATH
+        request_body = json.loads(call_args[1]["body"].decode())
+        assert request_body == {
+            "logs": ["Logged: hello at 0.0"],
+            "num_segments": 1,
+            "replay_id": self.replay_id,
+            "organization_id": self.organization.id,
+            "project_id": self.project.id,
+            "temperature": 0.73,
         }
 
     @patch("sentry.replays.endpoints.project_replay_summary.make_signed_seer_api_request")

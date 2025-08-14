@@ -18,7 +18,7 @@ describe('SamplesTables', () => {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.starfish.get-span-operations',
+          referrer: 'api.insights.get-span-operations',
         }),
       ],
       body: {

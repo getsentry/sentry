@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 
 from sentry.feedback.usecases.title_generation import (
     format_feedback_title,
     get_feedback_title_from_seer,
-    should_get_ai_title,
 )
-from sentry.models.organization import Organization
-from sentry.testutils.helpers.features import Feature
 
 
 class MockSeerResponse:
@@ -21,37 +18,6 @@ class MockSeerResponse:
 
     def json(self):
         return self.json_data
-
-
-def test_should_get_ai_title():
-    """Test the should_get_ai_title function with various feature flag combinations."""
-    org = Mock(spec=Organization)
-    org.id = 123
-    org.slug = "test-org"
-
-    # both feature flags disabled
-    with Feature(
-        {"organizations:gen-ai-features": False, "organizations:user-feedback-ai-titles": False}
-    ):
-        assert should_get_ai_title(org) is False
-
-    # gen-ai-features enabled, user-feedback-ai-titles disabled
-    with Feature(
-        {"organizations:gen-ai-features": True, "organizations:user-feedback-ai-titles": False}
-    ):
-        assert should_get_ai_title(org) is False
-
-    # gen-ai-features disabled, user-feedback-ai-titles enabled
-    with Feature(
-        {"organizations:gen-ai-features": False, "organizations:user-feedback-ai-titles": True}
-    ):
-        assert should_get_ai_title(org) is False
-
-    # both feature flags enabled
-    with Feature(
-        {"organizations:gen-ai-features": True, "organizations:user-feedback-ai-titles": True}
-    ):
-        assert should_get_ai_title(org) is True
 
 
 @pytest.mark.parametrize(
