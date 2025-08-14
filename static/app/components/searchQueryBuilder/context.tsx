@@ -128,6 +128,7 @@ export function SearchQueryBuilderProvider({
     initialQuery,
     getFieldDefinition: fieldDefinitionGetter,
     disabled,
+    replaceRawSearchKeys,
   });
 
   const stableFieldDefinitionGetter = useMemo(
