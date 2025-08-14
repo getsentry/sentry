@@ -5,7 +5,7 @@
 
 import abc
 
-from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
+from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByRegionName
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.sentry_apps.services.hook import RpcServiceHook
 from sentry.silo.base import SiloMode
@@ -36,11 +36,13 @@ class HookService(RpcService):
     ) -> RpcServiceHook:
         pass
 
+    @regional_rpc_method(ByRegionName())
     @regional_rpc_method(ByOrganizationId())
     @abc.abstractmethod
     def update_webhook_and_events(
         self,
         *,
+        region_name: str | None,
         organization_id: int,
         application_id: int | None,
         webhook_url: str | None,
