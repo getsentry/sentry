@@ -1,4 +1,4 @@
-import {type ReactNode, useMemo} from 'react';
+import {useMemo, type ReactNode} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
@@ -25,8 +25,8 @@ import {
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
-  type ParseResultToken,
   TermOperator,
+  type ParseResultToken,
   type Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';

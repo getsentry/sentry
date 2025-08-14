@@ -35,6 +35,7 @@ import {
   getInitialTracePreferences,
 } from './traceState/tracePreferences';
 import {TraceStateProvider} from './traceState/traceStateProvider';
+import {ErrorsOnlyWarnings} from './traceTypeWarnings/errorsOnlyWarnings';
 import {TraceMetaDataHeader} from './traceHeader';
 import {useTraceEventView} from './useTraceEventView';
 import {useTraceQueryParams} from './useTraceQueryParams';
@@ -105,7 +106,7 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
 
   const meta = useTraceMeta([{traceSlug, timestamp: queryParams.timestamp}]);
   const trace = useTrace({traceSlug, timestamp: queryParams.timestamp});
-  const tree = useTraceTree({traceSlug, trace, meta, replay: null});
+  const tree = useTraceTree({traceSlug, trace, replay: null});
   const rootEventResults = useTraceRootEvent({
     tree,
     logs: logsData,
@@ -142,6 +143,11 @@ function TraceViewImpl({traceSlug}: {traceSlug: string}) {
             logs={logsData}
           />
           <TraceInnerLayout ref={traceInnerLayoutRef}>
+            <ErrorsOnlyWarnings
+              tree={tree}
+              traceSlug={traceSlug}
+              organization={organization}
+            />
             <TraceTabsAndVitals
               tabsConfig={{
                 tabOptions,

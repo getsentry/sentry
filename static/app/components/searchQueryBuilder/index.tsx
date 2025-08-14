@@ -12,10 +12,10 @@ import {useOnChange} from 'sentry/components/searchQueryBuilder/hooks/useOnChang
 import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
 import {
+  QueryInterfaceType,
   type CallbackSearchState,
   type FieldDefinitionGetter,
   type FilterKeySection,
-  QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
 import {queryIsValid} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
@@ -76,7 +76,7 @@ export interface SearchQueryBuilderProps {
   filterKeyAliases?: TagCollection;
   /**
    * The width of the filter key menu.
-   * Defaults to 360px. May be increased if there are a large number of categories
+   * Defaults to 460px. May be increased if there are a large number of categories
    * or long filter key names.
    */
   filterKeyMenuWidth?: number;
@@ -163,7 +163,8 @@ function ActionButtons({
   ref?: React.Ref<HTMLDivElement>;
   trailingItems?: React.ReactNode;
 }) {
-  const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
+  const {dispatch, handleSearch, disabled, query, setDisplayAskSeerFeedback} =
+    useSearchQueryBuilder();
 
   if (disabled) {
     return null;
@@ -179,6 +180,7 @@ function ActionButtons({
           icon={<IconClose />}
           borderless
           onClick={() => {
+            setDisplayAskSeerFeedback(false);
             dispatch({type: 'CLEAR'});
             handleSearch('');
           }}

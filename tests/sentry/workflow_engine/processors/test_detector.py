@@ -7,15 +7,16 @@ from unittest.mock import MagicMock, call
 import pytest
 from django.utils import timezone
 
-from sentry.eventstore.models import GroupEvent
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
+from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.utils.cache import cache
@@ -339,6 +340,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             mock_incr.assert_not_called()
 
 
+@django_db_all
 class TestKeyBuilders(unittest.TestCase):
     def build_handler(self, detector: Detector | None = None) -> MockDetectorStateHandler:
         if detector is None:

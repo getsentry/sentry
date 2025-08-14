@@ -22,4 +22,7 @@ export const DetectorSpansConfig: DetectorDatasetConfig<SpansSeriesResponse> = {
   transformComparisonSeriesData: data => {
     return [transformEventsStatsComparisonSeries(data)];
   },
+  fromApiAggregate: aggregate => aggregate,
+  toApiAggregate: aggregate => aggregate,
+  supportedDetectionTypes: ['static', 'percent', 'dynamic'],
 };

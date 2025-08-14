@@ -589,7 +589,7 @@ describe('OnDemandBudgets', () => {
     ).toBeInTheDocument();
   });
 
-  it('always displays Seer warning alert in per-category section', () => {
+  it('displays original Seer warning copy by default in per-category section', () => {
     organization.features = ['seer-billing'];
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
@@ -644,6 +644,83 @@ describe('OnDemandBudgets', () => {
     expect(
       screen.getByText(
         "Additional Seer usage is only available through a shared on-demand budget. To ensure you'll have access to additional Seer usage, set up a shared on-demand budget instead."
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('displays per-category warning for multiple categories', () => {
+    // Test with logs-billing only
+    organization.features = ['logs-billing'];
+    const subscription = SubscriptionFixture({
+      plan: 'am2_business',
+      planTier: PlanTier.AM2,
+      isFree: false,
+      isTrial: false,
+      supportsOnDemand: true,
+      planDetails: {
+        ...PlanDetailsLookupFixture('am2_business')!,
+      },
+      organization,
+      onDemandBudgets: {
+        enabled: true,
+        budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+        budgets: {
+          errors: 1000,
+          transactions: 2000,
+          attachments: 3000,
+          monitorSeats: 4000,
+        },
+        usedSpends: {},
+      },
+    });
+
+    const activePlan = subscription.planDetails;
+
+    const onDemandBudget = {
+      budgetMode: OnDemandBudgetMode.PER_CATEGORY as const,
+      budgets: {
+        errors: 1000,
+        transactions: 2000,
+        attachments: 3000,
+        monitorSeats: 4000,
+      },
+    };
+
+    const {rerender} = render(
+      <OnDemandBudgetEdit
+        {...defaultProps}
+        subscription={subscription}
+        activePlan={activePlan}
+        onDemandBudget={onDemandBudget}
+      />
+    );
+
+    expect(screen.getByTestId('per-category-budget-radio')).toBeInTheDocument();
+    expect(screen.getByTestId('per-category-budget-radio')).toBeChecked();
+
+    // When logs-billing is enabled, should show the logs warning
+    expect(
+      screen.getByText(
+        'Logs and additional Seer usage require a shared on-demand budget. Individual budgets cannot be used for these products.'
+      )
+    ).toBeInTheDocument();
+
+    // Test with both seer-billing and logs-billing
+    organization.features = ['seer-billing', 'logs-billing'];
+
+    rerender(
+      <OnDemandBudgetEdit
+        {...defaultProps}
+        subscription={subscription}
+        activePlan={activePlan}
+        onDemandBudget={onDemandBudget}
+      />
+    );
+
+    // When both features are enabled
+    expect(
+      screen.getByText(
+        'Logs and additional Seer usage require a shared on-demand budget. Individual budgets cannot be used for these products.'
       )
     ).toBeInTheDocument();
   });

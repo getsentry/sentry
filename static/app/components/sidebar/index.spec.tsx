@@ -168,7 +168,7 @@ describe('Sidebar', function () {
     });
 
     it('can open "Switch Organization" sub-menu', async function () {
-      act(() => void ConfigStore.set('features', new Set(['organizations:create'])));
+      act(() => ConfigStore.set('features', new Set(['organizations:create'])));
 
       renderSidebar({organization});
 
@@ -383,7 +383,7 @@ describe('Sidebar', function () {
         'Frontend',
         'Backend',
         'Mobile',
-        'AI',
+        'AI Agents new',
         'Crons',
         'User Feedback',
         'Alerts',

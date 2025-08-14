@@ -19,6 +19,7 @@ export const Demo = styled((props: React.HTMLAttributes<HTMLDivElement>) => (
   padding: 64px 16px;
   min-height: 160px;
   max-height: 512px;
+  overflow: auto;
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.background.tertiary};
 `;

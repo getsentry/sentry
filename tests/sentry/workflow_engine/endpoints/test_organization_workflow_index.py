@@ -57,6 +57,11 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         response = self.get_success_response(self.organization.slug)
         assert response.data == serialize([self.workflow, self.workflow_two, self.workflow_three])
 
+        # Verify X-Hits header is present and correct
+        assert "X-Hits" in response
+        hits = int(response["X-Hits"])
+        assert hits == 3
+
     def test_empty_result(self) -> None:
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "aaaaaaaaaaaaa"}

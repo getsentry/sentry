@@ -45,7 +45,7 @@ class SlowDBQueryDetector(PerformanceDetector):
         if not fingerprint:
             return
 
-        if not SlowDBQueryDetector.is_span_eligible(span):
+        if not self._is_span_eligible(span):
             return
 
         description = span["description"].strip()
@@ -97,8 +97,7 @@ class SlowDBQueryDetector(PerformanceDetector):
     def is_creation_allowed_for_project(self, project: Project | None) -> bool:
         return self.settings["detection_enabled"]
 
-    @classmethod
-    def is_span_eligible(cls, span: Span) -> bool:
+    def _is_span_eligible(self, span: Span) -> bool:
         description = span.get("description", None)
         if not description:
             return False

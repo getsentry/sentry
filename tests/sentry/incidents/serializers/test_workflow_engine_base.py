@@ -1,6 +1,17 @@
-from django.utils import timezone
+from unittest import mock
 
-from sentry.incidents.models.alert_rule import AlertRuleStatus, AlertRuleThresholdType
+import orjson
+from django.utils import timezone
+from urllib3.response import HTTPResponse
+
+from sentry.incidents.models.alert_rule import (
+    AlertRule,
+    AlertRuleDetectionType,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
+    AlertRuleStatus,
+    AlertRuleThresholdType,
+)
 from sentry.incidents.models.incident import IncidentTrigger, TriggerStatus
 from sentry.issues.priority import PriorityChangeReason
 from sentry.models.activity import Activity
@@ -8,10 +19,12 @@ from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.migration_helpers.alert_rule import (
+    dual_update_resolve_condition,
     migrate_alert_rule,
     migrate_metric_action,
     migrate_metric_data_conditions,
@@ -31,6 +44,7 @@ class TestWorkflowEngineSerializer(TestCase):
 
         self.now = timezone.now()
         self.alert_rule = self.create_alert_rule()
+        # threshold is 100
         self.critical_trigger = self.create_alert_rule_trigger(
             alert_rule=self.alert_rule, label="critical"
         )
@@ -67,7 +81,7 @@ class TestWorkflowEngineSerializer(TestCase):
                 "label": "critical",
                 "thresholdType": AlertRuleThresholdType.ABOVE.value,
                 "alertThreshold": self.critical_detector_trigger.comparison,
-                "resolveThreshold": AlertRuleThresholdType.BELOW.value,
+                "resolveThreshold": self.critical_detector_trigger.comparison,
                 "dateCreated": self.critical_trigger.date_added,
                 "actions": self.expected_critical_action,
             },
@@ -95,7 +109,7 @@ class TestWorkflowEngineSerializer(TestCase):
 
     def add_warning_trigger(self) -> None:
         self.warning_trigger = self.create_alert_rule_trigger(
-            alert_rule=self.alert_rule, label="warning"
+            alert_rule=self.alert_rule, label="warning", alert_threshold=50
         )
         self.warning_trigger_action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=self.warning_trigger
@@ -122,12 +136,14 @@ class TestWorkflowEngineSerializer(TestCase):
             "alertRuleId": str(self.alert_rule.id),
             "label": "warning",
             "thresholdType": AlertRuleThresholdType.ABOVE.value,
-            "alertThreshold": self.critical_detector_trigger.comparison,
-            "resolveThreshold": AlertRuleThresholdType.BELOW.value,
+            "alertThreshold": self.warning_detector_trigger.comparison,
+            "resolveThreshold": self.warning_detector_trigger.comparison,
             "dateCreated": self.critical_trigger.date_added,
             "actions": self.expected_warning_action,
         }
+        self.expected_triggers[0]["resolveThreshold"] = self.warning_detector_trigger.comparison
         self.expected_triggers.append(self.expected_warning_trigger)
+        dual_update_resolve_condition(self.alert_rule)
 
     def add_incident_data(self) -> None:
         self.incident = self.create_incident(alert_rule=self.alert_rule, date_started=self.now)
@@ -160,3 +176,19 @@ class TestWorkflowEngineSerializer(TestCase):
                 "reason": PriorityChangeReason.ONGOING,
             },
         )
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @mock.patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def create_dynamic_alert(self, mock_seer_request: mock.MagicMock) -> AlertRule:
+        seer_return_value = {"success": True}
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+        dynamic_rule = self.create_alert_rule(
+            threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            time_window=60,
+        )
+        return dynamic_rule

@@ -8,8 +8,9 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {DataCategory} from 'sentry/types/core';
 
 import {BILLION, GIGABYTE, MILLION, UNLIMITED} from 'getsentry/constants';
-import {OnDemandBudgetMode, type ProductTrial} from 'getsentry/types';
+import {OnDemandBudgetMode, type EventBucket, type ProductTrial} from 'getsentry/types';
 import {
+  convertUsageToReservedUnit,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getActiveProductTrial,
@@ -387,6 +388,47 @@ describe('formatUsageWithUnits', function () {
         ).toBe('1K');
       }
     );
+  });
+});
+
+describe('convertUsageToReservedUnit', function () {
+  it('converts attachments from bytes to GB', function () {
+    expect(convertUsageToReservedUnit(GIGABYTE, DataCategory.ATTACHMENTS)).toBe(1);
+    expect(convertUsageToReservedUnit(5 * GIGABYTE, DataCategory.ATTACHMENTS)).toBe(5);
+    expect(convertUsageToReservedUnit(0.5 * GIGABYTE, DataCategory.ATTACHMENTS)).toBe(
+      0.5
+    );
+  });
+
+  it('converts continuous profiling from milliseconds to hours', function () {
+    expect(
+      convertUsageToReservedUnit(MILLISECONDS_IN_HOUR, DataCategory.PROFILE_DURATION)
+    ).toBe(1);
+    expect(
+      convertUsageToReservedUnit(2 * MILLISECONDS_IN_HOUR, DataCategory.PROFILE_DURATION)
+    ).toBe(2);
+    expect(
+      convertUsageToReservedUnit(
+        0.5 * MILLISECONDS_IN_HOUR,
+        DataCategory.PROFILE_DURATION
+      )
+    ).toBe(0.5);
+    expect(
+      convertUsageToReservedUnit(MILLISECONDS_IN_HOUR, DataCategory.PROFILE_DURATION_UI)
+    ).toBe(1);
+    expect(
+      convertUsageToReservedUnit(
+        3.5 * MILLISECONDS_IN_HOUR,
+        DataCategory.PROFILE_DURATION_UI
+      )
+    ).toBe(3.5);
+  });
+
+  it('returns usage unchanged for other categories', function () {
+    expect(convertUsageToReservedUnit(1000, DataCategory.ERRORS)).toBe(1000);
+    expect(convertUsageToReservedUnit(500, DataCategory.TRANSACTIONS)).toBe(500);
+    expect(convertUsageToReservedUnit(250, DataCategory.REPLAYS)).toBe(250);
+    expect(convertUsageToReservedUnit(0, DataCategory.SPANS)).toBe(0);
   });
 });
 
@@ -933,6 +975,65 @@ describe('getOnDemandCategories', function () {
     });
     expect(categories).toHaveLength(plan.onDemandCategories.length);
     expect(categories).toEqual(plan.onDemandCategories);
+  });
+});
+
+describe('getOnDemandCategories - AM2 logBytes support', function () {
+  it('includes logBytes in AM2 business plan on-demand categories', function () {
+    const plan = PlanDetailsLookupFixture('am2_business')!;
+    expect(plan.onDemandCategories).toContain('logBytes');
+  });
+
+  it('includes logBytes in getOnDemandCategories for AM2 plans in per-category mode', function () {
+    const plan = PlanDetailsLookupFixture('am2_business')!;
+    const categories = getOnDemandCategories({
+      plan,
+      budgetMode: OnDemandBudgetMode.PER_CATEGORY,
+    });
+    expect(categories).toContain('logBytes');
+  });
+
+  it('includes logBytes in getOnDemandCategories for AM2 plans in shared mode', function () {
+    const plan = PlanDetailsLookupFixture('am2_business')!;
+    const categories = getOnDemandCategories({
+      plan,
+      budgetMode: OnDemandBudgetMode.SHARED,
+    });
+    expect(categories).toContain('logBytes');
+  });
+
+  it('has planCategories entry for logBytes in AM2 business plan', function () {
+    const plan = PlanDetailsLookupFixture('am2_business')!;
+    const logBytes: EventBucket[] | undefined = plan.planCategories.logBytes;
+    expect(logBytes).toBeDefined();
+    expect(logBytes).toHaveLength(1);
+    if (logBytes) {
+      expect(logBytes[0]).toEqual({
+        events: 5,
+        unitPrice: 0.5,
+        price: 0,
+      });
+    }
+  });
+
+  it('has category display names for logBytes', function () {
+    const plan = PlanDetailsLookupFixture('am2_business')!;
+    expect(plan.categoryDisplayNames?.logBytes).toBeDefined();
+    expect(plan.categoryDisplayNames?.logBytes).toEqual({
+      singular: 'log',
+      plural: 'logs',
+    });
+  });
+
+  it('ensures all AM2 plans with logBytes in onDemandCategories also have it in planCategories', function () {
+    const am2Plans = ['am2_business', 'am2_f', 'am2_team'];
+
+    am2Plans.forEach(planId => {
+      const plan = PlanDetailsLookupFixture(planId);
+      if (plan?.onDemandCategories.includes('logBytes' as DataCategory)) {
+        expect(plan.planCategories.logBytes).toBeDefined();
+      }
+    });
   });
 });
 

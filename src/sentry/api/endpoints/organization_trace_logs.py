@@ -12,6 +12,7 @@ from sentry.api.utils import handle_query_errors, update_snuba_params_with_times
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.search.eap import constants
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba.ourlogs import OurLogs
@@ -91,6 +92,8 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsV2EndpointBase):
             limit=limit,
             referrer=Referrer.API_TRACE_VIEW_LOGS.value,
             config=SearchResolverConfig(use_aggregate_conditions=False),
+            # Since we're getting all logs for a given trace we always want highest accuracy
+            sampling_mode=constants.SAMPLING_MODE_HIGHEST_ACCURACY,
         )
         return results
 

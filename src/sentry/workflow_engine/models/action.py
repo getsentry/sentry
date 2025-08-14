@@ -12,7 +12,9 @@ from django.dispatch import receiver
 from jsonschema import ValidationError, validate
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import ObjectStatus
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
+from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.utils import metrics
 from sentry.workflow_engine.models.json_config import JSONConfigBase
@@ -81,6 +83,10 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
     )
 
+    status = BoundedPositiveIntegerField(
+        db_default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
+    )
+
     def get_handler(self) -> builtins.type[ActionHandler]:
         action_type = Action.Type(self.type)
         return action_handler_registry.get(action_type)
@@ -103,6 +109,28 @@ class Action(DefaultFieldsModel, JSONConfigBase):
                 "event_data": asdict(event_data),
             },
         )
+
+    def get_dedup_key(self, workflow_id: int | None) -> str:
+        key_parts = [self.type]
+        if workflow_id is not None:
+            key_parts.append(str(workflow_id))
+
+        if self.integration_id:
+            key_parts.append(str(self.integration_id))
+
+        if self.config:
+            config = self.config.copy()
+            config.pop("target_display", None)
+            key_parts.append(str(config))
+
+        if self.data:
+            data = self.data.copy()
+            if "dynamic_form_fields" in data:
+                data = data["dynamic_form_fields"]
+
+            key_parts.append(str(data))
+
+        return ":".join(key_parts)
 
 
 @receiver(pre_save, sender=Action)

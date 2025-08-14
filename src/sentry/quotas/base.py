@@ -463,12 +463,6 @@ class Quota(Service):
                 categories=[DataCategory.SESSION],
                 scope=QuotaScope.PROJECT,
             ),
-            AbuseQuota(
-                id="pal",
-                option="project-abuse-quota.log-limit",
-                categories=[DataCategory.LOG_ITEM],
-                scope=QuotaScope.PROJECT,
-            ),
         ]
 
         abuse_quotas.extend(build_metric_abuse_quotas())
@@ -748,3 +742,9 @@ class Quota(Service):
                   Always False if data category is not a profile duration category.
         """
         return True
+
+    def get_dashboard_limit(self, org_id: int) -> int:
+        """
+        Returns the maximum number of dashboards allowed for the organization's plan type.
+        """
+        return -1

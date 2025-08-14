@@ -15,7 +15,11 @@ function ProjectIcon({projectPlatforms, allProjects, className}: ProjectIconProp
 
   switch (projectPlatforms.length) {
     case 0:
-      renderedIcons = allProjects ? <IconAllProjects /> : <IconMyProjects />;
+      renderedIcons = allProjects ? (
+        <IconAllProjects size="md" />
+      ) : (
+        <IconMyProjects size="md" />
+      );
       break;
     case 1:
       renderedIcons = (

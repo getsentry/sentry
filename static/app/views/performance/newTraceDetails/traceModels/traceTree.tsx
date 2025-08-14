@@ -67,7 +67,7 @@ const {info, fmt} = Sentry.logger;
  * be able to fetch more data as the user interacts with the tree, and we want to be able
  * efficiently update the tree as we receive more data.
  *
- * The trace is represented as a tree with different node value types (transaction or span)
+ * The trace is represented as a tree with different node value types (transaction, span, etc)
  * Each tree node contains a reference to its parent and a list of references to its children,
  * as well as a reference to the value that the node holds. Each node also contains
  * some meta data and state about the node, such as if it is expanded or zoomed in. The benefit
@@ -164,6 +164,7 @@ export declare namespace TraceTree {
     end_timestamp: number;
     errors: EAPError[];
     event_id: string;
+    event_type: 'span';
     is_transaction: boolean;
     name: string;
     occurrences: EAPOccurrence[];
@@ -179,6 +180,25 @@ export declare namespace TraceTree {
     additional_attributes?: Record<string, number | string>;
     description?: string;
     measurements?: Record<string, number>;
+  };
+
+  type UptimeCheck = {
+    children: Array<UptimeCheck | EAPSpan>;
+    duration: number;
+    end_timestamp: number;
+    errors: EAPError[];
+    event_id: string;
+    event_type: 'uptime';
+    is_transaction: false;
+    name: string;
+    op: string;
+    project_id: number;
+    project_slug: string;
+    start_timestamp: number;
+    transaction: string;
+    transaction_id: string;
+    additional_attributes?: Record<string, number | string>;
+    description?: string;
   };
 
   // Raw node values
@@ -221,6 +241,7 @@ export declare namespace TraceTree {
     | EAPError
     | Span
     | EAPSpan
+    | UptimeCheck
     | MissingInstrumentationSpan
     | SiblingAutogroup
     | ChildrenAutogroup
@@ -1248,6 +1269,56 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return node.children;
   }
 
+  static UniqueErrorIssues(
+    node: TraceTreeNode<TraceTree.NodeValue>
+  ): TraceTree.TraceErrorIssue[] {
+    if (!node) {
+      return [];
+    }
+
+    const unique: TraceTree.TraceErrorIssue[] = [];
+    const seenIssues: Set<number> = new Set();
+
+    for (const error of node.errors) {
+      if (seenIssues.has(error.issue_id)) {
+        continue;
+      }
+      seenIssues.add(error.issue_id);
+      unique.push(error);
+    }
+
+    return unique;
+  }
+
+  static UniqueOccurrences(
+    node: TraceTreeNode<TraceTree.NodeValue>
+  ): TraceTree.TraceOccurrence[] {
+    if (!node) {
+      return [];
+    }
+
+    const unique: TraceTree.TraceOccurrence[] = [];
+    const seenIssues: Set<number> = new Set();
+
+    for (const issue of node.occurrences) {
+      if (seenIssues.has(issue.issue_id)) {
+        continue;
+      }
+      seenIssues.add(issue.issue_id);
+      unique.push(issue);
+    }
+
+    return unique;
+  }
+
+  static UniqueIssues(node: TraceTreeNode<TraceTree.NodeValue>): TraceTree.TraceIssue[] {
+    if (!node) {
+      return [];
+    }
+
+    return [...TraceTree.UniqueErrorIssues(node), ...TraceTree.UniqueOccurrences(node)];
+  }
+
   static VisibleChildren(
     root: TraceTreeNode<TraceTree.NodeValue>
   ): Array<TraceTreeNode<TraceTree.NodeValue>> {
@@ -1728,14 +1799,18 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
       // When eap-transaction nodes are collapsed, they still render transactions as visible children.
       // Reparent the transactions from under the eap-spans in the expanded state, to under the closest eap-transaction
-      // in the collapsed state.
+      // in the collapsed state. This only targets the embedded transactions that are to be direct children of the node upon collapse.
       if (isEAPTransactionNode(node)) {
         TraceTree.ReparentEAPTransactions(
           node,
           t =>
-            TraceTree.FindAll(t, n => isEAPTransactionNode(n) && n !== t) as Array<
-              TraceTreeNode<TraceTree.EAPSpan>
-            >,
+            TraceTree.FindAll(
+              t,
+              n =>
+                isEAPTransactionNode(n) &&
+                n !== t &&
+                TraceTree.ParentEAPTransaction(n) === node
+            ) as Array<TraceTreeNode<TraceTree.EAPSpan>>,
           t => TraceTree.ParentEAPTransaction(t)
         );
       }
@@ -2215,7 +2290,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
               {
                 orgSlug: organization.slug,
                 query: qs.stringify(
-                  getTraceQueryParams(urlParams, filters.selection, {
+                  getTraceQueryParams(options.type, urlParams, filters.selection, {
                     timestamp: batchTraceData.timestamp,
                   })
                 ),

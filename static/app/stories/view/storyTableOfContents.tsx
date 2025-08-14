@@ -179,6 +179,10 @@ export function StoryTableOfContents() {
   );
 }
 
+export function StoryTableOfContentsPlaceholder() {
+  return <StoryIndexContainer aria-hidden="true" />;
+}
+
 function StoryContentsList({
   entry,
   activeId,

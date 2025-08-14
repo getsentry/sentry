@@ -38,7 +38,7 @@ from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 
 logger = logging.getLogger(__name__)
@@ -108,15 +108,16 @@ RECURSION_COMPARISON_FIELDS = [
 StacktraceEncoderReturnValue = Any
 
 
-def is_recursive_frames(frame1: Frame, frame2: Frame | None) -> bool:
+def _is_recursive_frame(frame: Frame, previous_frame: Frame | None) -> bool:
     """
-    Returns a boolean indicating whether frames are recursive calls.
+    Return a boolean indicating whether the given frame is a repeat of the frame before it and
+    therefore represents a recursive call.
     """
-    if frame2 is None:
+    if previous_frame is None:
         return False
 
     for field in RECURSION_COMPARISON_FIELDS:
-        if getattr(frame1, field, None) != getattr(frame2, field, None):
+        if getattr(frame, field, None) != getattr(previous_frame, field, None):
             return False
 
     return True
@@ -299,6 +300,8 @@ def frame(
 ) -> ReturnedVariants:
     frame = interface
     platform = frame.platform or event.platform
+    variant_name = context["variant_name"]
+    assert variant_name is not None
 
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
@@ -367,10 +370,7 @@ def frame(
         ):
             frame_component.update(contributes=False, hint="ignored low quality javascript frame")
 
-    if context["is_recursion"]:
-        frame_component.update(contributes=False, hint="ignored due to recursion")
-
-    return {context["variant"]: frame_component}
+    return {variant_name: frame_component}
 
 
 def get_contextline_component(
@@ -408,7 +408,7 @@ def get_contextline_component(
 def stacktrace(
     interface: Stacktrace, event: Event, context: GroupingContext, **kwargs: Any
 ) -> ReturnedVariants:
-    assert context["variant"] is None
+    assert context.get("variant_name") is None
 
     return call_with_variants(
         _single_stacktrace_variant,
@@ -423,7 +423,8 @@ def stacktrace(
 def _single_stacktrace_variant(
     stacktrace: Stacktrace, event: Event, context: GroupingContext, kwargs: dict[str, Any]
 ) -> ReturnedVariants:
-    variant_name = context["variant"]
+    variant_name = context["variant_name"]
+    assert variant_name is not None
 
     frames = stacktrace.frames
 
@@ -433,9 +434,9 @@ def _single_stacktrace_variant(
     found_in_app_frame = False
 
     for frame in frames:
-        with context:
-            context["is_recursion"] = is_recursive_frames(frame, prev_frame)
-            frame_component = context.get_single_grouping_component(frame, event=event, **kwargs)
+        frame_component = context.get_single_grouping_component(frame, event=event, **kwargs)
+        if _is_recursive_frame(frame, prev_frame):
+            frame_component.update(contributes=False, hint="ignored due to recursion")
 
         if variant_name == "app":
             if frame.in_app:
@@ -466,7 +467,7 @@ def _single_stacktrace_variant(
         frame_components,
         raw_frames,
         event.platform,
-        exception_data=context["exception_data"],
+        exception_data=context.get("exception_data"),
     )
 
     # This context value is set by the grouping info endpoint, so that the frame order of the
@@ -638,11 +639,9 @@ def chained_exception(
     # exceptions. Either way, we need to wrap our exception components in a chained exception component.
     exception_components_by_variant: dict[str, list[ExceptionGroupingComponent]] = {}
 
-    # Check for cases in which we want to switch the `main_exception_id` in order to use a different
+    # Handle cases in which we want to switch the `main_exception_id` in order to use a different
     # exception than normal for the event title
-    main_exception_id = determine_main_exception_id(exceptions)
-    if main_exception_id:
-        event.data["main_exception_id"] = main_exception_id
+    _maybe_override_main_exception_id(event, exceptions)
 
     for exception in exceptions:
         for variant_name, component in exception_components_by_exception[id(exception)].items():
@@ -896,11 +895,12 @@ MAIN_EXCEPTION_ID_FUNCS = [
 ]
 
 
-def determine_main_exception_id(exceptions: list[SingleException]) -> int | None:
+def _maybe_override_main_exception_id(event: Event, exceptions: list[SingleException]) -> None:
     main_exception_id = None
     for func in MAIN_EXCEPTION_ID_FUNCS:
         main_exception_id = func(exceptions)
         if main_exception_id is not None:
             break
 
-    return main_exception_id
+    if main_exception_id:
+        event.data["main_exception_id"] = main_exception_id

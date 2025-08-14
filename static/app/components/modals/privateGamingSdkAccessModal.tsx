@@ -95,17 +95,14 @@ export function PrivateGamingSdkAccessModal({
       `GitHub Profile: ${githubProfile}`,
     ].join('\n');
 
-    const source = `${sdkName.toLowerCase()}-sdk-access`;
-
     try {
       await Sentry.sendFeedback(
         {
           message: messageBody,
           name: user.name,
           email: user.email,
-          source,
           tags: {
-            feature: source,
+            feature: 'console-sdk-access',
           },
         },
         {
@@ -126,7 +123,7 @@ export function PrivateGamingSdkAccessModal({
         })
       );
       closeModal();
-    } catch (error) {
+    } catch (error: any) {
       handleXhrErrorResponse(t('Unable to submit SDK access request'), error);
 
       setRequestError(

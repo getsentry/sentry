@@ -219,6 +219,7 @@ def setup_deletion_test():
         name="disco-query",
         organization=organization,
         created_by_id=user.id,
+        query={},
     )
     return {
         "user": user,
@@ -333,6 +334,7 @@ def setup_cross_db_deletion_data(
             name="disco-query",
             organization=organization,
             created_by_id=user.id,
+            query={},
         )
         monitor = Monitor.objects.create(
             **monitor_params,

@@ -41,7 +41,8 @@ def convert_max_batch_time(ctx, param, value):
 
 
 def multiprocessing_options(
-    default_max_batch_size: int | None = None, default_max_batch_time_ms: int | None = 1000
+    default_max_batch_size: int | None = None,
+    default_max_batch_time_ms: int | None = 1000,
 ) -> list[click.Option]:
     return [
         click.Option(["--processes", "num_processes"], default=1, type=int),
@@ -119,7 +120,7 @@ def uptime_options() -> list[click.Option]:
     options = [
         click.Option(
             ["--mode", "mode"],
-            type=click.Choice(["serial", "parallel", "batched-parallel", "thread-queue-parallel"]),
+            type=click.Choice(["serial", "parallel", "batched-parallel"]),
             default="serial",
             help="The mode to process results in. Parallel uses multithreading.",
         ),
@@ -197,7 +198,9 @@ _METRICS_INDEXER_OPTIONS = [
     click.Option(["max_msg_batch_time", "--max-msg-batch-time-ms"], type=int, default=10000),
     click.Option(["max_parallel_batch_size", "--max-parallel-batch-size"], type=int, default=50),
     click.Option(
-        ["max_parallel_batch_time", "--max-parallel-batch-time-ms"], type=int, default=10000
+        ["max_parallel_batch_time", "--max-parallel-batch-time-ms"],
+        type=int,
+        default=10000,
     ),
     click.Option(
         ["--processes"],
@@ -310,12 +313,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {"dataset": "metrics"},
-    },
-    "eap-spans-subscription-results": {
-        "topic": Topic.EAP_SPANS_SUBSCRIPTIONS_RESULTS,
-        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "events_analytics_platform"},
     },
     "subscription-results-eap-items": {
         "topic": Topic.EAP_ITEMS_SUBSCRIPTIONS_RESULTS,

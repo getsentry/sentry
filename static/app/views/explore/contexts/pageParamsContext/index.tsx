@@ -281,11 +281,6 @@ export function useExploreGroupBys(): string[] {
   return pageParams.groupBys;
 }
 
-export function useExploreMode(): Mode {
-  const pageParams = useExplorePageParams();
-  return pageParams.mode;
-}
-
 export function useExploreQuery(): string {
   const pageParams = useExplorePageParams();
   return pageParams.query;
