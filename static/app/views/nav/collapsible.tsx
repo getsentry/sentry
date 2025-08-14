@@ -22,30 +22,26 @@ export function Collapsible({
       {!collapsed && (
         <CollapsableWrapper
           key="collapsible-content"
-          initial={{height: 0, overflow: 'hidden'}}
-          animate={{
-            height: 'auto',
-            overflow: 'visible',
-            transition: testableTransition({
-              type: 'spring',
-              damping: 50,
-              stiffness: 600,
-              bounce: 0,
-              visualDuration,
-              overflow: {delay: visualDuration},
-            }),
+          variants={{
+            collapsed: {
+              height: 0,
+              overflow: 'hidden',
+            },
+            expanded: {
+              // overflow: 'visible',
+              height: 'auto',
+            },
           }}
-          exit={{
-            height: 0,
-            overflow: 'hidden',
-            transition: testableTransition({
-              type: 'spring',
-              damping: 50,
-              stiffness: 600,
-              bounce: 0,
-              visualDuration,
-            }),
-          }}
+          initial="collapsed"
+          animate="expanded"
+          exit="collapsed"
+          transition={testableTransition({
+            type: 'spring',
+            damping: 50,
+            stiffness: 600,
+            bounce: 0,
+            visualDuration,
+          })}
         >
           {/*
             We need to wrap the children in a div to prevent the parent's flex-direction: column-reverse
