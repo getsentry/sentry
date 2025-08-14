@@ -970,22 +970,14 @@ def test_create_feedback_issue_title_from_seer(
 
 
 @django_db_all
-@pytest.mark.parametrize(
-    "seer_response_body",
-    [
-        Exception("Network Error"),
-        '{"title": ""}',
-    ],
-)
 @patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
-def test_create_feedback_issue_title_from_seer_fallback(
+def test_create_feedback_issue_title_from_seer_fallback_network_error(
     mock_make_signed_seer_api_request,
     default_project,
     mock_produce_occurrence_to_kafka,
     mock_has_seer_access,
-    seer_response_body,
 ) -> None:
-    """Test that the title falls back to message-based title if Seer call fails."""
+    """Test that the title falls back to message-based title if Seer call fails with network error."""
     mock_has_seer_access.return_value = True
     with Feature(
         {
@@ -995,7 +987,40 @@ def test_create_feedback_issue_title_from_seer_fallback(
         event = mock_feedback_event(default_project.id)
         event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
 
-        mock_make_signed_seer_api_request(body=seer_response_body)
+        mock_make_signed_seer_api_request.side_effect = Exception("Network Error")
+        create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
+
+        assert mock_produce_occurrence_to_kafka.call_count == 1
+        occurrence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"]
+        assert (
+            occurrence.issue_title == "User Feedback: The login button is broken and the UI is slow"
+        )
+
+
+@django_db_all
+@patch("sentry.feedback.usecases.title_generation.make_signed_seer_api_request")
+def test_create_feedback_issue_title_from_seer_fallback_empty_title(
+    mock_make_signed_seer_api_request,
+    default_project,
+    mock_produce_occurrence_to_kafka,
+    mock_has_seer_access,
+) -> None:
+    """Test that the title falls back to message-based title if Seer returns empty title."""
+    mock_has_seer_access.return_value = True
+    with Feature(
+        {
+            "organizations:user-feedback-ai-titles": True,
+        }
+    ):
+        event = mock_feedback_event(default_project.id)
+        event["contexts"]["feedback"]["message"] = "The login button is broken and the UI is slow"
+
+        mock_response = MockSeerResponse(
+            status=200,
+            json_data={"title": ""},
+            raw_data='{"title": ""}',
+        )
+        mock_make_signed_seer_api_request.return_value = mock_response
         create_feedback_issue(event, default_project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
         assert mock_produce_occurrence_to_kafka.call_count == 1

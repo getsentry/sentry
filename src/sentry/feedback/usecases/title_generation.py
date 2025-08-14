@@ -103,11 +103,9 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
         return None
 
     try:
-        title = response_data["title"]
+        return response_data["title"].strip() or None
     except Exception:
         return None
-
-    return title
 
 
 def get_feedback_title(feedback_message: str, organization_id: int, use_seer: bool) -> str:
