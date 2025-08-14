@@ -2,7 +2,10 @@ import type {SelectValue} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import type {MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
+import type {
+  MetricDetectorConfig,
+  SnubaQuery,
+} from 'sentry/types/workflowEngine/detectors';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -74,6 +77,10 @@ export interface DetectorDatasetConfig<SeriesResponse> {
     customMeasurements?: CustomMeasurementCollection
   ) => Record<string, SelectValue<FieldValue>>;
   getSeriesQueryOptions: (options: DetectorSeriesQueryOptions) => ApiQueryKey;
+  /**
+   * Adds additional event types to the query string
+   */
+  getSnubaQuery: (snubaQuery: SnubaQuery | undefined) => string;
   supportedDetectionTypes: Array<MetricDetectorConfig['detectionType']>;
   /**
    * Transform the user-friendly aggregate function to the API aggregate function.
@@ -84,6 +91,9 @@ export interface DetectorDatasetConfig<SeriesResponse> {
    * Transform comparison series data for % change alerts
    */
   transformComparisonSeriesData: (data: SeriesResponse | undefined) => Series[];
+  /**
+   * Transform the result from `getSeriesQueryOptions` to a chart series
+   */
   transformSeriesQueryData: (
     data: SeriesResponse | undefined,
     aggregate: string

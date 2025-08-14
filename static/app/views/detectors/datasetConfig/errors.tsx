@@ -78,4 +78,18 @@ export const DetectorErrorsConfig: DetectorDatasetConfig<ErrorsSeriesResponse> =
   fromApiAggregate: aggregate => aggregate,
   toApiAggregate: aggregate => aggregate,
   supportedDetectionTypes: ['static', 'percent', 'dynamic'],
+  getSnubaQuery: snubaQuery => {
+    if (!snubaQuery) {
+      return '';
+    }
+
+    let eventTypeFilter = '';
+    if (snubaQuery.eventTypes.length === 1) {
+      eventTypeFilter = `event.type:${snubaQuery.eventTypes[0]}`;
+    } else if (snubaQuery.eventTypes.length > 1) {
+      eventTypeFilter = `event.type:[${snubaQuery.eventTypes.join(', ')}]`;
+    }
+
+    return [eventTypeFilter, snubaQuery.query].filter(Boolean).join(' ');
+  },
 };

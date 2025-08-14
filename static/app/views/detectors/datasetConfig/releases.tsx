@@ -95,6 +95,7 @@ export const DetectorReleasesConfig: DetectorDatasetConfig<ReleasesSeriesRespons
   getSeriesQueryOptions: getReleasesSeriesQueryOptions,
   toApiAggregate,
   fromApiAggregate,
+  getSnubaQuery: snubaQuery => snubaQuery?.query ?? '',
   transformSeriesQueryData: (data, aggregate) => {
     return [transformMetricsResponseToSeries(data, aggregate)];
   },

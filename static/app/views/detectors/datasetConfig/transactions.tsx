@@ -22,6 +22,7 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
         ...options,
         dataset: DiscoverDatasets.TRANSACTIONS,
       }),
+    getSnubaQuery: snubaQuery => snubaQuery?.query ?? '',
     transformSeriesQueryData: (data, aggregate) => {
       return [transformEventsStatsToSeries(data, aggregate)];
     },

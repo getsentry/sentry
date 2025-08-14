@@ -451,7 +451,7 @@ export function metricSavedDetectorToFormData(
     workflowIds: detector.workflowIds,
     environment: getDetectorEnvironment(detector) || '',
     owner: detector.owner || '',
-    query: snubaQuery?.query || '',
+    query: datasetConfig.getSnubaQuery(snubaQuery),
     aggregateFunction:
       datasetConfig.fromApiAggregate(snubaQuery?.aggregate || '') ||
       DEFAULT_THRESHOLD_METRIC_FORM_DATA.aggregateFunction,

@@ -16,6 +16,7 @@ export const DetectorLogsConfig: DetectorDatasetConfig<LogsSeriesRepsonse> = {
   getAggregateOptions: LogsConfig.getTableFieldOptions,
   SearchBar: TraceSearchBar,
   getSeriesQueryOptions: getDiscoverSeriesQueryOptions,
+  getSnubaQuery: snubaQuery => snubaQuery.query,
   transformSeriesQueryData: (data, aggregate) => {
     return [transformEventsStatsToSeries(data, aggregate)];
   },

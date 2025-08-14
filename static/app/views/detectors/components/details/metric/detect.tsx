@@ -41,7 +41,7 @@ function SnubaQueryDetails({dataSource}: {dataSource: SnubaQueryDataSource}) {
           {dataSource.queryObj.snubaQuery.query && (
             <Fragment>
               <Label>{t('where:')}</Label>
-              <Value>{dataSource.queryObj.snubaQuery.query}</Value>
+              <Value>{datasetConfig.getSnubaQuery(dataSource.queryObj.snubaQuery)}</Value>
             </Fragment>
           )}
         </Query>

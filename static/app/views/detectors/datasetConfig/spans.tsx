@@ -16,6 +16,7 @@ export const DetectorSpansConfig: DetectorDatasetConfig<SpansSeriesResponse> = {
   getAggregateOptions: SpansConfig.getTableFieldOptions,
   SearchBar: TraceSearchBar,
   getSeriesQueryOptions: getDiscoverSeriesQueryOptions,
+  getSnubaQuery: snubaQuery => snubaQuery.query,
   transformSeriesQueryData: (data, aggregate) => {
     return [transformEventsStatsToSeries(data, aggregate)];
   },
