@@ -23,11 +23,6 @@ interface GroupingSummaryProps {
   showGroupingConfig: boolean;
 }
 
-// Helper function to check if any variant has non-contributing components
-function hasNonContributingComponents(variants: any[]) {
-  return variants.some(variant => variant.hash === null);
-}
-
 export default function GroupingInfo({
   event,
   projectSlug,
@@ -90,21 +85,19 @@ export default function GroupingInfo({
           </div>
         )}
       </ConfigHeader>
-      {hasNonContributingComponents(variants) && (
-        <ToggleContainer>
-          <SegmentedControl
-            aria-label={t('Filter by contribution')}
-            size="xs"
-            value={showNonContributing ? 'all' : 'relevant'}
-            onChange={key => setShowNonContributing(key === 'all')}
-          >
-            <SegmentedControl.Item key="relevant">
-              {t('Contributing Values')}
-            </SegmentedControl.Item>
-            <SegmentedControl.Item key="all">{t('All Values')}</SegmentedControl.Item>
-          </SegmentedControl>
-        </ToggleContainer>
-      )}
+      <ToggleContainer>
+        <SegmentedControl
+          aria-label={t('Filter by contribution')}
+          size="xs"
+          value={showNonContributing ? 'all' : 'relevant'}
+          onChange={key => setShowNonContributing(key === 'all')}
+        >
+          <SegmentedControl.Item key="relevant">
+            {t('Contributing Values')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item key="all">{t('All Values')}</SegmentedControl.Item>
+        </SegmentedControl>
+      </ToggleContainer>
       {isError ? <LoadingError message={t('Failed to fetch grouping info.')} /> : null}
       {isPending && !hasPerformanceGrouping ? <LoadingIndicator /> : null}
       {hasPerformanceGrouping || isSuccess
