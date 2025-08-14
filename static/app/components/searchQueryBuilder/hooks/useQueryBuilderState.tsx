@@ -49,6 +49,7 @@ type QueryBuilderState = {
    * This is the basic source of truth for what is currently being displayed.
    */
   query: string;
+  replacedRawSearchKey: boolean;
 };
 
 type ClearAction = {type: 'CLEAR'};
@@ -57,7 +58,7 @@ type CommitQueryAction = {
   type: 'COMMIT_QUERY';
 };
 
-export type UpdateQueryAction = {
+type UpdateQueryAction = {
   query: string;
   type: 'UPDATE_QUERY';
   focusOverride?: FocusOverride | null;
@@ -77,7 +78,7 @@ type DeleteTokensAction = {
   focusOverride?: FocusOverride;
 };
 
-type UpdateFreeTextAction = {
+export type UpdateFreeTextAction = {
   shouldCommitQuery: boolean;
   text: string;
   tokens: ParseResultToken[];
@@ -85,7 +86,7 @@ type UpdateFreeTextAction = {
   focusOverride?: FocusOverride;
 };
 
-type ReplaceTokensWithTextAction = {
+export type ReplaceTokensWithTextAction = {
   text: string;
   tokens: ParseResultToken[];
   type: 'REPLACE_TOKENS_WITH_TEXT';
@@ -546,50 +547,64 @@ function updateFilterKey(
 }
 
 export function replaceFreeTextTokens(
-  action: UpdateQueryAction,
+  action: UpdateFreeTextAction | ReplaceTokensWithTextAction,
   getFieldDefinition: FieldDefinitionGetter,
   replaceRawSearchKeys: string[],
-  queryToCommit: string
+  currentQuery: string
 ) {
-  const tokens = parseQueryBuilderValue(action.query, getFieldDefinition) ?? [];
-
-  if (tokens.length === 0 || replaceRawSearchKeys.length === 0) {
-    return {newQuery: queryToCommit, focusOverride: null};
+  // if the free text is empty, return early
+  if (!action.text || action.text === '') {
+    return undefined;
   }
 
-  // Single pass to collect free text tokens and find replace token
-  const freeTextTokens: Array<TokenResult<Token.FREE_TEXT>> = [];
-  let replaceToken: TokenResult<Token.FILTER> | undefined;
-  const rawSearchFirst = replaceRawSearchKeys[0] ?? '';
+  // if the free text is not actually free text i.e. user entered a filter, return early
+  const actionTokens = parseQueryBuilderValue(action.text, getFieldDefinition) ?? [];
+  if (actionTokens.every(token => token.type !== Token.FREE_TEXT)) {
+    return undefined;
+  }
 
+  const tokens = parseQueryBuilderValue(currentQuery, getFieldDefinition) ?? [];
+  if (tokens.length === 0 || replaceRawSearchKeys.length === 0) {
+    return undefined;
+  }
+
+  // Single pass to find replace token
+  const rawSearchFirst = replaceRawSearchKeys[0] ?? '';
+  let replaceToken: TokenResult<Token.FILTER> | undefined;
   for (const token of tokens) {
-    if (token.type === Token.FREE_TEXT && /[a-zA-Z0-9]/.test(token.value)) {
-      freeTextTokens.push(token);
-    } else if (token.type === Token.FILTER && token.text.includes(rawSearchFirst)) {
+    if (token.type === Token.FILTER && token.text.includes(rawSearchFirst)) {
       replaceToken = token;
     }
   }
 
-  // return early if there are no free text tokens
-  if (freeTextTokens.length === 0) {
-    return {newQuery: queryToCommit, focusOverride: null};
+  const freeTextTokens = actionTokens
+    .filter(token => token.type === Token.FREE_TEXT)
+    .find(token => token.type === Token.FREE_TEXT && /[a-zA-Z0-9]/.test(token.value));
+
+  const valueText = freeTextTokens?.text.trim();
+  if (!valueText) {
+    return undefined;
   }
+  const values = valueText.includes(' ') ? `"*${valueText}*"` : `*${valueText}*`;
 
-  const values = freeTextTokens
-    .map(token =>
-      token.value.trim().includes(' ')
-        ? `"*${token.value.trim()}*"`
-        : `*${token.value.trim()}*`
-    )
-    .join(',');
-
-  const filteredTokens = tokens
-    .filter(
-      token =>
-        token.type !== Token.FREE_TEXT &&
-        !token.text.includes(replaceRawSearchKeys[0] ?? '')
-    )
-    .map(token => token.text);
+  // merge the action tokens and the current query tokens,
+  // and filter out the free text tokens or duplicates
+  const filteredTokens = new Set([
+    ...actionTokens
+      .filter(
+        token =>
+          token.type !== Token.FREE_TEXT &&
+          !token.text.includes(replaceRawSearchKeys[0] ?? '')
+      )
+      .map(token => token.text),
+    ...tokens
+      .filter(
+        token =>
+          token.type !== Token.FREE_TEXT &&
+          !token.text.includes(replaceRawSearchKeys[0] ?? '')
+      )
+      .map(token => token.text),
+  ]);
 
   // case when there is a span.description already present
   if (replaceToken) {
@@ -602,17 +617,12 @@ export function replaceFreeTextTokens(
       previousValue = previousValue.slice(0, -1);
     }
 
-    filteredTokens.push(`${replaceRawSearchKeys[0]}:[${previousValue},${values}]`);
+    filteredTokens.add(`${replaceRawSearchKeys[0]}:[${previousValue},${values}]`);
   } else {
-    filteredTokens.push(
-      `${replaceRawSearchKeys[0]}:${values.length > 1 ? `[${values}]` : values}`
-    );
+    filteredTokens.add(`${replaceRawSearchKeys[0]}:${values}`);
   }
 
-  return {
-    newQuery: filteredTokens.join(' '),
-    focusOverride: {itemKey: 'end'},
-  };
+  return Array.from(filteredTokens).join(' ');
 }
 
 export function useQueryBuilderState({
@@ -643,6 +653,7 @@ export function useQueryBuilderState({
     committedQuery: initialQuery,
     focusOverride: null,
     clearAskSeerFeedback: false,
+    replacedRawSearchKey: false,
   };
 
   const reducer: Reducer<QueryBuilderState, QueryBuilderActions> = useCallback(
@@ -671,29 +682,16 @@ export function useQueryBuilderState({
         case 'UPDATE_QUERY': {
           const shouldCommitQuery = action.shouldCommitQuery ?? true;
 
-          const queryToCommit = shouldCommitQuery ? action.query : state.committedQuery;
-
-          let replacedQuery: string | undefined;
-          if (
-            replaceRawSearchKeys &&
-            replaceRawSearchKeys.length > 0 &&
-            hasRawSearchReplacement
-          ) {
-            const {newQuery, focusOverride} = replaceFreeTextTokens(
-              action,
-              getFieldDefinition,
-              replaceRawSearchKeys,
-              queryToCommit
-            );
-            replacedQuery = newQuery;
-            action.focusOverride = focusOverride;
-          }
+          const focusOverride = state.replacedRawSearchKey
+            ? {itemKey: 'end'}
+            : (action.focusOverride ?? null);
 
           return {
             ...state,
-            query: replacedQuery ?? action.query,
-            committedQuery: replacedQuery ?? queryToCommit,
-            focusOverride: action.focusOverride ?? null,
+            replacedRawSearchKey: false,
+            query: action.query,
+            committedQuery: shouldCommitQuery ? action.query : state.committedQuery,
+            focusOverride,
           };
         }
         case 'RESET_FOCUS_OVERRIDE':
@@ -701,7 +699,7 @@ export function useQueryBuilderState({
             ...state,
             focusOverride: null,
           };
-        case 'DELETE_TOKEN': {
+        case 'DELETE_TOKEN':
           return {
             ...replaceTokensWithText(state, {
               tokens: [action.token],
@@ -710,29 +708,81 @@ export function useQueryBuilderState({
             }),
             clearAskSeerFeedback: displayAskSeerFeedback ? true : false,
           };
-        }
-        case 'DELETE_TOKENS': {
+        case 'DELETE_TOKENS':
           return {
             ...deleteQueryTokens(state, action),
             clearAskSeerFeedback: displayAskSeerFeedback ? true : false,
           };
-        }
         case 'UPDATE_FREE_TEXT': {
-          const newState = updateFreeText(state, action);
+          const {
+            query,
+            focusOverride,
+            committedQuery: currentCommittedQuery,
+          } = updateFreeText(state, action);
+
+          let replacedQuery: string | undefined;
+          if (
+            replaceRawSearchKeys &&
+            replaceRawSearchKeys.length > 0 &&
+            hasRawSearchReplacement
+          ) {
+            const newQuery = replaceFreeTextTokens(
+              action,
+              getFieldDefinition,
+              replaceRawSearchKeys,
+              query
+            );
+            replacedQuery = newQuery;
+          }
+
+          const committedQuery = action.shouldCommitQuery
+            ? (replacedQuery ?? query)
+            : currentCommittedQuery;
 
           return {
-            ...newState,
+            focusOverride,
+            committedQuery,
+            query: replacedQuery ?? query,
+            replacedRawSearchKey: replacedQuery ? true : state.replacedRawSearchKey,
             clearAskSeerFeedback:
-              newState.query !== state.query && displayAskSeerFeedback ? true : false,
+              (replacedQuery ?? query) !== state.query && displayAskSeerFeedback
+                ? true
+                : false,
           };
         }
-        case 'REPLACE_TOKENS_WITH_TEXT':
-          return replaceTokensWithText(state, {
+        case 'REPLACE_TOKENS_WITH_TEXT': {
+          const {query, focusOverride} = replaceTokensWithText(state, {
             tokens: action.tokens,
             text: action.text,
             focusOverride: action.focusOverride,
             getFieldDefinition,
           });
+
+          let replacedQuery: string | undefined;
+          if (
+            replaceRawSearchKeys &&
+            replaceRawSearchKeys.length > 0 &&
+            hasRawSearchReplacement
+          ) {
+            const newQuery = replaceFreeTextTokens(
+              action,
+              getFieldDefinition,
+              replaceRawSearchKeys,
+              query
+            );
+            replacedQuery = newQuery;
+          }
+
+          const committedQuery = replacedQuery ?? query;
+
+          return {
+            ...state,
+            focusOverride,
+            committedQuery,
+            query: replacedQuery ?? query,
+            replacedRawSearchKey: replacedQuery ? true : state.replacedRawSearchKey,
+          };
+        }
         case 'UPDATE_FILTER_KEY':
           return updateFilterKey(state, action);
         case 'UPDATE_FILTER_OP':
