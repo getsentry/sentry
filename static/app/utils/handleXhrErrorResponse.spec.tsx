@@ -81,9 +81,9 @@ describe('handleXhrErrorResponse', () => {
     const mockScope = new Sentry.Scope();
     const setExtrasSpy = jest.spyOn(mockScope, 'setExtras');
     const setTagsSpy = jest.spyOn(mockScope, 'setTags');
-    // @ts-expect-error this is fine...
     jest
       .spyOn(Sentry, 'withScope')
+      // @ts-expect-error this is fine...
       .mockImplementation((callback: (scope: Sentry.Scope) => any) => {
         return callback(mockScope);
       });
