@@ -403,7 +403,7 @@ export function getMenuOptions(
       label: t('Add to Dashboard'),
       disabled: disableTransactionEdit,
       tooltip: disableTransactionEdit
-        ? t('This dataset is is no longer supported. Please use the Spans dataset.')
+        ? t('This dataset is no longer supported. Please use the Spans dataset.')
         : undefined,
       onAction: () => {
         openAddToDashboardModal({
@@ -427,7 +427,7 @@ export function getMenuOptions(
       label: t('Duplicate Widget'),
       onAction: () => onDuplicate?.(),
       tooltip: disableTransactionEdit
-        ? t('This dataset is is no longer supported. Please use the Spans dataset.')
+        ? t('This dataset is no longer supported. Please use the Spans dataset.')
         : undefined,
       disabled: widgetLimitReached || !hasEditAccess || disableTransactionEdit,
     });
