@@ -298,7 +298,7 @@ function AutofixRootCauseDisplay({
     if (cause?.id !== undefined && cause.id !== null) {
       selectRootCause({
         cause_id: cause.id,
-        instruction: solutionText.trim().length > 0 ? solutionText.trim() : undefined,
+        instruction: solutionText.trim(),
       });
       setIsProvidingSolution(false);
       setSolutionText('');
