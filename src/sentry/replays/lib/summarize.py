@@ -292,8 +292,11 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 duration = payload["endTimestamp"] - payload["startTimestamp"]
 
                 # Parse URL path
-                parsed_url = urlparse(description)
-                path = f"{parsed_url.path}?{parsed_url.query}"
+                try:
+                    parsed_url = urlparse(description)
+                    path = f"{parsed_url.path}?{parsed_url.query}"
+                except (ValueError, TypeError, AttributeError):
+                    path = description
 
                 # Check if the tuple is valid and response size exists
                 sizes_tuple = parse_network_content_lengths(event)
@@ -325,8 +328,11 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 duration = payload["endTimestamp"] - payload["startTimestamp"]
 
                 # Parse URL path
-                parsed_url = urlparse(description)
-                path = f"{parsed_url.path}?{parsed_url.query}"
+                try:
+                    parsed_url = urlparse(description)
+                    path = f"{parsed_url.path}?{parsed_url.query}"
+                except (ValueError, TypeError, AttributeError):
+                    path = description
 
                 # Check if the tuple is valid and response size exists
                 sizes_tuple = parse_network_content_lengths(event)
