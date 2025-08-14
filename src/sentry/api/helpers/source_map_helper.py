@@ -6,7 +6,6 @@ from django.utils.encoding import force_bytes, force_str
 from packaging.version import Version
 from rest_framework.exceptions import NotFound, ParseError
 
-from sentry.api.endpoints.project_release_files import ArtifactSource
 from sentry.debug_files.release_files import maybe_renew_releasefiles
 from sentry.interfaces.exception import Exception as ExceptionInterface
 from sentry.interfaces.stacktrace import Frame
@@ -15,6 +14,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile, read_artifact_index
 from sentry.models.sourcemapprocessingissue import SourceMapProcessingIssue
+from sentry.releases.endpoints.project_release_files import ArtifactSource
 from sentry.services import eventstore
 from sentry.services.eventstore.models import BaseEvent
 from sentry.utils.javascript import find_sourcemap
