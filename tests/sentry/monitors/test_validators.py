@@ -9,9 +9,9 @@ from sentry.constants import ObjectStatus
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorLimitsExceeded, ScheduleType
 from sentry.monitors.validators import MonitorValidator
-from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import MonitorTestCase
 from sentry.utils.outcomes import Outcome
+from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 
 
 class MonitorValidatorCreateTest(MonitorTestCase):
