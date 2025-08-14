@@ -43,7 +43,7 @@ class HookService(RpcService):
         self,
         *,
         region_name: str | None,
-        organization_id: int,
+        organization_id: int | None,
         application_id: int | None,
         webhook_url: str | None,
         events: list[str],
