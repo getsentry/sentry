@@ -1,5 +1,6 @@
 import type {Location} from 'history';
 
+import {defined} from 'sentry/utils';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -18,6 +19,7 @@ import {
   LOGS_SORT_BYS_KEY,
 } from 'sentry/views/explore/contexts/logs/sortBys';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {getAggregateFieldsFromLocation} from 'sentry/views/explore/queryParams/aggregateField';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {getAggregateSortBysFromLocation} from 'sentry/views/explore/queryParams/aggregateSortBy';
 import {getCursorFromLocation} from 'sentry/views/explore/queryParams/cursor';
@@ -37,6 +39,7 @@ import {isVisualize, VisualizeFunction} from 'sentry/views/explore/queryParams/v
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
 const LOGS_MODE_KEY = 'mode';
+export const LOGS_AGGREGATE_FIELD_KEY = 'aggregateField';
 
 export function getReadableQueryParamsFromLocation(
   location: Location
@@ -77,7 +80,25 @@ export function getTargetWithReadableQueryParams(
   writableQueryParams: WritableQueryParams
 ): Location {
   const target: Location = {...location, query: {...location.query}};
+
   updateNullableLocation(target, LOGS_MODE_KEY, writableQueryParams.mode);
+
+  updateNullableLocation(
+    target,
+    LOGS_AGGREGATE_FIELD_KEY,
+    writableQueryParams.aggregateFields?.map(aggregateField =>
+      JSON.stringify(aggregateField)
+    )
+  );
+
+  // when using aggregate fields, we want to make sure to delete the params
+  // used by the separate group by, aggregate fn and aggregate param
+  if (defined(writableQueryParams.aggregateFields)) {
+    delete target.query[LOGS_GROUP_BY_KEY];
+    delete target.query[LOGS_AGGREGATE_FN_KEY];
+    delete target.query[LOGS_AGGREGATE_PARAM_KEY];
+  }
+
   return target;
 }
 
@@ -104,28 +125,63 @@ function defaultSortBys(fields: string[]) {
 }
 
 export function defaultVisualizes() {
-  return [new VisualizeFunction('count(message)')];
+  return [
+    new VisualizeFunction(`${AggregationKey.COUNT}(${OurLogKnownFieldKey.MESSAGE})`),
+  ];
 }
 
-function getVisualizesFromLocation(location: Location): [Visualize] {
-  const aggregateFn = decodeScalar(
-    location.query?.[LOGS_AGGREGATE_FN_KEY],
-    AggregationKey.COUNT
-  );
-  const aggregateParam = decodeScalar(
-    location.query?.[LOGS_AGGREGATE_PARAM_KEY],
-    aggregateFn === AggregationKey.COUNT ? OurLogKnownFieldKey.MESSAGE : ''
-  );
+function getVisualizesFromLocation(location: Location): Visualize[] | null {
+  const aggregateFn = decodeScalar(location.query?.[LOGS_AGGREGATE_FN_KEY]);
+
+  if (aggregateFn === AggregationKey.COUNT) {
+    return [new VisualizeFunction(`${aggregateFn}(${OurLogKnownFieldKey.MESSAGE})`)];
+  }
+
+  const aggregateParam = decodeScalar(location.query?.[LOGS_AGGREGATE_PARAM_KEY]);
+
+  if (!aggregateParam) {
+    return null;
+  }
 
   return [new VisualizeFunction(`${aggregateFn}(${aggregateParam})`)];
 }
 
 function getLogsAggregateFieldsFromLocation(location: Location): AggregateField[] {
+  const aggregateFields = getAggregateFieldsFromLocation(
+    location,
+    LOGS_AGGREGATE_FIELD_KEY
+  );
+
+  if (aggregateFields?.length) {
+    let hasGroupBy = false;
+    let hasVisualize = false;
+    for (const aggregateField of aggregateFields) {
+      if (isGroupBy(aggregateField)) {
+        hasGroupBy = true;
+      } else if (isVisualize(aggregateField)) {
+        hasVisualize = true;
+      }
+    }
+
+    // We have at least 1 group by or 1 visualize, insert some
+    // defaults to make sure we have at least 1 of both
+
+    if (!hasGroupBy) {
+      aggregateFields.push(...defaultGroupBys());
+    }
+
+    if (!hasVisualize) {
+      aggregateFields.push(...defaultVisualizes());
+    }
+
+    return aggregateFields;
+  }
+
   // TODO: support a list of aggregate fields,
   // needed for re-ordering columns in aggregate mode
   return [
     ...(getGroupBysFromLocation(location, LOGS_GROUP_BY_KEY) ?? defaultGroupBys()),
-    ...getVisualizesFromLocation(location),
+    ...(getVisualizesFromLocation(location) ?? defaultVisualizes()),
   ];
 }
 

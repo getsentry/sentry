@@ -19,8 +19,8 @@ interface VisualizeOptions {
 export abstract class Visualize {
   readonly yAxis: string;
   readonly chartType: ChartType;
+  readonly selectedChartType?: ChartType;
   abstract readonly kind: 'function' | 'equation';
-  protected readonly selectedChartType?: ChartType;
 
   constructor(yAxis: string, options?: VisualizeOptions) {
     this.yAxis = yAxis;
@@ -131,7 +131,7 @@ export function isVisualizeFunction(
   return visualize.kind === 'function';
 }
 
-interface BaseVisualize {
+export interface BaseVisualize {
   yAxes: readonly string[];
   chartType?: ChartType;
 }
