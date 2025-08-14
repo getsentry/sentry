@@ -636,11 +636,14 @@ class SearchResolver:
             raise InvalidSearchQuery(f"Unknown operator: {term.operator}")
 
         kwargs = {"op": operator, "val": value}
-        aggregation_key = "aggregation"
-        if isinstance(proto_definition, AttributeConditionalAggregation):
+        if isinstance(proto_definition, AttributeAggregation):
+            aggregation_key = "aggregation"
+        elif isinstance(proto_definition, AttributeConditionalAggregation):
             aggregation_key = "conditional_aggregation"
         elif isinstance(proto_definition, Column.BinaryFormula):
             aggregation_key = "formula"
+        else:
+            raise InvalidSearchQuery(f"{term.key.name} is not a valid search")
 
         kwargs[aggregation_key] = proto_definition
         return (
