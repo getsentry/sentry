@@ -2,7 +2,7 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import Placeholder from 'sentry/components/placeholder';
 import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconWindow} from 'sentry/icons/iconWindow';
+import {IconRuler} from 'sentry/icons/iconRuler';
 import {t} from 'sentry/locale';
 import toPercent from 'sentry/utils/number/toPercent';
 import {useReplayPlayerSize} from 'sentry/utils/replays/playback/providers/replayPlayerSizeContext';
@@ -33,7 +33,7 @@ export default function ReplayViewScale({isLoading}: Props) {
         </CountTooltipContent>
       }
     >
-      <IconWindow size="md" />
+      <IconRuler size="md" />
     </Tooltip>
   );
 }

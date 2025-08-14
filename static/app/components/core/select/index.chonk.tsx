@@ -2,6 +2,7 @@ import {css, type DO_NOT_USE_ChonkTheme} from '@emotion/react';
 import omit from 'lodash/omit';
 
 import {Button} from 'sentry/components/core/button';
+import {debossedBackground} from 'sentry/components/core/chonk';
 import type {StylesConfig as ReactSelectStylesConfig} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconChevron, IconClose} from 'sentry/icons';
@@ -65,7 +66,7 @@ export const getChonkStylesConfig = ({
     control: (_, state) => ({
       display: 'flex',
       color: state.isDisabled ? theme.disabled : theme.textColor,
-      background: theme.tokens.background.secondary,
+      ...debossedBackground(theme),
       border: `1px solid ${theme.border}`,
       boxShadow,
       ...theme.formRadius[size],

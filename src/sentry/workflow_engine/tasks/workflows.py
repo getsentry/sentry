@@ -11,7 +11,7 @@ from sentry.taskworker.retry import Retry, retry_task
 from sentry.utils import metrics
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.processors.workflow import process_workflows
-from sentry.workflow_engine.tasks.utils import build_workflow_event_data_from_event, retry_timeouts
+from sentry.workflow_engine.tasks.utils import build_workflow_event_data_from_event
 from sentry.workflow_engine.types import WorkflowEventData
 from sentry.workflow_engine.utils import log_context
 
@@ -91,8 +91,7 @@ def process_workflow_activity(activity_id: int, group_id: int, detector_id: int)
         ),
     ),
 )
-@retry_timeouts
-@retry
+@retry(timeouts=True)
 def process_workflows_event(
     project_id: int,
     event_id: str,

@@ -19,9 +19,13 @@ import {
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilder,
+} from 'sentry/components/searchQueryBuilder/context';
+import {
+  QueryInterfaceType,
   type FieldDefinitionGetter,
   type FilterKeySection,
-  QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
 import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
@@ -33,6 +37,7 @@ import {
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import localStorageWrapper from 'sentry/utils/localStorage';
+import {SeerComboBox} from 'sentry/views/explore/components/seerComboBox/seerComboBox';
 
 const FILTER_KEYS: TagCollection = {
   [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
@@ -1585,6 +1590,59 @@ describe('SearchQueryBuilder', function () {
       const updatedListBox = screen.getByRole('checkbox', {name: 'Toggle randomValue'});
       expect(updatedListBox).toBeChecked();
     });
+
+    describe('filter key combobox', function () {
+      it.each([
+        {
+          description: 'goes to first item when pressing arrow down',
+          arrow: '{ArrowDown}',
+          expected: 'option-age',
+        },
+        {
+          description: 'goes to last item when pressing arrow up',
+          arrow: '{ArrowUp}',
+          expected: 'option-custom_tag_name',
+        },
+        {
+          description: 'goes to first item when pressing arrow down on the last item',
+          arrow: '{ArrowDown}{ArrowUp}',
+          expected: 'option-custom_tag_name',
+        },
+        {
+          description: 'goes to last item when pressing arrow up on the first item',
+          arrow: '{ArrowUp}{ArrowDown}',
+          expected: 'option-age',
+        },
+        {
+          description: 'goes to the last item after going from second up to first',
+          arrow: '{ArrowDown}{ArrowDown}{ArrowUp}{ArrowUp}',
+          expected: 'option-custom_tag_name',
+        },
+        {
+          description:
+            'goes to the first item after going from second last item up to first',
+          arrow: '{ArrowUp}{ArrowUp}{ArrowDown}{ArrowDown}',
+          expected: 'option-age',
+        },
+      ])('$description', async function ({arrow, expected}) {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
+        );
+
+        await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter key'}));
+
+        await userEvent.keyboard(arrow);
+        const input = await screen.findByRole('combobox', {name: 'Edit filter key'});
+        expect(input).toHaveAttribute(
+          'aria-activedescendant',
+          expect.stringContaining(expected)
+        );
+      });
+    });
   });
 
   describe('token values', function () {
@@ -1913,11 +1971,12 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
         );
-        // Should start with an empty input
-        await waitFor(() => {
-          expect(screen.getByRole('combobox', {name: 'Edit filter key'})).toHaveValue('');
-        });
 
+        // Should start with an input with the previous value
+        const combobox = screen.getByRole('combobox', {name: 'Edit filter key'});
+        await waitFor(() => expect(combobox).toHaveValue('browser.name'));
+
+        await userEvent.clear(combobox);
         await userEvent.click(screen.getByRole('option', {name: 'custom_tag_name'}));
 
         await waitFor(() => {
@@ -1950,11 +2009,11 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
         );
-        // Should start with an empty input
-        await waitFor(() => {
-          expect(screen.getByRole('combobox', {name: 'Edit filter key'})).toHaveValue('');
-        });
+        // Should start with an input with the previous value
+        const combobox = screen.getByRole('combobox', {name: 'Edit filter key'});
+        await waitFor(() => expect(combobox).toHaveValue('browser.name'));
 
+        await userEvent.clear(combobox);
         await userEvent.click(screen.getByRole('option', {name: 'age'}));
 
         await waitFor(() => {
@@ -3343,8 +3402,16 @@ describe('SearchQueryBuilder', function () {
           screen.getByLabelText('p95(transaction.duration):>300ms')
         ).toBeInTheDocument();
         expect(screen.getByLabelText('Edit function parameters')).toHaveFocus();
+
+        // XXX(malwilley): SearchQueryBuilderInput updates state in the render
+        // function which causes an act warning despite using userEvent.click.
+        // Cannot find a way to avoid this warning.
+        jest.spyOn(console, 'error').mockImplementation(jest.fn());
+
         await userEvent.keyboard('transaction');
         await userEvent.click(screen.getByRole('option', {name: 'transaction.duration'}));
+
+        jest.spyOn(console, 'error').mockRestore();
         expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
       });
 
@@ -3613,18 +3680,18 @@ describe('SearchQueryBuilder', function () {
         <SearchQueryBuilder {...builderProps} initialQuery="tags[foo,string]:foo" />
       );
 
-      expect(
-        screen.getByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
-      ).toHaveTextContent('foo');
-
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
-      );
+      const editKeyButton = screen.getByRole('button', {
+        name: 'Edit key for filter: tags[foo,string]',
+      });
+      expect(editKeyButton).toHaveTextContent('foo');
+      await userEvent.click(editKeyButton);
 
       const input = screen.getByPlaceholderText('foo');
       expect(input).toBeInTheDocument();
       expect(input).toHaveFocus();
+      await userEvent.clear(input);
       await userEvent.keyboard('foo');
+
       expect(screen.getByRole('option', {name: 'foo'})).toBeInTheDocument();
     });
 
@@ -3633,18 +3700,18 @@ describe('SearchQueryBuilder', function () {
         <SearchQueryBuilder {...builderProps} initialQuery="tags[bar,number]:<=100" />
       );
 
-      expect(
-        screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
-      ).toHaveTextContent('bar');
+      const editKeyButton = screen.getByRole('button', {
+        name: 'Edit key for filter: tags[bar,number]',
+      });
+      expect(editKeyButton).toHaveTextContent('bar');
+      await userEvent.click(editKeyButton);
 
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
-      );
-
-      const input = screen.getByPlaceholderText('bar');
+      const input = screen.getByRole('combobox', {name: 'Edit filter key'});
       expect(input).toBeInTheDocument();
       expect(input).toHaveFocus();
+      await userEvent.clear(input);
       await userEvent.keyboard('bar');
+
       expect(screen.getByRole('option', {name: 'bar'})).toBeInTheDocument();
     });
 
@@ -3780,6 +3847,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
       );
+      await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter key'}));
       await userEvent.keyboard('foo{Enter}{Escape}');
 
       expect(
@@ -3795,6 +3863,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
       );
+      await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter key'}));
       await userEvent.keyboard('bar{Enter}{Escape}');
 
       expect(
@@ -4585,6 +4654,105 @@ describe('SearchQueryBuilder', function () {
             })
           );
         });
+      });
+    });
+
+    describe('user clicks on ask seer button', () => {
+      it('renders the seer combobox', async () => {
+        function AskSeerTestComponent({children}: {children: React.ReactNode}) {
+          const {displayAskSeer, query} = useSearchQueryBuilder();
+          return displayAskSeer ? <SeerComboBox initialQuery={query} /> : children;
+        }
+
+        function AskSeerWrapper({children}: {children: React.ReactNode}) {
+          return (
+            <SearchQueryBuilderProvider {...defaultProps} enableAISearch>
+              <AskSeerTestComponent>{children}</AskSeerTestComponent>
+            </SearchQueryBuilderProvider>
+          );
+        }
+
+        MockApiClient.addMockResponse({
+          url: `/organizations/org-slug/prompts-activity/`,
+          method: 'PUT',
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/org-slug/seer/setup-check/`,
+          body: AutofixSetupFixture({
+            setupAcknowledgement: {orgHasAcknowledged: true, userHasAcknowledged: true},
+          }),
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/recent-searches/',
+          method: 'POST',
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/trace-explorer-ai/setup/',
+          method: 'POST',
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/trace-explorer-ai/query/',
+          method: 'POST',
+          body: {
+            status: 'ok',
+            queries: [
+              {
+                query: 'span.duration:>30s',
+                stats_period: '',
+                group_by: [],
+                visualization: [{chart_type: 1, y_axes: ['count()']}],
+                sort: '-span.duration',
+              },
+            ],
+          },
+        });
+
+        render(
+          <AskSeerWrapper>
+            <SearchQueryBuilder {...defaultProps} />
+          </AskSeerWrapper>,
+          {
+            organization: {
+              features: [
+                'gen-ai-features',
+                'gen-ai-explore-traces',
+                'gen-ai-explore-traces-consent-ui',
+              ],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+
+        const askSeer = await screen.findByRole('option', {name: /Ask Seer/});
+        expect(askSeer).toBeInTheDocument();
+        await userEvent.hover(askSeer);
+        await userEvent.keyboard('{enter}');
+
+        const input = await screen.findByRole('combobox', {
+          name: 'Ask Seer with Natural Language',
+        });
+        await userEvent.click(input);
+
+        const exampleQuery = await screen.findByText('p95 duration of http client calls');
+        await userEvent.click(exampleQuery);
+
+        const filter = await screen.findByText('Filter');
+        await userEvent.hover(filter);
+        await userEvent.keyboard('{enter}');
+
+        await userEvent.click(getLastInput());
+
+        const feedback = await screen.findByText(
+          'We loaded the results. Does this look right?'
+        );
+        expect(feedback).toBeInTheDocument();
+
+        const yep = await screen.findByRole('button', {name: 'Yep, correct results'});
+        await userEvent.click(yep);
+
+        const askSeer2 = await screen.findByRole('option', {name: /Ask Seer/});
+        expect(askSeer2).toBeInTheDocument();
       });
     });
 

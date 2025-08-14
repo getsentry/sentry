@@ -3,6 +3,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import type {TagCollection} from 'sentry/types/group';
 import {AggregationKey, FieldKind} from 'sentry/utils/fields';
 import SchemaHintsList from 'sentry/views/explore/components/schemaHints/schemaHintsList';
+import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
 import {
   PageParamsProvider,
   useExploreQuery,
@@ -16,6 +17,10 @@ const mockStringTags: TagCollection = {
 const mockNumberTags: TagCollection = {
   numberTag1: {key: 'numberTag1', kind: FieldKind.MEASUREMENT, name: 'numberTag1'},
   numberTag2: {key: 'numberTag2', kind: FieldKind.MEASUREMENT, name: 'numberTag2'},
+};
+
+const mockCustomTags: TagCollection = {
+  customTag: {key: 'customTag', kind: FieldKind.TAG, name: 'customTag'},
 };
 
 const mockDispatch = jest.fn();
@@ -405,5 +410,41 @@ describe('SchemaHintsList', () => {
     });
 
     mockUseSearchQueryBuilder.mockRestore();
+  });
+
+  it('should filter schema hints in bar but show all in drawer for logs source', async () => {
+    const logsStringTags = {
+      message: {key: 'message', kind: FieldKind.TAG, name: 'message'},
+      severity: {key: 'severity', kind: FieldKind.TAG, name: 'severity'},
+      ...mockCustomTags,
+    };
+
+    render(
+      <Subject
+        stringTags={logsStringTags}
+        numberTags={{}}
+        supportedAggregates={[]}
+        source={SchemaHintsSources.LOGS}
+      />
+    );
+
+    const container = screen.getByLabelText('Schema Hints List');
+    const withinContainer = within(container);
+
+    // Bar should only show the logs hint keys (message, severity), not the custom tag
+    expect(withinContainer.getByText('message')).toBeInTheDocument();
+    expect(withinContainer.getByText('severity')).toBeInTheDocument();
+    expect(withinContainer.queryByText('customTag')).not.toBeInTheDocument();
+
+    const seeFullList = screen.getByText('See full list');
+    await userEvent.click(seeFullList);
+
+    expect(screen.getByLabelText('Schema Hints Drawer')).toBeInTheDocument();
+    const withinDrawer = within(screen.getByLabelText('Schema Hints Drawer'));
+
+    // Drawer should show ALL tags including the custom one
+    expect(withinDrawer.getByText('message')).toBeInTheDocument();
+    expect(withinDrawer.getByText('severity')).toBeInTheDocument();
+    expect(withinDrawer.getByText('customTag')).toBeInTheDocument();
   });
 });

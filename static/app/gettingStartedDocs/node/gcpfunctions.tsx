@@ -14,6 +14,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
@@ -149,6 +150,7 @@ const docs: Docs = {
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
     basePackage: 'google-cloud-serverless',
   }),
+  mcpOnboarding: getNodeMcpOnboarding(),
 };
 
 export default docs;

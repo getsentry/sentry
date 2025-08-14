@@ -195,9 +195,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             query_kwargs["actor"] = request.user
             if query_kwargs["sort_by"] == "inbox":
                 query_kwargs.pop("sort_by")
+                query_kwargs.pop("referrer")
                 result = inbox_search(**query_kwargs)
             else:
-                query_kwargs["referrer"] = "search.group_index"
                 result = search.backend.query(**query_kwargs)
             return result, query_kwargs
 

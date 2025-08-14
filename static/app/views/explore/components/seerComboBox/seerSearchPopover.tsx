@@ -39,7 +39,7 @@ export function SeerSearchPopover(props: PopoverProps) {
           };
         }}
       >
-        {children}
+        <BackgroundColorWrapper>{children}</BackgroundColorWrapper>
       </ListBoxOverlay>
     </StyledPositionWrapper>
   );
@@ -51,6 +51,10 @@ const ListBoxOverlay = styled(Overlay)`
   overflow-y: auto;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
+`;
+
+const BackgroundColorWrapper = styled('div')`
+  background-color: ${p => p.theme.purple100};
 `;
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`

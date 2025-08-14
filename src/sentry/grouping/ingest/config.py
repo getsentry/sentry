@@ -10,7 +10,7 @@ from django.core.cache import cache
 
 from sentry import audit_log, options
 from sentry.conf.server import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
-from sentry.grouping.strategies.configurations import CONFIGURATIONS
+from sentry.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
 from sentry.locks import locks
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
@@ -23,7 +23,7 @@ logger = logging.getLogger("sentry.events.grouping")
 Job = MutableMapping[str, Any]
 
 # Used to migrate projects that have no activity via getsentry scripts
-CONFIGS_TO_DEPRECATE = set(CONFIGURATIONS.keys()) - {
+CONFIGS_TO_DEPRECATE = set(GROUPING_CONFIG_CLASSES.keys()) - {
     DEFAULT_GROUPING_CONFIG,
 }
 
@@ -71,7 +71,7 @@ def update_or_set_grouping_config_if_needed(project: Project, source: str) -> st
             # If the current config is out of date but still valid, start a transition period
             if (
                 current_config != DEFAULT_GROUPING_CONFIG
-                and current_config in CONFIGURATIONS.keys()
+                and current_config in GROUPING_CONFIG_CLASSES.keys()
             ):
                 # This is when we will stop calculating the old hash in cases where we don't find the
                 # new hash (which we do in an effort to preserve group continuity).
@@ -148,6 +148,6 @@ def is_in_transition(project: Project) -> bool:
 
     return (
         bool(secondary_grouping_config)
-        and secondary_grouping_config in CONFIGURATIONS.keys()
+        and secondary_grouping_config in GROUPING_CONFIG_CLASSES.keys()
         and (secondary_grouping_expiry or 0) >= time.time()
     )

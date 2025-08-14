@@ -11,7 +11,7 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
-from sentry.eventstore.models import GroupEvent
+from sentry.services.eventstore.models import GroupEvent
 
 if TYPE_CHECKING:
     from sentry.integrations.models.integration import Integration

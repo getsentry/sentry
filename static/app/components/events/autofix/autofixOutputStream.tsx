@@ -1,4 +1,4 @@
-import {type FormEvent, startTransition, useEffect, useRef, useState} from 'react';
+import {startTransition, useEffect, useRef, useState, type FormEvent} from 'react';
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
@@ -244,7 +244,7 @@ export function AutofixOutputStream({
       queryClient.invalidateQueries({
         queryKey: makeAutofixQueryKey(orgSlug, groupId, false),
       });
-      addSuccessMessage('Thanks for the input.');
+      addSuccessMessage(t('Thanks for the input.'));
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when sending Seer your message.'));
@@ -421,8 +421,8 @@ const ActiveLog = styled('div')`
 const VerticalLine = styled('div')`
   width: 0;
   height: ${space(4)};
-  border-left: 2px dashed ${p => p.theme.subText};
-  margin-left: 16px;
+  border-left: 1px dashed ${p => p.theme.subText};
+  margin-left: 16.5px;
   margin-bottom: -1px;
 `;
 

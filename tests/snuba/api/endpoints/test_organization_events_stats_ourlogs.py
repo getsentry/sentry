@@ -53,7 +53,7 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
                 "interval": "1h",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": "ourlogs",
+                "dataset": "logs",
             },
         )
         assert response.status_code == 200, response.content
@@ -69,7 +69,7 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
                 "interval": "1h",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": "ourlogs",
+                "dataset": "logs",
             },
         )
         assert response.status_code == 200, response.content
@@ -80,7 +80,7 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
         for the initial load"""
         response = self._do_request(
             data={
-                "dataset": "ourlogs",
+                "dataset": "logs",
                 "excludeOther": 0,
                 "field": ["count(message)"],
                 "interval": "1h",

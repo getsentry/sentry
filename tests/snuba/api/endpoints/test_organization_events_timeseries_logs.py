@@ -59,12 +59,12 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
                 "interval": "1h",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": "ourlogs",
+                "dataset": "logs",
             },
         )
         assert response.status_code == 200, response.content
         assert response.data["meta"] == {
-            "dataset": "ourlogs",
+            "dataset": "logs",
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
         }
@@ -93,12 +93,12 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
                 "interval": "1h",
                 "yAxis": "count()",
                 "project": self.project.id,
-                "dataset": "ourlogs",
+                "dataset": "logs",
             },
         )
         assert response.status_code == 200, response.content
         assert response.data["meta"] == {
-            "dataset": "ourlogs",
+            "dataset": "logs",
             "start": self.start.timestamp() * 1000,
             "end": self.end.timestamp() * 1000,
         }

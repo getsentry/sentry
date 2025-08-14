@@ -564,18 +564,8 @@ class StatefulDetectorHandler(
         return all(isinstance(key, DetectorGroupKey) for key in value.keys())
 
     def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:
-        priority_levels: list[DetectorPriorityLevel] = [level for level in DetectorPriorityLevel]
-
-        if self.detector.workflow_condition_group is None:
-            return []
-
-        # TODO - Is this something that should be provided by the detector itself rather
-        # than having to query the db for each level?
-        condition_result_levels = self.detector.workflow_condition_group.conditions.filter(
-            condition_result__in=priority_levels
-        ).values_list("condition_result", flat=True)
-
-        return list(DetectorPriorityLevel(level) for level in condition_result_levels)
+        conditions = self.detector.get_conditions()
+        return list(DetectorPriorityLevel(condition.condition_result) for condition in conditions)
 
     def _create_decorated_issue_occurrence(
         self,

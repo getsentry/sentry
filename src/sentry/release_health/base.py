@@ -36,6 +36,8 @@ SessionsQueryFunction = Literal[
     "crash_free_rate(user)",
     "anr_rate()",
     "foreground_anr_rate()",
+    "unhandled_rate(session)",
+    "unhandled_rate(user)",
 ]
 
 GroupByFieldName = Literal[
@@ -182,6 +184,9 @@ class ReleaseHealthOverview(TypedDict, total=False):
     duration_p50: float | None
     duration_p90: float | None
     stats: Mapping[StatsPeriod, ReleaseHealthStats]
+    sessions_unhandled: int
+    unhandled_session_rate: float | None
+    unhandled_user_rate: float | None
 
 
 class CrashFreeBreakdown(TypedDict):
@@ -202,6 +207,7 @@ class UserCounts(TypedDict):
     users_healthy: int
     users_crashed: int
     users_abnormal: int
+    users_unhandled: int
     users_errored: int
 
 
@@ -214,6 +220,7 @@ class SessionCounts(TypedDict):
     sessions_healthy: int
     sessions_crashed: int
     sessions_abnormal: int
+    sessions_unhandled: int
     sessions_errored: int
 
 

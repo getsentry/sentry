@@ -13,11 +13,11 @@ from django.db.models.query_utils import Q
 from django.db.models.sql.constants import ROW_COUNT
 from django.db.models.sql.subqueries import DeleteQuery
 
-from sentry import eventstore
 from sentry.db.models.base import Model
+from sentry.services import eventstore
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
+    from sentry.services.eventstore.models import Event
 
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
@@ -98,9 +98,7 @@ class RangeQuerySetWrapper[V]:
     Very efficient, but ORDER BY statements will not work.
     """
 
-    def __init__[
-        M: Model
-    ](
+    def __init__[M: Model](
         self,
         queryset: QuerySet[M, V],
         *,

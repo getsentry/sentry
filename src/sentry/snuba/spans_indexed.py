@@ -28,7 +28,6 @@ def query(
     orderby=None,
     offset=None,
     limit=50,
-    referrer=None,
     auto_fields=False,
     auto_aggregations=False,
     include_equation_fields=False,
@@ -47,6 +46,8 @@ def query(
     fallback_to_transactions=False,
     query_source: QuerySource | None = None,
     debug: bool = False,
+    *,
+    referrer: str,
 ):
     builder = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
@@ -84,7 +85,6 @@ def timeseries_query(
     query: str,
     snuba_params: SnubaParams,
     rollup: int,
-    referrer: str,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
     comparison_delta: timedelta | None = None,
@@ -96,6 +96,8 @@ def timeseries_query(
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
+    *,
+    referrer: str,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -152,7 +154,6 @@ def top_events_timeseries(
     limit,
     organization,
     equations=None,
-    referrer=None,
     top_events=None,
     allow_empty=True,
     zerofill_results=True,
@@ -163,6 +164,8 @@ def top_events_timeseries(
     query_source: QuerySource | None = None,
     fallback_to_transactions: bool = False,
     transform_alias_to_input_format: bool = False,
+    *,
+    referrer: str,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events

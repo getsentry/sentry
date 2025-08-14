@@ -34,7 +34,6 @@ export default function GroupingInfo({
       event,
       group,
       projectSlug,
-      query: {},
     });
 
   const variants = groupInfo
@@ -51,32 +50,43 @@ export default function GroupingInfo({
       })
     : [];
 
+  const feedbackComponent = (
+    <FeatureFeedback
+      featureName="grouping"
+      feedbackTypes={[
+        t('Too eager grouping'),
+        t('Too specific grouping'),
+        t('Other grouping issue'),
+      ]}
+      buttonProps={{size: hasStreamlinedUI ? 'xs' : 'sm'}}
+    />
+  );
+
   return (
     <Fragment>
-      {hasStreamlinedUI && (
-        <GroupInfoSummary event={event} group={group} projectSlug={projectSlug} />
-      )}
       <ConfigHeader>
-        <FeatureFeedback
-          featureName="grouping"
-          feedbackTypes={[
-            t('Too eager grouping'),
-            t('Too specific grouping'),
-            t('Other grouping issue'),
-          ]}
-          buttonProps={{size: 'sm'}}
-        />
+        {hasStreamlinedUI && (
+          <GroupInfoSummary
+            event={event}
+            group={group}
+            projectSlug={projectSlug}
+            showGroupingConfig={showGroupingConfig}
+          />
+        )}
+        {hasStreamlinedUI ? (
+          feedbackComponent
+        ) : (
+          <div style={{display: 'flex', justifyContent: 'flex-end', width: '100%'}}>
+            {feedbackComponent}
+          </div>
+        )}
       </ConfigHeader>
       {isError ? <LoadingError message={t('Failed to fetch grouping info.')} /> : null}
       {isPending && !hasPerformanceGrouping ? <LoadingIndicator /> : null}
       {hasPerformanceGrouping || isSuccess
         ? variants.map((variant, index) => (
             <Fragment key={variant.key}>
-              <GroupingVariant
-                event={event}
-                showGroupingConfig={showGroupingConfig}
-                variant={variant}
-              />
+              <GroupingVariant event={event} variant={variant} />
               {index < variants.length - 1 && <VariantDivider />}
             </Fragment>
           ))
@@ -87,8 +97,7 @@ export default function GroupingInfo({
 
 const ConfigHeader = styled('div')`
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: ${space(1)};
   margin-bottom: ${space(2)};
 `;

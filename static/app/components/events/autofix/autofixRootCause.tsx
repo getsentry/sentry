@@ -1,6 +1,6 @@
 import React, {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
+import {AnimatePresence, motion, type AnimationProps} from 'framer-motion';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -170,13 +170,14 @@ function CopyRootCauseButton({
 }) {
   const text = formatRootCauseText(cause, customRootCause);
   return (
-    <CopyToClipboardButton
-      size="sm"
+    <StyledCopyToClipboardButton
+      size="zero"
       text={text}
       borderless
       title="Copy root cause as Markdown"
       analyticsEventName="Autofix: Copy Root Cause as Markdown"
       analyticsEventKey="autofix.root_cause.copy"
+      color="black"
     />
   );
 }
@@ -223,7 +224,7 @@ function AutofixRootCauseDisplay({
           <HeaderWrapper>
             <HeaderText>
               <IconWrapper ref={iconFocusRef}>
-                <IconFocus size="sm" color="pink400" />
+                <IconFocus size="md" color="pink400" />
               </IconWrapper>
               {t('Custom Root Cause')}
             </HeaderText>
@@ -241,23 +242,23 @@ function AutofixRootCauseDisplay({
         <HeaderWrapper>
           <HeaderText>
             <IconWrapper ref={iconFocusRef}>
-              <IconFocus size="sm" color="pink400" />
+              <IconFocus size="md" color="pink400" />
             </IconWrapper>
             {t('Root Cause')}
-            <ChatButton
-              size="zero"
-              borderless
-              title={t('Chat with Seer')}
-              onClick={handleSelectDescription}
-              analyticsEventName="Autofix: Root Cause Chat"
-              analyticsEventKey="autofix.root_cause.chat"
-            >
-              <IconChat size="xs" />
-            </ChatButton>
+            <ButtonBar gap={'0'}>
+              <Button
+                size="zero"
+                borderless
+                title={t('Chat with Seer')}
+                onClick={handleSelectDescription}
+                analyticsEventName="Autofix: Root Cause Chat"
+                analyticsEventKey="autofix.root_cause.chat"
+              >
+                <IconChat />
+              </Button>
+              <CopyRootCauseButton cause={cause} />
+            </ButtonBar>
           </HeaderText>
-          <ButtonBar gap="0">
-            <CopyRootCauseButton cause={cause} />
-          </ButtonBar>
         </HeaderWrapper>
         <AnimatePresence>
           {agentCommentThread && iconFocusRef.current && (
@@ -358,7 +359,7 @@ const IconWrapper = styled('div')`
 `;
 
 const HeaderText = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => p.theme.fontSize.lg};
   display: flex;
   align-items: center;
@@ -378,7 +379,6 @@ const AnimationWrapper = styled(motion.div)`
   transform-origin: top center;
 `;
 
-const ChatButton = styled(Button)`
-  color: ${p => p.theme.subText};
-  margin-left: -${space(0.5)};
+const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
+  color: ${p => p.theme.textColor};
 `;

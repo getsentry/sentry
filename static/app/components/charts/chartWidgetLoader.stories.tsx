@@ -1,9 +1,8 @@
 import {Fragment} from 'react';
+import types from '!!type-loader!sentry/components/charts/chartWidgetLoader';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import * as Storybook from 'sentry/stories';
-
-import types from '!!type-loader!sentry/components/charts/chartWidgetLoader';
 
 export default Storybook.story('ChartWidgetLoader', (story, APIReference) => {
   APIReference(types.ChartWidgetLoader);

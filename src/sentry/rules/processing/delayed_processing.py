@@ -12,9 +12,8 @@ from celery.exceptions import SoftTimeLimitExceeded
 from django.db.models import OuterRef, Subquery
 
 from sentry import buffer, features, nodestore
-from sentry.buffer.base import BufferField
+from sentry.buffer.base import Buffer, BufferField
 from sentry.db import models
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.grouprulestatus import GroupRuleStatus
@@ -43,6 +42,7 @@ from sentry.rules.processing.processor import (
     is_condition_slow,
     split_conditions_and_filters,
 )
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.post_process import should_retry_fetch
@@ -50,7 +50,9 @@ from sentry.taskworker.config import TaskworkerConfig
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.retry import Retry
 from sentry.utils import json, metrics
+from sentry.utils.dates import ensure_aware
 from sentry.utils.iterators import chunked
+from sentry.utils.lazy_service_wrapper import LazyServiceWrapper
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.processors.log_util import track_batch_performance
@@ -72,7 +74,7 @@ class UniqueConditionQuery(NamedTuple):
     environment_id: int
     comparison_interval: str | None = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<UniqueConditionQuery:\nid: {self.cls_id},\ninterval: {self.interval},\nenv id: {self.environment_id},\n"
             f"comp interval: {self.comparison_interval}\n>"
@@ -84,7 +86,7 @@ class DataAndGroups(NamedTuple):
     group_ids: set[int]
     rule_id: int | None = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"<DataAndGroups data: {self.data} group_ids: {self.group_ids} rule_id: {self.rule_id}>"
         )
@@ -573,6 +575,13 @@ def fire_rules(
 
                     notification_uuid = str(uuid.uuid4())
                     groupevent = group_to_groupevent[group]
+                    metrics.timing(
+                        "rule_fire_history.latency",
+                        (
+                            datetime.now(tz=timezone.utc) - ensure_aware(groupevent.datetime)
+                        ).total_seconds(),
+                        tags={"delayed": True, "group_type": group.issue_type.slug},
+                    )
                     rule_fire_history = history.record(
                         rule, group, groupevent.event_id, notification_uuid
                     )
@@ -779,3 +788,7 @@ class DelayedRule(DelayedProcessingBase):
     @property
     def processing_task(self) -> Task:
         return apply_delayed
+
+    @staticmethod
+    def buffer_backend() -> LazyServiceWrapper[Buffer]:
+        return buffer.backend

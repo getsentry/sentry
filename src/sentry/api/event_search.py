@@ -331,9 +331,9 @@ def remove_optional_nodes[T](children: list[T]) -> list[T]:
     ]
 
 
-def process_list[
-    T
-](first: T, remaining: tuple[tuple[object, object, object, object, tuple[T]], ...]) -> list[T]:
+def process_list[T](
+    first: T, remaining: tuple[tuple[object, object, object, object, tuple[T]], ...]
+) -> list[T]:
     # Empty values become blank nodes
     if any(isinstance(item[4], Node) for item in remaining):
         raise InvalidSearchQuery("Lists should not have empty values")
@@ -645,12 +645,10 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
 
     @overload
     @classmethod
-    def create_from[
-        TBool: (
-            Literal[True],
-            Literal[False],
-        )
-    ](
+    def create_from[TBool: (
+        Literal[True],
+        Literal[False],
+    )](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[Any],
         *,
@@ -660,12 +658,10 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
 
     @overload
     @classmethod
-    def create_from[
-        TBool: (
-            Literal[True],
-            Literal[False],
-        )
-    ](
+    def create_from[TBool: (
+        Literal[True],
+        Literal[False],
+    )](
         cls: type[SearchConfig[Any]],
         search_config: SearchConfig[TBool],
         **overrides: Any,

@@ -200,7 +200,7 @@ class HandleQueryErrorsTest(APITestCase):
 
     def test_handle_postgres_timeout(self) -> None:
         class TimeoutError(OperationalError):
-            def __str__(self):
+            def __str__(self) -> str:
                 return "canceling statement due to statement timeout"
 
         try:
@@ -214,7 +214,7 @@ class HandleQueryErrorsTest(APITestCase):
 
     def test_handle_postgres_user_cancel(self) -> None:
         class UserCancelError(OperationalError):
-            def __str__(self):
+            def __str__(self) -> str:
                 return "canceling statement due to user request"
 
         try:

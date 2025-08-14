@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING, NamedTuple
 from sentry.utils.dates import to_datetime
 
 if TYPE_CHECKING:
-    from sentry.eventstore.models import Event
     from sentry.models.rule import Rule
+    from sentry.services.eventstore.models import Event
 
 
 class IdentifierKey(StrEnum):

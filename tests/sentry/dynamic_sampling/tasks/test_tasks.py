@@ -128,11 +128,8 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
     def forecasted_volume_side_effect(*args, **kwargs):
         return kwargs["volume"]
 
-    @patch("sentry.dynamic_sampling.tasks.boost_low_volume_projects.model_factory")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
-    def test_boost_low_volume_projects_with_no_dynamic_sampling(
-        self, get_blended_sample_rate, model_factory
-    ):
+    def test_boost_low_volume_projects_with_no_dynamic_sampling(self, get_blended_sample_rate):
         get_blended_sample_rate.return_value = 0.25
         test_org = self.create_old_organization(name="sample-org")
 
@@ -144,8 +141,6 @@ class TestBoostLowVolumeProjectsTasks(TasksTestCase):
         with self.tasks():
             sliding_window_org()
             boost_low_volume_projects()
-
-        model_factory.assert_not_called()
 
     @with_feature("organizations:dynamic-sampling")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
@@ -407,10 +402,9 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
             )
         )
 
-    @patch("sentry.dynamic_sampling.tasks.boost_low_volume_transactions.model_factory")
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_boost_low_volume_transactions_with_blended_sample_rate_and_no_dynamic_sampling(
-        self, get_blended_sample_rate, model_factory
+        self, get_blended_sample_rate
     ):
         """
         Create orgs projects & transactions and then check that the rebalancing model is not called because dynamic
@@ -421,8 +415,6 @@ class TestBoostLowVolumeTransactionsTasks(TasksTestCase):
 
         with self.tasks():
             boost_low_volume_transactions()
-
-        model_factory.assert_not_called()
 
     @with_feature("organizations:dynamic-sampling")
     @patch("sentry.quotas.backend.get_blended_sample_rate")

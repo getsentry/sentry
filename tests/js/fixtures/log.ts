@@ -27,6 +27,8 @@ export function LogFixture({
   [OurLogKnownFieldKey.TIMESTAMP]: timestamp = '2025-04-03T15:50:10+00:00',
   [OurLogKnownFieldKey.TRACE_ID]: traceId = '7b91699fd385d9fd52e0c4bc',
   [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: timestampPrecise = 1.744312870049196e18,
+  [OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]:
+    observedTimestampPrecise = 1.744312870049196e18,
   ...rest
 }: Partial<OurLogsResponseItem> &
   Required<
@@ -47,6 +49,7 @@ export function LogFixture({
     [OurLogKnownFieldKey.TIMESTAMP]: timestamp,
     [OurLogKnownFieldKey.TRACE_ID]: traceId,
     [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: timestampPrecise,
+    [OurLogKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: observedTimestampPrecise,
     ...rest,
   };
 }
@@ -72,6 +75,7 @@ export function LogFixtureMeta(
 }
 
 interface LogsTestInitOptions {
+  isProjectOnboarded?: boolean;
   liveRefresh?: boolean;
   organization?: Partial<Organization>;
   ourlogs?: boolean;
@@ -92,7 +96,7 @@ type LocationConfig = {
  */
 export function initializeLogsTest({
   organization: orgOverrides = {},
-  project: projectOverrides = {},
+  project: projectOverrides,
   ourlogs = true,
   liveRefresh: hasLiveRefreshFlag = false,
   routerQuery = {},
@@ -128,12 +132,13 @@ export function initializeLogsTest({
     baseFeatures.push('ourlogs-live-refresh');
   }
 
+  const forcedProject = projectOverrides ?? {hasLogs: true};
   const {organization, project} = initializeOrg({
     organization: {
       features: baseFeatures,
       ...orgOverrides,
     },
-    project: projectOverrides,
+    projects: [forcedProject],
   });
 
   const initialLocation: LocationConfig = {

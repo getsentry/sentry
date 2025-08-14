@@ -11,8 +11,8 @@ import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/t
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
-  type ParseResultToken,
   Token,
+  type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
@@ -54,10 +54,14 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
   const hasWildcardOperators = organization.features.includes(
     'search-query-builder-wildcard-operators'
   );
+  const label = useMemo(
+    () => getOperatorInfo(token, hasWildcardOperators).label,
+    [hasWildcardOperators, token]
+  );
 
   return (
     <FilterWrapper aria-label={token.text}>
-      <FilterKey token={token} /> {getOperatorInfo(token, hasWildcardOperators).label}{' '}
+      <FilterKey token={token} /> {label}{' '}
       <FilterValue>
         <FilterValueText token={token} />
       </FilterValue>

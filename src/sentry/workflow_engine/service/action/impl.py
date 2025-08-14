@@ -14,3 +14,15 @@ class DatabaseBackedActionService(ActionService):
             integration_id=integration_id,
             dataconditiongroupaction__condition_group__organization_id=organization_id,
         ).delete()
+
+    def update_action_status_for_organization_integration(
+        self, *, organization_id: int, integration_id: int, status: int
+    ) -> None:
+        """
+        Update the status of all actions given an organization_id and integration_id.
+        """
+
+        Action.objects.filter(
+            integration_id=integration_id,
+            dataconditiongroupaction__condition_group__organization_id=organization_id,
+        ).update(status=status)
