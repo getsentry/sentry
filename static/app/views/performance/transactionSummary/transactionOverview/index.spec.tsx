@@ -1167,7 +1167,7 @@ describe('Performance > TransactionSummary', function () {
             project: [2],
             query:
               'transaction.op:pageload event.type:transaction transaction:/performance',
-            referrer: 'api.performance.transaction-summary.duration-chart',
+            referrer: 'api.insights.transaction-summary.duration-chart',
             statsPeriod: '14d',
             yAxis: [
               'p50(transaction.duration)',

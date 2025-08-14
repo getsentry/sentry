@@ -95,7 +95,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
             eventView={getTotalsView(eventView)}
             orgSlug={organization.slug}
             location={location}
-            referrer="api.performance.transaction-spans"
+            referrer="api.insights.transaction-spans"
             cursor="0:0:1"
             noPagination
           >
