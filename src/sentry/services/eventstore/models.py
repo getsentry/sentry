@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, cast, overload
 
 import orjson
 import sentry_sdk
+from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils.encoding import force_str
 from django.utils.functional import cached_property
@@ -113,12 +114,12 @@ class BaseEvent(metaclass=abc.ABCMeta):
         # If we have millisecond precision timestamps, use them
         column = self._get_column_name(Columns.TIMESTAMP_MS)
         if column in self._snuba_data and self._snuba_data[column]:
-            return datetime.fromisoformat(self._snuba_data[column]).replace(tzinfo=timezone.utc)
+            return parse_date(self._snuba_data[column]).replace(tzinfo=timezone.utc)
 
         # Otherwise, use the second precision timestamp
         column = self._get_column_name(Columns.TIMESTAMP)
         if column in self._snuba_data:
-            return datetime.fromisoformat(self._snuba_data[column]).replace(tzinfo=timezone.utc)
+            return parse_date(self._snuba_data[column]).replace(tzinfo=timezone.utc)
 
         timestamp = self.data["timestamp"]
         date = datetime.fromtimestamp(timestamp)

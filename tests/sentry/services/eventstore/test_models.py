@@ -692,19 +692,9 @@ class EventNodeStoreTest(TestCase):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.data.get_ref(event) == event.project.id
 
-    def test_datetime_uses_snuba_data(self) -> None:
-        """
-        Test that datetime property uses snuba data when available to avoid nodestore access.
-        - timestamp_ms and timestamp in snuba data - nodestore should not be accessed, return timestamp with ms
-        - timestamp in snuba data, no timestamp_ms - nodestore should not be accessed, return timestamp without microseconds
-        - neither timestamp in snuba data - nodestore should be accessed, return from nodestore with ms
-        """
-
+    def test_datetime_uses_timestamp_ms_from_snuba(self) -> None:
         second_before_now = before_now(seconds=1)
-        second_before_now_no_ms = second_before_now.replace(microsecond=0)
-
         second_before_now_str = second_before_now.isoformat()
-        second_before_now_no_ms_str = second_before_now_no_ms.isoformat()
 
         self.store_event(
             data={
@@ -736,15 +726,32 @@ class EventNodeStoreTest(TestCase):
             mock_nodestore_get.assert_not_called()
             assert second_before_now_str == timestamp_result
 
+    def test_datetime_uses_timestamp_from_snuba_without_ms(self) -> None:
+        second_before_now = before_now(seconds=1)
+        second_before_now_no_ms = second_before_now.replace(microsecond=0)
+        second_before_now_str = second_before_now.isoformat()
+        second_before_now_no_ms_str = second_before_now_no_ms.isoformat()
+
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "Hello World!",
+                "tags": {"logger": "foobar", "site": "foo", "server_name": "bar"},
+                "user": {"id": "test", "email": "test@test.com"},
+                "timestamp": second_before_now_str,
+            },
+            project_id=self.project.id,
+        )
+
         with mock.patch("sentry.nodestore.backend.get") as mock_nodestore_get:
             event_from_snuba = Event(
                 project_id=self.project.id,
-                event_id="a" * 32,
+                event_id="b" * 32,
                 snuba_data=snuba.raw_query(
                     selected_columns=[
                         "timestamp",
                     ],
-                    filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
+                    filter_keys={"project_id": [self.project.id], "event_id": ["b" * 32]},
                     tenant_ids={"referrer": "r", "organization_id": 1234},
                 )["data"][0],
             )
@@ -754,19 +761,34 @@ class EventNodeStoreTest(TestCase):
             mock_nodestore_get.assert_not_called()
             assert second_before_now_no_ms_str == timestamp_result
 
+    def test_datetime_falls_back_to_nodestore(self) -> None:
+        second_before_now = before_now(seconds=1)
+        second_before_now_str = second_before_now.isoformat()
+
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "message": "Hello World!",
+                "tags": {"logger": "foobar", "site": "foo", "server_name": "bar"},
+                "user": {"id": "test", "email": "test@test.com"},
+                "timestamp": second_before_now_str,
+            },
+            project_id=self.project.id,
+        )
+
         with mock.patch("sentry.nodestore.backend.get") as mock_nodestore_get:
-            node_id = Event.generate_node_id(self.project.id, "a" * 32)
+            node_id = Event.generate_node_id(self.project.id, "c" * 32)
             mock_nodestore_get.return_value = {
                 "timestamp": second_before_now.timestamp(),
-                "event_id": "a" * 32,
+                "event_id": "c" * 32,
             }
 
             event_from_snuba = Event(
                 project_id=self.project.id,
-                event_id="a" * 32,
+                event_id="c" * 32,
                 snuba_data=snuba.raw_query(
                     selected_columns=["event_id"],
-                    filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
+                    filter_keys={"project_id": [self.project.id], "event_id": ["c" * 32]},
                     tenant_ids={"referrer": "r", "organization_id": 1234},
                 )["data"][0],
             )
