@@ -8,11 +8,7 @@ import responses
 from django.conf import settings
 from django.urls import reverse
 
-from sentry.replays.endpoints.project_replay_summary import (
-    DEFAULT_TEMPERATURE,
-    SEER_POLL_STATE_URL,
-    SEER_START_TASK_URL,
-)
+from sentry.replays.endpoints.project_replay_summary import SEER_POLL_STATE_URL, SEER_START_TASK_URL
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import TransactionTestCase
@@ -167,7 +163,7 @@ class ProjectReplaySummaryTestCase(
             "replay_id": self.replay_id,
             "organization_id": self.organization.id,
             "project_id": self.project.id,
-            "temperature": DEFAULT_TEMPERATURE,
+            "temperature": None,
         }
 
     @patch("sentry.replays.endpoints.project_replay_summary.requests")
@@ -370,7 +366,7 @@ class ProjectReplaySummaryTestCase(
             "replay_id": self.replay_id,
             "organization_id": self.organization.id,
             "project_id": self.project.id,
-            "temperature": DEFAULT_TEMPERATURE,
+            "temperature": None,
         }
 
     @responses.activate
