@@ -179,7 +179,7 @@ describe('SpanOpSelector', function () {
       },
       match: [
         function (_url: string, options: Record<string, any>) {
-          return options?.query?.referrer === 'api.starfish.get-span-operations';
+          return options?.query?.referrer === 'api.insights.get-span-operations';
         },
       ],
     });

@@ -1,4 +1,5 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {
   DEFAULT_INDEXED_SPANS_SORT,
   SORTABLE_INDEXED_FIELDS,
@@ -121,7 +122,7 @@ export function useSpanSamplesWebVitalsQuery({
       enabled,
       limit,
     },
-    'api.performance.browser.web-vitals.spans'
+    Referrer.WEB_VITAL_SPANS
   );
   const tableData: SpanSampleRowWithScore[] =
     !isPending && data?.length

@@ -85,9 +85,7 @@ const setupMockRequests = (
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events/`,
     method: 'GET',
-    match: [
-      MockApiClient.matchQuery({referrer: 'api.performance.resources.sample-images'}),
-    ],
+    match: [MockApiClient.matchQuery({referrer: 'api.insights.resources.sample-images'})],
     body: {
       data: [
         {

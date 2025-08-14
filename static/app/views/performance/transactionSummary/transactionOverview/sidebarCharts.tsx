@@ -276,7 +276,7 @@ function SidebarChartsContainer({
       includePrevious={false}
       yAxis={['apdex()', 'failure_rate()']}
       partial
-      referrer="api.performance.transaction-summary.sidebar-chart"
+      referrer="api.insights.transaction-summary.sidebar-chart"
       queryExtras={queryExtras}
     >
       {({results, errored, loading, reloading}) => {

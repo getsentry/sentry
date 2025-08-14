@@ -1049,7 +1049,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
           query: 'span.op:[cache.get_item,cache.get]',
           statsPeriod: '7d',
           referrer:
-            'api.performance.generic-widget-chart.highest-cache--miss-rate-transactions',
+            'api.insights.generic-widget-chart.highest-cache--miss-rate-transactions',
           sort: '-cache_miss_rate()',
         }),
       })

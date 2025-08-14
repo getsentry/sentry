@@ -76,7 +76,7 @@ export function DomainSelector({
       sorts: [{field: 'count()', kind: 'desc'}],
       fields: [SpanFields.SPAN_DOMAIN, 'count()'],
     },
-    'api.starfish.get-span-domains'
+    'api.insights.get-span-domains'
   );
 
   const wasSearchSpaceExhausted = useWasSearchSpaceExhausted({

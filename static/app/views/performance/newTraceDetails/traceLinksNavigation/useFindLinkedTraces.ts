@@ -68,7 +68,7 @@ export function useFindNextTrace({
       },
       queryWithoutPageFilters: true,
     },
-    `api.performance.trace-panel-${direction}-trace-link`
+    `api.insights.trace-panel-${direction}-trace-link`
   );
 
   const spanId = data?.[0]?.id;
@@ -179,7 +179,7 @@ export function useFindPreviousTrace({
       },
       queryWithoutPageFilters: true,
     },
-    `api.performance.trace-panel-${direction}-trace-link`
+    `api.insights.trace-panel-${direction}-trace-link`
   );
 
   return {

@@ -328,7 +328,7 @@ function TagsHeatMap(
               eventView={transactionEventView}
               orgSlug={organization.slug}
               limit={4}
-              referrer="api.performance.tag-page"
+              referrer="api.insights.tag-page"
             >
               {({isLoading: isTransactionsLoading, tableData: transactionTableData}) => {
                 if (isTransactionsLoading) {

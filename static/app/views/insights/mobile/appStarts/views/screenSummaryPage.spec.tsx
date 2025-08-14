@@ -111,7 +111,7 @@ describe('Screen Summary', function () {
           ],
         },
         match: [
-          MockApiClient.matchQuery({referrer: 'api.starfish.mobile-startup-totals'}),
+          MockApiClient.matchQuery({referrer: 'api.insights.mobile-startup-totals'}),
         ],
       });
 

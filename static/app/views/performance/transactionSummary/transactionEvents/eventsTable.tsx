@@ -573,7 +573,7 @@ function EventsTable({
         orgSlug={organization.slug}
         location={location}
         setError={error => setError(error?.message)}
-        referrer="api.performance.transaction-summary"
+        referrer="api.insights.transaction-summary"
         cursor="0:0:0"
       >
         {({isLoading: isTotalEventsLoading, tableData: table}) => {
@@ -585,7 +585,7 @@ function EventsTable({
               orgSlug={organization.slug}
               location={location}
               setError={error => setError(error?.message)}
-              referrer={referrer || 'api.performance.transaction-events'}
+              referrer={referrer || 'api.insights.transaction-events'}
             >
               {({pageLinks, isLoading: isDiscoverQueryLoading, tableData}) => {
                 tableData ??= {data: []};

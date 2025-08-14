@@ -114,7 +114,7 @@ describe('DatabaseSpanSummaryPage', function () {
       url: `/organizations/${organization.slug}/events/`,
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.starfish.span-description',
+          referrer: 'api.insights.span-description',
         }),
       ],
       method: 'GET',
@@ -141,7 +141,7 @@ describe('DatabaseSpanSummaryPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.starfish.span-transaction-metrics',
+          referrer: 'api.insights.span-transaction-metrics',
         }),
       ],
       body: {
@@ -212,7 +212,7 @@ describe('DatabaseSpanSummaryPage', function () {
           per_page: 50,
           project: [],
           query: 'span.group:1756baf8fd19c116',
-          referrer: 'api.starfish.span-summary-page-metrics',
+          referrer: 'api.insights.span-summary-page-metrics',
           sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
@@ -245,7 +245,7 @@ describe('DatabaseSpanSummaryPage', function () {
           project: [],
           sort: '-code.filepath',
           query: 'span.group:1756baf8fd19c116',
-          referrer: 'api.starfish.span-description',
+          referrer: 'api.insights.span-description',
           statsPeriod: '10d',
         },
       })
@@ -329,7 +329,7 @@ describe('DatabaseSpanSummaryPage', function () {
           project: [],
           query: 'span.group:1756baf8fd19c116',
           sort: '-sum(span.self_time)',
-          referrer: 'api.starfish.span-transaction-metrics',
+          referrer: 'api.insights.span-transaction-metrics',
           sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
