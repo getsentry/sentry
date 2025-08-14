@@ -1,11 +1,13 @@
-import {useEffect} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Tag} from 'sentry/components/core/badge/tag';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
+import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -29,6 +31,7 @@ function AddDataVolume({
   onEdit,
   onUpdate,
   onCompleteStep,
+  isNewCheckout,
 }: StepProps) {
   useEffect(() => {
     if (organization && isActive) {
@@ -46,13 +49,15 @@ function AddDataVolume({
   const title = isLegacy ? t('Reserved Volumes') : t('Set Reserved Volumes (optional)');
   const testId = 'reserved-volumes';
 
+  const [showSliders, setShowSliders] = useState(false);
+
   const renderInfo = () => {
     if (isLegacy) {
       return null;
     }
 
     return (
-      <InfoContainer>
+      <Flex direction="column" padding="xl" gap="0">
         <RowWithTag>
           <LargeTitle>{t('Monthly Reserved Volumes')}</LargeTitle>
           <StyledTag type="promotion">{t('Plan ahead and save 20%')}</StyledTag>
@@ -60,7 +65,7 @@ function AddDataVolume({
         <Description>
           {t('Prepay for usage by reserving volumes and save up to 20%')}
         </Description>
-      </InfoContainer>
+      </Flex>
     );
   };
 
@@ -103,9 +108,41 @@ function AddDataVolume({
         isCompleted={isCompleted}
         onEdit={onEdit}
       />
-      {isActive && renderInfo()}
-      {isActive && renderBody()}
-      {isActive && renderFooter()}
+      {isNewCheckout && isActive ? (
+        <div>
+          <Flex direction="column" padding="xl" gap="0" align="start">
+            <RowWithTag>
+              <MediumTitle>{t('Need extra volume?')}</MediumTitle>
+              <StyledTag type="promotion">{t('save 20%')}</StyledTag>
+            </RowWithTag>
+            <Description>
+              {t('Plan ahead of time by reserving extra volume, and get more for less')}
+            </Description>
+            <ReserveButton onClick={() => setShowSliders(!showSliders)}>
+              {showSliders ? <IconSubtract size="md" /> : <IconAdd size="md" />}
+              <span>{t('Reserve volume')}</span>
+            </ReserveButton>
+          </Flex>
+          {showSliders && (
+            <VolumeSliders
+              checkoutTier={checkoutTier}
+              activePlan={activePlan}
+              organization={organization}
+              onUpdate={onUpdate}
+              formData={formData}
+              subscription={subscription}
+              isLegacy={isLegacy}
+              isNewCheckout
+            />
+          )}
+        </div>
+      ) : (
+        <Fragment>
+          {isActive && renderInfo()}
+          {isActive && renderBody()}
+          {isActive && renderFooter()}
+        </Fragment>
+      )}
     </Panel>
   );
 }
@@ -126,7 +163,6 @@ const RowWithTag = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
-  margin-bottom: ${space(1)};
 `;
 
 const StyledTag = styled(Tag)`
@@ -135,13 +171,16 @@ const StyledTag = styled(Tag)`
 
 const Title = styled('label')`
   font-weight: 600;
-  font-size: ${p => p.theme.fontSize.lg};
   margin: 0;
+  line-height: normal;
+`;
+
+const MediumTitle = styled(Title)`
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const LargeTitle = styled(Title)`
   font-size: ${p => p.theme.fontSize.lg};
-  line-height: normal;
 `;
 
 const Description = styled(TextBlock)`
@@ -150,6 +189,13 @@ const Description = styled(TextBlock)`
   margin: 0;
 `;
 
-const InfoContainer = styled('div')`
-  padding: ${space(2)};
+const ReserveButton = styled('button')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  color: ${p => p.theme.activeText};
+  font-weight: ${p => p.theme.fontWeight.bold};
+  margin-top: ${p => p.theme.space.md};
+  border: none;
+  background: none;
 `;

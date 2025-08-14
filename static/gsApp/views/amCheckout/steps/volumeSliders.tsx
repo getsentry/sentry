@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
+import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
@@ -18,6 +19,7 @@ import {formatReservedWithUnits} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
+  getSingularCategoryName,
 } from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import UnitTypeItem from 'getsentry/views/amCheckout/steps/unitTypeItem';
@@ -34,6 +36,7 @@ function VolumeSliders({
   formData,
   subscription,
   isLegacy,
+  isNewCheckout,
 }: Pick<
   StepProps,
   | 'activePlan'
@@ -42,6 +45,7 @@ function VolumeSliders({
   | 'onUpdate'
   | 'formData'
   | 'subscription'
+  | 'isNewCheckout'
 > & {
   isLegacy: boolean;
 }) {
@@ -170,78 +174,140 @@ function VolumeSliders({
 
           return (
             <DataVolumeItem key={category} data-test-id={`${category}-volume-item`}>
-              <div>
-                {showPerformanceUnits && renderPerformanceUnitDecoration()}
-                <SectionHeader>
-                  <Title htmlFor={sliderId}>
-                    <div>{getPlanCategoryName({plan: activePlan, category})}</div>
-                    {showPerformanceUnits
-                      ? renderPerformanceHovercard()
-                      : categoryInfo?.reservedVolumeTooltip && (
-                          <QuestionTooltip
-                            title={categoryInfo.reservedVolumeTooltip}
-                            position="top"
-                            size="xs"
-                          />
+              {isNewCheckout ? (
+                <CategoryContainer>
+                  <Flex align="center" justify="between" gap="2xl">
+                    <Flex direction="column">
+                      <Title htmlFor={sliderId} isNewCheckout={!!isNewCheckout}>
+                        <div>{getPlanCategoryName({plan: activePlan, category})}</div>
+                        {showPerformanceUnits
+                          ? renderPerformanceHovercard()
+                          : categoryInfo?.reservedVolumeTooltip && (
+                              <QuestionTooltip
+                                title={categoryInfo.reservedVolumeTooltip}
+                                position="top"
+                                size="xs"
+                              />
+                            )}
+                      </Title>
+                      <Description>
+                        <div>
+                          {eventBucket.price !== 0 &&
+                            tct('[unitPrice]/[category]', {
+                              category:
+                                category ===
+                                DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT].plural
+                                  ? 'GB'
+                                  : getSingularCategoryName({
+                                      plan: activePlan,
+                                      category,
+                                      capitalize: false,
+                                    }),
+                              unitPrice,
+                            })}
+                        </div>
+                      </Description>
+                    </Flex>
+
+                    <VolumeAmount>
+                      {formatReservedWithUnits(
+                        formData.reserved[category] ?? null,
+                        category,
+                        {
+                          isAbbreviated: true,
+                        }
+                      )}
+                    </VolumeAmount>
+                    <Price isIncluded={eventBucket.price === 0}>
+                      {eventBucket.price === 0 ? t('Included') : `+${price}`}
+                    </Price>
+                  </Flex>
+                  <RangeSlider
+                    showLabel
+                    name={category}
+                    id={sliderId}
+                    value={formData.reserved[category] ?? ''}
+                    allowedValues={allowedValues}
+                    formatLabel={() => null}
+                    onChange={value => value && handleReservedChange(value, category)}
+                  />
+                </CategoryContainer>
+              ) : (
+                <Fragment>
+                  <div>
+                    {showPerformanceUnits && renderPerformanceUnitDecoration()}
+                    <SectionHeader>
+                      <Title htmlFor={sliderId} isNewCheckout={!!isNewCheckout}>
+                        <div>{getPlanCategoryName({plan: activePlan, category})}</div>
+                        {showPerformanceUnits
+                          ? renderPerformanceHovercard()
+                          : categoryInfo?.reservedVolumeTooltip && (
+                              <QuestionTooltip
+                                title={categoryInfo.reservedVolumeTooltip}
+                                position="top"
+                                size="xs"
+                              />
+                            )}
+                      </Title>
+                      <Events isLegacy={isLegacy}>
+                        {formatReservedWithUnits(
+                          formData.reserved[category] ?? null,
+                          category
                         )}
-                  </Title>
-                  <Events isLegacy={isLegacy}>
-                    {formatReservedWithUnits(
-                      formData.reserved[category] ?? null,
-                      category
-                    )}
-                  </Events>
-                </SectionHeader>
-                <Description>
-                  <div>
-                    {eventBucket.price !== 0 &&
-                      tct('[unitPrice] per [category]', {
-                        category:
-                          category ===
-                          DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT].plural
-                            ? 'GB'
-                            : category ===
-                                  DATA_CATEGORY_INFO[DataCategoryExact.SPAN].plural ||
-                                showPerformanceUnits
-                              ? 'unit'
-                              : 'event',
-                        unitPrice,
-                      })}
+                      </Events>
+                    </SectionHeader>
+                    <Description>
+                      <div>
+                        {eventBucket.price !== 0 &&
+                          tct('[unitPrice] per [category]', {
+                            category:
+                              category ===
+                              DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT].plural
+                                ? 'GB'
+                                : category ===
+                                      DATA_CATEGORY_INFO[DataCategoryExact.SPAN].plural ||
+                                    showPerformanceUnits
+                                  ? 'unit'
+                                  : 'event',
+                            unitPrice,
+                          })}
+                      </div>
+                      <div>
+                        {eventBucket.price === 0
+                          ? t('included')
+                          : `${price}/${billingInterval}`}
+                      </div>
+                    </Description>
                   </div>
                   <div>
-                    {eventBucket.price === 0
-                      ? t('included')
-                      : `${price}/${billingInterval}`}
+                    <RangeSlider
+                      showLabel={false}
+                      name={category}
+                      id={sliderId}
+                      value={formData.reserved[category] ?? ''}
+                      allowedValues={allowedValues}
+                      formatLabel={() => null}
+                      onChange={value => value && handleReservedChange(value, category)}
+                    />
+                    <MinMax>
+                      <div>{utils.getEventsWithUnit(min, category)}</div>
+                      <div>{utils.getEventsWithUnit(max, category)}</div>
+                    </MinMax>
                   </div>
-                </Description>
-              </div>
-              <div>
-                <RangeSlider
-                  showLabel={false}
-                  name={category}
-                  id={sliderId}
-                  value={formData.reserved[category] ?? ''}
-                  allowedValues={allowedValues}
-                  formatLabel={() => null}
-                  onChange={value => value && handleReservedChange(value, category)}
-                />
-                <MinMax>
-                  <div>{utils.getEventsWithUnit(min, category)}</div>
-                  <div>{utils.getEventsWithUnit(max, category)}</div>
-                </MinMax>
-              </div>
-              {showTransactionsDisclaimer && (
-                <span>
-                  {t(
-                    'We updated your event quota to make sure you get the best cost per transaction. Feel free to adjust as needed.'
+                  {showTransactionsDisclaimer && (
+                    <span>
+                      {t(
+                        'We updated your event quota to make sure you get the best cost per transaction. Feel free to adjust as needed.'
+                      )}
+                    </span>
                   )}
-                </span>
+                  {/* TODO: Remove after profiling launch */}
+                  {!showPerformanceUnits &&
+                    category === DataCategory.TRANSACTIONS &&
+                    activePlan.features.includes('dynamic-sampling') &&
+                    renderLearnMore()}
+                </Fragment>
               )}
-              {/* TODO: Remove after profiling launch */}
-              {!showPerformanceUnits &&
-                category === DataCategory.TRANSACTIONS &&
-                activePlan.features.includes('dynamic-sampling') &&
-                renderLearnMore()}
             </DataVolumeItem>
           );
         })}
@@ -269,13 +335,14 @@ const SectionHeader = styled('div')`
   font-size: ${p => p.theme.fontSize.xl};
 `;
 
-const Title = styled('label')`
-  display: grid;
-  grid-auto-flow: column;
+const Title = styled('label')<{isNewCheckout: boolean}>`
+  display: flex;
   gap: ${space(0.5)};
   align-items: center;
   margin-bottom: 0px;
-  font-weight: 600;
+  font-weight: ${p =>
+    p.isNewCheckout ? p.theme.fontWeight.normal : p.theme.fontWeight.bold};
+  font-size: ${p => (p.isNewCheckout ? p.theme.fontSize.md : p.theme.fontSize.xl)};
 `;
 
 const Description = styled('div')`
@@ -348,4 +415,22 @@ const LearnMore = styled('div')`
   background: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.subText};
   align-items: center;
+`;
+
+const VolumeAmount = styled('div')`
+  font-weight: ${p => p.theme.fontWeight.bold};
+  font-size: ${p => p.theme.fontSize.md};
+`;
+
+const Price = styled('div')<{isIncluded: boolean}>`
+  font-size: ${p => p.theme.fontSize.md};
+  color: ${p => (p.isIncluded ? p.theme.subText : p.theme.activeText)};
+  font-weight: ${p =>
+    p.isIncluded ? p.theme.fontWeight.normal : p.theme.fontWeight.bold};
+`;
+
+const CategoryContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 3fr;
+  gap: ${p => p.theme.space['2xl']};
 `;
