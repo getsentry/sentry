@@ -60,8 +60,7 @@ repos:
         name: lint-requirements
         entry: python -m tools.lint_requirements
         language: python
-        files: requirements-.*\.txt$
-        additional_dependencies: [packaging==24.1]
+        files: (^|/)uv\.lock$
       - id: check-mypy-bypass
         name: do not bypass the type checker
         entry: '(^# *mypy: *ignore-errors|^# *type: *ignore|\bno_type_check\b|ignore\[import-untyped\])'
