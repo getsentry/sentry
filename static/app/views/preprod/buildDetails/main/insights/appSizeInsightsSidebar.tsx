@@ -57,7 +57,7 @@ export function AppSizeInsightsSidebar({
         <Flex height="100%" direction="column">
           <Header padding="xl" align="center" justify="between">
             <Heading as="h2" size="xl">
-              {t('Insights')}
+              {t('Opportunities')}
             </Heading>
             <Button
               size="sm"

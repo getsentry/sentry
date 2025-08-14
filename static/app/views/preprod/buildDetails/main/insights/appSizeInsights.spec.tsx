@@ -20,7 +20,7 @@ describe('AppSizeInsights', () => {
     render(<AppSizeInsights {...getDefaultProps()} />);
 
     expect(screen.getByText('Top insights')).toBeInTheDocument();
-    expect(screen.getByText('View all insights')).toBeInTheDocument();
+    expect(screen.getByText('View all opportunities')).toBeInTheDocument();
   });
 
   it('displays only top 3 insights in the main view', () => {
@@ -64,18 +64,18 @@ describe('AppSizeInsights', () => {
     expect(screen.getByText('(-2.5%)')).toBeInTheDocument(); // 256000/10240000
   });
 
-  it('opens sidebar when "View all insights" button is clicked', async () => {
+  it('opens sidebar when "View all opportunities" button is clicked', async () => {
     render(<AppSizeInsights {...getDefaultProps()} />);
 
     // Initially sidebar should not be visible
-    expect(screen.queryByText('Insights')).not.toBeInTheDocument();
+    expect(screen.queryByText('Opportunities')).not.toBeInTheDocument();
 
-    // Click "View all insights" button
-    const viewAllButton = screen.getByText('View all insights');
+    // Click "View all opportunities" button
+    const viewAllButton = screen.getByText('View all opportunities');
     await userEvent.click(viewAllButton);
 
     // Sidebar should now be visible
-    expect(screen.getByText('Insights')).toBeInTheDocument();
+    expect(screen.getByText('Opportunities')).toBeInTheDocument();
     expect(screen.getByLabelText('Close sidebar')).toBeInTheDocument();
   });
 
@@ -83,15 +83,15 @@ describe('AppSizeInsights', () => {
     render(<AppSizeInsights {...getDefaultProps()} />);
 
     // Open sidebar
-    const viewAllButton = screen.getByText('View all insights');
+    const viewAllButton = screen.getByText('View all opportunities');
     await userEvent.click(viewAllButton);
-    expect(screen.getByText('Insights')).toBeInTheDocument();
+    expect(screen.getByText('Opportunities')).toBeInTheDocument();
 
     // Close sidebar
     const closeButton = screen.getByLabelText('Close sidebar');
     await userEvent.click(closeButton);
 
     // Sidebar should be closed
-    expect(screen.queryByText('Insights')).not.toBeInTheDocument();
+    expect(screen.queryByText('Opportunities')).not.toBeInTheDocument();
   });
 });

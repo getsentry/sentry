@@ -46,10 +46,10 @@ export function AppSizeInsights({processedInsights}: AppSizeInsightsProps) {
         }}
       >
         <Heading as="h2" size="lg">
-          {t('Top insights')}
+          {t('Top opportunities')}
         </Heading>
         <Button size="sm" icon={<IconSettings />} onClick={openSidebar}>
-          {t('View all insights')}
+          {t('View all opportunities')}
         </Button>
       </Flex>
       <Flex
