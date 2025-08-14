@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {type AnimationProps, motion} from 'framer-motion';
+import {motion, type Transition} from 'framer-motion';
 
 import {space} from 'sentry/styles/space';
 
@@ -32,7 +32,7 @@ type SlideOverPanelProps = {
   panelWidth?: string;
   ref?: React.Ref<HTMLDivElement>;
   slidePosition?: 'right' | 'bottom' | 'left';
-  transitionProps?: AnimationProps['transition'];
+  transitionProps?: Transition;
 };
 
 export default SlideOverPanel;

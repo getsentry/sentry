@@ -6,7 +6,6 @@ import pytest
 from django.utils import timezone
 
 from sentry import buffer
-from sentry.eventstore.models import Event
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -16,7 +15,8 @@ from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.match import MatchType
 from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import fetch_project
-from sentry.testutils.helpers import override_options, with_feature
+from sentry.services.eventstore.models import Event
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
@@ -60,7 +60,7 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     get_group_to_groupevent,
     get_groups_to_fire,
 )
-from sentry.workflow_engine.processors.workflow import WORKFLOW_ENGINE_BUFFER_LIST_KEY
+from sentry.workflow_engine.tasks.delayed_workflows import DelayedWorkflow
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
@@ -119,12 +119,8 @@ class TestDelayedWorkflowBase(BaseWorkflowTest, BaseEventFrequencyPercentTest):
         self.mock_redis_buffer = mock_redis_buffer()
         self.mock_redis_buffer.__enter__()
 
-        buffer.backend.push_to_sorted_set(
-            key=WORKFLOW_ENGINE_BUFFER_LIST_KEY, value=self.project.id
-        )
-        buffer.backend.push_to_sorted_set(
-            key=WORKFLOW_ENGINE_BUFFER_LIST_KEY, value=self.project2.id
-        )
+        buffer.backend.push_to_sorted_set(key=DelayedWorkflow.buffer_key, value=self.project.id)
+        buffer.backend.push_to_sorted_set(key=DelayedWorkflow.buffer_key, value=self.project2.id)
 
     def tearDown(self):
         self.mock_redis_buffer.__exit__(None, None, None)
@@ -335,7 +331,7 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
     def test_delayed_workflow_shim(self, mock_process_delayed: MagicMock) -> None:
         self._push_base_events()
 
-        process_in_batches(self.project.id, "delayed_workflow")
+        process_in_batches(buffer.backend, self.project.id, "delayed_workflow")
         assert mock_process_delayed.call_count == 2
 
 
@@ -923,7 +919,6 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         assert group_to_groupevent == self.group_to_groupevent
 
     @patch("sentry.workflow_engine.tasks.actions.trigger_action.apply_async")
-    @with_feature("organizations:workflow-engine-trigger-actions")
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger: MagicMock) -> None:
         fire_actions_for_groups(
             self.project.organization,
@@ -998,7 +993,7 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
         self._push_base_events()
         all_data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
 
-        process_in_batches(self.project.id, "delayed_workflow")
+        process_in_batches(buffer.backend, self.project.id, "delayed_workflow")
         batch_one_key = mock_process_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
         batch_two_key = mock_process_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
 

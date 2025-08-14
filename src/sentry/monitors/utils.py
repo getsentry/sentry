@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 
@@ -12,7 +13,9 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
 from sentry.monitors.constants import DEFAULT_CHECKIN_MARGIN, MAX_TIMEOUT, TIMEOUT
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
+from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.projects.project_rules.creator import ProjectRuleCreator
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.signals import (
@@ -23,7 +26,11 @@ from sentry.signals import (
 from sentry.users.models.user import User
 from sentry.utils.audit import create_audit_entry, create_system_audit_entry
 from sentry.utils.auth import AuthenticatedHttpRequest
+from sentry.utils.db import atomic_transaction
 from sentry.utils.projectflags import set_project_flag_and_signal
+from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
+
+logger = logging.getLogger(__name__)
 
 
 def signal_first_checkin(project: Project, monitor: Monitor):
@@ -138,8 +145,8 @@ def fetch_associated_groups(
         Request,
     )
 
-    from sentry.eventstore.base import EventStorage
-    from sentry.eventstore.snuba.backend import DEFAULT_LIMIT, DEFAULT_OFFSET
+    from sentry.services.eventstore.base import EventStorage
+    from sentry.services.eventstore.snuba.backend import DEFAULT_LIMIT, DEFAULT_OFFSET
     from sentry.snuba.dataset import Dataset
     from sentry.snuba.events import Columns
     from sentry.utils.snuba import DATASETS, raw_snql_query
@@ -383,3 +390,36 @@ def update_issue_alert_rule(
         )
 
     return issue_alert_rule.id
+
+
+def ensure_cron_detector(monitor: Monitor):
+
+    try:
+        with atomic_transaction(using=router.db_for_write(DataSource)):
+            data_source, created = DataSource.objects.get_or_create(
+                type=DATA_SOURCE_CRON_MONITOR,
+                organization_id=monitor.organization_id,
+                source_id=str(monitor.id),
+            )
+            if created:
+                detector = Detector.objects.create(
+                    type=MonitorIncidentType.slug,
+                    project_id=monitor.project_id,
+                    name=monitor.name,
+                    owner_user_id=monitor.owner_user_id,
+                    owner_team_id=monitor.owner_team_id,
+                )
+                DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+    except Exception:
+        logger.exception("Error creating cron detector")
+
+
+def get_detector_for_monitor(monitor: Monitor) -> Detector | None:
+    try:
+        return Detector.objects.get(
+            datasource__type=DATA_SOURCE_CRON_MONITOR,
+            datasource__source_id=str(monitor.id),
+            datasource__organization_id=monitor.organization_id,
+        )
+    except Detector.DoesNotExist:
+        return None

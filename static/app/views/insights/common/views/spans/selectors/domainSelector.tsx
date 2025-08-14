@@ -16,7 +16,7 @@ import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/u
 import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
-import {type ModuleName, SpanFields} from 'sentry/views/insights/types';
+import {SpanFields, type ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
   domainAlias: string;

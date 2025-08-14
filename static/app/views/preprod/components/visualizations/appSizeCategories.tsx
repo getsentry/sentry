@@ -4,7 +4,7 @@ import type {PieSeriesOption} from 'echarts';
 import BaseChart, {type TooltipOption} from 'sentry/components/charts/baseChart';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {APP_SIZE_CATEGORY_INFO} from 'sentry/views/preprod/components/visualizations/appSizeTheme';
-import {type TreemapResults, TreemapType} from 'sentry/views/preprod/types/appSizeTypes';
+import {TreemapType, type TreemapResults} from 'sentry/views/preprod/types/appSizeTypes';
 
 interface AppSizeCategoriesProps {
   treemapData: TreemapResults;

@@ -9,7 +9,7 @@ import * as useOnboardingTasks from 'sentry/components/onboardingWizard/useOnboa
 import {findCompleteOrOverdueTasks} from 'sentry/components/onboardingWizard/utils';
 import {OnboardingStatus} from 'sentry/components/sidebar/onboardingStatus';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
+import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 
 function renderMockRequests(organization: Organization) {

@@ -437,6 +437,7 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   });
 
   return {
+    // eslint-disable-next-line @tanstack/query/no-rest-destructuring
     ...res,
     data: res.data?.[0] ?? undefined,
     error: parseError(res.error),

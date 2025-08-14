@@ -12,6 +12,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
+from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiAssembleEvent
 from sentry.preprod.tasks import assemble_preprod_artifact, create_preprod_artifact
 from sentry.preprod.url_utils import get_preprod_artifact_url
@@ -39,16 +40,7 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict, str | N
             # VCS parameters
             "head_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
             "base_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-            "provider": {
-                "type": "string",
-                "enum": [
-                    "github",
-                    "github_enterprise",
-                    "gitlab",
-                    "bitbucket",
-                    "bitbucket_server",
-                ],
-            },
+            "provider": {"type": "string", "maxLength": 255},
             "head_repo_name": {"type": "string", "maxLength": 255},
             "base_repo_name": {"type": "string", "maxLength": 255},
             "head_ref": {"type": "string", "maxLength": 255},
@@ -65,7 +57,7 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict, str | N
         "build_configuration": "The build_configuration field must be a string.",
         "head_sha": "The head_sha field must be a 40-character hexadecimal SHA1 string (no uppercase letters).",
         "base_sha": "The base_sha field must be a 40-character hexadecimal SHA1 string (no uppercase letters).",
-        "provider": "The provider field must be a string with one of the following values: github, github_enterprise, gitlab, bitbucket, bitbucket_server.",
+        "provider": "The provider field must be a string with maximum length of 255 characters containing the domain of the VCS provider (ex. github.com)",
         "head_repo_name": "The head_repo_name field must be a string with maximum length of 255 characters.",
         "base_repo_name": "The base_repo_name field must be a string with maximum length of 255 characters.",
         "head_ref": "The head_ref field must be a string with maximum length of 255 characters.",
@@ -105,7 +97,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
         }
     }
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         """
         Assembles a preprod artifact (mobile build, etc.) and stores it in the database.
         """
@@ -184,7 +176,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
             if is_org_auth_token_auth(request.auth):
                 update_org_auth_token_last_used(request.auth, [project.id])
 
-        artifact_url = get_preprod_artifact_url(project.organization_id, artifact_id)
+        artifact_url = get_preprod_artifact_url(project.organization_id, project.slug, artifact_id)
 
         return Response(
             {
