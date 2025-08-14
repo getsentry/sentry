@@ -343,8 +343,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         order_by: OrderBy | Case | str | list[OrderBy | Case | str] | None = None
         if sort == "date":
             queryset = queryset.order_by("-date")
-            paginator_kwargs["order_by"] = "-date"
-            order_by = ["-date"]
+            order_by = "-date"
         elif sort == "build":
             queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
             order_by = "-build_number"

@@ -263,7 +263,8 @@ class ReleaseThresholdStatusIndexEndpoint(OrganizationReleasesBaseEndpoint):
                     if latest_deploy:
                         threshold_start = latest_deploy.date_finished
                     else:
-                        threshold_start = release.date
+                        # ignoring type error, it looks like date is added by the query annotation above
+                        threshold_start = release.date  # type: ignore[attr-defined]
 
                     query_windows_by_type[threshold.threshold_type]["start"] = min(
                         threshold_start, query_windows_by_type[threshold.threshold_type]["start"]
