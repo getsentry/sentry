@@ -26,7 +26,7 @@ describe('deriveFinalDataState', () => {
       widget1Data: 'pending' as const,
       widget2Data: 'populated' as const,
     },
-  ])('any populated %s', (dataLoaded) => {
+  ])('any populated %s', dataLoaded => {
     const dataState = deriveFinalDataState(dataLoaded);
     expect(dataState).toBe('populated');
   });
@@ -62,7 +62,7 @@ describe('deriveFinalDataState', () => {
       widget1Data: 'errored' as const,
       widget2Data: 'loading' as const,
     },
-  ])('none populated but some loading %s', (dataLoaded) => {
+  ])('none populated but some loading %s', dataLoaded => {
     const dataState = deriveFinalDataState(dataLoaded);
     expect(dataState).toBe('loading');
   });
@@ -118,7 +118,7 @@ describe('deriveFinalDataState', () => {
       widget1Data: 'empty' as const,
       widget2Data: 'errored' as const,
     },
-  ])('all empty or errored', (dataLoaded) => {
+  ])('all empty or errored', dataLoaded => {
     const dataState = deriveFinalDataState(dataLoaded);
     expect(dataState).toBe('empty');
   });

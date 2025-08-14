@@ -238,7 +238,7 @@ describe('Performance > Web Vitals', () => {
   describe('renders all vitals cards correctly', () => {
     const {organization, router} = initialize();
 
-    it.each(vitals)('Renders %s', async (vital) => {
+    it.each(vitals)('Renders %s', async vital => {
       render(
         <TransactionVitals organization={organization} location={router.location} />,
         {

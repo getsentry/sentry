@@ -661,7 +661,7 @@ describe('token', () => {
   describe('ArithmeticTokenLiteral', () => {
     it.each(['1', '1.', '1.0', '+1', '+1.', '+1.0', '-1', '-1.', '-1.0'])(
       'renders literal %s',
-      async (expression) => {
+      async expression => {
         const dispatch = jest.fn();
         render(<Tokens expression={expression} dispatch={dispatch} />);
 

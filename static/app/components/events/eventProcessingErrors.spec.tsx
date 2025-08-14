@@ -23,7 +23,7 @@ const {useActionableItemsWithProguardErrors} = jest.requireMock(
 describe('EventProcessingErrors', () => {
   it.each(['release', 'environment'])(
     'renders error card with documentation tooltip for known error type: %s',
-    async (fieldName) => {
+    async fieldName => {
       const mockErrors: ErrorMessage[] = [
         {
           title: 'Discarded invalid value',

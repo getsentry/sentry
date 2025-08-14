@@ -4,7 +4,7 @@ import {ChartType} from 'sentry/views/insights/common/components/chart';
 describe('Visualize', () => {
   it.each(['count(span.duration)', 'count_unique(span.op)', 'sum(span.duration)'])(
     'defaults to bar charts for %s',
-    (yAxis) => {
+    yAxis => {
       const visualize = new Visualize(yAxis);
       expect(visualize.chartType).toEqual(ChartType.BAR);
       expect(visualize.stack).toBeDefined();
@@ -21,7 +21,7 @@ describe('Visualize', () => {
     'p100(span.duration)',
     'min(span.duration)',
     'max(span.duration)',
-  ])('defaults to bar charts for %s', (yAxis) => {
+  ])('defaults to bar charts for %s', yAxis => {
     const visualize = new Visualize(yAxis);
     expect(visualize.chartType).toEqual(ChartType.LINE);
     expect(visualize.stack).toBeDefined();

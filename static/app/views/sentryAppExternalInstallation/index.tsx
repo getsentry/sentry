@@ -59,22 +59,19 @@ function SentryAppExternalInstallationContent() {
     }
   );
 
-  useEffect(
-    () => {
-      async function loadOrgs() {
-        try {
-          const orgs = await fetchOrganizations(api);
-          setOrganizations(orgs);
-          setOrgsLoading(false);
-        } catch (e) {
-          setOrgsLoading(false);
-          // Do nothing.
-        }
+  useEffect(() => {
+    async function loadOrgs() {
+      try {
+        const orgs = await fetchOrganizations(api);
+        setOrganizations(orgs);
+        setOrgsLoading(false);
+      } catch (e) {
+        setOrgsLoading(false);
+        // Do nothing.
       }
-      loadOrgs();
-    },
-    [api]
-  );
+    }
+    loadOrgs();
+  }, [api]);
 
   const onSelectOrg = useCallback(
     async (orgSlug: string) => {
@@ -142,15 +139,12 @@ function SentryAppExternalInstallationContent() {
     testableWindowLocation.assign(newUrl);
   }, [selectedOrgSlug]);
 
-  const disableInstall = useCallback(
-    () => {
-      if (!(sentryApp && selectedOrgSlug)) {
-        return false;
-      }
-      return isInstalled || isSentryAppUnavailableForOrg(sentryApp, selectedOrgSlug);
-    },
-    [isInstalled, selectedOrgSlug, sentryApp]
-  );
+  const disableInstall = useCallback(() => {
+    if (!(sentryApp && selectedOrgSlug)) {
+      return false;
+    }
+    return isInstalled || isSentryAppUnavailableForOrg(sentryApp, selectedOrgSlug);
+  }, [isInstalled, selectedOrgSlug, sentryApp]);
 
   const onInstall = useCallback(async (): Promise<undefined | void> => {
     if (!organization || !sentryApp) {

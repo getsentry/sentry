@@ -71,20 +71,17 @@ describe('getIntervalOptionsForPageFilter', () => {
     '60d',
     '89d',
     '90d',
-  ])(
-    'returns interval options with resulting in less than 1000 buckets',
-    (period) => {
-      const periodInHours = parsePeriodToHours(period);
-      const options = getIntervalOptionsForPageFilter({
-        period,
-        start: null,
-        end: null,
-        utc: null,
-      });
-      options.forEach(({value}) => {
-        const intervalInHours = parsePeriodToHours(value);
-        expect(periodInHours / intervalInHours).toBeLessThan(1000);
-      });
-    }
-  );
+  ])('returns interval options with resulting in less than 1000 buckets', period => {
+    const periodInHours = parsePeriodToHours(period);
+    const options = getIntervalOptionsForPageFilter({
+      period,
+      start: null,
+      end: null,
+      utc: null,
+    });
+    options.forEach(({value}) => {
+      const intervalInHours = parsePeriodToHours(value);
+      expect(periodInHours / intervalInHours).toBeLessThan(1000);
+    });
+  });
 });

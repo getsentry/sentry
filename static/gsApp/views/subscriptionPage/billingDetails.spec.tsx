@@ -241,7 +241,7 @@ describe('Subscription > BillingDetails', () => {
 
     expect(screen.getByText('xxxx xxxx xxxx 1111')).toBeInTheDocument();
     expect(screen.getByText('94107')).toBeInTheDocument();
-    SubscriptionStore.get(subscription.slug, (sub) => {
+    SubscriptionStore.get(subscription.slug, sub => {
       expect(sub.paymentSource?.last4).toBe('1111');
     });
   });

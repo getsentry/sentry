@@ -28,7 +28,7 @@ describe('vaidateTokens', () => {
     'avg(span.duration) avg(span.duration)',
     'avg(span.duration) + avg(span.duration))',
     'avg(span.duration) ( avg(span.duration) + avg(span.duration) )',
-  ])('fails %s', (expression) => {
+  ])('fails %s', expression => {
     const tokens = tokenizeExpression(expression);
     expect(validateTokens(tokens)).toBe(false);
   });
@@ -52,7 +52,7 @@ describe('vaidateTokens', () => {
     '(avg(span.duration) + 1)',
     '1 + avg(span.duration)',
     '(1 + avg(span.duration))',
-  ])('passes %s', (expression) => {
+  ])('passes %s', expression => {
     const tokens = tokenizeExpression(expression);
     expect(validateTokens(tokens)).toBe(true);
   });
