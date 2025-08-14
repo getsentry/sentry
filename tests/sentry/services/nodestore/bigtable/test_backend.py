@@ -11,7 +11,7 @@ from google.cloud.bigtable import table
 from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
 from google.rpc.status_pb2 import Status
 
-from sentry.nodestore.bigtable.backend import BigtableNodeStorage
+from sentry.services.nodestore.bigtable.backend import BigtableNodeStorage
 from sentry.utils.kvstore.bigtable import BigtableKVStorage
 
 
