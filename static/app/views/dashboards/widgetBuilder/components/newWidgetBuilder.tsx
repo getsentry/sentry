@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useState, type CSSProperties} from 're
 import {closestCorners, DndContext, useDraggable, useDroppable} from '@dnd-kit/core';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion} from 'framer-motion';
+import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 import cloneDeep from 'lodash/cloneDeep';
 import omit from 'lodash/omit';
 
@@ -344,7 +344,7 @@ export function WidgetPreviewContainer({
     return PREVIEW_HEIGHT_PX;
   };
 
-  const animatedProps = {
+  const animatedProps: MotionNodeAnimationOptions = {
     initial: {opacity: 0, x: '100%', y: 0},
     animate: {opacity: 1, x: 0, y: 0},
     exit: {opacity: 0, x: '100%', y: 0},
