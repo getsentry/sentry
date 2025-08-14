@@ -483,7 +483,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
     def test_integration_debugging_org_id_override(
         self, mock_metrics: mock.MagicMock, mock_logger: mock.MagicMock, mock_random: mock.MagicMock
     ) -> None:
-        mock_random.random.return_value = 0
+        mock_random.random.return_value = 0.5
         metric_obj = self.TestLifecycleMetric()
 
         with metric_obj.capture(sample_log_rate=0.1) as lifecycle:
