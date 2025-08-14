@@ -285,6 +285,8 @@ const config: Config.InitialOptions = {
     '@sentry/toolbar': '<rootDir>/tests/js/sentry-test/mocks/sentryToolbarMock.js',
 
     '^nuqs$': '<rootDir>/node_modules/nuqs/dist/index.js',
+    'nuqs/adapters/react-router/v6':
+      '<rootDir>/node_modules/nuqs/dist/adapters/react-router/v6.js',
   },
   setupFiles: [
     '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
