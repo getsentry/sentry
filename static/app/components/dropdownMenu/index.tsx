@@ -166,6 +166,7 @@ function DropdownMenu({
   portalContainerRef,
   shouldApplyMinWidth,
   minMenuWidth,
+  // This prop is from popperJS and is an alternative to portals. Use this with components like modals where portalling to document body doesn't work well.
   strategy,
   ...props
 }: DropdownMenuProps) {
