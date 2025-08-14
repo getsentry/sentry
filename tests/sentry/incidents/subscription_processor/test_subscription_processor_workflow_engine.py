@@ -1,3 +1,8 @@
+"""
+Dual processing tests for the workflow engine/legacy system. This file will be cleaned up
+after we fully migrate away from metric alerts.
+"""
+
 from datetime import timedelta
 from unittest import mock
 from unittest.mock import MagicMock, call, patch
