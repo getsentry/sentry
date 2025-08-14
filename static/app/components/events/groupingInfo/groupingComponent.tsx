@@ -70,17 +70,14 @@ export const GroupingValue = styled('code')<{
   margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
   font-size: ${p => p.theme.fontSize.sm};
   padding: 0 ${space(0.25)};
-  background: ${p =>
-    p.contributes && p.showNonContributing
-      ? 'rgba(64, 123, 255, 0.15)'
-      : 'rgba(112, 163, 214, 0.1)'};
-  color: ${p => p.theme.textColor};
+  background: rgba(112, 163, 214, 0.1);
+  color: ${p => (p.contributes ? p.theme.textColor : p.theme.subText)};
 
-  ${({valueType, theme}) =>
+  ${({valueType, theme, contributes}) =>
     (valueType === 'function' || valueType === 'symbol') &&
     css`
-      font-weight: ${theme.fontWeight.bold};
-      color: ${theme.textColor};
+      font-weight: ${contributes ? theme.fontWeight.bold : 'normal'};
+      color: ${contributes ? theme.textColor : theme.subText};
     `}
 `;
 
