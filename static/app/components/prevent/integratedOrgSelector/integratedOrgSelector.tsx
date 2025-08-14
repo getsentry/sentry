@@ -21,10 +21,11 @@ import {IconIntegratedOrg} from './iconIntegratedOrg';
 function AddIntegratedOrgButton() {
   return (
     <LinkButton
-      href="https://github.com/apps/sentry-io"
+      href="https://github.com/apps/sentry/installations/select_target"
       size="sm"
       icon={<IconAdd size="sm" />}
       priority="default"
+      external
     >
       {t('Integrated Organization')}
     </LinkButton>
@@ -107,8 +108,7 @@ export function IntegratedOrgSelector() {
                   <IconIntegratedOrg />
                 </IconContainer>
                 <TriggerLabel>
-                  {integratedOrgIdToName(integratedOrgId, integrations) ||
-                    t('Select integrated organization')}
+                  {integratedOrgIdToName(integratedOrgId, integrations)}
                 </TriggerLabel>
               </Flex>
             </TriggerLabelWrap>
