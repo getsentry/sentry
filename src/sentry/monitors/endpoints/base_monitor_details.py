@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from django.db import router, transaction
-from django.db.models import QuerySet
+from django.db.models import F, QuerySet
+from django.db.models.functions import TruncMinute
 from django.utils.crypto import get_random_string
-from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, quotas
 from sentry.api.base import BaseEndpointMixin
+from sentry.api.exceptions import ParameterValidationError
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
@@ -16,10 +17,23 @@ from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
-from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
+from sentry.monitors.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    MonitorStatus,
+)
 from sentry.monitors.serializers import MonitorSerializer
+from sentry.monitors.utils import (
+    create_issue_alert_rule,
+    get_checkin_margin,
+    get_max_runtime,
+    update_issue_alert_rule,
+)
 from sentry.monitors.validators import MonitorValidator
 from sentry.utils.auth import AuthenticatedHttpRequest
+from sentry.utils.outcomes import Outcome
 
 
 class MonitorDetailsMixin(BaseEndpointMixin):
@@ -43,26 +57,118 @@ class MonitorDetailsMixin(BaseEndpointMixin):
         """
         Update a monitor.
         """
+        # set existing values as validator will overwrite
+        existing_config = monitor.config
+        existing_margin = existing_config.get("checkin_margin")
+        existing_max_runtime = existing_config.get("max_runtime")
+
         validator = MonitorValidator(
             data=request.data,
             partial=True,
-            instance=monitor,
+            instance={
+                "name": monitor.name,
+                "slug": monitor.slug,
+                "status": monitor.status,
+                "config": monitor.config,
+                "project": project,
+            },
             context={
                 "organization": project.organization,
                 "access": request.access,
-                "request": request,
                 "monitor": monitor,
             },
         )
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
 
-        try:
-            updated_monitor = validator.save()
-        except serializers.ValidationError as e:
-            return self.respond(e.detail, status=400)
+        result = validator.save()
 
-        return self.respond(serialize(updated_monitor, request.user))
+        params = {}
+        if "name" in result:
+            params["name"] = result["name"]
+        if "slug" in result:
+            params["slug"] = result["slug"]
+        if "status" in result:
+            params["status"] = result["status"]
+        if "is_muted" in result:
+            params["is_muted"] = result["is_muted"]
+        if "owner" in result:
+            owner = result["owner"]
+            params["owner_user_id"] = None
+            params["owner_team_id"] = None
+            if owner and owner.is_user:
+                params["owner_user_id"] = owner.id
+            elif owner and owner.is_team:
+                params["owner_team_id"] = owner.id
+        if "config" in result:
+            params["config"] = result["config"]
+
+            # update timeouts + expected next check-in, as appropriate
+            checkin_margin = result["config"].get("checkin_margin")
+            if checkin_margin != existing_margin:
+                MonitorEnvironment.objects.filter(monitor_id=monitor.id).update(
+                    next_checkin_latest=F("next_checkin") + get_checkin_margin(checkin_margin)
+                )
+
+            max_runtime = result["config"].get("max_runtime")
+            if max_runtime != existing_max_runtime:
+                MonitorCheckIn.objects.filter(
+                    monitor_id=monitor.id, status=CheckInStatus.IN_PROGRESS
+                ).update(timeout_at=TruncMinute(F("date_added")) + get_max_runtime(max_runtime))
+
+        if "project" in result and result["project"].id != monitor.project_id:
+            raise ParameterValidationError("existing monitors may not be moved between projects")
+
+        # Attempt to assign a monitor seat
+        if params["status"] == ObjectStatus.ACTIVE and monitor.status != ObjectStatus.ACTIVE:
+            outcome = quotas.backend.assign_monitor_seat(monitor)
+            # The MonitorValidator checks if a seat assignment is available.
+            # This protects against a race condition
+            if outcome != Outcome.ACCEPTED:
+                raise ParameterValidationError("Failed to enable monitor, please try again")
+
+        # Attempt to unassign the monitor seat
+        if params["status"] == ObjectStatus.DISABLED and monitor.status != ObjectStatus.DISABLED:
+            quotas.backend.disable_monitor_seat(monitor)
+
+        # Update monitor slug in billing
+        if "slug" in result:
+            quotas.backend.update_monitor_slug(monitor.slug, params["slug"], monitor.project_id)
+
+        if params:
+            monitor.update(**params)
+            self.create_audit_entry(
+                request=request,
+                organization=project.organization,
+                target_object=monitor.id,
+                event=audit_log.get_event_id("MONITOR_EDIT"),
+                data=monitor.get_audit_log_data(),
+            )
+
+        # Update alert rule after in case slug or name changed
+        if "alert_rule" in result:
+            # Check to see if rule exists
+            issue_alert_rule = monitor.get_issue_alert_rule()
+            # If rule exists, update as necessary
+            if issue_alert_rule:
+                issue_alert_rule_id = update_issue_alert_rule(
+                    request, project, monitor, issue_alert_rule, result["alert_rule"]
+                )
+            # If rule does not exist, create
+            else:
+                issue_alert_rule_id = create_issue_alert_rule(
+                    request, project, monitor, result["alert_rule"]
+                )
+
+            if issue_alert_rule_id:
+                # If config is not sent, use existing config to update alert_rule_id
+                if "config" not in params:
+                    params["config"] = monitor.config
+
+                params["config"]["alert_rule_id"] = issue_alert_rule_id
+                monitor.update(**params)
+
+        return self.respond(serialize(monitor, request.user))
 
     def delete_monitor(self, request: Request, project: Project, monitor: Monitor) -> Response:
         """
