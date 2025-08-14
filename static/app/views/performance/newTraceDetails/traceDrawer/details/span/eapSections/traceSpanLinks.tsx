@@ -48,6 +48,14 @@ export function TraceSpanLinks({
     });
   }
 
+  // Render the span links an a single attribute tree. For each link, give it a
+  // serial integer prefix. For each of those prefixes, create a custom renderer
+  // for that unique trace ID and span ID field. e.g., for the first link the
+  // prefix is `"span_link_1"`. Create a renderer for the field
+  // `"span_link_1.trace_id"` and `span_link_1.span_id"`. This is somewhat of a
+  // hack, and a cleaner approach would be to render a separate little section
+  // and separate attribute tree for each link, rather than giving them this
+  // awkward prefix just to render them all in a single tree.
   const customRenderers: AttributesFieldRender<RenderFunctionBaggage>['renderers'] = {};
 
   const traceIdRenderer = getFieldRenderer('trace', {});
@@ -59,14 +67,6 @@ export function TraceSpanLinks({
     theme,
   };
 
-  // Render the span links an a single attribute tree. For each link, give it a
-  // serial integer prefix. For each of those prefixes, create a custom renderer
-  // for that unique trace ID and span ID field. e.g., for the first link the
-  // prefix is `"span_link_1"`. Create a renderer for the field
-  // `"span_link_1.trace_id"` and `span_link_1.span_id"`. This is somewhat of a
-  // hack, and a cleaner approach would be to render a separate little section
-  // and separate attribute tree for each link, rather than giving them this
-  // awkward prefix just to render them all in a single tree.
   const linksAsAttributes: TraceItemResponseAttribute[] = links.flatMap(
     (link, linkIndex) => {
       const prefix = `span_link_${linkIndex + 1}`;
