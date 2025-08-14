@@ -225,6 +225,7 @@ function EAPOverviewPage() {
         'project',
         'tpm()',
         'p50_if(span.duration,is_transaction,equals,true)',
+        'p75_if(span.duration,is_transaction,equals,true)',
         'p95_if(span.duration,is_transaction,equals,true)',
         'failure_rate_if(is_transaction,equals,true)',
         ...(displayPerfScore
