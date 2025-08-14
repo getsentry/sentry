@@ -51,6 +51,8 @@ def retry_task(exc: Exception | None = None) -> NoReturn:
     if current and not current.retries_remaining:
         metrics.incr("taskworker.retry.no_retries_remaining")
         raise NoRetriesRemainingError()
+    if exc:
+        raise RetryError(exc) from exc
     raise RetryError()
 
 
