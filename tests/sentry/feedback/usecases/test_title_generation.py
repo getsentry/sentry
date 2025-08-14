@@ -29,9 +29,7 @@ class TestTitleGeneration(TestCase):
     @responses.activate
     def test_make_seer_request(self):
         """Test the make_seer_request function with successful response."""
-        request = GenerateFeedbackTitleRequest(
-            organization_id=123, feedback_message="Test feedback message"
-        )
+        request = GenerateFeedbackTitleRequest(feedback_message="Test feedback message")
 
         mock_seer_response(
             status=200,
@@ -60,9 +58,7 @@ class TestTitleGeneration(TestCase):
     @responses.activate
     def test_make_seer_request_http_error(self):
         """Test the make_seer_request function with HTTP error."""
-        request = GenerateFeedbackTitleRequest(
-            organization_id=123, feedback_message="Test feedback message"
-        )
+        request = GenerateFeedbackTitleRequest(feedback_message="Test feedback message")
 
         mock_seer_response(status=500, body="Internal Server Error")
 

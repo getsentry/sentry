@@ -17,7 +17,6 @@ SEER_GENERATE_TITLE_URL = f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/
 class GenerateFeedbackTitleRequest(TypedDict):
     """Corresponds to GenerateFeedbackTitleRequest in Seer."""
 
-    organization_id: int
     feedback_message: str
 
 
@@ -68,7 +67,6 @@ def get_feedback_title_from_seer(feedback_message: str, organization_id: int) ->
         A title string or None if generation fails
     """
     seer_request = GenerateFeedbackTitleRequest(
-        organization_id=organization_id,
         feedback_message=feedback_message,
     )
 
