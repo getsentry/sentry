@@ -29,27 +29,24 @@ function getDisplayData(
   highlightAdded: Change | undefined,
   highlightRemoved: Change | undefined
 ): Change[] {
-  const displayData =
-    highlightAdded || highlightRemoved
-      ? (() => {
-          const leftText = line.reduce(
-            (acc, result) => (result.added ? acc : acc + result.value),
-            ''
-          );
-          const rightText = line.reduce(
-            (acc, result) => (result.removed ? acc : acc + result.value),
-            ''
-          );
+  if (!highlightAdded && !highlightRemoved) {
+    return line;
+  }
 
-          if (!leftText && !rightText) {
-            return line;
-          }
+  const leftText = line.reduce(
+    (acc, result) => (result.added ? acc : acc + result.value),
+    ''
+  );
+  const rightText = line.reduce(
+    (acc, result) => (result.removed ? acc : acc + result.value),
+    ''
+  );
 
-          return diffWords(leftText, rightText);
-        })()
-      : line;
+  if (!leftText && !rightText) {
+    return line;
+  }
 
-  return displayData;
+  return diffWords(leftText, rightText);
 }
 
 function SplitDiff({className, type = 'lines', base, target}: Props) {
