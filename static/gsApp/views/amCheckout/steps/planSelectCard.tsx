@@ -15,13 +15,11 @@ import type {Color} from 'sentry/utils/theme';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {OnDemandBudgetMode, type Plan} from 'getsentry/types';
-import {isBizPlanFamily} from 'getsentry/utils/billing';
+import {isBizPlanFamily, isDeveloperPlan} from 'getsentry/utils/billing';
 import {getSingularCategoryName, listDisplayNames} from 'getsentry/utils/dataCategory';
 import MoreFeaturesLink from 'getsentry/views/amCheckout/moreFeaturesLink';
-import type {
-  PlanSelectRowProps,
-  PlanUpdateData,
-} from 'getsentry/views/amCheckout/steps/planSelectRow';
+import type {PlanSelectRowProps} from 'getsentry/views/amCheckout/steps/planSelectRow';
+import {SelectableProduct, type CheckoutFormData} from 'getsentry/views/amCheckout/types';
 import {displayUnitPrice, getShortInterval} from 'getsentry/views/amCheckout/utils';
 
 interface PlanSelectCardProps
@@ -85,7 +83,7 @@ function PlanSelectCard({
   );
 
   const onPlanSelect = () => {
-    const data: PlanUpdateData = {plan: plan.id};
+    const data: Partial<CheckoutFormData> = {plan: plan.id};
     if (shouldShowDefaultPayAsYouGo) {
       data.onDemandMaxSpend = isBizPlanFamily(plan)
         ? PAYG_BUSINESS_DEFAULT
@@ -95,12 +93,26 @@ function PlanSelectCard({
         sharedMaxBudget: data.onDemandMaxSpend,
       };
     }
+    // TODO(ISABELLA): maybe just move this to the parent update function
+    if (isDeveloperPlan(plan)) {
+      data.selectedProducts = {
+        ...data.selectedProducts,
+        [SelectableProduct.SEER]: {
+          enabled: false,
+        },
+      };
+      data.onDemandMaxSpend = 0;
+      data.onDemandBudget = undefined;
+    }
     onUpdate(data);
   };
 
   const adjustedPlanIcon = isValidElement(planIcon)
     ? cloneElement(planIcon, {size: 'md'} as SVGIconProps)
     : planIcon;
+
+  const isFree = price === '0';
+  const formattedPrice = isFree ? t('Free') : `$${price}`;
 
   return (
     <PlanOption
@@ -130,8 +142,8 @@ function PlanSelectCard({
         <Description isSelected={isSelected}>{description}</Description>
       </div>
       <div>
-        <Price>{`$${price}`}</Price>
-        <BillingInterval>{`/${billingInterval}`}</BillingInterval>
+        <Price>{formattedPrice}</Price>
+        {!isFree && <BillingInterval>{`/${billingInterval}`}</BillingInterval>}
       </div>
       <Separator />
       <FeatureList>

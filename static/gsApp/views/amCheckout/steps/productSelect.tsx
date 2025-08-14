@@ -21,6 +21,7 @@ import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {Color} from 'sentry/utils/theme';
 
+import {isDeveloperPlan} from 'getsentry/utils/billing';
 import {getSingularCategoryName} from 'getsentry/utils/dataCategory';
 import formatCurrency from 'getsentry/utils/formatCurrency';
 import {SelectableProduct, type StepProps} from 'getsentry/views/amCheckout/types';
@@ -37,7 +38,11 @@ function ProductSelect({
       productInfo =>
         productInfo.isFixed && // NOTE: for now, we only supported fixed budget products in checkout
         productInfo.billingFlag &&
-        activePlan.features.includes(productInfo.billingFlag)
+        activePlan.features.includes(productInfo.billingFlag) &&
+        !(
+          (productInfo.apiName as unknown as SelectableProduct) ===
+            SelectableProduct.SEER && isDeveloperPlan(activePlan)
+        ) // XXX: this is temporary
     )
     .map(productInfo => {
       return productInfo;
