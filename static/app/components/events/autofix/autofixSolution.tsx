@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
-import ClippedBox from 'sentry/components/clippedBox';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
 import {Button} from 'sentry/components/core/button';
 import {ButtonBar} from 'sentry/components/core/button/buttonBar';
@@ -25,7 +23,7 @@ import {
   type AutofixResponse,
 } from 'sentry/components/events/autofix/useAutofix';
 import {Timeline} from 'sentry/components/timeline';
-import {IconAdd, IconChat, IconFix} from 'sentry/icons';
+import {IconAdd, IconChat, IconCode, IconCopy, IconFix} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -34,6 +32,7 @@ import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
@@ -305,19 +304,27 @@ function CopySolutionButton({
   customSolution?: string;
   isEditing?: boolean;
 }) {
+  const text = formatSolutionText(solution, customSolution);
+  const {onClick, label} = useCopyToClipboard({
+    text,
+  });
+
   if (isEditing) {
     return null;
   }
-  const text = formatSolutionText(solution, customSolution);
+
   return (
-    <StyledCopyToClipboardButton
-      size="zero"
-      text={text}
-      borderless
-      title="Copy solution as Markdown"
+    <Button
+      size="sm"
+      aria-label={label}
+      title="Copy plan as Markdown / LLM prompt"
+      onClick={onClick}
       analyticsEventName="Autofix: Copy Solution as Markdown"
       analyticsEventKey="autofix.solution.copy"
-    />
+      icon={<IconCopy />}
+    >
+      {t('Copy')}
+    </Button>
   );
 }
 
@@ -460,11 +467,15 @@ function AutofixSolutionDisplay({
               </HeaderIconWrapper>
               {t('Custom Solution')}
             </HeaderText>
-            <CopySolutionButton solution={solution} customSolution={customSolution} />
           </HeaderWrapper>
           <Content>
             <SolutionDescriptionWrapper>{customSolution}</SolutionDescriptionWrapper>
           </Content>
+          <BottomDivider />
+          <BottomFooter>
+            <div style={{flex: 1}} />
+            <CopySolutionButton solution={solution} customSolution={customSolution} />
+          </BottomFooter>
         </CustomSolutionPadding>
       </SolutionContainer>
     );
@@ -472,133 +483,132 @@ function AutofixSolutionDisplay({
 
   return (
     <SolutionContainer ref={containerRef}>
-      <ClippedBox clipHeight={408}>
-        <HeaderWrapper>
-          <HeaderText>
-            <HeaderIconWrapper ref={iconFixRef}>
-              <IconFix size="md" color="green400" />
-            </HeaderIconWrapper>
-            {t('Solution')}
-            <ButtonBar gap={'0'}>
-              <Button
-                size="zero"
-                borderless
-                title={t('Chat with Seer')}
-                onClick={handleSelectDescription}
-                analyticsEventName="Autofix: Solution Chat"
-                analyticsEventKey="autofix.solution.chat"
-              >
-                <IconChat />
-              </Button>
-              <CopySolutionButton solution={solution} />
-            </ButtonBar>
-          </HeaderText>
-          <ButtonBar>
-            <ButtonBar gap="0">
-              <Tooltip
-                isHoverable
-                title={
-                  codingDisabled
-                    ? t(
-                        'Your organization has disabled code generation with Seer. This can be re-enabled in organization settings by an admin.'
-                      )
-                    : hasNoRepos
-                      ? tct(
-                          'Seer needs to be able to access your repos to write code for you. [link:Manage your integration and working repos here.]',
-                          {
-                            link: (
-                              <Link
-                                to={`/settings/${organization.slug}/projects/${project?.slug}/seer/`}
-                              />
-                            ),
-                          }
-                        )
-                      : cantReadRepos
-                        ? t(
-                            "Seer can't access any of your selected repos. Check your GitHub integration and make sure Seer has read access."
-                          )
-                        : undefined
-                }
-              >
-                <Button
-                  size="sm"
-                  priority={
-                    !solutionSelected || !valueIsEqual(solutionItems, solution, true)
-                      ? 'primary'
-                      : 'default'
-                  }
-                  busy={isPending}
-                  disabled={hasNoRepos || cantReadRepos || codingDisabled}
-                  onClick={() => {
-                    handleContinue({
-                      mode: 'fix',
-                      solution: solutionItems,
-                    });
-                  }}
-                  analyticsEventName="Autofix: Code It Up"
-                  analyticsEventKey="autofix.solution.code"
-                >
-                  {t('Code It Up')}
-                </Button>
-              </Tooltip>
-            </ButtonBar>
-          </ButtonBar>
-        </HeaderWrapper>
-        <AnimatePresence>
-          {agentCommentThread && iconFixRef.current && (
-            <AutofixHighlightPopup
-              selectedText=""
-              referenceElement={iconFixRef.current}
-              groupId={groupId}
-              runId={runId}
-              stepIndex={previousDefaultStepIndex ?? 0}
-              retainInsightCardIndex={
-                previousInsightCount !== undefined && previousInsightCount >= 0
-                  ? previousInsightCount
-                  : null
-              }
-              isAgentComment
-              blockName={t('Seer is uncertain of the solution...')}
-            />
-          )}
-        </AnimatePresence>
-        <Content>
-          <SolutionDescription
-            solution={solutionItems}
+      <HeaderWrapper>
+        <HeaderText>
+          <HeaderIconWrapper ref={iconFixRef}>
+            <IconFix size="md" color="green400" />
+          </HeaderIconWrapper>
+          {t('Solution')}
+          <Button
+            size="zero"
+            borderless
+            title={t('Chat with Seer')}
+            onClick={handleSelectDescription}
+            analyticsEventName="Autofix: Solution Chat"
+            analyticsEventKey="autofix.solution.chat"
+          >
+            <IconChat />
+          </Button>
+        </HeaderText>
+      </HeaderWrapper>
+      <AnimatePresence>
+        {agentCommentThread && iconFixRef.current && (
+          <AutofixHighlightPopup
+            selectedText=""
+            referenceElement={iconFixRef.current}
             groupId={groupId}
             runId={runId}
-            description={description}
-            previousDefaultStepIndex={previousDefaultStepIndex}
-            previousInsightCount={previousInsightCount}
-            onDeleteItem={handleDeleteItem}
-            onToggleActive={handleToggleActive}
-            ref={descriptionRef}
+            stepIndex={previousDefaultStepIndex ?? 0}
+            retainInsightCardIndex={
+              previousInsightCount !== undefined && previousInsightCount >= 0
+                ? previousInsightCount
+                : null
+            }
+            isAgentComment
+            blockName={t('Seer is uncertain of the solution...')}
           />
-          <AddInstructionWrapper>
-            <InstructionsInputWrapper onSubmit={handleFormSubmit}>
-              <InstructionsInput
-                type="text"
-                name="additional-instructions"
-                placeholder={t('Add more instructions...')}
-                value={instructions}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setInstructions(e.target.value)
-                }
-                size="sm"
-              />
-              <SubmitButton
-                size="zero"
-                type="submit"
-                borderless
-                disabled={!instructions.trim()}
-                aria-label={t('Add to solution')}
-              >
-                <IconAdd size="xs" />
-              </SubmitButton>
-            </InstructionsInputWrapper>
-          </AddInstructionWrapper>
-        </Content>
-      </ClippedBox>
+        )}
+      </AnimatePresence>
+      <Content>
+        <SolutionDescription
+          solution={solutionItems}
+          groupId={groupId}
+          runId={runId}
+          description={description}
+          previousDefaultStepIndex={previousDefaultStepIndex}
+          previousInsightCount={previousInsightCount}
+          onDeleteItem={handleDeleteItem}
+          onToggleActive={handleToggleActive}
+          ref={descriptionRef}
+        />
+      </Content>
+      <BottomDivider />
+      <BottomFooter>
+        <AddInstructionWrapper>
+          <InstructionsInputWrapper onSubmit={handleFormSubmit}>
+            <InstructionsInput
+              type="text"
+              name="additional-instructions"
+              placeholder={t('Add more instructions...')}
+              value={instructions}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setInstructions(e.target.value)
+              }
+              size="sm"
+            />
+            <SubmitButton
+              size="zero"
+              type="submit"
+              borderless
+              disabled={!instructions.trim()}
+              aria-label={t('Add to solution')}
+            >
+              <IconAdd size="xs" />
+            </SubmitButton>
+          </InstructionsInputWrapper>
+        </AddInstructionWrapper>
+        <ButtonBar>
+          <CopySolutionButton solution={solution} />
+          <Tooltip
+            isHoverable
+            title={
+              codingDisabled
+                ? t(
+                    'Your organization has disabled code generation with Seer. This can be re-enabled in organization settings by an admin.'
+                  )
+                : hasNoRepos
+                  ? tct(
+                      'Seer needs to be able to access your repos to write code for you. [link:Manage your integration and working repos here.]',
+                      {
+                        link: (
+                          <Link
+                            to={`/settings/${organization.slug}/projects/${project?.slug}/seer/`}
+                          />
+                        ),
+                      }
+                    )
+                  : cantReadRepos
+                    ? t(
+                        "Seer can't access any of your selected repos. Check your GitHub integration and make sure Seer has read access."
+                      )
+                    : undefined
+            }
+          >
+            <Button
+              size="sm"
+              priority={
+                !solutionSelected || !valueIsEqual(solutionItems, solution, true)
+                  ? 'primary'
+                  : 'default'
+              }
+              busy={isPending}
+              disabled={hasNoRepos || cantReadRepos || codingDisabled}
+              onClick={() => {
+                handleContinue({
+                  mode: 'fix',
+                  solution: solutionItems,
+                });
+              }}
+              analyticsEventName="Autofix: Code It Up"
+              analyticsEventKey="autofix.solution.code"
+              title={t('Implement this solution in code with Seer')}
+              icon={<IconCode />}
+            >
+              {t('Code It Up')}
+            </Button>
+          </Tooltip>
+        </ButtonBar>
+      </BottomFooter>
     </SolutionContainer>
   );
 }
@@ -636,8 +646,7 @@ const SolutionContainer = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;
   box-shadow: ${p => p.theme.dropShadowMedium};
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
+  padding: ${p => p.theme.space.lg};
 `;
 
 const Content = styled('div')`
@@ -683,8 +692,6 @@ const InstructionsInputWrapper = styled('form')`
   display: flex;
   position: relative;
   border-radius: ${p => p.theme.borderRadius};
-  margin-top: ${space(0.5)};
-  margin-right: ${space(0.25)};
 `;
 
 const InstructionsInput = styled(Input)`
@@ -706,10 +713,18 @@ const SubmitButton = styled(Button)`
   border-radius: 5px;
 `;
 
-const AddInstructionWrapper = styled('div')`
-  padding: ${space(1)} ${space(1)} 0 ${space(3)};
+const BottomDivider = styled('div')`
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  margin-top: ${p => p.theme.space.lg};
 `;
 
-const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
-  color: ${p => p.theme.textColor};
+const BottomFooter = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.lg};
+  padding: ${p => p.theme.space.xl} 0 0 0;
+`;
+
+const AddInstructionWrapper = styled('div')`
+  flex: 1;
 `;
