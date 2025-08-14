@@ -198,7 +198,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
             mock_process_workflow.assert_not_called()
 
 
-@mock.patch("sentry.workflow_engine.processors.workflow.trigger_action.apply_async")
+@mock.patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
 @mock_redis_buffer()
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):
     def setUp(self) -> None:
@@ -278,8 +278,6 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         from sentry.types.group import GroupSubStatus
 
         project = self.create_project(fire_project_created=True)
-        project.flags.has_high_priority_alerts = True
-        project.save()
         detector = Detector.objects.get(project=project)
         workflow = DetectorWorkflow.objects.get(detector=detector).workflow
         workflow.update(config={"frequency": 0})
@@ -374,9 +372,6 @@ class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationT
         assert not mock_trigger.called  # Should not trigger for events without the environment
 
     def test_slow_condition_workflow_with_conditions(self, mock_trigger: MagicMock) -> None:
-        self.project.flags.has_high_priority_alerts = True
-        self.project.save()
-
         # slow condition + trigger, and filter condition
         self.workflow_triggers.update(logic_type="all")
         self.create_data_condition(

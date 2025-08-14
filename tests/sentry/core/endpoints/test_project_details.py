@@ -32,11 +32,11 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
-from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
 
 
 def first_symbol_source_id(sources_json):

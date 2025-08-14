@@ -93,7 +93,7 @@ describe('HTTPDomainSummaryPage', function () {
       },
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.domain-summary-transactions-list',
+          referrer: 'api.insights.http.domain-summary-transactions-list',
         }),
       ],
     });
@@ -106,7 +106,7 @@ describe('HTTPDomainSummaryPage', function () {
       },
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.domain-summary-metrics-ribbon',
+          referrer: 'api.insights.http.domain-summary-metrics-ribbon',
         }),
       ],
     });
@@ -116,7 +116,7 @@ describe('HTTPDomainSummaryPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.domain-summary-throughput-chart',
+          referrer: 'api.insights.http.domain-summary-throughput-chart',
         }),
       ],
       body: {
@@ -140,7 +140,7 @@ describe('HTTPDomainSummaryPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.domain-summary-duration-chart',
+          referrer: 'api.insights.http.domain-summary-duration-chart',
         }),
       ],
       body: {
@@ -164,7 +164,7 @@ describe('HTTPDomainSummaryPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.domain-summary-response-code-chart',
+          referrer: 'api.insights.http.domain-summary-response-code-chart',
         }),
       ],
       body: {
@@ -225,7 +225,7 @@ describe('HTTPDomainSummaryPage', function () {
             per_page: 50,
             project: [],
             query: 'span.op:http.client span.domain:"\\*.sentry.dev"',
-            referrer: 'api.performance.http.domain-summary-throughput-chart',
+            referrer: 'api.insights.http.domain-summary-throughput-chart',
             statsPeriod: '10d',
             topEvents: undefined,
             yAxis: 'epm()',
@@ -253,7 +253,7 @@ describe('HTTPDomainSummaryPage', function () {
           per_page: 50,
           project: [],
           query: 'span.op:http.client span.domain:"\\*.sentry.dev"',
-          referrer: 'api.performance.http.domain-summary-duration-chart',
+          referrer: 'api.insights.http.domain-summary-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
@@ -280,7 +280,7 @@ describe('HTTPDomainSummaryPage', function () {
           per_page: 50,
           project: [],
           query: 'span.op:http.client span.domain:"\\*.sentry.dev"',
-          referrer: 'api.performance.http.domain-summary-response-code-chart',
+          referrer: 'api.insights.http.domain-summary-response-code-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: [
@@ -312,7 +312,7 @@ describe('HTTPDomainSummaryPage', function () {
           per_page: 50,
           project: [],
           query: 'span.op:http.client span.domain:"\\*.sentry.dev"',
-          referrer: 'api.performance.http.domain-summary-metrics-ribbon',
+          referrer: 'api.insights.http.domain-summary-metrics-ribbon',
           sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
@@ -343,7 +343,7 @@ describe('HTTPDomainSummaryPage', function () {
           cursor: '0:20:0',
           query: 'span.op:http.client span.domain:"\\*.sentry.dev"',
           sort: '-sum(span.self_time)',
-          referrer: 'api.performance.http.domain-summary-transactions-list',
+          referrer: 'api.insights.http.domain-summary-transactions-list',
           sampling: SAMPLING_MODE.NORMAL,
           statsPeriod: '10d',
         },
@@ -379,7 +379,7 @@ describe('HTTPDomainSummaryPage', function () {
 
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.domain-summary-transactions-list',
+          referrer: 'api.insights.http.domain-summary-transactions-list',
         }),
       ],
       body: {

@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Generator, Iterator
 from datetime import datetime
-from typing import Any, Literal, TypedDict
+from typing import Any, TypedDict
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -59,18 +59,18 @@ def fetch_error_details(project_id: int, error_ids: list[str]) -> list[EventDict
         return []
 
 
-def _parse_snuba_timestamp_to_ms(timestamp: str | float, input_unit: Literal["s", "ms"]) -> float:
+def _parse_iso_timestamp_to_ms(timestamp: str | None) -> float:
     """
-    Parse a numeric or ISO timestamp to float milliseconds. `input_unit` is only used for numeric inputs.
+    Parses a nullable ISO timestamp to float milliseconds. Errors default to 0.
     """
-    if isinstance(timestamp, str):
-        try:
-            dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-            return dt.timestamp() * 1000
-        except (ValueError, AttributeError):
-            return 0.0
+    if not timestamp:
+        return 0.0
 
-    return float(timestamp) * 1000 if input_unit == "s" else float(timestamp)
+    try:
+        dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        return dt.timestamp() * 1000
+    except (ValueError, AttributeError):
+        return 0.0
 
 
 @sentry_sdk.trace
@@ -135,11 +135,9 @@ def fetch_trace_connected_errors(
             error_data = query.process_results(result)["data"]
 
             for event in error_data:
-                snuba_ts_ms = event.get("timestamp_ms", 0.0)
-                snuba_ts_s = event.get("timestamp", 0.0)
-                timestamp = _parse_snuba_timestamp_to_ms(
-                    snuba_ts_ms, "ms"
-                ) or _parse_snuba_timestamp_to_ms(snuba_ts_s, "s")
+                timestamp = _parse_iso_timestamp_to_ms(
+                    event.get("timestamp_ms")
+                ) or _parse_iso_timestamp_to_ms(event.get("timestamp"))
 
                 if timestamp:
                     error_events.append(
@@ -295,7 +293,10 @@ def as_log_message(event: dict[str, Any]) -> str | None:
 
                 # Parse URL path
                 parsed_url = urlparse(description)
-                path = f"{parsed_url.path}?{parsed_url.query}"
+                path_part = parsed_url.path.lstrip("/")
+                path = f"{parsed_url.netloc}/{path_part}"
+                if parsed_url.query:
+                    path += f"?{parsed_url.query}"
 
                 # Check if the tuple is valid and response size exists
                 sizes_tuple = parse_network_content_lengths(event)
@@ -308,9 +309,11 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                     return None
 
                 if response_size is None:
-                    return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code}; took {duration} milliseconds at {timestamp}'
+                    return (
+                        f'Fetch request "{method} {path}" failed with {status_code} at {timestamp}'
+                    )
                 else:
-                    return f'Application initiated request: "{method} {path} HTTP/2.0" with status code {status_code} and response size {response_size}; took {duration} milliseconds at {timestamp}'
+                    return f'Fetch request "{method} {path}" failed with {status_code} ({response_size} bytes) at {timestamp}'
             case EventType.LCP:
                 duration = event["data"]["payload"]["data"]["size"]
                 rating = event["data"]["payload"]["data"]["rating"]
@@ -318,7 +321,33 @@ def as_log_message(event: dict[str, Any]) -> str | None:
             case EventType.HYDRATION_ERROR:
                 return f"There was a hydration error on the page at {timestamp}"
             case EventType.RESOURCE_XHR:
-                return None
+                payload = event["data"]["payload"]
+                method = payload["data"]["method"]
+                status_code = payload["data"]["statusCode"]
+                description = payload["description"]
+                duration = payload["endTimestamp"] - payload["startTimestamp"]
+
+                # Parse URL path
+                parsed_url = urlparse(description)
+                path_part = parsed_url.path.lstrip("/")
+                path = f"{parsed_url.netloc}/{path_part}"
+                if parsed_url.query:
+                    path += f"?{parsed_url.query}"
+
+                # Check if the tuple is valid and response size exists
+                sizes_tuple = parse_network_content_lengths(event)
+                response_size = None
+                if sizes_tuple and sizes_tuple[1] is not None:
+                    response_size = str(sizes_tuple[1])
+
+                # Skip successful requests
+                if status_code and str(status_code).startswith("2"):
+                    return None
+
+                if response_size is None:
+                    return f'XHR request "{method} {path}" failed with {status_code} at {timestamp}'
+                else:
+                    return f'XHR request "{method} {path}" failed with {status_code} ({response_size} bytes) at {timestamp}'
             case EventType.MUTATIONS:
                 return None
             case EventType.UNKNOWN:

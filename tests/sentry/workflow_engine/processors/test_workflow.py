@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
-from sentry import buffer
 from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.activity import Activity
@@ -12,10 +11,12 @@ from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.utils import json
+from sentry.workflow_engine import buffer as workflow_buffer
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -23,6 +24,7 @@ from sentry.workflow_engine.models import (
     Workflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 from sentry.workflow_engine.processors.workflow import (
     DelayedWorkflowItem,
     delete_workflow,
@@ -271,6 +273,46 @@ class TestProcessWorkflows(BaseWorkflowTest):
             tags={"detector_type": self.error_detector.type},
         )
 
+    @patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
+    def test_workflow_fire_history_with_action_deduping(
+        self, mock_trigger_action: MagicMock
+    ) -> None:
+        """Fire a single action, but record that it was fired for multiple workflows"""
+        self.action_group, self.action = self.create_workflow_action(workflow=self.error_workflow)
+
+        error_workflow_2 = self.create_workflow(
+            name="error_workflow_2",
+            when_condition_group=self.create_data_condition_group(),
+        )
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=error_workflow_2,
+        )
+        self.action_group_2, self.action_2 = self.create_workflow_action(workflow=error_workflow_2)
+
+        error_workflow_3 = self.create_workflow(
+            name="error_workflow_3",
+            when_condition_group=self.create_data_condition_group(),
+        )
+        self.create_detector_workflow(
+            detector=self.error_detector,
+            workflow=error_workflow_3,
+        )
+        self.action_group_3, self.action_3 = self.create_workflow_action(workflow=error_workflow_3)
+
+        process_workflows(self.event_data)
+
+        assert WorkflowFireHistory.objects.count() == 3
+        assert mock_trigger_action.call_count == 3
+
+    def test_defaults_to_error_workflows(self) -> None:
+        issue_occurrence = self.build_occurrence()
+        self.group_event.occurrence = issue_occurrence
+        self.group.update(type=issue_occurrence.type.type_id)
+
+        triggered_workflows = process_workflows(self.event_data)
+        assert triggered_workflows == {self.error_workflow}
+
 
 @mock_redis_buffer()
 class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
@@ -440,7 +482,7 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.bulk_get_sorted_set(
+        project_ids = workflow_buffer.get_backend().bulk_get_sorted_set(
             self.buffer_keys,
             min=0,
             max=self.buffer_timestamp,
@@ -472,7 +514,7 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.bulk_get_sorted_set(
+        project_ids = workflow_buffer.get_backend().bulk_get_sorted_set(
             self.buffer_keys,
             min=0,
             max=self.buffer_timestamp,
@@ -554,7 +596,7 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.bulk_get_sorted_set(
+        project_ids = workflow_buffer.get_backend().bulk_get_sorted_set(
             self.buffer_keys,
             min=0,
             max=self.buffer_timestamp,
@@ -583,7 +625,7 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.bulk_get_sorted_set(
+        project_ids = workflow_buffer.get_backend().bulk_get_sorted_set(
             self.buffer_keys,
             min=0,
             max=self.buffer_timestamp,
@@ -595,7 +637,7 @@ class TestWorkflowEnqueuing(BaseWorkflowTest):
 
         process_workflows(self.event_data)
 
-        project_ids = buffer.backend.bulk_get_sorted_set(
+        project_ids = workflow_buffer.get_backend().bulk_get_sorted_set(
             self.buffer_keys,
             min=0,
             max=self.buffer_timestamp,
@@ -748,7 +790,7 @@ class TestEvaluateWorkflowActionFilters(BaseWorkflowTest):
 
         enqueue_workflows(queue_items)
 
-        project_ids = buffer.backend.bulk_get_sorted_set(
+        project_ids = workflow_buffer.get_backend().bulk_get_sorted_set(
             self.buffer_keys,
             min=0,
             max=timezone.now().timestamp(),
@@ -788,9 +830,10 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
     @patch("sentry.buffer.backend.push_to_sorted_set")
     @patch("sentry.buffer.backend.push_to_hash_bulk")
     @patch("random.choice")
+    @override_options({"workflow_engine.buffer.use_new_buffer": False})
     def test_enqueue_workflows__adds_to_workflow_engine_buffer(
         self, mock_randchoice, mock_push_to_hash_bulk, mock_push_to_sorted_set
-    ):
+    ) -> None:
         mock_randchoice.return_value = f"{DelayedWorkflow.buffer_key}:{5}"
         enqueue_workflows(
             {
@@ -810,11 +853,39 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
             value=[self.group_event.project_id],
         )
 
+    @patch("sentry.workflow_engine.buffer._backend.push_to_sorted_set")
+    @patch("sentry.workflow_engine.buffer._backend.push_to_hash_bulk")
+    @patch("random.choice")
+    @override_options({"workflow_engine.buffer.use_new_buffer": True})
+    def test_enqueue_workflows__adds_to_workflow_engine_buffer_new_buffer(
+        self, mock_randchoice, mock_push_to_hash_bulk, mock_push_to_sorted_set
+    ) -> None:
+        key_choice = f"{DelayedWorkflow.buffer_key}:{5}"
+        mock_randchoice.return_value = key_choice
+        enqueue_workflows(
+            {
+                self.workflow: DelayedWorkflowItem(
+                    self.workflow,
+                    self.group_event,
+                    self.workflow.when_condition_group_id,
+                    [self.slow_workflow_filter_group.id],
+                    [self.workflow_filter_group.id],
+                    timestamp=timezone.now(),
+                )
+            }
+        )
+
+        mock_push_to_sorted_set.assert_called_once_with(
+            key=key_choice,
+            value=[self.group_event.project_id],
+        )
+
     @patch("sentry.buffer.backend.push_to_sorted_set")
     @patch("sentry.buffer.backend.push_to_hash_bulk")
+    @override_options({"workflow_engine.buffer.use_new_buffer": False})
     def test_enqueue_workflow__adds_to_workflow_engine_set(
         self, mock_push_to_hash_bulk, mock_push_to_sorted_set
-    ):
+    ) -> None:
         current_time = timezone.now()
         workflow_filter_group_2 = self.create_data_condition_group()
         self.create_workflow_data_condition_group(
