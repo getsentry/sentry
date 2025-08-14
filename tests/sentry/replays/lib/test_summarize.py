@@ -241,14 +241,27 @@ def test_as_log_message() -> None:
     }
 
     result = as_log_message(event)
-    assert result is None
+    assert result is None  # we filter out 200 status codes
 
     event = {
         "type": 5,
         "timestamp": 0.0,
-        "data": {"tag": "performanceSpan", "payload": {"op": "resource.xhr"}},
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "resource.xhr",
+                "description": "https://www.z.com/path?q=true",
+                "endTimestamp": 0.0,
+                "startTimestamp": 0.0,
+                "data": {
+                    "method": "GET",
+                    "statusCode": 404,
+                    "response": {"size": 0},
+                },
+            },
+        },
     }
-    assert as_log_message(event) is None
+    assert as_log_message(event) is not None
 
     event = {
         "type": 5,

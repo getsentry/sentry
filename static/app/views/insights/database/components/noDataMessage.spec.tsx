@@ -99,7 +99,7 @@ describe('NoDataMessage', () => {
     );
   });
 
-  it('shows a list of denylisted projects if any are are set even if data is available', async function () {
+  it('shows a list of denylisted projects if any are set even if data is available', async function () {
     ProjectsStore.loadInitialData([
       ProjectFixture({
         name: 'Awful API',
