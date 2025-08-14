@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import rest_framework
 
-from sentry import eventstream, options
+from sentry import eventstream
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
@@ -35,24 +35,15 @@ def handle_merge(
     if any([group.issue_category != GroupCategory.ERROR for group in group_list]):
         raise rest_framework.exceptions.ValidationError(detail="Only error issues can be merged.")
 
-    if options.get("issues.merging.first-seen"):
-        # Sort by:
-        # 1) Earliest first-seen time.
-        # 2) On tie: Higher times-seen (# of associated events)
-        # 3) On double-tie: Lower id.
-        group_list_sorted = sorted(
-            group_list,
-            key=lambda g: (g.first_seen, -g.times_seen, g.id),
-        )
-        primary_group, groups_to_merge = group_list_sorted[0], group_list_sorted[1:]
-    else:
-        # Sort by:
-        # 1) Higher times-seen (# of associated events)
-        # 2) On tie: higher id.
-        group_list_by_times_seen = sorted(
-            group_list, key=lambda g: (g.times_seen, g.id), reverse=True
-        )
-        primary_group, groups_to_merge = group_list_by_times_seen[0], group_list_by_times_seen[1:]
+    # Sort by:
+    # 1) Earliest first-seen time.
+    # 2) On tie: Higher times-seen (# of associated events)
+    # 3) On double-tie: Lower id.
+    group_list_sorted = sorted(
+        group_list,
+        key=lambda g: (g.first_seen, -g.times_seen, g.id),
+    )
+    primary_group, groups_to_merge = group_list_sorted[0], group_list_sorted[1:]
 
     group_ids_to_merge = [g.id for g in groups_to_merge]
     eventstream_state = eventstream.backend.start_merge(
