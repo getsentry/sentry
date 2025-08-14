@@ -126,6 +126,7 @@ class Span(NamedTuple):
     trace_id: str
     span_id: str
     parent_span_id: str | None
+    segment_id: str | None
     project_id: int
     payload: bytes
     end_timestamp_precise: float
@@ -138,7 +139,7 @@ class Span(NamedTuple):
         if self.is_segment_span:
             return self.span_id
         else:
-            return self.parent_span_id or self.span_id
+            return self.segment_id or self.parent_span_id or self.span_id
 
 
 class OutputSpan(NamedTuple):
@@ -308,9 +309,14 @@ class SpansBuffer:
         top-most known parent, and the value is a flat list of all its
         transitive children.
 
+        For spans with a known segment_id, the grouping is done by the
+        segment_id instead of the parent_span_id. This is the case for spans
+        extracted from transaction events, or if in the future SDKs provide
+        segment IDs.
+
         :param spans: List of spans to be grouped.
-        :return: Dictionary of grouped spans. The key is a tuple of
-            the `project_and_trace`, and the `parent_span_id`.
+        :return: Dictionary of grouped spans. The key is a tuple of the
+            `project_and_trace`, and the `parent_span_id`.
         """
         trees: dict[tuple[str, str], list[Span]] = {}
         redirects: dict[str, dict[str, str]] = {}
@@ -423,30 +429,14 @@ class SpansBuffer:
             metrics.timing("spans.buffer.flush_segments.num_spans_per_segment", len(segment))
             for payload in segment:
                 val = orjson.loads(payload)
-                old_segment_id = val.get("segment_id")
-                outcome = "same" if old_segment_id == segment_span_id else "different"
 
-                is_segment = val["is_segment"] = segment_span_id == val["span_id"]
+                if not val.get("segment_id"):
+                    val["segment_id"] = segment_span_id
+
+                is_segment = segment_span_id == val["span_id"]
+                val["is_segment"] = is_segment
                 if is_segment:
                     has_root_span = True
-
-                val_data = val.setdefault("data", {})
-                if isinstance(val_data, dict):
-                    val_data["sentry._internal.span_buffer_segment_id_outcome"] = outcome
-
-                    if old_segment_id:
-                        val_data["sentry._internal.span_buffer_old_segment_id"] = old_segment_id
-
-                val["segment_id"] = segment_span_id
-
-                metrics.incr(
-                    "spans.buffer.flush_segments.is_same_segment",
-                    tags={
-                        "outcome": outcome,
-                        "is_segment_span": is_segment,
-                        "old_segment_is_null": "true" if old_segment_id is None else "false",
-                    },
-                )
 
                 output_spans.append(OutputSpan(payload=val))
 

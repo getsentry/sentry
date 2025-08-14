@@ -76,9 +76,6 @@ def test_basic(kafka_slice_id) -> None:
             assert orjson.loads(msg.value) == {
                 "spans": [
                     {
-                        "data": {
-                            "sentry._internal.span_buffer_segment_id_outcome": "different",
-                        },
                         "is_segment": True,
                         "project_id": 12,
                         "segment_id": "aaaaaaaaaaaaaaaa",
