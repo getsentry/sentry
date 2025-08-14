@@ -64,7 +64,7 @@ def wrapper(method: FunctionType):
             metrics.incr(
                 SLACK_DATADOG_METRIC,
                 sample_rate=1.0,
-                tags={"ok": False, "status": "429"},
+                tags={"ok": False, "status": "408"},
             )
             raise
 
