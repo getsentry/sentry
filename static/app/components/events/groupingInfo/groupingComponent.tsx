@@ -64,7 +64,6 @@ export const GroupingComponentListItem = styled('li')<{isCollapsible?: boolean}>
 export const GroupingValue = styled('code')<{
   valueType: string;
   contributes?: boolean;
-  showNonContributing?: boolean;
 }>`
   display: inline-block;
   margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
