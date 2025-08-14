@@ -23,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 
 def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
+    from sentry.grouping.grouptype import ErrorGroupType
+
     evt = event_data.event
 
     if not isinstance(evt, GroupEvent):
@@ -33,11 +35,9 @@ def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
     issue_occurrence = evt.occurrence
 
     try:
-        if issue_occurrence is None:
-            # TODO - @saponifi3d - check to see if there's a way to confirm these are for the error detector
-            detector = Detector.objects.get(
-                project_id=evt.project_id, type=evt.group.issue_type.slug
-            )
+        if issue_occurrence is None or evt.group.issue_type.detector_settings is None:
+            # if there are no detector settings, default to the error detector
+            detector = Detector.objects.get(project_id=evt.project_id, type=ErrorGroupType.slug)
         else:
             detector = Detector.objects.get(
                 id=issue_occurrence.evidence_data.get("detector_id", None)

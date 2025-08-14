@@ -305,6 +305,14 @@ class TestProcessWorkflows(BaseWorkflowTest):
         assert WorkflowFireHistory.objects.count() == 3
         assert mock_trigger_action.call_count == 3
 
+    def test_defaults_to_error_workflows(self) -> None:
+        issue_occurrence = self.build_occurrence()
+        self.group_event.occurrence = issue_occurrence
+        self.group.update(type=issue_occurrence.type.type_id)
+
+        triggered_workflows = process_workflows(self.event_data)
+        assert triggered_workflows == {self.error_workflow}
+
 
 @mock_redis_buffer()
 class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
