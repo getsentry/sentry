@@ -11,6 +11,7 @@ from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
 from snuba_sdk import Column, Condition, Entity, Join, Op, Request
 
 from sentry import features
+from sentry.api.helpers.error_upsampling import are_any_projects_error_upsampled
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models.environment import Environment
@@ -206,10 +207,20 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
             query_builder_cls = ErrorsQueryBuilder
             parser_config_overrides.update(PARSER_CONFIG_OVERRIDES)
 
+        # Conditionally upsample error counts for allowlisted projects
+        selected_aggregate = self.aggregate
+        if (
+            self.dataset == Dataset.Events
+            and isinstance(selected_aggregate, str)
+            and selected_aggregate.strip().lower() == "count()"
+            and are_any_projects_error_upsampled(project_ids)
+        ):
+            selected_aggregate = "upsampled_count()"
+
         return query_builder_cls(
             dataset=Dataset(self.dataset.value),
             query=query,
-            selected_columns=[self.aggregate],
+            selected_columns=[selected_aggregate],
             params=params,
             offset=None,
             limit=None,
