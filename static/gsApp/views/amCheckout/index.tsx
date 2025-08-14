@@ -60,6 +60,7 @@ import {showSubscriptionDiscount} from 'getsentry/utils/promotionUtils';
 import {loadStripe} from 'getsentry/utils/stripe';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import withPromotions from 'getsentry/utils/withPromotions';
+import CartSummary from 'getsentry/views/amCheckout/cartSummary';
 import CheckoutOverview from 'getsentry/views/amCheckout/checkoutOverview';
 import CheckoutOverviewV2 from 'getsentry/views/amCheckout/checkoutOverviewV2';
 import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
@@ -76,7 +77,7 @@ import type {
   SelectedProductData,
 } from 'getsentry/views/amCheckout/types';
 import {SelectableProduct} from 'getsentry/views/amCheckout/types';
-import {getBucket, hasCheckoutV3} from 'getsentry/views/amCheckout/utils';
+import {getBucket} from 'getsentry/views/amCheckout/utils';
 import {
   getTotalBudget,
   hasOnDemandBudgetsFeature,
@@ -89,6 +90,7 @@ type Props = {
   checkoutTier: PlanTier;
   isError: boolean;
   isLoading: boolean;
+  isNewCheckout: boolean;
   onToggleLegacy: (tier: string) => void;
   organization: Organization;
   queryClient: QueryClient;
@@ -621,8 +623,14 @@ class AMCheckout extends Component<Props, State> {
   };
 
   renderSteps() {
-    const {organization, onToggleLegacy, subscription, checkoutTier, promotionData} =
-      this.props;
+    const {
+      organization,
+      onToggleLegacy,
+      subscription,
+      checkoutTier,
+      promotionData,
+      isNewCheckout,
+    } = this.props;
     const {currentStep, completedSteps, formData, billingConfig} = this.state;
 
     const promoClaimed = getCompletedOrActivePromotion(promotionData);
@@ -652,7 +660,6 @@ class AMCheckout extends Component<Props, State> {
       const isActive = currentStep === stepNumber;
       const isCompleted = !isActive && completedSteps.has(stepNumber);
       const prevStepCompleted = completedSteps.has(stepNumber - 1);
-      const isNewCheckout = hasCheckoutV3(organization); // TODO(checkout-v3): remove post-GA
 
       return (
         <CheckoutStep
@@ -698,8 +705,14 @@ class AMCheckout extends Component<Props, State> {
   }
 
   render() {
-    const {subscription, organization, isLoading, promotionData, checkoutTier} =
-      this.props;
+    const {
+      subscription,
+      organization,
+      isLoading,
+      promotionData,
+      checkoutTier,
+      isNewCheckout,
+    } = this.props;
     const {loading, error, formData, billingConfig} = this.state;
 
     if (loading || isLoading) {
@@ -778,7 +791,9 @@ class AMCheckout extends Component<Props, State> {
           </CheckoutMain>
           <SidePanel>
             <OverviewContainer>
-              {checkoutTier === PlanTier.AM3 ? (
+              {isNewCheckout ? (
+                <CartSummary {...overviewProps} />
+              ) : checkoutTier === PlanTier.AM3 ? (
                 <CheckoutOverviewV2 {...overviewProps} />
               ) : (
                 <CheckoutOverview {...overviewProps} />
