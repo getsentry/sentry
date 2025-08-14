@@ -221,7 +221,7 @@ export function MetricDetectorChart({
 
   if (isLoading || anomalyLoading) {
     return (
-      <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
+      <Flex height={CHART_HEIGHT} justify="center" align="center">
         <Placeholder height={`${CHART_HEIGHT - 20}px`} />
       </Flex>
     );
@@ -229,7 +229,7 @@ export function MetricDetectorChart({
 
   if (isError || anomalyError) {
     return (
-      <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
+      <Flex height={CHART_HEIGHT} justify="center" align="center">
         <ErrorPanel>
           <IconWarning color="gray300" size="lg" />
           <div>{t('Error loading chart data')}</div>

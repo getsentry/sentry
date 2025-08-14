@@ -47,7 +47,7 @@ interface ContainerLayoutProps {
   minHeight?: Responsive<React.CSSProperties['minHeight']>;
   maxHeight?: Responsive<React.CSSProperties['maxHeight']>;
 
-  border?: Responsive<Shorthand<Border, 4>>;
+  border?: Responsive<Border>;
   borderTop?: Responsive<Shorthand<Border, 4>>;
   borderBottom?: Responsive<Shorthand<Border, 4>>;
   borderLeft?: Responsive<Shorthand<Border, 4>>;
