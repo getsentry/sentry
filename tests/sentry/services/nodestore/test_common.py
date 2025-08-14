@@ -9,10 +9,10 @@ from typing import ContextManager
 
 import pytest
 
-from sentry.nodestore.base import NodeStorage
-from sentry.nodestore.django.backend import DjangoNodeStorage
+from sentry.services.nodestore.base import NodeStorage
+from sentry.services.nodestore.django.backend import DjangoNodeStorage
 from sentry.testutils.helpers import override_options
-from tests.sentry.nodestore.bigtable.test_backend import (
+from tests.sentry.services.nodestore.bigtable.test_backend import (
     MockedBigtableNodeStorage,
     get_temporary_bigtable_nodestorage,
 )

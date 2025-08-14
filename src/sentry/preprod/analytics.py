@@ -36,6 +36,13 @@ class PreprodArtifactApiGetBuildDetailsEvent(analytics.Event):
     artifact_id: str
 
 
+@analytics.eventclass("preprod_artifact.api.list_builds")
+class PreprodArtifactApiListBuildsEvent(analytics.Event):
+    organization_id: int
+    project_id: int
+    user_id: int | None = None
+
+
 class PreprodArtifactApiInstallDetailsEvent(analytics.Event):
     type = "preprod_artifact.api.install_details"
 
@@ -52,4 +59,5 @@ analytics.register(PreprodArtifactApiUpdateEvent)
 analytics.register(PreprodArtifactApiAssembleGenericEvent)
 analytics.register(PreprodArtifactApiSizeAnalysisDownloadEvent)
 analytics.register(PreprodArtifactApiGetBuildDetailsEvent)
+analytics.register(PreprodArtifactApiListBuildsEvent)
 analytics.register(PreprodArtifactApiInstallDetailsEvent)

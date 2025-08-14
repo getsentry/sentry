@@ -16,7 +16,7 @@ from sentry.rules.match import MatchType
 from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import fetch_project
 from sentry.services.eventstore.models import Event
-from sentry.testutils.helpers import override_options, with_feature
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
@@ -331,7 +331,7 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
     def test_delayed_workflow_shim(self, mock_process_delayed: MagicMock) -> None:
         self._push_base_events()
 
-        process_in_batches(self.project.id, "delayed_workflow")
+        process_in_batches(buffer.backend, self.project.id, "delayed_workflow")
         assert mock_process_delayed.call_count == 2
 
 
@@ -919,7 +919,6 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
         assert group_to_groupevent == self.group_to_groupevent
 
     @patch("sentry.workflow_engine.tasks.actions.trigger_action.apply_async")
-    @with_feature("organizations:workflow-engine-trigger-actions")
     def test_fire_actions_for_groups__fire_actions(self, mock_trigger: MagicMock) -> None:
         fire_actions_for_groups(
             self.project.organization,
@@ -994,7 +993,7 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
         self._push_base_events()
         all_data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
 
-        process_in_batches(self.project.id, "delayed_workflow")
+        process_in_batches(buffer.backend, self.project.id, "delayed_workflow")
         batch_one_key = mock_process_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
         batch_two_key = mock_process_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
 

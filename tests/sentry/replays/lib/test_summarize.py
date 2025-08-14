@@ -1,18 +1,31 @@
 from collections.abc import Generator
+from unittest.mock import Mock, patch
 
-from sentry.models.project import Project
 from sentry.replays.lib.summarize import (
     EventDict,
-    _parse_snuba_timestamp_to_ms,
+    _parse_iso_timestamp_to_ms,
     as_log_message,
     get_summary_logs,
 )
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
 
-@django_db_all
-def test_get_summary_logs(default_project: Project) -> None:
+@patch("sentry.replays.lib.summarize.fetch_feedback_details")
+def test_get_summary_logs(mock_fetch_feedback_details: Mock) -> None:
+
+    def _mock_fetch_feedback(feedback_id: str | None, _project_id: int) -> EventDict | None:
+        if feedback_id == "12345678123456781234567812345678":
+            return EventDict(
+                category="feedback",
+                id=feedback_id,
+                title="User Feedback",
+                timestamp=4.0,
+                message="Great website!",
+            )
+        return None
+
+    mock_fetch_feedback_details.side_effect = _mock_fetch_feedback
+
     def _faker() -> Generator[tuple[int, memoryview]]:
         yield 0, memoryview(
             json.dumps(
@@ -31,6 +44,17 @@ def test_get_summary_logs(default_project: Project) -> None:
                         "data": {
                             "tag": "breadcrumb",
                             "payload": {"category": "console", "message": "world"},
+                        },
+                    },
+                    {
+                        "type": 5,
+                        "timestamp": 4.0,
+                        "data": {
+                            "tag": "breadcrumb",
+                            "payload": {
+                                "category": "sentry.feedback",
+                                "data": {"feedbackId": "12345678123456781234567812345678"},
+                            },
                         },
                     },
                 ]
@@ -54,12 +78,13 @@ def test_get_summary_logs(default_project: Project) -> None:
         ),
     ]
 
-    result = get_summary_logs(_faker(), error_events=error_events, project_id=default_project.id)
+    result = get_summary_logs(_faker(), error_events=error_events, project_id=1)
     assert result == [
         "User experienced an error: 'BadError: something else bad' at 1.0",
         "Logged: hello at 1.5",
         "Logged: world at 2.0",
         "User experienced an error: 'ZeroDivisionError: division by zero' at 3.0",
+        "User submitted feedback: 'Great website!' at 4.0",
     ]
 
 
@@ -255,27 +280,20 @@ def test_as_log_message() -> None:
     assert as_log_message({}) is None
 
 
-def test_parse_snuba_timestamp() -> None:
-    # Test numeric input
-    assert _parse_snuba_timestamp_to_ms(123.456, "ms") == 123.456
-    assert _parse_snuba_timestamp_to_ms(123, "s") == 123000
+def test_parse_iso_timestamp_to_ms() -> None:
+    # Without timezone
+    assert _parse_iso_timestamp_to_ms("2023-01-01T12:00:00") == 1672574400000
+    assert _parse_iso_timestamp_to_ms("2023-01-01T12:00:00.123") == 1672574400123
 
-    # Note input unit is ignored for string inputs.
+    # With timezone offset
+    assert _parse_iso_timestamp_to_ms("2023-01-01T12:00:00+00:00") == 1672574400000
+    assert _parse_iso_timestamp_to_ms("2023-01-01T12:00:00.123+00:00") == 1672574400123
 
-    # Test string input with ISO format without timezone
-    assert _parse_snuba_timestamp_to_ms("2023-01-01T12:00:00", "ms") == 1672574400000
-    assert _parse_snuba_timestamp_to_ms("2023-01-01T12:00:00", "s") == 1672574400000
+    # With 'Z' timezone suffix
+    assert _parse_iso_timestamp_to_ms("2023-01-01T12:00:00Z") == 1672574400000
+    assert _parse_iso_timestamp_to_ms("2023-01-01T12:00:00.123Z") == 1672574400123
 
-    # Test string input with ISO format with timezone offset
-    assert _parse_snuba_timestamp_to_ms("2023-01-01T12:00:00+00:00", "ms") == 1672574400000
-    assert _parse_snuba_timestamp_to_ms("2023-01-01T12:00:00.123+00:00", "ms") == 1672574400123
-    assert _parse_snuba_timestamp_to_ms("2023-01-01T12:00:00+00:00", "s") == 1672574400000
-
-    # Test string input with ISO format with 'Z' timezone suffix
-    assert _parse_snuba_timestamp_to_ms("2023-01-01T12:00:00Z", "s") == 1672574400000
-    assert _parse_snuba_timestamp_to_ms("2023-01-01T12:00:00.123Z", "ms") == 1672574400123
-
-    # Test invalid input
-    assert _parse_snuba_timestamp_to_ms("invalid timestamp", "ms") == 0.0
-    assert _parse_snuba_timestamp_to_ms("", "ms") == 0.0
-    assert _parse_snuba_timestamp_to_ms("2023-13-01T12:00:00Z", "ms") == 0.0
+    # Invalid input
+    assert _parse_iso_timestamp_to_ms("invalid timestamp") == 0.0
+    assert _parse_iso_timestamp_to_ms("") == 0.0
+    assert _parse_iso_timestamp_to_ms("2023-13-01T12:00:00Z") == 0.0

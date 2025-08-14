@@ -8,6 +8,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import Panel from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
 import {space} from 'sentry/styles/space';
+import {NumberContainer} from 'sentry/utils/discover/styles';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
 import {withChonk} from 'sentry/utils/theme/withChonk';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -45,7 +46,7 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
 
 export const LogAttributeTreeWrapper = styled('div')`
   padding: ${space(1)} ${space(1)};
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+  border-bottom: 0px;
 `;
 
 export const LogTableBodyCell = styled(TableBodyCell)`
@@ -90,6 +91,24 @@ export const LogDetailTableBodyCell = styled(TableBodyCell)`
     padding: 0;
   }
 `;
+export const LogDetailTableActionsCell = styled(TableBodyCell)`
+  padding: ${space(0.5)} ${space(2)};
+  min-height: 0px;
+
+  ${LogTableRow} & {
+    padding: ${space(0.5)} ${space(2)};
+  }
+  &:last-child {
+    padding: ${space(0.5)} ${space(2)};
+  }
+`;
+export const LogDetailTableActionsButtonBar = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  & button {
+    font-weight: ${p => p.theme.fontWeight.normal};
+  }
+`;
 
 export const DetailsWrapper = styled('tr')`
   align-items: center;
@@ -114,6 +133,12 @@ export const DetailsContent = styled(StyledPanel)`
 export const LogFirstCellContent = styled('div')`
   display: flex;
   align-items: center;
+`;
+
+export const LogBasicRendererContainer = styled('span')<{align?: 'left' | 'right'}>`
+  ${NumberContainer} {
+    text-align: ${p => p.align || 'left'};
+  }
 `;
 
 export const DetailsBody = styled('div')`
