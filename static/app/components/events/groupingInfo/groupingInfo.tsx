@@ -84,7 +84,14 @@ export default function GroupingInfo({
           </div>
         )}
       </ConfigHeader>
-      <div style={{display: 'flex', justifyContent: 'flex-end', width: '100%'}}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-start',
+          width: '100%',
+          paddingBottom: '20px',
+        }}
+      >
         <SegmentedControl
           aria-label={t('Filter by contribution')}
           size="xs"
@@ -119,7 +126,7 @@ const ConfigHeader = styled('div')`
   display: flex;
   justify-content: space-between;
   gap: ${space(1)};
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(0.25)};
 `;
 
 const VariantDivider = styled('hr')`
