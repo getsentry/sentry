@@ -6,9 +6,13 @@ import {
   AutofixStepType,
   type AutofixCodebaseChange,
   type AutofixData,
+  type AutofixRootCauseData,
+  type AutofixSolutionTimelineEvent,
 } from 'sentry/components/events/autofix/types';
 import {t} from 'sentry/locale';
+import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import {formatEventToMarkdown} from 'sentry/views/issueDetails/streamline/hooks/useCopyIssueDetails';
 
 export function getRootCauseDescription(autofixData: AutofixData) {
   const rootCause = autofixData.steps?.find(
@@ -57,6 +61,36 @@ export function getSolutionCopyText(autofixData: AutofixData) {
   }
 
   return formatSolutionText(solution.solution, solution.custom_solution);
+}
+
+export function formatRootCauseWithEvent(
+  cause: AutofixRootCauseData | undefined,
+  customRootCause: string | undefined,
+  event: Event | undefined
+): string {
+  const rootCauseText = formatRootCauseText(cause, customRootCause);
+
+  if (!event) {
+    return rootCauseText;
+  }
+
+  const eventText = formatEventToMarkdown(event);
+  return rootCauseText + eventText;
+}
+
+export function formatSolutionWithEvent(
+  solution: AutofixSolutionTimelineEvent[] | undefined,
+  customSolution: string | undefined,
+  event: Event | undefined
+): string {
+  const solutionText = formatSolutionText(solution || [], customSolution);
+
+  if (!event) {
+    return solutionText;
+  }
+
+  const eventText = formatEventToMarkdown(event);
+  return solutionText + eventText;
 }
 
 export function getSolutionIsLoading(autofixData: AutofixData) {
