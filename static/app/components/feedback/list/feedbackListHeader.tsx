@@ -33,10 +33,7 @@ export default function FeedbackListHeader({
   selectAll,
   selectedIds,
 }: Props) {
-  const [mailbox, setMailbox] = useQueryState('mailbox', {
-    ...parseAsMailbox,
-    shallow: false,
-  });
+  const [mailbox, setMailbox] = useQueryState('mailbox', parseAsMailbox);
 
   const {listPrefetchQueryKey, resetListHeadTime} = useFeedbackQueryKeys();
   const hasNewItems = useFeedbackHasNewItems({listPrefetchQueryKey});

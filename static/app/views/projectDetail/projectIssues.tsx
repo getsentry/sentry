@@ -66,7 +66,6 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
   const [issuesType, setIssuesType] = useQueryState('issuesType', {
     ...parseAsStringLiteral(Object.values(IssuesType)),
     defaultValue: IssuesType.UNHANDLED,
-    shallow: false,
   });
   const [issuesCount, setIssuesCount] = useState<Count>({
     all: 0,

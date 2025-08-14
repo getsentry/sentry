@@ -38,7 +38,7 @@ export function renderApp() {
   const root = createRoot(rootEl);
   root.render(
     <QueryClientProvider client={queryClient}>
-      <NuqsAdapter>
+      <NuqsAdapter defaultOptions={{shallow: false}}>
         <RouterProvider router={router} />
       </NuqsAdapter>
     </QueryClientProvider>

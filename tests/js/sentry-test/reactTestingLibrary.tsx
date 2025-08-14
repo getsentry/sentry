@@ -182,7 +182,7 @@ function makeAllTheProviders(options: ProviderOptions) {
     return (
       <CacheProvider value={{...cache, compat: true}}>
         <QueryClientProvider client={makeTestQueryClient()}>
-          <NuqsAdapter>
+          <NuqsAdapter defaultOptions={{shallow: false}}>
             <ThemeProvider theme={ThemeFixture()}>{wrappedContent}</ThemeProvider>
           </NuqsAdapter>
         </QueryClientProvider>

@@ -28,7 +28,7 @@ function Main() {
       <ThemeAndStyleProvider>
         <OnboardingContextProvider>
           <SentryTrackingProvider>
-            <NuqsAdapter>
+            <NuqsAdapter defaultOptions={{shallow: false}}>
               <RouterProvider router={router} />
             </NuqsAdapter>
           </SentryTrackingProvider>
