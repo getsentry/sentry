@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useRef} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -24,16 +24,27 @@ import {
 import {PrimaryNavigationHelp} from 'sentry/views/nav/primary/help';
 import {PrimaryNavigationOnboarding} from 'sentry/views/nav/primary/onboarding';
 import {PrimaryNavigationServiceIncidents} from 'sentry/views/nav/primary/serviceIncidents';
+import {useActivateNavGroupOnHover} from 'sentry/views/nav/primary/useActivateNavGroupOnHover';
 import {PrimaryNavigationWhatsNew} from 'sentry/views/nav/primary/whatsNew';
 import {NavTourElement, StackedNavigationTour} from 'sentry/views/nav/tour/tour';
 import {NavLayout, PrimaryNavGroup} from 'sentry/views/nav/types';
 import {UserDropdown} from 'sentry/views/nav/userDropdown';
 import {PREVENT_AI_BASE_URL, PREVENT_BASE_URL} from 'sentry/views/prevent/settings';
 
-function SidebarBody({children}: {children: React.ReactNode}) {
+function SidebarBody({
+  children,
+  ref,
+}: {
+  children: React.ReactNode;
+  ref: React.RefObject<HTMLUListElement | null>;
+}) {
   const {layout} = useNavContext();
   return (
-    <SidebarList isMobile={layout === NavLayout.MOBILE} data-primary-list-container>
+    <SidebarList
+      isMobile={layout === NavLayout.MOBILE}
+      data-primary-list-container
+      ref={ref}
+    >
       {children}
     </SidebarList>
   );
@@ -56,15 +67,19 @@ function SidebarFooter({children}: {children: React.ReactNode}) {
 export function PrimaryNavigationItems() {
   const organization = useOrganization();
   const prefix = `organizations/${organization.slug}`;
+  const ref = useRef<HTMLUListElement>(null);
+
+  const makeNavItemProps = useActivateNavGroupOnHover({ref});
 
   return (
     <Fragment>
-      <SidebarBody>
+      <SidebarBody ref={ref}>
         <NavTourElement id={StackedNavigationTour.ISSUES} title={null} description={null}>
           <SidebarLink
             to={`/${prefix}/issues/`}
             analyticsKey="issues"
             group={PrimaryNavGroup.ISSUES}
+            {...makeNavItemProps(PrimaryNavGroup.ISSUES)}
           >
             <IconIssues />
           </SidebarLink>
@@ -80,6 +95,7 @@ export function PrimaryNavigationItems() {
             activeTo={`/${prefix}/explore`}
             analyticsKey="explore"
             group={PrimaryNavGroup.EXPLORE}
+            {...makeNavItemProps(PrimaryNavGroup.EXPLORE)}
           >
             <IconSearch />
           </SidebarLink>
@@ -100,6 +116,7 @@ export function PrimaryNavigationItems() {
               activeTo={`/${prefix}/dashboard`}
               analyticsKey="dashboards"
               group={PrimaryNavGroup.DASHBOARDS}
+              {...makeNavItemProps(PrimaryNavGroup.DASHBOARDS)}
             >
               <IconDashboard />
             </SidebarLink>
@@ -117,6 +134,7 @@ export function PrimaryNavigationItems() {
               activeTo={`/${prefix}/insights`}
               analyticsKey="insights"
               group={PrimaryNavGroup.INSIGHTS}
+              {...makeNavItemProps(PrimaryNavGroup.INSIGHTS)}
             >
               <IconGraph type="area" />
             </SidebarLink>
@@ -129,6 +147,7 @@ export function PrimaryNavigationItems() {
             activeTo={`/${prefix}/${PREVENT_BASE_URL}/`}
             analyticsKey="prevent"
             group={PrimaryNavGroup.PREVENT}
+            {...makeNavItemProps(PrimaryNavGroup.PREVENT)}
           >
             <IconPrevent />
           </SidebarLink>
@@ -146,6 +165,7 @@ export function PrimaryNavigationItems() {
             activeTo={`/settings/`}
             analyticsKey="settings"
             group={PrimaryNavGroup.SETTINGS}
+            {...makeNavItemProps(PrimaryNavGroup.SETTINGS)}
           >
             <IconSettings />
           </SidebarLink>
