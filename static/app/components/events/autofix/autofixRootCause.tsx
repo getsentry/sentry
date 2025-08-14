@@ -194,7 +194,7 @@ export function formatRootCauseText(
           }
 
           if (event.relevant_code_file) {
-            eventParts.push(`(See ${event.relevant_code_file.file_path})`);
+            eventParts.push(`(See @${event.relevant_code_file.file_path})`);
           }
 
           return eventParts.join('\n');

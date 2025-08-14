@@ -74,23 +74,32 @@ export function formatRootCauseWithEvent(
     return rootCauseText;
   }
 
-  const eventText = formatEventToMarkdown(event);
+  const eventText = '\n# Raw Event Data\n' + formatEventToMarkdown(event);
   return rootCauseText + eventText;
 }
 
 export function formatSolutionWithEvent(
   solution: AutofixSolutionTimelineEvent[] | undefined,
   customSolution: string | undefined,
-  event: Event | undefined
+  event: Event | undefined,
+  rootCause?: AutofixRootCauseData
 ): string {
-  const solutionText = formatSolutionText(solution || [], customSolution);
+  let combinedText = '';
 
-  if (!event) {
-    return solutionText;
+  if (rootCause) {
+    const rootCauseText = formatRootCauseText(rootCause);
+    combinedText += rootCauseText + '\n\n';
   }
 
-  const eventText = formatEventToMarkdown(event);
-  return solutionText + eventText;
+  const solutionText = formatSolutionText(solution || [], customSolution);
+  combinedText += solutionText;
+
+  if (event) {
+    const eventText = '\n# Raw Event Data\n' + formatEventToMarkdown(event);
+    combinedText += eventText;
+  }
+
+  return combinedText;
 }
 
 export function getSolutionIsLoading(autofixData: AutofixData) {

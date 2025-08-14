@@ -19,6 +19,7 @@ import {
 } from 'sentry/components/events/autofix/types';
 import {
   makeAutofixQueryKey,
+  useAutofixData,
   useAutofixRepos,
   type AutofixResponse,
 } from 'sentry/components/events/autofix/useAutofix';
@@ -287,7 +288,7 @@ export function formatSolutionText(
         }
 
         if (event.relevant_code_file) {
-          eventParts.push(`(See ${event.relevant_code_file.file_path})`);
+          eventParts.push(`(See @${event.relevant_code_file.file_path})`);
         }
 
         return eventParts.join('\n');
@@ -303,13 +304,15 @@ function CopySolutionButton({
   customSolution,
   event,
   isEditing,
+  rootCause,
 }: {
   solution: AutofixSolutionTimelineEvent[];
   customSolution?: string;
   event?: Event;
   isEditing?: boolean;
+  rootCause?: any;
 }) {
-  const text = formatSolutionWithEvent(solution, customSolution, event);
+  const text = formatSolutionWithEvent(solution, customSolution, event, rootCause);
   const {onClick, label} = useCopyToClipboard({
     text,
   });
@@ -350,6 +353,13 @@ function AutofixSolutionDisplay({
   const project = group?.project;
 
   const {repos} = useAutofixRepos(groupId);
+  const {data: autofixData} = useAutofixData({groupId});
+
+  // Get root cause data from autofix data
+  const rootCauseStep = autofixData?.steps?.find(
+    step => step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS
+  );
+  const rootCause = rootCauseStep?.causes?.[0];
   const {mutate: handleContinue, isPending} = useSelectSolution({groupId, runId});
   const [instructions, setInstructions] = useState('');
   const [solutionItems, setSolutionItems] = useState<AutofixSolutionTimelineEvent[]>( // This will become outdated if multiple people use it, but we can ignore this for now.
@@ -484,6 +494,7 @@ function AutofixSolutionDisplay({
               solution={solution}
               customSolution={customSolution}
               event={event}
+              rootCause={rootCause}
             />
           </BottomFooter>
         </CustomSolutionPadding>
@@ -568,7 +579,7 @@ function AutofixSolutionDisplay({
           </InstructionsInputWrapper>
         </AddInstructionWrapper>
         <ButtonBar>
-          <CopySolutionButton solution={solution} event={event} />
+          <CopySolutionButton solution={solution} event={event} rootCause={rootCause} />
           <Tooltip
             isHoverable
             title={
