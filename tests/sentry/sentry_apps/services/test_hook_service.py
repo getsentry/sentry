@@ -4,14 +4,14 @@ from sentry.sentry_apps.services.hook import RpcServiceHook, hook_service
 from sentry.sentry_apps.utils.webhooks import EVENT_EXPANSION, SentryAppResourceType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_regions
 
 
-@all_silo_test
+@all_silo_test(regions=create_test_regions("us", "de"))
 class TestHookService(TestCase):
     def setUp(self) -> None:
         self.user = self.create_user()
-        self.org = self.create_organization(owner=self.user)
+        self.org = self.create_organization(owner=self.user, region="us")
         self.project = self.create_project(name="foo", organization=self.org)
         self.sentry_app = self.create_sentry_app(
             organization_id=self.org.id, events=["issue.created"]
@@ -86,8 +86,8 @@ class TestHookService(TestCase):
             )
 
         # Call the update method
-        result = hook_service.update_webhook_and_events(
-            organization_id=self.org.id,
+        result = hook_service.update_webhook_and_events_for_app_by_region(
+            region_name="us",
             application_id=self.sentry_app.application.id,
             webhook_url=self.sentry_app.webhook_url,
             events=self.sentry_app.events,
@@ -136,8 +136,8 @@ class TestHookService(TestCase):
                 == 10000
             )
 
-        result = hook_service.update_webhook_and_events(
-            organization_id=self.org.id,
+        result = hook_service.update_webhook_and_events_for_app_by_region(
+            region_name="us",
             application_id=self.sentry_app.application.id,
             webhook_url=self.sentry_app.webhook_url,
             events=self.sentry_app.events,
@@ -150,7 +150,7 @@ class TestHookService(TestCase):
                     application_id=self.sentry_app.application.id,
                     events=self.sentry_app.events,
                 ).count()
-                == 1000
+                == 10000
             )
             assert (
                 ServiceHook.objects.filter(
@@ -176,8 +176,8 @@ class TestHookService(TestCase):
         )
 
         # Call update with webhook_url=None (should delete hooks)
-        result = hook_service.update_webhook_and_events(
-            organization_id=self.org.id,
+        result = hook_service.update_webhook_and_events_for_app_by_region(
+            region_name="us",
             application_id=self.sentry_app.application.id,
             webhook_url=None,
             events=["issue"],
@@ -202,8 +202,8 @@ class TestHookService(TestCase):
         )
 
         # Try to update hooks for our app (should find no hooks)
-        result = hook_service.update_webhook_and_events(
-            organization_id=self.org.id,
+        result = hook_service.update_webhook_and_events_for_app_by_region(
+            region_name="us",
             application_id=self.sentry_app.application.id,
             webhook_url="https://new-url.com",
             events=["issue"],

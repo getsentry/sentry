@@ -1822,7 +1822,9 @@ class TestUpdateServiceHooksForSentryApp(TestCase):
                 ServiceHook.objects.get(installation_id=organzation_2_installation.id).events == []
             )
 
-    @patch("sentry.sentry_apps.services.hook.service.hook_service.update_webhook_and_events")
+    @patch(
+        "sentry.sentry_apps.services.hook.service.hook_service.update_webhook_and_events_for_app_by_region"
+    )
     def test_create_or_update_service_hooks_for_sentry_app_multiple_regions_mocked(
         self, mock_update_webhook
     ):
@@ -1843,14 +1845,12 @@ class TestUpdateServiceHooksForSentryApp(TestCase):
         expected_calls = [
             call(
                 region_name="us",
-                organization_id=self.sentry_app.owner_id,
                 application_id=self.sentry_app.application_id,
                 events=["issue.created", "issue.resolved"],
                 webhook_url=self.sentry_app.webhook_url,
             ),
             call(
                 region_name="de",
-                organization_id=self.sentry_app.owner_id,
                 application_id=self.sentry_app.application_id,
                 events=["issue.created", "issue.resolved"],
                 webhook_url=self.sentry_app.webhook_url,

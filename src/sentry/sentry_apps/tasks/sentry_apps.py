@@ -830,9 +830,8 @@ def create_or_update_service_hooks_for_sentry_app(
         lifecycle.add_extras({"regions": regions})
 
         for region in regions:
-            hook_service.update_webhook_and_events(
+            hook_service.update_webhook_and_events_for_app_by_region(
                 region_name=region,
-                organization_id=sentry_app.owner_id,
                 application_id=sentry_app.application_id,
                 events=events,
                 webhook_url=webhook_url,
