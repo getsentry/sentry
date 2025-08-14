@@ -23,9 +23,10 @@ class DatabaseBackedHookService(HookService):
             if webhook_url:
                 expanded_events = expand_events(events)
                 hooks.update(url=webhook_url, events=expanded_events)
+                return [serialize_service_hook(h) for h in hooks]
             else:
                 deletions.exec_sync_many(list(hooks))
-            return [serialize_service_hook(h) for h in hooks]
+                return []
 
     def update_webhook_and_events_for_app_by_region(
         self,
@@ -40,9 +41,10 @@ class DatabaseBackedHookService(HookService):
             if webhook_url:
                 expanded_events = expand_events(events)
                 hooks.update(url=webhook_url, events=expanded_events)
+                return [serialize_service_hook(h) for h in hooks]
             else:
                 deletions.exec_sync_many(list(hooks))
-            return [serialize_service_hook(h) for h in hooks]
+                return []
 
     def create_or_update_webhook_and_events_for_installation(
         self,
