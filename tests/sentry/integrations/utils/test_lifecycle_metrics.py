@@ -486,10 +486,9 @@ class IntegrationEventLifecycleMetricTest(TestCase):
         mock_random.random.return_value = 0
         metric_obj = self.TestLifecycleMetric()
 
-        # Test default through capture()
         with metric_obj.capture(sample_log_rate=0.1) as lifecycle:
             lifecycle.add_extra("organization_id", 123)
             lifecycle.record_failure("test failure")
 
-        # Should log since default is 1.0
+        # Should log due to override
         mock_logger.warning.assert_called_once()
