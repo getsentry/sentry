@@ -7,8 +7,10 @@ import type {Theme} from 'sentry/utils/theme';
 import {
   type Border,
   getBorder,
+  getMargin,
   getRadius,
   getSpacing,
+  type Margin,
   type RadiusSize,
   rc,
   type Responsive,
@@ -29,7 +31,7 @@ interface ContainerLayoutProps {
    * Prefer using Flex or Grid gap as opposed to margin.
    * @deprecated
    */
-  margin?: Responsive<Shorthand<SpacingSize, 4>>;
+  margin?: Responsive<Shorthand<Margin, 4>>;
 
   position?: Responsive<'static' | 'relative' | 'absolute' | 'fixed' | 'sticky'>;
 
@@ -47,15 +49,15 @@ interface ContainerLayoutProps {
   minHeight?: Responsive<React.CSSProperties['minHeight']>;
   maxHeight?: Responsive<React.CSSProperties['maxHeight']>;
 
-  border?: Responsive<Border>;
+  border?: Responsive<Shorthand<Border, 4>>;
 
   // Grid Item Properties
   area?: Responsive<React.CSSProperties['gridArea']>;
-  order?: Responsive<React.CSSProperties['order']>;
   row?: Responsive<React.CSSProperties['gridRow']>;
   column?: Responsive<React.CSSProperties['gridColumn']>;
 
   // Flex Item Properties
+  order?: Responsive<React.CSSProperties['order']>;
   flex?: Responsive<React.CSSProperties['flex']>;
   alignSelf?: Responsive<React.CSSProperties['alignSelf']>;
   justifySelf?: Responsive<React.CSSProperties['justifySelf']>;
@@ -158,7 +160,7 @@ export const Container = styled(
   ${p => rc('overflow-y', p.overflowY, p.theme)};
 
   ${p => rc('padding', p.padding, p.theme, getSpacing)};
-  ${p => rc('margin', p.margin, p.theme, getSpacing)};
+  ${p => rc('margin', p.margin, p.theme, getMargin)};
 
   ${p => rc('background', p.background, p.theme, v => p.theme.tokens.background[v])};
 

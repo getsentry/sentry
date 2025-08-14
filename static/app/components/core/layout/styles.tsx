@@ -64,8 +64,14 @@ const BREAKPOINT_ORDER: readonly Breakpoint[] = ['xs', 'sm', 'md', 'lg', 'xl'];
 // We alias None -> 0 to make it slighly more terse and easier to read.
 export type RadiusSize = keyof DO_NOT_USE_ChonkTheme['radius'];
 export type SpacingSize = keyof Theme['space'];
-export type Border = keyof Theme['tokens']['border'];
+export type Border = keyof Theme['tokens']['border'] | '0';
 export type Breakpoint = keyof Theme['breakpoints'];
+
+/**
+ * Prefer using padding or gap instead.
+ * @deprecated
+ */
+export type Margin = SpacingSize | 'auto' | '0';
 
 // @TODO(jonasbadalic): audit for memory usage and linting performance issues.
 // These may not be trivial to infer as we are dealing with n^4 complexity
@@ -104,12 +110,31 @@ function resolveSpacing(sizeComponent: SpacingSize, theme: Theme) {
   return theme.space[sizeComponent] ?? theme.space['0'];
 }
 
+function resolveMargin(sizeComponent: Margin, theme: Theme) {
+  if (sizeComponent === undefined) {
+    return undefined;
+  }
+
+  if (sizeComponent === 'auto') {
+    return 'auto';
+  }
+
+  if (sizeComponent === '0') {
+    return '0';
+  }
+
+  return theme.space[sizeComponent] ?? theme.space['0'];
+}
+
 export function getBorder(
-  border: Border,
+  border: Shorthand<Border, 4>,
   _breakpoint: Breakpoint | undefined,
   theme: Theme
 ) {
-  return `1px solid ${theme.tokens.border[border]}`;
+  return border
+    .split(' ')
+    .map(b => `1px solid ${theme.tokens.border[b as keyof Theme['tokens']['border']]}`)
+    .join(' ');
 }
 
 export function getRadius(
@@ -117,7 +142,7 @@ export function getRadius(
   _breakpoint: Breakpoint | undefined,
   theme: Theme
 ) {
-  if (radius.length <= 3) {
+  if (radius.length < 3) {
     // This can only be a single radius value, so we can resolve it directly.
     return resolveRadius(radius as RadiusSize, theme) as string;
   }
@@ -133,7 +158,7 @@ export function getSpacing(
   _breakpoint: Breakpoint | undefined,
   theme: Theme
 ): string {
-  if (spacing.length <= 3) {
+  if (spacing.length < 3) {
     // This can only be a single spacing value, so we can resolve it directly.
     return resolveSpacing(spacing as SpacingSize, theme) as string;
   }
@@ -141,6 +166,22 @@ export function getSpacing(
   return spacing
     .split(' ')
     .map(size => resolveSpacing(size as SpacingSize, theme))
+    .join(' ');
+}
+
+export function getMargin(
+  margin: Shorthand<Margin, 4>,
+  _breakpoint: Breakpoint | undefined,
+  theme: Theme
+) {
+  if (margin.length < 3) {
+    // This can only be a single margin value, so we can resolve it directly.
+    return resolveMargin(margin as Margin, theme) as string;
+  }
+
+  return margin
+    .split(' ')
+    .map(size => resolveMargin(size as Margin, theme))
     .join(' ');
 }
 
