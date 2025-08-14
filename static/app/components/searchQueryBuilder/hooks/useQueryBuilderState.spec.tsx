@@ -1,44 +1,18 @@
-import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
-
-import {replaceFreeTextTokens, type UpdateQueryAction} from './useQueryBuilderState';
+import {
+  replaceFreeTextTokens,
+  type ReplaceTokensWithTextAction,
+  type UpdateFreeTextAction,
+} from './useQueryBuilderState';
 
 describe('replaceFreeTextTokens', () => {
-  describe('when there are no tokens', () => {
-    it('should return the original query', () => {
-      const result = replaceFreeTextTokens(
-        {type: 'UPDATE_QUERY', query: ''},
-        () => null,
-        [],
-        'browser.name:"firefox"'
-      );
-      expect(result.newQuery).toBe('browser.name:"firefox"');
-    });
-  });
-
-  describe('when there are no free text tokens', () => {
-    it('should return the original query', () => {
-      const result = replaceFreeTextTokens(
-        {type: 'UPDATE_QUERY', query: 'browser.name:"firefox"'},
-        () => null,
-        [],
-        'browser.name:"firefox"'
-      );
-
-      expect(result.newQuery).toBe('browser.name:"firefox"');
-    });
-  });
-
   describe('when there are free text tokens', () => {
     type TestCase = {
       description: string;
-      expected: {
-        focusOverride: FocusOverride | null;
-        newQuery: string;
-      };
+      expected: string | undefined;
       input: {
-        action: UpdateQueryAction;
+        action: UpdateFreeTextAction | ReplaceTokensWithTextAction;
+        currentQuery: string;
         getFieldDefinition: () => null;
-        queryToCommit: string;
         rawSearchReplacement: string[];
       };
     };
@@ -47,97 +21,161 @@ describe('replaceFreeTextTokens', () => {
       {
         description: 'when there are no tokens',
         input: {
-          action: {type: 'UPDATE_QUERY', query: ''},
+          action: {
+            type: 'UPDATE_FREE_TEXT',
+            text: '',
+            tokens: [],
+            shouldCommitQuery: false,
+            focusOverride: undefined,
+          },
           getFieldDefinition: () => null,
           rawSearchReplacement: ['span.description'],
-          queryToCommit: '',
+          currentQuery: '',
         },
-        expected: {newQuery: '', focusOverride: null},
+        expected: undefined,
       },
       {
         description: 'when there is no raw search replacement',
         input: {
-          action: {type: 'UPDATE_QUERY', query: 'browser.name:"firefox"'},
+          action: {
+            type: 'UPDATE_FREE_TEXT',
+            text: '',
+            tokens: [],
+            shouldCommitQuery: false,
+            focusOverride: undefined,
+          },
           getFieldDefinition: () => null,
           rawSearchReplacement: [],
-          queryToCommit: 'browser.name:"firefox"',
+          currentQuery: 'browser.name:"firefox"',
         },
-        expected: {newQuery: 'browser.name:"firefox"', focusOverride: null},
+        expected: undefined,
       },
       {
         description: 'when there are no free text tokens',
         input: {
-          action: {type: 'UPDATE_QUERY', query: 'browser.name:"firefox"'},
+          action: {
+            type: 'UPDATE_FREE_TEXT',
+            text: '',
+            tokens: [],
+            shouldCommitQuery: false,
+            focusOverride: undefined,
+          },
           getFieldDefinition: () => null,
           rawSearchReplacement: ['span.description'],
-          queryToCommit: 'browser.name:"firefox"',
+          currentQuery: 'browser.name:"firefox"',
         },
-        expected: {newQuery: 'browser.name:"firefox"', focusOverride: null},
+        expected: undefined,
+      },
+      {
+        description: 'when there only valid action tokens',
+        input: {
+          action: {
+            type: 'UPDATE_FREE_TEXT',
+            text: 'span.op:eq',
+            tokens: [],
+            shouldCommitQuery: false,
+            focusOverride: undefined,
+          },
+          getFieldDefinition: () => null,
+          rawSearchReplacement: ['span.description'],
+          currentQuery: '',
+        },
+        expected: undefined,
+      },
+      {
+        description: 'when there only space free text tokens in the action',
+        input: {
+          action: {
+            type: 'UPDATE_FREE_TEXT',
+            text: 'span.op:eq    ',
+            tokens: [],
+            shouldCommitQuery: false,
+            focusOverride: undefined,
+          },
+          getFieldDefinition: () => null,
+          rawSearchReplacement: ['span.description'],
+          currentQuery: '',
+        },
+        expected: undefined,
       },
       {
         description: 'when there is one free text token',
         input: {
-          action: {type: 'UPDATE_QUERY', query: 'test'},
+          action: {
+            type: 'REPLACE_TOKENS_WITH_TEXT',
+            text: 'test',
+            tokens: [],
+            focusOverride: undefined,
+          },
           getFieldDefinition: () => null,
           rawSearchReplacement: ['span.description'],
-          queryToCommit: '',
+          currentQuery: '',
         },
-        expected: {
-          newQuery: 'span.description:[*test*]',
-          focusOverride: {itemKey: 'end'},
-        },
+        expected: 'span.description:*test*',
       },
       {
         description: 'when there is one free text token that has a space',
         input: {
-          action: {type: 'UPDATE_QUERY', query: 'test test'},
+          action: {
+            type: 'UPDATE_FREE_TEXT',
+            text: 'test test',
+            tokens: [],
+            shouldCommitQuery: false,
+            focusOverride: undefined,
+          },
           getFieldDefinition: () => null,
           rawSearchReplacement: ['span.description'],
-          queryToCommit: '',
+          currentQuery: '',
         },
-        expected: {
-          newQuery: 'span.description:["*test test*"]',
-          focusOverride: {itemKey: 'end'},
-        },
+        expected: 'span.description:"*test test*"',
       },
       {
         description: 'when there is already a token present',
         input: {
-          action: {type: 'UPDATE_QUERY', query: 'span.op:eq test'},
+          action: {
+            type: 'UPDATE_FREE_TEXT',
+            text: 'test',
+            tokens: [],
+            shouldCommitQuery: false,
+            focusOverride: undefined,
+          },
           getFieldDefinition: () => null,
           rawSearchReplacement: ['span.description'],
-          queryToCommit: '',
+          currentQuery: 'span.op:eq',
         },
-        expected: {
-          newQuery: 'span.op:eq span.description:[*test*]',
-          focusOverride: {itemKey: 'end'},
-        },
+        expected: 'span.op:eq span.description:*test*',
       },
       {
         description: 'when there is already a replace token present',
         input: {
-          action: {type: 'UPDATE_QUERY', query: 'span.description:[*test*] test2'},
+          action: {
+            type: 'UPDATE_FREE_TEXT',
+            text: 'test2',
+            tokens: [],
+            shouldCommitQuery: false,
+            focusOverride: undefined,
+          },
           getFieldDefinition: () => null,
           rawSearchReplacement: ['span.description'],
-          queryToCommit: '',
+          currentQuery: 'span.description:*test*',
         },
-        expected: {
-          newQuery: 'span.description:[*test*,*test2*]',
-          focusOverride: {itemKey: 'end'},
-        },
+        expected: 'span.description:[*test*,*test2*]',
       },
       {
         description: 'when there is already a replace token present with a space',
         input: {
-          action: {type: 'UPDATE_QUERY', query: 'span.description:[*test*] other value'},
+          action: {
+            type: 'UPDATE_FREE_TEXT',
+            text: 'other value',
+            tokens: [],
+            shouldCommitQuery: false,
+            focusOverride: undefined,
+          },
           getFieldDefinition: () => null,
           rawSearchReplacement: ['span.description'],
-          queryToCommit: '',
+          currentQuery: 'span.description:*test*',
         },
-        expected: {
-          newQuery: 'span.description:[*test*,"*other value*"]',
-          focusOverride: {itemKey: 'end'},
-        },
+        expected: 'span.description:[*test*,"*other value*"]',
       },
     ];
 
@@ -146,11 +184,10 @@ describe('replaceFreeTextTokens', () => {
         input.action,
         input.getFieldDefinition,
         input.rawSearchReplacement,
-        input.queryToCommit
+        input.currentQuery
       );
 
-      expect(result.newQuery).toBe(expected.newQuery);
-      expect(result.focusOverride).toEqual(expected.focusOverride);
+      expect(result).toBe(expected);
     });
   });
 });
