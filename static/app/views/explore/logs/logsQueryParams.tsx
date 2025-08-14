@@ -91,7 +91,8 @@ export function getTargetWithReadableQueryParams(
     )
   );
 
-  // when using aggregate fields, we want to make sure to delete the legacy params
+  // when using aggregate fields, we want to make sure to delete the params
+  // used by the separate group by, aggregate fn and aggregate param
   if (defined(writableQueryParams.aggregateFields)) {
     delete target.query[LOGS_GROUP_BY_KEY];
     delete target.query[LOGS_AGGREGATE_FN_KEY];

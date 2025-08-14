@@ -181,13 +181,13 @@ export function useLogsSaveQuery() {
   const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useFromSavedQuery();
 
   const requestData = useMemo((): ExploreSavedQueryRequest => {
-    return convertLogsPageParamsToRequest(
+    return convertLogsPageParamsToRequest({
       logsParams,
       queryParams,
       pageFilters,
       interval,
-      title ?? ''
-    );
+      title: title ?? '',
+    });
   }, [logsParams, queryParams, pageFilters, interval, title]);
 
   const {saveQueryApi, updateQueryApi} = useCreateOrUpdateSavedQuery(id);
@@ -259,13 +259,19 @@ function convertExplorePageParamsToRequest(
   };
 }
 
-function convertLogsPageParamsToRequest(
-  logsParams: ReturnType<typeof useLogsPageParams>,
-  queryParams: ReadableQueryParams,
-  pageFilters: ReturnType<typeof usePageFilters>,
-  interval: string,
-  title: string
-): ExploreSavedQueryRequest {
+function convertLogsPageParamsToRequest({
+  logsParams,
+  queryParams,
+  pageFilters,
+  interval,
+  title,
+}: {
+  interval: string;
+  logsParams: ReturnType<typeof useLogsPageParams>;
+  pageFilters: ReturnType<typeof usePageFilters>;
+  queryParams: ReadableQueryParams;
+  title: string;
+}): ExploreSavedQueryRequest {
   const {selection} = pageFilters;
   const {datetime, projects, environments} = selection;
   const {start, end, period} = datetime;
