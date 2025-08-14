@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timedelta
-from typing import Any
 
 import sentry_sdk
 from django.db import IntegrityError
@@ -133,7 +132,7 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
             negated = search_filter.operator == "!="
             queryset = queryset.filter_by_semver(
                 organization.id,
-                SemverFilter("exact", [], str(search_filter.value.raw_value), negated=negated),
+                SemverFilter("exact", [], search_filter.value.raw_value, negated),
             )
 
         if search_filter.key.name == RELEASE_STAGE_ALIAS:
@@ -262,13 +261,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         ]
     )
 
-    def get_projects(  # type: ignore[override]
-        self,
-        request: Request,
-        organization: Organization,
-        project_ids: set[int] | None = None,
-        project_slugs: set[str] | None = None,
-    ) -> list[Project]:
+    def get_projects(self, request: Request, organization, project_ids=None, project_slugs=None):
         return super().get_projects(
             request,
             organization,
@@ -305,7 +298,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             raise ParseError(detail="invalid healthStat")
 
         paginator_cls = OffsetPaginator
-        paginator_kwargs: dict[str, Any] = {}
+        paginator_kwargs = {}
 
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
@@ -363,13 +356,12 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             # when we filter by status, so when we fix that we should also consider the best way to
             # make this work as expected.
             order_by.append(F("date_added").desc())
-            queryset = queryset.order_by(*order_by)
-            # For semver sort, don't set order_by in paginator_kwargs as it expects a string
+            paginator_kwargs["order_by"] = order_by
         elif sort == "adoption":
             # sort by adoption date (most recently adopted first)
-            order_by_expr = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
-            queryset = queryset.order_by(order_by_expr)
-            # For adoption sort, don't set order_by in paginator_kwargs as it expects a string
+            order_by = F("releaseprojectenvironment__adopted").desc(nulls_last=True)
+            queryset = queryset.order_by(order_by)
+            paginator_kwargs["order_by"] = order_by
         elif sort in self.SESSION_SORTS:
             if not flatten:
                 return Response(
@@ -381,9 +373,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                 # We want to fetch at least total_offset + limit releases to check, to make sure
                 # we're not fetching only releases that were on previous pages.
                 release_versions = list(
-                    Release.objects.filter(organization=organization)
-                    .order_by("-date_added", "-id")
-                    .values_list("version", flat=True)[: total_offset + limit]
+                    queryset.order_by_recent().values_list("version", flat=True)[
+                        : total_offset + limit
+                    ]
                 )
                 releases_with_session_data = release_health.backend.check_releases_have_health_data(
                     organization.id,
@@ -404,76 +396,55 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     Release.objects.filter(
                         organization_id=organization.id,
                         version__in=valid_versions,
-                    ).order_by("-date_added", "-id")[qs_offset : qs_offset + limit]
+                    ).order_by_recent()[qs_offset : qs_offset + limit]
                 )
                 return results
 
-            paginator_cls = MergingOffsetPaginator  # type: ignore[assignment]
-            paginator_kwargs["data_load_func"] = (
-                lambda offset, limit: release_health.backend.get_project_releases_by_stability(
+            paginator_cls = MergingOffsetPaginator
+            paginator_kwargs.update(
+                data_load_func=lambda offset, limit: release_health.backend.get_project_releases_by_stability(
                     project_ids=filter_params["project_id"],
                     environments=filter_params.get("environment"),
                     scope=sort,
                     offset=offset,
                     stats_period=summary_stats_period,
                     limit=limit,
-                )
-            )
-            paginator_kwargs["data_count_func"] = (
-                lambda: release_health.backend.get_project_releases_count(
+                ),
+                data_count_func=lambda: release_health.backend.get_project_releases_count(
                     organization_id=organization.id,
                     project_ids=filter_params["project_id"],
                     environments=filter_params.get("environment"),
                     scope=sort,
                     stats_period=summary_stats_period,
-                )
+                ),
+                apply_to_queryset=lambda queryset, rows: queryset.filter(
+                    version__in=list(x[1] for x in rows)
+                ),
+                queryset_load_func=qs_load_func,
+                key_from_model=lambda x: (x._for_project_id, x.version),
             )
-            paginator_kwargs["apply_to_queryset"] = lambda queryset, rows: queryset.filter(
-                version__in=list(x[1] for x in rows)
-            )
-            paginator_kwargs["queryset_load_func"] = qs_load_func
-            paginator_kwargs["key_from_model"] = lambda x: (x._for_project_id, x.version)
         else:
             return Response({"detail": "invalid sort"}, status=400)
 
         queryset = queryset.extra(select=select_extra)
         queryset = add_date_filter_to_queryset(queryset, filter_params)
 
-        # Handle different paginator classes with different keyword arguments
-        if paginator_cls == MergingOffsetPaginator:
-            return self.paginate(
-                request=request,
-                queryset=queryset,
-                paginator_cls=paginator_cls,
-                on_results=lambda x: serialize(
-                    x,
-                    request.user,
-                    with_health_data=with_health,
-                    with_adoption_stages=with_adoption_stages,
-                    health_stat=health_stat,
-                    health_stats_period=health_stats_period,
-                    summary_stats_period=summary_stats_period,
-                    environments=filter_params.get("environment") or None,
-                ),
-                **{k: v for k, v in paginator_kwargs.items() if k != "order_by"},
-            )
-        else:
-            return self.paginate(
-                request=request,
-                queryset=queryset,
-                paginator_cls=paginator_cls,
-                on_results=lambda x: serialize(
-                    x,
-                    request.user,
-                    with_health_data=with_health,
-                    with_adoption_stages=with_adoption_stages,
-                    health_stat=health_stat,
-                    health_stats_period=health_stats_period,
-                    summary_stats_period=summary_stats_period,
-                    environments=filter_params.get("environment") or None,
-                ),
-                **{k: v for k, v in paginator_kwargs.items() if k in ["order_by"]},
-            )
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            paginator_cls=paginator_cls,
+            on_results=lambda x: serialize(
+                x,
+                request.user,
+                with_health_data=with_health,
+                with_adoption_stages=with_adoption_stages,
+                health_stat=health_stat,
+                health_stats_period=health_stats_period,
+                summary_stats_period=summary_stats_period,
+                environments=filter_params.get("environment") or None,
+            ),
+            **paginator_kwargs,
+        )
 
     def post(self, request: Request, organization: Organization) -> Response:
         """
