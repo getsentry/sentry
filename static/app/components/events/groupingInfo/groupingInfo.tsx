@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/core/layout';
 import {SegmentedControl} from 'sentry/components/core/segmentedControl';
 import {GroupInfoSummary} from 'sentry/components/events/groupingInfo/groupingSummary';
 import {useEventGroupingInfo} from 'sentry/components/events/groupingInfo/useEventGroupingInfo';
@@ -20,6 +21,11 @@ interface GroupingSummaryProps {
   group: Group | undefined;
   projectSlug: string;
   showGroupingConfig: boolean;
+}
+
+// Helper function to check if any variant has non-contributing components
+function hasNonContributingComponents(variants: any[]) {
+  return variants.some(variant => variant.hash === null);
 }
 
 export default function GroupingInfo({
@@ -84,26 +90,21 @@ export default function GroupingInfo({
           </div>
         )}
       </ConfigHeader>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-start',
-          width: '100%',
-          paddingBottom: '20px',
-        }}
-      >
-        <SegmentedControl
-          aria-label={t('Filter by contribution')}
-          size="xs"
-          value={showNonContributing ? 'all' : 'relevant'}
-          onChange={key => setShowNonContributing(key === 'all')}
-        >
-          <SegmentedControl.Item key="relevant">
-            {t('Contributing Values')}
-          </SegmentedControl.Item>
-          <SegmentedControl.Item key="all">{t('All Values')}</SegmentedControl.Item>
-        </SegmentedControl>
-      </div>
+      {hasNonContributingComponents(variants) && (
+        <ToggleContainer>
+          <SegmentedControl
+            aria-label={t('Filter by contribution')}
+            size="xs"
+            value={showNonContributing ? 'all' : 'relevant'}
+            onChange={key => setShowNonContributing(key === 'all')}
+          >
+            <SegmentedControl.Item key="relevant">
+              {t('Contributing Values')}
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="all">{t('All Values')}</SegmentedControl.Item>
+          </SegmentedControl>
+        </ToggleContainer>
+      )}
       {isError ? <LoadingError message={t('Failed to fetch grouping info.')} /> : null}
       {isPending && !hasPerformanceGrouping ? <LoadingIndicator /> : null}
       {hasPerformanceGrouping || isSuccess
@@ -127,6 +128,11 @@ const ConfigHeader = styled('div')`
   justify-content: space-between;
   gap: ${space(1)};
   margin-bottom: ${space(0.25)};
+`;
+
+const ToggleContainer = styled(Flex)`
+  justify-content: flex-start;
+  padding-bottom: ${p => p.theme.space.lg};
 `;
 
 const VariantDivider = styled('hr')`
