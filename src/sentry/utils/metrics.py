@@ -31,7 +31,6 @@ __all__ = [
     "timing",
     "gauge",
     "backend",
-    "precise_backend",  # just for mocking in tests
     "MutableTags",
     "ensure_crash_rate_in_bounds",
 ]
@@ -41,21 +40,15 @@ T = TypeVar("T")
 F = TypeVar("F", bound=Callable[..., Any])
 
 
-def get_default_backend() -> tuple[MetricsBackend, MetricsBackend | None]:
+def get_default_backend() -> MetricsBackend:
     from sentry.utils.imports import import_string
 
-    default_cls: type[MetricsBackend] = import_string(settings.SENTRY_METRICS_BACKEND)
-    default_backend = MiddlewareWrapper(default_cls(**settings.SENTRY_METRICS_OPTIONS))
+    cls: type[MetricsBackend] = import_string(settings.SENTRY_METRICS_BACKEND)
 
-    precise_backend = None
-    if precise_import := settings.SENTRY_METRICS_PRECISE_BACKEND:
-        precise_cls: type[MetricsBackend] = import_string(precise_import)
-        precise_backend = MiddlewareWrapper(precise_cls(**settings.SENTRY_METRICS_PRECISE_OPTIONS))
-
-    return default_backend, precise_backend
+    return MiddlewareWrapper(cls(**settings.SENTRY_METRICS_OPTIONS))
 
 
-backend, precise_backend = get_default_backend()
+backend = get_default_backend()
 
 
 def _should_sample(sample_rate: float) -> bool:
@@ -168,22 +161,12 @@ def timing(
     tags: Tags | None = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
     stacklevel: int = 0,
-    precise: bool = False,
 ) -> None:
     try:
         backend.timing(key, value, instance, tags, sample_rate, stacklevel + 1)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
-
-    if precise and precise_backend:
-        try:
-            precise_backend.timing(
-                key, value, instance, tags, sample_rate, stacklevel + 1, precise=True
-            )
-        except Exception:
-            logger = logging.getLogger("sentry.errors")
-            logger.exception("Unable to record precise metric")
 
 
 def distribution(
@@ -194,22 +177,12 @@ def distribution(
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
     unit: str | None = None,
     stacklevel: int = 0,
-    precise: bool = False,
 ) -> None:
     try:
         backend.distribution(key, value, instance, tags, sample_rate, unit, stacklevel + 1)
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
-
-    if precise and precise_backend:
-        try:
-            precise_backend.distribution(
-                key, value, instance, tags, sample_rate, unit, stacklevel + 1, precise=True
-            )
-        except Exception:
-            logger = logging.getLogger("sentry.errors")
-            logger.exception("Unable to record precise metric")
 
 
 @contextmanager
@@ -219,7 +192,6 @@ def timer(
     tags: Tags | None = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
     stacklevel: int = 0,
-    precise: bool = False,
 ) -> Generator[MutableTags]:
     start = time.monotonic()
     current_tags: MutableTags = dict(tags or ())
@@ -232,15 +204,7 @@ def timer(
         current_tags["result"] = "success"
     finally:
         # stacklevel must be increased by 2 because of the contextmanager indirection
-        timing(
-            key,
-            time.monotonic() - start,
-            instance,
-            current_tags,
-            sample_rate,
-            stacklevel + 2,
-            precise,
-        )
+        timing(key, time.monotonic() - start, instance, current_tags, sample_rate, stacklevel + 2)
 
 
 def wraps(
@@ -249,7 +213,6 @@ def wraps(
     tags: Tags | None = None,
     sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
     stacklevel: int = 0,
-    precise: bool = False,
 ) -> Callable[[F], F]:
     def wrapper(f: F) -> F:
         @functools.wraps(f)
@@ -260,7 +223,6 @@ def wraps(
                 tags=tags,
                 sample_rate=sample_rate,
                 stacklevel=stacklevel + 1,
-                precise=precise,
             ):
                 return f(*args, **kwargs)
 

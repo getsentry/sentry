@@ -338,7 +338,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       try {
         api.clear();
         timeseriesData = await doEventsRequest<false>(api, props);
-      } catch (resp) {
+      } catch (resp: any) {
         if (resp?.responseJSON?.detail) {
           errorMessage = resp.responseJSON.detail;
         } else {

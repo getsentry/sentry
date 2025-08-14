@@ -1,7 +1,7 @@
 import pytest
 
-from sentry import eventstore
 from sentry.event_manager import EventManager
+from sentry.services import eventstore
 
 START_TIME = 1562873192.624
 END_TIME = 1562873194.624

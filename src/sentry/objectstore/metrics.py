@@ -19,21 +19,17 @@ class StorageMetricEmitter:
 
     def record_latency(self, elapsed: float):
         tags = {"usecase": self.usecase}
-        metrics.timing(f"storage.{self.operation}.latency", elapsed, tags=tags, precise=True)
+        metrics.timing(f"storage.{self.operation}.latency", elapsed, tags=tags)
         self.elapsed = elapsed
 
     def record_uncompressed_size(self, value: int):
         tags = {"usecase": self.usecase, "compression": "none"}
-        metrics.distribution(
-            f"storage.{self.operation}.size", value, tags=tags, unit="byte", precise=True
-        )
+        metrics.distribution(f"storage.{self.operation}.size", value, tags=tags, unit="byte")
         self.uncompressed_size = value
 
     def record_compressed_size(self, value: int, compression: str = "unknown"):
         tags = {"usecase": self.usecase, "compression": compression}
-        metrics.distribution(
-            f"storage.{self.operation}.size", value, tags=tags, unit="byte", precise=True
-        )
+        metrics.distribution(f"storage.{self.operation}.size", value, tags=tags, unit="byte")
         self.compressed_size = value
         self.compression = compression
 
@@ -46,7 +42,6 @@ class StorageMetricEmitter:
             f"storage.{self.operation}.compression_ratio",
             self.compressed_size / self.uncompressed_size,
             tags=tags,
-            precise=True,
         )
 
     def maybe_record_throughputs(self):
@@ -62,13 +57,10 @@ class StorageMetricEmitter:
         for size, compression in sizes:
             tags = {"usecase": self.usecase, "compression": compression}
             metrics.distribution(
-                f"storage.{self.operation}.throughput", size / self.elapsed, tags=tags, precise=True
+                f"storage.{self.operation}.throughput", size / self.elapsed, tags=tags
             )
             metrics.distribution(
-                f"storage.{self.operation}.inverse_throughput",
-                self.elapsed / size,
-                tags=tags,
-                precise=True,
+                f"storage.{self.operation}.inverse_throughput", self.elapsed / size, tags=tags
             )
 
 

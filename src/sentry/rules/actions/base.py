@@ -4,10 +4,10 @@ import abc
 import logging
 from collections.abc import Generator
 
-from sentry.eventstore.models import GroupEvent
 from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.base import CallbackFuture, RuleBase
+from sentry.services.eventstore.models import GroupEvent
 
 logger = logging.getLogger("sentry.rules")
 
