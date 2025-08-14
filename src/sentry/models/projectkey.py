@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 import re
 import secrets
-from typing import Any, ClassVar
+from typing import ClassVar
 from urllib.parse import urlparse
 
 import petname
@@ -22,11 +22,11 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    JSONField,
     Model,
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.silo.base import SiloMode
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -120,7 +120,7 @@ class ProjectKey(Model):
         cache_ttl=60 * 30,
     )
 
-    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+    data = LegacyTextJSONField(default=dict)
 
     use_case = models.CharField(
         max_length=32,
