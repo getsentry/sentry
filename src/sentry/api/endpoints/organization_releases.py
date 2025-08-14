@@ -269,6 +269,23 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         ]
     )
 
+    def get_projects(  # type: ignore[override]
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization,
+        project_ids: set[int] | None = None,
+        project_slugs: set[str] | None = None,
+        include_all_accessible: bool = False,
+    ) -> list[Project]:
+        # default include_all_accessible=False for this API
+        return super().get_projects(
+            request,
+            organization,
+            project_ids=project_ids,
+            project_slugs=project_slugs,
+            include_all_accessible=include_all_accessible,
+        )
+
     def get(self, request: Request, organization: Organization) -> Response:
         """
         List an Organization's Releases
@@ -444,23 +461,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                 environments=filter_params.get("environment") or None,
             ),
             **paginator_kwargs,
-        )
-
-    def get_projects(  # type: ignore[override]
-        self,
-        request: Request,
-        organization: Organization | RpcOrganization,
-        project_ids: set[int] | None = None,
-        project_slugs: set[str] | None = None,
-        include_all_accessible: bool = False,
-    ) -> list[Project]:
-        # default include_all_accessible=False for this API
-        return super().get_projects(
-            request,
-            organization,
-            project_ids=project_ids,
-            project_slugs=project_slugs,
-            include_all_accessible=include_all_accessible,
         )
 
     def post(self, request: Request, organization: Organization) -> Response:
