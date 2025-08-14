@@ -20,13 +20,14 @@ from sentry.seer.endpoints.seer_rpc import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, assume_test_silo_mode_of
 
 # Fernet key must be a base64 encoded string, exactly 32 bytes long
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
 
 @override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
+@all_silo_test
 class TestSeerRpc(APITestCase):
     @staticmethod
     def _get_path(method_name: str) -> str:
@@ -56,6 +57,7 @@ class TestSeerRpc(APITestCase):
         assert response.status_code == 404
 
 
+@all_silo_test
 class TestSeerRpcMethods(APITestCase):
     """Test individual RPC methods"""
 
@@ -75,17 +77,19 @@ class TestSeerRpcMethods(APITestCase):
 
     def test_get_organization_seer_consent_by_org_name_no_consent(self) -> None:
         """Test when organization exists but has no consent"""
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org",
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=self.organization,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org",
+            )
 
         # Disable PR review test generation
-        OrganizationOption.objects.set_value(
-            self.organization, "sentry:enable_pr_review_test_generation", False
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationOption.objects.set_value(
+                self.organization, "sentry:enable_pr_review_test_generation", False
+            )
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
@@ -93,12 +97,13 @@ class TestSeerRpcMethods(APITestCase):
 
     def test_get_organization_seer_consent_by_org_name_with_default_pr_review_enabled(self) -> None:
         """Test when organization has seer acknowledgement"""
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org",
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=self.organization,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org",
+            )
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
@@ -111,23 +116,25 @@ class TestSeerRpcMethods(APITestCase):
         org_with_consent = self.create_organization(owner=self.user)
 
         # Create integrations for both organizations with the same name
-        self.create_integration(
-            organization=org_without_consent,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org-1",
-        )
-        self.create_integration(
-            organization=org_with_consent,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org-2",
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=org_without_consent,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org-1",
+            )
+            self.create_integration(
+                organization=org_with_consent,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org-2",
+            )
 
         # Disable PR review for first org, enable for second (or leave default)
-        OrganizationOption.objects.set_value(
-            org_without_consent, "sentry:enable_pr_review_test_generation", False
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationOption.objects.set_value(
+                org_without_consent, "sentry:enable_pr_review_test_generation", False
+            )
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
@@ -137,20 +144,22 @@ class TestSeerRpcMethods(APITestCase):
         self,
     ):
         """Test that when hide_ai_features is True, that org doesn't contribute consent"""
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org",
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=self.organization,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org",
+            )
 
         # Enable hide_ai_features
-        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", True)
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", True)
 
-        # Set up PR review to be enabled (but won't matter since hide_ai_features=True)
-        OrganizationOption.objects.set_value(
-            self.organization, "sentry:enable_pr_review_test_generation", True
-        )
+            # Set up PR review to be enabled (but won't matter since hide_ai_features=True)
+            OrganizationOption.objects.set_value(
+                self.organization, "sentry:enable_pr_review_test_generation", True
+            )
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
@@ -161,15 +170,19 @@ class TestSeerRpcMethods(APITestCase):
         self,
     ):
         """Test that when hide_ai_features is False, PR review setting determines consent"""
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org",
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=self.organization,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org",
+            )
 
         # Explicitly disable hide_ai_features
-        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationOption.objects.set_value(
+                self.organization, "sentry:hide_ai_features", False
+            )
 
         # PR review is enabled by default, so (NOT hide_ai_features AND pr_review_enabled) = True
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
@@ -185,24 +198,30 @@ class TestSeerRpcMethods(APITestCase):
         org_with_visible_ai = self.create_organization(owner=self.user)
 
         # Create integrations for both organizations with the same name
-        self.create_integration(
-            organization=org_with_hidden_ai,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org-1",
-        )
-        self.create_integration(
-            organization=org_with_visible_ai,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org-2",
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=org_with_hidden_ai,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org-1",
+            )
+            self.create_integration(
+                organization=org_with_visible_ai,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org-2",
+            )
 
         # First org has hide_ai_features enabled (so it won't contribute consent)
-        OrganizationOption.objects.set_value(org_with_hidden_ai, "sentry:hide_ai_features", True)
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationOption.objects.set_value(
+                org_with_hidden_ai, "sentry:hide_ai_features", True
+            )
 
-        # Second org has hide_ai_features disabled and PR review enabled by default
-        OrganizationOption.objects.set_value(org_with_visible_ai, "sentry:hide_ai_features", False)
+            # Second org has hide_ai_features disabled and PR review enabled by default
+            OrganizationOption.objects.set_value(
+                org_with_visible_ai, "sentry:hide_ai_features", False
+            )
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
@@ -217,22 +236,24 @@ class TestSeerRpcMethods(APITestCase):
         org2 = self.create_organization(owner=self.user)
 
         # Create integrations for both organizations with the same name
-        self.create_integration(
-            organization=org1,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org-1",
-        )
-        self.create_integration(
-            organization=org2,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org-2",
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=org1,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org-1",
+            )
+            self.create_integration(
+                organization=org2,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org-2",
+            )
 
         # Both orgs have hide_ai_features enabled
-        OrganizationOption.objects.set_value(org1, "sentry:hide_ai_features", True)
-        OrganizationOption.objects.set_value(org2, "sentry:hide_ai_features", True)
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationOption.objects.set_value(org1, "sentry:hide_ai_features", True)
+            OrganizationOption.objects.set_value(org2, "sentry:hide_ai_features", True)
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
@@ -243,18 +264,22 @@ class TestSeerRpcMethods(APITestCase):
         self,
     ):
         """Test that both conditions must be met: hide_ai_features=False AND pr_review_enabled=True"""
-        self.create_integration(
-            organization=self.organization,
-            provider="github",
-            name="test-org",
-            external_id="github:test-org",
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.create_integration(
+                organization=self.organization,
+                provider="github",
+                name="test-org",
+                external_id="github:test-org",
+            )
 
         # Disable hide_ai_features but also disable PR review
-        OrganizationOption.objects.set_value(self.organization, "sentry:hide_ai_features", False)
-        OrganizationOption.objects.set_value(
-            self.organization, "sentry:enable_pr_review_test_generation", False
-        )
+        with assume_test_silo_mode(SiloMode.REGION):
+            OrganizationOption.objects.set_value(
+                self.organization, "sentry:hide_ai_features", False
+            )
+            OrganizationOption.objects.set_value(
+                self.organization, "sentry:enable_pr_review_test_generation", False
+            )
 
         result = get_organization_seer_consent_by_org_name(org_name="test-org")
 
@@ -263,7 +288,6 @@ class TestSeerRpcMethods(APITestCase):
 
     @responses.activate
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    @assume_test_silo_mode(SiloMode.CONTROL)
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     def test_get_github_enterprise_integration_config(self, mock_get_jwt) -> None:
         """Test when organization has github enterprise integration"""
@@ -288,20 +312,21 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         # Create a GitHub Enterprise integration
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="github_enterprise",
-            external_id="github_external_id",
-            metadata={
-                "domain_name": "github.example.org",
-                "installation": {
-                    "private_key": private_key,
-                    "id": 1,
-                    "verify_ssl": True,
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                provider="github_enterprise",
+                external_id="github_external_id",
+                metadata={
+                    "domain_name": "github.example.org",
+                    "installation": {
+                        "private_key": private_key,
+                        "id": 1,
+                        "verify_ssl": True,
+                    },
+                    "installation_id": installation_id,
                 },
-                "installation_id": installation_id,
-            },
-        )
+            )
 
         result = get_github_enterprise_integration_config(
             organization_id=self.organization.id,
@@ -331,7 +356,6 @@ class TestSeerRpcMethods(APITestCase):
         mock_get_jwt.assert_called_once_with(github_id=1, github_private_key=private_key)
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    @assume_test_silo_mode(SiloMode.CONTROL)
     def test_get_github_enterprise_integration_config_invalid_integration_id(self) -> None:
         # Test with invalid integration_id
         with self._caplog.at_level(logging.ERROR):
@@ -344,26 +368,26 @@ class TestSeerRpcMethods(APITestCase):
         assert "Integration -1 does not exist" in self._caplog.text
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    @assume_test_silo_mode(SiloMode.CONTROL)
     def test_get_github_enterprise_integration_config_invalid_organization_id(self) -> None:
         installation_id = 1234
         private_key = "private_key_1"
 
         # Create a GitHub Enterprise integration
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="github_enterprise",
-            external_id="github_external_id",
-            metadata={
-                "domain_name": "github.example.org",
-                "installation": {
-                    "private_key": private_key,
-                    "id": 1,
-                    "verify_ssl": True,
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                provider="github_enterprise",
+                external_id="github_external_id",
+                metadata={
+                    "domain_name": "github.example.org",
+                    "installation": {
+                        "private_key": private_key,
+                        "id": 1,
+                        "verify_ssl": True,
+                    },
+                    "installation_id": installation_id,
                 },
-                "installation_id": installation_id,
-            },
-        )
+            )
 
         # Test with invalid organization_id
         with self._caplog.at_level(logging.ERROR):
@@ -376,30 +400,31 @@ class TestSeerRpcMethods(APITestCase):
         assert f"Integration {integration.id} does not exist" in self._caplog.text
 
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
-    @assume_test_silo_mode(SiloMode.CONTROL)
     def test_get_github_enterprise_integration_config_disabled_integration(self) -> None:
         installation_id = 1234
         private_key = "private_key_1"
 
         # Create a GitHub Enterprise integration
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="github_enterprise",
-            external_id="github_external_id",
-            metadata={
-                "domain_name": "github.example.org",
-                "installation": {
-                    "private_key": private_key,
-                    "id": 1,
-                    "verify_ssl": True,
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                provider="github_enterprise",
+                external_id="github_external_id",
+                metadata={
+                    "domain_name": "github.example.org",
+                    "installation": {
+                        "private_key": private_key,
+                        "id": 1,
+                        "verify_ssl": True,
+                    },
+                    "installation_id": installation_id,
                 },
-                "installation_id": installation_id,
-            },
-        )
+            )
 
         # Test with disabled integration
-        integration.status = ObjectStatus.DISABLED
-        integration.save()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration.status = ObjectStatus.DISABLED
+            integration.save()
 
         with self._caplog.at_level(logging.ERROR):
             result = get_github_enterprise_integration_config(
@@ -412,7 +437,6 @@ class TestSeerRpcMethods(APITestCase):
 
     @responses.activate
     @override_settings(SEER_GHE_ENCRYPT_KEY="invalid")
-    @assume_test_silo_mode(SiloMode.CONTROL)
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
     def test_get_github_enterprise_integration_config_invalid_encrypt_key(
         self, mock_get_jwt
@@ -427,20 +451,21 @@ class TestSeerRpcMethods(APITestCase):
         )
 
         # Create a GitHub Enterprise integration
-        integration = self.create_integration(
-            organization=self.organization,
-            provider="github_enterprise",
-            external_id="github_external_id",
-            metadata={
-                "domain_name": "github.example.org",
-                "installation": {
-                    "private_key": private_key,
-                    "id": 1,
-                    "verify_ssl": True,
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_integration(
+                organization=self.organization,
+                provider="github_enterprise",
+                external_id="github_external_id",
+                metadata={
+                    "domain_name": "github.example.org",
+                    "installation": {
+                        "private_key": private_key,
+                        "id": 1,
+                        "verify_ssl": True,
+                    },
+                    "installation_id": installation_id,
                 },
-                "installation_id": installation_id,
-            },
-        )
+            )
 
         with self._caplog.at_level(logging.ERROR):
             result = get_github_enterprise_integration_config(
@@ -558,7 +583,8 @@ class TestSeerRpcMethods(APITestCase):
         org3 = self.create_organization(owner=self.user)
         # org3 did not give us consent for AI features
         # so it should be excluded from the results
-        OrganizationOption.objects.set_value(org3, "sentry:hide_ai_features", True)
+        with assume_test_silo_mode_of(OrganizationOption):
+            OrganizationOption.objects.set_value(org3, "sentry:hide_ai_features", True)
 
         # repo in org 1
         Repository.objects.create(
