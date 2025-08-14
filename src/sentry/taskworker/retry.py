@@ -53,6 +53,8 @@ def retry_task(exc: Exception | None = None, raise_on_no_retries: bool = True) -
             raise NoRetriesRemainingError()
         else:
             return
+    if exc:
+        raise RetryError(exc) from exc
     raise RetryError()
 
 
