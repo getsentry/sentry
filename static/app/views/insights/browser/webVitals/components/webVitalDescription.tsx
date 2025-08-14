@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
+import {Flex} from 'sentry/components/core/layout';
 import {ExternalLink} from 'sentry/components/core/link';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -123,7 +124,7 @@ export function WebVitalDetailHeader({score, value, webVital, transaction}: Prop
 
   const {mutate: createIssue} = useCreateIssue();
   return (
-    <Flex>
+    <SpaceBetweenFlex>
       <div>
         <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}</WebVitalName>
         <WebVitalScore>
@@ -160,7 +161,7 @@ export function WebVitalDetailHeader({score, value, webVital, transaction}: Prop
           </Button>
         </div>
       )}
-    </Flex>
+    </SpaceBetweenFlex>
   );
 }
 
@@ -235,8 +236,6 @@ const WebVitalScore = styled('div')`
   gap: ${space(1)};
 `;
 
-const Flex = styled('div')`
-  display: flex;
-  align-items: center;
+const SpaceBetweenFlex = styled(Flex)`
   justify-content: space-between;
 `;
