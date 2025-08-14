@@ -5,7 +5,7 @@ import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 
 export default Storybook.story('ReplaySession', story => {
   const ARCHIVED_REPLAY = mapResponseToReplayRecord({
-    id: '1',
+    id: '954df831ab094388ac98eee198584479',
     project_id: '1',
     started_at: new Date('2021-01-01'),
     finished_at: new Date('2021-01-01'),
@@ -14,7 +14,7 @@ export default Storybook.story('ReplaySession', story => {
 
   const HYDRATED_REPLAY = mapResponseToReplayRecord({
     id: '954df831ab094388ac98eee198584479',
-    project_id: '11276',
+    project_id: '1',
     trace_ids: [],
     error_ids: [],
     environment: 'prod',
