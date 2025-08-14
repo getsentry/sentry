@@ -293,7 +293,10 @@ def as_log_message(event: dict[str, Any]) -> str | None:
 
                 # Parse URL path
                 parsed_url = urlparse(description)
-                path = f"{parsed_url.netloc}/{parsed_url.path}?{parsed_url.query}"
+                path_part = parsed_url.path.lstrip("/")
+                path = f"{parsed_url.netloc}/{path_part}"
+                if parsed_url.query:
+                    path += f"?{parsed_url.query}"
 
                 # Check if the tuple is valid and response size exists
                 sizes_tuple = parse_network_content_lengths(event)
@@ -326,7 +329,10 @@ def as_log_message(event: dict[str, Any]) -> str | None:
 
                 # Parse URL path
                 parsed_url = urlparse(description)
-                path = f"{parsed_url.netloc}/{parsed_url.path}?{parsed_url.query}"
+                path_part = parsed_url.path.lstrip("/")
+                path = f"{parsed_url.netloc}/{path_part}"
+                if parsed_url.query:
+                    path += f"?{parsed_url.query}"
 
                 # Check if the tuple is valid and response size exists
                 sizes_tuple = parse_network_content_lengths(event)
