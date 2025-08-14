@@ -210,7 +210,7 @@ export function useMembers({ids, emails, limit}: Options = {}) {
   });
 
   const loadMembersByQuery = useCallback(
-    async function () {
+    async () => {
       if (orgId === undefined) {
         return;
       }
@@ -272,7 +272,7 @@ export function useMembers({ids, emails, limit}: Options = {}) {
   );
 
   const handleFetchAdditionalMembers = useCallback(
-    async function (search?: string) {
+    async (search?: string) => {
       const lastSearch = state.lastSearch;
       // Use the store cursor if there is no search keyword provided
       const cursor = search ? state.nextCursor : store.cursor;
@@ -340,7 +340,7 @@ export function useMembers({ids, emails, limit}: Options = {}) {
   );
 
   const handleSearch = useCallback(
-    function (search: string) {
+    (search: string) => {
       if (search !== '') {
         return handleFetchAdditionalMembers(search);
       }

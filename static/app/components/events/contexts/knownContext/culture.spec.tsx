@@ -36,8 +36,8 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('CultureContext', function () {
-  it('returns formatted data correctly', function () {
+describe('CultureContext', () => {
+  it('returns formatted data correctly', () => {
     expect(getCultureContextData({data: MOCK_CULTURE_CONTEXT})).toEqual([
       {key: 'calendar', subject: 'Calendar', value: 'GregorianCalendar'},
       {
@@ -61,7 +61,7 @@ describe('CultureContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = EventFixture({
       _meta: {contexts: {culture: MOCK_REDACTION}},
     });

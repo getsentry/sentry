@@ -19,12 +19,12 @@ function mockCount(count: undefined | number) {
   return getReplayCountForIssue;
 }
 
-describe('IssueReplayCount', function () {
+describe('IssueReplayCount', () => {
   const groupId = '3363325111';
   const group = GroupFixture({id: groupId});
   const {organization} = initializeOrg();
 
-  it('does not render when a group has undefined count', async function () {
+  it('does not render when a group has undefined count', async () => {
     const mockGetReplayCountForIssue = mockCount(undefined);
 
     const {container} = render(<IssueReplayCount group={group} />);
@@ -36,7 +36,7 @@ describe('IssueReplayCount', function () {
     expect(mockGetReplayCountForIssue).toHaveBeenCalledWith(groupId, 'error');
   });
 
-  it('does not render when a group has a count of zero', async function () {
+  it('does not render when a group has a count of zero', async () => {
     const mockGetReplayCountForIssue = mockCount(0);
 
     const {container} = render(<IssueReplayCount group={group} />);
@@ -48,7 +48,7 @@ describe('IssueReplayCount', function () {
     expect(mockGetReplayCountForIssue).toHaveBeenCalledWith(groupId, 'error');
   });
 
-  it('renders the correct replay count', async function () {
+  it('renders the correct replay count', async () => {
     const mockGetReplayCountForIssue = mockCount(2);
 
     const {container} = render(<IssueReplayCount group={group} />);

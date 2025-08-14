@@ -31,7 +31,7 @@ jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation
   toJSON: jest.fn(),
 }));
 
-describe('ProjectSeer', function () {
+describe('ProjectSeer', () => {
   let project: Project;
   let organization: Organization;
 
@@ -124,7 +124,7 @@ describe('ProjectSeer', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('can add a repository', async function () {
+  it('can add a repository', async () => {
     const seerPreferencesPostRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
       method: 'POST',
@@ -190,7 +190,7 @@ describe('ProjectSeer', function () {
     expect(seerPreferencesPostRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('can update repository settings', async function () {
+  it('can update repository settings', async () => {
     const seerPreferencesPostRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
       method: 'POST',
@@ -240,7 +240,7 @@ describe('ProjectSeer', function () {
     expect(seerPreferencesPostRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('can remove a repository', async function () {
+  it('can remove a repository', async () => {
     const seerPreferencesPostRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/seer/preferences/`,
       method: 'POST',
@@ -276,7 +276,7 @@ describe('ProjectSeer', function () {
     expect(seerPreferencesPostRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('can update the autofix autorun threshold setting', async function () {
+  it('can update the autofix autorun threshold setting', async () => {
     const initialProject: Project = {
       ...project,
       autofixAutomationTuning: 'high', // Start from high
@@ -329,7 +329,7 @@ describe('ProjectSeer', function () {
     });
   });
 
-  it('can update the project scanner automation setting', async function () {
+  it('can update the project scanner automation setting', async () => {
     const initialProject: Project = {
       ...project,
       seerScannerAutomation: false, // Start from off
@@ -371,7 +371,7 @@ describe('ProjectSeer', function () {
     });
   });
 
-  it('can update the automation stopping point setting', async function () {
+  it('can update the automation stopping point setting', async () => {
     const initialProject: Project = {
       ...project,
       autofixAutomationTuning: 'medium',

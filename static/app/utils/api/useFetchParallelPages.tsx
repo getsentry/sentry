@@ -114,7 +114,7 @@ export default function useFetchParallelPages<Data>({
   });
 
   const fetch = useCallback(
-    async function () {
+    async () => {
       await Promise.allSettled(
         cursors.map(async cursor => {
           try {

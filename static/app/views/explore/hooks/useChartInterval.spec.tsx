@@ -5,13 +5,13 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
 import {getIntervalOptionsForPageFilter, useChartInterval} from './useChartInterval';
 
-describe('useChartInterval', function () {
+describe('useChartInterval', () => {
   beforeEach(() => {
     PageFiltersStore.reset();
     PageFiltersStore.init();
   });
 
-  it('allows changing chart interval', function () {
+  it('allows changing chart interval', () => {
     let chartInterval!: ReturnType<typeof useChartInterval>[0];
     let setChartInterval!: ReturnType<typeof useChartInterval>[1];
     let intervalOptions!: ReturnType<typeof useChartInterval>[2];
@@ -56,7 +56,7 @@ describe('useChartInterval', function () {
   });
 });
 
-describe('getIntervalOptionsForPageFilter', function () {
+describe('getIntervalOptionsForPageFilter', () => {
   it.each([
     '1h',
     '23h',
@@ -73,7 +73,7 @@ describe('getIntervalOptionsForPageFilter', function () {
     '90d',
   ])(
     'returns interval options with resulting in less than 1000 buckets',
-    function (period) {
+    (period) => {
       const periodInHours = parsePeriodToHours(period);
       const options = getIntervalOptionsForPageFilter({
         period,

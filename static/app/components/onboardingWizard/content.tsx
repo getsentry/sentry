@@ -353,7 +353,7 @@ function ExpandedTaskGroup({tasks, hidePanel}: ExpandedTaskGroupProps) {
   }, [mutateOnboardingTasks, tasks]);
 
   const markSeenOnOpen = useCallback(
-    async function () {
+    async () => {
       // Add a minor delay to marking tasks complete to account for the animation
       // opening of the group
       await completionTimeout(INITIAL_MARK_COMPLETE_TIMEOUT);

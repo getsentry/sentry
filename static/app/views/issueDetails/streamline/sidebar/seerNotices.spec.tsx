@@ -8,7 +8,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import ConfigStore from 'sentry/stores/configStore';
 import {SeerNotices} from 'sentry/views/issueDetails/streamline/sidebar/seerNotices';
 
-describe('SeerNotices', function () {
+describe('SeerNotices', () => {
   const createRepository = (overrides = {}) => ({
     external_id: 'repo-123',
     name: 'org/repo',

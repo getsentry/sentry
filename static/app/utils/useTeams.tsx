@@ -197,7 +197,7 @@ export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   });
 
   const loadUserTeams = useCallback(
-    async function () {
+    async () => {
       if (orgId === undefined) {
         return;
       }
@@ -222,7 +222,7 @@ export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   );
 
   const loadTeamsByQuery = useCallback(
-    async function () {
+    async () => {
       if (orgId === undefined) {
         return;
       }
@@ -260,7 +260,7 @@ export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   );
 
   const handleFetchAdditionalTeams = useCallback(
-    async function (search?: string) {
+    async (search?: string) => {
       const lastSearch = state.lastSearch;
       // Use the store cursor if there is no search keyword provided
       const cursor = search ? state.nextCursor : store.cursor;
@@ -322,7 +322,7 @@ export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   );
 
   const handleSearch = useCallback(
-    function (search: string) {
+    (search: string) => {
       if (search !== '') {
         return handleFetchAdditionalTeams(search);
       }
