@@ -19,8 +19,7 @@ export function ReplayOnboardingLayout({
   docsConfig,
   dsn,
   platformKey,
-  projectId,
-  projectSlug,
+  project,
   newOrg,
   projectKeyId,
   configType = 'onboarding',
@@ -44,8 +43,8 @@ export function ReplayOnboardingLayout({
       dsn,
       organization,
       platformKey,
-      projectId,
-      projectSlug,
+      project,
+      isLogsSelected: false,
       isFeedbackSelected: false,
       isPerformanceSelected: false,
       isProfilingSelected: false,
@@ -80,8 +79,7 @@ export function ReplayOnboardingLayout({
     newOrg,
     organization,
     platformKey,
-    projectId,
-    projectSlug,
+    project,
     registryData,
     selectedOptions,
     configType,
@@ -94,7 +92,7 @@ export function ReplayOnboardingLayout({
   ]);
 
   return (
-    <AuthTokenGeneratorProvider projectSlug={projectSlug}>
+    <AuthTokenGeneratorProvider projectSlug={project.slug}>
       <Wrapper>
         {introduction && <Introduction>{introduction}</Introduction>}
         <Steps>

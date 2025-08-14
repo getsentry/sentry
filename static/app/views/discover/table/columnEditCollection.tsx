@@ -1,6 +1,6 @@
 import {Component, createRef, Fragment} from 'react';
 import {createPortal} from 'react-dom';
-import {css, type Theme, withTheme} from '@emotion/react';
+import {css, withTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';

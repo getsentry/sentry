@@ -30,7 +30,7 @@ export default function MailboxPicker({onChange, value}: Props) {
   const filteredMailboxes = MAILBOXES;
 
   return (
-    <Flex justify="flex-end" flex="1 0 auto">
+    <Flex justify="end" flex="1 0 auto">
       <SegmentedControl
         size="xs"
         aria-label={t('Filter feedbacks')}
@@ -46,7 +46,7 @@ export default function MailboxPicker({onChange, value}: Props) {
           return (
             <SegmentedControl.Item key={mailbox.key} aria-label={mailbox.label}>
               <Tooltip disabled={!count} title={title}>
-                <Flex align="center" gap={theme.isChonk ? 'sm' : 'none'}>
+                <Flex align="center" gap={theme.isChonk ? 'sm' : '0'}>
                   {mailbox.label}
                   {display ? <Badge type="default">{display}</Badge> : null}
                 </Flex>

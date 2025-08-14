@@ -1,5 +1,6 @@
 import React from 'react';
 
+import type {AlertProps} from 'sentry/components/core/alert';
 import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SearchBar from 'sentry/components/searchBar';
@@ -187,7 +188,7 @@ const DEFAULT_SORT = {
   kind: 'desc' as const,
 };
 
-function AlertBanner(props: any) {
+function AlertBanner(props: Omit<AlertProps, 'type' | 'showIcon'>) {
   return (
     <ModuleLayout.Full>
       <Alert.Container>

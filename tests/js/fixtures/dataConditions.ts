@@ -5,13 +5,15 @@ import type {
 import {
   DataConditionGroupLogicType,
   DataConditionType,
+  DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 
 function DataConditionFixture(params: Partial<DataCondition> = {}): DataCondition {
   return {
-    type: DataConditionType.EQUAL,
+    type: DataConditionType.GREATER,
     comparison: '8',
     id: '1',
+    conditionResult: DetectorPriorityLevel.HIGH,
     ...params,
   };
 }

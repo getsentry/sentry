@@ -27,7 +27,7 @@ from sentry.testutils.performance_issues.event_generators import (
 
 @pytest.mark.django_db
 class NPlusOneAPICallsDetectorTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self._settings = get_detection_settings()
 
@@ -68,7 +68,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
 
         return spans
 
-    def test_detects_problems_with_many_concurrent_calls_to_same_url(self):
+    def test_detects_problems_with_many_concurrent_calls_to_same_url(self) -> None:
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
 
         problems = self.find_problems(event)
@@ -144,7 +144,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         ]
         assert problems[0].title == "N+1 API Call"
 
-    def test_does_not_detect_problems_with_low_total_duration_of_spans(self):
+    def test_does_not_detect_problems_with_low_total_duration_of_spans(self) -> None:
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
         event["spans"] = self.create_eligible_spans(
             100, 10
@@ -160,7 +160,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         problems = self.find_problems(event)
         assert problems == []
 
-    def test_detects_problems_with_low_span_duration_high_total_duration(self):
+    def test_detects_problems_with_low_span_duration_high_total_duration(self) -> None:
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
         event["spans"] = self.create_eligible_spans(100, 10)  # total duration is 1s
 
@@ -172,7 +172,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         problems = self.find_problems(event)
         assert len(problems) == 1
 
-    def test_does_not_detect_problems_with_low_span_count(self):
+    def test_does_not_detect_problems_with_low_span_count(self) -> None:
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
         event["spans"] = self.create_eligible_spans(
             1000, self._settings[DetectorType.N_PLUS_ONE_API_CALLS]["count"]
@@ -188,21 +188,21 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         problems = self.find_problems(event)
         assert problems == []
 
-    def test_does_not_detect_problem_with_unparameterized_urls(self):
+    def test_does_not_detect_problem_with_unparameterized_urls(self) -> None:
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-weather-app")
         assert self.find_problems(event) == []
 
-    def test_does_not_detect_problem_with_concurrent_calls_to_different_urls(self):
+    def test_does_not_detect_problem_with_concurrent_calls_to_different_urls(self) -> None:
         event = get_event("n-plus-one-api-calls/not-n-plus-one-api-calls")
         assert self.find_problems(event) == []
 
-    def test_fingerprints_events(self):
+    def test_fingerprints_events(self) -> None:
         event = self.create_event(lambda i: "GET /clients/11/info")
         [problem] = self.find_problems(event)
 
         assert problem.fingerprint == "1-1010-e9daac10ea509a0bf84a8b8da45d36394868ad67"
 
-    def test_fingerprints_identical_relative_urls_together(self):
+    def test_fingerprints_identical_relative_urls_together(self) -> None:
         event1 = self.create_event(lambda i: "GET /clients/11/info")
         [problem1] = self.find_problems(event1)
 
@@ -211,7 +211,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
 
         assert problem1.fingerprint == problem2.fingerprint
 
-    def test_fingerprints_same_relative_urls_together(self):
+    def test_fingerprints_same_relative_urls_together(self) -> None:
         event1 = self.create_event(lambda i: f"GET /clients/42/info?id={i}")
         [problem1] = self.find_problems(event1)
 
@@ -220,7 +220,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
 
         assert problem1.fingerprint == problem2.fingerprint
 
-    def test_fingerprints_same_parameterized_integer_relative_urls_together(self):
+    def test_fingerprints_same_parameterized_integer_relative_urls_together(self) -> None:
         event1 = self.create_event(lambda i: f"GET /clients/17/info?id={i}")
         [problem1] = self.find_problems(event1)
 
@@ -229,7 +229,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
 
         assert problem1.fingerprint == problem2.fingerprint
 
-    def test_fingerprints_different_relative_url_separately(self):
+    def test_fingerprints_different_relative_url_separately(self) -> None:
         event1 = self.create_event(lambda i: f"GET /clients/11/info?id={i}")
         [problem1] = self.find_problems(event1)
 
@@ -238,7 +238,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
 
         assert problem1.fingerprint != problem2.fingerprint
 
-    def test_ignores_hostname_for_fingerprinting(self):
+    def test_ignores_hostname_for_fingerprinting(self) -> None:
         event1 = self.create_event(lambda i: f"GET http://service.io/clients/42/info?id={i}")
         [problem1] = self.find_problems(event1)
 
@@ -329,7 +329,7 @@ class NPlusOneAPICallsDetectorTest(TestCase):
         ),
     ],
 )
-def test_parameterizes_url(url, parameterized_url):
+def test_parameterizes_url(url, parameterized_url) -> None:
     r = parameterize_url(url)
     assert r == parameterized_url
 
@@ -371,8 +371,10 @@ def test_parameterizes_url(url, parameterized_url):
         },
     ],
 )
-def test_allows_eligible_spans(span):
-    assert NPlusOneAPICallsDetector.is_span_eligible(span)
+@pytest.mark.django_db
+def test_allows_eligible_spans(span) -> None:
+    detector = NPlusOneAPICallsDetector(get_detection_settings(), {})
+    assert detector._is_span_eligible(span)
 
 
 @pytest.mark.parametrize(
@@ -429,8 +431,10 @@ def test_allows_eligible_spans(span):
         },
     ],
 )
-def test_rejects_ineligible_spans(span):
-    assert not NPlusOneAPICallsDetector.is_span_eligible(span)
+@pytest.mark.django_db
+def test_rejects_ineligible_spans(span) -> None:
+    detector = NPlusOneAPICallsDetector(get_detection_settings(), {})
+    assert not detector._is_span_eligible(span)
 
 
 @pytest.mark.parametrize(
@@ -443,7 +447,7 @@ def test_rejects_ineligible_spans(span):
         ("/resource?id=1&sort=down", "/resource"),
     ],
 )
-def test_removes_query_params(url, url_without_query):
+def test_removes_query_params(url, url_without_query) -> None:
     assert without_query_params(url) == url_without_query
 
 
@@ -451,7 +455,7 @@ def test_removes_query_params(url, url_without_query):
     "event",
     [get_event("n-plus-one-api-calls/not-n-plus-one-api-calls")],
 )
-def test_allows_eligible_events(event):
+def test_allows_eligible_events(event) -> None:
     assert NPlusOneAPICallsDetector.is_event_eligible(event)
 
 
@@ -461,5 +465,5 @@ def test_allows_eligible_events(event):
         {"contexts": {"trace": {"op": "task"}}},
     ],
 )
-def test_rejects_ineligible_events(event):
+def test_rejects_ineligible_events(event) -> None:
     assert not NPlusOneAPICallsDetector.is_event_eligible(event)

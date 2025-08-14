@@ -12,7 +12,7 @@ class AgeComparisonFilterTest(RuleTestCase):
     rule_cls = AgeComparisonFilter
 
     @freeze_time(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_older_applies_correctly(self):
+    def test_older_applies_correctly(self) -> None:
         event = self.get_event()
         value = 10
         data = {"comparison_type": "older", "value": str(value), "time": "hour"}
@@ -27,7 +27,7 @@ class AgeComparisonFilterTest(RuleTestCase):
         self.assertPasses(rule, event)
 
     @freeze_time(datetime.now().replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_newer_applies_correctly(self):
+    def test_newer_applies_correctly(self) -> None:
         event = self.get_event()
         value = 10
         data = {"comparison_type": "newer", "value": str(value), "time": "hour"}
@@ -40,7 +40,7 @@ class AgeComparisonFilterTest(RuleTestCase):
         event.group.first_seen = datetime.now(timezone.utc) - timedelta(hours=10)
         self.assertDoesNotPass(rule, event)
 
-    def test_fails_on_insufficient_data(self):
+    def test_fails_on_insufficient_data(self) -> None:
         event = self.get_event()
 
         data = {"time": "hour"}

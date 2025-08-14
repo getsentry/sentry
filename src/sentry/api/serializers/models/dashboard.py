@@ -220,7 +220,7 @@ class PageFiltersOptional(TypedDict, total=False):
     utc: str
     expired: bool
     start: datetime
-    end: str
+    end: datetime
 
 
 class PageFilters(PageFiltersOptional):
@@ -244,11 +244,11 @@ class DashboardFiltersMixin:
             dashboard_filters.get("period"),
         )
         if start and end:
-            start, end = parse_timestamp(start), parse_timestamp(end)
+            start_parsed, end_parsed = parse_timestamp(start), parse_timestamp(end)
             page_filters["expired"], page_filters["start"] = outside_retention_with_modified_start(
-                start, end, obj.organization
+                start_parsed, end_parsed, obj.organization
             )
-            page_filters["end"] = end
+            page_filters["end"] = end_parsed
         elif period:
             page_filters["period"] = period
 
@@ -379,7 +379,7 @@ class DashboardDetailsResponseOptional(TypedDict, total=False):
     utc: str
     expired: bool
     start: datetime
-    end: str
+    end: datetime
 
 
 class DashboardDetailsResponse(DashboardDetailsResponseOptional):

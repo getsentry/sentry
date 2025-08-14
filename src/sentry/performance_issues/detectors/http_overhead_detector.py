@@ -9,6 +9,7 @@ from sentry.issues.grouptype import PerformanceHTTPOverheadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.performance_issues.detectors.utils import has_filtered_url
 
 from ..base import (
     DetectorType,
@@ -113,6 +114,11 @@ class HTTPOverheadDetector(PerformanceDetector):
 
         if not span_op or not span_op == "http.client" or not protocol_version == "1.1":
             return False
+
+        # Check if any spans have filtered URLs
+        if has_filtered_url(self._event, span):
+            return False
+
         return True
 
     def _store_performance_problem(self, location: str) -> None:
@@ -139,9 +145,9 @@ class HTTPOverheadDetector(PerformanceDetector):
 
         fingerprint = f"1-{PerformanceHTTPOverheadGroupType.type_id}-{location}"
         example_span = location_spans[-1]
-        desc: str = example_span.get("description", None)
+        desc: str = example_span.get("description", "")
 
-        location_span_ids = [span.get("span_id", None) for span in location_spans]
+        location_span_ids = [span["span_id"] for span in location_spans]
 
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint,

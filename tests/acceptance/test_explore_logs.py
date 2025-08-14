@@ -1,13 +1,18 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fixtures.page_objects.explore_logs import ExploreLogsPage
+from sentry.models.project import Project
 from sentry.testutils.cases import AcceptanceTestCase, OurLogTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 
 FEATURE_FLAGS = [
     "organizations:ourlogs-enabled",
+    "organizations:ourlogs-visualize-sidebar",
+    "organizations:ourlogs-dashboards",
+    "organizations:ourlogs-alerts",
+    "organizations:ourlogs-infinite-scroll",
 ]
 
 
@@ -29,7 +34,11 @@ class ExploreLogsTest(AcceptanceTestCase, SnubaTestCase, OurLogTestCase):
             organization=self.organization, name="Mariachi Band", members=[self.user]
         )
         self.project = self.create_project(
-            organization=self.organization, teams=[self.team], name="Bengal"
+            organization=self.organization,
+            teams=[self.team],
+            name="Bengal",
+            flags=Project.flags.has_logs
+            | Project.flags.has_transactions,  # Bitfields should be set to avoid onboarding.
         )
         self.features = {
             "organizations:ourlogs-enabled": True,
@@ -40,7 +49,7 @@ class ExploreLogsTest(AcceptanceTestCase, SnubaTestCase, OurLogTestCase):
         self.dismiss_assistant()
 
     @patch("django.utils.timezone.now")
-    def test_opening_log_row_shows_attributes(self, mock_now):
+    def test_opening_log_row_shows_attributes(self, mock_now: MagicMock) -> None:
         mock_now.return_value = self.start
 
         assert (

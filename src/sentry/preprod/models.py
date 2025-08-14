@@ -111,6 +111,11 @@ class PreprodArtifact(DefaultFieldsModel):
     # Miscellaneous fields that we don't need columns for, e.g. enqueue/dequeue times, user-agent, etc.
     extras = models.JSONField(null=True)
 
+    commit_comparison = FlexibleForeignKey(
+        "sentry.CommitComparison", null=True, on_delete=models.SET_NULL
+    )
+
+    # DEPRECATED, soon to be removed
     commit = FlexibleForeignKey("sentry.Commit", null=True, on_delete=models.SET_NULL)
 
     # Installable file like IPA or APK
@@ -121,6 +126,9 @@ class PreprodArtifact(DefaultFieldsModel):
 
     # The identifier of the app, e.g. "com.myapp.MyApp"
     app_id = models.CharField(max_length=255, null=True)
+
+    # An identifier for the main binary
+    main_binary_identifier = models.CharField(max_length=255, db_index=True, null=True)
 
     class Meta:
         app_label = "preprod"

@@ -17,13 +17,13 @@ import {unreachable} from 'sentry/utils/unreachable';
 import useOrganization from 'sentry/utils/useOrganization';
 import useTags from 'sentry/utils/useTags';
 import {
-  DetectorDataset,
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/metric/queryFilterBuilder';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useCustomMeasurements} from 'sentry/views/detectors/datasetConfig/useCustomMeasurements';
 import {
   useTraceItemNumberAttributes,
@@ -296,7 +296,7 @@ export function Visualize() {
 
   return (
     <AggregateContainer hasParameters={hasVisibleParameters}>
-      <Flex gap="md" align="flex-end">
+      <Flex gap="md" align="end">
         <FieldContainer>
           <div>
             <Tooltip

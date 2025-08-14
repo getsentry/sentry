@@ -6,76 +6,76 @@ from sentry.seer.explorer.utils import convert_profile_to_execution_tree, normal
 class TestNormalizeDescription:
     """Test cases for the normalize_description utility function."""
 
-    def test_normalize_description_basic(self):
+    def test_normalize_description_basic(self) -> None:
         """Test basic functionality without any special patterns."""
         result = normalize_description("simple description")
         assert result == "simple description"
 
-    def test_normalize_description_empty_string(self):
+    def test_normalize_description_empty_string(self) -> None:
         """Test with empty string."""
         result = normalize_description("")
         assert result == ""
 
-    def test_normalize_description_uuid_with_dashes(self):
+    def test_normalize_description_uuid_with_dashes(self) -> None:
         """Test UUID normalization with dashes."""
         result = normalize_description(
             "GET /api/users/123e4567-e89b-12d3-a456-426614174000/profile"
         )
         assert result == "GET /api/users/<UUID>/profile"
 
-    def test_normalize_description_uuid_without_dashes(self):
+    def test_normalize_description_uuid_without_dashes(self) -> None:
         """Test UUID normalization without dashes."""
         result = normalize_description("Query 123e4567e89b12d3a456426614174000 from cache")
         assert result == "Query <UUID> from cache"
 
-    def test_normalize_description_multiple_uuids(self):
+    def test_normalize_description_multiple_uuids(self) -> None:
         """Test with multiple UUIDs."""
         result = normalize_description(
             "Transfer 123e4567-e89b-12d3-a456-426614174000 to 987fcdeb-51a2-43d7-8965-123456789abc"
         )
         assert result == "Transfer <UUID> to <UUID>"
 
-    def test_normalize_description_long_numbers(self):
+    def test_normalize_description_long_numbers(self) -> None:
         """Test long numeric sequence normalization."""
         result = normalize_description("Process transaction 1234567890 with amount 999999")
         assert result == "Process transaction <NUM> with amount <NUM>"
 
-    def test_normalize_description_short_numbers_preserved(self):
+    def test_normalize_description_short_numbers_preserved(self) -> None:
         """Test that short numbers are preserved."""
         result = normalize_description("GET /api/v1/users/123")
         assert result == "GET /api/v1/users/123"
 
-    def test_normalize_description_hex_strings_with_0x_prefix(self):
+    def test_normalize_description_hex_strings_with_0x_prefix(self) -> None:
         """Test hex string normalization with 0x prefix."""
         result = normalize_description("Memory address 0x1a2b3c4d5e6f7890 allocated")
         assert result == "Memory address 0x<HEX> allocated"
 
-    def test_normalize_description_hex_strings_without_prefix(self):
+    def test_normalize_description_hex_strings_without_prefix(self) -> None:
         """Test hex string normalization without prefix."""
         result = normalize_description("Hash abcdef123456789 calculated")
         assert result == "Hash <HEX> calculated"
 
-    def test_normalize_description_short_hex_preserved(self):
+    def test_normalize_description_short_hex_preserved(self) -> None:
         """Test that short hex strings are preserved."""
         result = normalize_description("Color #ff0000 used")
         assert result == "Color #ff0000 used"
 
-    def test_normalize_description_timestamps(self):
+    def test_normalize_description_timestamps(self) -> None:
         """Test timestamp normalization."""
         result = normalize_description("Event at 2023-12-25T10:30:45 was processed")
         assert result == "Event at <TIMESTAMP> was processed"
 
-    def test_normalize_description_timestamp_with_space(self):
+    def test_normalize_description_timestamp_with_space(self) -> None:
         """Test timestamp with space separator."""
         result = normalize_description("Log entry 2023-12-25 10:30:45 created")
         assert result == "Log entry <TIMESTAMP> created"
 
-    def test_normalize_description_whitespace_cleanup(self):
+    def test_normalize_description_whitespace_cleanup(self) -> None:
         """Test whitespace cleanup."""
         result = normalize_description("  Multiple   spaces    here  ")
         assert result == "Multiple spaces here"
 
-    def test_normalize_description_complex_combination(self):
+    def test_normalize_description_complex_combination(self) -> None:
         """Test complex case with multiple patterns."""
         result = normalize_description(
             "Process  123e4567-e89b-12d3-a456-426614174000  at  2023-12-25T10:30:45  "
@@ -83,14 +83,14 @@ class TestNormalizeDescription:
         )
         assert result == "Process <UUID> at <TIMESTAMP> with ID <NUM> and hash 0x<HEX>"
 
-    def test_normalize_description_sql_query(self):
+    def test_normalize_description_sql_query(self) -> None:
         """Test with SQL query containing IDs."""
         result = normalize_description(
             "SELECT * FROM users WHERE id = 1234567890 AND uuid = '123e4567-e89b-12d3-a456-426614174000'"
         )
         assert result == "SELECT * FROM users WHERE id = <NUM> AND uuid = '<UUID>'"
 
-    def test_normalize_description_api_path(self):
+    def test_normalize_description_api_path(self) -> None:
         """Test with API path containing various IDs."""
         result = normalize_description(
             "POST /api/v2/organizations/1234567/projects/123e4567-e89b-12d3-a456-426614174000/events"
@@ -101,17 +101,17 @@ class TestNormalizeDescription:
 class TestConvertProfileToExecutionTree:
     """Test cases for the convert_profile_to_execution_tree utility function."""
 
-    def test_convert_profile_empty_input(self):
+    def test_convert_profile_empty_input(self) -> None:
         """Test with empty profile data."""
         result = convert_profile_to_execution_tree({})
         assert result == []
 
-    def test_convert_profile_no_profile_key(self):
+    def test_convert_profile_no_profile_key(self) -> None:
         """Test with missing profile key."""
         result = convert_profile_to_execution_tree({"other": "data"})
         assert result == []
 
-    def test_convert_profile_missing_required_fields(self):
+    def test_convert_profile_missing_required_fields(self) -> None:
         """Test with missing required fields in profile."""
         profile_data: dict[str, Any] = {"profile": {"frames": []}}
         result = convert_profile_to_execution_tree(profile_data)
@@ -121,7 +121,7 @@ class TestConvertProfileToExecutionTree:
         result = convert_profile_to_execution_tree(profile_data)
         assert result == []
 
-    def test_convert_profile_empty_profile_data(self):
+    def test_convert_profile_empty_profile_data(self) -> None:
         """Test with empty but valid profile structure."""
         profile_data: dict[str, Any] = {
             "profile": {
@@ -134,7 +134,7 @@ class TestConvertProfileToExecutionTree:
         result = convert_profile_to_execution_tree(profile_data)
         assert result == []
 
-    def test_convert_profile_single_frame_single_sample(self):
+    def test_convert_profile_single_frame_single_sample(self) -> None:
         """Test with minimal valid profile data."""
         profile_data: dict[str, Any] = {
             "profile": {
@@ -174,7 +174,7 @@ class TestConvertProfileToExecutionTree:
         assert root.children == []
         assert root.node_id is not None
 
-    def test_convert_profile_nested_call_stack(self):
+    def test_convert_profile_nested_call_stack(self) -> None:
         """Test with nested call stack."""
         profile_data: dict[str, Any] = {
             "profile": {
@@ -228,7 +228,7 @@ class TestConvertProfileToExecutionTree:
         assert child2.function == "main"
         assert len(child2.children) == 0
 
-    def test_convert_profile_multiple_samples_duration_calculation(self):
+    def test_convert_profile_multiple_samples_duration_calculation(self) -> None:
         """Test duration calculation with multiple samples."""
         profile_data: dict[str, Any] = {
             "profile": {
@@ -273,7 +273,7 @@ class TestConvertProfileToExecutionTree:
         assert root.duration_ns is not None
         assert root.duration_ns > 0
 
-    def test_convert_profile_filters_non_app_frames(self):
+    def test_convert_profile_filters_non_app_frames(self) -> None:
         """Test that non-app frames are filtered out."""
         profile_data: dict[str, Any] = {
             "profile": {
@@ -321,7 +321,7 @@ class TestConvertProfileToExecutionTree:
         assert len(root.children) == 1
         assert root.children[0].function == "app_function"
 
-    def test_convert_profile_filters_generated_frames(self):
+    def test_convert_profile_filters_generated_frames(self) -> None:
         """Test that generated frames (with <filename>) are filtered out."""
         profile_data: dict[str, Any] = {
             "profile": {
@@ -361,7 +361,7 @@ class TestConvertProfileToExecutionTree:
         assert root.function == "app_function"
         assert len(root.children) == 0
 
-    def test_convert_profile_single_thread_fallback(self):
+    def test_convert_profile_single_thread_fallback(self) -> None:
         """Test fallback to single thread when no MainThread is found."""
         profile_data: dict[str, Any] = {
             "profile": {
@@ -390,7 +390,7 @@ class TestConvertProfileToExecutionTree:
         assert len(result) == 1
         assert result[0].function == "main"
 
-    def test_convert_profile_ignores_other_threads(self):
+    def test_convert_profile_ignores_other_threads(self) -> None:
         """Test that samples from other threads are ignored."""
         profile_data: dict[str, Any] = {
             "profile": {
@@ -437,7 +437,7 @@ class TestConvertProfileToExecutionTree:
         root = result[0]
         assert root.function == "main_function"
 
-    def test_convert_profile_complex_call_patterns(self):
+    def test_convert_profile_complex_call_patterns(self) -> None:
         """Test complex call patterns with function entries and exits."""
         profile_data: dict[str, Any] = {
             "profile": {
@@ -503,7 +503,7 @@ class TestConvertProfileToExecutionTree:
         assert len(helper_b_root.children) == 1
         assert helper_b_root.children[0].function == "helper_a"
 
-    def test_convert_profile_duration_calculation_accuracy(self):
+    def test_convert_profile_duration_calculation_accuracy(self) -> None:
         """Test that duration calculations are reasonable."""
         profile_data: dict[str, Any] = {
             "profile": {

@@ -36,9 +36,12 @@ def validate_preprod_artifact_update_schema(request_body: bytes) -> tuple[dict, 
             "apple_app_info": {
                 "type": "object",
                 "properties": {
+                    "main_binary_uuid": {"type": "string", "maxLength": 255},
                     "is_simulator": {"type": "boolean"},
                     "codesigning_type": {"type": "string"},
                     "profile_name": {"type": "string"},
+                    "profile_expiration_date": {"type": "string"},
+                    "certificate_expiration_date": {"type": "string"},
                     "is_code_signature_valid": {"type": "boolean"},
                     "code_signature_errors": {"type": "array", "items": {"type": "string"}},
                 },
@@ -174,11 +177,16 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
 
         if "apple_app_info" in data:
             apple_info = data["apple_app_info"]
+            if "main_binary_uuid" in apple_info:
+                preprod_artifact.main_binary_identifier = apple_info["main_binary_uuid"]
+                updated_fields.append("main_binary_identifier")
             parsed_apple_info = {}
             for field in [
                 "is_simulator",
                 "codesigning_type",
                 "profile_name",
+                "profile_expiration_date",
+                "certificate_expiration_date",
                 "is_code_signature_valid",
                 "code_signature_errors",
             ]:

@@ -19,10 +19,11 @@ from snuba_sdk import (
 )
 
 from sentry import options, quotas
-from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
-from sentry.dynamic_sampling.models.factory import model_factory
-from sentry.dynamic_sampling.models.transactions_rebalancing import TransactionsRebalancingInput
+from sentry.dynamic_sampling.models.transactions_rebalancing import (
+    TransactionsRebalancingInput,
+    TransactionsRebalancingModel,
+)
 from sentry.dynamic_sampling.tasks.common import GetActiveOrgs, TimedIterator
 from sentry.dynamic_sampling.tasks.constants import (
     BOOST_LOW_VOLUME_TRANSACTIONS_QUERY_INTERVAL,
@@ -234,7 +235,7 @@ def boost_low_volume_transactions_of_project(project_transactions: ProjectTransa
 
     intensity = options.get("dynamic-sampling.prioritise_transactions.rebalance_intensity", 1.0)
 
-    model = model_factory(ModelType.TRANSACTIONS_REBALANCING)
+    model = TransactionsRebalancingModel()
     rebalanced_transactions = guarded_run(
         model,
         TransactionsRebalancingInput(

@@ -1,6 +1,5 @@
-import {lazy, useMemo} from 'react';
+import {lazy} from 'react';
 
-import {TrackingContextProvider} from 'sentry/components/core/trackingContext';
 import LazyLoad from 'sentry/components/lazyLoad';
 import {IconBusiness} from 'sentry/icons';
 import HookStore from 'sentry/stores/hookStore';
@@ -45,6 +44,7 @@ import SuperuserWarning, {
 } from 'getsentry/components/superuser/superuserWarning';
 import TryBusinessSidebarItem from 'getsentry/components/tryBusinessSidebarItem';
 import hookAnalyticsInitUser from 'getsentry/hooks/analyticsInitUser';
+import {DashboardsLimitProvider} from 'getsentry/hooks/dashboardsLimit';
 import DisabledCustomSymbolSources from 'getsentry/hooks/disabledCustomSymbolSources';
 import DisabledMemberTooltip from 'getsentry/hooks/disabledMemberTooltip';
 import DisabledMemberView from 'getsentry/hooks/disabledMemberView';
@@ -240,10 +240,12 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
   'component:superuser-warning-excluded': shouldExcludeOrg,
   'component:crons-list-page-header': () => CronsBillingBanner,
   'react-hook:route-activated': useRouteActivatedHook,
+  'react-hook:use-button-tracking': useButtonTracking,
   'react-hook:use-get-max-retention-days': useGetMaxRetentionDays,
   'component:partnership-agreement': p => (
     <LazyLoad LazyComponent={PartnershipAgreement} {...p} />
   ),
+  'component:dashboards-limit-provider': () => DashboardsLimitProvider,
   'component:data-consent-banner': () => DataConsentBanner,
   'component:data-consent-priority-learn-more': () => DataConsentPriorityLearnMore,
   'component:data-consent-org-creation-checkbox': () => DataConsentOrgCreationCheckbox,
@@ -330,7 +332,6 @@ const GETSENTRY_HOOKS: Partial<Hooks> = {
     <PowerFeatureHovercard
       features={['organizations:dashboards-edit']}
       id="dashboards-edit"
-      upsellDefaultSelection="custom-dashboards"
     >
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </PowerFeatureHovercard>
@@ -379,14 +380,3 @@ const registerHooks = () =>
   entries(GETSENTRY_HOOKS).forEach(entry => HookStore.add(...entry));
 
 export default registerHooks;
-
-export function SentryHooksProvider({children}: {children?: React.ReactNode}) {
-  const buttonTracking = useButtonTracking();
-  const trackingContextValue = useMemo(() => ({buttonTracking}), [buttonTracking]);
-
-  return (
-    <TrackingContextProvider value={trackingContextValue}>
-      {children}
-    </TrackingContextProvider>
-  );
-}

@@ -19,7 +19,7 @@ import {IconCheckmark, IconChevron, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
 import {space} from 'sentry/styles/space';
-import {type OnboardingTask, OnboardingTaskKey} from 'sentry/types/onboarding';
+import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {DemoTour, useDemoTours} from 'sentry/utils/demoMode/demoTours';
@@ -135,7 +135,7 @@ function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
     <Alert type="info">
       <Flex direction="column" gap="md">
         {t("Not sure what to do? We're here for you!")}
-        <Flex justify="space-between" gap="xs" flex={1}>
+        <Flex justify="between" gap="xs" flex={1}>
           <LinkButton external href="https://sentry.io/support/" size="xs">
             {t('Contact Support')}
           </LinkButton>

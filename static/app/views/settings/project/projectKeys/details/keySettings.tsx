@@ -21,6 +21,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
+import {useOTelFriendlyUI} from 'sentry/views/performance/otlp/useOTelFriendlyUI';
 import KeyRateLimitsForm from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
 import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
 import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
@@ -67,6 +68,9 @@ export function KeySettings({
       addErrorMessage(t('Unable to revoke key'));
     }
   }, [organization, api, onRemove, keyId, projectId]);
+
+  const showOtlp =
+    useOTelFriendlyUI() && project.features.includes('relay-otel-endpoint');
 
   return (
     <Fragment>
@@ -145,6 +149,7 @@ export function KeySettings({
                 <ProjectKeyCredentials
                   projectId={`${data.projectId}`}
                   data={data}
+                  showOtlp={showOtlp}
                   showPublicKey
                   showSecretKey
                   showProjectId

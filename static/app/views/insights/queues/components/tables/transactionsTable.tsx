@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import * as qs from 'query-string';
@@ -32,7 +32,7 @@ type Row = Pick<
   SpanResponse,
   | 'sum(span.duration)'
   | 'transaction'
-  | `avg_if(${string},${string},${string})`
+  | `avg_if(${string},${string},${string},${string})`
   | `count_op(${string})`
 >;
 
@@ -55,7 +55,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'avg_if(span.duration,span.op,queue.process)',
+    key: 'avg_if(span.duration,span.op,equals,queue.process)',
     name: t('Avg Processing Time'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -85,7 +85,7 @@ const SORTABLE_FIELDS = [
   'transaction',
   'count_op(queue.publish)',
   'count_op(queue.process)',
-  'avg_if(span.duration,span.op,queue.process)',
+  'avg_if(span.duration,span.op,equals,queue.process)',
   'avg(messaging.message.receive.latency)',
   `sum(span.duration)`,
   'trace_status_rate(ok)',
@@ -187,7 +187,7 @@ function renderBodyCell(
       [
         'count_op(queue.process)',
         'avg(messaging.message.receive.latency)',
-        'avg_if(span.duration,span.op,queue.process)',
+        'avg_if(span.duration,span.op,equals,queue.process)',
       ].includes(key))
   ) {
     return (

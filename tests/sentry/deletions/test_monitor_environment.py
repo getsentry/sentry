@@ -15,7 +15,7 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 
 
 class DeleteMonitorEnvironmentTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project(name="test")
         env = Environment.objects.create(organization_id=project.organization_id, name="foo")
         env_2 = Environment.objects.create(organization_id=project.organization_id, name="bar")
@@ -63,7 +63,7 @@ class DeleteMonitorEnvironmentTest(APITestCase, TransactionTestCase, HybridCloud
         assert Environment.objects.filter(id=env.id).exists()
         assert Project.objects.filter(id=project.id).exists()
 
-    def test_relocated(self):
+    def test_relocated(self) -> None:
         project = self.create_project(name="test")
         env = Environment.objects.create(organization_id=project.organization_id, name="foo")
         monitor = Monitor.objects.create(

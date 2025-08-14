@@ -9,7 +9,6 @@ import {
 } from 'sentry/components/checkInTimeline/gridLines';
 import {Flex} from 'sentry/components/core/layout';
 import {tn} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -104,7 +103,7 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
           </Flex>
         ))}
       </TimelineLegend>
-      <GridLineOverlay
+      <StyledGridLineOverlay
         allowZoom
         showCursor
         timeWindowConfig={timeWindowConfig}
@@ -135,15 +134,17 @@ const ChartContainer = styled('div')`
   position: relative;
   min-height: 100px;
   width: 100%;
+  padding-left: ${p => p.theme.space.lg};
+  padding-right: ${p => p.theme.space.lg};
 `;
 
 const TimelineLegend = styled('div')`
   position: absolute;
-  width: 100%;
+  width: calc(100% - ${p => p.theme.space.lg} * 2);
   user-select: none;
   display: flex;
-  gap: ${space(1)};
-  margin-top: ${space(1.5)};
+  gap: ${p => p.theme.space.md};
+  margin-top: ${p => p.theme.space.lg};
 `;
 
 const TimelineLegendText = styled('div')`
@@ -154,5 +155,9 @@ const TimelineLegendText = styled('div')`
 const TimelineContainer = styled('div')`
   position: absolute;
   top: 36px;
-  width: 100%;
+  width: calc(100% - ${p => p.theme.space.lg} * 2);
+`;
+
+const StyledGridLineOverlay = styled(GridLineOverlay)`
+  width: calc(100% - ${p => p.theme.space.lg} * 2);
 `;

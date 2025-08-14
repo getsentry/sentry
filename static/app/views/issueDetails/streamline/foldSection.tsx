@@ -1,11 +1,11 @@
 import {
-  type CSSProperties,
   Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
 } from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
@@ -44,7 +44,9 @@ export interface FoldSectionProps {
    * Actions associated with the section, only visible when open
    */
   actions?: React.ReactNode;
+  additionalIdentifier?: string;
   className?: string;
+  dataTestId?: string;
   /**
    * Disable persisting collapse state to localStorage
    */
@@ -87,6 +89,8 @@ export function FoldSection({
   initialCollapse = false,
   preventCollapse = false,
   disableCollapsePersistence = false,
+  additionalIdentifier = '',
+  dataTestId,
 }: FoldSectionProps) {
   const organization = useOrganization();
   const {sectionData, navScrollMargin, dispatch} = useIssueDetails();
@@ -168,11 +172,12 @@ export function FoldSection({
     <Fragment>
       <Section
         ref={mergeRefs(ref, scrollToSection)}
-        id={sectionKey}
+        id={sectionKey + additionalIdentifier}
         scrollMargin={navScrollMargin ?? 0}
         role="region"
         aria-label={titleLabel}
         className={className}
+        data-test-id={dataTestId ?? sectionKey + additionalIdentifier}
       >
         <SectionExpander
           preventCollapse={preventCollapse}
@@ -231,7 +236,9 @@ const Section = styled('section')<{scrollMargin: number}>`
 
 const Content = styled('div')`
   padding: ${space(0.5)} ${space(0.75)};
-  margin-left: ${p => p.theme.space.xl};
+  @media (min-width: ${p => p.theme.breakpoints.xs}) {
+    margin-left: ${p => p.theme.space.xl};
+  }
 `;
 
 const SectionExpander = styled('div')<{preventCollapse: boolean}>`

@@ -27,7 +27,7 @@ class SentryAppDocsTest(APIDocsTestCase):
 
         self.login_as(user=self.user)
 
-    def test_post(self):
+    def test_post(self) -> None:
         data = {
             "issueId": self.group.id,
             "webUrl": "https://somerandom.io/project/issue-id",

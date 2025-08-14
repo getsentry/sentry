@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Iterable
+from collections.abc import Iterable, MutableMapping
 from os import path
 from typing import Any
 from unittest import mock
@@ -10,10 +10,8 @@ import orjson
 import pytest
 from django.utils.functional import cached_property
 
-from sentry import eventstore
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
-from sentry.eventstore.models import Event
 from sentry.grouping.api import (
     GroupingConfig,
     apply_server_side_fingerprinting,
@@ -23,9 +21,14 @@ from sentry.grouping.api import (
 from sentry.grouping.component import BaseGroupingComponent
 from sentry.grouping.enhancer import Enhancements
 from sentry.grouping.fingerprinting import FingerprintingRules
-from sentry.grouping.strategies.configurations import CONFIGURATIONS, register_strategy_config
+from sentry.grouping.strategies.configurations import (
+    GROUPING_CONFIG_CLASSES,
+    register_grouping_config,
+)
 from sentry.grouping.variants import BaseVariant
 from sentry.models.project import Project
+from sentry.services import eventstore
+from sentry.services.eventstore.models import Event
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.utils import json
@@ -33,7 +36,7 @@ from sentry.utils import json
 GROUPING_INPUTS_DIR = path.join(path.dirname(__file__), "grouping_inputs")
 FINGERPRINT_INPUTS_DIR = path.join(path.dirname(__file__), "fingerprint_inputs")
 
-MANUAL_SAVE_CONFIGS = set(CONFIGURATIONS.keys()) - {DEFAULT_GROUPING_CONFIG}
+MANUAL_SAVE_CONFIGS = set(GROUPING_CONFIG_CLASSES.keys()) - {DEFAULT_GROUPING_CONFIG}
 FULL_PIPELINE_CONFIGS = {DEFAULT_GROUPING_CONFIG}
 
 # When regenerating snapshots locally, you can set `SENTRY_SNAPSHOTS_WRITEBACK=1` and
@@ -50,7 +53,7 @@ if os.environ.get("SENTRY_FAST_GROUPING_SNAPSHOTS") and not os.environ.get("GITH
 # Note: This must be registered after `MANUAL_SAVE_CONFIGS` is defined, so that
 # `MANUAL_SAVE_CONFIGS` doesn't include it.
 NO_MSG_PARAM_CONFIG = "no-msg-param-tests-only:2012-12-31"
-register_strategy_config(
+register_grouping_config(
     id=NO_MSG_PARAM_CONFIG,
     base=DEFAULT_GROUPING_CONFIG,
     initial_context={"normalize_message": False},
@@ -90,7 +93,7 @@ class GroupingInput:
         grouping_config: GroupingConfig,
         fingerprinting_config: FingerprintingRules,
         project: Project,
-    ):
+    ) -> Event:
         with (
             mock.patch(
                 "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
@@ -118,7 +121,7 @@ class GroupingInput:
         ).base64_string
         fingerprinting_config = FingerprintingRules.from_json(
             {"rules": self.data.get("_fingerprinting_rules", [])},
-            bases=CONFIGURATIONS[config_name].fingerprinting_bases,
+            bases=GROUPING_CONFIG_CLASSES[config_name].fingerprinting_bases,
         )
 
         if use_full_ingest_pipeline:
@@ -157,18 +160,18 @@ def with_grouping_configs(config_ids: Iterable[str]) -> pytest.MarkDecorator:
 
 
 class FingerprintInput:
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         self.filename = filename
 
     @cached_property
-    def data(self):
+    def data(self) -> MutableMapping[str, Any]:
         with open(path.join(FINGERPRINT_INPUTS_DIR, self.filename)) as f:
             return json.load(f)
 
-    def create_event(self):
+    def create_event(self) -> tuple[FingerprintingRules, Event]:
         config = FingerprintingRules.from_json(
             {"rules": self.data.get("_fingerprinting_rules", [])},
-            bases=CONFIGURATIONS[DEFAULT_GROUPING_CONFIG].fingerprinting_bases,
+            bases=GROUPING_CONFIG_CLASSES[DEFAULT_GROUPING_CONFIG].fingerprinting_bases,
         )
         mgr = EventManager(data=self.data)
         mgr.normalize()
@@ -191,7 +194,7 @@ fingerprint_input = list(
 )
 
 
-def with_fingerprint_input(name):
+def with_fingerprint_input(name: str) -> pytest.MarkDecorator:
     return pytest.mark.parametrize(
         name, fingerprint_input, ids=lambda x: x.filename[:-5].replace("-", "_")
     )
@@ -211,7 +214,9 @@ def dump_variant(
     indent: int = 0,
     include_non_contributing: bool = True,
 ) -> list[str]:
-    def _dump_component(component: BaseGroupingComponent, indent: int) -> None:
+    def _dump_component(
+        component: BaseGroupingComponent[str | int | BaseGroupingComponent[Any]], indent: int
+    ) -> None:
         if not component.hint and not component.values:
             return
         if component.contributes or include_non_contributing:

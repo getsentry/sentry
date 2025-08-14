@@ -1,5 +1,5 @@
-import {Fragment} from 'react';
+import type {SentryRouteObject} from 'sentry/components/route';
 
-const rootRoutes = () => (<Fragment key="root-routes" />) as any;
+const rootRoutes = (): SentryRouteObject => ({});
 
 export default rootRoutes;

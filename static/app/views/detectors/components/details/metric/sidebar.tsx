@@ -14,6 +14,7 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
@@ -54,7 +55,10 @@ function DetectorPriorities({detector}: {detector: MetricDetector}) {
       typeof condition.comparison === 'number'
         ? String(condition.comparison)
         : String(condition.comparison || '0');
-    const thresholdSuffix = getMetricDetectorSuffix(detector);
+    const thresholdSuffix = getMetricDetectorSuffix(
+      detector.config?.detectionType || 'static',
+      detector.dataSources[0].queryObj?.snubaQuery?.aggregate || 'count()'
+    );
 
     return `${typeLabel} ${comparisonValue}${thresholdSuffix}`;
   };
@@ -87,7 +91,10 @@ function DetectorResolve({detector}: {detector: MetricDetector}) {
   const mainCondition = conditions.find(
     condition => condition.conditionResult !== DetectorPriorityLevel.OK
   );
-  const thresholdSuffix = getMetricDetectorSuffix(detector);
+  const thresholdSuffix = getMetricDetectorSuffix(
+    detector.config?.detectionType || 'static',
+    detector.dataSources[0].queryObj?.snubaQuery?.aggregate || 'count()'
+  );
 
   const description = getResolutionDescription({
     detectionType,
@@ -109,9 +116,11 @@ function GoToMetricAlert({detector}: {detector: MetricDetector}) {
 
   return (
     <div>
-      <Tooltip title="Superuser only">
+      <Tooltip title="Superuser only" skipWrapper>
         <Link
-          to={`/organizations/${organization.slug}issues/alerts/rules/details/${detector.alertRuleId}/`}
+          to={normalizeUrl(
+            `/organizations/${organization.slug}/issues/alerts/rules/details/${detector.alertRuleId}/`
+          )}
         >
           View Metric Alert
         </Link>

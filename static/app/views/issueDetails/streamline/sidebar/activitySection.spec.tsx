@@ -291,11 +291,6 @@ describe('StreamlinedActivitySection', function () {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('renders the number of comments', function () {
-    render(<StreamlinedActivitySection group={{...group, numComments: 2}} />);
-    expect(screen.getByLabelText('Number of comments: 2')).toBeInTheDocument();
-  });
-
   it('filters comments correctly', function () {
     const activities: GroupActivity[] = Array.from({length: 3}, (_, index) => ({
       type: GroupActivityType.NOTE,

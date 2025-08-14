@@ -68,6 +68,7 @@ function transformRepositoriesToApiFormat(repositories: any[], repoIds: string[]
       external_id: repo.externalId,
       branch_name: '',
       instructions: '',
+      branch_overrides: [],
     };
   });
 }
@@ -82,7 +83,7 @@ function filterProjectsWithAccess(projects: Project[], organization: any) {
 function ProjectRow({onClick, project}: {onClick: () => void; project: Project}) {
   return (
     <ClickablePanelItem onClick={onClick}>
-      <Flex align="center" gap="md" justify="space-between" flex={1}>
+      <Flex align="center" gap="md" justify="between" flex={1}>
         <Flex align="center" gap="md">
           <ProjectAvatar project={project} title={project.slug} />
           <ProjectName>{project.slug}</ProjectName>
@@ -438,22 +439,27 @@ function AutoTriggerFixesButton({
     }
 
     addLoadingMessage(t('Enabling automation for projects with repositories...'), {
-      duration: 30000,
+      duration: 60000,
     });
     setIsLoading(true);
 
     try {
-      await Promise.all(
-        projectsWithRepos.map(project =>
-          api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
-            method: 'PUT',
-            data: {
-              autofixAutomationTuning: selectedThreshold,
-              seerScannerAutomation: true,
-            },
-          })
-        )
-      );
+      // Process projects in batches to avoid concurrency limit
+      const batchSize = 20;
+      for (let i = 0; i < projectsWithRepos.length; i += batchSize) {
+        const batch = projectsWithRepos.slice(i, i + batchSize);
+        await Promise.all(
+          batch.map(project =>
+            api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
+              method: 'PUT',
+              data: {
+                autofixAutomationTuning: selectedThreshold,
+                seerScannerAutomation: true,
+              },
+            })
+          )
+        );
+      }
 
       addSuccessMessage(
         t(
@@ -521,19 +527,24 @@ function EnableIssueScansButton({
     }
 
     addLoadingMessage(t('Enabling issue scans for remaining projects...'), {
-      duration: 30000,
+      duration: 60000,
     });
     setIsLoading(true);
 
     try {
-      await Promise.all(
-        projectsWithoutRepos.map(project =>
-          api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
-            method: 'PUT',
-            data: {seerScannerAutomation: true},
-          })
-        )
-      );
+      // Process projects in batches to avoid concurrency limit
+      const batchSize = 20;
+      for (let i = 0; i < projectsWithoutRepos.length; i += batchSize) {
+        const batch = projectsWithoutRepos.slice(i, i + batchSize);
+        await Promise.all(
+          batch.map(project =>
+            api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
+              method: 'PUT',
+              data: {seerScannerAutomation: true},
+            })
+          )
+        );
+      }
 
       addSuccessMessage(
         t('Issue scans enabled for %s remaining project(s)', projectsWithoutRepos.length)

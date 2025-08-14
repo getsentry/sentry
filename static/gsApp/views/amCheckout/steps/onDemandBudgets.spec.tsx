@@ -320,9 +320,6 @@ describe('OnDemandBudgets AM Checkout', function () {
       onDemandBudgets: {
         enabled: false,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        attachmentSpendUsed: 0,
-        errorSpendUsed: 0,
-        transactionSpendUsed: 0,
         usedSpends: {errors: 0, transactions: 0, attachments: 0, replays: 0},
         budgets: {errors: 1000, transactions: 2000, attachments: 3000},
       },

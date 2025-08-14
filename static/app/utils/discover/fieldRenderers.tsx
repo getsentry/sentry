@@ -24,7 +24,6 @@ import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
@@ -89,6 +88,7 @@ import {
   VersionContainer,
 } from './styles';
 import TeamKeyTransactionField from './teamKeyTransactionField';
+
 /**
  * Types, functions and definitions for rendering fields in discover results.
  */
@@ -96,6 +96,13 @@ export type RenderFunctionBaggage = {
   location: Location;
   organization: Organization;
   theme: Theme;
+  /**
+   * If true, all fields that are not needed immediately will not be rendered lazily.
+   * This is useful for fields that require api calls or other side effects to render.
+   *
+   * eg. the code path field in logs requires a call to the stacktrace link api to render.
+   */
+  disableLazyLoad?: boolean;
   eventView?: EventView;
   projectSlug?: string;
   unit?: string;
@@ -184,6 +191,7 @@ export const SIZE_UNITS = {
 };
 
 export const ABYTE_UNITS = [
+  'byte',
   'kilobyte',
   'megabyte',
   'gigabyte',
@@ -378,7 +386,7 @@ type SpecialField = {
 };
 
 const DownloadCount = styled('span')`
-  padding-left: ${space(0.75)};
+  padding-left: ${p => p.theme.space.sm};
 `;
 
 const RightAlignedContainer = styled('span')`
@@ -894,7 +902,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return (
         <IconContainer>
           {getContextIcon(browserName)}
-          {browserName}
+          <Container>{browserName}</Container>
         </IconContainer>
       );
     },
@@ -910,7 +918,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return (
         <IconContainer>
           {getContextIcon(dropVersion(browser))}
-          {browser}
+          <Container>{browser}</Container>
         </IconContainer>
       );
     },
@@ -926,7 +934,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return (
         <IconContainer>
           {getContextIcon(osName)}
-          {osName}
+          <Container>{osName}</Container>
         </IconContainer>
       );
     },
@@ -945,11 +953,11 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
         <IconContainer>
           {getContextIcon(dropVersion(os))}
           {hasUserAgentLocking ? (
-            <Tooltip title={userAgentLocking} showUnderline>
-              {os}
-            </Tooltip>
+            <StyledTooltip title={userAgentLocking} showUnderline>
+              <Container>{os}</Container>
+            </StyledTooltip>
           ) : (
-            os
+            <Container>{os}</Container>
           )}
         </IconContainer>
       );
@@ -969,13 +977,14 @@ const getContextIcon = (value: string) => {
 };
 
 /**
- * Drops the last part of an operating system or browser string that contains version appended at the end
+ * Drops the last part of an operating system or browser string that contains version appended at the end.
+ * If the value string has no spaces, the original string will be returned.
  * @param value The string that contains the version to be dropped. E.g., 'Safari 9.1.2'
- * @returns E.g., 'Safari 9.1.2' -> 'Safari'
+ * @returns E.g., 'Safari 9.1.2' -> 'Safari', 'Linux' -> 'Linux'
  */
 const dropVersion = (value: string) => {
   const valueArray = value.split(' ');
-  valueArray.pop();
+  if (valueArray.length > 1) valueArray.pop();
   return valueArray.join(' ');
 };
 
@@ -1273,6 +1282,10 @@ const StyledProjectBadge = styled(ProjectBadge)`
   ${BadgeDisplayName} {
     max-width: 100%;
   }
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  ${p => p.theme.overflowEllipsis}
 `;
 
 /**

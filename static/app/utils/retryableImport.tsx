@@ -10,7 +10,7 @@ export default function retryableImport<T>(
     try {
       return await fn();
     } catch (err) {
-      if (isWebpackChunkLoadingError(err) && retries < MAX_RETRIES) {
+      if (isWebpackChunkLoadingError(err as Error) && retries < MAX_RETRIES) {
         retries++;
         return tryLoad();
       }

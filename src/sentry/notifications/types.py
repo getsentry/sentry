@@ -264,3 +264,13 @@ class UnsubscribeContext:
     resource_id: int
     key: str
     referrer: str | None = None
+
+
+"""
+This is a special identifier that is used to indicate that the notification is a test notification.
+It is used to set the ID of models that are required in order to send a test notification.
+
+Note: This should eventually be deleted the test notification logic should instead utilize a notification platform
+which should provide an API for sending test notifications without "hacking" the notification system.
+"""
+TEST_NOTIFICATION_ID = -1

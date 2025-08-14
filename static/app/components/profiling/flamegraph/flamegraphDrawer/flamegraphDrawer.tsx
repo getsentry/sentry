@@ -10,6 +10,7 @@ import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButt
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import type {
   CanvasPoolManager,
   CanvasScheduler,
@@ -206,16 +207,18 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
               : undefined
           }
         />
-        <ProfilingDetailsListItem margin="none">
-          <ExportProfileButton
-            size="zero"
-            priority={theme.isChonk ? 'transparent' : undefined}
-            eventId={params.eventId}
-            projectId={params.projectId}
-            orgId={orgSlug}
-            disabled={params.eventId === undefined || params.projectId === undefined}
-          />
-        </ProfilingDetailsListItem>
+        {defined(params.eventId) && defined(params.projectId) && (
+          <ProfilingDetailsListItem margin="none">
+            <ExportProfileButton
+              size="zero"
+              priority={theme.isChonk ? 'transparent' : undefined}
+              eventId={params.eventId}
+              projectId={params.projectId}
+              orgId={orgSlug}
+              disabled={params.eventId === undefined || params.projectId === undefined}
+            />
+          </ProfilingDetailsListItem>
+        )}
         <Separator />
         <ProfilingDetailsListItem>
           <LayoutSelectionContainer>

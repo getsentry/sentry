@@ -9,7 +9,7 @@ from sentry.testutils.cases import APITestCase
 
 
 class ReleaseFilesListTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project(name="foo")
 
         release = Release.objects.create(organization_id=project.organization_id, version="1")
@@ -38,7 +38,7 @@ class ReleaseFilesListTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(releasefile.id)
 
-    def test_name_search(self):
+    def test_name_search(self) -> None:
         project = self.create_project(name="foo")
 
         release = Release.objects.create(organization_id=project.organization_id, version="1")
@@ -92,7 +92,7 @@ class ReleaseFilesListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-    def test_checksum_search(self):
+    def test_checksum_search(self) -> None:
         project = self.create_project(name="foo")
 
         release = Release.objects.create(organization_id=project.organization_id, version="1")
@@ -152,7 +152,7 @@ class ReleaseFilesListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-    def test_queries_should_be_narrowing_search(self):
+    def test_queries_should_be_narrowing_search(self) -> None:
         project = self.create_project(name="foo")
 
         release = Release.objects.create(organization_id=project.organization_id, version="1")
@@ -206,7 +206,7 @@ class ReleaseFilesListTest(APITestCase):
 
 
 class ReleaseFileCreateTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project(name="foo")
 
         release = Release.objects.create(organization_id=project.organization_id, version="1")
@@ -248,7 +248,7 @@ class ReleaseFileCreateTest(APITestCase):
             "X-SourceMap": "http://example.com",
         }
 
-    def test_no_file(self):
+    def test_no_file(self) -> None:
         project = self.create_project(name="foo")
 
         release = Release.objects.create(organization_id=project.organization_id, version="1")
@@ -270,7 +270,7 @@ class ReleaseFileCreateTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
-    def test_missing_name(self):
+    def test_missing_name(self) -> None:
         project = self.create_project(name="foo")
 
         release = Release.objects.create(organization_id=project.organization_id, version="1")
@@ -302,7 +302,7 @@ class ReleaseFileCreateTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
-    def test_invalid_name(self):
+    def test_invalid_name(self) -> None:
         project = self.create_project(name="foo")
 
         release = Release.objects.create(organization_id=project.organization_id, version="1")
@@ -332,7 +332,7 @@ class ReleaseFileCreateTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
-    def test_bad_headers(self):
+    def test_bad_headers(self) -> None:
         project = self.create_project(name="foo")
 
         release = Release.objects.create(organization_id=project.organization_id, version="1")
@@ -376,7 +376,7 @@ class ReleaseFileCreateTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
-    def test_duplicate_file(self):
+    def test_duplicate_file(self) -> None:
         project = self.create_project(name="foo")
 
         release = Release.objects.create(organization_id=project.organization_id, version="1")

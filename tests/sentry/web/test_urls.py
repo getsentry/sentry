@@ -4,7 +4,7 @@ from sentry.testutils.cases import TestCase
 
 
 class DocsRedirectTest(TestCase):
-    def test_response(self):
+    def test_response(self) -> None:
         path = reverse("sentry-docs-redirect")
         resp = self.client.get(path)
         assert resp["Location"] == "https://docs.sentry.io/"
@@ -12,7 +12,7 @@ class DocsRedirectTest(TestCase):
 
 
 class ApiDocsRedirectTest(TestCase):
-    def test_response(self):
+    def test_response(self) -> None:
         path = reverse("sentry-api-docs-redirect")
         resp = self.client.get(path)
         assert resp["Location"] == "https://docs.sentry.io/api/"

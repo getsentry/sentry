@@ -74,7 +74,7 @@ export default function ReplayPreferenceDropdown({
             });
             return {
               label: (
-                <Flex justify="space-between">
+                <Flex justify="between">
                   <span>{baseLabel}</span>
                   <DurationDisplay>{durationDisplay}</DurationDisplay>
                 </Flex>

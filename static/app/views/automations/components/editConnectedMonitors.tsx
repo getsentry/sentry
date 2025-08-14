@@ -87,7 +87,7 @@ function AllMonitors({
         emptyMessage={t('No monitors found')}
         numSkeletons={10}
       />
-      <Flex justify="space-between">
+      <Flex justify="between">
         <div>{footerContent}</div>
         <PaginationWithoutMargin
           onCursor={setCursor}
@@ -203,7 +203,7 @@ export default function EditConnectedMonitors({connectedIds, setConnectedIds}: P
     return (
       <Container>
         <SelectedMonitors connectedIds={connectedIds} />
-        <ButtonWrapper justify="space-between">
+        <ButtonWrapper justify="between">
           <Button size="sm" icon={<IconAdd />} onClick={toggleDrawer}>
             {t('Create New Monitor')}
           </Button>
@@ -247,5 +247,5 @@ const ButtonWrapper = styled(Flex)`
 `;
 
 const PaginationWithoutMargin = styled(Pagination)`
-  margin: ${p => p.theme.space.none};
+  margin: ${p => p.theme.space['0']};
 `;

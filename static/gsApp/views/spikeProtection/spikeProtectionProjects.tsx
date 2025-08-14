@@ -267,7 +267,7 @@ function SpikeProtectionProjects({subscription}: Props) {
     <Fragment>
       <Container>
         <StyledSearch placeholder={t('Search projects')} onChange={onChange} />
-        <StyledButtonBar gap="none" merged>
+        <StyledButtonBar gap="0" merged>
           {AllProjectsAction(false)}
           {AllProjectsAction(true)}
         </StyledButtonBar>

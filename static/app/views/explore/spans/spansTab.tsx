@@ -28,8 +28,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {
-  type AggregationKey,
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  type AggregationKey,
 } from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {chonkStyled} from 'sentry/utils/theme/theme.chonk';
@@ -44,11 +44,10 @@ import SchemaHintsList, {
   SchemaHintsSection,
 } from 'sentry/views/explore/components/schemaHints/schemaHintsList';
 import {SchemaHintsSources} from 'sentry/views/explore/components/schemaHints/schemaHintsUtils';
-import {SeerSearch} from 'sentry/views/explore/components/seerSearch';
+import {SeerComboBox} from 'sentry/views/explore/components/seerComboBox/seerComboBox';
 import {
   useExploreFields,
   useExploreId,
-  useExploreMode,
   useExploreQuery,
   useExploreVisualizes,
   useSetExplorePageParams,
@@ -64,6 +63,7 @@ import {useExploreTimeseries} from 'sentry/views/explore/hooks/useExploreTimeser
 import {useExploreTracesTable} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
+import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
 import {ExploreCharts} from 'sentry/views/explore/spans/charts';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ExploreTables} from 'sentry/views/explore/tables';
@@ -173,17 +173,28 @@ function SpansSearchBar({
 }: {
   eapSpanSearchQueryBuilderProps: EAPSpanSearchQueryBuilderProps;
 }) {
-  const {displaySeerResults, query} = useSearchQueryBuilder();
+  const {displayAskSeer, query, currentInputValue} = useSearchQueryBuilder();
 
-  return displaySeerResults ? (
-    <SeerSearch initialQuery={query} />
+  const initialSeerQuery = (() => {
+    const committedQuery = query.trim();
+    const inputValue = currentInputValue.trim();
+
+    if (!inputValue) return committedQuery;
+
+    if (!committedQuery) return inputValue;
+
+    return `${committedQuery} ${inputValue}`;
+  })();
+
+  return displayAskSeer ? (
+    <SeerComboBox initialQuery={initialSeerQuery} />
   ) : (
     <EAPSpanSearchQueryBuilder autoFocus {...eapSpanSearchQueryBuilderProps} />
   );
 }
 
 function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) {
-  const mode = useExploreMode();
+  const mode = useQueryParamsMode();
   const fields = useExploreFields();
   const query = useExploreQuery();
   const setExplorePageParams = useSetExplorePageParams();
@@ -192,11 +203,26 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
   const areAiFeaturesAllowed =
     !organization?.hideAiFeatures && organization.features.includes('gen-ai-features');
 
-  const {tags: numberTags, isLoading: numberTagsLoading} = useTraceItemTags('number');
-  const {tags: stringTags, isLoading: stringTagsLoading} = useTraceItemTags('string');
+  const {
+    tags: numberTags,
+    isLoading: numberTagsLoading,
+    secondaryAliases: numberSecondaryAliases,
+  } = useTraceItemTags('number');
+  const {
+    tags: stringTags,
+    isLoading: stringTagsLoading,
+    secondaryAliases: stringSecondaryAliases,
+  } = useTraceItemTags('string');
 
   const search = useMemo(() => new MutableSearch(query), [query]);
   const oldSearch = usePrevious(search);
+
+  const hasRawSearchReplacement = organization.features.includes(
+    'search-query-builder-raw-search-replacement'
+  );
+  const hasMatchKeySuggestions = organization.features.includes(
+    'search-query-builder-match-key-suggestions'
+  );
 
   const eapSpanSearchQueryBuilderProps = useMemo(
     () => ({
@@ -232,9 +258,29 @@ function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSectionProps) 
         mode === Mode.SAMPLES ? [] : ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
       numberTags,
       stringTags,
-      replaceRawSearchKeys: ['span.description'],
+      replaceRawSearchKeys: hasRawSearchReplacement ? ['span.description'] : undefined,
+      matchKeySuggestions: hasMatchKeySuggestions
+        ? [
+            {key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/},
+            {key: 'id', valuePattern: /^[0-9a-fA-F]{16}$/},
+          ]
+        : undefined,
+      numberSecondaryAliases,
+      stringSecondaryAliases,
     }),
-    [fields, mode, query, setExplorePageParams, numberTags, stringTags, oldSearch]
+    [
+      fields,
+      hasMatchKeySuggestions,
+      hasRawSearchReplacement,
+      mode,
+      numberSecondaryAliases,
+      numberTags,
+      oldSearch,
+      query,
+      setExplorePageParams,
+      stringSecondaryAliases,
+      stringTags,
+    ]
   );
 
   const eapSpanSearchQueryProviderProps = useEAPSpanSearchQueryBuilderProps(
@@ -330,7 +376,7 @@ function SpanTabContentSection({
   setControlSectionExpanded,
 }: SpanTabContentSectionProps) {
   const {selection} = usePageFilters();
-  const mode = useExploreMode();
+  const mode = useQueryParamsMode();
   const visualizes = useExploreVisualizes();
   const setVisualizes = useSetExploreVisualizes();
   const [samplesTab, setSamplesTab] = useTab();
@@ -367,14 +413,11 @@ function SpanTabContentSection({
     enabled: isAllowedSelection && queryType === 'traces',
   });
 
-  const {
-    result: timeseriesResult,
-    canUsePreviousResults,
-    samplingMode: timeseriesSamplingMode,
-  } = useExploreTimeseries({
-    query,
-    enabled: isAllowedSelection,
-  });
+  const {result: timeseriesResult, samplingMode: timeseriesSamplingMode} =
+    useExploreTimeseries({
+      query,
+      enabled: isAllowedSelection,
+    });
 
   const confidences = useMemo(
     () =>
@@ -457,7 +500,6 @@ function SpanTabContentSection({
         margin={-8}
       >
         <ExploreCharts
-          canUsePreviousResults={canUsePreviousResults}
           confidences={confidences}
           query={query}
           timeseriesResult={timeseriesResult}

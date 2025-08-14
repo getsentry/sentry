@@ -15,7 +15,7 @@ type OrganizationProps = {
 };
 
 type BodyProps = {
-  children?: React.ReactNode;
+  children: React.ReactNode;
 };
 
 function DeletionInProgress({organization}: OrganizationProps) {

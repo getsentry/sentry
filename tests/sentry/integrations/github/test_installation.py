@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import responses
@@ -16,7 +16,7 @@ from sentry.testutils.silo import control_silo_test
 class InstallationEndpointTest(APITestCase):
     base_url = "https://api.github.com"
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(self.user)
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
@@ -24,7 +24,7 @@ class InstallationEndpointTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
-    def test_installation_endpoint(self, get_jwt):
+    def test_installation_endpoint(self, get_jwt: MagicMock) -> None:
         # add installation via GitHub webhook
         responses.add(
             method=responses.GET,
@@ -60,7 +60,7 @@ class InstallationEndpointTest(APITestCase):
             response = self.client.get(installation_url)
             assert response.status_code == 404
 
-    def test_no_installation(self):
+    def test_no_installation(self) -> None:
         installation_url = reverse("sentry-integration-github-installation", args=[888])
         response = self.client.get(installation_url)
         assert response.status_code == 404

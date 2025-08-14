@@ -209,7 +209,7 @@ class MonitorsClockTickEndToEndTest(TestCase):
         self.task_processor._run_once()
 
     @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
-    def test_two_in_progress_timeout(self):
+    def test_two_in_progress_timeout(self) -> None:
         self.init()
 
         self.send_checkin("in_progress")
@@ -230,7 +230,7 @@ class MonitorsClockTickEndToEndTest(TestCase):
         assert self.monitor_environment.status == MonitorStatus.ERROR
 
     @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
-    def test_timeout_followed_by_checkin(self):
+    def test_timeout_followed_by_checkin(self) -> None:
         self.init()
 
         self.send_checkin("in_progress")
@@ -256,7 +256,7 @@ class MonitorsClockTickEndToEndTest(TestCase):
         assert self.monitor_environment.status == MonitorStatus.OK
 
     @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
-    def test_late_ok_followed_by_timeout(self):
+    def test_late_ok_followed_by_timeout(self) -> None:
         self.init(1, 2)
 
         first_guid = self.send_checkin("in_progress")
@@ -280,7 +280,7 @@ class MonitorsClockTickEndToEndTest(TestCase):
         assert self.monitor_environment.status == MonitorStatus.OK
 
     @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
-    def test_late_ok_followed_by_missed(self):
+    def test_late_ok_followed_by_missed(self) -> None:
         self.init(1, 3)
 
         first_guid = self.send_checkin("in_progress")

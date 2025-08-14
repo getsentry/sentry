@@ -17,6 +17,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getInstallConfig,
   getNodeAgentMonitoringOnboarding,
+  getNodeMcpOnboarding,
   getNodeProfilingOnboarding,
   getSdkInitSnippet,
 } from 'sentry/utils/gettingStartedDocs/node';
@@ -203,6 +204,22 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
     moduleFormatOnboarding[params.platformOptions.moduleFormat].configure(params),
   verify: (params: Params) =>
     moduleFormatOnboarding[params.platformOptions.moduleFormat].verify(params),
+  nextSteps: (params: Params) => {
+    const steps = [];
+
+    if (params.isLogsSelected) {
+      steps.push({
+        id: 'logs',
+        name: t('Logging Integrations'),
+        description: t(
+          'Add logging integrations to automatically capture logs from your application.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/aws-lambda/logs/#integrations',
+      });
+    }
+
+    return steps;
+  },
 };
 
 const crashReportOnboarding: OnboardingConfig<PlatformOptions> = {
@@ -226,6 +243,9 @@ const docs: Docs<PlatformOptions> = {
     basePackage: '@sentry/aws-serverless',
   }),
   agentMonitoringOnboarding: getNodeAgentMonitoringOnboarding({
+    basePackage: 'aws-serverless',
+  }),
+  mcpOnboarding: getNodeMcpOnboarding({
     basePackage: 'aws-serverless',
   }),
   platformOptions,

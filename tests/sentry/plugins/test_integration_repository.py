@@ -1,5 +1,5 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 import responses
@@ -16,7 +16,7 @@ from sentry.testutils.cases import TestCase
 @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
 class IntegrationRepositoryTestCase(TestCase):
     @responses.activate
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.integration = self.create_integration(
             organization=self.organization, provider="github", external_id="654321"
@@ -60,7 +60,7 @@ class IntegrationRepositoryTestCase(TestCase):
             status=status,
         )
 
-    def test_create_repository(self, get_jwt):
+    def test_create_repository(self, get_jwt: MagicMock) -> None:
         self.provider.create_repository(self.config, self.organization)
 
         repos = Repository.objects.all()
@@ -69,13 +69,13 @@ class IntegrationRepositoryTestCase(TestCase):
         assert repos[0].name == self.repo_name
         assert repos[0].provider == "integrations:github"
 
-    def test_create_repository__repo_exists(self, get_jwt):
+    def test_create_repository__repo_exists(self, get_jwt: MagicMock) -> None:
         self._create_repo(external_id=self.config["external_id"])
 
         with pytest.raises(RepoExistsError):
             self.provider.create_repository(self.config, self.organization)
 
-    def test_create_repository__transfer_repo_in_org(self, get_jwt):
+    def test_create_repository__transfer_repo_in_org(self, get_jwt: MagicMock) -> None:
         # can transfer a disabled repo from one integration to another in a single org
         integration = self.create_integration(
             organization=self.organization, provider="github", external_id="123456"
@@ -92,7 +92,7 @@ class IntegrationRepositoryTestCase(TestCase):
         assert repo.name == self.config["identifier"]
         assert repo.url == self.config["url"]
 
-    def test_create_repository__repo_exists_update_name(self, get_jwt):
+    def test_create_repository__repo_exists_update_name(self, get_jwt: MagicMock) -> None:
         repo = self._create_repo(external_id=self.config["external_id"], name="getsentry/santry")
 
         with pytest.raises(RepoExistsError):
@@ -103,7 +103,9 @@ class IntegrationRepositoryTestCase(TestCase):
 
     @patch("sentry.models.Repository.objects.create")
     @patch("sentry.plugins.providers.IntegrationRepositoryProvider.on_delete_repository")
-    def test_create_repository__delete_webhook(self, mock_on_delete, mock_repo, get_jwt):
+    def test_create_repository__delete_webhook(
+        self, mock_on_delete: MagicMock, mock_repo: MagicMock, get_jwt: MagicMock
+    ) -> None:
         self._create_repo()
 
         mock_repo.side_effect = IntegrityError
@@ -113,7 +115,9 @@ class IntegrationRepositoryTestCase(TestCase):
             self.provider.create_repository(self.config, self.organization)
 
     @patch("sentry.plugins.providers.integration_repository.metrics")
-    def test_create_repository__activates_existing_hidden_repo(self, mock_metrics, get_jwt):
+    def test_create_repository__activates_existing_hidden_repo(
+        self, mock_metrics: MagicMock, get_jwt: MagicMock
+    ) -> None:
         repo = self._create_repo(external_id=self.config["external_id"])
         repo.status = ObjectStatus.HIDDEN
         repo.save()
@@ -123,7 +127,7 @@ class IntegrationRepositoryTestCase(TestCase):
         assert repo.status == ObjectStatus.ACTIVE
         mock_metrics.incr.assert_called_with("sentry.integration_repo_provider.repo_relink")
 
-    def test_create_repository__only_activates_hidden_repo(self, get_jwt):
+    def test_create_repository__only_activates_hidden_repo(self, get_jwt: MagicMock) -> None:
         repo = self._create_repo(external_id=self.config["external_id"])
         repo.status = ObjectStatus.PENDING_DELETION
         repo.save()

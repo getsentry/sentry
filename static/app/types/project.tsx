@@ -39,6 +39,7 @@ export type Project = {
   hasInsightsQueues: boolean;
   hasInsightsScreenLoad: boolean;
   hasInsightsVitals: boolean;
+  hasLogs: boolean;
   hasMinifiedStackTrace: boolean;
   hasMonitors: boolean;
   hasNewFeedbacks: boolean;
@@ -109,6 +110,7 @@ export type ProjectKey = {
     crons: string;
     csp: string;
     minidump: string;
+    otlp_traces: string;
     playstation: string;
     public: string;
     secret: string;
@@ -316,4 +318,7 @@ export type PlatformIntegration = {
   link: string | null;
   name: string;
   type: string;
+  iconConfig?: {
+    withLanguageIcon: boolean;
+  };
 };

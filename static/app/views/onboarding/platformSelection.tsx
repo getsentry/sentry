@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import omit from 'lodash/omit';
 
-import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import PlatformPicker from 'sentry/components/platformPicker';
 import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -15,7 +14,6 @@ import type {StepProps} from './types';
 
 export function PlatformSelection(props: StepProps) {
   const organization = useOrganization();
-  const onboardingContext = useOnboardingContext();
 
   const {configureSdk, isLoadingData} = useConfigureSdk({
     onComplete: props.onComplete,
@@ -44,8 +42,6 @@ export function PlatformSelection(props: StepProps) {
           noAutoFilter
           visibleSelection={false}
           source="targeted-onboarding"
-          platform={onboardingContext.selectedPlatform?.key}
-          defaultCategory={onboardingContext.selectedPlatform?.category}
           setPlatform={platform => {
             const selectedPlatform = platform
               ? {...omit(platform, 'id'), key: platform.id}

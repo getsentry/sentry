@@ -17,7 +17,7 @@ from tests.snuba.api.endpoints.test_organization_trace_item_attributes import (
 class OrganizationTraceItemAttributesEndpointSpansTest(
     OrganizationTraceItemAttributesEndpointTestBase, BaseSpansTestCase
 ):
-    def test_get_attribute_names(self):
+    def test_get_attribute_names(self) -> None:
         self.store_segment(
             self.project.id,
             uuid4().hex,
@@ -48,7 +48,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             },
         }
 
-    def test_get_attribute_values_with_substring(self):
+    def test_get_attribute_values_with_substring(self) -> None:
         for transaction in ["foo", "bar", "baz"]:
             self.store_segment(
                 self.project.id,
@@ -87,7 +87,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             }
         }
 
-    def test_get_attributes_and_values(self):
+    def test_get_attributes_and_values(self) -> None:
         for tag_value in ["foo", "bar", "baz"]:
             self.store_segment(
                 self.project.id,
@@ -143,7 +143,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             },
         }
 
-    def test_get_attribute_values_with_substring_empty_field_list(self):
+    def test_get_attribute_values_with_substring_empty_field_list(self) -> None:
         """Test handling of empty fields_with_substrings list"""
         result = get_attribute_values_with_substring(
             org_id=self.organization.id,
@@ -226,7 +226,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 assert mock_executor_instance.submit.call_count == 3
                 mock_as_completed.assert_called_once()
 
-    def test_get_attribute_values_with_substring_overall_timeout(self):
+    def test_get_attribute_values_with_substring_overall_timeout(self) -> None:
         """Test overall timeout handling with future cancellation"""
         self.store_segment(
             self.project.id,
@@ -269,7 +269,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 mock_future1.cancel.assert_called_once()
                 mock_future2.cancel.assert_called_once()
 
-    def test_get_attribute_values_with_substring_max_workers_limit(self):
+    def test_get_attribute_values_with_substring_max_workers_limit(self) -> None:
         """Test that ThreadPoolExecutor is limited to max 10 workers even with more fields"""
         self.store_segment(
             self.project.id,

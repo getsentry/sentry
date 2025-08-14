@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import responses
@@ -20,7 +20,7 @@ from sentry.testutils.helpers import override_options
 
 
 class WebhookTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = "/extensions/github-enterprise/webhook/"
         self.metadata = {
             "url": "35.232.149.196",
@@ -31,11 +31,11 @@ class WebhookTest(APITestCase):
             "verify_ssl": True,
         }
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         assert response.status_code == 405
 
-    def test_unknown_host_event(self):
+    def test_unknown_host_event(self) -> None:
         # No integration defined in the database, so event should be rejected
         # because we can't find metadata and secret for it
         response = self.client.post(
@@ -48,7 +48,7 @@ class WebhookTest(APITestCase):
         )
         assert response.status_code == 400
 
-    def test_unregistered_event(self):
+    def test_unregistered_event(self) -> None:
         response = self.client.post(
             path=self.url,
             data=PUSH_EVENT_EXAMPLE_INSTALLATION,
@@ -61,7 +61,7 @@ class WebhookTest(APITestCase):
         assert response.status_code == 204
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_missing_payload(self, mock_installation):
+    def test_missing_payload(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -76,7 +76,7 @@ class WebhookTest(APITestCase):
         assert b"Webhook payload not found" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_missing_github_event_header(self, mock_installation):
+    def test_missing_github_event_header(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -91,7 +91,7 @@ class WebhookTest(APITestCase):
         assert b"Missing X-GitHub-Event header" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_invalid_json(self, mock_installation):
+    def test_invalid_json(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -105,7 +105,7 @@ class WebhookTest(APITestCase):
         assert response.status_code == 400
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_invalid_signature_event(self, mock_installation):
+    def test_invalid_signature_event(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -121,7 +121,7 @@ class WebhookTest(APITestCase):
         assert b"Provided signature does not match the computed body signature" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_malformed_signature_too_short_sha1(self, mock_installation):
+    def test_malformed_signature_too_short_sha1(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -137,7 +137,7 @@ class WebhookTest(APITestCase):
         assert b"Signature value does not match the expected format" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_malformed_signature_no_value_sha1(self, mock_installation):
+    def test_malformed_signature_no_value_sha1(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -153,7 +153,7 @@ class WebhookTest(APITestCase):
         assert b"Signature value does not match the expected format" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_malformed_signature_too_short_sha256(self, mock_installation):
+    def test_malformed_signature_too_short_sha256(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -169,7 +169,7 @@ class WebhookTest(APITestCase):
         assert b"Signature value does not match the expected format" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_malformed_signature_no_value_sha256(self, mock_installation):
+    def test_malformed_signature_no_value_sha256(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -185,7 +185,7 @@ class WebhookTest(APITestCase):
         assert b"Signature value does not match the expected format" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_sha256_signature_ok(self, mock_installation):
+    def test_sha256_signature_ok(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -200,7 +200,7 @@ class WebhookTest(APITestCase):
         assert response.status_code == 204
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_sha256_signature_invalid(self, mock_installation):
+    def test_sha256_signature_invalid(self, mock_installation: MagicMock) -> None:
         mock_installation.return_value = self.metadata
 
         response = self.client.post(
@@ -217,7 +217,7 @@ class WebhookTest(APITestCase):
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     @override_options({"github-enterprise-app.allowed-hosts-legacy-webhooks": ["35.232.149.196"]})
-    def test_missing_signature_ok(self, mock_installation):
+    def test_missing_signature_ok(self, mock_installation: MagicMock) -> None:
         # Old Github:e doesn't send a signature, so we have to accept that, but only for specific hosts.
         mock_installation.return_value = self.metadata
 
@@ -232,7 +232,7 @@ class WebhookTest(APITestCase):
         assert response.status_code == 204
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
-    def test_missing_signature_fail_without_option_set(self, mock_installation):
+    def test_missing_signature_fail_without_option_set(self, mock_installation: MagicMock) -> None:
         # Old Github:e doesn't send a signature, so we have to accept that, but only for specific hosts.
         mock_installation.return_value = self.metadata
 
@@ -251,7 +251,7 @@ class WebhookTest(APITestCase):
 @patch("sentry.integrations.github_enterprise.client.get_jwt")
 @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
 class PushEventWebhookTest(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = "/extensions/github-enterprise/webhook/"
         self.metadata = {
             "url": "35.232.149.196",
@@ -270,7 +270,12 @@ class PushEventWebhookTest(APITestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_simple(self, mock_record, mock_get_installation_metadata, mock_get_jwt):
+    def test_simple(
+        self,
+        mock_record: MagicMock,
+        mock_get_installation_metadata: MagicMock,
+        mock_get_jwt: MagicMock,
+    ) -> None:
         responses.add(
             responses.POST,
             "https://35.232.149.196/extensions/github-enterprise/webhook/",
@@ -386,7 +391,9 @@ class PushEventWebhookTest(APITestCase):
 
         assert_failure_metric(mock_record, error)
 
-    def test_anonymous_lookup(self, mock_get_installation_metadata, mock_get_jwt):
+    def test_anonymous_lookup(
+        self, mock_get_installation_metadata: MagicMock, mock_get_jwt: MagicMock
+    ) -> None:
         mock_get_installation_metadata.return_value = self.metadata
 
         self.create_integration(
@@ -451,7 +458,9 @@ class PushEventWebhookTest(APITestCase):
         assert commit.date_added == datetime(2015, 5, 5, 23, 40, 15, tzinfo=timezone.utc)
 
     @responses.activate
-    def test_multiple_orgs(self, mock_get_installation_metadata, mock_get_jwt):
+    def test_multiple_orgs(
+        self, mock_get_installation_metadata: MagicMock, mock_get_jwt: MagicMock
+    ) -> None:
         responses.add(
             responses.POST,
             "https://35.232.149.196/extensions/github-enterprise/webhook/",
@@ -531,7 +540,7 @@ class PushEventWebhookTest(APITestCase):
 
 @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
 class PullRequestEventWebhook(APITestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.url = "/extensions/github-enterprise/webhook/"
         self.metadata = {
             "url": "35.232.149.196",
@@ -563,7 +572,9 @@ class PullRequestEventWebhook(APITestCase):
         )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_opened(self, mock_record, mock_get_installation_metadata):
+    def test_opened(
+        self, mock_record: MagicMock, mock_get_installation_metadata: MagicMock
+    ) -> None:
         mock_get_installation_metadata.return_value = self.metadata
 
         response = self.client.post(
@@ -596,7 +607,12 @@ class PullRequestEventWebhook(APITestCase):
 
     @patch("sentry.integrations.github.webhook.PullRequestEventWebhook.__call__")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_webhook_error_metric(self, mock_record, mock_event, mock_get_installation_metadata):
+    def test_webhook_error_metric(
+        self,
+        mock_record: MagicMock,
+        mock_event: MagicMock,
+        mock_get_installation_metadata: MagicMock,
+    ) -> None:
         mock_get_installation_metadata.return_value = self.metadata
         error = Exception("error")
         mock_event.side_effect = error
@@ -615,7 +631,7 @@ class PullRequestEventWebhook(APITestCase):
 
         assert_failure_metric(mock_record, error)
 
-    def test_edited(self, mock_get_installation_metadata):
+    def test_edited(self, mock_get_installation_metadata: MagicMock) -> None:
         mock_get_installation_metadata.return_value = self.metadata
 
         pr = PullRequest.objects.create(
@@ -644,7 +660,7 @@ class PullRequestEventWebhook(APITestCase):
         assert pr.author is not None
         assert pr.author.name == "baxterthehacker"
 
-    def test_closed(self, mock_get_installation_metadata):
+    def test_closed(self, mock_get_installation_metadata: MagicMock) -> None:
         mock_get_installation_metadata.return_value = self.metadata
 
         response = self.client.post(

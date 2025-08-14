@@ -226,7 +226,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Fetches metric, issue, crons, and uptime alert rules for an organization
         """

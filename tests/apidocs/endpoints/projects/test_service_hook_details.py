@@ -19,13 +19,13 @@ class ProjectServiceHookDetailsDocs(APIDocsTestCase):
 
         self.login_as(user=self.user)
 
-    def test_get(self):
+    def test_get(self) -> None:
         response = self.client.get(self.url)
         request = RequestFactory().get(self.url)
 
         self.validate_schema(request, response)
 
-    def test_put(self):
+    def test_put(self) -> None:
         data = {"url": "https://example.com/other-sentry-hook", "events": ["event.created"]}
         response = self.client.put(self.url, data)
         request = RequestFactory().put(self.url, data)

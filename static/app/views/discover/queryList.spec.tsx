@@ -26,6 +26,7 @@ describe('Discover > QueryList', function () {
   let duplicateMock: jest.Mock;
   let updateHomepageMock: jest.Mock;
   let eventsStatsMock: jest.Mock;
+  const refetchSavedQueries = jest.fn();
 
   const {router} = initializeOrg();
 
@@ -34,6 +35,7 @@ describe('Discover > QueryList', function () {
   });
 
   beforeEach(function () {
+    jest.resetAllMocks();
     organization = OrganizationFixture({
       features: ['discover-basic', 'discover-query'],
     });
@@ -91,6 +93,7 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         renderPrebuilt={false}
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         deprecatedRouterMocks: true,
@@ -110,6 +113,7 @@ describe('Discover > QueryList', function () {
         renderPrebuilt
         pageLinks=""
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         deprecatedRouterMocks: true,
@@ -151,6 +155,7 @@ describe('Discover > QueryList', function () {
         renderPrebuilt
         pageLinks=""
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         router,
@@ -210,6 +215,7 @@ describe('Discover > QueryList', function () {
         renderPrebuilt
         pageLinks=""
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         deprecatedRouterMocks: true,
@@ -248,6 +254,7 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         renderPrebuilt={false}
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         router,
@@ -282,6 +289,7 @@ describe('Discover > QueryList', function () {
         savedQueries={savedQueries}
         pageLinks=""
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         deprecatedRouterMocks: true,
@@ -295,6 +303,7 @@ describe('Discover > QueryList', function () {
     await userEvent.click(withinCard.getByText('Delete Query'));
 
     expect(deleteMock).toHaveBeenCalled();
+    expect(refetchSavedQueries).toHaveBeenCalled();
   });
 
   it('redirects to Discover on card click', async function () {
@@ -307,6 +316,7 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         renderPrebuilt={false}
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         router,
@@ -331,6 +341,7 @@ describe('Discover > QueryList', function () {
         renderPrebuilt={false}
         pageLinks=""
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         router,
@@ -368,6 +379,7 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         renderPrebuilt={false}
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         deprecatedRouterMocks: true,
@@ -401,6 +413,7 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         renderPrebuilt={false}
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         deprecatedRouterMocks: true,
@@ -443,6 +456,7 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         renderPrebuilt={false}
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         deprecatedRouterMocks: true,
@@ -471,6 +485,7 @@ describe('Discover > QueryList', function () {
         renderPrebuilt={false}
         pageLinks=""
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         deprecatedRouterMocks: true,
@@ -509,6 +524,7 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         renderPrebuilt={false}
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />
     );
 
@@ -545,6 +561,7 @@ describe('Discover > QueryList', function () {
         pageLinks=""
         renderPrebuilt={false}
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />
     );
 
@@ -580,6 +597,7 @@ describe('Discover > QueryList', function () {
           ]}
           pageLinks=""
           location={location}
+          refetchSavedQueries={refetchSavedQueries}
         />,
         {
           deprecatedRouterMocks: true,
@@ -647,6 +665,7 @@ describe('Discover > QueryList', function () {
           ]}
           pageLinks=""
           location={location}
+          refetchSavedQueries={refetchSavedQueries}
         />,
         {
           deprecatedRouterMocks: true,
@@ -714,6 +733,7 @@ describe('Discover > QueryList', function () {
           ]}
           pageLinks=""
           location={location}
+          refetchSavedQueries={refetchSavedQueries}
         />
       );
 
@@ -750,6 +770,7 @@ describe('Discover > QueryList', function () {
           ]}
           pageLinks=""
           location={location}
+          refetchSavedQueries={refetchSavedQueries}
         />
       );
 
@@ -787,6 +808,7 @@ describe('Discover > QueryList', function () {
         ]}
         pageLinks=""
         location={location}
+        refetchSavedQueries={refetchSavedQueries}
       />,
       {
         deprecatedRouterMocks: true,

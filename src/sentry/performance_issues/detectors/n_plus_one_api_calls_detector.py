@@ -23,7 +23,7 @@ from sentry.performance_issues.base import (
     get_url_from_span,
     parameterize_url,
 )
-from sentry.performance_issues.detectors.utils import get_total_span_duration
+from sentry.performance_issues.detectors.utils import get_total_span_duration, has_filtered_url
 from sentry.performance_issues.performance_problem import PerformanceProblem
 from sentry.performance_issues.types import Span
 
@@ -51,7 +51,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         self.span_hashes: dict[str, str | None] = {}
 
     def visit_span(self, span: Span) -> None:
-        if not NPlusOneAPICallsDetector.is_span_eligible(span):
+        if not self._is_span_eligible(span):
             return
 
         op = span.get("op", None)
@@ -86,8 +86,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
         return True
 
-    @classmethod
-    def is_span_eligible(cls, span: Span) -> bool:
+    def _is_span_eligible(self, span: Span) -> bool:
         span_id = span.get("span_id", None)
         op = span.get("op", None)
         hash = span.get("hash", None)
@@ -122,7 +121,15 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if "__nextjs_original-stack-frame" in url:
             return False
 
+        # LaunchDarkly SDK calls are not useful
+        if "https://app.launchdarkly.com/sdk/" in url:
+            return False
+
         if not url:
+            return False
+
+        # Check if any spans have filtered URLs
+        if has_filtered_url(self._event, span):
             return False
 
         # Once most users update their SDKs to use the latest standard, we
@@ -160,6 +167,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             return
 
         offender_span_ids = [span["span_id"] for span in self.spans]
+        parent_span_id = last_span.get("parent_span_id")
 
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
@@ -167,12 +175,12 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             desc=os.path.commonprefix([span.get("description", "") or "" for span in self.spans]),
             type=PerformanceNPlusOneAPICallsGroupType,
             cause_span_ids=[],
-            parent_span_ids=[last_span.get("parent_span_id", None)],
+            parent_span_ids=[parent_span_id] if parent_span_id else [],
             offender_span_ids=offender_span_ids,
             evidence_data={
                 "op": last_span["op"],
                 "cause_span_ids": [],
-                "parent_span_ids": [last_span.get("parent_span_id", None)],
+                "parent_span_ids": [parent_span_id] if parent_span_id else [],
                 "offender_span_ids": offender_span_ids,
                 "transaction_name": self._event.get("transaction", ""),
                 "num_repeating_spans": str(len(offender_span_ids)) if offender_span_ids else "",
@@ -214,7 +222,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             "{{{}: {}}}".format(key, ",".join(values)) for key, values in all_parameters.items()
         ]
 
-    def _get_path_prefix(self, repeating_span: Span) -> str:
+    def _get_path_prefix(self, repeating_span: Span | None) -> str:
         if not repeating_span:
             return ""
 
@@ -238,8 +246,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         return f"1-{PerformanceNPlusOneAPICallsGroupType.type_id}-{fingerprint}"
 
     def _spans_are_concurrent(self, span_a: Span, span_b: Span) -> bool:
-        span_a_start: int = span_a.get("start_timestamp", 0) or 0
-        span_b_start: int = span_b.get("start_timestamp", 0) or 0
+        span_a_start: float = span_a["start_timestamp"]
+        span_b_start: float = span_b["start_timestamp"]
 
         return timedelta(seconds=abs(span_a_start - span_b_start)) < timedelta(
             milliseconds=self.settings["concurrency_threshold"]

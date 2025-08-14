@@ -5,26 +5,26 @@ from django.urls import reverse
 
 from sentry.replays.testutils import mock_replay, mock_replay_click
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import with_feature
 
 REPLAYS_FEATURES = {"organizations:session-replay": True}
 
 
-@apply_feature_flag_on_cls("organizations:global-views")
+@with_feature("organizations:global-views")
 class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
     endpoint = "sentry-api-0-organization-replay-selectors-index"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
 
-    def test_feature_flag_disabled(self):
+    def test_feature_flag_disabled(self) -> None:
         """Test replays can be disabled."""
         response = self.client.get(self.url)
         assert response.status_code == 404
 
-    def test_no_projects(self):
+    def test_no_projects(self) -> None:
         """Test replays must be used with a project(s)."""
         with self.feature(REPLAYS_FEATURES):
             response = self.client.get(self.url)
@@ -34,7 +34,7 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert "data" in response_data
             assert response_data["data"] == []
 
-    def test_get_replays(self):
+    def test_get_replays(self) -> None:
         """Test replays conform to the interchange format."""
         project = self.create_project(teams=[self.team])
 
@@ -109,7 +109,7 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response_data["data"][0]["element"]["title"] == "MyTitle"
             assert response_data["data"][0]["element"]["component_name"] == "SignUpForm"
 
-    def test_get_replays_filter_clicks(self):
+    def test_get_replays_filter_clicks(self) -> None:
         """Test replays conform to the interchange format."""
         replay_id = uuid.uuid4().hex
         seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
@@ -172,7 +172,7 @@ class OrganizationSelectorIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 0, query
 
-    def test_get_click_filter_environment(self):
+    def test_get_click_filter_environment(self) -> None:
         """Test that clicks can be filtered by environment."""
         prod_env = self.create_environment(name="prod", project=self.project)
         dev_env = self.create_environment(name="dev", project=self.project)

@@ -21,10 +21,11 @@ from snuba_sdk import (
 
 from sentry import features, options, quotas
 from sentry.constants import ObjectStatus
-from sentry.dynamic_sampling.models.base import ModelType
 from sentry.dynamic_sampling.models.common import RebalancedItem, guarded_run
-from sentry.dynamic_sampling.models.factory import model_factory
-from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
+from sentry.dynamic_sampling.models.projects_rebalancing import (
+    ProjectsRebalancingInput,
+    ProjectsRebalancingModel,
+)
 from sentry.dynamic_sampling.rules.utils import (
     DecisionDropCount,
     DecisionKeepCount,
@@ -249,15 +250,50 @@ def boost_low_volume_projects_of_org(
     Task to adjust the sample rates of the projects of a single organization specified by an
     organization ID. Transaction counts and rates have to be provided.
     """
+
+    org = Organization.objects.get_from_cache(id=org_id)
+    if features.has("organizations:log-project-config", org):
+        logger.info(
+            "log-project-config: Starting boost_low_volume_projects_of_org for org %s",
+            org_id,
+            extra={"org_id": org_id},
+        )
+
+    try:
+        rebalanced_projects = calculate_sample_rates_of_projects(
+            org_id, projects_with_tx_count_and_rates
+        )
+    except Exception as e:
+        if features.has("organizations:log-project-config", org):
+            logger.info(
+                "log-project-config: Error calculating sample rates of for org %s",
+                org_id,
+                extra={"org_id": org_id},
+            )
+        sentry_sdk.capture_exception(e)
+        raise
+
     logger.info(
         "boost_low_volume_projects_of_org",
-        extra={"traceparent": sentry_sdk.get_traceparent(), "baggage": sentry_sdk.get_baggage()},
-    )
-    rebalanced_projects = calculate_sample_rates_of_projects(
-        org_id, projects_with_tx_count_and_rates
+        extra={
+            "traceparent": sentry_sdk.get_traceparent(),
+            "baggage": sentry_sdk.get_baggage(),
+            "org_id": org_id,
+        },
     )
     if rebalanced_projects is not None:
         store_rebalanced_projects(org_id, rebalanced_projects)
+        metrics.incr(
+            "dynamic_sampling.boost_low_volume_projects_of_org.success",
+            tags={"type": "rebalanced"},
+            sample_rate=1,
+        )
+    else:
+        metrics.incr(
+            "dynamic_sampling.boost_low_volume_projects_of_org.success",
+            tags={"type": "not_rebalanced"},
+            sample_rate=1,
+        )
 
 
 def fetch_projects_with_total_root_transaction_count_and_rates(
@@ -434,10 +470,27 @@ def calculate_sample_rates_of_projects(
 
     # If we have the sliding window org sample rate, we use that or fall back to the blended sample rate in case of
     # issues.
+
+    default_sample_rate = quotas.backend.get_blended_sample_rate(organization_id=org_id)
+    should_log_project_config = features.has("organizations:log-project-config", organization)
+
     sample_rate, success = get_org_sample_rate(
         org_id=org_id,
-        default_sample_rate=quotas.backend.get_blended_sample_rate(organization_id=org_id),
+        default_sample_rate=default_sample_rate,
     )
+
+    if should_log_project_config:
+        logger.info(
+            "log-project-config: calculate_sample_rates_of_projects for org %s",
+            org_id,
+            extra={
+                "org": org_id,
+                "target_sample_rate": sample_rate,
+                "success": success,
+                "default_sample_rate": default_sample_rate,
+            },
+        )
+
     if success:
         sample_function(
             function=log_sample_rate_source,
@@ -469,6 +522,14 @@ def calculate_sample_rates_of_projects(
     projects_with_counts = {
         project_id: count_per_root for project_id, count_per_root, _, _ in projects_with_tx_count
     }
+
+    if should_log_project_config:
+        logger.info(
+            "log-project-config: calculate_sample_rates_of_projects for org %s",
+            org_id,
+            extra={"projects_with_counts": projects_with_counts, "sample_rate": sample_rate},
+        )
+
     # The rebalancing will not work (or would make sense) when we have only projects with zero-counts.
     if not any(projects_with_counts.values()):
         return None
@@ -497,10 +558,30 @@ def calculate_sample_rates_of_projects(
             )
         )
 
-    model = model_factory(ModelType.PROJECTS_REBALANCING)
+    model = ProjectsRebalancingModel()
     rebalanced_projects: list[RebalancedItem] | None = guarded_run(
         model, ProjectsRebalancingInput(classes=projects, sample_rate=sample_rate)
     )
+    if should_log_project_config:
+        logger.info(
+            "log-project-config: rebalanced_projects for org %s",
+            org_id,
+            extra={
+                "rebalanced_projects": (
+                    [
+                        {
+                            "id": project.id,
+                            "count": project.count,
+                            "new_sample_rate": project.new_sample_rate,
+                        }
+                        for project in rebalanced_projects
+                    ]
+                    if rebalanced_projects
+                    else None
+                ),
+                "sample_rate": sample_rate,
+            },
+        )
 
     return rebalanced_projects
 

@@ -11,7 +11,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 
 
 class IncidentActivitySerializerTest(TestCase, SnubaTestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         activity = create_incident_activity(
             incident=self.create_incident(),
             activity_type=IncidentActivityType.CREATED,
@@ -25,7 +25,7 @@ class IncidentActivitySerializerTest(TestCase, SnubaTestCase):
         assert result["previousValue"] is None
         assert result["dateCreated"] == activity.date_added
 
-    def test_event_stats(self):
+    def test_event_stats(self) -> None:
         now = datetime.now()
         with freeze_time((now - timedelta(days=1)).replace(hour=12, minute=30, second=25)):
             for _ in range(2):

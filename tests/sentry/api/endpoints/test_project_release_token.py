@@ -6,7 +6,7 @@ from sentry.types.region import get_local_region
 
 
 class ReleaseTokenGetTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         project = self.create_project(name="foo")
         token = "abcdefghijklmnop"
 
@@ -27,7 +27,7 @@ class ReleaseTokenGetTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["token"] == "abcdefghijklmnop"
 
-    def test_generates_token(self):
+    def test_generates_token(self) -> None:
         project = self.create_project(name="foo")
 
         url = reverse(
@@ -46,7 +46,7 @@ class ReleaseTokenGetTest(APITestCase):
         assert response.data["token"] is not None
         assert ProjectOption.objects.get_value(project, "sentry:release-token") is not None
 
-    def test_generate_region_webhookurl(self):
+    def test_generate_region_webhookurl(self) -> None:
         project = self.create_project(name="foo")
 
         url = reverse(
@@ -65,7 +65,7 @@ class ReleaseTokenGetTest(APITestCase):
         region = get_local_region()
         assert response.data["webhookUrl"].startswith(region.to_url("/"))
 
-    def test_regenerates_token(self):
+    def test_regenerates_token(self) -> None:
         project = self.create_project(name="foo")
         token = "abcdefghijklmnop"
 

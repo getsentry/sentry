@@ -11,7 +11,7 @@ from sentry.testutils.helpers.response import close_streaming_response
 
 
 class ReleaseFileDetailsTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -40,7 +40,7 @@ class ReleaseFileDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(releasefile.id)
 
-    def test_file_download(self):
+    def test_file_download(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -94,12 +94,12 @@ class ReleaseFileDetailsTest(APITestCase):
 
         return self.client.get(url)
 
-    def test_invalid_id(self):
+    def test_invalid_id(self) -> None:
         self.login_as(user=self.user)
         response = self._get("foo666")
         assert response.status_code == 404, response.content
 
-    def test_archived(self):
+    def test_archived(self) -> None:
         self.login_as(user=self.user)
         self.create_release_archive()
         id = urlsafe_b64encode(b"_~/index.js")
@@ -107,7 +107,7 @@ class ReleaseFileDetailsTest(APITestCase):
         assert response.status_code == 200
         assert response.data["id"] == id
 
-    def test_archived_with_dist(self):
+    def test_archived_with_dist(self) -> None:
         self.login_as(user=self.user)
         dist = Distribution.objects.create(
             organization_id=self.organization.id, release_id=self.release.id, name="foo"
@@ -120,7 +120,7 @@ class ReleaseFileDetailsTest(APITestCase):
 
 
 class ReleaseFileUpdateTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")
@@ -155,7 +155,7 @@ class ReleaseFileUpdateTest(APITestCase):
 
 
 class ReleaseFileDeleteTest(APITestCase):
-    def test_simple(self):
+    def test_simple(self) -> None:
         self.login_as(user=self.user)
 
         project = self.create_project(name="foo")

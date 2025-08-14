@@ -26,7 +26,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 class SlackIntegrationLinkTeamTestBase(TestCase):
     url: str
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
@@ -115,7 +115,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
 
 
 class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.url = build_team_linking_url(
             integration=self.integration,
@@ -128,7 +128,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             organization=self.organization, name="Mariachi Band", members=[self.user]
         )
 
-    def test_link_team(self):
+    def test_link_team(self) -> None:
         """Test that we successfully link a team to a Slack channel"""
         response = self.get_success_response()
         self.assertTemplateUsed(response, "sentry/integrations/slack/link-team.html")
@@ -158,13 +158,13 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             )
             assert len(team_settings) == 1
 
-    def test_link_team_valid_through_team_admin(self):
+    def test_link_team_valid_through_team_admin(self) -> None:
         """Test that we successfully link a team to a Slack channel as a valid team admin"""
         self._create_user_valid_through_team_admin()
 
         self.test_link_team()
 
-    def test_link_team_already_linked(self):
+    def test_link_team_already_linked(self) -> None:
         """Test that if a team has already been linked to a Slack channel when a user tries
         to link them again, we reject the attempt and reply with the ALREADY_LINKED_MESSAGE"""
         self.link_team()
@@ -175,13 +175,13 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         text = self.mock_post.call_args.kwargs["text"]
         assert f"The {self.team.slug} team has already been linked to a Slack channel." in text
 
-    def test_error_page(self):
+    def test_error_page(self) -> None:
         """Test that we successfully render an error page when bad form data is sent."""
         self.get_error_response(
             data={"team": ["some", "garbage"]}, status_code=status.HTTP_400_BAD_REQUEST
         )
 
-    def test_link_team_multiple_organizations(self):
+    def test_link_team_multiple_organizations(self) -> None:
         # Create another organization and team for this user that is linked through `self.integration`.
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
@@ -201,7 +201,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             assert len(external_actors) == 1
 
     @with_feature("organizations:team-workflow-notifications")
-    def test_message_includes_workflow(self):
+    def test_message_includes_workflow(self) -> None:
         self.get_success_response(data={"team": self.team.id})
         external_actors = self.get_linked_teams()
 
@@ -213,7 +213,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         )
 
     @with_feature("organizations:team-workflow-notifications")
-    def test_link_team_v2(self):
+    def test_link_team_v2(self) -> None:
         """Test that we successfully link a team to a Slack channel"""
         response = self.get_success_response()
         self.assertTemplateUsed(response, "sentry/integrations/slack/link-team.html")
@@ -242,7 +242,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
 
 
 class SlackIntegrationUnlinkTeamTestWithSdk(SlackIntegrationLinkTeamTestBase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
         self.link_team()
@@ -271,7 +271,7 @@ class SlackIntegrationUnlinkTeamTestWithSdk(SlackIntegrationLinkTeamTestBase):
         ) as self.mock_post:
             yield
 
-    def test_unlink_team(self):
+    def test_unlink_team(self) -> None:
         """Test that a team can be unlinked from a Slack channel"""
         response = self.get_success_response()
         self.assertTemplateUsed(response, "sentry/integrations/slack/unlink-team.html")
@@ -293,13 +293,13 @@ class SlackIntegrationUnlinkTeamTestWithSdk(SlackIntegrationLinkTeamTestBase):
             team_settings = NotificationSettingProvider.objects.filter(team_id=self.team.id)
         assert len(team_settings) == 0
 
-    def test_unlink_team_valid_through_team_admin(self):
+    def test_unlink_team_valid_through_team_admin(self) -> None:
         """Test that a team can be unlinked from a Slack channel as a valid team admin"""
         self._create_user_valid_through_team_admin()
 
         self.test_unlink_team()
 
-    def test_unlink_multiple_teams(self):
+    def test_unlink_multiple_teams(self) -> None:
         """
         Test that if you have linked multiple teams to a single channel, when
         you type `/sentry unlink team`, we unlink all teams from that channel.
@@ -332,7 +332,7 @@ class SlackIntegrationUnlinkTeamTestWithSdk(SlackIntegrationLinkTeamTestBase):
             team_settings = NotificationSettingProvider.objects.filter(team_id=self.team.id)
         assert len(team_settings) == 0
 
-    def test_unlink_team_multiple_organizations(self):
+    def test_unlink_team_multiple_organizations(self) -> None:
         # Create another organization and team for this user that is linked through `self.integration`.
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
@@ -366,7 +366,7 @@ class SlackIntegrationUnlinkTeamTestWithSdk(SlackIntegrationLinkTeamTestBase):
             )
             assert len(external_actors) == 0
 
-    def test_unlink_team_invalid_method(self):
+    def test_unlink_team_invalid_method(self) -> None:
         """Test for an invalid method response"""
         response = self.client.put(self.url, content_type="application/x-www-form-urlencoded")
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED

@@ -24,7 +24,7 @@ class RedisScriptMinHashIndexBackendTestCase(TestCase):
             10,
         )
 
-    def test_export_import(self):
+    def test_export_import(self) -> None:
         self.index.record("example", "1", [("index", "hello world")])
 
         timestamp = int(time.time())
@@ -45,7 +45,7 @@ class RedisScriptMinHashIndexBackendTestCase(TestCase):
         result = self.index.export("example", [("index", 2)], timestamp=timestamp)
         assert len(result) == 1
 
-    def test_basic(self):
+    def test_basic(self) -> None:
         self.index.record("example", "1", [("index", "hello world")])
         self.index.record("example", "2", [("index", "hello world")])
         self.index.record("example", "3", [("index", "jello world")])
@@ -113,7 +113,7 @@ class RedisScriptMinHashIndexBackendTestCase(TestCase):
             "5",
         ]
 
-    def test_multiple_index(self):
+    def test_multiple_index(self) -> None:
         self.index.record("example", "1", [("index:a", "hello world"), ("index:b", "hello world")])
         self.index.record("example", "2", [("index:a", "hello world"), ("index:b", "hello world")])
         self.index.record("example", "3", [("index:a", "hello world"), ("index:b", "pizza world")])
@@ -197,7 +197,7 @@ class RedisScriptMinHashIndexBackendTestCase(TestCase):
             == [("4", [1.0, None]), ("1", [1.0, 0.0]), ("2", [1.0, 0.0]), ("3", [1.0, 0.0])]
         )
 
-    def test_merge(self):
+    def test_merge(self) -> None:
         self.index.record("example", "1", [("index", ["foo", "bar"])])
         self.index.record("example", "2", [("index", ["baz"])])
         assert self.index.classify("example", [("index", 0, ["foo", "bar"])]) == [("1", [1.0])]
@@ -209,14 +209,14 @@ class RedisScriptMinHashIndexBackendTestCase(TestCase):
         self.index.merge("example", "2", [("index", "1")])
         assert self.index.classify("example", [("index", 0, ["foo", "bar"])]) == [("2", [0.5])]
 
-    def test_flush_scoped(self):
+    def test_flush_scoped(self) -> None:
         self.index.record("example", "1", [("index", ["foo", "bar"])])
         assert self.index.classify("example", [("index", 0, ["foo", "bar"])]) == [("1", [1.0])]
 
         self.index.flush("example", ["index"])
         assert self.index.classify("example", [("index", 0, ["foo", "bar"])]) == []
 
-    def test_flush_unscoped(self):
+    def test_flush_unscoped(self) -> None:
         self.index.record("example", "1", [("index", ["foo", "bar"])])
         assert self.index.classify("example", [("index", 0, ["foo", "bar"])]) == [("1", [1.0])]
 

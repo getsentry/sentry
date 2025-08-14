@@ -69,12 +69,10 @@ export function useThemeSwitcher(): DO_NOT_USE_ChonkTheme | Theme {
     [user?.options?.prefersChonkUI, config.theme, mutateUserOptions]
   );
 
-  const themeToggleHotkeys = useMemo(() => {
-    return organization?.features?.includes('chonk-ui')
+  useHotkeys(
+    organization?.features?.includes('chonk-ui')
       ? [themeToggleHotkey, chonkThemeToggleHotkey]
-      : [themeToggleHotkey];
-  }, [organization, chonkThemeToggleHotkey, themeToggleHotkey]);
-
-  useHotkeys(themeToggleHotkeys);
+      : [themeToggleHotkey]
+  );
   return theme;
 }

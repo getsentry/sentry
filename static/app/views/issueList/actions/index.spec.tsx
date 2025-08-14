@@ -313,11 +313,7 @@ describe('IssueListActions', function () {
 
     // Can resolve but not merge issues from multiple projects
     expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
-    await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-    expect(screen.getByRole('menuitemradio', {name: 'Merge'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    expect(screen.getByRole('button', {name: 'Merge'})).toBeDisabled();
   });
 
   it('sets the project ID when My Projects is selected', async function () {
@@ -431,14 +427,11 @@ describe('IssueListActions', function () {
       expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
       expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
 
+      // Merge is not supported and should be disabled
+      expect(screen.getByRole('button', {name: 'Merge'})).toBeDisabled();
+
       // Open overflow menu
       await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-
-      // Merge is not supported and should be disabled
-      expect(screen.getByRole('menuitemradio', {name: 'Merge'})).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
 
       // 'Add to Bookmarks' is supported
       expect(
@@ -548,11 +541,7 @@ describe('IssueListActions', function () {
           screen.getByText(/Select all 100 issues that match this search query/)
         );
 
-        await userEvent.click(
-          await screen.findByRole('button', {name: 'More issue actions'})
-        );
-
-        await userEvent.click(screen.getByRole('menuitemradio', {name: 'Merge'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Merge'}));
 
         const modal = screen.getByRole('dialog');
 
@@ -572,6 +561,29 @@ describe('IssueListActions', function () {
             }),
           })
         );
+      });
+
+      it('shows merge button when multiple issues are selected', async function () {
+        // Ensure that all issues have the same project so we can merge
+        jest
+          .spyOn(GroupStore, 'get')
+          .mockReturnValue(GroupFixture({project: ProjectFixture({slug: 'project-1'})}));
+
+        render(
+          <Fragment>
+            <GlobalModal />
+            <IssueListActions {...defaultProps} queryCount={100} />
+          </Fragment>
+        );
+
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
+
+        await userEvent.click(
+          screen.getByText(/Select all 100 issues that match this search query/)
+        );
+
+        // Should show merge button directly when multiple issues are selected
+        expect(screen.getByRole('button', {name: 'Merge'})).toBeInTheDocument();
       });
     });
   });

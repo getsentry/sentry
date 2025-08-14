@@ -56,8 +56,8 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
 
     def _store_performance_problem(self, span: Span) -> None:
         fingerprint = self._fingerprint(span)
-        offender_span_id: str = span.get("span_id", None)
-        desc: str = span.get("description", None)
+        offender_span_id: str = span["span_id"]
+        desc: str = span.get("description", "")
 
         self.stored_problems[fingerprint] = PerformanceProblem(
             fingerprint=fingerprint,
@@ -114,6 +114,10 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
             return False
 
         if any([x in description for x in ["_next/static/", "_next/data/"]]):
+            return False
+
+        span_data = span.get("data", {})
+        if span_data and span_data.get("http.request.prefetch"):
             return False
 
         return True

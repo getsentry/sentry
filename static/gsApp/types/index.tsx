@@ -146,6 +146,7 @@ export type Plan = {
   categories: DataCategory[];
   checkoutCategories: DataCategory[];
   contractInterval: 'monthly' | 'annual';
+  dashboardLimit: number;
   description: string;
   features: string[];
 
@@ -242,10 +243,6 @@ export type PerCategoryOnDemandBudget = {
 };
 
 type PerCategoryOnDemandBudgetWithSpends = PerCategoryOnDemandBudget & {
-  attachmentSpendUsed: number;
-  errorSpendUsed: number;
-  transactionSpendUsed: number;
-  // TODO(data categories): BIL-959
   usedSpends: Partial<Record<DataCategory, number>>;
 };
 

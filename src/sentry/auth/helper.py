@@ -27,6 +27,7 @@ from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.idpmigration import (
+    SSO_VERIFICATION_KEY,
     get_verification_value_from_key,
     send_one_time_account_confirm_link,
 )
@@ -54,6 +55,7 @@ from sentry.tasks.auth.auth import email_missing_links_control
 from sentry.users.models.user import User
 from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
+from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
@@ -489,28 +491,29 @@ class AuthIdentityHandler:
 
         # we don't trust all IDP email verification, so users can also confirm via one time email link
         is_account_verified = False
-        if self.request.session.get("confirm_account_verification_key"):
-            verification_key = self.request.session["confirm_account_verification_key"]
+        if verification_key := self.request.session.get(SSO_VERIFICATION_KEY):
             verification_value = get_verification_value_from_key(verification_key)
             if verification_value:
                 is_account_verified = self.has_verified_account(verification_value)
-                if not is_account_verified:
-                    logger.info(
-                        "sso.login-pipeline.verification-mismatch",
-                        extra={
-                            "verification_user_id": verification_value["user_id"],
-                            "user_id": self.user.id,
-                            "request_user_id": self.request.user.id,
-                        },
-                    )
-            else:
-                logger.info(
-                    "sso.login-pipeline.missing-verification",
-                    extra={
-                        "user_id": self.user.id,
-                        "request_user_id": self.request.user.id,
-                    },
-                )
+
+            logger.info(
+                "sso.login-pipeline.verified-email-existing-session-key",
+                extra={
+                    "user_id": self.user.id,
+                    "organization_id": self.organization.id,
+                    "has_verification_value": bool(verification_value),
+                },
+            )
+
+        has_verified_email = self.user.id and cache.get(f"{SSO_VERIFICATION_KEY}:{self.user.id}")
+        if has_verified_email and not verification_key:
+            logger.info(
+                "sso.login-pipeline.verified-email-missing-session-key",
+                extra={
+                    "user_id": self.user.id,
+                    "organization_id": self.organization.id,
+                },
+            )
 
         is_new_account = not self.user.is_authenticated  # stateful
         if self._app_user and (self.identity.get("email_verified") or is_account_verified):

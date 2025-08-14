@@ -6,7 +6,7 @@ from sentry_plugins.github.testutils import PUSH_EVENT_EXAMPLE
 
 
 class WebhookTest(APITestCase):
-    def test_get(self):
+    def test_get(self) -> None:
         project = self.project  # force creation
 
         url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
@@ -15,7 +15,7 @@ class WebhookTest(APITestCase):
 
         assert response.status_code == 405
 
-    def test_unregistered_event(self):
+    def test_unregistered_event(self) -> None:
         project = self.project  # force creation
         url = f"/plugins/github/organizations/{project.organization.id}/webhook/"
 
@@ -36,7 +36,7 @@ class WebhookTest(APITestCase):
 
         assert response.status_code == 204
 
-    def test_invalid_signature_event(self):
+    def test_invalid_signature_event(self) -> None:
         project = self.project  # force creation
 
         url = f"/plugins/github/organizations/{project.organization.id}/webhook/"

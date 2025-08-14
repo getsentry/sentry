@@ -41,12 +41,12 @@ class ErrorPageEmbedTest(AcceptanceTestCase):
             """return window.__error_page_embed_received_message__ === '__sentry_reportdialog_closed__'"""
         )
 
-    def test_closed_message_received_on_close_button_click(self):
+    def test_closed_message_received_on_close_button_click(self) -> None:
         self.wait_for_error_page_embed()
         self.browser.click(".sentry-error-embed button.close")
         self.wait_for_reportdialog_closed_message()
 
-    def test_closed_message_received_on_outside_click(self):
+    def test_closed_message_received_on_outside_click(self) -> None:
         # in order to click outside we need to set a sufficiently large window size
         with self.browser.full_viewport(width=900, height=1330, fit_content=False):
             self.wait_for_error_page_embed()

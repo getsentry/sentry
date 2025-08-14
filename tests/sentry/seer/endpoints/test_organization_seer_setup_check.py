@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import calendar
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 from django.utils import timezone
@@ -13,7 +13,7 @@ from sentry.testutils.cases import APITestCase, SnubaTestCase
 class OrganizationSeerSetupCheckTestBase(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-seer-setup-check"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
 
@@ -23,7 +23,7 @@ class OrganizationSeerSetupCheckTestBase(APITestCase, SnubaTestCase):
 
 
 class OrganizationSeerSetupCheckSuccessTest(OrganizationSeerSetupCheckTestBase):
-    def test_successful_setup_default_state(self):
+    def test_successful_setup_default_state(self) -> None:
         """
         Test the default state with no acknowledgements and quotas available.
         """
@@ -41,7 +41,7 @@ class OrganizationSeerSetupCheckSuccessTest(OrganizationSeerSetupCheckTestBase):
             },
         }
 
-    def test_current_user_acknowledged_setup(self):
+    def test_current_user_acknowledged_setup(self) -> None:
         """
         Test when the current user has acknowledged the setup.
         """
@@ -64,7 +64,7 @@ class OrganizationSeerSetupCheckSuccessTest(OrganizationSeerSetupCheckTestBase):
             "userHasAcknowledged": True,
         }
 
-    def test_org_acknowledged_not_user(self):
+    def test_org_acknowledged_not_user(self) -> None:
         """
         Test when another user in the org has acknowledged, but not the requesting user.
         """
@@ -90,7 +90,7 @@ class OrganizationSeerSetupCheckSuccessTest(OrganizationSeerSetupCheckTestBase):
         }
 
     @patch("sentry.quotas.backend.has_available_reserved_budget")
-    def test_no_autofix_quota(self, mock_has_budget):
+    def test_no_autofix_quota(self, mock_has_budget: MagicMock) -> None:
         """
         Test when the organization has no autofix quota available.
         """
@@ -113,7 +113,7 @@ class OrganizationSeerSetupCheckSuccessTest(OrganizationSeerSetupCheckTestBase):
         }
 
     @patch("sentry.quotas.backend.has_available_reserved_budget")
-    def test_no_scanner_quota(self, mock_has_budget):
+    def test_no_scanner_quota(self, mock_has_budget: MagicMock) -> None:
         """
         Test when the organization has no scanner quota available.
         """
@@ -136,7 +136,7 @@ class OrganizationSeerSetupCheckSuccessTest(OrganizationSeerSetupCheckTestBase):
         }
 
     @patch("sentry.quotas.backend.has_available_reserved_budget")
-    def test_no_quotas_available(self, mock_has_budget):
+    def test_no_quotas_available(self, mock_has_budget: MagicMock) -> None:
         """
         Test when the organization has no quotas available for either service.
         """

@@ -87,7 +87,7 @@ SPAN_KAFKA_MESSAGE = {
 }
 
 
-def test_convert_span_to_item():
+def test_convert_span_to_item() -> None:
     # Cast since the above payload does not conform to the strict schema
     item = convert_span_to_item(cast(Span, SPAN_KAFKA_MESSAGE))
 
@@ -147,6 +147,8 @@ def test_convert_span_to_item():
         "sentry.thread.id": AnyValue(string_value="8522009600"),
         "sentry.sdk.version": AnyValue(string_value="2.7.0"),
         "sentry.platform": AnyValue(string_value="python"),
+        "sentry.client_sample_rate": AnyValue(double_value=0.1),
+        "sentry.server_sample_rate": AnyValue(double_value=0.2),
         "sentry.user": AnyValue(string_value="ip:127.0.0.1"),
         "relay_use_post_or_schedule_rejected": AnyValue(string_value="version"),
         "sentry.normalized_description": AnyValue(string_value="normalized_description"),
@@ -157,7 +159,7 @@ def test_convert_span_to_item():
     }
 
 
-def test_convert_falsy_fields():
+def test_convert_falsy_fields() -> None:
     message = {**SPAN_KAFKA_MESSAGE, "duration_ms": 0, "is_segment": False}
 
     item = convert_span_to_item(cast(Span, message))
@@ -166,10 +168,11 @@ def test_convert_falsy_fields():
     assert item.attributes.get("sentry.is_segment") == AnyValue(bool_value=False)
 
 
-def test_convert_span_links_to_json():
+def test_convert_span_links_to_json() -> None:
     message = {
         **SPAN_KAFKA_MESSAGE,
         "links": [
+            # A link with all properties
             {
                 "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
                 "span_id": "8873a98879faf06d",
@@ -180,12 +183,17 @@ def test_convert_span_links_to_json():
                     "parent_depth": 17,
                     "confidence": "high",
                 },
-            }
+            },
+            # A link with missing optional properties
+            {
+                "trace_id": "d099bf9ad5a143cf8f83a98081d0ed3b",
+                "span_id": "873a988879faf06d",
+            },
         ],
     }
 
     item = convert_span_to_item(cast(Span, message))
 
     assert item.attributes.get("sentry.links") == AnyValue(
-        string_value='[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d","sampled":true,"attributes":{"sentry.link.type":"parent","sentry.dropped_attributes_count":4}}]'
+        string_value='[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d","sampled":true,"attributes":{"sentry.link.type":"parent","sentry.dropped_attributes_count":4}},{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"873a988879faf06d"}]'
     )

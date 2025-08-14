@@ -1,8 +1,8 @@
 import type {SessionApiResponse} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {
-  type ApiQueryKey,
   useApiQuery,
+  type ApiQueryKey,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -38,7 +38,7 @@ export function useMetricSessionStats(
     {
       query: {
         project: project.id ? [Number(project.id)] : [],
-        environment,
+        environment: environment ? environment : undefined,
         field: SESSION_AGGREGATE_TO_FIELD[aggregate],
         query,
         groupBy: ['session.status'],

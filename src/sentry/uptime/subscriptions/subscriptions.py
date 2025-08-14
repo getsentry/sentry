@@ -11,8 +11,7 @@ from sentry.models.project import Project
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.types.actor import Actor
 from sentry.uptime.detectors.url_extraction import extract_domain_parts
-from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.uptime.issue_platform import resolve_uptime_issue
+from sentry.uptime.grouptype import UptimeDomainCheckFailure, resolve_uptime_issue
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     UptimeStatus,
@@ -325,7 +324,6 @@ def update_project_uptime_subscription(
         )
 
         detector = get_detector(uptime_monitor.uptime_subscription)
-        assert detector
         detector.update(
             name=default_if_not_set(uptime_monitor.name, name),
             owner_user_id=owner_user_id,
@@ -446,10 +444,14 @@ def enable_uptime_detector(
 
 def delete_uptime_detector(detector: Detector):
     uptime_monitor = get_project_subscription(detector)
+    delete_project_uptime_subscription(uptime_monitor)
+    RegionScheduledDeletion.schedule(detector, days=0)
+
+
+def delete_project_uptime_subscription(uptime_monitor: ProjectUptimeSubscription):
     uptime_subscription: UptimeSubscription = uptime_monitor.uptime_subscription
     quotas.backend.remove_seat(DataCategory.UPTIME, uptime_monitor)
     uptime_monitor.delete()
-    RegionScheduledDeletion.schedule(detector, days=0)
     remove_uptime_subscription_if_unused(uptime_subscription)
 
 

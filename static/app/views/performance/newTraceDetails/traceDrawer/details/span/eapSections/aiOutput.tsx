@@ -7,8 +7,8 @@ import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTra
 import {
   getIsAiNode,
   getTraceNodeAttribute,
-} from 'sentry/views/insights/agentMonitoring/utils/aiTraceNodes';
-import {hasAgentInsightsFeature} from 'sentry/views/insights/agentMonitoring/utils/features';
+} from 'sentry/views/insights/agents/utils/aiTraceNodes';
+import {hasAgentInsightsFeature} from 'sentry/views/insights/agents/utils/features';
 import {SectionKey} from 'sentry/views/issueDetails/streamline/context';
 import {FoldSection} from 'sentry/views/issueDetails/streamline/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';

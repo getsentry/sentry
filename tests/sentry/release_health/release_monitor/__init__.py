@@ -11,7 +11,7 @@ class BaseFetchProjectsWithRecentSessionsTest(TestCase, BaseMetricsTestCase):
 
     backend_class: type[BaseReleaseMonitorBackend]
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
         self.project1 = self.create_project()
@@ -19,7 +19,7 @@ class BaseFetchProjectsWithRecentSessionsTest(TestCase, BaseMetricsTestCase):
         self.environment = self.create_environment(project=self.project2)
         self.backend = self.backend_class()
 
-    def test_monitor_release_adoption_with_offset(self):
+    def test_monitor_release_adoption_with_offset(self) -> None:
         self.org2 = self.create_organization()
         self.org2_project = self.create_project(organization=self.org2)
         self.org2_release = self.create_release(project=self.org2_project, version="org@2.0.0")
@@ -47,7 +47,7 @@ class BaseFetchProjectsWithRecentSessionsTest(TestCase, BaseMetricsTestCase):
         }
 
     @override_options({"release-health.use-org-and-project-filter": True})
-    def test_monitor_release_adoption_with_filter(self):
+    def test_monitor_release_adoption_with_filter(self) -> None:
         self.org2 = self.create_organization()
         self.org2_project = self.create_project(organization=self.org2)
         self.org2_release = self.create_release(project=self.org2_project, version="org@2.0.0")
@@ -80,7 +80,7 @@ class BaseFetchProjectReleaseHealthTotalsTest(TestCase, BaseMetricsTestCase):
 
     backend_class: type[BaseReleaseMonitorBackend]
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.project1 = self.create_project()
         self.project2 = self.create_project()
         self.environment1 = self.create_environment(project=self.project1)
@@ -89,7 +89,7 @@ class BaseFetchProjectReleaseHealthTotalsTest(TestCase, BaseMetricsTestCase):
         self.release2 = self.create_release(project=self.project2)
         self.backend = self.backend_class()
 
-    def test(self):
+    def test(self) -> None:
         self.bulk_store_sessions(
             [
                 self.build_session(
@@ -127,7 +127,7 @@ class BaseFetchProjectReleaseHealthTotalsTest(TestCase, BaseMetricsTestCase):
             },
         }, totals
 
-    def test_no_data(self):
+    def test_no_data(self) -> None:
         totals = self.backend.fetch_project_release_health_totals(
             self.organization.id,
             [self.project.id, self.project1.id, self.project2.id],

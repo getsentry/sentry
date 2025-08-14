@@ -41,6 +41,12 @@ The maximum number of seconds to wait before retrying RPCs when the host is unav
 """
 
 
+MAX_PARAMETER_BYTES_BEFORE_COMPRESSION = 3000000  # 3MB
+"""
+The maximum number of bytes before a task parameter is compressed.
+"""
+
+
 class CompressionType(Enum):
     """
     The type of compression used for task parameters.

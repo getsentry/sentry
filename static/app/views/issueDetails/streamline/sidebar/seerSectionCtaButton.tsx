@@ -5,8 +5,8 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
 import {
   AutofixStatus,
-  type AutofixStep,
   AutofixStepType,
+  type AutofixStep,
 } from 'sentry/components/events/autofix/types';
 import {useAiAutofix, useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import {getAutofixRunExists} from 'sentry/components/events/autofix/utils';
@@ -145,6 +145,13 @@ export function SeerSectionCtaButton({
   const getButtonText = () => {
     if (!aiConfig.hasAutofix) {
       return t('Open Resources');
+    }
+
+    if (
+      (aiConfig.orgNeedsGenAiAcknowledgement || !aiConfig.hasAutofixQuota) &&
+      !aiConfig.isAutofixSetupLoading
+    ) {
+      return t('Fix it for me');
     }
 
     if (!lastStep) {

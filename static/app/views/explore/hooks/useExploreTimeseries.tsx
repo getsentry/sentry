@@ -1,10 +1,8 @@
 import {useCallback, useMemo} from 'react';
-import isEqual from 'lodash/isEqual';
 
 import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import usePrevious from 'sentry/utils/usePrevious';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import {
   useExploreAggregateSortBys,
@@ -17,8 +15,8 @@ import type {Visualize} from 'sentry/views/explore/contexts/pageParamsContext/vi
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {
-  type SpansRPCQueryExtras,
   useProgressiveQuery,
+  type SpansRPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {computeVisualizeSampleTotals} from 'sentry/views/explore/utils';
@@ -31,7 +29,6 @@ interface UseExploreTimeseriesOptions {
 }
 
 interface UseExploreTimeseriesResults {
-  canUsePreviousResults: boolean;
   result: ReturnType<typeof useSortedTimeSeries>;
 }
 
@@ -115,39 +112,10 @@ function useExploreTimeseriesImpl({
     };
   }, [query, yAxes, interval, fields, orderby, topEvents, enabled, queryExtras]);
 
-  const previousQuery = usePrevious(query);
-  const previousOptions = usePrevious(options);
-  const canUsePreviousResults = useMemo(() => {
-    if (!isEqual(query, previousQuery)) {
-      return false;
-    }
-
-    if (!isEqual(options.interval, previousOptions.interval)) {
-      return false;
-    }
-
-    if (!isEqual(options.fields, previousOptions.fields)) {
-      return false;
-    }
-
-    if (!isEqual(options.orderby, previousOptions.orderby)) {
-      return false;
-    }
-
-    if (!isEqual(options.topEvents, previousOptions.topEvents)) {
-      return false;
-    }
-
-    // The query we're using has remained the same except for the y axis.
-    // This means we can  re-use the previous results to prevent a loading state.
-    return true;
-  }, [query, previousQuery, options, previousOptions]);
-
   const timeseriesResult = useSortedTimeSeries(options, 'api.explorer.stats', dataset);
 
   return {
     result: timeseriesResult,
-    canUsePreviousResults,
   };
 }
 

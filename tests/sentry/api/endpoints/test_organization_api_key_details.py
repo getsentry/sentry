@@ -12,7 +12,7 @@ DEFAULT_SCOPES = ["project:read", "event:read", "team:read", "org:read", "member
 class OrganizationApiKeyDetailsBase(APITestCase):
     endpoint = "sentry-api-0-organization-api-key-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.api_key = ApiKey.objects.create(
@@ -22,10 +22,10 @@ class OrganizationApiKeyDetailsBase(APITestCase):
 
 @control_silo_test
 class OrganizationApiKeyDetails(OrganizationApiKeyDetailsBase):
-    def test_api_key_no_exist(self):
+    def test_api_key_no_exist(self) -> None:
         self.get_error_response(self.organization.slug, 123456, status_code=404)
 
-    def test_get_api_details(self):
+    def test_get_api_details(self) -> None:
         response = self.get_success_response(self.organization.slug, self.api_key.id)
         assert response.data.get("id") == str(self.api_key.id)
 
@@ -34,7 +34,7 @@ class OrganizationApiKeyDetails(OrganizationApiKeyDetailsBase):
 class OrganizationApiKeyDetailsPut(OrganizationApiKeyDetailsBase):
     method = "put"
 
-    def test_update_api_key_details(self):
+    def test_update_api_key_details(self) -> None:
         data = {
             "label": "New Label",
             "allowed_origins": "sentry.io",
@@ -48,7 +48,7 @@ class OrganizationApiKeyDetailsPut(OrganizationApiKeyDetailsBase):
         assert api_key.allowed_origins == "sentry.io"
         assert api_key.get_scopes() == ["a", "b", "c", "d"]
 
-    def test_update_api_key_details_legacy_data(self):
+    def test_update_api_key_details_legacy_data(self) -> None:
         # Some old api keys have this psql special format string
         with connections[ApiKey.objects.db].cursor() as cur:
             cur.execute(
@@ -76,7 +76,7 @@ class OrganizationApiKeyDetailsPut(OrganizationApiKeyDetailsBase):
 class OrganizationApiKeyDetailsDelete(OrganizationApiKeyDetailsBase):
     method = "delete"
 
-    def test_can_delete_api_key(self):
+    def test_can_delete_api_key(self) -> None:
         self.get_success_response(self.organization.slug, self.api_key.id)
 
         # check to make sure it's deleted

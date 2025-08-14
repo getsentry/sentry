@@ -21,8 +21,8 @@ from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index import (
     build_query_params_from_request,
     calculate_stats_period,
-    delete_groups,
     get_by_short_id,
+    schedule_tasks_to_delete_groups,
     track_slo_response,
     update_groups_with_search_fn,
 )
@@ -195,9 +195,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             query_kwargs["actor"] = request.user
             if query_kwargs["sort_by"] == "inbox":
                 query_kwargs.pop("sort_by")
+                query_kwargs.pop("referrer")
                 result = inbox_search(**query_kwargs)
             else:
-                query_kwargs["referrer"] = "search.group_index"
                 result = search.backend.query(**query_kwargs)
             return result, query_kwargs
 
@@ -505,7 +505,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         )
 
         try:
-            return delete_groups(request, projects, organization.id, search_fn)
+            return schedule_tasks_to_delete_groups(request, projects, organization.id, search_fn)
         except Exception:
-            logger.exception("Error deleting groups")
+            logger.exception("Error scheduling tasks to delete groups")
             return Response({"detail": "Error deleting groups"}, status=500)

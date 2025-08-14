@@ -10,9 +10,9 @@ import {
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {
-  type Aggregate,
   ModuleName,
   SpanFunction,
+  type Aggregate,
   type SpanProperty,
 } from 'sentry/views/insights/types';
 
@@ -42,8 +42,6 @@ export const MIN_SDK_VERSION_BY_PLATFORM: Record<string, string> = {
 };
 
 export const DEFAULT_DURATION_AGGREGATE: Aggregate = SpanFunction.AVG;
-
-export const CHART_HEIGHT = 160;
 
 export const COUNTER_GRANULARITIES = new GranularityLadder([
   [SIXTY_DAYS, '1d'],

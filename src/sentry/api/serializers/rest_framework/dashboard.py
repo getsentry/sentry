@@ -12,12 +12,12 @@ from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
 from sentry import features, options
-from sentry.api.issue_search import parse_search_query
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
+from sentry.issues.issue_search import parse_search_query
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
@@ -414,6 +414,21 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         ondemand_feature = features.has(
             "organizations:on-demand-metrics-extraction-widgets", organization
         )
+
+        if (
+            features.has(
+                "organizations:discover-saved-queries-deprecation",
+                self.context["organization"],
+                actor=self.context["request"].user,
+            )
+            and not data.get("id")
+            and data.get("widget_type") == DashboardWidgetTypes.TRANSACTION_LIKE
+        ):
+            raise serializers.ValidationError(
+                {
+                    "widget_type": "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."
+                }
+            )
 
         if data.get("queries"):
             # Check each query to see if they have an issue or discover error depending on the type of the widget
@@ -980,6 +995,11 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 class DashboardSerializer(DashboardDetailsSerializer):
     title = serializers.CharField(
         required=True, max_length=255, help_text="The user defined title for this dashboard."
+    )
+    is_favorited = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Favorite the dashboard automatically for the request user",
     )
 
 

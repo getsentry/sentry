@@ -108,8 +108,8 @@ export function ScreenLoadSpansTable({
         SPAN_OP,
         SPAN_GROUP,
         SPAN_DESCRIPTION,
-        `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
-        `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
+        `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
+        `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
         'ttid_contribution_rate()',
         'ttfd_contribution_rate()',
         'count()',
@@ -125,11 +125,11 @@ export function ScreenLoadSpansTable({
     'count()': t('Total Count'),
     affects: hasTTFD ? t('Affects') : t('Affects TTID'),
     [`sum(${SPAN_SELF_TIME})`]: t('Total Time Spent'),
-    [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
+    [`avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`]: t(
       'Avg Duration (%s)',
       PRIMARY_RELEASE_ALIAS
     ),
-    [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
+    [`avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`]: t(
       'Avg Duration (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
@@ -351,8 +351,8 @@ export function ScreenLoadSpansTable({
         columnOrder={[
           String(SPAN_OP),
           String(SPAN_DESCRIPTION),
-          `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
-          `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
+          `avg_if(${SPAN_SELF_TIME},release,equals,${primaryRelease})`,
+          `avg_if(${SPAN_SELF_TIME},release,equals,${secondaryRelease})`,
           ...(organization.features.includes('insights-initial-modules')
             ? ['affects']
             : []),

@@ -15,6 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.models.organization import Organization
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba import discover
@@ -72,7 +73,7 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
 
 @region_silo_endpoint
 class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerformanceEndpointBase):
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         try:
             snuba_params, aggregate_column, filter_query = self._setup(request, organization)
         except NoProjects:
@@ -138,7 +139,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         try:
             snuba_params, aggregate_column, filter_query = self._setup(request, organization)
         except NoProjects:

@@ -18,7 +18,7 @@ from sentry.users.models.identity import Identity
 
 @control_silo_test
 class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixin):
-    def test_simple(self):
+    def test_simple(self) -> None:
         org = self.create_organization()
         integration, organization_integration = self.create_provider_integration_for(
             org, self.user, provider="example", name="Example"
@@ -41,7 +41,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             # TODO: When external issue -> organization is a hybrid cloud foreign key, test this is deleted via that route.
             assert ExternalIssue.objects.filter(id=external_issue.id).exists()
 
-    def test_skip_on_undelete(self):
+    def test_skip_on_undelete(self) -> None:
         org = self.create_organization()
         integration = self.create_provider_integration(provider="example", name="Example")
         organization_integration = integration.add_organization(org, self.user)
@@ -54,7 +54,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
 
         assert OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
 
-    def test_repository_and_identity(self):
+    def test_repository_and_identity(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         integration = self.create_provider_integration(provider="example", name="Example")
@@ -89,7 +89,7 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             repo = Repository.objects.get(id=repository.id)
             assert repo.integration_id is None
 
-    def test_codeowner_links(self):
+    def test_codeowner_links(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         integration = self.create_provider_integration(provider="example", name="Example")

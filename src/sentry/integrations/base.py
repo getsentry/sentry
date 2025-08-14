@@ -504,7 +504,6 @@ class IntegrationInstallation(abc.ABC):
         elif isinstance(exc, IntegrationError):
             raise
         else:
-            self.logger.exception(str(exc))
             raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
 
     def is_rate_limited_error(self, exc: ApiError) -> bool:

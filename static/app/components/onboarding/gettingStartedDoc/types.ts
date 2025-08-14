@@ -144,6 +144,7 @@ export enum ProductSolution {
   PERFORMANCE_MONITORING = 'performance-monitoring',
   SESSION_REPLAY = 'session-replay',
   PROFILING = 'profiling',
+  LOGS = 'logs',
 }
 
 export interface DocsParams<
@@ -152,6 +153,7 @@ export interface DocsParams<
   api: Client;
   dsn: ProjectKey['dsn'];
   isFeedbackSelected: boolean;
+  isLogsSelected: boolean;
   isPerformanceSelected: boolean;
   isProfilingSelected: boolean;
   isReplaySelected: boolean;
@@ -159,9 +161,8 @@ export interface DocsParams<
   organization: Organization;
   platformKey: PlatformKey;
   platformOptions: SelectedPlatformOptions<PlatformOptions>;
-  projectId: Project['id'];
+  project: Project;
   projectKeyId: ProjectKey['id'];
-  projectSlug: Project['slug'];
   sourcePackageRegistries: {isLoading: boolean; data?: ReleaseRegistrySdk};
   urlPrefix: string;
   /**
@@ -222,6 +223,8 @@ export interface Docs<PlatformOptions extends BasePlatformOptions = BasePlatform
   feedbackOnboardingCrashApi?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingJsLoader?: OnboardingConfig<PlatformOptions>;
   feedbackOnboardingNpm?: OnboardingConfig<PlatformOptions>;
+  logsOnboarding?: OnboardingConfig<PlatformOptions>;
+  mcpOnboarding?: OnboardingConfig<PlatformOptions>;
   performanceOnboarding?: OnboardingConfig<PlatformOptions>;
   platformOptions?: PlatformOptions;
   profilingOnboarding?: OnboardingConfig<PlatformOptions>;

@@ -13,8 +13,11 @@ resources:
 ---
 
 import {Alert} from 'sentry/components/core/alert';
+import {AlertLink} from 'sentry/components/core/alert/alertLink';
+import {Badge} from 'sentry/components/core/badge';
 import {Button} from 'sentry/components/core/button';
-import {IconAdd, IconDelete, IconEdit} from 'sentry/icons';
+import {Flex} from 'sentry/components/core/layout';
+import {IconAdd, IconDelete, IconEdit, IconMail} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
 import APIReference from '!!type-loader!sentry/components/core/alert/index';
@@ -26,6 +29,8 @@ To create a basic alert, wrap your message in an `<Alert>` component and specify
 ```jsx
 <Alert type="info">This is an informational message</Alert>
 ```
+
+## Props
 
 ### Types
 
@@ -48,6 +53,21 @@ Alerts come in five different types to convey different levels of importance and
   <Alert type="success">This is a success alert for positive feedback</Alert>
   <Alert type="error">This is an error alert for critical issues</Alert>
 </Alert.Container>
+```
+
+### System Alerts
+
+System alerts are full-width variants typically used for application-level notifications or banners.
+
+<Storybook.Demo>
+  <Alert type="warning" system>
+    This is a system-wide alert that spans the full width of its container
+  </Alert>
+</Storybook.Demo>
+```jsx
+<Alert type="warning" system>
+  This is a system-wide alert that spans the full width of its container
+</Alert>
 ```
 
 ### Icons
@@ -114,87 +134,9 @@ Alerts can contain expandable content to provide additional details without over
 </Alert>
 ```
 
-### Trailing Items
-
-Add interactive elements like buttons or links to the right side of alerts using the `trailingItems` prop.
-
-<Storybook.Demo>
-  <Alert.Container>
-    <Alert
-      type="info"
-      trailingItems={
-        <Button size="xs" priority="primary">
-          Take Action
-        </Button>
-      }
-    >
-      This alert has a trailing action button
-    </Alert>
-    <Alert
-      type="error"
-      trailingItems={
-        <div>
-          <Button size="xs" priority="danger" icon={<IconDelete />}>
-            Delete
-          </Button>
-          <Button size="xs" priority="muted" icon={<IconEdit />}>
-            Edit
-          </Button>
-        </div>
-      }
-    >
-      This alert has multiple trailing actions
-    </Alert>
-  </Alert.Container>
-</Storybook.Demo>
-```jsx
-<Alert.Container>
-  <Alert
-    type="info"
-    trailingItems={
-      <Button size="xs" priority="primary">
-        Take Action
-      </Button>
-    }
-  >
-    This alert has a trailing action button
-  </Alert>
-  <Alert
-    type="error"
-    trailingItems={
-      <div>
-        <Button size="xs" priority="danger" icon={<IconDelete />}>
-          Delete
-        </Button>
-        <Button size="xs" priority="muted" icon={<IconEdit />}>
-          Edit
-        </Button>
-      </div>
-    }
-  >
-    This alert has multiple trailing actions
-  </Alert>
-</Alert.Container>
-```
-
-### System Alerts
-
-System alerts are full-width variants typically used for application-level notifications or banners.
-
-<Storybook.Demo>
-  <Alert type="warning" system>
-    This is a system-wide alert that spans the full width of its container
-  </Alert>
-</Storybook.Demo>
-```jsx
-<Alert type="warning" system>
-  This is a system-wide alert that spans the full width of its container
-</Alert>
-```
-
 ### Expanded by Default
 
-You can control the initial expansion state of alerts with expandable content.
+You can control the initial expansion state of alerts with the `defaultExpanded` prop.
 
 <Storybook.Demo>
   <Alert
@@ -225,7 +167,63 @@ You can control the initial expansion state of alerts with expandable content.
 </Alert>
 ```
 
-### Container
+### Trailing Items
+
+Add interactive elements like buttons, links or badges to the right side of alerts using the `trailingItems` prop.
+
+<Storybook.Demo>
+  <Alert.Container>
+    <Alert type="info" trailingItems={<Badge type="warning">Action Required</Badge>}>
+      This alert has a trailing bagde
+    </Alert>
+    <Alert
+      type="error"
+      trailingItems={
+        <Flex gap="sm">
+          <Button size="zero" priority="danger" icon={<IconDelete />}>
+            Delete
+          </Button>
+          <Button size="zero" priority="muted" icon={<IconEdit />}>
+            Edit
+          </Button>
+        </Flex>
+      }
+    >
+      This alert has multiple trailing actions
+    </Alert>
+  </Alert.Container>
+</Storybook.Demo>
+```jsx
+<Alert.Container>
+  <Alert
+    type="info"
+    trailingItems={
+      <Button size="zero" priority="primary">
+        Take Action
+      </Button>
+    }
+  >
+    This alert has a trailing badge
+  </Alert>
+  <Alert
+    type="error"
+    trailingItems={
+      <Flex gap="sm">
+        <Button size="zero" priority="danger" icon={<IconDelete />}>
+          Delete
+        </Button>
+        <Button size="zero" priority="muted" icon={<IconEdit />}>
+          Edit
+        </Button>
+      </Flex>
+    }
+  >
+    This alert has multiple trailing actions
+  </Alert>
+</Alert.Container>
+```
+
+## Container
 
 Use `Alert.Container` to properly manage spacing between multiple alerts.
 
@@ -244,7 +242,80 @@ Use `Alert.Container` to properly manage spacing between multiple alerts.
 </Alert.Container>
 ```
 
-### Accessibility
+## Alert Links
+
+The `AlertLink` component creates a clickable alert that can navigate to internal pages, external URLs, or triggers custom actions.
+
+AlertLink supports three types of navigation: internal routing, external URLs, and custom click handlers.
+
+### Internal
+
+Use the `to` prop for internal navigation within the application.
+
+<Storybook.Demo>
+  <AlertLink to="/settings">Go to Settings</AlertLink>
+</Storybook.Demo>
+```jsx
+<AlertLink to="/settings">Go to Settings</AlertLink>
+```
+
+### External
+
+Use the `href` prop for external URLs. The `openInNewTab` prop controls whether the link opens in a new tab.
+
+<Storybook.Demo>
+  <AlertLink href="https://docs.sentry.io" openInNewTab>
+    Read the Documentation
+  </AlertLink>
+</Storybook.Demo>
+```jsx
+<AlertLink href="https://docs.sentry.io" openInNewTab>
+  Read the Documentation
+</AlertLink>
+```
+
+### Custom Handlers
+
+Use the `onClick` prop for custom actions that don't involve navigation.
+
+<Storybook.Demo>
+  {/* eslint-disable-next-line no-alert */}
+  <AlertLink onClick={() => alert('Custom action triggered!')}>
+    Trigger Custom Action
+  </AlertLink>
+</Storybook.Demo>
+```jsx
+<AlertLink onClick={() => alert('Custom action triggered!')}>
+  Trigger Custom Action
+</AlertLink>
+```
+
+### Trailing Items
+
+By default, AlertLink includes a right-pointing chevron icon. You can customize this with the `trailingItems` prop.
+
+<Storybook.Demo>
+  <AlertLink.Container>
+    <AlertLink to="/settings">Default trailing chevron</AlertLink>
+    <AlertLink to="/settings" trailingItems={<IconMail />}>
+      Custom trailing icon
+    </AlertLink>
+    <AlertLink to="/settings" trailingItems={null}>
+      No trailing items
+    </AlertLink>
+  </AlertLink.Container>
+</Storybook.Demo>
+```jsx
+<AlertLink to="/settings">Default trailing chevron</AlertLink>
+<AlertLink to="/settings" trailingItems={<IconMail />}>
+  Custom trailing icon
+</AlertLink>
+<AlertLink to="/settings" trailingItems={null}>
+  No trailing items
+</AlertLink>
+```
+
+## Accessibility
 
 To meet WCAG 2.2 AA compliance, `<Alert>` automatically meets the [WCAG 1.4.3](https://www.w3.org/TR/WCAG22/#contrast-minimum), [WCAG 2.1.1](https://www.w3.org/TR/WCAG22/#keyboard), and [WCAG 2.4.7](https://www.w3.org/TR/WCAG22/#focus-visible) success criteria.
 

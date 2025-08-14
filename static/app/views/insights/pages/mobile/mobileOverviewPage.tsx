@@ -31,13 +31,13 @@ import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnbo
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
+import {Am1MobileOverviewPage} from 'sentry/views/insights/pages/mobile/am1OverviewPage';
 import {
   isAValidSort,
   MobileOverviewTable,
   type ValidSort,
 } from 'sentry/views/insights/pages/mobile/mobileOverviewTable';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
-import {OldMobileOverviewPage} from 'sentry/views/insights/pages/mobile/oldMobileOverviewPage';
 import {
   DEFAULT_SORT,
   MOBILE_LANDING_TITLE,
@@ -276,7 +276,7 @@ function MobileOverviewPageWithProviders() {
   const useEap = useInsightsEap();
   return (
     <DomainOverviewPageProviders>
-      {useEap ? <EAPMobileOverviewPage /> : <OldMobileOverviewPage />}
+      {useEap ? <EAPMobileOverviewPage /> : <Am1MobileOverviewPage />}
     </DomainOverviewPageProviders>
   );
 }

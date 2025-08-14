@@ -19,7 +19,7 @@ class RenameErrorDetectorsTest(TestMigrations):
             project=self.project, type="monitor_check_in_failure", name="Crons Detector"
         )
 
-    def test(self):
+    def test(self) -> None:
         self.detector.refresh_from_db()
         assert self.detector.name == "Error Monitor"
 

@@ -10,7 +10,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class DeleteIncidentTest(BaseWorkflowTest, HybridCloudTestMixin):
-    def test_simple(self):
+    def test_simple(self) -> None:
         organization = self.create_organization()
         alert_rule = self.create_alert_rule(organization=organization)
         self.create_alert_rule_trigger(alert_rule=alert_rule)

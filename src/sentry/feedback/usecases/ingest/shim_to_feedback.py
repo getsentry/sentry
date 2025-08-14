@@ -5,11 +5,11 @@ from datetime import datetime
 from typing import Any
 
 from sentry.constants import DataCategory
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.feedback.lib.types import UserReportDict
 from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.models.project import Project
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.safe import get_path
@@ -80,7 +80,7 @@ def shim_to_feedback(
         feedback_event["tags"] = [list(item) for item in event.tags]
 
         # Entrypoint for "new" (issue platform based) feedback. This emits outcomes.
-        create_feedback_issue(feedback_event, project.id, source)
+        create_feedback_issue(feedback_event, project, source)
     except Exception:
         logger.exception("Error attempting to create new user feedback by shimming a user report")
         metrics.incr("feedback.shim_to_feedback.failed", tags={"referrer": source.value})

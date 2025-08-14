@@ -12,10 +12,10 @@ import {useOnChange} from 'sentry/components/searchQueryBuilder/hooks/useOnChang
 import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
 import {
+  QueryInterfaceType,
   type CallbackSearchState,
   type FieldDefinitionGetter,
   type FilterKeySection,
-  QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
 import {queryIsValid} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
@@ -76,7 +76,7 @@ export interface SearchQueryBuilderProps {
   filterKeyAliases?: TagCollection;
   /**
    * The width of the filter key menu.
-   * Defaults to 360px. May be increased if there are a large number of categories
+   * Defaults to 460px. May be increased if there are a large number of categories
    * or long filter key names.
    */
   filterKeyMenuWidth?: number;
@@ -103,6 +103,19 @@ export interface SearchQueryBuilderProps {
    */
   invalidMessages?: SearchConfig['invalidMessages'];
   label?: string;
+  /**
+   * Allows for key suggestions to be rendered when the value matches the pattern.
+   * This is useful for keys that have a specific format, such as trace IDs or IDs.
+   *
+   * @example
+   * ```tsx
+   * <SearchQueryBuilder
+   *   // ...
+   *   matchKeySuggestions={[{key: 'trace', valuePattern: /^[0-9a-fA-F]{32}$/}]}
+   * />
+   * ```
+   */
+  matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
   onBlur?: (query: string, state: CallbackSearchState) => void;
   /**
    * Called when the query value changes
@@ -125,6 +138,7 @@ export interface SearchQueryBuilderProps {
    * If provided, saves and displays recent searches of the given type.
    */
   recentSearches?: SavedSearchType;
+
   /**
    * When set, provided keys will override default raw search capabilities, while
    * replacing it with options that include the provided keys, and the user's input
@@ -149,7 +163,8 @@ function ActionButtons({
   ref?: React.Ref<HTMLDivElement>;
   trailingItems?: React.ReactNode;
 }) {
-  const {dispatch, handleSearch, disabled, query} = useSearchQueryBuilder();
+  const {dispatch, handleSearch, disabled, query, setDisplayAskSeerFeedback} =
+    useSearchQueryBuilder();
 
   if (disabled) {
     return null;
@@ -165,6 +180,7 @@ function ActionButtons({
           icon={<IconClose />}
           borderless
           onClick={() => {
+            setDisplayAskSeerFeedback(false);
             dispatch({type: 'CLEAR'});
             handleSearch('');
           }}

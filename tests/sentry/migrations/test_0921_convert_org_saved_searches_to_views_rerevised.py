@@ -49,7 +49,7 @@ class ConvertOrgSavedSearchesToViewsTest(TestMigrations):
             query="is:resolved",
         )
 
-    def test_convert_org_saved_searches_to_views(self):
+    def test_convert_org_saved_searches_to_views(self) -> None:
         assert GroupSearchView.objects.count() == 2
         org_view = GroupSearchView.objects.get(
             organization=self.org, user_id=self.user.id, name="Org Saved Search"

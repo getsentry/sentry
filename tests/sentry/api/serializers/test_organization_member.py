@@ -12,7 +12,7 @@ from sentry.testutils.cases import TestCase
 
 
 class OrganizationMemberSerializerTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.owner_user = self.create_user("foo@localhost", username="foo")
         self.user_2 = self.create_user("bar@localhost", username="bar")
 
@@ -30,7 +30,7 @@ class OrganizationMemberSerializerTest(TestCase):
             )
         )
 
-    def test_inviter(self):
+    def test_inviter(self) -> None:
         inviter = self.create_user(name="bob")
         member = self.create_member(
             organization=self.org,
@@ -42,7 +42,7 @@ class OrganizationMemberSerializerTest(TestCase):
         assert result["inviteStatus"] == "requested_to_join"
         assert result["inviterName"] == "bob"
 
-    def test_user(self):
+    def test_user(self) -> None:
         user = self.create_user(name="bob")
         member = self.create_member(
             organization=self.org,
@@ -54,7 +54,7 @@ class OrganizationMemberSerializerTest(TestCase):
 
 
 class OrganizationMemberWithProjectsSerializerTest(OrganizationMemberSerializerTest):
-    def test_simple(self):
+    def test_simple(self) -> None:
         projects = [self.project, self.project_2]
         org_members = self._get_org_members()
         result = serialize(
@@ -77,7 +77,7 @@ class OrganizationMemberWithProjectsSerializerTest(OrganizationMemberSerializerT
 
 
 class OrganizationMemberWithTeamsSerializerTest(OrganizationMemberSerializerTest):
-    def test_simple(self):
+    def test_simple(self) -> None:
         result = serialize(
             self._get_org_members(),
             self.user_2,
@@ -99,7 +99,7 @@ class OrganizationMemberWithTeamsSerializerTest(OrganizationMemberSerializerTest
 
 
 class OrganizationMemberSCIMSerializerTest(OrganizationMemberSerializerTest):
-    def test_simple(self):
+    def test_simple(self) -> None:
         result = serialize(
             self._get_org_members()[0],
             self.user_2,
@@ -107,7 +107,7 @@ class OrganizationMemberSCIMSerializerTest(OrganizationMemberSerializerTest):
         )
         assert "active" in result
 
-    def test_no_active(self):
+    def test_no_active(self) -> None:
         result = serialize(
             self._get_org_members()[0],
             self.user_2,

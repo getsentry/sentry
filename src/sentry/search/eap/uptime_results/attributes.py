@@ -7,8 +7,23 @@ UPTIME_ATTRIBUTE_DEFINITIONS = {
     for column in COMMON_COLUMNS
     + [
         ResolvedAttribute(
-            public_alias="trace_id",
-            internal_name="trace_id",
+            public_alias="id",
+            internal_name="sentry.item_id",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="trace",
+            internal_name="sentry.trace_id",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="span_id",
+            internal_name="span_id",
+            search_type="string",
+        ),
+        ResolvedAttribute(
+            public_alias="environment",
+            internal_name="environment",
             search_type="string",
         ),
         ResolvedAttribute(
@@ -171,6 +186,11 @@ UPTIME_ATTRIBUTE_DEFINITIONS = {
         ResolvedAttribute(
             public_alias="receive_response_duration_us",
             internal_name="receive_response_duration_us",
+            search_type="integer",
+        ),
+        ResolvedAttribute(
+            public_alias="incident_status",
+            internal_name="incident_status",
             search_type="integer",
         ),
     ]

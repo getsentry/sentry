@@ -39,7 +39,7 @@ class HandleIssueMergeTest(TestCase):
         assert len(groups.filter(substatus__isnull=True)) == 4
         assert merge_groups.called
 
-        primary_group = self.groups[-1]
+        primary_group = self.groups[0]
         assert Activity.objects.filter(type=ActivityType.MERGE.value, group=primary_group)
         assert merge["parent"] == str(primary_group.id)
         assert len(merge["children"]) == 4

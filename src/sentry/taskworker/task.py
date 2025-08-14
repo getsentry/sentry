@@ -20,7 +20,11 @@ from sentry_protos.taskbroker.v1.taskbroker_pb2 import (
     TaskActivation,
 )
 
-from sentry.taskworker.constants import DEFAULT_PROCESSING_DEADLINE, CompressionType
+from sentry.taskworker.constants import (
+    DEFAULT_PROCESSING_DEADLINE,
+    MAX_PARAMETER_BYTES_BEFORE_COMPRESSION,
+    CompressionType,
+)
 from sentry.taskworker.retry import Retry
 from sentry.utils import metrics
 
@@ -113,6 +117,8 @@ class Task(Generic[P, R]):
         if kwargs is None:
             kwargs = {}
 
+        self._signal_send(task=self, args=args, kwargs=kwargs)
+
         # Generate an activation even if we're in immediate mode to
         # catch serialization errors in tests.
         activation = self.create_activation(
@@ -126,6 +132,13 @@ class Task(Generic[P, R]):
                 activation,
                 wait_for_delivery=self.wait_for_delivery,
             )
+
+    def _signal_send(self, task: Task[Any, Any], args: Any, kwargs: Any) -> None:
+        """
+        This method is a stub that sentry.testutils.task_runner.BurstRunner or other testing
+        hooks can monkeypatch to capture tasks that are being produced.
+        """
+        pass
 
     def create_activation(
         self,
@@ -176,7 +189,10 @@ class Task(Generic[P, R]):
                 )
 
         parameters_json = orjson.dumps({"args": args, "kwargs": kwargs})
-        if self.compression_type == CompressionType.ZSTD:
+        if (
+            len(parameters_json) > MAX_PARAMETER_BYTES_BEFORE_COMPRESSION
+            or self.compression_type == CompressionType.ZSTD
+        ):
             # Worker uses this header to determine if the parameters are decompressed
             headers["compression-type"] = CompressionType.ZSTD.value
             start_time = time.perf_counter()
