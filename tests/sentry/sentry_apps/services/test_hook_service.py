@@ -150,7 +150,7 @@ class TestHookService(TestCase):
                     application_id=self.sentry_app.application.id,
                     events=self.sentry_app.events,
                 ).count()
-                == 1000
+                == 10000
             )
             assert (
                 ServiceHook.objects.filter(
