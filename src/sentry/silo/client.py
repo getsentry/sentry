@@ -48,15 +48,27 @@ def get_region_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv
     region_ip_addresses: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
 
     for address in find_all_region_addresses():
-        url = urllib3.util.parse_url(address)
-        if url.host:
-            # This is an IPv4 address.
-            # In the future we can consider adding IPv4/v6 dual stack support if and when we start using IPv6 addresses.
-            ip = socket.gethostbyname(url.host)
-            region_ip_addresses.add(ipaddress.ip_address(force_str(ip, strings_only=True)))
-        else:
+        try:
+            url = urllib3.util.parse_url(address)
+            if url.host:
+                # This is an IPv4 address.
+                # In the future we can consider adding IPv4/v6 dual stack support if and when we start using IPv6 addresses.
+                try:
+                    ip = socket.gethostbyname(url.host)
+                    region_ip_addresses.add(ipaddress.ip_address(force_str(ip, strings_only=True)))
+                except (socket.gaierror, OSError) as dns_error:
+                    # DNS resolution failed - log the error but continue processing other regions
+                    sentry_sdk.capture_exception(
+                        RegionResolutionError(f"Unable to resolve hostname '{url.host}' for region address: {address}. DNS error: {dns_error}")
+                    )
+            else:
+                sentry_sdk.capture_exception(
+                    RegionResolutionError(f"Unable to parse url to host for: {address}")
+                )
+        except Exception as parse_error:
+            # URL parsing failed - log the error but continue processing other regions
             sentry_sdk.capture_exception(
-                RegionResolutionError(f"Unable to parse url to host for: {address}")
+                RegionResolutionError(f"Unable to parse region address: {address}. Parse error: {parse_error}")
             )
 
     return frozenset(region_ip_addresses)

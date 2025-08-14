@@ -1,4 +1,5 @@
 import ipaddress
+import socket
 from hashlib import sha256
 from unittest import mock
 from unittest.mock import MagicMock, patch
@@ -434,4 +435,29 @@ def test_get_region_ip_addresses() -> None:
         mock_parse_url.return_value = MagicMock(host=None)
         assert get_region_ip_addresses() == frozenset([])
         assert mock_gethostbyname.call_count == 0
+        assert mock_capture_exception.call_count == 1
+
+    # Test DNS resolution failure handling
+    with (
+        override_regions(region_config),
+        patch("socket.gethostbyname") as mock_gethostbyname,
+        patch("sentry_sdk.capture_exception") as mock_capture_exception,
+    ):
+        mock_gethostbyname.side_effect = socket.gaierror("Name or service not known")
+        assert get_region_ip_addresses() == frozenset([])
+        assert mock_gethostbyname.call_count == 1
+        assert mock_capture_exception.call_count == 1
+        
+    # Test URL parsing failure handling
+    malformed_region = Region("malformed", 2, "not-a-valid-url", RegionCategory.MULTI_TENANT)
+    malformed_region_config = (malformed_region,)
+    
+    with (
+        override_regions(malformed_region_config),
+        patch("urllib3.util.parse_url") as mock_parse_url,
+        patch("sentry_sdk.capture_exception") as mock_capture_exception,
+    ):
+        mock_parse_url.side_effect = Exception("URL parsing failed")
+        assert get_region_ip_addresses() == frozenset([])
+        assert mock_parse_url.call_count == 1
         assert mock_capture_exception.call_count == 1
