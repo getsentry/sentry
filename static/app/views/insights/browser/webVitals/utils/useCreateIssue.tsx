@@ -6,7 +6,7 @@ import useProjects from 'sentry/utils/useProjects';
 
 type CreateIssueData = Record<string, any>;
 
-interface CreateIssueResponse {}
+interface CreateIssueResponse {} // Endpoint currently returns 200 with no data
 
 export function useCreateIssue() {
   const organization = useOrganization();
@@ -27,7 +27,6 @@ export function useCreateIssue() {
         url: `/projects/${orgSlug}/${projectSlug}/user-issue/`,
         method: 'POST',
         data,
-        options: {},
       }),
   });
 }
