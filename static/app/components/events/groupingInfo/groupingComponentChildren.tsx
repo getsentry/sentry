@@ -28,10 +28,7 @@ function GroupingComponentChildren({component, showNonContributing}: Props) {
             ) : (
               <GroupingValue
                 valueType={component.name || component.id}
-                contributes={
-                  component.contributes ||
-                  (typeof value === 'object' && value?.contributes)
-                }
+                contributes={component.contributes}
               >
                 {typeof value === 'string' || typeof value === 'number'
                   ? value
