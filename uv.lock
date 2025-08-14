@@ -2231,7 +2231,7 @@ dev = [
     { name = "sentry-covdefaults-disable-branch-coverage", specifier = ">=1.0.2" },
     { name = "sentry-devenv", specifier = ">=1.22.0" },
     { name = "sentry-forked-django-stubs", specifier = ">=5.2.2.post1" },
-    { name = "sentry-forked-djangorestframework-stubs", specifier = ">=3.16.1.post1" },
+    { name = "sentry-forked-djangorestframework-stubs", specifier = ">=3.16.2.post1" },
     { name = "time-machine", specifier = ">=2.16.0" },
     { name = "types-beautifulsoup4", specifier = ">=4.11.6" },
     { name = "types-cachetools", specifier = ">=5.3.0.5" },
@@ -2314,7 +2314,7 @@ wheels = [
 
 [[package]]
 name = "sentry-forked-djangorestframework-stubs"
-version = "3.16.1.post1"
+version = "3.16.2.post1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "requests", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -2324,7 +2324,7 @@ dependencies = [
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_forked_djangorestframework_stubs-3.16.1.post1-py3-none-any.whl", hash = "sha256:2cd9f478696b0c9829ac4482f15670ec3529a9265c2d89bcca95e5c2252c43f5" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_forked_djangorestframework_stubs-3.16.2.post1-py3-none-any.whl", hash = "sha256:b4eb81f20c4f05bfed81c624b46e4768b4d57c9dc205486f4bb26c357071b489" },
 ]
 
 [[package]]
