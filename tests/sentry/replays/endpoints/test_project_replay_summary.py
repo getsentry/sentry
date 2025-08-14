@@ -247,7 +247,7 @@ class ProjectReplaySummaryTestCase(
         assert any("Failed to connect to database" in log for log in logs)
 
     @patch("sentry.replays.endpoints.project_replay_summary.requests")
-    def test_post_with_feedback(self, mock_requests) -> None:
+    def test_post_with_feedback_sdk_event(self, mock_requests) -> None:
         """Test handling of breadcrumbs with user feedback"""
         mock_requests.post.return_value = Mock(
             status_code=200, json=lambda: {"feedback": "Feedback was submitted"}
@@ -382,16 +382,7 @@ class ProjectReplaySummaryTestCase(
         # Store the replay with all trace IDs
         self.store_replay(trace_ids=[trace_id_1, trace_id_2])
 
-        data = [
-            {
-                "type": 5,
-                "timestamp": float(now.timestamp()),
-                "data": {
-                    "tag": "breadcrumb",
-                    "payload": {"category": "console", "message": "test message"},
-                },
-            }
-        ]
+        data = []
         self.save_recording_segment(0, json.dumps(data).encode())
 
         with self.feature(self.features):
@@ -406,13 +397,16 @@ class ProjectReplaySummaryTestCase(
         assert mock_requests.post.call_count == 1
         data = mock_requests.post.call_args.kwargs["data"]
         logs = json.loads(data)["logs"]
+        assert len(logs) == 2
 
         # Verify that regular error event is included
-        assert any("ValueError" in log for log in logs)
-        assert any("Invalid input" in log for log in logs)
+        assert "ValueError" in logs[0]
+        assert "Invalid input" in logs[0]
+        assert "User experienced an error" in logs[0]
 
         # Verify that feedback event is included
-        assert any("User submitted feedback" in log for log in logs)
+        assert "Great website" in logs[1]
+        assert "User submitted feedback" in logs[1]
 
     @patch("sentry.replays.endpoints.project_replay_summary.requests")
     def test_post_with_trace_errors_duplicate_feedback(self, mock_requests):
@@ -479,7 +473,7 @@ class ProjectReplaySummaryTestCase(
 
         self.store_replay(trace_ids=[trace_id, trace_id_2])
 
-        # mock SDK feedback event
+        # mock SDK feedback event with same event_id as the first feedback event
         data = [
             {
                 "type": 5,
@@ -511,6 +505,8 @@ class ProjectReplaySummaryTestCase(
         # Verify that only the unique feedback logs are included
         assert len(logs) == 2
         assert "User submitted feedback" in logs[0]
+        assert "Great website" in logs[0]
+        assert "User submitted feedback" in logs[1]
         assert "Broken website" in logs[1]
 
     @responses.activate
