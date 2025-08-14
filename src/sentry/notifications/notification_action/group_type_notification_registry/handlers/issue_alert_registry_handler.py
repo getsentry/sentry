@@ -1,6 +1,6 @@
 import logging
 
-from sentry.issues.grouping import ErrorGroupType
+from sentry.issues.grouping.grouptype import ErrorGroupType
 from sentry.notifications.notification_action.registry import (
     group_type_notification_registry,
     issue_alert_handler_registry,

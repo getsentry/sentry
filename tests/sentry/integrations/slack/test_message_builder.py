@@ -35,7 +35,7 @@ from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricA
 from sentry.integrations.slack.message_builder.routing import encode_action_id
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.time_utils import time_since
-from sentry.issues.grouping import ErrorGroupType
+from sentry.issues.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,

@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_detector_by_event(event_data: WorkflowEventData) -> Detector:
-    from sentry.issues.grouping import ErrorGroupType
+    from sentry.issues.grouping.grouptype import ErrorGroupType
 
     evt = event_data.event
 
@@ -70,7 +70,7 @@ class _SplitEvents(NamedTuple):
 def _split_events_by_occurrence(
     event_list: list[GroupEvent],
 ) -> _SplitEvents:
-    from sentry.issues.grouping import ErrorGroupType
+    from sentry.issues.grouping.grouptype import ErrorGroupType
 
     events_with_occurrences: list[tuple[GroupEvent, int]] = []
     error_events: list[GroupEvent] = []  # only error events don't have occurrences
@@ -118,7 +118,7 @@ def get_detectors_by_groupevents_bulk(
     """
     Given a list of GroupEvents, return a mapping of event_id to Detector.
     """
-    from sentry.issues.grouping import ErrorGroupType
+    from sentry.issues.grouping.grouptype import ErrorGroupType
 
     if not event_list:
         return {}

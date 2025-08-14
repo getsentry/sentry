@@ -3,12 +3,12 @@ from unittest.mock import MagicMock, call, patch
 
 from sentry import options
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
-from sentry.issues.grouping import BaseVariant
 from sentry.issues.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.issues.grouping.ingest.grouphash_metadata import (
     create_or_update_grouphash_metadata_if_needed,
 )
 from sentry.issues.grouping.ingest.seer import get_seer_similar_issues
+from sentry.issues.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.project import Project

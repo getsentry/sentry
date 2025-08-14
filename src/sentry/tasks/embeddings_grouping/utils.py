@@ -13,8 +13,8 @@ from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
 from sentry import nodestore, options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
-from sentry.issues.grouping import ErrorGroupType
 from sentry.issues.grouping.grouping_info import get_grouping_info_from_variants
+from sentry.issues.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import (

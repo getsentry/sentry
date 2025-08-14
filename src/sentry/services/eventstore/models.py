@@ -19,8 +19,8 @@ from django.utils.functional import cached_property
 from sentry import eventtypes
 from sentry.db.models import NodeData
 from sentry.interfaces.base import Interface, get_interfaces
-from sentry.issues.grouping import BaseVariant
 from sentry.issues.grouping.api import get_grouping_config_dict_for_project
+from sentry.issues.grouping.variants import BaseVariant
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.event import EventDict

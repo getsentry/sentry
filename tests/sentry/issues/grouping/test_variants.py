@@ -4,15 +4,12 @@ from typing import cast
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
-from sentry.issues.grouping import (
-    CustomFingerprintVariant,
-    FingerprintRuleJSON,
-    expose_fingerprint_dict,
-)
+from sentry.issues.grouping.fingerprinting import FingerprintRuleJSON
+from sentry.issues.grouping.variants import CustomFingerprintVariant, expose_fingerprint_dict
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
-from tests.sentry.grouping import (
+from tests.sentry.issues.grouping import (
     FULL_PIPELINE_CONFIGS,
     GROUPING_INPUTS_DIR,
     MANUAL_SAVE_CONFIGS,

@@ -7,10 +7,10 @@ from sentry import eventstore, nodestore
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
 from sentry.interfaces.user import User
-from sentry.issues.grouping import ComponentVariant
 from sentry.issues.grouping.api import GroupingConfig, get_grouping_variants_for_event
 from sentry.issues.grouping.enhancer import Enhancements
 from sentry.issues.grouping.utils import hash_from_values
+from sentry.issues.grouping.variants import ComponentVariant
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import Event, GroupEvent

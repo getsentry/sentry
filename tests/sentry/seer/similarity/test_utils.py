@@ -3,8 +3,8 @@ from collections.abc import Callable
 from typing import Any, Literal, cast
 from unittest.mock import MagicMock, patch
 
-from sentry.issues.grouping import CustomFingerprintVariant
 from sentry.issues.grouping.api import get_contributing_variant_and_component
+from sentry.issues.grouping.variants import CustomFingerprintVariant
 from sentry.seer.similarity.utils import (
     BASE64_ENCODED_PREFIXES,
     IGNORED_FILENAMES,

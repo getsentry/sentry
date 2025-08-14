@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 
 from sentry.incidents.grouptype import MetricIssue
-from sentry.issues.grouping import ErrorGroupType
+from sentry.issues.grouping.grouptype import ErrorGroupType
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import WorkflowEventData

@@ -4,14 +4,14 @@ from time import time
 from unittest.mock import MagicMock, patch
 
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
-from sentry.issues.grouping import BaseVariant
 from sentry.issues.grouping.api import GroupingConfig
-from sentry.issues.grouping.ingest import (
+from sentry.issues.grouping.ingest.hashing import (
     _calculate_event_grouping,
     _calculate_primary_hashes_and_variants,
     _calculate_secondary_hashes,
     get_or_create_grouphashes,
 )
+from sentry.issues.grouping.variants import BaseVariant
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
@@ -20,7 +20,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_snuba
-from tests.sentry.grouping import NO_MSG_PARAM_CONFIG
+from tests.sentry.issues.grouping import NO_MSG_PARAM_CONFIG
 
 pytestmark = [requires_snuba]
 

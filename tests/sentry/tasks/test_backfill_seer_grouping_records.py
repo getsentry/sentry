@@ -18,7 +18,7 @@ from sentry import options
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.issues.grouping.enhancer import InvalidEnhancerConfig
+from sentry.issues.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project

@@ -4,8 +4,8 @@ from enum import StrEnum
 from typing import Any, TypedDict, TypeVar
 
 from sentry import options
-from sentry.issues.grouping import BaseVariant, ComponentVariant
 from sentry.issues.grouping.api import get_contributing_variant_and_component
+from sentry.issues.grouping.variants import BaseVariant, ComponentVariant
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
 from sentry.models.project import Project

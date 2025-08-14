@@ -11,7 +11,7 @@ from sentry.api.helpers.group_index.update import handle_priority
 from sentry.constants import LOG_LEVELS_MAP, MAX_CULPRIT_LENGTH
 from sentry.incidents.grouptype import MetricIssueDetectorHandler
 from sentry.incidents.utils.types import AnomalyDetectionUpdate, ProcessedSubscriptionUpdate
-from sentry.issues.grouping import ErrorGroupType
+from sentry.issues.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
     FeedbackGroup,
     GroupCategory,

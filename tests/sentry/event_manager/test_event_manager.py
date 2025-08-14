@@ -41,8 +41,8 @@ from sentry.exceptions import HashDiscarded
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.issues.grouping import ErrorGroupType
 from sentry.issues.grouping.api import GroupingConfig, load_grouping_config
+from sentry.issues.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouping.utils import hash_from_values
 from sentry.issues.grouptype import (
     GroupCategory,

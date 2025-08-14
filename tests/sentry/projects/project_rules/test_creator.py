@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.issues.grouping import ErrorGroupType
+from sentry.issues.grouping.grouptype import ErrorGroupType
 from sentry.locks import locks
 from sentry.models.rule import Rule, RuleSource
 from sentry.projects.project_rules.creator import ProjectRuleCreator

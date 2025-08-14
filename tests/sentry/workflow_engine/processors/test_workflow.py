@@ -5,7 +5,7 @@ import pytest
 from django.utils import timezone
 
 from sentry.eventstream.base import GroupState
-from sentry.issues.grouping import ErrorGroupType
+from sentry.issues.grouping.grouptype import ErrorGroupType
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent

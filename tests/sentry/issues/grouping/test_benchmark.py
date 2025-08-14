@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 
 from sentry.issues.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
-from tests.sentry.grouping import (
+from tests.sentry.issues.grouping import (
     GROUPING_INPUTS_DIR,
     NO_MSG_PARAM_CONFIG,
     GroupingInput,

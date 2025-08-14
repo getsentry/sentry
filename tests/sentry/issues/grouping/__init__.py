@@ -12,7 +12,6 @@ from django.utils.functional import cached_property
 
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
-from sentry.issues.grouping import BaseVariant, FingerprintingRules
 from sentry.issues.grouping.api import (
     GroupingConfig,
     apply_server_side_fingerprinting,
@@ -21,10 +20,12 @@ from sentry.issues.grouping.api import (
 )
 from sentry.issues.grouping.component import BaseGroupingComponent
 from sentry.issues.grouping.enhancer import Enhancements
+from sentry.issues.grouping.fingerprinting import FingerprintingRules
 from sentry.issues.grouping.strategies.configurations import (
     GROUPING_CONFIG_CLASSES,
     register_grouping_config,
 )
+from sentry.issues.grouping.variants import BaseVariant
 from sentry.models.project import Project
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event

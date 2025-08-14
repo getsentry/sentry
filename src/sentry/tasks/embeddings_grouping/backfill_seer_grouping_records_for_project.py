@@ -5,7 +5,7 @@ import sentry_sdk
 
 from sentry import options
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.issues.grouping.enhancer import InvalidEnhancerConfig
+from sentry.issues.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.models.project import Project
 from sentry.seer.similarity.utils import (
     ReferrerOptions,

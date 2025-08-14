@@ -6,7 +6,7 @@ from django.utils import timezone
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import SimpleGroupSerializer
 from sentry.integrations.types import ExternalProviderEnum
-from sentry.issues.grouping import ErrorGroupType
+from sentry.issues.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink

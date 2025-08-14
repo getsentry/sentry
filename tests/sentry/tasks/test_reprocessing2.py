@@ -9,8 +9,8 @@ import pytest
 from sentry.attachments import attachment_cache
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import EventManager
-from sentry.issues.grouping import FingerprintingRules
 from sentry.issues.grouping.enhancer import Enhancements
+from sentry.issues.grouping.fingerprinting import FingerprintingRules
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group

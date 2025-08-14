@@ -9,7 +9,7 @@ import pytest
 
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import _create_group
-from sentry.issues.grouping.ingest import (
+from sentry.issues.grouping.ingest.hashing import (
     _calculate_primary_hashes_and_variants,
     _calculate_secondary_hashes,
     find_grouphash_with_group,
@@ -22,7 +22,7 @@ from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.pytest.mocking import capture_results
 from sentry.testutils.skips import requires_snuba
-from tests.sentry.grouping import NO_MSG_PARAM_CONFIG
+from tests.sentry.issues.grouping import NO_MSG_PARAM_CONFIG
 
 pytestmark = [requires_snuba]
 

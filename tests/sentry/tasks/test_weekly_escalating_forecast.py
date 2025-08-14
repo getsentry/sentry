@@ -6,7 +6,7 @@ from sentry.issues.escalating.escalating_group_forecast import (
     ONE_EVENT_FORECAST,
     EscalatingGroupForecast,
 )
-from sentry.issues.grouping import ErrorGroupType
+from sentry.issues.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import PerformanceP95EndpointRegressionGroupType
 from sentry.models.group import Group, GroupStatus
 from sentry.tasks.weekly_escalating_forecast import run_escalating_forecast

@@ -15,7 +15,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_snuba
-from tests.sentry.grouping import NO_MSG_PARAM_CONFIG
+from tests.sentry.issues.grouping import NO_MSG_PARAM_CONFIG
 
 pytestmark = [requires_snuba]
 

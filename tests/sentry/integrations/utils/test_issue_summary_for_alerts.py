@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.integrations.utils.issue_summary_for_alerts import fetch_issue_summary
-from sentry.issues.grouping import ErrorGroupType
+from sentry.issues.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
