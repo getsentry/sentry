@@ -17,6 +17,7 @@ pip install google-cloud-bigquery
 You need to authenticate with Google Cloud Platform. Choose one of these methods:
 
 #### Option A: Service Account Key (Recommended for local development)
+
 1. Create a service account in your GCP project
 2. Download the JSON key file
 3. Set the environment variable:
@@ -25,7 +26,9 @@ You need to authenticate with Google Cloud Platform. Choose one of these methods
    ```
 
 #### Option B: Application Default Credentials
+
 If running on GCP (Compute Engine, Cloud Run, etc.), you can use the default service account:
+
 ```bash
 gcloud auth application-default login
 ```
@@ -33,6 +36,7 @@ gcloud auth application-default login
 ### 3. Set Project ID
 
 Set your GCP project ID:
+
 ```bash
 export GOOGLE_CLOUD_PROJECT="your-project-id"
 ```
@@ -106,14 +110,14 @@ If you have Sentry data exported to BigQuery, you can analyze:
 Combine Sentry data with other data sources:
 
 ```sql
-SELECT 
+SELECT
     s.project_id,
     s.error_count,
     a.user_count,
     a.session_count
 FROM sentry_data.daily_errors s
 JOIN analytics_data.daily_usage a
-    ON s.project_id = a.project_id 
+    ON s.project_id = a.project_id
     AND s.date = a.date
 WHERE s.date >= '2024-01-01'
 ```
@@ -125,7 +129,7 @@ Query BigQuery data for use in business intelligence tools:
 ```python
 # Export data for Tableau, Looker, etc.
 sql = """
-SELECT 
+SELECT
     DATE(timestamp) as date,
     project_id,
     COUNT(*) as error_count,
@@ -223,7 +227,7 @@ Create BigQuery views for common alert patterns:
 
 ```sql
 CREATE VIEW sentry_analytics.high_error_projects AS
-SELECT 
+SELECT
     project_id,
     COUNT(*) as error_count,
     COUNT(DISTINCT issue_id) as unique_issues
@@ -239,7 +243,7 @@ Track performance metrics over time:
 
 ```sql
 CREATE VIEW sentry_analytics.performance_trends AS
-SELECT 
+SELECT
     DATE(timestamp) as date,
     project_id,
     AVG(CAST(JSON_EXTRACT_SCALAR(measurements, '$.lcp') AS FLOAT64)) as avg_lcp,
@@ -257,6 +261,7 @@ GROUP BY date, project_id
 4. Integrate with your existing data pipeline
 
 For more information, see:
+
 - [BigQuery Documentation](https://cloud.google.com/bigquery/docs)
 - [BigQuery Python Client](https://googleapis.dev/python/bigquery/latest/)
 - [Sentry Data Export Guide](https://docs.sentry.io/product/data-management-settings/export/)
