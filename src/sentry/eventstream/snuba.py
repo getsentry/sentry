@@ -54,6 +54,7 @@ if TYPE_CHECKING:
 #       'project_id': id,
 #       'previous_group_ids': [id2, id2],
 #       'new_group_id': id,
+#       'group_first_seen': timestamp,
 #       'datetime': timestamp,
 #   })
 #   Unmerge: (2, '(start_unmerge|end_unmerge)', {
@@ -229,7 +230,11 @@ class SnubaProtocolEventStream(EventStream):
         )
 
     def start_merge(
-        self, project_id: int, previous_group_ids: Sequence[int], new_group_id: int
+        self,
+        project_id: int,
+        previous_group_ids: Sequence[int],
+        new_group_id: int,
+        new_group_first_seen: datetime | None = None,
     ) -> dict[str, Any]:
         if not previous_group_ids:
             raise ValueError("expected groups to merge!")
@@ -242,13 +247,16 @@ class SnubaProtocolEventStream(EventStream):
             "datetime": json.datetime_to_str(datetime.now(tz=timezone.utc)),
         }
 
+        if new_group_first_seen is not None:
+            state["new_group_first_seen"] = json.datetime_to_str(new_group_first_seen)
+
         self._send(project_id, "start_merge", extra_data=(state,), asynchronous=False)
 
         return state
 
     def end_merge(self, state: Mapping[str, Any]) -> None:
         state_copy: MutableMapping[str, Any] = {**state}
-        state_copy["datetime"] = datetime.now(tz=timezone.utc)
+        state_copy["datetime"] = json.datetime_to_str(datetime.now(tz=timezone.utc))
         self._send(
             state_copy["project_id"], "end_merge", extra_data=(state_copy,), asynchronous=False
         )
