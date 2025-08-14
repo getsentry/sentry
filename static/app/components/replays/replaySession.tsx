@@ -24,7 +24,9 @@ export default function ReplaySession({replay}: Props) {
   if (replay.is_archived) {
     return (
       <Grid columns="24px 1fr" gap="md" align="center" justify="center">
-        <IconDelete color="gray500" size="md" />
+        <Flex align="center" justify="center">
+          <IconDelete color="gray500" size="md" />
+        </Flex>
 
         <Flex direction="column" gap="xs" justify="center">
           <Text size="md" bold>
