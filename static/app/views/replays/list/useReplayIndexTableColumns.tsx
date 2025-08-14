@@ -1,5 +1,3 @@
-import {useMemo} from 'react';
-
 import {
   ReplayActivityColumn,
   ReplayBrowserColumn,
@@ -60,16 +58,14 @@ export default function useReplayIndexTableColumns({
   allMobileProj: boolean;
   tableDimensions: ReturnType<typeof useDimensions>;
 }) {
-  return useMemo(() => {
-    if (allMobileProj) {
-      return MOBILE;
-    }
-    if (tableDimensions.width < 800) {
-      return WEB_MAX_800;
-    }
-    if (tableDimensions.width < 1000) {
-      return WEB_MAX_1000;
-    }
-    return WEB_ALL;
-  }, [allMobileProj, tableDimensions.width]);
+  if (allMobileProj) {
+    return MOBILE;
+  }
+  if (tableDimensions.width < 800) {
+    return WEB_MAX_800;
+  }
+  if (tableDimensions.width < 1000) {
+    return WEB_MAX_1000;
+  }
+  return WEB_ALL;
 }
