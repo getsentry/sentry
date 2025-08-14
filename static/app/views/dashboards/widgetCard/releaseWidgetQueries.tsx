@@ -205,7 +205,7 @@ class ReleaseWidgetQueries extends Component<ReleaseWidgetQueriesProps, State> {
         return;
       }
       this.setState({releases, loading: false});
-    } catch (error) {
+    } catch (error: any) {
       if (!this._isMounted) {
         return;
       }

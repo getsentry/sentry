@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from sentry import buffer
-from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.rules.conditions.event_frequency import ComparisonType, EventFrequencyConditionData
 from sentry.rules.processing.buffer_processing import (
@@ -13,6 +12,7 @@ from sentry.rules.processing.buffer_processing import (
     process_in_batches,
 )
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -272,7 +272,7 @@ class ProcessInBatchesTest(CreateEventTestCase):
 
     @patch("sentry.rules.processing.delayed_processing.apply_delayed.apply_async")
     def test_no_redis_data(self, mock_apply_delayed: MagicMock) -> None:
-        process_in_batches(self.project.id, "delayed_processing")
+        process_in_batches(buffer.backend, self.project.id, "delayed_processing")
         mock_apply_delayed.assert_called_once_with(
             kwargs={"project_id": self.project.id}, headers={"sentry-propagate-traces": False}
         )
@@ -283,7 +283,7 @@ class ProcessInBatchesTest(CreateEventTestCase):
         self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)
 
-        process_in_batches(self.project.id, "delayed_processing")
+        process_in_batches(buffer.backend, self.project.id, "delayed_processing")
         mock_apply_delayed.assert_called_once_with(
             kwargs={"project_id": self.project.id}, headers={"sentry-propagate-traces": False}
         )
@@ -295,7 +295,7 @@ class ProcessInBatchesTest(CreateEventTestCase):
         self.push_to_hash(self.project.id, self.rule.id, self.group_two.id)
         self.push_to_hash(self.project.id, self.rule.id, self.group_three.id)
 
-        process_in_batches(self.project.id, "delayed_processing")
+        process_in_batches(buffer.backend, self.project.id, "delayed_processing")
         assert mock_apply_delayed.call_count == 2
 
         # Validate the batches are created correctly

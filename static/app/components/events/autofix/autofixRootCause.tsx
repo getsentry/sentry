@@ -1,6 +1,6 @@
 import React, {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, type AnimationProps} from 'framer-motion';
+import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import ClippedBox from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -34,7 +34,7 @@ type AutofixRootCauseProps = {
   terminationReason?: string;
 };
 
-const cardAnimationProps: AnimationProps = {
+const cardAnimationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
@@ -170,13 +170,14 @@ function CopyRootCauseButton({
 }) {
   const text = formatRootCauseText(cause, customRootCause);
   return (
-    <CopyToClipboardButton
+    <StyledCopyToClipboardButton
       size="zero"
       text={text}
       borderless
       title="Copy root cause as Markdown"
       analyticsEventName="Autofix: Copy Root Cause as Markdown"
       analyticsEventKey="autofix.root_cause.copy"
+      color="black"
     />
   );
 }
@@ -245,7 +246,7 @@ function AutofixRootCauseDisplay({
             </IconWrapper>
             {t('Root Cause')}
             <ButtonBar gap={'0'}>
-              <ChatButton
+              <Button
                 size="zero"
                 borderless
                 title={t('Chat with Seer')}
@@ -254,7 +255,7 @@ function AutofixRootCauseDisplay({
                 analyticsEventKey="autofix.root_cause.chat"
               >
                 <IconChat />
-              </ChatButton>
+              </Button>
               <CopyRootCauseButton cause={cause} />
             </ButtonBar>
           </HeaderText>
@@ -378,6 +379,6 @@ const AnimationWrapper = styled(motion.div)`
   transform-origin: top center;
 `;
 
-const ChatButton = styled(Button)`
-  color: ${p => p.theme.subText};
+const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
+  color: ${p => p.theme.textColor};
 `;

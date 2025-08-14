@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {useCallback, useMemo} from 'react';
 
+import type {Sort} from 'sentry/utils/discover/fields';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
 import type {Mode} from 'sentry/views/explore/queryParams/mode';
@@ -81,4 +82,9 @@ export function useQueryParamsGroupBys(): readonly string[] {
 export function useQueryParamsTopEventsLimit(): number | undefined {
   const groupBys = useQueryParamsGroupBys();
   return groupBys.every(groupBy => groupBy === '') ? undefined : TOP_EVENTS_LIMIT;
+}
+
+export function useQueryParamsAggregateSortBys(): readonly Sort[] {
+  const queryParams = useQueryParams();
+  return queryParams.aggregateSortBys;
 }

@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, type AnimationProps} from 'framer-motion';
+import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import ClippedBox from 'sentry/components/clippedBox';
@@ -125,7 +125,7 @@ type AutofixSolutionProps = {
   previousInsightCount?: number;
 };
 
-const cardAnimationProps: AnimationProps = {
+const cardAnimationProps: MotionNodeAnimationOptions = {
   exit: {opacity: 0, height: 0, scale: 0.8, y: -20},
   initial: {opacity: 0, height: 0, scale: 0.8},
   animate: {opacity: 1, height: 'auto', scale: 1},
@@ -310,7 +310,7 @@ function CopySolutionButton({
   }
   const text = formatSolutionText(solution, customSolution);
   return (
-    <CopyToClipboardButton
+    <StyledCopyToClipboardButton
       size="zero"
       text={text}
       borderless
@@ -480,7 +480,7 @@ function AutofixSolutionDisplay({
             </HeaderIconWrapper>
             {t('Solution')}
             <ButtonBar gap={'0'}>
-              <ChatButton
+              <Button
                 size="zero"
                 borderless
                 title={t('Chat with Seer')}
@@ -489,7 +489,7 @@ function AutofixSolutionDisplay({
                 analyticsEventKey="autofix.solution.chat"
               >
                 <IconChat />
-              </ChatButton>
+              </Button>
               <CopySolutionButton solution={solution} />
             </ButtonBar>
           </HeaderText>
@@ -710,6 +710,6 @@ const AddInstructionWrapper = styled('div')`
   padding: ${space(1)} ${space(1)} 0 ${space(3)};
 `;
 
-const ChatButton = styled(Button)`
-  color: ${p => p.theme.subText};
+const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
+  color: ${p => p.theme.textColor};
 `;

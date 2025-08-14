@@ -92,7 +92,7 @@ export const PerformanceInteraction = (function () {
           _INTERACTION_SPAN.setAttribute('ui.interaction.finish', 'timeout');
           PerformanceInteraction.finishInteraction(true);
         }, timeout);
-      } catch (e) {
+      } catch (e: any) {
         Sentry.captureMessage(e);
       }
     },
@@ -116,7 +116,7 @@ export const PerformanceInteraction = (function () {
         _INTERACTION_SPAN = null;
 
         return;
-      } catch (e) {
+      } catch (e: any) {
         Sentry.captureMessage(e);
       }
     },
