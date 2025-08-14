@@ -19,6 +19,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+// eslint-disable-next-line no-restricted-imports
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
@@ -38,6 +40,7 @@ type Props = {
   widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
   dashboardFilters?: DashboardFilters;
+  disableTableActions?: boolean;
   disableZoom?: boolean;
   expandNumbers?: boolean;
   isMobile?: boolean;
@@ -69,6 +72,8 @@ type Props = {
   windowWidth?: number;
 };
 
+const WidgetCardChartWithRouter = withSentryRouter(WidgetCardChart);
+
 export function WidgetCardChartContainer({
   organization,
   selection,
@@ -95,6 +100,7 @@ export function WidgetCardChartContainer({
   showLoadingText,
   onWidgetTableSort,
   onWidgetTableResizeColumn,
+  disableTableActions,
 }: Props) {
   const location = useLocation();
   const theme = useTheme();
@@ -177,6 +183,7 @@ export function WidgetCardChartContainer({
                 theme={theme}
                 organization={organization}
                 onWidgetTableResizeColumn={onWidgetTableResizeColumn}
+                disableTableActions={disableTableActions}
               />
             </Fragment>
           );
@@ -187,13 +194,12 @@ export function WidgetCardChartContainer({
             {typeof renderErrorMessage === 'function'
               ? renderErrorMessage(errorOrEmptyMessage)
               : null}
-            <WidgetCardChart
+            <WidgetCardChartWithRouter
               disableZoom={disableZoom}
               timeseriesResults={modifiedTimeseriesResults}
               tableResults={tableResults}
               errorMessage={errorOrEmptyMessage}
               loading={loading}
-              location={location}
               widget={widget}
               selection={selection}
               organization={organization}
@@ -223,6 +229,8 @@ export function WidgetCardChartContainer({
               theme={theme}
               onWidgetTableSort={onWidgetTableSort}
               onWidgetTableResizeColumn={onWidgetTableResizeColumn}
+              disableTableActions={disableTableActions}
+              dashboardFilters={dashboardFilters}
             />
           </Fragment>
         );

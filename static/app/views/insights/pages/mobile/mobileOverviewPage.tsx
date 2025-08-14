@@ -38,6 +38,7 @@ import {
   type ValidSort,
 } from 'sentry/views/insights/pages/mobile/mobileOverviewTable';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
+import {Referrer} from 'sentry/views/insights/pages/mobile/referrers';
 import {
   DEFAULT_SORT,
   MOBILE_LANDING_TITLE,
@@ -208,7 +209,7 @@ function EAPMobileOverviewPage() {
         'sum(span.duration)',
       ],
     },
-    'api.performance.landing-table'
+    Referrer.MOBILE_LANDING_TABLE
   );
 
   const searchBarProjectsIds = [...selectedMobileProjects, ...selectedOtherProjects].map(
