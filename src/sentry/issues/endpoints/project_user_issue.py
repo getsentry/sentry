@@ -10,7 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.grouping.grouptype import ErrorGroupType
+from sentry.issues.grouping import ErrorGroupType
 from sentry.issues.grouptype import GroupType, WebVitalsGroup
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka

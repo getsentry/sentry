@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import sentry_sdk
 
 from sentry.exceptions import HashDiscarded
-from sentry.grouping.api import (
+from sentry.issues.grouping.api import (
     NULL_GROUPING_CONFIG,
     BackgroundGroupingConfigLoader,
     GroupingConfig,
@@ -18,13 +18,13 @@ from sentry.grouping.api import (
     get_grouping_config_dict_for_project,
     load_grouping_config,
 )
-from sentry.grouping.ingest.config import is_in_transition
-from sentry.grouping.ingest.grouphash_metadata import (
+from sentry.issues.grouping.ingest.config import is_in_transition
+from sentry.issues.grouping.ingest.grouphash_metadata import (
     create_or_update_grouphash_metadata_if_needed,
     record_grouphash_metadata_metrics,
     should_handle_grouphash_metadata,
 )
-from sentry.grouping.variants import BaseVariant
+from sentry.issues.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.options.rollout import in_random_rollout

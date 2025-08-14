@@ -2,7 +2,10 @@ from typing import Any
 
 import pytest
 
-from sentry.grouping.strategies.base import GroupingContext, create_strategy_configuration_class
+from sentry.issues.grouping.strategies.base import (
+    GroupingContext,
+    create_strategy_configuration_class,
+)
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event

@@ -9,12 +9,12 @@ import pytest
 
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import _create_group
-from sentry.grouping.ingest.hashing import (
+from sentry.issues.grouping.ingest import (
     _calculate_primary_hashes_and_variants,
     _calculate_secondary_hashes,
     find_grouphash_with_group,
 )
-from sentry.grouping.ingest.metrics import record_hash_calculation_metrics
+from sentry.issues.grouping.ingest.metrics import record_hash_calculation_metrics
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event

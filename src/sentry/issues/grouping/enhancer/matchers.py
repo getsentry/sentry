@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any, Literal, Self, TypedDict
 
-from sentry.grouping.utils import bool_from_string
+from sentry.issues.grouping.utils import bool_from_string
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils import metrics

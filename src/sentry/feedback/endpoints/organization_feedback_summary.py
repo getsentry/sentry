@@ -15,7 +15,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationUserReportsPermission
 from sentry.api.utils import get_date_range_from_stats_period
 from sentry.exceptions import InvalidParams
-from sentry.grouping.utils import hash_from_values
+from sentry.issues.grouping.utils import hash_from_values
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization

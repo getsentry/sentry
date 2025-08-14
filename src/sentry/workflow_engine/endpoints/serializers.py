@@ -13,7 +13,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse, SimpleGroupSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.grouping.grouptype import ErrorGroupType
+from sentry.issues.grouping import ErrorGroupType
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS

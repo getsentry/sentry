@@ -2,18 +2,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from sentry.grouping.component import (
+from sentry.interfaces.template import Template
+from sentry.issues.grouping.component import (
     ContextLineGroupingComponent,
     FilenameGroupingComponent,
     TemplateGroupingComponent,
 )
-from sentry.grouping.strategies.base import (
+from sentry.issues.grouping.strategies.base import (
     GroupingContext,
     ReturnedVariants,
     produces_variants,
     strategy,
 )
-from sentry.interfaces.template import Template
 
 if TYPE_CHECKING:
     from sentry.services.eventstore.models import Event

@@ -7,9 +7,9 @@ from django.utils import timezone
 
 from sentry import buffer
 from sentry.eventstream.types import EventStreamEventType
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.issues.grouping import ErrorGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.group import Group
 from sentry.rules.match import MatchType

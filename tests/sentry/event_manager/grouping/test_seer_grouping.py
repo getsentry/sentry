@@ -4,8 +4,13 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
-from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata_if_needed
-from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
+from sentry.issues.grouping.ingest.grouphash_metadata import (
+    create_or_update_grouphash_metadata_if_needed,
+)
+from sentry.issues.grouping.ingest.seer import (
+    get_seer_similar_issues,
+    should_call_seer_for_grouping,
+)
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.types import SeerSimilarIssueData
 from sentry.testutils.cases import TestCase

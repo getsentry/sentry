@@ -4,18 +4,18 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict
 
-from sentry.grouping.component import (
+from sentry.issues.grouping.component import (
     AppGroupingComponent,
     ContributingComponent,
     DefaultGroupingComponent,
     SystemGroupingComponent,
 )
-from sentry.grouping.fingerprinting import FingerprintRule
-from sentry.grouping.utils import hash_from_values, is_default_fingerprint_var
+from sentry.issues.grouping.fingerprinting import FingerprintRule
+from sentry.issues.grouping.utils import hash_from_values, is_default_fingerprint_var
 
 if TYPE_CHECKING:
-    from sentry.grouping.api import FingerprintInfo
-    from sentry.grouping.strategies.base import StrategyConfiguration
+    from sentry.issues.grouping.api import FingerprintInfo
+    from sentry.issues.grouping.strategies.base import StrategyConfiguration
 
 
 class FingerprintVariantMetadata(TypedDict):

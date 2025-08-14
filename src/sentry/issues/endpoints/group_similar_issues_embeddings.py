@@ -13,7 +13,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.grouping.grouping_info import get_grouping_info_from_variants
+from sentry.issues.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer

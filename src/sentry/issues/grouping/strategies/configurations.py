@@ -1,4 +1,4 @@
-from sentry.grouping.strategies.base import (
+from sentry.issues.grouping.strategies.base import (
     StrategyConfiguration,
     create_strategy_configuration_class,
 )

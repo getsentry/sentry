@@ -5,7 +5,9 @@ from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
-from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata_if_needed
+from sentry.issues.grouping.ingest.grouphash_metadata import (
+    create_or_update_grouphash_metadata_if_needed,
+)
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GROUPHASH_METADATA_SCHEMA_VERSION, HashBasis
 from sentry.services.eventstore.models import Event

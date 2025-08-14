@@ -13,8 +13,8 @@ from datetime import datetime
 from typing import Any, TypeIs, cast
 
 from sentry import options
-from sentry.grouping.api import get_contributing_variant_and_component
-from sentry.grouping.component import (
+from sentry.issues.grouping.api import get_contributing_variant_and_component
+from sentry.issues.grouping.component import (
     ChainedExceptionGroupingComponent,
     CSPGroupingComponent,
     ExceptionGroupingComponent,
@@ -26,7 +26,7 @@ from sentry.grouping.component import (
     TemplateGroupingComponent,
     ThreadsGroupingComponent,
 )
-from sentry.grouping.variants import (
+from sentry.issues.grouping.variants import (
     BaseVariant,
     ChecksumVariant,
     ComponentVariant,

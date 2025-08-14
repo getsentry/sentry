@@ -3,14 +3,14 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any
 
-from sentry.grouping.component import BaseGroupingComponent
-from sentry.grouping.enhancer.matchers import MatchFrame
+from sentry.issues.grouping.component import BaseGroupingComponent
+from sentry.issues.grouping.enhancer.matchers import MatchFrame
 from sentry.utils.safe import get_path, set_path
 
 from .exceptions import InvalidEnhancerConfig
 
 if TYPE_CHECKING:
-    from sentry.grouping.enhancer.rules import EnhancementRule
+    from sentry.issues.grouping.enhancer.rules import EnhancementRule
 
 ACTIONS = ["group", "app"]
 ACTION_BITSIZE = 8

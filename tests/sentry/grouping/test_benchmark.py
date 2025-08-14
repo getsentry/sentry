@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from sentry.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
+from sentry.issues.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
 from tests.sentry.grouping import (
     GROUPING_INPUTS_DIR,
     NO_MSG_PARAM_CONFIG,

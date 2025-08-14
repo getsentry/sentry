@@ -11,11 +11,11 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 
 from sentry.constants import ObjectStatus
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.issues.grouping import ErrorGroupType
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus

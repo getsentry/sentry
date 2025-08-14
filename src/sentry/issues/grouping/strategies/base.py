@@ -3,18 +3,22 @@ from __future__ import annotations
 from collections.abc import Callable, Iterator, Sequence
 from typing import TYPE_CHECKING, Any, Generic, Protocol, Self, TypeVar, overload
 
-from sentry.grouping.component import (
+from sentry.interfaces.base import Interface
+from sentry.interfaces.exception import SingleException
+from sentry.interfaces.stacktrace import Frame, Stacktrace
+from sentry.issues.grouping.component import (
     BaseGroupingComponent,
     ExceptionGroupingComponent,
     FrameGroupingComponent,
     StacktraceGroupingComponent,
 )
-from sentry.grouping.enhancer import DEFAULT_ENHANCEMENTS_BASE, ENHANCEMENT_BASES, Enhancements
-from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.fingerprinting import DEFAULT_GROUPING_FINGERPRINTING_BASES
-from sentry.interfaces.base import Interface
-from sentry.interfaces.exception import SingleException
-from sentry.interfaces.stacktrace import Frame, Stacktrace
+from sentry.issues.grouping.enhancer import (
+    DEFAULT_ENHANCEMENTS_BASE,
+    ENHANCEMENT_BASES,
+    Enhancements,
+)
+from sentry.issues.grouping.enhancer.exceptions import InvalidEnhancerConfig
+from sentry.issues.grouping.fingerprinting import DEFAULT_GROUPING_FINGERPRINTING_BASES
 
 if TYPE_CHECKING:
     from sentry.services.eventstore.models import Event

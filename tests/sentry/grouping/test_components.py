@@ -1,7 +1,7 @@
 from collections import Counter
 from typing import Any
 
-from sentry.grouping.component import (
+from sentry.issues.grouping.component import (
     BaseGroupingComponent,
     ChainedExceptionGroupingComponent,
     ExceptionGroupingComponent,

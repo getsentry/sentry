@@ -6,7 +6,7 @@ from collections.abc import Generator, Iterator, Sequence
 from functools import cached_property
 from typing import Any
 
-from sentry.grouping.utils import hash_from_values
+from sentry.issues.grouping.utils import hash_from_values
 
 # When a component ID appears here it has a human readable name which also
 # makes it a major component.  A major component is described as such for

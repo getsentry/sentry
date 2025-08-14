@@ -10,7 +10,7 @@ from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor, RegexNode
 
-from sentry.grouping.utils import (
+from sentry.issues.grouping.utils import (
     DEFAULT_FINGERPRINT_VARIABLE,
     bool_from_string,
     is_default_fingerprint_var,

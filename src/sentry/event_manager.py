@@ -49,35 +49,38 @@ from sentry.eventstream.base import GroupState
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
-from sentry.grouping.api import (
-    NULL_GROUPHASH_INFO,
-    GroupHashInfo,
-    GroupingConfig,
-    get_grouping_config_dict_for_project,
-)
-from sentry.grouping.enhancer import get_enhancements_version
-from sentry.grouping.grouptype import ErrorGroupType
-from sentry.grouping.ingest.config import is_in_transition, update_or_set_grouping_config_if_needed
-from sentry.grouping.ingest.hashing import (
-    find_grouphash_with_group,
-    get_or_create_grouphashes,
-    maybe_run_background_grouping,
-    maybe_run_secondary_grouping,
-    run_primary_grouping,
-)
-from sentry.grouping.ingest.metrics import record_hash_calculation_metrics, record_new_group_metrics
-from sentry.grouping.ingest.seer import maybe_check_seer_for_matching_grouphash
-from sentry.grouping.ingest.utils import (
-    add_group_id_to_grouphashes,
-    check_for_group_creation_load_shed,
-    is_non_error_type_group,
-)
-from sentry.grouping.variants import BaseVariant
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer.datasource.redis import (
     record_transaction_name as record_transaction_name_for_clustering,
 )
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
+from sentry.issues.grouping import BaseVariant, ErrorGroupType
+from sentry.issues.grouping.api import (
+    NULL_GROUPHASH_INFO,
+    GroupHashInfo,
+    GroupingConfig,
+    get_grouping_config_dict_for_project,
+)
+from sentry.issues.grouping.enhancer import get_enhancements_version
+from sentry.issues.grouping.ingest import (
+    find_grouphash_with_group,
+    get_or_create_grouphashes,
+    is_in_transition,
+    maybe_run_background_grouping,
+    maybe_run_secondary_grouping,
+    run_primary_grouping,
+    update_or_set_grouping_config_if_needed,
+)
+from sentry.issues.grouping.ingest.metrics import (
+    record_hash_calculation_metrics,
+    record_new_group_metrics,
+)
+from sentry.issues.grouping.ingest.seer import maybe_check_seer_for_matching_grouphash
+from sentry.issues.grouping.ingest.utils import (
+    add_group_id_to_grouphashes,
+    check_for_group_creation_load_shed,
+    is_non_error_type_group,
+)
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context

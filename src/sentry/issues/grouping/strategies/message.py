@@ -3,15 +3,15 @@ from __future__ import annotations
 from itertools import islice
 from typing import TYPE_CHECKING, Any
 
-from sentry.grouping.component import MessageGroupingComponent
-from sentry.grouping.parameterization import Parameterizer
-from sentry.grouping.strategies.base import (
+from sentry.interfaces.message import Message
+from sentry.issues.grouping.component import MessageGroupingComponent
+from sentry.issues.grouping.parameterization import Parameterizer
+from sentry.issues.grouping.strategies.base import (
     GroupingContext,
     ReturnedVariants,
     produces_variants,
     strategy,
 )
-from sentry.interfaces.message import Message
 from sentry.options.rollout import in_rollout_group
 from sentry.utils import metrics
 

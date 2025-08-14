@@ -7,9 +7,9 @@ from sentry import audit_log
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.issues.grouping import ErrorGroupType
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset

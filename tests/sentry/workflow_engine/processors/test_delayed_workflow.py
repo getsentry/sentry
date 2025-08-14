@@ -6,7 +6,7 @@ import pytest
 from django.utils import timezone
 
 from sentry import buffer
-from sentry.grouping.grouptype import ErrorGroupType
+from sentry.issues.grouping import ErrorGroupType
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project

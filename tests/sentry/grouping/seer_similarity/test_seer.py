@@ -2,7 +2,7 @@ from time import time
 from unittest.mock import ANY, MagicMock, patch
 
 from sentry import options
-from sentry.grouping.ingest.seer import maybe_check_seer_for_matching_grouphash
+from sentry.issues.grouping.ingest.seer import maybe_check_seer_for_matching_grouphash
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.utils import MAX_FRAME_COUNT
 from sentry.services.eventstore.models import Event

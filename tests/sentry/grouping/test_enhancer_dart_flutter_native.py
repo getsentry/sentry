@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sentry.grouping.enhancer import ENHANCEMENT_BASES
+from sentry.issues.grouping.enhancer import ENHANCEMENT_BASES
 from sentry.testutils.cases import TestCase
 
 

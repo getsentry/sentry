@@ -4,9 +4,9 @@ from unittest.mock import MagicMock, patch
 
 from sentry.deletions.models.scheduleddeletion import RegionScheduledDeletion
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import ExternalProviders
+from sentry.issues.grouping import ErrorGroupType
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
 from sentry.models.options.project_option import ProjectOption

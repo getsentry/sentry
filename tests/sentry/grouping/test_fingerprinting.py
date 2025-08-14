@@ -3,10 +3,9 @@ from typing import Any
 import pytest
 
 from sentry.db.models.fields.node import NodeData
-from sentry.grouping.api import get_default_grouping_config_dict
-from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
-from sentry.grouping.utils import resolve_fingerprint_values
-from sentry.grouping.variants import BaseVariant
+from sentry.issues.grouping import BaseVariant, FingerprintingRules, InvalidFingerprintingConfig
+from sentry.issues.grouping.api import get_default_grouping_config_dict
+from sentry.issues.grouping.utils import resolve_fingerprint_values
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from tests.sentry.grouping import FingerprintInput, with_fingerprint_input
 

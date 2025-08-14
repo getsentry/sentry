@@ -8,8 +8,8 @@ from django.utils import timezone
 
 from sentry import options
 from sentry.exceptions import InvalidSearchQuery
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
+from sentry.issues.grouping import ErrorGroupType
 from sentry.issues.grouptype import (
     FeedbackGroup,
     NoiseConfig,

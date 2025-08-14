@@ -1,4 +1,4 @@
-from sentry.grouping.strategies.base import ReturnedVariants
+from sentry.issues.grouping.strategies.base import ReturnedVariants
 
 
 def remove_non_stacktrace_variants(variants: ReturnedVariants) -> ReturnedVariants:

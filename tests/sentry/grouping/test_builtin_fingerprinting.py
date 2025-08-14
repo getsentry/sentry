@@ -7,16 +7,16 @@ from unittest import mock
 import pytest
 
 from sentry.event_manager import EventManager, get_event_type, materialize_metadata
-from sentry.grouping.api import (
-    apply_server_side_fingerprinting,
-    get_default_grouping_config_dict,
-    get_fingerprinting_config_for_project,
-)
-from sentry.grouping.fingerprinting import (
+from sentry.issues.grouping import (
     FINGERPRINTING_BASES,
     BuiltInFingerprintingRules,
     FingerprintingRules,
     _load_configs,
+)
+from sentry.issues.grouping.api import (
+    apply_server_side_fingerprinting,
+    get_default_grouping_config_dict,
+    get_fingerprinting_config_for_project,
 )
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event

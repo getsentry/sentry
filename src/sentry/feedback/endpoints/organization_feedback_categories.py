@@ -20,7 +20,7 @@ from sentry.feedback.lib.label_query import (
     query_recent_feedbacks_with_ai_labels,
     query_top_ai_labels_by_feedback_count,
 )
-from sentry.grouping.utils import hash_from_values
+from sentry.issues.grouping.utils import hash_from_values
 from sentry.models.organization import Organization
 from sentry.seer.seer_setup import has_seer_access
 from sentry.seer.signed_seer_api import sign_with_seer_secret

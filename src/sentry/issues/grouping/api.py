@@ -9,29 +9,30 @@ import sentry_sdk
 
 from sentry import options
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
-from sentry.grouping.component import (
+from sentry.issues.auto_source_code_config.constants import DERIVED_ENHANCEMENTS_OPTION_KEY
+from sentry.issues.grouping.component import (
     AppGroupingComponent,
     BaseGroupingComponent,
     ContributingComponent,
     DefaultGroupingComponent,
     SystemGroupingComponent,
 )
-from sentry.grouping.enhancer import (
+from sentry.issues.grouping.enhancer import (
     DEFAULT_ENHANCEMENTS_BASE,
     Enhancements,
     get_enhancements_version,
 )
-from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
-from sentry.grouping.strategies.base import GroupingContext
-from sentry.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
-from sentry.grouping.utils import (
+from sentry.issues.grouping.enhancer.exceptions import InvalidEnhancerConfig
+from sentry.issues.grouping.strategies.base import GroupingContext
+from sentry.issues.grouping.strategies.configurations import GROUPING_CONFIG_CLASSES
+from sentry.issues.grouping.utils import (
     expand_title_template,
     get_fingerprint_type,
     hash_from_values,
     is_default_fingerprint_var,
     resolve_fingerprint_values,
 )
-from sentry.grouping.variants import (
+from sentry.issues.grouping.variants import (
     BaseVariant,
     BuiltInFingerprintVariant,
     ChecksumVariant,
@@ -41,14 +42,13 @@ from sentry.grouping.variants import (
     HashedChecksumVariant,
     SaltedComponentVariant,
 )
-from sentry.issues.auto_source_code_config.constants import DERIVED_ENHANCEMENTS_OPTION_KEY
 from sentry.models.grouphash import GroupHash
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
-    from sentry.grouping.fingerprinting import FingerprintingRules, FingerprintRuleJSON
-    from sentry.grouping.strategies.base import StrategyConfiguration
+    from sentry.issues.grouping.fingerprinting import FingerprintingRules, FingerprintRuleJSON
+    from sentry.issues.grouping.strategies.base import StrategyConfiguration
     from sentry.models.project import Project
     from sentry.services.eventstore.models import Event
 
@@ -238,7 +238,10 @@ def get_fingerprinting_config_for_project(
     Merges the project's custom fingerprinting rules (if any) with the default built-in rules.
     """
 
-    from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
+    from sentry.issues.grouping.fingerprinting import (
+        FingerprintingRules,
+        InvalidFingerprintingConfig,
+    )
 
     bases = _get_default_fingerprinting_bases_for_project(project, config_id=config_id)
     raw_rules = project.get_option("sentry:fingerprinting_rules")

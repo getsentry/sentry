@@ -5,7 +5,7 @@ from django.db import IntegrityError
 from django.db.models.signals import post_save
 
 from sentry import features
-from sentry.grouping.grouptype import ErrorGroupType
+from sentry.issues.grouping import ErrorGroupType
 from sentry.models.project import Project
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.types import ERROR_DETECTOR_NAME

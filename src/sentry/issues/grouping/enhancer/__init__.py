@@ -17,7 +17,7 @@ from sentry_ophio.enhancers import Cache as RustCache
 from sentry_ophio.enhancers import Component as RustFrame
 from sentry_ophio.enhancers import Enhancements as RustEnhancements
 
-from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
+from sentry.issues.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
 from sentry.models.project import Project
 from sentry.stacktraces.functions import set_in_app
 from sentry.utils import metrics

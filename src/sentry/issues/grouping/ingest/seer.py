@@ -9,12 +9,12 @@ from django.utils import timezone
 from sentry import options
 from sentry import ratelimits as ratelimiter
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
-from sentry.grouping.grouping_info import get_grouping_info_from_variants
-from sentry.grouping.ingest.grouphash_metadata import (
+from sentry.issues.grouping.grouping_info import get_grouping_info_from_variants
+from sentry.issues.grouping.ingest.grouphash_metadata import (
     check_grouphashes_for_positive_fingerprint_match,
 )
-from sentry.grouping.utils import get_fingerprint_type
-from sentry.grouping.variants import BaseVariant
+from sentry.issues.grouping.utils import get_fingerprint_type
+from sentry.issues.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer

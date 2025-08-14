@@ -5,8 +5,8 @@ from typing import Literal
 
 import pytest
 
-from sentry.grouping.component import FrameGroupingComponent
-from sentry.grouping.enhancer import _combine_hints, _get_hint_for_frame
+from sentry.issues.grouping.component import FrameGroupingComponent
+from sentry.issues.grouping.enhancer import _combine_hints, _get_hint_for_frame
 
 
 @dataclass

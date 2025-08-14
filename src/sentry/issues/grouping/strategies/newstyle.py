@@ -7,7 +7,11 @@ from collections import Counter
 from collections.abc import Generator
 from typing import TYPE_CHECKING, Any
 
-from sentry.grouping.component import (
+from sentry.interfaces.exception import Exception as ChainedException
+from sentry.interfaces.exception import Mechanism, SingleException
+from sentry.interfaces.stacktrace import Frame, Stacktrace
+from sentry.interfaces.threads import Threads
+from sentry.issues.grouping.component import (
     ChainedExceptionGroupingComponent,
     ContextLineGroupingComponent,
     ErrorTypeGroupingComponent,
@@ -21,19 +25,15 @@ from sentry.grouping.component import (
     StacktraceGroupingComponent,
     ThreadsGroupingComponent,
 )
-from sentry.grouping.strategies.base import (
+from sentry.issues.grouping.strategies.base import (
     GroupingContext,
     ReturnedVariants,
     call_with_variants,
     strategy,
 )
-from sentry.grouping.strategies.message import normalize_message_for_grouping
-from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
-from sentry.grouping.utils import hash_from_values
-from sentry.interfaces.exception import Exception as ChainedException
-from sentry.interfaces.exception import Mechanism, SingleException
-from sentry.interfaces.stacktrace import Frame, Stacktrace
-from sentry.interfaces.threads import Threads
+from sentry.issues.grouping.strategies.message import normalize_message_for_grouping
+from sentry.issues.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
+from sentry.issues.grouping.utils import hash_from_values
 from sentry.stacktraces.platform import get_behavior_family_for_platform
 from sentry.utils.safe import get_path
 

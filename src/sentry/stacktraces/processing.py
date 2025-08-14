@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 op = "stacktrace_processing"
 
 if TYPE_CHECKING:
-    from sentry.grouping.strategies.base import StrategyConfiguration
+    from sentry.issues.grouping.strategies.base import StrategyConfiguration
 
 
 class StacktraceInfo(NamedTuple):

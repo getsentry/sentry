@@ -5,8 +5,8 @@ from collections.abc import MutableMapping
 from typing import TYPE_CHECKING, Any
 
 from sentry import options
-from sentry.grouping.api import GroupingConfig
-from sentry.grouping.ingest.config import is_in_transition
+from sentry.issues.grouping.api import GroupingConfig
+from sentry.issues.grouping.ingest.config import is_in_transition
 from sentry.models.project import Project
 from sentry.utils import metrics
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event

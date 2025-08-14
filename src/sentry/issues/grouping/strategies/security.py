@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from sentry.grouping.component import (
+from sentry.interfaces.security import Csp, ExpectCT, ExpectStaple, Hpkp
+from sentry.issues.grouping.component import (
     CSPGroupingComponent,
     ExpectCTGroupingComponent,
     ExpectStapleGroupingComponent,
@@ -12,13 +13,12 @@ from sentry.grouping.component import (
     URIGroupingComponent,
     ViolationGroupingComponent,
 )
-from sentry.grouping.strategies.base import (
+from sentry.issues.grouping.strategies.base import (
     GroupingContext,
     ReturnedVariants,
     produces_variants,
     strategy,
 )
-from sentry.interfaces.security import Csp, ExpectCT, ExpectStaple, Hpkp
 
 if TYPE_CHECKING:
     from sentry.services.eventstore.models import Event

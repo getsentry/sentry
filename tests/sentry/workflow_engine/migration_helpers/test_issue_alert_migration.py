@@ -4,7 +4,7 @@ import pytest
 from jsonschema.exceptions import ValidationError
 
 from sentry.constants import ObjectStatus
-from sentry.grouping.grouptype import ErrorGroupType
+from sentry.issues.grouping import ErrorGroupType
 from sentry.models.rule import RuleSource
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.age import AgeComparisonType

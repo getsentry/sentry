@@ -1,7 +1,7 @@
 import pytest
 
-from sentry.grouping.parameterization import Parameterizer
-from sentry.grouping.strategies.message import REGEX_PATTERN_KEYS
+from sentry.issues.grouping.parameterization import Parameterizer
+from sentry.issues.grouping.strategies.message import REGEX_PATTERN_KEYS
 
 
 @pytest.fixture

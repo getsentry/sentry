@@ -4,9 +4,9 @@ import orjson
 from django.urls import reverse
 
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
-from sentry.grouping.api import _load_default_grouping_config, load_grouping_config
-from sentry.grouping.grouping_info import get_grouping_info
 from sentry.interfaces.stacktrace import StacktraceOrder
+from sentry.issues.grouping.api import _load_default_grouping_config, load_grouping_config
+from sentry.issues.grouping.grouping_info import get_grouping_info
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba

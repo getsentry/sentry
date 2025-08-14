@@ -1,8 +1,8 @@
 import logging
 from typing import Any
 
-from sentry.grouping.strategies.base import StrategyConfiguration
-from sentry.grouping.variants import BaseVariant
+from sentry.issues.grouping.strategies.base import StrategyConfiguration
+from sentry.issues.grouping.variants import BaseVariant
 from sentry.models.project import Project
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics

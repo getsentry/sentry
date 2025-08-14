@@ -18,9 +18,9 @@ from django.utils.functional import cached_property
 
 from sentry import eventtypes
 from sentry.db.models import NodeData
-from sentry.grouping.api import get_grouping_config_dict_for_project
-from sentry.grouping.variants import BaseVariant
 from sentry.interfaces.base import Interface, get_interfaces
+from sentry.issues.grouping import BaseVariant
+from sentry.issues.grouping.api import get_grouping_config_dict_for_project
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.event import EventDict
@@ -37,9 +37,9 @@ EVENTSTREAM_PRUNED_KEYS = ("debug_meta", "_meta")
 SEARCH_MESSAGE_SKIPPED_KEYS = frozenset(["in_app_frame_mix"])
 
 if TYPE_CHECKING:
-    from sentry.grouping.api import GroupingConfig
-    from sentry.grouping.strategies.base import StrategyConfiguration
     from sentry.interfaces.user import User
+    from sentry.issues.grouping.api import GroupingConfig
+    from sentry.issues.grouping.strategies.base import StrategyConfiguration
     from sentry.models.environment import Environment
     from sentry.models.group import Group
     from sentry.models.organization import Organization
@@ -416,13 +416,13 @@ class BaseEvent(metaclass=abc.ABCMeta):
         means that after calling that function the event data has been modified
         in place.
         """
-        from sentry.grouping.api import get_grouping_variants_for_event, load_grouping_config
+        from sentry.issues.grouping.api import get_grouping_variants_for_event, load_grouping_config
 
         # Forcing configs has two separate modes.  One is where just the
         # config ID is given in which case it's merged with the stored or
         # default config dictionary
         if force_config is not None:
-            from sentry.grouping.strategies.base import StrategyConfiguration
+            from sentry.issues.grouping.strategies.base import StrategyConfiguration
 
             if isinstance(force_config, str):
                 # A string like `"newstyle:YYYY-MM-DD"`

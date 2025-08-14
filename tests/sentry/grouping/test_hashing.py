@@ -4,14 +4,14 @@ from time import time
 from unittest.mock import MagicMock, patch
 
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
-from sentry.grouping.api import GroupingConfig
-from sentry.grouping.ingest.hashing import (
+from sentry.issues.grouping import BaseVariant
+from sentry.issues.grouping.api import GroupingConfig
+from sentry.issues.grouping.ingest import (
     _calculate_event_grouping,
     _calculate_primary_hashes_and_variants,
     _calculate_secondary_hashes,
     get_or_create_grouphashes,
 )
-from sentry.grouping.variants import BaseVariant
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project

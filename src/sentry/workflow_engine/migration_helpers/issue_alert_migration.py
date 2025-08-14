@@ -6,7 +6,7 @@ from rest_framework import status
 
 from sentry.api.exceptions import SentryAPIException
 from sentry.constants import ObjectStatus
-from sentry.grouping.grouptype import ErrorGroupType
+from sentry.issues.grouping import ErrorGroupType
 from sentry.locks import locks
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource

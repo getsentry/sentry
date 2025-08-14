@@ -38,12 +38,12 @@ from sentry.event_manager import (
     save_grouphash_and_group,
 )
 from sentry.exceptions import HashDiscarded
-from sentry.grouping.api import GroupingConfig, load_grouping_config
-from sentry.grouping.grouptype import ErrorGroupType
-from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.grouping import ErrorGroupType
+from sentry.issues.grouping.api import GroupingConfig, load_grouping_config
+from sentry.issues.grouping.utils import hash_from_values
 from sentry.issues.grouptype import (
     GroupCategory,
     PerformanceNPlusOneGroupType,
@@ -1138,7 +1138,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event1.culprit == "foobar"
 
     def test_culprit_after_stacktrace_processing(self) -> None:
-        from sentry.grouping.enhancer import Enhancements
+        from sentry.issues.grouping.enhancer import Enhancements
 
         enhancements_str = Enhancements.from_rules_text(
             """
@@ -2461,7 +2461,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         Regression test to ensure that grouping in-app enhancements work in
         principle.
         """
-        from sentry.grouping.enhancer import Enhancements
+        from sentry.issues.grouping.enhancer import Enhancements
 
         enhancements_str = Enhancements.from_rules_text(
             """
@@ -2537,7 +2537,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         Regression test to ensure categories are applied consistently and don't
         produce hash mismatches.
         """
-        from sentry.grouping.enhancer import Enhancements
+        from sentry.issues.grouping.enhancer import Enhancements
 
         enhancements_str = Enhancements.from_rules_text(
             """

@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.grouping.grouptype import ErrorGroupType
+from sentry.issues.grouping import ErrorGroupType
 from sentry.models.rule import Rule
 from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.rules.conditions.event_frequency import EventFrequencyCondition

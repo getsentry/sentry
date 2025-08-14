@@ -11,8 +11,8 @@ from sentry import audit_log
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG, SENTRY_GROUPING_CONFIG_TRANSITION_DURATION
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
-from sentry.grouping.api import get_grouping_config_dict_for_project
-from sentry.grouping.ingest.config import update_or_set_grouping_config_if_needed
+from sentry.issues.grouping.api import get_grouping_config_dict_for_project
+from sentry.issues.grouping.ingest import update_or_set_grouping_config_if_needed
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption

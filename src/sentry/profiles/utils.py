@@ -12,7 +12,7 @@ from django.http import HttpResponse as SentryResponse
 from urllib3.connectionpool import ConnectionPool
 from urllib3.response import HTTPResponse as VroomResponse
 
-from sentry.grouping.enhancer import Enhancements, keep_profiling_rules
+from sentry.issues.grouping.enhancer import Enhancements, keep_profiling_rules
 from sentry.net.http import connection_from_url
 from sentry.utils import json, metrics
 from sentry.utils.sdk import set_span_attribute

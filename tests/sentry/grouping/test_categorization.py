@@ -56,8 +56,8 @@ from typing import Any
 import pytest
 from django.utils.functional import cached_property
 
-from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
-from sentry.grouping.strategies.base import StrategyConfiguration
+from sentry.issues.grouping.api import get_default_grouping_config_dict, load_grouping_config
+from sentry.issues.grouping.strategies.base import StrategyConfiguration
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.testutils.pytest.fixtures import InstaSnapshotter
 from sentry.utils.safe import get_path

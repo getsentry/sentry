@@ -1,6 +1,6 @@
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
-from sentry.grouping.api import _load_default_grouping_config
-from sentry.grouping.grouping_info import get_grouping_info
+from sentry.issues.grouping.api import _load_default_grouping_config
+from sentry.issues.grouping.grouping_info import get_grouping_info
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 
