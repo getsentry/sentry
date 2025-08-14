@@ -546,6 +546,8 @@ function updateFilterKey(
   };
 }
 
+const ALPHANUMERIC_REGEX = /[a-zA-Z0-9]/;
+
 export function replaceFreeTextTokens(
   action: UpdateFreeTextAction | ReplaceTokensWithTextAction,
   getFieldDefinition: FieldDefinitionGetter,
@@ -553,7 +555,7 @@ export function replaceFreeTextTokens(
   currentQuery: string
 ) {
   // if the free text is empty, return early
-  if (!action.text || action.text === '') {
+  if (!action.text || action.text === '' || replaceRawSearchKeys.length === 0) {
     return undefined;
   }
 
@@ -564,62 +566,55 @@ export function replaceFreeTextTokens(
   }
 
   const tokens = parseQueryBuilderValue(currentQuery, getFieldDefinition) ?? [];
-  if (tokens.length === 0 || replaceRawSearchKeys.length === 0) {
+  if (tokens.length === 0) {
     return undefined;
   }
 
   // Single pass to find replace token
-  const rawSearchFirst = replaceRawSearchKeys[0] ?? '';
+  const primarySearchKey = replaceRawSearchKeys[0] ?? '';
+  // Find replace token and free text in single passes
   let replaceToken: TokenResult<Token.FILTER> | undefined;
+  const freeTextToken = actionTokens.find(
+    token => token.type === Token.FREE_TEXT && ALPHANUMERIC_REGEX.test(token.value)
+  );
+
+  // Single pass through tokens for replace token
   for (const token of tokens) {
-    if (token.type === Token.FILTER && token.text.includes(rawSearchFirst)) {
+    if (token.type === Token.FILTER && token.text.includes(primarySearchKey)) {
       replaceToken = token;
+      break; // Early exit once found
     }
   }
 
-  const freeTextTokens = actionTokens
-    .filter(token => token.type === Token.FREE_TEXT)
-    .find(token => token.type === Token.FREE_TEXT && /[a-zA-Z0-9]/.test(token.value));
-
-  const valueText = freeTextTokens?.text.trim();
+  const valueText = freeTextToken?.text.trim();
   if (!valueText) {
     return undefined;
   }
   const values = valueText.includes(' ') ? `"*${valueText}*"` : `*${valueText}*`;
 
-  // merge the action tokens and the current query tokens,
-  // and filter out the free text tokens or duplicates
-  const filteredTokens = new Set([
-    ...actionTokens
-      .filter(
-        token =>
-          token.type !== Token.FREE_TEXT &&
-          !token.text.includes(replaceRawSearchKeys[0] ?? '')
-      )
-      .map(token => token.text),
-    ...tokens
-      .filter(
-        token =>
-          token.type !== Token.FREE_TEXT &&
-          !token.text.includes(replaceRawSearchKeys[0] ?? '')
-      )
-      .map(token => token.text),
-  ]);
+  // Combine both action and current tokens, and filter out the free text tokens
+  const filteredTokens = new Set<string>();
+  actionTokens.forEach(token => {
+    if (token.type !== Token.FREE_TEXT && !token.text.includes(primarySearchKey)) {
+      filteredTokens.add(token.text);
+    }
+  });
+  tokens.forEach(token => {
+    if (token.type !== Token.FREE_TEXT && !token.text.includes(primarySearchKey)) {
+      filteredTokens.add(token.text);
+    }
+  });
 
   // case when there is a span.description already present
   if (replaceToken) {
-    let previousValue = replaceToken.value.text;
-    if (replaceToken.value.text.startsWith('[')) {
-      previousValue = previousValue.slice(1);
-    }
+    const previousValue =
+      replaceToken.value.text.startsWith('[') && replaceToken.value.text.endsWith(']')
+        ? replaceToken.value.text.slice(1, -1)
+        : replaceToken.value.text;
 
-    if (replaceToken.value.text.endsWith(']')) {
-      previousValue = previousValue.slice(0, -1);
-    }
-
-    filteredTokens.add(`${replaceRawSearchKeys[0]}:[${previousValue},${values}]`);
+    filteredTokens.add(`${primarySearchKey}:[${previousValue},${values}]`);
   } else {
-    filteredTokens.add(`${replaceRawSearchKeys[0]}:${values}`);
+    filteredTokens.add(`${primarySearchKey}:${values}`);
   }
 
   return Array.from(filteredTokens).join(' ');
