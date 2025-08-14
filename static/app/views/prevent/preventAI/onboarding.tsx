@@ -5,7 +5,7 @@ import preventHero from 'sentry-images/features/prevent-hero.svg';
 import preventPrComment from 'sentry-images/features/prevent-pr-comment.png';
 
 import {Container, Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
+import {ExternalLink, Link} from 'sentry/components/core/link';
 import {Text} from 'sentry/components/core/text';
 import {Heading} from 'sentry/components/core/text/heading';
 import {t, tct} from 'sentry/locale';
@@ -97,7 +97,7 @@ export default function PreventAIOnboarding() {
                 'Make sure AI features are enabled in your [organizationSettingsLink:organization settings].',
                 {
                   organizationSettingsLink: (
-                    <ExternalLink href={`/settings/${organization.slug}`} />
+                    <Link to={`/settings/${organization.slug}#hideAiFeatures`} />
                   ),
                 }
               )}
