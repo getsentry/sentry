@@ -187,7 +187,7 @@ def make_coding_agent_prompt(
 
 
 @region_silo_endpoint
-class OrganizationCodingAgentTriggerEndpoint(OrganizationEndpoint):
+class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,

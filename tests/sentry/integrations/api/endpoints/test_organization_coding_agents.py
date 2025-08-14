@@ -58,8 +58,8 @@ class MockCodingAgentClient(CodingAgentClient):
         )
 
 
-class OrganizationCodingAgentTriggerTest(APITestCase):
-    endpoint = "sentry-api-0-organization-coding-agent-trigger"
+class OrganizationCodingAgentsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-coding-agents"
 
     def setUp(self):
         super().setUp()
@@ -143,9 +143,9 @@ class OrganizationCodingAgentTriggerTest(APITestCase):
                 assert len(response.data["integrations"]) == 0
 
     @patch(
-        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+        "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
     )
-    @patch("sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_autofix_state")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
@@ -234,9 +234,9 @@ class OrganizationCodingAgentTriggerTest(APITestCase):
             assert response.data["error"] == "Not a coding agent integration"
 
     @patch(
-        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+        "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
     )
-    @patch("sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_autofix_state")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
@@ -289,9 +289,9 @@ class OrganizationCodingAgentTriggerTest(APITestCase):
             assert response.data["success"] is True
 
     @patch(
-        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+        "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
     )
-    @patch("sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_autofix_state")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
@@ -402,7 +402,7 @@ class OrganizationCodingAgentTriggerTest(APITestCase):
             assert len(response.data["integrations"]) == 0
 
     @patch(
-        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+        "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
     )
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
@@ -421,7 +421,7 @@ class OrganizationCodingAgentTriggerTest(APITestCase):
             assert response.data["error"] == "Integration not found"
 
     @patch(
-        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+        "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
     )
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
@@ -444,7 +444,7 @@ class OrganizationCodingAgentTriggerTest(APITestCase):
             assert response.data["error"] == "Integration not found"
 
     @patch(
-        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+        "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
     )
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
@@ -472,13 +472,13 @@ class OrganizationCodingAgentTriggerTest(APITestCase):
             assert response.data["error"] == "Invalid run_id format"
 
     @patch(
-        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+        "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
     )
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
     @patch("sentry.integrations.services.integration.integration_service.get_integration")
-    @patch("sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_autofix_state")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
     def test_post_null_run_id(
         self,
         mock_get_autofix_state,
@@ -505,7 +505,7 @@ class OrganizationCodingAgentTriggerTest(APITestCase):
             assert response.data["error"] == "Invalid run_id format"
 
     @patch(
-        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+        "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
     )
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
@@ -533,7 +533,7 @@ class OrganizationCodingAgentTriggerTest(APITestCase):
             assert response.data["error"] == "Invalid run_id format"
 
     @patch(
-        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+        "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
     )
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
@@ -564,9 +564,9 @@ class OrganizationCodingAgentTriggerTest(APITestCase):
             assert response.data["error"] == "Invalid coding agent integration"
 
     @patch(
-        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+        "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
     )
-    @patch("sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_autofix_state")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
@@ -619,9 +619,9 @@ class OrganizationCodingAgentTriggerTest(APITestCase):
             assert response.data["success"] is True
 
     @patch(
-        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+        "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
     )
-    @patch("sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_autofix_state")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
@@ -686,9 +686,9 @@ class OrganizationCodingAgentTriggerTest(APITestCase):
             assert response.data["success"] is True
 
     @patch(
-        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+        "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
     )
-    @patch("sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_autofix_state")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
@@ -746,15 +746,15 @@ class OrganizationCodingAgentTriggerTest(APITestCase):
             assert response.data["error"] == "No agents were successfully launched"
 
     @patch(
-        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_coding_agent_providers"
+        "sentry.integrations.api.endpoints.organization_coding_agents.get_coding_agent_providers"
     )
-    @patch("sentry.integrations.api.endpoints.organization_coding_agent_trigger.get_autofix_state")
+    @patch("sentry.integrations.api.endpoints.organization_coding_agents.get_autofix_state")
     @patch(
         "sentry.integrations.services.integration.integration_service.get_organization_integration"
     )
     @patch("sentry.integrations.services.integration.integration_service.get_integration")
     @patch(
-        "sentry.integrations.api.endpoints.organization_coding_agent_trigger.store_coding_agent_state_to_seer"
+        "sentry.integrations.api.endpoints.organization_coding_agents.store_coding_agent_state_to_seer"
     )
     def test_post_seer_storage_failure_continues(
         self,
