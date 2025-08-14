@@ -112,86 +112,275 @@ class Referrer(StrEnum):
     )
     API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = "api.group_hashes_levels.get_levels_overview"
     API_GROUP_HASHES = "api.group-hashes"
+
+    # ** Insights **
+
+    # General
+    API_INSIGHTS_USER_GEO_SUBREGION_SELECTOR = "api.insights.user-geo-subregion-selector"
+
+    # Resource
+    API_INSIGHTS_RESOURCE_PAGE_QUERY = "api.insights.resource-page-query"
+    API_INSIGHTS_RESOURCE_LANDING = "api.insights.resource.resource-landing"
+    API_INSIGHTS_RESOURCE_LANDING_SERIES = "api.insights.resource.resource-landing-series"
+    API_INSIGHTS_RESOURCE_SUMMARY_METRICS_RIBBON = (
+        "api.insights.browser.resources.resource-summary-metrics-ribbon"
+    )
+    API_INSIGHTS_RESOURCE_SUMMARY_AVERAGE_SIZE_CHART = (
+        "api.insights.browser.resources.resource-summary-average-size-chart"
+    )
+    API_INSIGHTS_RESOURCE_SUMMARY_DURATION_CHART = (
+        "api.insights.browser.resources.resource-summary-duration-chart"
+    )
+    API_INSIGHTS_RESOURCE_SUMMARY_THROUGHPUT_CHART = (
+        "api.insights.browser.resources.resource-summary-throughput-chart"
+    )
+
+    # Database
+    API_INSIGHTS_DATABASE_LANDING_DURATION_CHART = "api.insights.database.landing-duration-chart"
+    API_INSIGHTS_DATABASE_LANDING_THROUGHPUT_CHART = (
+        "api.insights.database.landing-throughput-chart"
+    )
+    API_INSIGHTS_DATABASE_SUMMARY_DURATION_CHART = "api.insights.database.summary-duration-chart"
+    API_INSIGHTS_DATABASE_SUMMARY_THROUGHPUT_CHART = (
+        "api.insights.database.summary-throughput-chart"
+    )
+
+    # HTTP
+    API_INSIGHTS_HTTP_LANDING_DOMAINS = "api.insights.http.landing-domains"
+    API_INSIGHTS_HTTP_LANDING_DOMAINS_LIST = "api.insights.http.landing-domains-list"
+    API_INSIGHTS_HTTP_LANDING_DURATION_CHART = "api.insights.http.landing-duration-chart"
+    API_INSIGHTS_HTTP_LANDING_RESPONSE_CODE_CHART = "api.insights.http.landing-response-code-chart"
+    API_INSIGHTS_HTTP_LANDING_THROUGHPUT_CHART = "api.insights.http.landing-throughput-chart"
+    API_INSIGHTS_HTTP_DOMAIN_SUMMARY_DURATION_CHART = (
+        "api.insights.http.domain-summary-duration-chart"
+    )
+    API_INSIGHTS_HTTP_DOMAIN_SUMMARY_METRICS_RIBBON = (
+        "api.insights.http.domain-summary-metrics-ribbon"
+    )
+    API_INSIGHTS_HTTP_DOMAIN_SUMMARY_RESPONSE_CODE_CHART = (
+        "api.insights.http.domain-summary-response-code-chart"
+    )
+    API_INSIGHTS_HTTP_DOMAIN_SUMMARY_THROUGHPUT_CHART = (
+        "api.insights.http.domain-summary-throughput-chart"
+    )
+    API_INSIGHTS_HTTP_DOMAIN_SUMMARY_TRANSACTIONS_LIST = (
+        "api.insights.http.domain-summary-transactions-list"
+    )
+    API_INSIGHTS_HTTP_SAMPLES_PANEL_DURATION_CHART = (
+        "api.insights.http.samples-panel-duration-chart"
+    )
+    API_INSIGHTS_HTTP_SAMPLES_PANEL_DURATION_SAMPLES = (
+        "api.insights.http.samples-panel-duration-samples"
+    )
+    API_INSIGHTS_HTTP_SAMPLES_PANEL_METRICS_RIBBON = (
+        "api.insights.http.samples-panel-metrics-ribbon"
+    )
+    API_INSIGHTS_HTTP_SAMPLES_PANEL_RESPONSE_CODE_CHART = (
+        "api.insights.http.samples-panel-response-code-chart"
+    )
+    API_INSIGHTS_HTTP_SAMPLES_PANEL_RESPONSE_CODE_SAMPLES = (
+        "api.insights.http.samples-panel-response-code-samples"
+    )
+
+    # Web vitals
+    API_INSIGHTS_WEB_VITAL_STATUS_LINE_CHART = "api.insights.web-vitals.vital-card-sidebar-chart"
+    API_INSIGHTS_WEB_VITAL_SPANS = "api.insights.web-vitals.spans"
+    API_INSIGHTS_WEB_VITAL_PROJECT = "api.insights.web-vitals.project"
+    API_INSIGHTS_WEB_VITAL_TIMESERIES = "api.insights.web-vitals.timeseries"
+    API_INSIGHTS_WEB_VITAL_PROJECT_SCORES = "api.insights.web-vitals.project-scores"
+    API_INSIGHTS_WEB_VITAL_TIMESERIES_SCORES = "api.insights.web-vitals.timeseries-scores"
+    API_INSIGHTS_WEB_VITAL_TRANSACTION = "api.insights.web-vitals.transaction"
+    API_INSIGHTS_WEB_VITAL_TRANSACTIONS_SCORES = "api.insights.web-vitals.transactions-scores"
+    API_INSIGHTS_WEB_VITAL_PROFILE_EXISTS = "api.insights.web-vitals.profile-exists"
+
+    # Mobile vitals
+    API_INSIGHTS_MOBILE_UI_SPAN_OPERATION_TABLE = "api.insights.mobile.ui.span-table"
+
+    # App Starts
     API_INSIGHTS_APP_STARTS_DEVICE_CLASS_BREAKDOWN_BAR_CHART = (
         "api.insights.appstarts.device-class-breakdown-bar-chart"
     )
     API_INSIGHTS_APP_STARTS_MOBILE_STARTUP_BAR_CHART = (
         "api.insights.app-starts.mobile-startup-bar-chart"
     )
-    API_INSIGHTS_USER_GEO_SUBREGION_SELECTOR = "api.insights.user-geo-subregion-selector"
-    API_INSIGHTS_RESOURCE_PAGE_QUERY = "api.insights.resource-page-query"
+
+    # Screenload
     API_INSIGHTS_SCREENLOAD_SCREEN_BAR_CHART = "api.insights.screenload.screen-bar-chart"
-    API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
-    API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
-    API_METRICS_TOTALS = "api.metrics.totals"
-    API_METRICS_TOTALS_INITIAL_QUERY = "api.metrics.totals.initial_query"
-    API_ORGANIZATION_TRACE_ITEM_DETAILS = "api.organization-trace-item-details"
-    API_ORGANIZATION_EVENT_STATS_FIND_TOPN = "api.organization-event-stats.find-topn"
-    API_ORGANIZATION_EVENT_STATS_METRICS_ENHANCED = "api.organization-event-stats.metrics-enhanced"
-    API_ORGANIZATION_EVENT_STATS = "api.organization-event-stats"
-    API_ORGANIZATION_EVENTS_FACETS_PERFORMANCE_HISTOGRAM_TOP_TAGS = (
-        "api.organization-events-facets-performance-histogram.top_tags"
+    API_INSIGHTS_SCREENLOAD_LANDING_DURATION_CHART = "api.insights.screenload.screen-charts"
+
+    # Caches
+    API_INSIGHTS_CACHE_LANDING_CACHE_ONBOARDING = "api.insights.cache.landing-cache-onboarding"
+
+    API_INSIGHTS_CACHE_LANDING_CACHE_HIT_MISS_CHART = (
+        "api.insights.cache.landing-cache-hit-miss-chart"
     )
-    API_ORGANIZATION_EVENTS_FACETS_PERFORMANCE_HISTOGRAM = (
-        "api.organization-events-facets-performance-histogram"
+    API_INSIGHTS_CACHE_LANDING_CACHE_THROUGHPUT_CHART = (
+        "api.insights.cache.landing-cache-throughput-chart"
     )
-    API_ORGANIZATION_EVENTS_FACETS_PERFORMANCE_TOP_TAGS_ALL_TRANSACTIONS = (
-        "api.organization-events-facets-performance.top-tags.all_transactions"
+    API_INSIGHTS_CACHE_LANDING_CACHE_TRANSACTION_LIST = (
+        "api.insights.cache.landing-cache-transaction-list"
     )
-    API_ORGANIZATION_EVENTS_FACETS_PERFORMANCE_TOP_TAGS_TAG_VALUES = (
-        "api.organization-events-facets-performance.top-tags.tag_values"
+    API_INSIGHTS_CACHE_LANDING_CACHE_TRANSACTION_DURATION = (
+        "api.insights.cache.landing-cache-transaction-duration"
     )
-    API_ORGANIZATION_EVENTS_FACETS_TOP_TAGS = "api.organization-events-facets.top-tags"
-    API_ORGANIZATION_EVENTS_HISTOGRAM_MIN_MAX_METRICS_ENHANCED_PRIMARY = (
-        "api.organization-events-histogram-min-max.metrics-enhanced.primary"
+
+    API_INSIGHTS_CACHE_SAMPLES_CACHE_METRICS_RIBBON = (
+        "api.insights.cache.samples-cache-metrics-ribbon"
     )
-    API_ORGANIZATION_EVENTS_HISTOGRAM_MIN_MAX = "api.organization-events-histogram-min-max"
-    API_ORGANIZATION_EVENTS_HISTOGRAM_PRIMARY = "api.organization-events-histogram.primary"
-    API_ORGANIZATION_EVENTS_HISTOGRAM = "api.organization-events-histogram"
-    API_ORGANIZATION_EVENTS_META = "api.organization-events-meta"
-    API_ORGANIZATION_EVENTS_METRICS_COMPATIBILITY_COMPATIBLE_METRICS_ENHANCED_PRIMARY = (
-        "api.organization-events-metrics-compatibility.compatible.metrics-enhanced.primary"
+    API_INSIGHTS_CACHE_SAMPLES_CACHE_TRANSACTION_DURATION_CHART = (
+        "api.insights.cache.samples-cache-transaction-duration-chart"
     )
-    API_ORGANIZATION_EVENTS_METRICS_COMPATIBILITY_SUM_METRICS_METRICS_ENHANCED_PRIMARY = (
-        "api.organization-events-metrics-compatibility.sum_metrics.metrics-enhanced.primary"
+    API_INSIGHTS_CACHE_SAMPLES_CACHE_TRANSACTION_DURATION = (
+        "api.insights.cache.samples-cache-transaction-duration"
     )
-    API_ORGANIZATION_EVENTS_METRICS_ENHANCED_PRIMARY = (
-        "api.organization-events.metrics-enhanced.primary"
+    API_INSIGHTS_CACHE_SAMPLES_CACHE_SPAN_SAMPLES = "api.insights.cache.samples-cache-span-samples"
+    API_INSIGHTS_CACHE_SAMPLES_CACHE_HIT_MISS_CHART = (
+        "api.insights.cache.samples-cache-hit-miss-chart"
     )
-    API_ORGANIZATION_EVENTS_METRICS_ENHANCED_SECONDARY = (
-        "api.organization-events.metrics-enhanced.secondary"
+
+    # Queues
+    API_INSIGHTS_QUEUES_LANDING_ONBOARDING = "api.insights.queues.landing-onboarding"
+    API_INSIGHTS_QUEUES_LANDING_LATENCY_CHART = "api.insights.queues.landing-latency-chart"
+    API_INSIGHTS_QUEUES_LANDING_THROUGHPUT_CHART = "api.insights.queues.landing-throughput-chart"
+    API_INSIGHTS_QUEUES_LANDING_DESTINATIONS_TABLE = (
+        "api.insights.queues.landing-destinations-table"
     )
-    API_ORGANIZATION_EVENTS_SPAN_OPS = "api.organization-events-span-ops"
-    API_ORGANIZATION_EVENTS_SPANS_HISTOGRAM = "api.organization-events-spans-histogram"
-    API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_EXAMPLES = (
-        "api.organization-events-spans-performance-examples"
+    API_INSIGHTS_QUEUES_SUMMARY = "api.insights.queues.summary"
+    API_INSIGHTS_QUEUES_SUMMARY_LATENCY_CHART = "api.insights.queues.summary-latency-chart"
+    API_INSIGHTS_QUEUES_SUMMARY_THROUGHPUT_CHART = "api.insights.queues.summary-throughput-chart"
+    API_INSIGHTS_QUEUES_SUMMARY_TRANSACTIONS_TABLE = (
+        "api.insights.queues.summary-transactions-table"
     )
-    API_ORGANIZATION_SPANS_AGGREGATION = "api.organization-spans-aggregation"
-    API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_STATS = (
-        "api.organization-events-spans-performance-stats"
+    API_INSIGHTS_QUEUES_SAMPLES_PANEL = "api.insights.queues.samples-panel"
+    API_INSIGHTS_QUEUES_SAMPLES_PANEL_TABLE = "api.insights.queues.samples-panel-table"
+    API_INSIGHTS_QUEUES_SAMPLES_PANEL_DURATION_CHART = (
+        "api.insights.queues.samples-panel-duration-chart"
     )
-    API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_SUSPECTS = (
-        "api.organization-events-spans-performance-suspects"
+
+    # Transaction Summary
+    API_INSIGHTS_VITAL_DETAIL = "api.insights.vital-detail"
+    API_INSIGHTS_TAG_PAGE = "api.insights.tag-page"
+    API_INSIGHTS_SPAN_SUMMARY_HEADER_DATA = "api.insights.span-summary-header-data"
+    API_INSIGHTS_SPAN_SUMMARY_TABLE = "api.insights.span-summary-table"
+    API_INSIGHTS_SPAN_SUMMARY_DURATION_CHART = "api.insights.span-summary-duration-chart"
+    API_INSIGHTS_SPAN_SUMMARY_THROUGHPUT_CHART = "api.insights.span-summary-throughput-chart"
+    API_INSIGHTS_SPAN_SUMMARY_TRANSACTION_THROUGHPUT_CHART = (
+        "api.insights.span-summary-transaction-throughput-chart"
     )
-    API_PERFORMANCE_EVENTS_FACETS_STATS = (
-        "api.organization-events-facets-stats-performance.top-tags"
+    API_INSIGHTS_TRANSACTION_SPANS = "api.insights.transaction-spans"
+    API_INSIGHTS_TRANSACTION_SUMMARY = "api.insights.transaction-summary"
+    API_INSIGHTS_TRANSACTION_SUMMARY_DURATION_CHART = (
+        "api.insights.transaction-summary.duration-chart"
     )
-    API_ORGANIZATION_EVENTS_V2 = "api.organization-events-v2"
-    API_ORGANIZATION_EVENTS = "api.organization-events"
-    API_ORGANIZATION_METRICS_DATA = "api.organization.metrics-data"
-    API_ORGANIZATION_METRICS_ESTIMATION_STATS = "api.organization-metrics-estimation-stats"
-    API_ORGANIZATION_METRICS_METADATA_FETCH_SPANS = "api.organization.metrics-metadata.fetch-spans"
-    API_ORGANIZATION_METRICS_QUERY = "api.organization.metrics-query"
-    API_ORGANIZATION_METRICS_EAP_QUERY = "api.organization.metrics-eap-query"
-    API_ORGANIZATION_ISSUES_COUNT = "api.organization-issues-count"
-    API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
-    API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
-    API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
-    API_ORGANIZATION_VITALS_PER_PROJECT = "api.organization-vitals-per-project"
-    API_ORGANIZATION_VITALS = "api.organization-vitals"
+    API_INSIGHTS_TRANSACTION_SUMMARY_TRENDS_CHART = "api.insights.transaction-summary.trends-chart"
+    API_INSIGHTS_TRANSACTION_SUMMARY_SIDEBAR_CHART = (
+        "api.insights.transaction-summary.sidebar-chart"
+    )
+    API_INSIGHTS_TRANSACTION_SUMMARY_VITALS_CHART = "api.insights.transaction-summary.vitals-chart"
+    API_INSIGHTS_TRANSACTION_SUMMARY_USER_MISERY_CHART = (
+        "api.insights.transaction-summary.user-misery-chart"
+    )
+    API_INSIGHTS_TRANSACTION_EVENTS = "api.insights.transaction-events"
+    API_INSIGHTS_LANDING_TABLE = "api.insights.landing-table"
+    API_INSIGHTS_STATUS_BREAKDOWN = "api.insights.status-breakdown"
+    API_INSIGHTS_DURATIONPERCENTILECHART = "api.insights.durationpercentilechart"
+
+    # Mobile Insights
+    API_INSIGHTS_MOBILE_STARTUP_TOTALS = "api.insights.mobile-startup-totals"
+    API_INSIGHTS_MOBILE_STARTUP_EVENT_SAMPLES = "api.insights.mobile-startup-event-samples"
+    API_INSIGHTS_MOBILE_SPARTUP_SPAN_TABLE = "api.insights.mobile-spartup-span-table"
+    API_INSIGHTS_MOBILE_SCREENS_METRICS = "api.insights.mobile-screens-metrics"
+    API_INSIGHTS_MOBILE_SCREENS_SPAN_METRICS = "api.insights.mobile-screens-span-metrics"
+    API_INSIGHTS_MOBILE_SCREENS_SCREEN_TABLE_METRICS = (
+        "api.insights.mobile-screens-screen-table-metrics"
+    )
+    API_INSIGHTS_MOBILE_SCREENS_SCREEN_TABLE_SPAN_METRICS = (
+        "api.insights.mobile-screens-screen-table-span-metrics"
+    )
+    API_INSIGHTS_MOBILE_SCREEN_TOTALS = "api.insights.mobile-screen-totals"
+    API_INSIGHTS_MOBILE_EVENT_SAMPLES = "api.insights.mobile-event-samples"
+    API_INSIGHTS_MOBILE_SPAN_TABLE = "api.insights.mobile-span-table"
+    API_INSIGHTS_MOBILE_LANDING_TABLE = "api.insights.mobile.landing-table"
+
+    # Service Entry Spans
+    API_INSIGHTS_SERVICE_ENTRY_SPANS_TABLE = "api.insights.service-entry-spans-table"
+    API_INSIGHTS_SERVICE_ENTRY_SPANS_TABLE_WITH_CATEGORY = (
+        "api.insights.service-entry-spans-table-with-category"
+    )
+    API_INSIGHTS_SERVICE_ENTRY_SPANS_TABLE_COUNT = "api.insights.service-entry-spans-table-count"
+
+    # Trace Panel
+    API_INSIGHTS_TRACE_PANEL_LEFT_TRACE_LINK = "api.insights.trace-panel-left-trace-link"
+    API_INSIGHTS_TRACE_PANEL_RIGHT_TRACE_LINK = "api.insights.trace-panel-right-trace-link"
+    API_INSIGHTS_TRACE_DRAWER_TRANSACTION_CACHE_METRICS = (
+        "api.insights.trace.trace-drawer-transaction-cache-metrics"
+    )
+
+    # Frontend and Backend Overview
+    API_INSIGHTS_FRONTEND_LANDING_TABLE = "api.insights.frontend.landing-table"
+    API_INSIGHTS_BACKEND_LANDING_TABLE = "api.insights.backend.landing-table"
+    API_INSIGHTS_FRONTEND_OVERVIEW_ASSETS_BY_TIME_SPENT = (
+        "api.insights.frontend.overview.assets-by-time-spent"
+    )
+    API_INSIGHTS_FRONTEND_OVERVIEW_TIME_CONSUMING_DOMAINS = (
+        "api.insights.frontend.overview.time-consuming-domains"
+    )
+    API_INSIGHTS_FRONTEND_OVERVIEW_TRANSACTION_THROUGHPUT = (
+        "api.insights.frontend.overview.transaction-throughput"
+    )
+    API_INSIGHTS_FRONTEND_OVERVIEW_TRANSACTION_DURATION = (
+        "api.insights.frontend.overview.transaction-duration"
+    )
+    API_INSIGHTS_BACKEND_OVERVIEW_REQUESTS_CHART = "api.insights.backend.overview.requests-chart"
+    API_INSIGHTS_BACKEND_OVERVIEW_DURATION_CHART = "api.insights.backend.overview.duration-chart"
+    API_INSIGHTS_BACKEND_OVERVIEW_JOBS_CHART = "api.insights.backend.overview.jobs-chart"
+    API_INSIGHTS_BACKEND_OVERVIEW_QUERIES_CHART = "api.insights.backend.overview.queries-chart"
+    API_INSIGHTS_BACKEND_OVERVIEW_CACHE_CHART = "api.insights.backend.overview.cache-chart"
+    API_INSIGHTS_BACKEND_OVERVIEW_WEB_VITALS_CHART = (
+        "api.insights.backend.overview.web-vitals-chart"
+    )
+    API_INSIGHTS_BACKEND_OVERVIEW_PATHS_TABLE = "api.insights.backend.overview.paths-table"
+    API_INSIGHTS_BACKEND_OVERVIEW_SLOW_SSR_CHART = "api.insights.backend.overview.slow-ssr-chart"
+    API_INSIGHTS_BACKEND_OVERVIEW_CLIENT_TABLE = "api.insights.backend.overview.client-table"
+    API_INSIGHTS_BACKEND_OVERVIEW_API_TABLE = "api.insights.backend.overview.api-table"
+    API_INSIGHTS_NEXTJS_OVERVIEW_API_TREE = "api.insights.nextjs.overview.api-tree"
+
+    # App Starts
+    API_INSIGHTS_APPSTARTS_START_DURATION_WIDGET = "api.insights.appstarts.start-duration-widget"
+
+    # Span Operations and Descriptions
+    API_INSIGHTS_GET_SPAN_ACTIONS = "api.insights.get-span-actions"
+    API_INSIGHTS_GET_SPAN_DOMAINS = "api.insights.get-span-domains"
+    API_INSIGHTS_USE_SPAN_LIST = "api.insights.use-span-list"
+    API_INSIGHTS_SPAN_DESCRIPTION = "api.insights.span-description"
+    API_INSIGHTS_SPAN_TRANSACTION_METRICS = "api.insights.span-transaction-metrics"
+    API_INSIGHTS_SPAN_SUMMARY_PAGE_METRICS = "api.insights.span-summary-page-metrics"
+    API_INSIGHTS_GET_SPAN_OPERATIONS = "api.insights.get-span-operations"
+    API_INSIGHTS_DATABASE_SYSTEM_SELECTOR = "api.insights.database-system-selector"
+    API_INSIGHTS_SPAN_SUMMARY_PANEL_SAMPLES_TABLE_AVG = (
+        "api.insights.span-summary-panel-samples-table-avg"
+    )
+    API_INSIGHTS_BROWSER_RESOURCES_PAGE_SELECTOR = "api.insights.browser.resources.page-selector"
+
+    # MCP (Model Context Protocol)
+    API_INSIGHTS_MCP_PROMPT_DURATION_WIDGET = "api.insights.mcp.prompt-duration-widget"
+    API_INSIGHTS_MCP_PROMPT_ERROR_RATE_WIDGET = "api.insights.mcp.prompt-error-rate-widget"
+    API_INSIGHTS_MCP_PROMPT_TABLE = "api.insights.mcp.prompt-table"
+    API_INSIGHTS_MCP_PROMPT_TRAFFIC_WIDGET = "api.insights.mcp.prompt-traffic-widget"
+    API_INSIGHTS_MCP_RESOURCE_DURATION_WIDGET = "api.insights.mcp.resource-duration-widget"
+    API_INSIGHTS_MCP_RESOURCE_ERROR_RATE_WIDGET = "api.insights.mcp.resource-error-rate-widget"
+    API_INSIGHTS_MCP_RESOURCE_TABLE = "api.insights.mcp.resource-table"
+    API_INSIGHTS_MCP_RESOURCE_TRAFFIC_WIDGET = "api.insights.mcp.resource-traffic-widget"
+    API_INSIGHTS_MCP_TOOL_DURATION_WIDGET = "api.insights.mcp.tool-duration-widget"
+    API_INSIGHTS_MCP_TOOL_ERROR_RATE_WIDGET = "api.insights.mcp.tool-error-rate-widget"
+    API_INSIGHTS_MCP_TOOL_TABLE = "api.insights.mcp.tool-table"
+    API_INSIGHTS_MCP_TOOL_TRAFFIC_WIDGET = "api.insights.mcp.tool-traffic-widget"
+    API_INSIGHTS_MCP_TRAFFIC_BY_CLIENT_WIDGET = "api.insights.mcp.traffic-by-client-widget"
+    API_INSIGHTS_MCP_TRAFFIC_WIDGET = "api.insights.mcp.traffic-widget"
+    API_INSIGHTS_MCP_TRANSPORT_WIDGET = "api.insights.mcp.transport-widget"
+
+    # Old performance referrers
     API_PERFORMANCE_DURATIONPERCENTILECHART = "api.performance.durationpercentilechart"
-    API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
-    API_AI_PIPELINES_DETAILS_VIEW = "api.ai-pipelines.details.view"
     API_PERFORMANCE_BROWSER_RESOURCE_MAIN_TABLE = "api.performance.browser.resources.main-table"
     API_PERFORMANCE_BROWSER_RESOURCES_PAGE_SELECTOR = (
         "api.performance.browser.resources.page-selector"
@@ -437,137 +626,6 @@ class Referrer(StrEnum):
     API_PERFORMANCE_VITAL_DETAIL = "api.performance.vital-detail"
     API_PERFORMANCE_VITALS_CARDS = "api.performance.vitals-cards"
     API_PERFORMANCE_ORG_EVENT_AVERAGE_SPAN = "api.performance.org-event-average-span"
-    API_PROFILING_ONBOARDING = "profiling-onboarding"
-    API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
-    API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
-    API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"
-    API_PROFILING_PERFORMANCE_CHANGE_EXPLORER = "api.profiling.performance-change-explorer"
-    API_PROFILING_PROFILE_HAS_CHUNKS = "api.profiling.profile-has-chunks"
-    API_PROFILING_PROFILE_SUMMARY_CHART = "api.profiling.profile-summary-chart"
-    API_PROFILING_PROFILE_SUMMARY_TOTALS = "api.profiling.profile-summary-totals"
-    API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
-    API_PROFILING_PROFILE_SUMMARY_FUNCTIONS_TABLE = "api.profiling.profile-summary-functions-table"
-    API_PROFILING_PROFILE_FLAMEGRAPH_TRANSACTION_CANDIDATES = (
-        "api.profiling.profile-flamegraph-transaction-candidates"
-    )
-    API_PROFILING_PROFILE_FLAMEGRAPH_CHUNK_CANDIDATES = (
-        "api.profiling.profile-flamegraph-chunk-candidates"
-    )
-    API_PROFILING_PROFILE_FLAMEGRAPH_PROFILE_CANDIDATES = (
-        "api.profiling.profile-flamegraph-profile-candidates"
-    )
-    API_PROFILING_FLAMEGRAPH_SPANS_WITH_GROUP = "api.profiling.flamegraph-spans-with-group"
-    API_PROFILING_FLAMEGRAPH_CHUNKS_FROM_SPANS = "api.profiling.flamegraph-chunks-with-spans"
-    API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH = "api.profiling.function-scoped-flamegraph"
-    API_PROFILING_TRANSACTION_HOVERCARD_FUNCTIONS = "api.profiling.transaction-hovercard.functions"
-    API_PROFILING_TRANSACTION_HOVERCARD_LATEST = "api.profiling.transaction-hovercard.latest"
-    API_PROFILING_TRANSACTION_HOVERCARD_SLOWEST = "api.profiling.transaction-hovercard.slowest"
-    API_PROFILING_SUSPECT_FUNCTIONS_LIST = "api.profiling.suspect-functions.list"
-    API_PROFILING_SUSPECT_FUNCTIONS_TOTALS = "api.profiling.suspect-functions.totals"
-    API_PROFILING_SUSPECT_FUNCTIONS_TRANSACTIONS = "api.profiling.suspect-functions.transactions"
-    API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS = "api.profiling.function-trends.top-events"
-    API_PROFILING_FUNCTION_TRENDS_STATS = "api.profiling.function-trends.stats"
-    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR = "api.profiling.functions.statistical-detector"
-    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_STATS = (
-        "api.profiling.functions.statistical-detector.stats"
-    )
-    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_EXAMPLE = (
-        "api.profiling.functions.statistical-detector.example"
-    )
-    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_CHUNKS = (
-        "api.profiling.functions.statistical-detector.chunks"
-    )
-    API_PROFILING_FUNCTIONS_REGRESSION_EXAMPLES = "api.profiling.functions.regression.examples"
-    API_PROFILING_FUNCTIONS_REGRESSION_LIST = "api.profiling.functions.regression.list"
-    API_PROFILING_FUNCTIONS_REGRESSION_STATS = "api.profiling.functions.regression.stats"
-    API_PROFILING_FUNCTIONS_REGRESSION_TRANSACTIONS = (
-        "api.profiling.functions.regression.transactions"
-    )
-    API_PROFILING_FUNCTIONS_REGRESSION_TRANSACTION_STATS = (
-        "api.profiling.functions.regression.transaction-stats"
-    )
-    API_PROFILING_CONTINUOUS_PROFILING_FLAMECHART = "api.profiling.continuous-profiling.flamechart"
-    API_PROJECT_EVENTS = "api.project-events"
-    API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
-    API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
-    API_REPLAY_SUMMARIZE_BREADCRUMBS = "api.replay.summarize-breadcrumbs"
-    API_STARFISH_DATABASE_SYSTEM_SELECTOR = "api.starfish.database-system-selector"
-    API_STARFISH_ENDPOINT_LIST = "api.starfish.endpoint-list"
-    API_STARFISH_FULL_SPAN_FROM_TRACE = "api.starfish.full-span-from-trace"
-    API_STARFISH_GET_SPAN_ACTIONS = "api.starfish.get-span-actions"
-    API_STARFISH_GET_SPAN_DOMAINS = "api.starfish.get-span-domains"
-    API_STARFISH_GET_SPAN_OPERATIONS = "api.starfish.get-span-operations"
-    API_STARFISH_SIDEBAR_SPAN_METRICS = "api.starfish.sidebar-span-metrics"
-    API_STARFISH_SPAN_CATEGORY_BREAKDOWN = "api.starfish-web-service.span-category-breakdown"
-    API_STARFISH_SPAN_DESCRIPTION = "api.starfish.span-description"
-    API_STARFISH_SPAN_LIST = "api.starfish.use-span-list"
-    API_STARFISH_SPAN_LIST_PRIMARY = "api.starfish.use-span-list.primary"
-    API_STARFISH_SPAN_SUMMARY_P95 = "api.starfish.span-summary-panel-samples-table-p95"
-    API_STARFISH_SPAN_SUMMARY_PAGE = "api.starfish.span-summary-page-metrics"
-    API_STARFISH_SPAN_SUMMARY_PANEL = "api.starfish.span-summary-panel-metrics"
-    API_STARFISH_SPAN_SUMMARY_PANEL_SAMPLES_TABLE_AVG = (
-        "api.starfish.span-summary-panel-samples-table-avg"
-    )
-    API_STARFISH_SPAN_SUMMARY_TRANSACTIONS = (
-        "api.starfish.span-summary-panel-samples-table-transactions"
-    )
-    API_STARFISH_SPAN_TRANSACTION_METRICS = "api.starfish.span-transaction-metrics"
-    API_STARFISH_TOTAL_TIME = "api.starfish-web-service.total-time"
-    API_STARFISH_HOMEPAGE_CHART = "api.starfish-web-service.homepage-chart"
-
-    API_STARFISH_SPAN_CATEGORY_BREAKDOWN_CHART = (
-        "api.starfish-web-service.span-category-breakdown-timeseries"
-    )
-    API_STARFISH_ENDPOINT_OVERVIEW = "api.starfish-web-service.starfish-endpoint-overview"
-    API_STARFISH_HTTP_ERROR_COUNT = "api.starfish.get-http-error-count"
-    API_STARFISH_SPAN_SUMMARY_PAGE_CHART = "api.starfish.span-summary-page-metrics-chart"
-    API_STARFISH_SIDEBAR_SPAN_METRICS_CHART = "api.starfish.sidebar-span-metrics-chart"
-    API_STARFISH_SPAN_TIME_CHARTS = "api.starfish.span-time-charts"
-
-    # Mobile Starfish
-    API_STARFISH_MOBILE_SCREEN_METRICS_SERIES = "api.starfish.mobile-screen-series"
-    API_STARFISH_MOBILE_SCREEN_TABLE = "api.starfish.mobile-screen-table"
-    API_STARFISH_MOBILE_SCREEN_BAR_CHART = "api.starfish.mobile-screen-bar-chart"
-    API_STARFISH_MOBILE_RELEASE_SELECTOR = "api.starfish.mobile-release-selector"
-    API_STARFISH_MOBILE_DEVICE_BREAKDOWN = "api.starfish.mobile-device-breakdown"
-    API_STARFISH_MOBILE_EVENT_SAMPLES = "api.starfish.mobile-event-samples"
-    API_STARFISH_MOBILE_PLATFORM_COMPATIBILITY = "api.starfish.mobile-platform-compatibility"
-    API_STARFISH_MOBILE_SCREEN_TOTALS = "api.starfish.mobile-screen-totals"
-    API_STARFISH_MOBILE_SPAN_TABLE = "api.starfish.mobile-span-table"
-    API_STARFISH_MOBILE_STARTUP_SCREEN_TABLE = "api.starfish.mobile-startup-screen-table"
-    API_STARFISH_MOBILE_STARTUP_BAR_CHART = "api.starfish.mobile-startup-bar-chart"
-    API_STARFISH_MOBILE_STARTUP_SERIES = "api.starfish.mobile-startup-series"
-    API_STARFISH_MOBILE_STARTUP_EVENT_SAMPLES = "api.starfish.mobile-startup-event-samples"
-    API_STARFISH_MOBILE_STARTUP_SPAN_TABLE = "api.starfish.mobile-spartup-span-table"
-    API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES = "api.starfish.mobile-startup-loaded-libraries"
-    API_STARFISH_MOBILE_STARTUP_TOTALS = "api.starfish.mobile-startup-totals"
-    API_STARFISH_MOBILE_SCREENS_METRICS = "api.starfish.mobile-screens-metrics"
-    API_STARFISH_MOBILE_SCREENS_SCREEN_TABLE = "api.starfish.mobile-screens-screen-table"
-    API_TRACE_EXPLORER_METRICS_SPANS_LIST = "api.trace-explorer.metrics-spans-list"
-    API_TRACE_EXPLORER_SPANS_LIST = "api.trace-explorer.spans-list"
-    API_TRACE_EXPLORER_SPANS_LIST_SORTED = "api.trace-explorer.spans-list-sorted"
-    API_TRACE_EXPLORER_STATS = "api.trace-explorer.stats"
-    API_TRACE_EXPLORER_TRACES_BREAKDOWNS = "api.trace-explorer.traces-breakdowns"
-    API_TRACE_EXPLORER_TRACES_META = "api.trace-explorer.traces-meta"
-    API_TRACE_EXPLORER_TRACES_ERRORS = "api.trace-explorer.traces-errors"
-    API_TRACE_EXPLORER_TRACES_OCCURRENCES = "api.trace-explorer.traces-occurrences"
-    API_TRACE_EXPLORER_TRACE_SPANS_LIST = "api.trace-explorer.trace-spans-list"
-    API_TRACE_EXPLORER_TRACE_SPANS_CANDIDATES_FLAMEGRAPH = (
-        "api.trace-explorer.trace-spans-flamegraph"
-    )
-    API_EXPLORE_COMPARE_SERIES = "api.explore.compare-series"
-    API_EXPLORE_COMPARE_TABLE = "api.explore.compare-table"
-    API_EXPLORE_MULTI_QUERY_SPANS_TABLE = "api.explore.multi-query-spans-table"
-    API_LOGS_TAG_KEYS_RPC = "api.logs.tags-keys.rpc"
-    API_LOGS_TAG_VALUES_RPC = "api.logs.tags-values.rpc"
-    API_LOGS_TAB_VIEW = "api.logs-tab.view"
-    API_SPANS_TAG_KEYS = "api.spans.tags-keys"
-    API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"
-    API_SPANS_TAG_VALUES = "api.spans.tags-values"
-    API_SPANS_FREQUENCY_STATS_RPC = "api.spans.fields-stats.rpc"
-    API_SPANS_TAG_VALUES_RPC = "api.spans.tags-values.rpc"
-    API_SPANS_TRACE_VIEW = "api.spans.trace-view"
-
     # Performance AI Module
     API_PERFORMANCE_AI_ANALYTICS_TOKEN_USAGE_CHART = (
         "api.performance.ai-analytics.token-usage-chart"
@@ -738,12 +796,215 @@ class Referrer(StrEnum):
     API_PERFORMANCE_MCP_PROMPT_TABLE = "api.performance.mcp.prompt-table"
     API_PERFORMANCE_MCP_RESOURCE_TABLE = "api.performance.mcp.resource-table"
 
+    # Old Starfish referrers
+    API_STARFISH_PROFILE_FLAMEGRAPH = "api.starfish.profile-flamegraph"
+    API_STARFISH_DATABASE_SYSTEM_SELECTOR = "api.starfish.database-system-selector"
+    API_STARFISH_ENDPOINT_LIST = "api.starfish.endpoint-list"
+    API_STARFISH_FULL_SPAN_FROM_TRACE = "api.starfish.full-span-from-trace"
+    API_STARFISH_GET_SPAN_ACTIONS = "api.starfish.get-span-actions"
+    API_STARFISH_GET_SPAN_DOMAINS = "api.starfish.get-span-domains"
+    API_STARFISH_GET_SPAN_OPERATIONS = "api.starfish.get-span-operations"
+    API_STARFISH_SIDEBAR_SPAN_METRICS = "api.starfish.sidebar-span-metrics"
+    API_STARFISH_SPAN_CATEGORY_BREAKDOWN = "api.starfish-web-service.span-category-breakdown"
+    API_STARFISH_SPAN_DESCRIPTION = "api.starfish.span-description"
+    API_STARFISH_SPAN_LIST = "api.starfish.use-span-list"
+    API_STARFISH_SPAN_LIST_PRIMARY = "api.starfish.use-span-list.primary"
+    API_STARFISH_SPAN_SUMMARY_P95 = "api.starfish.span-summary-panel-samples-table-p95"
+    API_STARFISH_SPAN_SUMMARY_PAGE = "api.starfish.span-summary-page-metrics"
+    API_STARFISH_SPAN_SUMMARY_PANEL = "api.starfish.span-summary-panel-metrics"
+    API_STARFISH_SPAN_SUMMARY_PANEL_SAMPLES_TABLE_AVG = (
+        "api.starfish.span-summary-panel-samples-table-avg"
+    )
+    API_STARFISH_SPAN_SUMMARY_TRANSACTIONS = (
+        "api.starfish.span-summary-panel-samples-table-transactions"
+    )
+    API_STARFISH_SPAN_TRANSACTION_METRICS = "api.starfish.span-transaction-metrics"
+    API_STARFISH_TOTAL_TIME = "api.starfish-web-service.total-time"
+    API_STARFISH_HOMEPAGE_CHART = "api.starfish-web-service.homepage-chart"
+
+    API_STARFISH_SPAN_CATEGORY_BREAKDOWN_CHART = (
+        "api.starfish-web-service.span-category-breakdown-timeseries"
+    )
+    API_STARFISH_ENDPOINT_OVERVIEW = "api.starfish-web-service.starfish-endpoint-overview"
+    API_STARFISH_HTTP_ERROR_COUNT = "api.starfish.get-http-error-count"
+    API_STARFISH_SPAN_SUMMARY_PAGE_CHART = "api.starfish.span-summary-page-metrics-chart"
+    API_STARFISH_SIDEBAR_SPAN_METRICS_CHART = "api.starfish.sidebar-span-metrics-chart"
+    API_STARFISH_SPAN_TIME_CHARTS = "api.starfish.span-time-charts"
+
+    # Mobile Starfish
+    API_STARFISH_MOBILE_SCREEN_METRICS_SERIES = "api.starfish.mobile-screen-series"
+    API_STARFISH_MOBILE_SCREEN_TABLE = "api.starfish.mobile-screen-table"
+    API_STARFISH_MOBILE_SCREEN_BAR_CHART = "api.starfish.mobile-screen-bar-chart"
+    API_STARFISH_MOBILE_RELEASE_SELECTOR = "api.starfish.mobile-release-selector"
+    API_STARFISH_MOBILE_DEVICE_BREAKDOWN = "api.starfish.mobile-device-breakdown"
+    API_STARFISH_MOBILE_EVENT_SAMPLES = "api.starfish.mobile-event-samples"
+    API_STARFISH_MOBILE_PLATFORM_COMPATIBILITY = "api.starfish.mobile-platform-compatibility"
+    API_STARFISH_MOBILE_SCREEN_TOTALS = "api.starfish.mobile-screen-totals"
+    API_STARFISH_MOBILE_SPAN_TABLE = "api.starfish.mobile-span-table"
+    API_STARFISH_MOBILE_STARTUP_SCREEN_TABLE = "api.starfish.mobile-startup-screen-table"
+    API_STARFISH_MOBILE_STARTUP_BAR_CHART = "api.starfish.mobile-startup-bar-chart"
+    API_STARFISH_MOBILE_STARTUP_SERIES = "api.starfish.mobile-startup-series"
+    API_STARFISH_MOBILE_STARTUP_EVENT_SAMPLES = "api.starfish.mobile-startup-event-samples"
+    API_STARFISH_MOBILE_STARTUP_SPAN_TABLE = "api.starfish.mobile-spartup-span-table"
+    API_STARFISH_MOBILE_STARTUP_LOADED_LIBRARIES = "api.starfish.mobile-startup-loaded-libraries"
+    API_STARFISH_MOBILE_STARTUP_TOTALS = "api.starfish.mobile-startup-totals"
+    API_STARFISH_MOBILE_SCREENS_METRICS = "api.starfish.mobile-screens-metrics"
+    API_STARFISH_MOBILE_SCREENS_SCREEN_TABLE = "api.starfish.mobile-screens-screen-table"
+
+    API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
+    API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
+    API_METRICS_TOTALS = "api.metrics.totals"
+    API_METRICS_TOTALS_INITIAL_QUERY = "api.metrics.totals.initial_query"
+    API_ORGANIZATION_TRACE_ITEM_DETAILS = "api.organization-trace-item-details"
+    API_ORGANIZATION_EVENT_STATS_FIND_TOPN = "api.organization-event-stats.find-topn"
+    API_ORGANIZATION_EVENT_STATS_METRICS_ENHANCED = "api.organization-event-stats.metrics-enhanced"
+    API_ORGANIZATION_EVENT_STATS = "api.organization-event-stats"
+    API_ORGANIZATION_EVENTS_FACETS_PERFORMANCE_HISTOGRAM_TOP_TAGS = (
+        "api.organization-events-facets-performance-histogram.top_tags"
+    )
+    API_ORGANIZATION_EVENTS_FACETS_PERFORMANCE_HISTOGRAM = (
+        "api.organization-events-facets-performance-histogram"
+    )
+    API_ORGANIZATION_EVENTS_FACETS_PERFORMANCE_TOP_TAGS_ALL_TRANSACTIONS = (
+        "api.organization-events-facets-performance.top-tags.all_transactions"
+    )
+    API_ORGANIZATION_EVENTS_FACETS_PERFORMANCE_TOP_TAGS_TAG_VALUES = (
+        "api.organization-events-facets-performance.top-tags.tag_values"
+    )
+    API_ORGANIZATION_EVENTS_FACETS_TOP_TAGS = "api.organization-events-facets.top-tags"
+    API_ORGANIZATION_EVENTS_HISTOGRAM_MIN_MAX_METRICS_ENHANCED_PRIMARY = (
+        "api.organization-events-histogram-min-max.metrics-enhanced.primary"
+    )
+    API_ORGANIZATION_EVENTS_HISTOGRAM_MIN_MAX = "api.organization-events-histogram-min-max"
+    API_ORGANIZATION_EVENTS_HISTOGRAM_PRIMARY = "api.organization-events-histogram.primary"
+    API_ORGANIZATION_EVENTS_HISTOGRAM = "api.organization-events-histogram"
+    API_ORGANIZATION_EVENTS_META = "api.organization-events-meta"
+    API_ORGANIZATION_EVENTS_METRICS_COMPATIBILITY_COMPATIBLE_METRICS_ENHANCED_PRIMARY = (
+        "api.organization-events-metrics-compatibility.compatible.metrics-enhanced.primary"
+    )
+    API_ORGANIZATION_EVENTS_METRICS_COMPATIBILITY_SUM_METRICS_METRICS_ENHANCED_PRIMARY = (
+        "api.organization-events-metrics-compatibility.sum_metrics.metrics-enhanced.primary"
+    )
+    API_ORGANIZATION_EVENTS_METRICS_ENHANCED_PRIMARY = (
+        "api.organization-events.metrics-enhanced.primary"
+    )
+    API_ORGANIZATION_EVENTS_METRICS_ENHANCED_SECONDARY = (
+        "api.organization-events.metrics-enhanced.secondary"
+    )
+    API_ORGANIZATION_EVENTS_SPAN_OPS = "api.organization-events-span-ops"
+    API_ORGANIZATION_EVENTS_SPANS_HISTOGRAM = "api.organization-events-spans-histogram"
+    API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_EXAMPLES = (
+        "api.organization-events-spans-performance-examples"
+    )
+    API_ORGANIZATION_SPANS_AGGREGATION = "api.organization-spans-aggregation"
+    API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_STATS = (
+        "api.organization-events-spans-performance-stats"
+    )
+    API_ORGANIZATION_EVENTS_SPANS_PERFORMANCE_SUSPECTS = (
+        "api.organization-events-spans-performance-suspects"
+    )
+    API_PERFORMANCE_EVENTS_FACETS_STATS = (
+        "api.organization-events-facets-stats-performance.top-tags"
+    )
+    API_ORGANIZATION_EVENTS_V2 = "api.organization-events-v2"
+    API_ORGANIZATION_EVENTS = "api.organization-events"
+    API_ORGANIZATION_METRICS_DATA = "api.organization.metrics-data"
+    API_ORGANIZATION_METRICS_ESTIMATION_STATS = "api.organization-metrics-estimation-stats"
+    API_ORGANIZATION_METRICS_METADATA_FETCH_SPANS = "api.organization.metrics-metadata.fetch-spans"
+    API_ORGANIZATION_METRICS_QUERY = "api.organization.metrics-query"
+    API_ORGANIZATION_METRICS_EAP_QUERY = "api.organization.metrics-eap-query"
+    API_ORGANIZATION_ISSUES_COUNT = "api.organization-issues-count"
+    API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
+    API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
+    API_ORGANIZATION_SPANS_HISTOGRAM_MIN_MAX = "api.organization-spans-histogram-min-max"
+    API_ORGANIZATION_VITALS_PER_PROJECT = "api.organization-vitals-per-project"
+    API_ORGANIZATION_VITALS = "api.organization-vitals"
+    API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
+    API_AI_PIPELINES_DETAILS_VIEW = "api.ai-pipelines.details.view"
+    API_PROFILING_ONBOARDING = "profiling-onboarding"
+    API_PROFILING_LANDING_CHART = "api.profiling.landing-chart"
+    API_PROFILING_LANDING_TABLE = "api.profiling.landing-table"
+    API_PROFILING_LANDING_FUNCTIONS_CARD = "api.profiling.landing-functions-card"
+    API_PROFILING_PERFORMANCE_CHANGE_EXPLORER = "api.profiling.performance-change-explorer"
+    API_PROFILING_PROFILE_HAS_CHUNKS = "api.profiling.profile-has-chunks"
+    API_PROFILING_PROFILE_SUMMARY_CHART = "api.profiling.profile-summary-chart"
+    API_PROFILING_PROFILE_SUMMARY_TOTALS = "api.profiling.profile-summary-totals"
+    API_PROFILING_PROFILE_SUMMARY_TABLE = "api.profiling.profile-summary-table"
+    API_PROFILING_PROFILE_SUMMARY_FUNCTIONS_TABLE = "api.profiling.profile-summary-functions-table"
+    API_PROFILING_PROFILE_FLAMEGRAPH_TRANSACTION_CANDIDATES = (
+        "api.profiling.profile-flamegraph-transaction-candidates"
+    )
+    API_PROFILING_PROFILE_FLAMEGRAPH_CHUNK_CANDIDATES = (
+        "api.profiling.profile-flamegraph-chunk-candidates"
+    )
+    API_PROFILING_PROFILE_FLAMEGRAPH_PROFILE_CANDIDATES = (
+        "api.profiling.profile-flamegraph-profile-candidates"
+    )
+    API_PROFILING_FLAMEGRAPH_SPANS_WITH_GROUP = "api.profiling.flamegraph-spans-with-group"
+    API_PROFILING_FLAMEGRAPH_CHUNKS_FROM_SPANS = "api.profiling.flamegraph-chunks-with-spans"
+    API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH = "api.profiling.function-scoped-flamegraph"
+    API_PROFILING_TRANSACTION_HOVERCARD_FUNCTIONS = "api.profiling.transaction-hovercard.functions"
+    API_PROFILING_TRANSACTION_HOVERCARD_LATEST = "api.profiling.transaction-hovercard.latest"
+    API_PROFILING_TRANSACTION_HOVERCARD_SLOWEST = "api.profiling.transaction-hovercard.slowest"
+    API_PROFILING_SUSPECT_FUNCTIONS_LIST = "api.profiling.suspect-functions.list"
+    API_PROFILING_SUSPECT_FUNCTIONS_TOTALS = "api.profiling.suspect-functions.totals"
+    API_PROFILING_SUSPECT_FUNCTIONS_TRANSACTIONS = "api.profiling.suspect-functions.transactions"
+    API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS = "api.profiling.function-trends.top-events"
+    API_PROFILING_FUNCTION_TRENDS_STATS = "api.profiling.function-trends.stats"
+    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR = "api.profiling.functions.statistical-detector"
+    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_STATS = (
+        "api.profiling.functions.statistical-detector.stats"
+    )
+    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_EXAMPLE = (
+        "api.profiling.functions.statistical-detector.example"
+    )
+    API_PROFILING_FUNCTIONS_STATISTICAL_DETECTOR_CHUNKS = (
+        "api.profiling.functions.statistical-detector.chunks"
+    )
+    API_PROFILING_FUNCTIONS_REGRESSION_EXAMPLES = "api.profiling.functions.regression.examples"
+    API_PROFILING_FUNCTIONS_REGRESSION_LIST = "api.profiling.functions.regression.list"
+    API_PROFILING_FUNCTIONS_REGRESSION_STATS = "api.profiling.functions.regression.stats"
+    API_PROFILING_FUNCTIONS_REGRESSION_TRANSACTIONS = (
+        "api.profiling.functions.regression.transactions"
+    )
+    API_PROFILING_FUNCTIONS_REGRESSION_TRANSACTION_STATS = (
+        "api.profiling.functions.regression.transaction-stats"
+    )
+    API_PROFILING_CONTINUOUS_PROFILING_FLAMECHART = "api.profiling.continuous-profiling.flamechart"
+    API_PROJECT_EVENTS = "api.project-events"
+    API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
+    API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
+    API_REPLAY_SUMMARIZE_BREADCRUMBS = "api.replay.summarize-breadcrumbs"
+    API_TRACE_EXPLORER_METRICS_SPANS_LIST = "api.trace-explorer.metrics-spans-list"
+    API_TRACE_EXPLORER_SPANS_LIST = "api.trace-explorer.spans-list"
+    API_TRACE_EXPLORER_SPANS_LIST_SORTED = "api.trace-explorer.spans-list-sorted"
+    API_TRACE_EXPLORER_STATS = "api.trace-explorer.stats"
+    API_TRACE_EXPLORER_TRACES_BREAKDOWNS = "api.trace-explorer.traces-breakdowns"
+    API_TRACE_EXPLORER_TRACES_META = "api.trace-explorer.traces-meta"
+    API_TRACE_EXPLORER_TRACES_ERRORS = "api.trace-explorer.traces-errors"
+    API_TRACE_EXPLORER_TRACES_OCCURRENCES = "api.trace-explorer.traces-occurrences"
+    API_TRACE_EXPLORER_TRACE_SPANS_LIST = "api.trace-explorer.trace-spans-list"
+    API_TRACE_EXPLORER_TRACE_SPANS_CANDIDATES_FLAMEGRAPH = (
+        "api.trace-explorer.trace-spans-flamegraph"
+    )
+    API_EXPLORE_COMPARE_SERIES = "api.explore.compare-series"
+    API_EXPLORE_COMPARE_TABLE = "api.explore.compare-table"
+    API_EXPLORE_MULTI_QUERY_SPANS_TABLE = "api.explore.multi-query-spans-table"
+    API_LOGS_TAG_KEYS_RPC = "api.logs.tags-keys.rpc"
+    API_LOGS_TAG_VALUES_RPC = "api.logs.tags-values.rpc"
+    API_LOGS_TAB_VIEW = "api.logs-tab.view"
+    API_SPANS_TAG_KEYS = "api.spans.tags-keys"
+    API_SPANS_TAG_KEYS_RPC = "api.spans.tags-keys.rpc"
+    API_SPANS_TAG_VALUES = "api.spans.tags-values"
+    API_SPANS_FREQUENCY_STATS_RPC = "api.spans.fields-stats.rpc"
+    API_SPANS_TAG_VALUES_RPC = "api.spans.tags-values.rpc"
+    API_SPANS_TRACE_VIEW = "api.spans.trace-view"
+
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"
     API_SERIALIZER_PROJECTS_GET_STATS = "api.serializer.projects.get_stats"
     API_SERIALIZER_CHECKINS_TRACE_IDS = "api.serializer.checkins.trace-ids"
-    API_STARFISH_PROFILE_FLAMEGRAPH = "api.starfish.profile-flamegraph"
     API_TRACE_VIEW_ERRORS_VIEW = "api.trace-view.errors-view"
     API_TRACE_VIEW_GET_TIMESTAMP_PROJECTS = "api.trace-view.get-timestamp-projects"
     API_TRACE_VIEW_GET_EVENTS = "api.trace-view.get-events"
