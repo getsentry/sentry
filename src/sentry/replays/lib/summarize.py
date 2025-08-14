@@ -289,7 +289,6 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 method = payload["data"]["method"]
                 status_code = payload["data"]["statusCode"]
                 description = payload["description"]
-                duration = payload["endTimestamp"] - payload["startTimestamp"]
 
                 # Parse URL path
                 parsed_url = urlparse(description)
@@ -325,7 +324,6 @@ def as_log_message(event: dict[str, Any]) -> str | None:
                 method = payload["data"]["method"]
                 status_code = payload["data"]["statusCode"]
                 description = payload["description"]
-                duration = payload["endTimestamp"] - payload["startTimestamp"]
 
                 # Parse URL path
                 parsed_url = urlparse(description)
