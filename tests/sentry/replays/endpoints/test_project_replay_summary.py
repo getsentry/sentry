@@ -163,6 +163,7 @@ class ProjectReplaySummaryTestCase(
             "replay_id": self.replay_id,
             "organization_id": self.organization.id,
             "project_id": self.project.id,
+            "temperature": None,
         }
 
     @patch("sentry.replays.endpoints.project_replay_summary.requests")
@@ -365,6 +366,46 @@ class ProjectReplaySummaryTestCase(
             "replay_id": self.replay_id,
             "organization_id": self.organization.id,
             "project_id": self.project.id,
+            "temperature": None,
+        }
+
+    @responses.activate
+    def test_post_with_temperature(self) -> None:
+        mock_seer_response("POST", status=200, json={"hello": "world"})
+
+        data = [
+            {
+                "type": 5,
+                "timestamp": 0.0,
+                "data": {
+                    "tag": "breadcrumb",
+                    "payload": {"category": "console", "message": "hello"},
+                },
+            },
+        ]
+        self.save_recording_segment(0, json.dumps(data).encode())
+
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={"num_segments": 1, "temperature": 0.73},
+                content_type="application/json",
+            )
+
+        assert response.status_code == 200
+
+        assert len(responses.calls) == 1
+        seer_request = responses.calls[0].request
+        assert seer_request.url == SEER_START_TASK_URL
+        assert seer_request.method == "POST"
+        assert seer_request.headers["content-type"] == "application/json;charset=utf-8"
+        assert json.loads(seer_request.body) == {
+            "logs": ["Logged: hello at 0.0"],
+            "num_segments": 1,
+            "replay_id": self.replay_id,
+            "organization_id": self.organization.id,
+            "project_id": self.project.id,
+            "temperature": 0.73,
         }
 
     @responses.activate
