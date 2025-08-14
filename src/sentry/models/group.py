@@ -220,8 +220,8 @@ STATUS_UPDATE_CHOICES = {
 
 
 class EventOrdering(Enum):
-    LATEST = ["-timestamp", "-event_id"]
-    OLDEST = ["timestamp", "event_id"]
+    LATEST = ["project_id", "-timestamp", "-event_id"]
+    OLDEST = ["project_id", "timestamp", "event_id"]
     RECOMMENDED = [
         "-replay.id",
         "-trace.sampled",
@@ -239,7 +239,6 @@ def get_oldest_or_latest_event(
     start: datetime | None = None,
     end: datetime | None = None,
 ) -> GroupEvent | None:
-
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
     else:
@@ -426,7 +425,8 @@ class GroupManager(BaseManager["Group"]):
         org_ids_with_integration = list(
             i.organization_id
             for i in integration_service.get_organization_integrations(
-                organization_ids=[o.id for o in organizations], integration_id=integration.id
+                organization_ids=[o.id for o in organizations],
+                integration_id=integration.id,
             )
         )
 
@@ -554,7 +554,9 @@ class GroupManager(BaseManager["Group"]):
         return {
             i.id: i.qualified_short_id
             for i in self.filter(
-                id__in=group_ids, project_id__in=project_ids, project__organization=organization
+                id__in=group_ids,
+                project_id__in=project_ids,
+                project__organization=organization,
             )
         }
 
@@ -1073,7 +1075,8 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
         if instance.status == GroupStatus.IGNORED:
             if instance.substatus not in IGNORED_SUBSTATUS_CHOICES:
                 logger.error(
-                    "Invalid substatus for IGNORED group.", extra={"substatus": instance.substatus}
+                    "Invalid substatus for IGNORED group.",
+                    extra={"substatus": instance.substatus},
                 )
         elif instance.status == GroupStatus.UNRESOLVED:
             if instance.substatus not in UNRESOLVED_SUBSTATUS_CHOICES:
