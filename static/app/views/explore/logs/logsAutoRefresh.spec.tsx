@@ -221,7 +221,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
           query: {
             ...routerConfig.location.query,
             logsAggregate: 'avg',
-            logsAaggregateParam: 'payload_size',
+            logsAggregateParam: 'payload_size',
           },
         },
       },
