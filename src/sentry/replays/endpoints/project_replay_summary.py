@@ -39,6 +39,8 @@ SEER_POLL_STATE_URL = (
     f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize/replay/breadcrumbs/state"
 )
 
+DEFAULT_TEMPERATURE = 0.2
+
 
 def _get_request_exc_extras(e: requests.exceptions.RequestException) -> dict[str, Any]:
     return {
@@ -157,10 +159,11 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
             )
 
         filter_params = self.get_filter_params(request, project)
+        num_segments = request.data.get("num_segments", 0)
+        temperature = request.data.get("temperature", DEFAULT_TEMPERATURE)
 
         # Limit data with the frontend's segment count, to keep summaries consistent with the video displayed in the UI.
         # While the replay is live, the FE and BE may have different counts.
-        num_segments = request.data.get("num_segments", 0)
         if num_segments > MAX_SEGMENTS_TO_SUMMARIZE:
             logger.warning(
                 "Replay Summary: hit max segment limit.",
@@ -218,5 +221,6 @@ class ProjectReplaySummaryEndpoint(ProjectEndpoint):
                 "replay_id": replay_id,
                 "organization_id": project.organization.id,
                 "project_id": project.id,
+                "temperature": temperature,
             },
         )
