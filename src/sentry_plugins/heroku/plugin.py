@@ -7,7 +7,6 @@ from hashlib import sha256
 
 from django.http import HttpRequest, HttpResponse
 
-from sentry.api.endpoints.release_deploys import DeploySerializer, create_deploy
 from sentry.auth.services.auth.model import AuthenticatedToken
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.models.apikey import ApiKey
@@ -15,6 +14,7 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.models.repository import Repository
 from sentry.plugins.bases.releasetracking import ReleaseTrackingPlugin
 from sentry.plugins.interfaces.releasehook import ReleaseHook
+from sentry.releases.endpoints.release_deploys import DeploySerializer, create_deploy
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry_plugins.base import CorePluginMixin
