@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Literal
 
 from sentry import features
-from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.on_call.metrics import OnCallInteractionType
@@ -14,6 +13,7 @@ from sentry.models.group import Group
 from sentry.notifications.notification_action.utils import should_fire_workflow_actions
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.notifications.utils.rules import get_key_from_rule_data
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
 
 OPSGENIE_API_VERSION = "v2"

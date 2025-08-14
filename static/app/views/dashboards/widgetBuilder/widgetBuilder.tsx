@@ -911,7 +911,7 @@ function WidgetBuilder({
     try {
       await validateWidget(api, organization.slug, widgetData);
       return true;
-    } catch (error) {
+    } catch (error: any) {
       setState({
         ...state,
         loading: false,

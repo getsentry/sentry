@@ -50,6 +50,8 @@ import {
   isAggregateField,
   isEquation,
   maybeEquationAlias,
+  parseFunction,
+  prettifyParsedFunction,
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
@@ -94,6 +96,7 @@ type WidgetCardChartProps = Pick<
   widgetLegendState: WidgetLegendSelectionState;
   chartGroup?: string;
   confidence?: Confidence;
+  disableTableActions?: boolean;
   disableZoom?: boolean;
   expandNumbers?: boolean;
   isMobile?: boolean;
@@ -158,6 +161,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       theme,
       onWidgetTableSort,
       onWidgetTableResizeColumn,
+      disableTableActions,
     } = this.props;
     if (loading || !tableResults?.[0]) {
       // Align height to other charts.
@@ -195,6 +199,15 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
       const tableData = convertTableDataToTabularData(tableResults?.[i]);
       const sort = decodeSorts(widget.queries[0]?.orderby)?.[0];
 
+      // Inject any prettified function names that aren't currently aliased into the aliases
+      for (const column of columns) {
+        const parsedFunction = parseFunction(column.key);
+        if (!aliases[column.key] && parsedFunction) {
+          aliases[column.key] = prettifyParsedFunction(parsedFunction);
+        }
+      }
+
+      const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
       return (
         <TableWrapper key={`table:${result.title}`}>
           {organization.features.includes('dashboards-use-widget-table-visualization') ? (
@@ -229,7 +242,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
                 } satisfies RenderFunctionBaggage;
               }}
               onResizeColumn={onWidgetTableResizeColumn}
-              allowedCellActions={[]}
+              allowedCellActions={
+                disableTableActions || !useCellActionsV2 ? [] : undefined
+              }
             />
           ) : (
             <StyledSimpleTableChart
@@ -481,7 +496,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps> {
     };
 
     const nameFormatter = (name: string) => {
-      return WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(name)!;
+      return WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(name);
     };
 
     const chartOptions = {

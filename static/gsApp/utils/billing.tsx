@@ -189,6 +189,19 @@ export function formatUsageWithUnits(
     : usageQuantity.toLocaleString();
 }
 
+export function convertUsageToReservedUnit(
+  usage: number,
+  category: DataCategory | string
+): number {
+  if (isByteCategory(category)) {
+    return usage / GIGABYTE;
+  }
+  if (isContinuousProfiling(category)) {
+    return usage / MILLISECONDS_IN_HOUR;
+  }
+  return usage;
+}
+
 /**
  * Do not export.
  * Helper method for formatReservedWithUnits

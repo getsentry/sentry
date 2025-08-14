@@ -98,17 +98,19 @@ def fix_for_issue_platform(event_data: dict[str, Any]) -> dict[str, Any]:
 
     ret_event["contexts"] = event_data.get("contexts", {})
 
-    # TODO: remove this once feedback_ingest API deprecated
-    # as replay context will be filled in
+    # TODO: investigate if this can be removed. If the frontend looks in both
+    # feedback and replay context for replay_id, this might not be needed.
     if not event_data["contexts"].get("replay") and event_data["contexts"].get("feedback", {}).get(
         "replay_id"
     ):
-        # Temporary metric to confirm this behavior is no longer needed.
-        metrics.incr("feedback.create_feedback_issue.filled_missing_replay_context")
-
+        # This metric confirms this block is still entered.
+        metrics.incr(
+            "feedback.create_feedback_issue.filled_missing_replay_context",
+        )
         ret_event["contexts"]["replay"] = {
             "replay_id": event_data["contexts"].get("feedback", {}).get("replay_id")
         }
+
     ret_event["event_id"] = event_data["event_id"]
 
     ret_event["platform"] = event_data.get("platform", "other")
@@ -162,11 +164,7 @@ def validate_issue_platform_event_schema(event_data):
     The issue platform schema validation does not run in dev atm so we have to do the validation
     ourselves, or else our tests are not representative of what happens in prod.
     """
-    try:
-        jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
-    except jsonschema.exceptions.ValidationError:
-        metrics.incr("feedback.create_feedback_issue.invalid_schema")
-        raise
+    jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
 
 
 def should_filter_feedback(event: dict) -> tuple[bool, str | None]:
@@ -213,13 +211,6 @@ def create_feedback_issue(
 
     Returns the formatted event data that was sent to issue platform.
     """
-
-    metrics.incr(
-        "feedback.create_feedback_issue.entered",
-        tags={
-            "referrer": source.value,
-        },
-    )
 
     should_filter, filter_reason = should_filter_feedback(event)
     if should_filter:
@@ -279,13 +270,14 @@ def create_feedback_issue(
         except Exception:
             # until we have LLM error types ironed out, just catch all exceptions
             logger.exception("Error checking if message is spam", extra={"project_id": project.id})
+
+        # In DD we use is_spam = None to indicate spam failed.
         metrics.incr(
             "feedback.create_feedback_issue.spam_detection",
             tags={
                 "is_spam": is_message_spam,
                 "referrer": source.value,
             },
-            sample_rate=1.0,
         )
 
     # Prepare the data for issue platform processing and attach useful tags.
@@ -361,6 +353,7 @@ def create_feedback_issue(
             event_fixed["tags"][f"{AI_LABEL_TAG_PREFIX}.labels"] = json.dumps(labels)
         except Exception:
             logger.exception("Error generating labels", extra={"project_id": project.id})
+            metrics.incr("feedback.label_generation.error")
 
     # Set the user.email tag since we want to be able to display user.email on the feedback UI as a tag
     # as well as be able to write alert conditions on it
@@ -410,7 +403,6 @@ def create_feedback_issue(
             "referrer": source.value,
             "platform": project.platform,
         },
-        sample_rate=1.0,
     )
 
     track_outcome(

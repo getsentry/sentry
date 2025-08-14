@@ -38,14 +38,15 @@ import {
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useChartInterval} from 'sentry/views/explore/hooks/useChartInterval';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {useSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
+import {useSpansSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {generateExploreCompareRoute} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 export function ToolbarSaveAs() {
   const {addToDashboard} = useAddToDashboard();
-  const {updateQuery, saveQuery} = useSaveQuery();
+  const {updateQuery, saveQuery} = useSpansSaveQuery();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -141,6 +142,7 @@ export function ToolbarSaveAs() {
         organization,
         saveQuery,
         source: 'toolbar',
+        traceItemDataset: TraceItemDataset.SPANS,
       });
     },
   });

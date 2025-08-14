@@ -1,4 +1,4 @@
-import {type ChangeEvent, useEffect, useState} from 'react';
+import {useEffect, useState, type ChangeEvent} from 'react';
 import styled from '@emotion/styled';
 
 import Confirm from 'sentry/components/confirm';
@@ -11,10 +11,10 @@ import type {BranchOverride, RepoSettings} from 'sentry/components/events/autofi
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {
   IconAdd,
-  IconChevron as IconExpandToggle,
   IconClose,
   IconCommit,
   IconDelete,
+  IconChevron as IconExpandToggle,
   IconTag,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';

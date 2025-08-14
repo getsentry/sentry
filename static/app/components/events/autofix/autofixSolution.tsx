@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {AnimatePresence, type AnimationProps, motion} from 'framer-motion';
+import {AnimatePresence, motion, type AnimationProps} from 'framer-motion';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import ClippedBox from 'sentry/components/clippedBox';
@@ -14,15 +14,15 @@ import {Tooltip} from 'sentry/components/core/tooltip';
 import {AutofixHighlightWrapper} from 'sentry/components/events/autofix/autofixHighlightWrapper';
 import {SolutionEventItem} from 'sentry/components/events/autofix/autofixSolutionEventItem';
 import {
-  type AutofixSolutionTimelineEvent,
   AutofixStatus,
   AutofixStepType,
+  type AutofixSolutionTimelineEvent,
   type CommentThread,
 } from 'sentry/components/events/autofix/types';
 import {
-  type AutofixResponse,
   makeAutofixQueryKey,
   useAutofixRepos,
+  type AutofixResponse,
 } from 'sentry/components/events/autofix/useAutofix';
 import {Timeline} from 'sentry/components/timeline';
 import {IconAdd, IconChat, IconFix} from 'sentry/icons';
@@ -310,7 +310,7 @@ function CopySolutionButton({
   }
   const text = formatSolutionText(solution, customSolution);
   return (
-    <CopyToClipboardButton
+    <StyledCopyToClipboardButton
       size="zero"
       text={text}
       borderless
@@ -480,7 +480,7 @@ function AutofixSolutionDisplay({
             </HeaderIconWrapper>
             {t('Solution')}
             <ButtonBar gap={'0'}>
-              <ChatButton
+              <Button
                 size="zero"
                 borderless
                 title={t('Chat with Seer')}
@@ -489,7 +489,7 @@ function AutofixSolutionDisplay({
                 analyticsEventKey="autofix.solution.chat"
               >
                 <IconChat />
-              </ChatButton>
+              </Button>
               <CopySolutionButton solution={solution} />
             </ButtonBar>
           </HeaderText>
@@ -710,6 +710,6 @@ const AddInstructionWrapper = styled('div')`
   padding: ${space(1)} ${space(1)} 0 ${space(3)};
 `;
 
-const ChatButton = styled(Button)`
-  color: ${p => p.theme.subText};
+const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
+  color: ${p => p.theme.textColor};
 `;
