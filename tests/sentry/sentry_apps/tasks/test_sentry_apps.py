@@ -1,5 +1,5 @@
 from collections import namedtuple
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import ANY, MagicMock, call, patch
 
 import pytest
 import responses
@@ -22,6 +22,7 @@ from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallat
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.tasks.sentry_apps import (
     build_comment_webhook,
+    create_or_update_service_hooks_for_sentry_app,
     installation_webhook,
     notify_sentry_app,
     process_resource_change_bound,
@@ -46,7 +47,12 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
-from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
+from sentry.testutils.silo import (
+    assume_test_silo_mode,
+    assume_test_silo_mode_of,
+    control_silo_test,
+    create_test_regions,
+)
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
@@ -1778,3 +1784,117 @@ class TestBackfillServiceHooksEvents(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             hook.refresh_from_db()
             assert hook.events == []
+
+
+@control_silo_test(regions=create_test_regions("us", "de"))
+class TestUpdateServiceHooksForSentryApp(TestCase):
+    def setUp(self) -> None:
+        self.sentry_app = self.create_sentry_app(
+            name="Test App",
+            webhook_url="https://example.com",
+            organization=self.organization,
+            events=["issue.created", "issue.resolved", "error.created"],
+        )
+
+    def test_create_or_update_service_hooks_for_sentry_app_multiple_regions(self):
+        """Test updating service hooks for a sentry app in multiple regions."""
+        organzation_1 = self.create_organization(owner=self.user, region="us")
+        organzation_2 = self.create_organization(owner=self.user, region="de")
+        organzation_1_installation = self.create_sentry_app_installation(
+            organization=organzation_1, slug=self.sentry_app.slug
+        )
+        organzation_2_installation = self.create_sentry_app_installation(
+            organization=organzation_2, slug=self.sentry_app.slug
+        )
+
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            create_or_update_service_hooks_for_sentry_app(
+                sentry_app_id=self.sentry_app.id,
+                webhook_url=self.sentry_app.webhook_url,
+                events=[],
+            )
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            assert (
+                ServiceHook.objects.get(installation_id=organzation_1_installation.id).events == []
+            )
+            assert (
+                ServiceHook.objects.get(installation_id=organzation_2_installation.id).events == []
+            )
+
+    @patch("sentry.sentry_apps.services.hook.service.hook_service.update_webhook_and_events")
+    def test_create_or_update_service_hooks_for_sentry_app_multiple_regions_mocked(
+        self, mock_update_webhook
+    ):
+        """Test updating service hooks for a sentry app across multiple regions (validating the rpc calls only)."""
+        organzation_1 = self.create_organization(owner=self.user, region="us")
+        organzation_2 = self.create_organization(owner=self.user, region="de")
+        self.create_sentry_app_installation(organization=organzation_1, slug=self.sentry_app.slug)
+        self.create_sentry_app_installation(organization=organzation_2, slug=self.sentry_app.slug)
+
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            create_or_update_service_hooks_for_sentry_app(
+                sentry_app_id=self.sentry_app.id,
+                webhook_url=self.sentry_app.webhook_url,
+                events=["issue.created", "issue.resolved"],
+            )
+
+        # Verify calls were made for both regions
+        expected_calls = [
+            call(
+                region_name="us",
+                organization_id=self.sentry_app.owner_id,
+                application_id=self.sentry_app.application_id,
+                events=["issue.created", "issue.resolved"],
+                webhook_url=self.sentry_app.webhook_url,
+            ),
+            call(
+                region_name="de",
+                organization_id=self.sentry_app.owner_id,
+                application_id=self.sentry_app.application_id,
+                events=["issue.created", "issue.resolved"],
+                webhook_url=self.sentry_app.webhook_url,
+            ),
+        ]
+        mock_update_webhook.assert_has_calls(expected_calls, any_order=True)
+
+    def test_create_or_update_service_hooks_for_sentry_app_with_none_webhook_url(self):
+        """Test updating service hooks with None webhook_url (should delete hooks)."""
+        organzation_1 = self.create_organization(owner=self.user, region="us")
+        organzation_1_installation = self.create_sentry_app_installation(
+            organization=organzation_1, slug=self.sentry_app.slug
+        )
+
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            create_or_update_service_hooks_for_sentry_app(
+                sentry_app_id=self.sentry_app.id,
+                webhook_url=None,
+                events=["issue.created"],
+            )
+
+        with assume_test_silo_mode(SiloMode.REGION), pytest.raises(ServiceHook.DoesNotExist):
+            ServiceHook.objects.get(installation_id=organzation_1_installation.id)
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_create_or_update_service_hooks_lifecycle_metrics(self, mock_record):
+        """Test that lifecycle metrics are properly recorded."""
+        organzation_1 = self.create_organization(owner=self.user, region="us")
+        organzation_2 = self.create_organization(owner=self.user, region="de")
+        self.create_sentry_app_installation(organization=organzation_1, slug=self.sentry_app.slug)
+        self.create_sentry_app_installation(organization=organzation_2, slug=self.sentry_app.slug)
+
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            create_or_update_service_hooks_for_sentry_app(
+                sentry_app_id=self.sentry_app.id,
+                webhook_url=self.sentry_app.webhook_url,
+                events=["issue.created"],
+            )
+
+        assert_success_metric(mock_record)
+        # APP_CREATE (success) -> INSTALLATION_CREATED (success) x2 -> WEBHOOK_UPDATE (success) x2
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=5
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=5
+        )

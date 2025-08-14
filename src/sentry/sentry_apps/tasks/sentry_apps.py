@@ -874,18 +874,13 @@ def regenerate_service_hooks_for_installation(
         lifecycle.add_extras(
             {"installation_id": installation.id, "sentry_app": installation.sentry_app.id}
         )
-        hook = hook_service.create_or_update_webhook_and_events_for_installation(
+        hook_service.create_or_update_webhook_and_events_for_installation(
             organization_id=installation.organization_id,
             application_id=installation.sentry_app.application_id,
             webhook_url=webhook_url,
             events=events,
             installation_id=installation.id,
         )
-        if not hook:
-            lifecycle.record_failure(
-                SentryAppWebhookFailureReason.MISSING_WEBHOOK_URL,
-            )
-            return
 
 
 @instrumented_task(
