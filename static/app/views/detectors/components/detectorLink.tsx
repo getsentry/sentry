@@ -143,7 +143,7 @@ function MetricDetectorDetails({detector}: {detector: MetricDetector}) {
             <DetailItem>{dataSource.queryObj.snubaQuery.aggregate}</DetailItem>
             <DetailItem>
               {middleEllipsis(
-                datasetConfig.getSnubaQuery(dataSource.queryObj.snubaQuery),
+                datasetConfig.toSnubaQueryString(dataSource.queryObj.snubaQuery),
                 40
               )}
             </DetailItem>

@@ -14,6 +14,8 @@ import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
 import type {DetectorDatasetConfig} from './base';
+import {DEFAULT_EVENT_TYPES_BY_DATASET, parseEventTypesFromQuery} from './eventTypes';
+import {DetectorDataset} from './types';
 
 type ReleasesSeriesResponse = SessionApiResponse;
 
@@ -95,7 +97,12 @@ export const DetectorReleasesConfig: DetectorDatasetConfig<ReleasesSeriesRespons
   getSeriesQueryOptions: getReleasesSeriesQueryOptions,
   toApiAggregate,
   fromApiAggregate,
-  getSnubaQuery: snubaQuery => snubaQuery?.query ?? '',
+  toSnubaQueryString: snubaQuery => snubaQuery?.query ?? '',
+  separateEventTypesFromQuery: query =>
+    parseEventTypesFromQuery(
+      query,
+      DEFAULT_EVENT_TYPES_BY_DATASET[DetectorDataset.RELEASES]
+    ),
   transformSeriesQueryData: (data, aggregate) => {
     return [transformMetricsResponseToSeries(data, aggregate)];
   },

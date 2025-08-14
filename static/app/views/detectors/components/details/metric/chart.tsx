@@ -50,7 +50,7 @@ function MetricDetectorChart({
     dataset,
     aggregate: snubaQuery.aggregate,
     interval: snubaQuery.timeWindow,
-    query: datasetConfig.getSnubaQuery(snubaQuery),
+    query: datasetConfig.toSnubaQueryString(snubaQuery),
     environment: snubaQuery.environment,
     projectId: detector.projectId,
     comparisonDelta,

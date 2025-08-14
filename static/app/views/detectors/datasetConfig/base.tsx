@@ -78,15 +78,19 @@ export interface DetectorDatasetConfig<SeriesResponse> {
   ) => Record<string, SelectValue<FieldValue>>;
   getSeriesQueryOptions: (options: DetectorSeriesQueryOptions) => ApiQueryKey;
   /**
-   * Adds additional event types to the query string
+   * Extracts event types from the query string
    */
-  getSnubaQuery: (snubaQuery: SnubaQuery | undefined) => string;
+  separateEventTypesFromQuery: (query: string) => {eventTypes: string[]; query: string};
   supportedDetectionTypes: Array<MetricDetectorConfig['detectionType']>;
   /**
    * Transform the user-friendly aggregate function to the API aggregate function.
    * This is currently only used for the releases dataset.
    */
   toApiAggregate: (aggregate: string) => string;
+  /**
+   * Adds additional event types to the query string
+   */
+  toSnubaQueryString: (snubaQuery: SnubaQuery | undefined) => string;
   /**
    * Transform comparison series data for % change alerts
    */
