@@ -212,6 +212,36 @@ describe('LogsAutoRefresh Integration Tests', () => {
     });
   });
 
+  it('disables auto-refresh when using not count(message)', async () => {
+    renderWithProviders(<AutorefreshToggle />, {
+      initialRouterConfig: {
+        ...routerConfig,
+        location: {
+          ...routerConfig.location,
+          query: {
+            ...routerConfig.location.query,
+            logsAggregate: 'avg',
+            logsAggregateParam: 'payload_size',
+          },
+        },
+      },
+      organization,
+    });
+
+    const toggleSwitch = screen.getByRole('checkbox', {name: 'Auto-refresh'});
+    expect(toggleSwitch).toBeDisabled();
+
+    await userEvent.hover(toggleSwitch);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          /Auto-refresh is only available when visualizing `count\(logs\)`./i
+        )
+      ).toBeInTheDocument();
+    });
+  });
+
   it('shows error state in URL when query fails', async () => {
     const {router} = renderWithProviders(<AutorefreshToggle />, {
       initialRouterConfig: enabledRouterConfig,
