@@ -259,12 +259,9 @@ class OptionsStore:
         return self.set_cache(key, value)
 
     def set_store(self, key, value, channel: UpdateChannel):
-        from sentry.db.models.query import create_or_update
-
-        create_or_update(
-            model=self.model,
+        self.model.objects.update_or_create(
             key=key.name,
-            values={
+            defaults={
                 "value": value,
                 "last_updated": timezone.now(),
                 "last_updated_by": channel.value,
