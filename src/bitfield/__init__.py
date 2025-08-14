@@ -2,7 +2,7 @@ from bitfield.models import BitField, TypedClassBitField, typed_dict_bitfield  #
 from bitfield.types import Bit, BitHandler
 
 default_app_config = "bitfield.apps.BitFieldAppConfig"
-
+# test comment
 __all__ = (
     "Bit",
     "BitField",
