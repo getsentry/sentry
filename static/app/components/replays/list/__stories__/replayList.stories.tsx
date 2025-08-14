@@ -3,7 +3,7 @@ import {ClassNames} from '@emotion/react';
 
 import {Flex} from 'sentry/components/core/layout/flex';
 import {Hovercard} from 'sentry/components/hovercard';
-import ReplayList from 'sentry/components/replays/list/replayList';
+import ReplayList from 'sentry/components/replays/list/__stories__/replayList';
 import EnvironmentPicker from 'sentry/components/replays/player/__stories__/environmentPicker';
 import ProjectPicker from 'sentry/components/replays/player/__stories__/projectPicker';
 import * as Storybook from 'sentry/stories';
