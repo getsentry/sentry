@@ -1,5 +1,4 @@
 import pickle
-from datetime import datetime
 from unittest import mock
 
 import pytest
@@ -694,6 +693,12 @@ class EventNodeStoreTest(TestCase):
         assert event.data.get_ref(event) == event.project.id
 
     def test_datetime_uses_snuba_data(self) -> None:
+        """
+        Test that datetime property uses snuba data when available to avoid nodestore access.
+        - timestamp_ms and timestamp in snuba data - nodestore should not be accessed, return timestamp with ms
+        - timestamp in snuba data, no timestamp_ms - nodestore should not be accessed, return timestamp without microseconds
+        - neither timestamp in snuba data - nodestore should be accessed, return from nodestore with ms
+        """
 
         second_before_now = before_now(seconds=1)
         second_before_now_no_ms = second_before_now.replace(microsecond=0)
@@ -712,13 +717,7 @@ class EventNodeStoreTest(TestCase):
             project_id=self.project.id,
         )
 
-        event_from_nodestore = Event(project_id=self.project.id, event_id="a" * 32)
-
-        # If we have timestamp_ms, we should not hit nodestore
-        with mock.patch(
-            "sentry.services.eventstore.models.datetime", wraps=datetime
-        ) as mock_datetime:
-            mock_datetime.fromisoformat = mock.Mock(wraps=datetime.fromisoformat)
+        with mock.patch("sentry.nodestore.backend.get") as mock_nodestore_get:
             event_from_snuba = Event(
                 project_id=self.project.id,
                 event_id="a" * 32,
@@ -732,14 +731,12 @@ class EventNodeStoreTest(TestCase):
                 )["data"][0],
             )
 
-            assert event_from_nodestore.timestamp == event_from_snuba.timestamp
-            assert mock_datetime.fromisoformat.call_count == 1
+            timestamp_result = event_from_snuba.timestamp
 
-        # If we have timestamp column but no timestamp_ms column, we fall back to timestamp
-        with mock.patch(
-            "sentry.services.eventstore.models.datetime", wraps=datetime
-        ) as mock_datetime:
-            mock_datetime.fromisoformat = mock.Mock(wraps=datetime.fromisoformat)
+            mock_nodestore_get.assert_not_called()
+            assert second_before_now_str == timestamp_result
+
+        with mock.patch("sentry.nodestore.backend.get") as mock_nodestore_get:
             event_from_snuba = Event(
                 project_id=self.project.id,
                 event_id="a" * 32,
@@ -752,14 +749,18 @@ class EventNodeStoreTest(TestCase):
                 )["data"][0],
             )
 
-            assert second_before_now_no_ms_str == event_from_snuba.timestamp
-            assert mock_datetime.fromisoformat.call_count == 1
+            timestamp_result = event_from_snuba.timestamp
 
-        # If we have neither timestamp nor timestamp_ms, we have to hit nodestore
-        with mock.patch(
-            "sentry.services.eventstore.models.datetime", wraps=datetime
-        ) as mock_datetime:
-            mock_datetime.fromisoformat = mock.Mock(wraps=datetime.fromisoformat)
+            mock_nodestore_get.assert_not_called()
+            assert second_before_now_no_ms_str == timestamp_result
+
+        with mock.patch("sentry.nodestore.backend.get") as mock_nodestore_get:
+            node_id = Event.generate_node_id(self.project.id, "a" * 32)
+            mock_nodestore_get.return_value = {
+                "timestamp": second_before_now.timestamp(),
+                "event_id": "a" * 32,
+            }
+
             event_from_snuba = Event(
                 project_id=self.project.id,
                 event_id="a" * 32,
@@ -770,5 +771,7 @@ class EventNodeStoreTest(TestCase):
                 )["data"][0],
             )
 
-            assert event_from_nodestore.timestamp == event_from_snuba.timestamp
-            assert mock_datetime.fromisoformat.call_count == 0
+            timestamp_result = event_from_snuba.timestamp
+
+            mock_nodestore_get.assert_called_once_with(node_id)
+            assert second_before_now_str == timestamp_result
