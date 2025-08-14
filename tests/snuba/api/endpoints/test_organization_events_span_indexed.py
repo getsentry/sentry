@@ -6046,3 +6046,39 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         )
         assert data[0]["transaction"] == "transactionA"
         assert meta["dataset"] == "spans"
+
+    @pytest.mark.xfail(reason="https://linear.app/getsentry/issue/EAP-255/aggregationcomparisonfilter-does-not-work-with-binaryformula")
+    def test_formula_filtering_attribute_aggregation_only(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"status": "ok", "transaction": "transactionA"}},
+                                        start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"status": "failure", "transaction": "transactionA"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"sentry_tags": {"status": "ok", "transaction": "transactionB"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+        )
+
+
+
+        response = self.do_request(
+            {
+                "field": ["failure_rate()", "transaction"],
+                "query": "failure_rate():>0.4",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["failure_rate()"] == 0.5
+        assert data[0]["transaction"] == "transactionA"
+        assert meta["dataset"] == "spans"
