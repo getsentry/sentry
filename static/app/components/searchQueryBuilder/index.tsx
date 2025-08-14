@@ -144,9 +144,14 @@ export interface SearchQueryBuilderProps {
    * replacing it with options that include the provided keys, and the user's input
    * as value.
    *
-   * e.g. if `replaceRawSearchKeys` is set to `['span.description']`, the user will be
-   * able to type `randomValue` and the combobox will show `span.description:randomValue`
-   * as an option, and so on with any other provided keys.
+   * @note e.g. if `replaceRawSearchKeys` is set to `['span.description']`, the user will
+   * be able to type `randomValue` and the combobox will show
+   * `span description:randomValue` as an option, and so on with any other provided keys.
+   *
+   * @note The order of the keys in the array is important. The first key will be
+   * used as the default value transformation, i.e. if the user types `random value`,
+   * when the query is submitted it will be transformed to
+   * `span.description:"random value"`.
    */
   replaceRawSearchKeys?: string[];
   /**
