@@ -125,7 +125,7 @@ export function WebVitalDetailHeader({score, value, webVital, transaction}: Prop
 
   const {mutate: createIssue} = useCreateIssue();
   return (
-    <SpaceBetweenFlex>
+    <Flex justify="between">
       <div>
         <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}</WebVitalName>
         <WebVitalScore>
@@ -159,6 +159,8 @@ export function WebVitalDetailHeader({score, value, webVital, transaction}: Prop
                 },
                 {
                   onSuccess: () => {
+                    // TODO: The issue actually doesn't get created here immediately.
+                    // Issue creation is async, so we need to poll for the issue by event ID to confirm success.
                     addSuccessMessage(t('Issue created successfully'));
                   },
                 }
@@ -169,7 +171,7 @@ export function WebVitalDetailHeader({score, value, webVital, transaction}: Prop
           </Button>
         </div>
       )}
-    </SpaceBetweenFlex>
+    </Flex>
   );
 }
 
@@ -242,8 +244,4 @@ const WebVitalScore = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
   margin-bottom: ${space(1)};
   gap: ${space(1)};
-`;
-
-const SpaceBetweenFlex = styled(Flex)`
-  justify-content: space-between;
 `;
