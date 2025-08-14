@@ -67,7 +67,7 @@ class OrganizationAlertRuleWorkflowIndexGetTest(OrganizationAlertRuleWorkflowAPI
         self.get_error_response(
             self.organization.slug,
             workflow_id=str(self.workflow_1.id),
-            alert_rule_id="00000",
+            alert_rule_id="this is not a valid ID",
         )
 
     def test_get_with_nonexistent_workflow_id(self) -> None:
