@@ -9,6 +9,7 @@ from typing import Any, Self
 
 import sentry_sdk
 
+from sentry import options
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.utils import metrics
@@ -158,6 +159,18 @@ class EventLifecycle:
             "extra": extra,
         }
 
+        effective_sample_log_rate = (
+            sample_log_rate if sample_log_rate is not None else self.sample_log_rate
+        )
+        should_log = effective_sample_log_rate >= 1.0 or random.random() < effective_sample_log_rate
+
+        if "organization_id" in extra:
+            org_id = extra["organization_id"]
+            if org_id in options.get("integration.debugging.org-ids"):
+                create_issue = True
+                effective_sample_log_rate = 1.0
+                should_log = True
+
         if isinstance(outcome_reason, BaseException):
             # Capture exception in Sentry if create_issue is True
             if create_issue:
@@ -179,13 +192,6 @@ class EventLifecycle:
 
         if outcome == EventLifecycleOutcome.FAILURE or outcome == EventLifecycleOutcome.HALTED:
             # Use provided sample_log_rate or fall back to instance default
-            effective_sample_log_rate = (
-                sample_log_rate if sample_log_rate is not None else self.sample_log_rate
-            )
-
-            should_log = (
-                effective_sample_log_rate >= 1.0 or random.random() < effective_sample_log_rate
-            )
             if should_log:
                 if outcome == EventLifecycleOutcome.FAILURE:
                     logger.warning(key, **log_params)
