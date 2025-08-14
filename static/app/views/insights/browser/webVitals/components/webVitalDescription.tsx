@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Button} from 'sentry/components/core/button';
 import {Flex} from 'sentry/components/core/layout';
@@ -149,12 +150,19 @@ export function WebVitalDetailHeader({score, value, webVital, transaction}: Prop
               </div>
             }
             onClick={() => {
-              createIssue({
-                issueType: IssueType.WEB_VITALS,
-                vital: webVital,
-                score,
-                transaction,
-              });
+              createIssue(
+                {
+                  issueType: IssueType.WEB_VITALS,
+                  vital: webVital,
+                  score,
+                  transaction,
+                },
+                {
+                  onSuccess: () => {
+                    addSuccessMessage(t('Issue created successfully'));
+                  },
+                }
+              );
             }}
           >
             {t('Create Issue')}
