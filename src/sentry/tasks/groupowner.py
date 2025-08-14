@@ -1,6 +1,7 @@
 import logging
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import cast
+from typing import Any, cast
 
 import sentry_sdk
 from django.utils import timezone
@@ -33,7 +34,13 @@ logger = logging.getLogger(__name__)
 
 
 def _process_suspect_commits(
-    event_id, event_platform, event_frames, group_id, project_id, sdk_name=None, **kwargs
+    event_id,
+    event_platform,
+    event_frames: Sequence[Mapping[str, Any]],
+    group_id,
+    project_id,
+    sdk_name=None,
+    **kwargs,
 ):
     metrics.incr("sentry.tasks.process_suspect_commits.start")
     set_current_event_project(project_id)
@@ -196,7 +203,7 @@ def _process_suspect_commits(
 def process_suspect_commits(
     event_id,
     event_platform,
-    event_frames,
+    event_frames: Sequence[Mapping[str, Any]],
     group_id,
     project_id,
     sdk_name=None,
