@@ -173,6 +173,8 @@ def get_trees_for_org(
     with SCMIntegrationInteractionEvent(
         SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS,
         provider_key=installation.model.provider,
+        organization_id=org.id,
+        integration_id=installation.org_integration.integration_id,
     ).capture() as lifecycle:
         try:
             with lock.acquire():

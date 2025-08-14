@@ -24,8 +24,8 @@ class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegratio
         return SCMIntegrationInteractionEvent(
             interaction_type=event,
             provider_key=self.model.provider,
-            organization=self.organization,
-            org_integration=self.org_integration,
+            organization_id=self.organization.id,
+            integration_id=self.org_integration.integration_id,
         )
 
     def _get_repository_choices(
