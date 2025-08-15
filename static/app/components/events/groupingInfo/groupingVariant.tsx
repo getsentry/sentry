@@ -26,7 +26,11 @@ interface GroupingVariantProps {
 
 type VariantData = Array<[string, React.ReactNode]>;
 
-function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
+function addFingerprintInfo(
+  data: VariantData,
+  variant: EventGroupVariant,
+  showNonContributing: boolean
+) {
   if ('matched_rule' in variant) {
     data.push([
       t('Fingerprint rule'),
@@ -48,7 +52,10 @@ function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
       </TextWithQuestionTooltip>,
     ]);
   }
-  if ('client_values' in variant) {
+  if (
+    'client_values' in variant &&
+    (showNonContributing || !('matched_rule' in variant))
+  ) {
     data.push([
       t('Client fingerprint values'),
       <TextWithQuestionTooltip key="type">
@@ -102,14 +109,14 @@ function GroupingVariant({event, variant, showNonContributing}: GroupingVariantP
         component = variant.component;
         break;
       case EventGroupVariantType.CUSTOM_FINGERPRINT:
-        addFingerprintInfo(data, variant);
+        addFingerprintInfo(data, variant, showNonContributing);
         break;
       case EventGroupVariantType.BUILT_IN_FINGERPRINT:
-        addFingerprintInfo(data, variant);
+        addFingerprintInfo(data, variant, showNonContributing);
         break;
       case EventGroupVariantType.SALTED_COMPONENT:
         component = variant.component;
-        addFingerprintInfo(data, variant);
+        addFingerprintInfo(data, variant, showNonContributing);
         break;
       case EventGroupVariantType.PERFORMANCE_PROBLEM: {
         const spansToHashes = Object.fromEntries(
