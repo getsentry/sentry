@@ -179,3 +179,8 @@ export function useQueryParamsAggregateSortBys(): readonly Sort[] {
   const queryParams = useQueryParams();
   return queryParams.aggregateSortBys;
 }
+
+export function useQueryParamsAggregateCursor(): string {
+  const queryParams = useQueryParams();
+  return queryParams.aggregateCursor;
+}
