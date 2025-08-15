@@ -8,7 +8,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelFooter from 'sentry/components/panels/panelFooter';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {PlanTier} from 'getsentry/types';
@@ -55,7 +54,7 @@ function AddDataVolume({
     return (
       <Flex direction="column" padding="xl" gap="0">
         <RowWithTag>
-          <LargeTitle>{t('Monthly Reserved Volumes')}</LargeTitle>
+          <Title>{t('Monthly Reserved Volumes')}</Title>
           <StyledTag type="promotion">{t('Plan ahead and save 20%')}</StyledTag>
         </RowWithTag>
         <Description>
@@ -104,7 +103,6 @@ function AddDataVolume({
         isCompleted={isCompleted}
         onEdit={onEdit}
       />
-
       {isActive && renderInfo()}
       {isActive && renderBody()}
       {isActive && renderFooter()}
@@ -116,10 +114,10 @@ export default AddDataVolume;
 
 // footer
 const StepFooter = styled(PanelFooter)<{isLegacy: boolean}>`
-  padding: ${space(2)};
+  padding: ${p => p.theme.space.xl};
   display: grid;
   grid-template-columns: ${p => (p.isLegacy ? 'auto max-content' : 'none')};
-  gap: ${space(1)};
+  gap: ${p => p.theme.space.md};
   align-items: center;
   justify-content: ${p => (p.isLegacy ? 'normal' : 'end')};
 `;
@@ -127,7 +125,7 @@ const StepFooter = styled(PanelFooter)<{isLegacy: boolean}>`
 const RowWithTag = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
 `;
 
 const StyledTag = styled(Tag)`
@@ -138,9 +136,6 @@ const Title = styled('label')`
   font-weight: 600;
   margin: 0;
   line-height: normal;
-`;
-
-const LargeTitle = styled(Title)`
   font-size: ${p => p.theme.fontSize.lg};
 `;
 

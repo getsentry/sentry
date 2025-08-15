@@ -10,7 +10,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconLightning, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 
 import {PlanTier} from 'getsentry/types';
@@ -239,6 +238,13 @@ function VolumeSliders({
                       <div>{utils.getEventsWithUnit(max, category)}</div>
                     </MinMax>
                   </div>
+                  {showTransactionsDisclaimer && (
+                    <span>
+                      {t(
+                        'We updated your event quota to make sure you get the best cost per transaction. Feel free to adjust as needed.'
+                      )}
+                    </span>
+                  )}
                 </CategoryContainer>
               ) : (
                 <Fragment>
@@ -268,15 +274,13 @@ function VolumeSliders({
                       <div>
                         {eventBucket.price !== 0 &&
                           tct('[unitPrice] per [category]', {
-                            category:
-                              category ===
-                              DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT].plural
-                                ? 'GB'
-                                : category ===
-                                      DATA_CATEGORY_INFO[DataCategoryExact.SPAN].plural ||
-                                    showPerformanceUnits
-                                  ? 'unit'
-                                  : 'event',
+                            category: isByteCategory(category)
+                              ? 'GB'
+                              : category ===
+                                    DATA_CATEGORY_INFO[DataCategoryExact.SPAN].plural ||
+                                  showPerformanceUnits
+                                ? 'unit'
+                                : 'event',
                             unitPrice,
                           })}
                       </div>
@@ -329,7 +333,7 @@ const SlidersContainer = styled('div')`
 const DataVolumeItem = styled(PanelItem)<{isNewCheckout: boolean}>`
   display: grid;
   grid-auto-flow: row;
-  gap: ${space(3)};
+  gap: ${p => p.theme.space['2xl']};
   font-weight: normal;
   width: 100%;
   margin: 0;
@@ -352,7 +356,7 @@ const SectionHeader = styled('div')`
 
 const Title = styled('label')<{isNewCheckout: boolean}>`
   display: flex;
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   align-items: center;
   margin-bottom: 0px;
   font-weight: ${p => p.theme.fontWeight.bold};
@@ -395,7 +399,7 @@ const StyledHovercard = styled(Hovercard)`
     text-transform: uppercase;
     font-size: ${p => p.theme.fontSize.sm};
     border-radius: 6px 6px 0px 0px;
-    padding: ${space(2)};
+    padding: ${p => p.theme.space.xl};
   }
   ${Body} {
     padding: 0px;
@@ -420,7 +424,7 @@ const PerformanceUnits = styled(BaseRow)`
 `;
 
 const PerformanceTag = styled(BaseRow)`
-  gap: ${space(0.5)};
+  gap: ${p => p.theme.space.xs};
   color: ${p => p.theme.purple300};
 `;
 
