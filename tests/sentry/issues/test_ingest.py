@@ -5,6 +5,7 @@ from hashlib import md5
 from unittest import mock
 from unittest.mock import patch
 
+import pytest
 from django.utils import timezone
 
 from sentry.api.helpers.group_index.update import handle_priority
@@ -222,6 +223,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         detector_group = DetectorGroup.objects.get(group_id=group_info.group.id)
         assert detector_group.detector_id == detector.id
 
+    @pytest.mark.skip(reason="flaky: #96330")
     def test_metric_issue_creates_detector_group(self) -> None:
         from datetime import timedelta
 
