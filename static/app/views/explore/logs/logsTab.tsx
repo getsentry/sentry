@@ -59,6 +59,7 @@ import {
   StyledPageFilterBar,
   TableActionsContainer,
   ToolbarAndBodyContainer,
+  ToolbarContainer,
   TopSectionBody,
 } from 'sentry/views/explore/logs/styles';
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
@@ -157,15 +158,14 @@ export function LogsTabContent({
     return newSearch;
   }, [logsSearch, timeseriesIngestDelay]);
 
+  const yAxes = new Set(visualizes.map(visualize => visualize.yAxis));
+
   const _timeseriesResult = useSortedTimeSeries(
     {
       search,
-      yAxis: visualizes.map(visualize => visualize.yAxis),
+      yAxis: [...yAxes],
       interval,
-      fields: [
-        ...groupBys.filter(Boolean),
-        ...visualizes.map(visualize => visualize.yAxis),
-      ],
+      fields: [...groupBys.filter(Boolean), ...yAxes],
       topEvents: topEventsLimit,
       orderby,
     },
@@ -341,7 +341,9 @@ export function LogsTabContent({
 
       <ToolbarAndBodyContainer sidebarOpen={sidebarOpen}>
         {sidebarOpen && (
-          <LogsToolbar stringTags={stringAttributes} numberTags={numberAttributes} />
+          <ToolbarContainer sidebarOpen={sidebarOpen}>
+            <LogsToolbar stringTags={stringAttributes} numberTags={numberAttributes} />
+          </ToolbarContainer>
         )}
         <BottomSectionBody>
           <section>
