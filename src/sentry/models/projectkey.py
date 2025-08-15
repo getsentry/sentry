@@ -76,8 +76,6 @@ class UseCase(enum.Enum):
     TEMPEST = "tempest"
     """ An internal project key for demo mode."""
     DEMO = "demo"
-    """ An internal project key for replay consumer profiling data."""
-    REPLAY_PROFILING = "replay_profiling"
 
 
 @region_silo_model

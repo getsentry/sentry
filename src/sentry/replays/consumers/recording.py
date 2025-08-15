@@ -86,7 +86,7 @@ def _get_replay_profiling_project_key():
     try:
         internal_project = Project.objects.get(slug="sentry-replay-consumer-profiling")
         profiling_key, _ = ProjectKey.objects.get_or_create(
-            use_case=UseCase.REPLAY_PROFILING.value,
+            use_case=UseCase.PROFILING.value,
             project=internal_project,
             defaults={"label": "Replay Consumer Profiling"},
         )
