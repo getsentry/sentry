@@ -31,3 +31,14 @@ jobs:
               repo: context.repo.repo,
               body: "Hi! 👋 It looks like you're asking about an integration with self-hosted Sentry. Integrations work differently on self-hosted Sentry so we created separate docs here: https://develop.sentry.dev/integrations/. Please take a look and let us know if you need further help."
             })
+      - name: Add 'Waiting for: Community' label
+        if: steps.check.outputs.match == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ["Waiting for: Community"]
+            })
