@@ -11,10 +11,10 @@ from sentry import quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupAiEndpoint
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project

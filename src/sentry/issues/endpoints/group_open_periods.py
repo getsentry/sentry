@@ -9,10 +9,10 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import GroupEndpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.groupopenperiod import get_open_periods_for_group
 
 if TYPE_CHECKING:

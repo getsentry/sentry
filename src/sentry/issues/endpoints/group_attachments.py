@@ -8,7 +8,6 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.events import get_query_builder_for_group
@@ -16,6 +15,7 @@ from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import EventAttachmentSerializer, serialize
 from sentry.api.utils import get_date_range_from_params, handle_query_errors
 from sentry.exceptions import InvalidParams
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.eventattachment import EventAttachment, event_attachment_screenshot_filter
 from sentry.models.group import Group
 from sentry.search.events.types import ParamsType

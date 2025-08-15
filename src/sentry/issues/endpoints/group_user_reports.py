@@ -3,10 +3,10 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.group import GroupEndpoint
 from sentry.api.helpers.environments import get_environment
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.environment import Environment
 from sentry.models.userreport import UserReport
 
