@@ -123,6 +123,11 @@ function PlanSelectCard({
           value={planValue}
           checked={isSelected}
           onClick={onPlanSelect}
+          onKeyDown={e => {
+            if (e.key === 'Enter') {
+              onPlanSelect();
+            }
+          }}
         />
       </Row>
       <div>
