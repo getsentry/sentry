@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import builtins
 import logging
-from dataclasses import asdict
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
@@ -111,7 +110,6 @@ class Action(DefaultFieldsModel, JSONConfigBase):
             extra={
                 "detector_id": detector.id,
                 "action_id": self.id,
-                "event_data": asdict(event_data),
             },
         )
 
