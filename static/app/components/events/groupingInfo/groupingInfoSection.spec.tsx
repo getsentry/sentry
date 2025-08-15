@@ -8,7 +8,7 @@ import {IssueCategory} from 'sentry/types/group';
 
 import {EventGroupingInfoSection} from './groupingInfoSection';
 
-describe('EventGroupingInfo', function () {
+describe('EventGroupingInfo', () => {
   const group = GroupFixture();
   const event = EventFixture({
     groupingConfig: {
@@ -41,7 +41,7 @@ describe('EventGroupingInfo', function () {
     });
   });
 
-  it('fetches and renders grouping info for errors', async function () {
+  it('fetches and renders grouping info for errors', async () => {
     render(<EventGroupingInfoSection {...defaultProps} />);
     await userEvent.click(
       screen.getByRole('button', {name: 'View Event Grouping Information Section'})
@@ -50,7 +50,7 @@ describe('EventGroupingInfo', function () {
     expect(screen.getByText('123')).toBeInTheDocument();
   });
 
-  it('gets performance grouping info from group/event data', async function () {
+  it('gets performance grouping info from group/event data', async () => {
     const perfEvent = EventFixture({
       type: 'transaction',
       occurrence: {fingerprint: ['123'], evidenceData: {op: 'bad-op'}},

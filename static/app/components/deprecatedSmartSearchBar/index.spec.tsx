@@ -17,10 +17,10 @@ import {FieldKey} from 'sentry/utils/fields';
 
 import {ItemType} from './types';
 
-describe('SmartSearchBar', function () {
+describe('SmartSearchBar', () => {
   let defaultProps: any;
 
-  beforeEach(function () {
+  beforeEach(() => {
     TagStore.reset();
     TagStore.loadTagsSuccess([
       ...TagsFixture(),
@@ -59,11 +59,11 @@ describe('SmartSearchBar', function () {
     };
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('quotes in values with spaces when autocompleting', async function () {
+  it('quotes in values with spaces when autocompleting', async () => {
     const onGetTagValuesMock = jest
       .fn()
       .mockResolvedValue(['this is filled with spaces']);
@@ -83,7 +83,7 @@ describe('SmartSearchBar', function () {
     expect(textbox).toHaveValue('device:"this is filled with spaces" ');
   });
 
-  it('escapes quotes in values properly when autocompleting', async function () {
+  it('escapes quotes in values properly when autocompleting', async () => {
     const onGetTagValuesMock = jest
       .fn()
       .mockResolvedValue(['this " is " filled " with " quotes']);
@@ -103,7 +103,7 @@ describe('SmartSearchBar', function () {
     expect(textbox).toHaveValue('device:"this \\" is \\" filled \\" with \\" quotes" ');
   });
 
-  it('does not search when pressing enter on a tag without a value', async function () {
+  it('does not search when pressing enter on a tag without a value', async () => {
     const onSearchMock = jest.fn();
 
     render(<DeprecatedSmartSearchBar {...defaultProps} onSearch={onSearchMock} />);
@@ -114,7 +114,7 @@ describe('SmartSearchBar', function () {
     expect(onSearchMock).not.toHaveBeenCalled();
   });
 
-  it('autocompletes value with tab', async function () {
+  it('autocompletes value with tab', async () => {
     const onSearchMock = jest.fn();
 
     render(<DeprecatedSmartSearchBar {...defaultProps} onSearch={onSearchMock} />);
@@ -139,7 +139,7 @@ describe('SmartSearchBar', function () {
     expect(onSearchMock).not.toHaveBeenCalled();
   });
 
-  it('autocompletes value with enter', async function () {
+  it('autocompletes value with enter', async () => {
     const onSearchMock = jest.fn();
 
     render(<DeprecatedSmartSearchBar {...defaultProps} onSearch={onSearchMock} />);
@@ -164,7 +164,7 @@ describe('SmartSearchBar', function () {
     expect(onSearchMock).not.toHaveBeenCalled();
   });
 
-  it('searches and completes tags with negation operator', async function () {
+  it('searches and completes tags with negation operator', async () => {
     render(<DeprecatedSmartSearchBar {...defaultProps} />);
 
     const textbox = screen.getByRole('textbox');
@@ -177,14 +177,14 @@ describe('SmartSearchBar', function () {
     expect(textbox).toHaveValue('!browser:');
   });
 
-  describe('componentWillReceiveProps()', function () {
-    it('should add a space when setting query', function () {
+  describe('componentWillReceiveProps()', () => {
+    it('should add a space when setting query', () => {
       render(<DeprecatedSmartSearchBar {...defaultProps} query="one" />);
 
       expect(screen.getByRole('textbox')).toHaveValue('one ');
     });
 
-    it('updates query when prop changes', function () {
+    it('updates query when prop changes', () => {
       const {rerender} = render(
         <DeprecatedSmartSearchBar {...defaultProps} query="one" />
       );
@@ -194,7 +194,7 @@ describe('SmartSearchBar', function () {
       expect(screen.getByRole('textbox')).toHaveValue('two ');
     });
 
-    it('updates query when prop set to falsey value', function () {
+    it('updates query when prop set to falsey value', () => {
       const {rerender} = render(
         <DeprecatedSmartSearchBar {...defaultProps} query="one" />
       );
@@ -204,7 +204,7 @@ describe('SmartSearchBar', function () {
       expect(screen.getByRole('textbox')).toHaveValue('');
     });
 
-    it('should not reset user textarea if a noop props change happens', async function () {
+    it('should not reset user textarea if a noop props change happens', async () => {
       const {rerender} = render(
         <DeprecatedSmartSearchBar {...defaultProps} query="one" />
       );
@@ -216,7 +216,7 @@ describe('SmartSearchBar', function () {
       expect(screen.getByRole('textbox')).toHaveValue('one two');
     });
 
-    it('should reset user textarea if a meaningful props change happens', async function () {
+    it('should reset user textarea if a meaningful props change happens', async () => {
       const {rerender} = render(
         <DeprecatedSmartSearchBar {...defaultProps} query="one" />
       );
@@ -229,8 +229,8 @@ describe('SmartSearchBar', function () {
     });
   });
 
-  describe('clear search', function () {
-    it('clicking the clear search button clears the query and calls onSearch', async function () {
+  describe('clear search', () => {
+    it('clicking the clear search button clears the query and calls onSearch', async () => {
       const mockOnSearch = jest.fn();
 
       render(
@@ -252,8 +252,8 @@ describe('SmartSearchBar', function () {
     });
   });
 
-  describe('dropdown open state', function () {
-    it('opens the dropdown when the search box is clicked', async function () {
+  describe('dropdown open state', () => {
+    it('opens the dropdown when the search box is clicked', async () => {
       render(<DeprecatedSmartSearchBar {...defaultProps} />);
 
       const textbox = screen.getByRole('textbox');
@@ -263,7 +263,7 @@ describe('SmartSearchBar', function () {
       expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
     });
 
-    it('opens the dropdown when the search box gains focus', function () {
+    it('opens the dropdown when the search box gains focus', () => {
       render(<DeprecatedSmartSearchBar {...defaultProps} />);
 
       const textbox = screen.getByRole('textbox');
@@ -273,7 +273,7 @@ describe('SmartSearchBar', function () {
       expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
     });
 
-    it('hides the drop down when clicking outside', async function () {
+    it('hides the drop down when clicking outside', async () => {
       render(
         <div data-test-id="test-container">
           <DeprecatedSmartSearchBar {...defaultProps} />
@@ -290,7 +290,7 @@ describe('SmartSearchBar', function () {
       expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
     });
 
-    it('hides the drop down when pressing escape', async function () {
+    it('hides the drop down when pressing escape', async () => {
       render(<DeprecatedSmartSearchBar {...defaultProps} />);
 
       const textbox = screen.getByRole('textbox');
@@ -304,8 +304,8 @@ describe('SmartSearchBar', function () {
     });
   });
 
-  describe('pasting', function () {
-    it('trims pasted content', async function () {
+  describe('pasting', () => {
+    it('trims pasted content', async () => {
       const mockOnChange = jest.fn();
       render(<DeprecatedSmartSearchBar {...defaultProps} onChange={mockOnChange} />);
 
@@ -320,7 +320,7 @@ describe('SmartSearchBar', function () {
     });
   });
 
-  it('invokes onSearch() on enter', async function () {
+  it('invokes onSearch() on enter', async () => {
     const mockOnSearch = jest.fn();
     render(
       <DeprecatedSmartSearchBar {...defaultProps} query="test" onSearch={mockOnSearch} />
@@ -331,13 +331,13 @@ describe('SmartSearchBar', function () {
     expect(mockOnSearch).toHaveBeenCalledWith('test');
   });
 
-  it('handles an empty query', function () {
+  it('handles an empty query', () => {
     render(<DeprecatedSmartSearchBar {...defaultProps} query="" />);
 
     expect(screen.getByRole('textbox')).toHaveValue('');
   });
 
-  it('does not fetch tag values with environment tag and excludeEnvironment', async function () {
+  it('does not fetch tag values with environment tag and excludeEnvironment', async () => {
     const getTagValuesMock = jest.fn().mockResolvedValue([]);
 
     render(
@@ -354,7 +354,7 @@ describe('SmartSearchBar', function () {
     expect(getTagValuesMock).not.toHaveBeenCalled();
   });
 
-  it('does not fetch tag values with timesSeen tag', async function () {
+  it('does not fetch tag values with timesSeen tag', async () => {
     const getTagValuesMock = jest.fn().mockResolvedValue([]);
 
     render(
@@ -371,7 +371,7 @@ describe('SmartSearchBar', function () {
     expect(getTagValuesMock).not.toHaveBeenCalled();
   });
 
-  it('fetches and displays tag values with other tags', async function () {
+  it('fetches and displays tag values with other tags', async () => {
     const getTagValuesMock = jest.fn().mockResolvedValue([]);
 
     render(
@@ -388,7 +388,7 @@ describe('SmartSearchBar', function () {
     expect(getTagValuesMock).toHaveBeenCalledTimes(1);
   });
 
-  it('shows correct options on cursor changes for keys and values', async function () {
+  it('shows correct options on cursor changes for keys and values', async () => {
     const getTagValuesMock = jest.fn().mockResolvedValue([]);
 
     render(
@@ -438,14 +438,14 @@ describe('SmartSearchBar', function () {
     expect(screen.queryByText('Keys')).not.toBeInTheDocument();
   });
 
-  it('shows syntax error for incorrect tokens', function () {
+  it('shows syntax error for incorrect tokens', () => {
     render(<DeprecatedSmartSearchBar {...defaultProps} query="tag: is: has:" />);
 
     // Should have three invalid tokens (tag:, is:, and has:)
     expect(screen.getAllByTestId('filter-token-invalid')).toHaveLength(3);
   });
 
-  it('renders nested keys correctly', async function () {
+  it('renders nested keys correctly', async () => {
     render(
       <DeprecatedSmartSearchBar
         {...defaultProps}
@@ -473,7 +473,7 @@ describe('SmartSearchBar', function () {
     await screen.findByText('Keys');
   });
 
-  it('filters keys on name and description', async function () {
+  it('filters keys on name and description', async () => {
     render(
       <DeprecatedSmartSearchBar
         {...defaultProps}
@@ -505,7 +505,7 @@ describe('SmartSearchBar', function () {
     expect(screen.queryByRole('option', {name: /arch/})).not.toBeInTheDocument();
   });
 
-  it('handles autocomplete race conditions when cursor position changed', async function () {
+  it('handles autocomplete race conditions when cursor position changed', async () => {
     jest.useFakeTimers();
     const user = userEvent.setup({delay: null});
 
@@ -544,7 +544,7 @@ describe('SmartSearchBar', function () {
     jest.useRealTimers();
   });
 
-  it('autocompletes tag values', async function () {
+  it('autocompletes tag values', async () => {
     const mockOnChange = jest.fn();
 
     const getTagValuesMock = jest.fn().mockResolvedValue(['Chrome', 'Firefox']);
@@ -573,7 +573,7 @@ describe('SmartSearchBar', function () {
     });
   });
 
-  it('autocompletes tag values when there are other tags', async function () {
+  it('autocompletes tag values when there are other tags', async () => {
     const mockOnChange = jest.fn();
 
     const getTagValuesMock = jest.fn().mockResolvedValue(['Chrome', 'Firefox']);
@@ -607,7 +607,7 @@ describe('SmartSearchBar', function () {
     });
   });
 
-  it('autocompletes tag values (user tag)', async function () {
+  it('autocompletes tag values (user tag)', async () => {
     jest.useFakeTimers();
     const mockOnChange = jest.fn();
     const getTagValuesMock = jest.fn().mockResolvedValue(['id:1']);
@@ -636,7 +636,7 @@ describe('SmartSearchBar', function () {
     jest.useRealTimers();
   });
 
-  it('autocompletes assigned from string values', async function () {
+  it('autocompletes assigned from string values', async () => {
     const mockOnChange = jest.fn();
 
     render(
@@ -670,7 +670,7 @@ describe('SmartSearchBar', function () {
     });
   });
 
-  it('autocompletes assigned from SearchGroup objects', async function () {
+  it('autocompletes assigned from SearchGroup objects', async () => {
     const mockOnChange = jest.fn();
 
     render(
@@ -735,7 +735,7 @@ describe('SmartSearchBar', function () {
     });
   });
 
-  it('autocompletes tag values (predefined values with spaces)', async function () {
+  it('autocompletes tag values (predefined values with spaces)', async () => {
     jest.useFakeTimers();
     const mockOnChange = jest.fn();
 
@@ -776,7 +776,7 @@ describe('SmartSearchBar', function () {
     jest.useRealTimers();
   });
 
-  it('autocompletes tag values (predefined values with quotes)', async function () {
+  it('autocompletes tag values (predefined values with quotes)', async () => {
     jest.useFakeTimers();
     const mockOnChange = jest.fn();
 
@@ -817,8 +817,8 @@ describe('SmartSearchBar', function () {
     jest.useRealTimers();
   });
 
-  describe('quick actions', function () {
-    it('can delete tokens', async function () {
+  describe('quick actions', () => {
+    it('can delete tokens', async () => {
       render(
         <DeprecatedSmartSearchBar
           {...defaultProps}
@@ -839,7 +839,7 @@ describe('SmartSearchBar', function () {
       expect(textbox).toHaveValue('sdk.name:sentry-cocoa has:key');
     });
 
-    it('can delete a middle token', async function () {
+    it('can delete a middle token', async () => {
       render(
         <DeprecatedSmartSearchBar
           {...defaultProps}
@@ -860,7 +860,7 @@ describe('SmartSearchBar', function () {
       expect(textbox).toHaveValue('is:unresolved has:key');
     });
 
-    it('can exclude a token', async function () {
+    it('can exclude a token', async () => {
       render(
         <DeprecatedSmartSearchBar
           {...defaultProps}
@@ -881,7 +881,7 @@ describe('SmartSearchBar', function () {
       expect(textbox).toHaveValue('is:unresolved !sdk.name:sentry-cocoa has:key ');
     });
 
-    it('can include a token', async function () {
+    it('can include a token', async () => {
       render(
         <DeprecatedSmartSearchBar
           {...defaultProps}
@@ -906,7 +906,7 @@ describe('SmartSearchBar', function () {
     });
   });
 
-  it('displays invalid field message', async function () {
+  it('displays invalid field message', async () => {
     render(<DeprecatedSmartSearchBar {...defaultProps} query="" />);
 
     const textbox = screen.getByRole('textbox');
@@ -918,7 +918,7 @@ describe('SmartSearchBar', function () {
     ).toBeInTheDocument();
   });
 
-  it('displays invalid field messages for when wildcard is disallowed', async function () {
+  it('displays invalid field messages for when wildcard is disallowed', async () => {
     render(<DeprecatedSmartSearchBar {...defaultProps} query="" disallowWildcard />);
 
     const textbox = screen.getByRole('textbox');
@@ -939,7 +939,7 @@ describe('SmartSearchBar', function () {
 
   describe('date fields', () => {
     // Transpile the lazy-loaded datepicker up front so tests don't flake
-    beforeAll(async function () {
+    beforeAll(async () => {
       await import('sentry/components/calendar/datePicker');
     });
 
@@ -1140,7 +1140,7 @@ describe('SmartSearchBar', function () {
       ],
     };
 
-    it('displays a default group with custom wrapper', async function () {
+    it('displays a default group with custom wrapper', async () => {
       const mockOnChange = jest.fn();
       render(
         <DeprecatedSmartSearchBar
@@ -1165,7 +1165,7 @@ describe('SmartSearchBar', function () {
         expect.anything()
       );
     });
-    it('hides the default group after typing', async function () {
+    it('hides the default group after typing', async () => {
       render(
         <DeprecatedSmartSearchBar
           {...defaultProps}
@@ -1185,7 +1185,7 @@ describe('SmartSearchBar', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('hides the default group after picking item with applyFilter', async function () {
+    it('hides the default group after picking item with applyFilter', async () => {
       render(
         <DeprecatedSmartSearchBar
           {...defaultProps}

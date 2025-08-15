@@ -19,7 +19,7 @@ ALLOWLIST_FILES: set[str] = {
     "src/sentry/api/helpers/group_index/update.py",
     "src/sentry/api/endpoints/organization_pinned_searches.py",
     "src/sentry/api/endpoints/project_template_detail.py",
-    "src/sentry/api/endpoints/release_deploys.py",
+    "src/sentry/releases/endpoints/release_deploys.py",
     "src/sentry/api/endpoints/organization_unsubscribe.py",
     "src/sentry/api/endpoints/organization_recent_searches.py",
     "src/sentry/api/endpoints/prompts_activity.py",
