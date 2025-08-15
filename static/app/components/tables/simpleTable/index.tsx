@@ -1,4 +1,4 @@
-import type {ComponentProps, CSSProperties, HTMLAttributes} from 'react';
+import type {ComponentProps, CSSProperties, HTMLAttributes, RefObject} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -9,7 +9,7 @@ import {IconArrow} from 'sentry/icons';
 import {defined} from 'sentry/utils';
 
 interface TableProps extends HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
+  ref?: RefObject<HTMLDivElement | null>;
 }
 
 interface RowProps extends HTMLAttributes<HTMLDivElement> {
