@@ -6,6 +6,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import {PlanTier} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout';
+import {hasCheckoutV3} from 'getsentry/views/amCheckout/utils';
 
 interface Props extends RouteComponentProps<Record<PropertyKey, unknown>, unknown> {}
 
@@ -13,7 +14,12 @@ function DecideCheckout(props: Props) {
   const organization = useOrganization();
   const [tier, setTier] = useState<string | null>(null);
 
-  const checkoutProps = {...props, organization, onToggleLegacy: setTier};
+  const checkoutProps = {
+    ...props,
+    organization,
+    onToggleLegacy: setTier,
+    isNewCheckout: hasCheckoutV3(organization),
+  };
 
   const hasAm3Feature = organization.features?.includes('am3-billing');
   const hasPartnerMigrationFeature = organization.features.includes(
