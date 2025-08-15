@@ -23,6 +23,7 @@ from sentry.snuba.models import (
     SnubaQuery,
     SnubaQueryEventType,
 )
+from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import data_source_type_registry
@@ -320,7 +321,8 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert not validator.is_valid()
         assert validator.errors.get("type") == [
             ErrorDetail(
-                string="Unknown detector type 'invalid_type'. Must be one of: error", code="invalid"
+                string=get_unknown_detector_type_error("invalid_type", self.organization),
+                code="invalid",
             )
         ]
 

@@ -30,6 +30,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.uptime.types import DATA_SOURCE_UPTIME_SUBSCRIPTION
 from sentry.workflow_engine.endpoints.organization_detector_index import convert_assignee_values
+from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_group import DetectorGroup
@@ -682,7 +683,7 @@ class OrganizationDetectorIndexPostTest(OrganizationDetectorIndexBaseTest):
             status_code=400,
         )
         assert response.data == {
-            "type": ["Unknown detector type 'invalid_type'. Must be one of: error"]
+            "type": [get_unknown_detector_type_error("invalid_type", self.organization)]
         }
 
     def test_incompatible_group_type(self) -> None:
