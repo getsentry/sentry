@@ -34,7 +34,7 @@ class OrganizationIntegrationDeletionTask(ModelDeletionTask[OrganizationIntegrat
             organization = organization_service.get(id=instance.organization_id)
 
             if organization and features.has("organizations:update-action-status", organization):
-                # Delete all actions for the organization integration
+                # Disable all actions for the organization integration
                 action_service.update_action_status_for_organization_integration(
                     organization_id=instance.organization_id,
                     integration_id=instance.integration_id,
