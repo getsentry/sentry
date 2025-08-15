@@ -2,9 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
 import {Flex} from 'sentry/components/core/layout';
-import {ExternalLink} from 'sentry/components/core/link';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
 import PanelItem from 'sentry/components/panels/panelItem';
@@ -21,6 +19,7 @@ import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
   getSingularCategoryName,
+  isByteCategory,
 } from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import UnitTypeItem from 'getsentry/views/amCheckout/steps/unitTypeItem';
@@ -68,7 +67,7 @@ function VolumeSliders({
         <IconLightning size="sm" />
         {t('Sentry Performance')}
       </PerformanceTag>
-      {t('Total Units')}
+      {!isNewCheckout && t('Total Units')}
     </PerformanceUnits>
   );
 
@@ -101,21 +100,6 @@ function VolumeSliders({
         <IconQuestion size="xs" color="subText" />
       </IconContainer>
     </StyledHovercard>
-  );
-
-  const renderLearnMore = () => (
-    <LearnMore>
-      <FeatureBadge type="new" />
-      <span>
-        {tct('Sentry will dynamically sample transaction volume at scale. [learnMore]', {
-          learnMore: (
-            <ExternalLink href="https://docs.sentry.io/product/data-management-settings/dynamic-sampling/">
-              {t('Learn more.')}
-            </ExternalLink>
-          ),
-        })}
-      </span>
-    </LearnMore>
   );
 
   return (
@@ -184,6 +168,7 @@ function VolumeSliders({
               {isNewCheckout ? (
                 <CategoryContainer>
                   <Flex direction="column">
+                    {showPerformanceUnits && renderPerformanceUnitDecoration()}
                     <Title htmlFor={sliderId} isNewCheckout={!!isNewCheckout}>
                       <div>{getPlanCategoryName({plan: activePlan, category})}</div>
                       {showPerformanceUnits
@@ -246,7 +231,9 @@ function VolumeSliders({
                     <MinMax isNewCheckout={!!isNewCheckout}>
                       <div>
                         {tct('[min] included', {
-                          min: formatReservedWithUnits(min, category),
+                          min: isByteCategory(category)
+                            ? utils.getEventsWithUnit(min, category)
+                            : formatReservedWithUnits(min, category),
                         })}
                       </div>
                       <div>{utils.getEventsWithUnit(max, category)}</div>
@@ -322,11 +309,6 @@ function VolumeSliders({
                       )}
                     </span>
                   )}
-                  {/* TODO: Remove after profiling launch */}
-                  {!showPerformanceUnits &&
-                    category === DataCategory.TRANSACTIONS &&
-                    activePlan.features.includes('dynamic-sampling') &&
-                    renderLearnMore()}
                 </Fragment>
               )}
             </DataVolumeItem>
@@ -440,16 +422,6 @@ const PerformanceUnits = styled(BaseRow)`
 const PerformanceTag = styled(BaseRow)`
   gap: ${space(0.5)};
   color: ${p => p.theme.purple300};
-`;
-
-const LearnMore = styled('div')`
-  display: grid;
-  grid-template-columns: max-content auto;
-  gap: ${space(1)};
-  padding: ${space(1)};
-  background: ${p => p.theme.backgroundSecondary};
-  color: ${p => p.theme.subText};
-  align-items: center;
 `;
 
 const VolumeAmount = styled('div')`
