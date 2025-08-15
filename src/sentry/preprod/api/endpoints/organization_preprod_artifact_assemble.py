@@ -37,6 +37,7 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict, str | N
             },
             # Optional metadata
             "build_configuration": {"type": "string"},
+            "release_notes": {"type": "string"},
             # VCS parameters
             "head_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
             "base_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
@@ -55,6 +56,7 @@ def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict, str | N
         "checksum": "The checksum field is required and must be a 40-character hexadecimal string.",
         "chunks": "The chunks field is required and must be provided as an array of 40-character hexadecimal strings.",
         "build_configuration": "The build_configuration field must be a string.",
+        "release_notes": "The release_notes field msut be a string.",
         "head_sha": "The head_sha field must be a 40-character hexadecimal SHA1 string (no uppercase letters).",
         "base_sha": "The base_sha field must be a 40-character hexadecimal SHA1 string (no uppercase letters).",
         "provider": "The provider field must be a string with maximum length of 255 characters containing the domain of the VCS provider (ex. github.com)",
@@ -144,6 +146,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
                 project_id=project.id,
                 checksum=checksum,
                 build_configuration=data.get("build_configuration"),
+                release_notes=data.get("release_notes"),
             )
 
             if artifact_id is None:
