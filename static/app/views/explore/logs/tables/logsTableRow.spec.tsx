@@ -50,6 +50,7 @@ describe('logsTableRow', () => {
     [OurLogKnownFieldKey.PROJECT_ID]: project.id,
     [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
     [OurLogKnownFieldKey.TRACE_ID]: '7b91699f',
+    [OurLogKnownFieldKey.SEVERITY]: 'info',
   });
 
   // These are the detailed attributes of the row - only displayed when you click the row.
@@ -286,7 +287,7 @@ describe('logsTableRow', () => {
 
     // Check that the attribute values are rendered
     expect(screen.queryByText(projects[0]!.id)).not.toBeInTheDocument();
-    expect(screen.getByText('error')).toBeInTheDocument();
+    expect(screen.getAllByText('info')).toHaveLength(2); // Severity circle and text
     expect(screen.getByText('7b91699f')).toBeInTheDocument();
 
     // Check that the attributes keys are rendered
@@ -444,7 +445,7 @@ describe('logsTableRow', () => {
     expect(parsedData).toMatchObject({
       message: 'test log body',
       trace: '7b91699f',
-      severity: 'error',
+      severity: 'info',
       item_id: '1',
     });
 
