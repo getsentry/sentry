@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 class LabelRequest(TypedDict):
     """Corresponds to GenerateFeedbackLabelsRequest in Seer."""
 
-    organization_id: int
     feedback_message: str
 
 
@@ -27,7 +26,7 @@ SEER_GENERATE_LABELS_URL = f"{settings.SEER_AUTOFIX_URL}/v1/automation/summarize
 
 
 @metrics.wraps("feedback.generate_labels")
-def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
+def generate_labels(feedback_message: str) -> list[str]:
     """
     Generate labels for a feedback message.
 
@@ -38,7 +37,6 @@ def generate_labels(feedback_message: str, organization_id: int) -> list[str]:
     - KeyError / ValueError if the response JSON doesn't have the expected structure
     """
     request = LabelRequest(
-        organization_id=organization_id,
         feedback_message=feedback_message,
     )
 
