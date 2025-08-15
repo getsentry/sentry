@@ -188,6 +188,7 @@ function IssueListOverview({
   const [error, setError] = useState<string | null>(null);
   const [issuesLoading, setIssuesLoading] = useState(true);
   const [issuesSuccessfullyLoaded, setIssuesSuccessfullyLoaded] = useState(false);
+  const [isIssueListLoaded, setIsIssueListLoaded] = useState(false);
   const [memberList, setMemberList] = useState<ReturnType<typeof indexMembersByProject>>(
     {}
   );
@@ -196,6 +197,12 @@ function IssueListOverview({
   const actionTakenRef = useRef(false);
 
   const {savedSearch, savedSearchLoading, selectedSearchId} = useSavedSearches();
+
+  useEffect(() => {
+    if (!isIssueListLoaded && issuesSuccessfullyLoaded && !issuesLoading) {
+      setIsIssueListLoaded(true);
+    }
+  }, [isIssueListLoaded, issuesSuccessfullyLoaded, issuesLoading]);
 
   const groups = useLegacyStore(GroupStore);
   useEffect(() => {
@@ -1130,6 +1137,7 @@ function IssueListOverview({
             displayReprocessingActions={displayReprocessingActions}
             memberList={memberList}
             selectedProjectIds={selection.projects}
+            isIssueListLoaded={isIssueListLoaded}
             issuesLoading={issuesLoading}
             error={error}
             refetchGroups={fetchData}
@@ -1153,6 +1161,7 @@ function IssueListOverview({
             onCursor={onCursorChange}
             paginationAnalyticsEvent={paginationAnalyticsEvent}
             issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
+            pageSize={MAX_ITEMS}
           />
         </StyledMain>
         <SavedIssueSearches
