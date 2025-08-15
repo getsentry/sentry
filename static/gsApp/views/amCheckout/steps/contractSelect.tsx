@@ -129,6 +129,7 @@ class ContractSelect extends Component<Props> {
           };
 
           if (isNewCheckout) {
+            // TODO(checkout v3): take this out when the new plan step is implemented
             return (
               <BillingCycleSelectCard
                 key={plan.id}
