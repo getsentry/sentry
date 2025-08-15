@@ -95,7 +95,7 @@ describe('useCompactSelectOptionsCache', () => {
     expect(result.current.options).toEqual([]);
   });
 
-  it('uses the cache key', function () {
+  it('uses the cache key', () => {
     const {result, rerender} = renderHook(
       (args: Parameters<typeof useCompactSelectOptionsCache>) => {
         return useCompactSelectOptionsCache(...args);
