@@ -172,7 +172,7 @@ class IssueDiff extends Component<Props, State> {
               key={i}
               base={value}
               target={targetEvent[i] ?? ''}
-              type="words"
+              type="lines"
             />
           ))}
       </StyledIssueDiff>
