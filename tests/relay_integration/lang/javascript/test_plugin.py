@@ -293,6 +293,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
                 file=f1,
             )
 
+    @pytest.mark.skip(reason="flaky: #97932")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_sourcemap_source_expansion(self) -> None:
