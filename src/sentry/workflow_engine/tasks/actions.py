@@ -21,7 +21,9 @@ from sentry.workflow_engine.utils import log_context
 logger = log_context.get_logger(__name__)
 
 
-def build_trigger_action_task_params(action, detector, event_data: WorkflowEventData):
+def build_trigger_action_task_params(
+    action: Action, detector: Detector, event_data: WorkflowEventData
+) -> dict[str, object]:
     """
     Build parameters for trigger_action task invocation.
 

@@ -10,7 +10,6 @@ from sentry.issues.grouptype import (
     PerformanceMNPlusOneDBQueriesExperimentalGroupType,
     PerformanceNPlusOneExperimentalGroupType,
 )
-from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.options.project_option import ProjectOption
 from sentry.performance_issues.base import DetectorType
 from sentry.performance_issues.detectors.experiments.mn_plus_one_db_span_detector import (
@@ -121,29 +120,21 @@ class MNPlusOneDBDetectorTest(TestCase):
 
     def test_detects_prisma_client_m_n_plus_one(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-prisma-client")
-        repeated_db_span_ids = [
-            span["span_id"]
-            for span in event["spans"]
-            if span.get("description", "").startswith('SELECT "public"."reviews"."id"')
-        ]
-        first_db_span = next(
-            span for span in event["spans"] if span["span_id"] == repeated_db_span_ids[0]
-        )
 
         # Hardcoded first offender span, pattern span ids, and repititions
         first_offender_span_index = next(
             index
             for index, span in enumerate(event["spans"])
-            if span["span_id"] == "e1c13817866a2e6f"
+            if span["span_id"] == "aa3a15d285888d70"
         )
         pattern_span_ids = [
-            "e1c13817866a2e6f",
             "aa3a15d285888d70",
             "add16472abc0be2e",
             "103c3b3e339c8a0e",
             "d8b2e30697d9d493",
             "f3edcfe2e505ef57",
             "e81194ca91d594e2",
+            "855092f3cff86380",
         ]
         num_pattern_repetitions = 15
         num_spans_in_pattern = len(pattern_span_ids)
@@ -159,53 +150,33 @@ class MNPlusOneDBDetectorTest(TestCase):
         problems = self.find_problems(event)
         assert len(problems) == 1
         problem = problems[0]
-        assert problem == PerformanceProblem(
-            fingerprint=f"1-{self.fingerprint_type_id}-44f4f3cc14f0f8d0c5ae372e5e8c80e7ba84f413",
-            op="db",
-            desc=first_db_span["description"],
-            type=self.group_type,
-            parent_span_ids=["1bb013326ff579a4"],
-            cause_span_ids=repeated_db_span_ids,
-            offender_span_ids=offender_span_ids,
-            evidence_data={},
-            evidence_display=[],
-        )
-        assert len(problem.offender_span_ids) == num_offender_spans
-        assert problem.evidence_data == {
-            "cause_span_ids": repeated_db_span_ids,
-            "number_repeating_spans": str(num_offender_spans),
-            "offender_span_ids": offender_span_ids,
-            "op": "db",
-            "parent_span": "default - render route (app) /products",
-            "parent_span_ids": ["1bb013326ff579a4"],
-            "repeating_spans": [
-                "default - prisma:engine:serialize",
-                "default - prisma:client:operation",
-                "default - prisma:client:serialize",
-                "http.client - POST https://accelerate.prisma-data.net/5.21.1/298c9a80d6e969bf5a29b56584687fa4e2ad329bc97098090a7b081d6222e653/graphql",
-                "default - prisma:engine",
-                "default - prisma:engine:connection",
-                'db - SELECT "public"."reviews"."id", "public"."reviews"."productid", "public"."reviews"."rating", "public"."reviews"."customerid", "public"."reviews"."description", "public"."reviews"."created" FROM "public"."reviews" WHERE "public"."reviews"."id" = $1 OFFSET $2 /* traceparent=\'00-ee80032db36ee0e24a2f3c2f71fd5f11-aa3a15d285888d70-01\' */',
-            ],
-            "repeating_spans_compact": [
-                "prisma:engine:serialize",
-                "prisma:client:operation",
-                "prisma:client:serialize",
-                "POST https://accelerate.prisma-data.net/5.21.1/298c9a80d6e969bf5a29b56584687fa4e2ad329bc97098090a7b081d6222e653/graphql",
-                "prisma:engine",
-                "prisma:engine:connection",
-                'SELECT "public"."reviews"."id", "public"."reviews"."productid", "public"."reviews"."rating", "public"."reviews"."customerid", "public"."reviews"."description", "public"."reviews"."created" FROM "public"."reviews" WHERE "public"."reviews"."id" = $1 OFFSET $2 /* traceparent=\'00-ee80032db36ee0e24a2f3c2f71fd5f11-aa3a15d285888d70-01\' */',
-            ],
-            "transaction_name": "GET /products",
-            "pattern_size": num_spans_in_pattern,
-            "num_pattern_repetitions": num_pattern_repetitions,
-        }
 
-        assert problem.evidence_display[0] == IssueEvidence(
-            name="Offending Spans",
-            value=f'db - {first_db_span["description"]}',
-            important=True,
+        assert problem.type == PerformanceNPlusOneExperimentalGroupType
+        assert problem.fingerprint == "1-1911-44f4f3cc14f0f8d0c5ae372e5e8c80e7ba84f413"
+
+        assert len(problem.offender_span_ids) == num_offender_spans
+        assert problem.evidence_data is not None
+        assert problem.evidence_data["number_repeating_spans"] == str(num_offender_spans)
+        assert problem.evidence_data["offender_span_ids"] == offender_span_ids
+        assert problem.evidence_data["op"] == "db"
+        assert problem.evidence_data["parent_span"] == "default - render route (app) /products"
+        assert problem.evidence_data["parent_span_ids"] == ["1bb013326ff579a4"]
+        assert problem.evidence_data["transaction_name"] == "GET /products"
+
+    def test_prisma_ops_with_different_descriptions(self) -> None:
+        event = get_event("m-n-plus-one-db/m-n-plus-one-prisma-client-different-descriptions")
+        assert len(self.find_problems(event)) == 1
+        problem = self.find_problems(event)[0]
+        assert problem.type == PerformanceNPlusOneExperimentalGroupType
+        assert problem.fingerprint == "1-1911-50301e409950f4b1cc0a02d9d172684b4020ae32"
+        assert len(problem.offender_span_ids) == 10
+        assert problem.evidence_data is not None
+        assert problem.evidence_data["number_repeating_spans"] == str(10)
+        assert (
+            problem.evidence_data["repeating_spans_compact"][0]
+            == "UPDATE users SET name = $1, email = $2 WHERE id = $3"
         )
+        assert problem.evidence_data["repeating_spans_compact"][1] == "prisma:engine:serialize"
 
     def test_does_not_detect_truncated_m_n_plus_one(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql-truncated")

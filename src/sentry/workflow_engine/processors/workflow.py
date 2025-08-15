@@ -7,7 +7,6 @@ from typing import DefaultDict
 import sentry_sdk
 from django.db import router, transaction
 from django.db.models import Q
-from django.utils import timezone
 
 from sentry import features
 from sentry.models.activity import Activity
@@ -144,7 +143,9 @@ def enqueue_workflows(
 
 @sentry_sdk.trace
 def evaluate_workflow_triggers(
-    workflows: set[Workflow], event_data: WorkflowEventData
+    workflows: set[Workflow],
+    event_data: WorkflowEventData,
+    event_start_time: datetime,
 ) -> tuple[set[Workflow], dict[Workflow, DelayedWorkflowItem]]:
     """
     Returns a tuple of (triggered_workflows, queue_items_by_workflow)
@@ -155,7 +156,6 @@ def evaluate_workflow_triggers(
     """
     triggered_workflows: set[Workflow] = set()
     queue_items_by_workflow: dict[Workflow, DelayedWorkflowItem] = {}
-    current_time = timezone.now()
 
     for workflow in workflows:
         evaluation, remaining_conditions = workflow.evaluate_trigger_conditions(event_data)
@@ -168,7 +168,7 @@ def evaluate_workflow_triggers(
                     delayed_when_group_id=workflow.when_condition_group_id,
                     delayed_if_group_ids=[],
                     passing_if_group_ids=[],
-                    timestamp=current_time,
+                    timestamp=event_start_time,
                 )
             else:
                 """
@@ -226,6 +226,7 @@ def evaluate_workflows_action_filters(
     workflows: set[Workflow],
     event_data: WorkflowEventData,
     queue_items_by_workflow: dict[Workflow, DelayedWorkflowItem],
+    event_start_time: datetime,
 ) -> tuple[set[DataConditionGroup], dict[Workflow, DelayedWorkflowItem]]:
     """
     Evaluate the action filters for the given workflows.
@@ -244,7 +245,6 @@ def evaluate_workflows_action_filters(
     }
 
     filtered_action_groups: set[DataConditionGroup] = set()
-    current_time = timezone.now()
 
     for action_condition, workflow in action_conditions_to_workflow.items():
         env = (
@@ -271,7 +271,7 @@ def evaluate_workflows_action_filters(
                         delayed_if_group_ids=[action_condition.id],
                         event=event_data.event,
                         passing_if_group_ids=[],
-                        timestamp=current_time,
+                        timestamp=event_start_time,
                     )
             else:
                 # We should not include activity updates in delayed conditions,
@@ -388,7 +388,9 @@ def _get_associated_workflows(
 
 @log_context.root()
 def process_workflows(
-    event_data: WorkflowEventData, detector: Detector | None = None
+    event_data: WorkflowEventData,
+    event_start_time: datetime,
+    detector: Detector | None = None,
 ) -> set[Workflow]:
     """
     This method will get the detector based on the event, and then gather the associated workflows.
@@ -444,14 +446,14 @@ def process_workflows(
         return set()
 
     triggered_workflows, queue_items_by_workflow_id = evaluate_workflow_triggers(
-        workflows, event_data
+        workflows, event_data, event_start_time
     )
     if not triggered_workflows and not queue_items_by_workflow_id:
         # if there aren't any triggered workflows, there's no action filters to evaluate
         return set()
 
     actions_to_trigger, queue_items_by_workflow_id = evaluate_workflows_action_filters(
-        triggered_workflows, event_data, queue_items_by_workflow_id
+        triggered_workflows, event_data, queue_items_by_workflow_id, event_start_time
     )
     enqueue_workflows(queue_items_by_workflow_id)
     actions = filter_recently_fired_workflow_actions(actions_to_trigger, event_data)
@@ -463,7 +465,12 @@ def process_workflows(
 
     should_trigger_actions = should_fire_workflow_actions(organization, event_data.group.type)
     create_workflow_fire_histories(
-        detector, actions, event_data, should_trigger_actions, is_delayed=False
+        detector,
+        actions,
+        event_data,
+        should_trigger_actions,
+        is_delayed=False,
+        start_timestamp=event_start_time,
     )
     fire_actions(actions, detector, event_data)
 
