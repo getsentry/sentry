@@ -3,7 +3,7 @@ import zlib
 from collections.abc import Mapping
 from typing import cast
 
-import sentry_sdk
+import sentry_sdk.profiler
 import sentry_sdk.scope
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import RunTask, RunTaskInThreads
@@ -85,12 +85,15 @@ def process_message_with_options(
     profiling_enabled = options.get(
         "replay.consumer.recording.profiling.enabled",
     )
-    return process_message(message, profiling_enabled=profiling_enabled)
+    if profiling_enabled:
+        sentry_sdk.profiler.start_profiler()
+    result = process_message(message)
+    if profiling_enabled:
+        sentry_sdk.profiler.stop_profiler()
+    return result
 
 
-def process_message(
-    message: Message[KafkaPayload], profiling_enabled: bool = False
-) -> ProcessedEvent | FilteredPayload:
+def process_message(message: Message[KafkaPayload]) -> ProcessedEvent | FilteredPayload:
     with sentry_sdk.start_transaction(
         name="replays.consumer.recording_buffered.process_message",
         op="replays.consumer.recording_buffered.process_message",
@@ -98,9 +101,6 @@ def process_message(
             "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
         },
     ):
-        if profiling_enabled:
-            sentry_sdk.profiler.start_profiler()
-
         try:
             recording_event = parse_recording_event(message.payload.value)
             set_tag("org_id", recording_event["context"]["org_id"])
@@ -111,9 +111,6 @@ def process_message(
         except Exception:
             logger.exception("Failed to process replay recording message.")
             return FilteredPayload()
-        finally:
-            if profiling_enabled:
-                sentry_sdk.profiler.stop_profiler()
 
 
 @sentry_sdk.trace
@@ -192,10 +189,14 @@ def commit_message_with_options(message: Message[ProcessedEvent]) -> None:
     profiling_enabled = options.get(
         "replay.consumer.recording.profiling.enabled",
     )
-    return commit_message(message, profiling_enabled=profiling_enabled)
+    if profiling_enabled:
+        sentry_sdk.profiler.start_profiler()
+    commit_message(message)
+    if profiling_enabled:
+        sentry_sdk.profiler.stop_profiler()
 
 
-def commit_message(message: Message[ProcessedEvent], profiling_enabled: bool = False) -> None:
+def commit_message(message: Message[ProcessedEvent]) -> None:
     isolation_scope = sentry_sdk.get_isolation_scope().fork()
     with sentry_sdk.scope.use_isolation_scope(isolation_scope):
         with sentry_sdk.start_transaction(
@@ -207,9 +208,6 @@ def commit_message(message: Message[ProcessedEvent], profiling_enabled: bool = F
                 )
             },
         ):
-            if profiling_enabled:
-                sentry_sdk.profiler.start_profiler()
-
             try:
                 commit_recording_message(message.payload)
                 track_recording_metadata(message.payload)
@@ -221,6 +219,3 @@ def commit_message(message: Message[ProcessedEvent], profiling_enabled: bool = F
             except Exception:
                 logger.exception("Failed to commit replay recording message.")
                 return None
-            finally:
-                if profiling_enabled:
-                    sentry_sdk.profiler.stop_profiler()
