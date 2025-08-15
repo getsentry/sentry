@@ -83,6 +83,29 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
 
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
 
+    def test_create_preprod_artifact_with_release_notes(self) -> None:
+        """Test that create_preprod_artifact stores release_notes in extras field"""
+        content = b"test preprod artifact with release notes"
+        total_checksum = sha1(content).hexdigest()
+
+        # Create preprod artifact with release notes
+        artifact_id = create_preprod_artifact(
+            org_id=self.organization.id,
+            project_id=self.project.id,
+            checksum=total_checksum,
+            build_configuration="release",
+            release_notes="This is a test release with important changes",
+        )
+        assert artifact_id is not None
+
+        # Verify the artifact was created with release notes in extras
+        artifact = PreprodArtifact.objects.get(id=artifact_id)
+        assert artifact.extras is not None
+        assert artifact.extras["release_notes"] == "This is a test release with important changes"
+
+        # Clean up
+        delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)
+
     def test_assemble_preprod_artifact_with_commit_comparison(self) -> None:
         content = b"test preprod artifact with commit comparison"
         fileobj = ContentFile(content)

@@ -194,7 +194,10 @@ class ProjectPreprodArtifactUpdateEndpoint(ProjectEndpoint):
                     parsed_apple_info[field] = apple_info[field]
 
             if parsed_apple_info:
-                preprod_artifact.extras = parsed_apple_info
+                # Merge new extras data with existing extras data to preserve release notes
+                if preprod_artifact.extras is None:
+                    preprod_artifact.extras = {}
+                preprod_artifact.extras.update(parsed_apple_info)
                 updated_fields.append("extras")
 
         # Save the artifact if any fields were updated

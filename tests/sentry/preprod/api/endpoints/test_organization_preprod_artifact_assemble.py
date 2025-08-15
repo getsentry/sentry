@@ -372,6 +372,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration=None,
+            release_notes=None,
         )
 
         mock_assemble_preprod_artifact.apply_async.assert_called_once_with(
@@ -441,6 +442,7 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration="release",
+            release_notes=None,
         )
 
         mock_assemble_preprod_artifact.apply_async.assert_called_once_with(
@@ -726,4 +728,5 @@ class ProjectPreprodArtifactAssembleTest(APITestCase):
             project_id=self.project.id,
             checksum=total_checksum,
             build_configuration=None,
+            release_notes=None,
         )
