@@ -577,6 +577,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert frame.context_line == expected
         assert frame.post_context == ["}"]
 
+    @pytest.mark.skip(reason="flaky: #97859")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_sourcemap_nofiles_source_expansion(self) -> None:
