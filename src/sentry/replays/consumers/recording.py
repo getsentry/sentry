@@ -68,9 +68,9 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         return RunTask(
-            function=process_message_with_options,
+            function=process_message_with_profiling,
             next_step=RunTaskInThreads(
-                processing_function=commit_message_with_options,
+                processing_function=commit_message_with_profiling,
                 concurrency=self.num_threads,
                 max_pending_futures=self.max_pending_futures,
                 next_step=CommitOffsets(commit),
@@ -96,7 +96,7 @@ def _get_replay_profiling_project_key():
         return None
 
 
-def process_message_with_options(
+def process_message_with_profiling(
     message: Message[KafkaPayload],
 ) -> ProcessedEvent | FilteredPayload:
     profiling_enabled = options.get(
@@ -216,7 +216,7 @@ def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
 # I/O Task
 
 
-def commit_message_with_options(message: Message[ProcessedEvent]) -> None:
+def commit_message_with_profiling(message: Message[ProcessedEvent]) -> None:
     profiling_enabled = options.get(
         "replay.consumer.recording.profiling.enabled",
     )

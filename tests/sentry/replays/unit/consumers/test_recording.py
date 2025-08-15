@@ -8,13 +8,13 @@ from arroyo.types import FilteredPayload, Message, Value
 
 from sentry.replays.consumers.recording import (
     DropSilently,
-    commit_message_with_options,
+    commit_message_with_profiling,
     decompress_segment,
     parse_headers,
     parse_recording_event,
     parse_request_message,
     process_message,
-    process_message_with_options,
+    process_message_with_profiling,
 )
 from sentry.replays.usecases.ingest import ProcessedEvent
 from sentry.replays.usecases.ingest.event_parser import ParsedEventMeta
@@ -581,7 +581,7 @@ def make_valid_processed_event() -> ProcessedEvent:
 @patch("sentry_sdk.profiler.start_profiler")
 @patch("sentry_sdk.profiler.stop_profiler")
 @patch("sentry.replays.consumers.recording.process_message")
-def test_process_message_with_options_profiling(
+def test_process_message_with_profiling_profiling(
     mock_process_message,
     mock_stop_profiler,
     mock_start_profiler,
@@ -592,7 +592,7 @@ def test_process_message_with_options_profiling(
     mock_process_message.return_value = FilteredPayload()
 
     message = make_valid_message()
-    result = process_message_with_options(message)
+    result = process_message_with_profiling(message)
 
     assert result == FilteredPayload()
     mock_process_message.assert_called_once_with(message)
@@ -610,7 +610,7 @@ def test_process_message_with_options_profiling(
 @patch("sentry_sdk.profiler.start_profiler")
 @patch("sentry_sdk.profiler.stop_profiler")
 @patch("sentry.replays.consumers.recording.commit_message")
-def test_commit_message_with_options_profiling(
+def test_commit_message_with_profiling_profiling(
     mock_commit_message,
     mock_stop_profiler,
     mock_start_profiler,
@@ -620,7 +620,7 @@ def test_commit_message_with_options_profiling(
     mock_options_get.return_value = profiling_enabled
 
     message = make_valid_processed_event()
-    commit_message_with_options(message)
+    commit_message_with_profiling(message)
 
     mock_commit_message.assert_called_once_with(message)
 
