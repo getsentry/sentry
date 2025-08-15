@@ -24,13 +24,7 @@ export function SimpleTable({children, ...props}: TableProps) {
   );
 }
 
-function Header({
-  children,
-  ...props
-}: {children: React.ReactNode} & React.DetailedHTMLProps<
-  HTMLAttributes<HTMLDivElement>,
-  HTMLDivElement
->) {
+function Header({children, ...props}: HTMLAttributes<HTMLDivElement>) {
   return (
     <StyledPanelHeader {...props} role="row">
       {children}
