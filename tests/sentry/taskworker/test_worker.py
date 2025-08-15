@@ -160,7 +160,9 @@ class TestTaskWorker(TestCase):
 
     def test_fetch_task(self) -> None:
         taskworker = TaskWorker(
-            broker_hosts=["127.0.0.1:50051"], max_child_task_count=100, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"],
+            max_child_task_count=100,
+            process_type="forkserver",
         )
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = SIMPLE_TASK
@@ -173,7 +175,9 @@ class TestTaskWorker(TestCase):
 
     def test_fetch_no_task(self) -> None:
         taskworker = TaskWorker(
-            broker_hosts=["127.0.0.1:50051"], max_child_task_count=100, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"],
+            max_child_task_count=100,
+            process_type="forkserver",
         )
         with mock.patch.object(taskworker.client, "get_task") as mock_get:
             mock_get.return_value = None
@@ -185,7 +189,9 @@ class TestTaskWorker(TestCase):
     def test_run_once_no_next_task(self) -> None:
         max_runtime = 5
         taskworker = TaskWorker(
-            broker_hosts=["127.0.0.1:50051"], max_child_task_count=1, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"],
+            max_child_task_count=1,
+            process_type="forkserver",
         )
         with mock.patch.object(taskworker, "client") as mock_client:
             mock_client.get_task.return_value = SIMPLE_TASK
@@ -218,7 +224,9 @@ class TestTaskWorker(TestCase):
         # be processed.
         max_runtime = 5
         taskworker = TaskWorker(
-            broker_hosts=["127.0.0.1:50051"], max_child_task_count=1, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"],
+            max_child_task_count=1,
+            process_type="forkserver",
         )
         with mock.patch.object(taskworker, "client") as mock_client:
 
@@ -259,7 +267,7 @@ class TestTaskWorker(TestCase):
         taskworker = TaskWorker(
             broker_hosts=["127.0.0.1:50051"],
             max_child_task_count=1,
-            process_type="fork",
+            process_type="forkserver",
             processing_pool_name="testing",
         )
         with mock.patch.object(taskworker, "client") as mock_client:
@@ -293,7 +301,9 @@ class TestTaskWorker(TestCase):
         # We should retain the result until RPC succeeds.
         max_runtime = 5
         taskworker = TaskWorker(
-            broker_hosts=["127.0.0.1:50051"], max_child_task_count=1, process_type="fork"
+            broker_hosts=["127.0.0.1:50051"],
+            max_child_task_count=1,
+            process_type="forkserver",
         )
         with mock.patch.object(taskworker, "client") as mock_client:
 
@@ -390,7 +400,7 @@ def test_child_process_complete(mock_capture_checkin: mock.MagicMock) -> None:
         shutdown,
         max_task_count=1,
         processing_pool_name="test",
-        process_type="fork",
+        process_type="forkserver",
     )
 
     assert todo.empty()
@@ -424,7 +434,7 @@ def test_child_process_remove_start_time_kwargs() -> None:
         shutdown,
         max_task_count=1,
         processing_pool_name="test",
-        process_type="fork",
+        process_type="forkserver",
     )
 
     assert todo.empty()
@@ -449,7 +459,7 @@ def test_child_process_complete_record_usage(mock_record: mock.Mock) -> None:
             shutdown,
             max_task_count=1,
             processing_pool_name="test",
-            process_type="fork",
+            process_type="forkserver",
         )
 
     assert todo.empty()
@@ -479,7 +489,7 @@ def test_child_process_retry_task() -> None:
         shutdown,
         max_task_count=1,
         processing_pool_name="test",
-        process_type="fork",
+        process_type="forkserver",
     )
 
     assert todo.empty()
@@ -519,7 +529,7 @@ def test_child_process_retry_task_max_attempts(mock_capture: mock.Mock) -> None:
         shutdown,
         max_task_count=1,
         processing_pool_name="test",
-        process_type="fork",
+        process_type="forkserver",
     )
 
     assert todo.empty()
@@ -547,7 +557,7 @@ def test_child_process_failure_task() -> None:
         shutdown,
         max_task_count=1,
         processing_pool_name="test",
-        process_type="fork",
+        process_type="forkserver",
     )
 
     assert todo.empty()
@@ -570,7 +580,7 @@ def test_child_process_shutdown() -> None:
         shutdown,
         max_task_count=1,
         processing_pool_name="test",
-        process_type="fork",
+        process_type="forkserver",
     )
 
     # When shutdown has been set, the child should not process more tasks.
@@ -592,7 +602,7 @@ def test_child_process_unknown_task() -> None:
         shutdown,
         max_task_count=1,
         processing_pool_name="test",
-        process_type="fork",
+        process_type="forkserver",
     )
 
     result = processed.get()
@@ -619,7 +629,7 @@ def test_child_process_at_most_once() -> None:
         shutdown,
         max_task_count=2,
         processing_pool_name="test",
-        process_type="fork",
+        process_type="forkserver",
     )
 
     assert todo.empty()
@@ -646,7 +656,7 @@ def test_child_process_record_checkin(mock_capture_checkin: mock.Mock) -> None:
         shutdown,
         max_task_count=1,
         processing_pool_name="test",
-        process_type="fork",
+        process_type="forkserver",
     )
 
     assert todo.empty()
@@ -689,7 +699,7 @@ def test_child_process_terminate_task(mock_capture: mock.Mock) -> None:
         shutdown,
         max_task_count=1,
         processing_pool_name="test",
-        process_type="fork",
+        process_type="forkserver",
     )
 
     assert todo.empty()
@@ -715,7 +725,7 @@ def test_child_process_decompression(mock_capture_checkin: mock.MagicMock) -> No
         shutdown,
         max_task_count=1,
         processing_pool_name="test",
-        process_type="fork",
+        process_type="forkserver",
     )
 
     assert todo.empty()
