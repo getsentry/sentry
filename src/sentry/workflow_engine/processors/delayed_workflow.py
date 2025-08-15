@@ -754,7 +754,7 @@ def fire_actions_for_groups(
 
                 fire_actions(filtered_actions, detector, workflow_event_data)
 
-    logger.info(
+    logger.debug(
         "workflow_engine.delayed_workflow.triggered_actions_summary",
         extra={"total_actions": total_actions},
     )
@@ -810,15 +810,16 @@ def process_delayed_workflows(
     Grab workflows, groups, and data condition groups from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
     log_context.add_extras(project_id=project_id)
-    logger.info(
-        "workflow_engine.delayed_workflow.start",
-        extra={"batch_key": batch_key},
-    )
 
     with sentry_sdk.start_span(op="delayed_workflow.prepare_data"):
         project = fetch_project(project_id)
         if not project:
             return
+
+        if features.has(
+            "organizations:workflow-engine-process-workflows-logs", project.organization
+        ):
+            log_context.set_verbose(True)
 
         redis_data = fetch_group_to_event_data(project_id, Workflow, batch_key)
         event_data = EventRedisData.from_redis_data(redis_data, continue_on_error=True)
@@ -832,19 +833,8 @@ def process_delayed_workflows(
         data_condition_groups = fetch_data_condition_groups(list(event_data.dcg_ids))
         dcg_to_slow_conditions = get_slow_conditions_for_groups(list(event_data.dcg_ids))
 
-        no_slow_condition_groups = {
-            dcg_id for dcg_id, slow_conds in dcg_to_slow_conditions.items() if not slow_conds
-        }
-        if no_slow_condition_groups:
-            # If the DCG is being processed here, it's because we thought it had a slow condition.
-            # If any don't seem to have a slow condition now, that's interesting enough to log.
-            logger.info(
-                "delayed_workflow.no_slow_condition_groups",
-                extra={"no_slow_condition_groups": sorted(no_slow_condition_groups)},
-            )
-
     # Ensure we have a record of the involved workflows in our logs.
-    logger.info(
+    logger.debug(
         "delayed_workflow.workflows",
         extra={
             "workflows": sorted(event_data.workflow_ids),
@@ -853,7 +843,7 @@ def process_delayed_workflows(
     # Ensure we log which groups/events being processed by which workflows.
     # This is logged independently to avoid the risk of generating log messages that need to be
     # truncated (and thus no longer valid JSON that we can query).
-    logger.info(
+    logger.debug(
         "delayed_workflow.group_events_to_workflow_ids",
         extra={
             "group_events_to_workflow_ids": _summarize_by_first(
@@ -869,7 +859,7 @@ def process_delayed_workflows(
     )
     if not condition_groups:
         return
-    logger.info(
+    logger.debug(
         "delayed_workflow.condition_query_groups",
         extra={
             "condition_groups": repr_keys(condition_groups),
@@ -884,7 +874,7 @@ def process_delayed_workflows(
         logger.warning("delayed_workflow.snuba_error", exc_info=True)
         retry_task()
 
-    logger.info(
+    logger.debug(
         "delayed_workflow.condition_group_results",
         extra={
             "condition_group_results": repr_keys(condition_group_results),
@@ -899,7 +889,7 @@ def process_delayed_workflows(
         condition_group_results,
         dcg_to_slow_conditions,
     )
-    logger.info(
+    logger.debug(
         "delayed_workflow.groups_to_fire",
         extra={
             "groups_to_dcgs": {
