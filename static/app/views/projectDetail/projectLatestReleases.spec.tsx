@@ -11,12 +11,12 @@ import {
 
 import ProjectLatestReleases from 'sentry/views/projectDetail/projectLatestReleases';
 
-describe('ProjectDetail > ProjectLatestReleases', function () {
+describe('ProjectDetail > ProjectLatestReleases', () => {
   let endpointMock: jest.Mock;
   let endpointOlderReleasesMock: jest.Mock;
   const {organization, project, router} = initializeOrg();
 
-  beforeEach(function () {
+  beforeEach(() => {
     endpointMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/releases/`,
       body: [ReleaseFixture({version: '1.0.0'}), ReleaseFixture({version: '1.0.1'})],
@@ -27,11 +27,11 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders a list', async function () {
+  it('renders a list', async () => {
     render(
       <ProjectLatestReleases
         organization={organization}
@@ -58,7 +58,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     expect(endpointOlderReleasesMock).toHaveBeenCalledTimes(0);
   });
 
-  it('shows the empty state', async function () {
+  it('shows the empty state', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/releases/`,
       body: [],
@@ -77,7 +77,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     expect(await screen.findByText('No releases found')).toBeInTheDocument();
   });
 
-  it('shows configure releases buttons', async function () {
+  it('shows configure releases buttons', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/releases/`,
       body: [],
@@ -108,7 +108,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it('calls API with the right params', async function () {
+  it('calls API with the right params', async () => {
     render(
       <ProjectLatestReleases
         organization={organization}
@@ -131,7 +131,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     );
   });
 
-  it('does not call API if project is not stabilized yet', async function () {
+  it('does not call API if project is not stabilized yet', async () => {
     render(
       <ProjectLatestReleases
         organization={organization}

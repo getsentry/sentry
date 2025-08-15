@@ -5,7 +5,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import StartTrialButton from 'getsentry/components/startTrialButton';
 
-describe('StartTrialButton', function () {
+describe('StartTrialButton', () => {
   let org: any, endpoint: any;
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -18,7 +18,7 @@ describe('StartTrialButton', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(
       <StartTrialButton aria-label="start trial" organization={org} source="test-abc" />
     );

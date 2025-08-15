@@ -11,7 +11,8 @@ import sentry_sdk
 from django.utils import timezone
 from pydantic import BaseModel, validator
 
-from sentry import buffer, features, nodestore, options
+import sentry.workflow_engine.buffer as buffer
+from sentry import features, nodestore, options
 from sentry.buffer.base import BufferField
 from sentry.db import models
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -312,7 +313,7 @@ def fetch_group_to_event_data(
     if batch_key:
         field["batch_key"] = batch_key
 
-    return buffer.backend.get_hash(model=model, field=field)
+    return buffer.get_backend().get_hash(model=model, field=field)
 
 
 def fetch_workflows_envs(
@@ -618,7 +619,7 @@ def get_group_to_groupevent(
     event_data: EventRedisData,
     groups_to_dcgs: dict[GroupId, set[DataConditionGroup]],
     project: Project,
-) -> dict[Group, GroupEvent]:
+) -> dict[Group, tuple[GroupEvent, datetime | None]]:
     groups = Group.objects.filter(id__in=event_data.group_ids)
     group_id_to_group = {group.id: group for group in groups}
 
@@ -637,7 +638,7 @@ def get_group_to_groupevent(
         group_id: {dcg.id for dcg in dcgs} for group_id, dcgs in groups_to_dcgs.items()
     }
 
-    group_to_groupevent: dict[Group, GroupEvent] = {}
+    group_to_groupevent: dict[Group, tuple[GroupEvent, datetime | None]] = {}
     for key, instance in event_data.events.items():
         if key.dcg_ids.intersection(groups_to_dcg_ids.get(key.group_id, set())):
             event = bulk_event_id_to_events.get(instance.event_id)
@@ -651,7 +652,7 @@ def get_group_to_groupevent(
                 group_event.occurrence = bulk_occurrence_id_to_occurrence.get(
                     instance.occurrence_id
                 )
-            group_to_groupevent[group] = group_event
+            group_to_groupevent[group] = (group_event, instance.timestamp)
 
     return group_to_groupevent
 
@@ -660,10 +661,10 @@ def get_group_to_groupevent(
 def fire_actions_for_groups(
     organization: Organization,
     groups_to_fire: dict[GroupId, set[DataConditionGroup]],
-    group_to_groupevent: dict[Group, GroupEvent],
+    group_to_groupevent: dict[Group, tuple[GroupEvent, datetime | None]],
 ) -> None:
     serialized_groups = {
-        group.id: group_event.event_id for group, group_event in group_to_groupevent.items()
+        group.id: group_event.event_id for group, (group_event, _) in group_to_groupevent.items()
     }
     logger.info(
         "workflow_engine.delayed_workflow.fire_actions_for_groups",
@@ -674,7 +675,9 @@ def fire_actions_for_groups(
     )
 
     # Bulk fetch detectors
-    event_id_to_detector = get_detectors_by_groupevents_bulk(list(group_to_groupevent.values()))
+    event_id_to_detector = get_detectors_by_groupevents_bulk(
+        [group_event for group_event, _ in group_to_groupevent.values()]
+    )
 
     # Feature check caching to keep us within the trace budget.
     trigger_actions_ff = features.has("organizations:workflow-engine-trigger-actions", organization)
@@ -696,7 +699,7 @@ def fire_actions_for_groups(
         logger,
         threshold=timedelta(seconds=40),
     ) as tracker:
-        for group, group_event in group_to_groupevent.items():
+        for group, (group_event, start_timestamp) in group_to_groupevent.items():
             with tracker.track(str(group.id)), log_context.new_context(group_id=group.id):
                 workflow_event_data = WorkflowEventData(event=group_event, group=group)
                 detector = event_id_to_detector.get(group_event.event_id)
@@ -728,6 +731,7 @@ def fire_actions_for_groups(
                     workflow_event_data,
                     should_trigger_actions(group_event.group.type),
                     is_delayed=True,
+                    start_timestamp=start_timestamp,
                 )
 
                 event_id = (
@@ -765,7 +769,7 @@ def cleanup_redis_buffer(
     if batch_key:
         filters["batch_key"] = batch_key
 
-    buffer.backend.delete_hash(model=Workflow, filters=filters, fields=hashes_to_delete)
+    buffer.get_backend().delete_hash(model=Workflow, filters=filters, fields=hashes_to_delete)
 
 
 def repr_keys[T, V](d: dict[T, V]) -> dict[str, V]:

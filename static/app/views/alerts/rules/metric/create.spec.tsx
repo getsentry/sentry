@@ -8,10 +8,10 @@ import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 import EventView from 'sentry/utils/discover/eventView';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
 
-describe('Incident Rules Create', function () {
+describe('Incident Rules Create', () => {
   let eventStatsMock: any;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
@@ -46,7 +46,7 @@ describe('Incident Rules Create', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     const {organization, project} = initializeOrg();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-meta/`,

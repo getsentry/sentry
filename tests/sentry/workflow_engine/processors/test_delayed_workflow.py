@@ -15,7 +15,7 @@ from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.match import MatchType
 from sentry.rules.processing.buffer_processing import process_in_batches
 from sentry.rules.processing.delayed_processing import fetch_project
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.redis import mock_redis_buffer
@@ -331,7 +331,7 @@ class TestDelayedWorkflowHelpers(TestDelayedWorkflowBase):
     def test_delayed_workflow_shim(self, mock_process_delayed: MagicMock) -> None:
         self._push_base_events()
 
-        process_in_batches(self.project.id, "delayed_workflow")
+        process_in_batches(buffer.backend, self.project.id, "delayed_workflow")
         assert mock_process_delayed.call_count == 2
 
 
@@ -893,10 +893,15 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             self.group2.id: set(self.workflow2_if_dcgs),
         }
 
-        self.group_to_groupevent = {
-            self.group1: self.event1.for_group(self.group1),
-            self.group2: self.event2.for_group(self.group2),
-        }
+        self.group_to_groupevent: dict[Group, tuple[GroupEvent, datetime | None]] = {}
+        self.group_to_groupevent[self.group1] = (
+            self.event1.for_group(self.group1),
+            None,
+        )
+        self.group_to_groupevent[self.group2] = (
+            self.event2.for_group(self.group2),
+            None,
+        )
 
     def test_bulk_fetch_events(self) -> None:
         event_ids = [self.event1.event_id, self.event2.event_id]
@@ -993,7 +998,7 @@ class TestCleanupRedisBuffer(TestDelayedWorkflowBase):
         self._push_base_events()
         all_data = buffer.backend.get_hash(Workflow, {"project_id": self.project.id})
 
-        process_in_batches(self.project.id, "delayed_workflow")
+        process_in_batches(buffer.backend, self.project.id, "delayed_workflow")
         batch_one_key = mock_process_delayed.call_args_list[0][1]["kwargs"]["batch_key"]
         batch_two_key = mock_process_delayed.call_args_list[1][1]["kwargs"]["batch_key"]
 

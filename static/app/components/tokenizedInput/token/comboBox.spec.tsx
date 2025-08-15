@@ -17,8 +17,8 @@ function ComboBoxWrapper(props: Omit<ComponentProps<typeof ComboBox>, 'children'
   );
 }
 
-describe('ComboBox', function () {
-  it('can click to select an option', async function () {
+describe('ComboBox', () => {
+  it('can click to select an option', async () => {
     const onClick = jest.fn();
     const onOptionSelected = jest.fn();
     render(

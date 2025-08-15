@@ -92,8 +92,13 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         return action_handler_registry.get(action_type)
 
     def trigger(self, event_data: WorkflowEventData, detector: Detector) -> None:
-        handler = self.get_handler()
-        handler.execute(event_data, self, detector)
+        with metrics.timer(
+            "workflow_engine.action.trigger.execution_time",
+            tags={"action_type": self.type, "detector_type": detector.type},
+            sample_rate=1.0,
+        ):
+            handler = self.get_handler()
+            handler.execute(event_data, self, detector)
 
         metrics.incr(
             "workflow_engine.action.trigger",
@@ -110,8 +115,10 @@ class Action(DefaultFieldsModel, JSONConfigBase):
             },
         )
 
-    def get_dedup_key(self) -> str:
+    def get_dedup_key(self, workflow_id: int | None) -> str:
         key_parts = [self.type]
+        if workflow_id is not None:
+            key_parts.append(str(workflow_id))
 
         if self.integration_id:
             key_parts.append(str(self.integration_id))

@@ -18,8 +18,8 @@ const noMissingMembers = {
   users: [],
 };
 
-describe('inviteBanner', function () {
-  beforeEach(function () {
+describe('inviteBanner', () => {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/missing-members/',
@@ -36,7 +36,7 @@ describe('inviteBanner', function () {
     });
   });
 
-  it('render banners', async function () {
+  it('render banners', async () => {
     const org = OrganizationFixture({
       githubNudgeInvite: true,
     });
@@ -59,7 +59,7 @@ describe('inviteBanner', function () {
     expect(screen.getByText('See all 5 missing members')).toBeInTheDocument();
   });
 
-  it('does not render banner if no option', function () {
+  it('does not render banner if no option', () => {
     const org = OrganizationFixture();
 
     const {container} = render(
@@ -74,7 +74,7 @@ describe('inviteBanner', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('does not render banner if no missing members', async function () {
+  it('does not render banner if no missing members', async () => {
     const org = OrganizationFixture({
       githubNudgeInvite: true,
     });
@@ -98,7 +98,7 @@ describe('inviteBanner', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('does not render banner if no integration', async function () {
+  it('does not render banner if no integration', async () => {
     const org = OrganizationFixture({
       githubNudgeInvite: true,
     });
@@ -122,7 +122,7 @@ describe('inviteBanner', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('does not render banner if lacking org:write', function () {
+  it('does not render banner if lacking org:write', () => {
     const org = OrganizationFixture({
       access: [],
       githubNudgeInvite: true,
@@ -140,7 +140,7 @@ describe('inviteBanner', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders banner if snoozed_ts days is longer than threshold', async function () {
+  it('renders banner if snoozed_ts days is longer than threshold', async () => {
     const org = OrganizationFixture({
       githubNudgeInvite: true,
     });
@@ -173,7 +173,7 @@ describe('inviteBanner', function () {
     ).toBeInTheDocument();
   });
 
-  it('does not render banner if snoozed_ts days is shorter than threshold', async function () {
+  it('does not render banner if snoozed_ts days is shorter than threshold', async () => {
     const org = OrganizationFixture({
       githubNudgeInvite: true,
     });
@@ -203,7 +203,7 @@ describe('inviteBanner', function () {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('invites member from banner', async function () {
+  it('invites member from banner', async () => {
     const newMember = MemberFixture({
       id: '6',
       email: 'hello@sentry.io',

@@ -4,8 +4,8 @@ import AdminQuotas from 'sentry/views/admin/adminQuotas';
 
 // TODO(dcramer): this doesnt really test anything as we need to
 // mock the API Response/wait on it
-describe('AdminQuotas', function () {
-  describe('render()', function () {
+describe('AdminQuotas', () => {
+  describe('render()', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: '/internal/quotas/',
@@ -18,7 +18,7 @@ describe('AdminQuotas', function () {
       });
     });
 
-    it('renders', function () {
+    it('renders', () => {
       MockApiClient.addMockResponse({
         url: '/internal/stats/',
         body: [],
