@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from functools import wraps
 from typing import Any
 
 import sentry_sdk
@@ -12,7 +11,6 @@ from rest_framework.response import Response
 
 from sentry.api.authentication import ClientIdSecretAuthentication
 from sentry.api.base import Endpoint
-from sentry.api.exceptions import BadRequest
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
@@ -37,17 +35,6 @@ from sentry.utils.strings import to_single_line_str
 COMPONENT_TYPES = ["stacktrace-link", "issue-link"]
 
 logger = logging.getLogger(__name__)
-
-
-def catch_raised_errors(func):
-    @wraps(func)
-    def wrapped(self, *args, **kwargs):
-        try:
-            return func(self, *args, **kwargs)
-        except BadRequest as e:
-            return Response({"detail": e.detail["detail"]["message"]}, status=400)
-
-    return wrapped
 
 
 def ensure_scoped_permission(request: Request, allowed_scopes: Sequence[str] | None) -> bool:

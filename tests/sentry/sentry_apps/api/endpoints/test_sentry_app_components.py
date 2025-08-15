@@ -2,8 +2,8 @@ from collections.abc import Sequence
 from unittest.mock import MagicMock, patch
 
 import responses
+from rest_framework.exceptions import ParseError
 
-from sentry.api.exceptions import BadRequest
 from sentry.api.serializers.base import serialize
 from sentry.constants import SentryAppInstallationStatus
 from sentry.sentry_apps.models.sentry_app import SentryApp
@@ -370,7 +370,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
     def test_component_prep_errors_dont_bring_down_everything(
         self, run: MagicMock, capture_exception: MagicMock
     ) -> None:
-        run.side_effect = [BadRequest(), SentryAppSentryError(message="kewl")]
+        run.side_effect = [ParseError(), SentryAppSentryError(message="kewl")]
         capture_exception.return_value = 1
 
         response = self.get_success_response(
