@@ -14,6 +14,7 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
+import {parseCursor} from 'sentry/utils/cursor';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
@@ -43,6 +44,7 @@ import {useTraceItemTags} from 'sentry/views/explore/contexts/spanTagsContext';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {useQueryParamsAggregateCursor} from 'sentry/views/explore/queryParams/context';
 import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
 
 import {FieldRenderer} from './fieldRenderer';
@@ -66,6 +68,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
   const sorts = useExploreSortBys();
   const setSorts = useSetExploreSortBys();
   const query = useExploreQuery();
+  const cursor = useQueryParamsAggregateCursor();
 
   const visibleAggregateFields = useMemo(
     () =>
@@ -204,7 +207,7 @@ export function AggregatesTable({aggregatesTableResult}: AggregatesTableProps) {
               return (
                 <TableRow key={i}>
                   <TableBodyCell>
-                    {topEvents && i < topEvents && (
+                    {topEvents && i < topEvents && !parseCursor(cursor)?.offset && (
                       <TopResultsIndicator color={palette[i]!} />
                     )}
                     <Tooltip title={t('View Samples')} containerDisplayMode="flex">
