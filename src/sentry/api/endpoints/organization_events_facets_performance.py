@@ -410,7 +410,7 @@ def query_facet_performance(
     # Aggregate (avg) and count of all transactions for this query
     transaction_aggregate = tag_data["aggregate"]
 
-    # Exclude tags that have high cardinality are are generally unrelated to performance
+    # Exclude tags that have high cardinality are generally unrelated to performance
     excluded_tags = Condition(
         Column("tags_key"),
         Op.NOT_IN,

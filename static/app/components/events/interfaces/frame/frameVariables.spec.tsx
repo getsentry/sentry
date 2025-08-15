@@ -8,8 +8,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {FrameVariables} from 'sentry/components/events/interfaces/frame/frameVariables';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-describe('Frame Variables', function () {
-  it('renders', async function () {
+describe('Frame Variables', () => {
+  it('renders', async () => {
     const project = ProjectFixture({id: '0'});
     const projectDetails = ProjectFixture({
       ...project,
@@ -104,7 +104,7 @@ describe('Frame Variables', function () {
     );
   });
 
-  it('renders python variables correctly', function () {
+  it('renders python variables correctly', () => {
     render(
       <FrameVariables
         data={{
@@ -138,7 +138,7 @@ describe('Frame Variables', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders node variables correctly', function () {
+  it('renders node variables correctly', () => {
     render(
       <FrameVariables
         data={{
@@ -170,7 +170,7 @@ describe('Frame Variables', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders ruby variables correctly', function () {
+  it('renders ruby variables correctly', () => {
     render(
       <FrameVariables
         data={{
@@ -194,7 +194,7 @@ describe('Frame Variables', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders php variables correctly', function () {
+  it('renders php variables correctly', () => {
     render(
       <FrameVariables
         data={{

@@ -54,10 +54,10 @@ function createWrapper(org: Organization) {
   };
 }
 
-describe('useProgressiveQuery', function () {
-  describe('normal sampling mode', function () {
+describe('useProgressiveQuery', () => {
+  describe('normal sampling mode', () => {
     let mockNormalRequestUrl: jest.Mock;
-    beforeEach(function () {
+    beforeEach(() => {
       mockNormalRequestUrl = MockApiClient.addMockResponse({
         url: '/test',
         body: 'test',
@@ -79,7 +79,7 @@ describe('useProgressiveQuery', function () {
       );
     });
 
-    it('takes in a callback that determines if we can trigger the high accuracy request', async function () {
+    it('takes in a callback that determines if we can trigger the high accuracy request', async () => {
       mockNormalRequestUrl = MockApiClient.addMockResponse({
         url: '/test',
         body: getMockResponse({dataScanned: 'partial'}),
@@ -136,7 +136,7 @@ describe('useProgressiveQuery', function () {
       );
     });
 
-    it('does not trigger the high accuracy request if the callback returns false', function () {
+    it('does not trigger the high accuracy request if the callback returns false', () => {
       mockNormalRequestUrl = MockApiClient.addMockResponse({
         url: '/test',
         body: getMockResponse({dataScanned: 'partial'}),

@@ -10,7 +10,7 @@ import {
 
 import ProjectDebugFiles from 'sentry/views/settings/projectDebugFiles';
 
-describe('ProjectDebugFiles', function () {
+describe('ProjectDebugFiles', () => {
   const {organization, project, router} = initializeOrg();
 
   const props = {
@@ -31,7 +31,7 @@ describe('ProjectDebugFiles', function () {
 
   const endpoint = `/projects/${organization.slug}/${project.slug}/files/dsyms/`;
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [DebugFileFixture()],
@@ -43,7 +43,7 @@ describe('ProjectDebugFiles', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', async () => {
     render(<ProjectDebugFiles {...props} />);
 
     expect(screen.getByText('Debug Information Files')).toBeInTheDocument();
@@ -55,7 +55,7 @@ describe('ProjectDebugFiles', function () {
     expect(screen.getByText('libS.so')).toBeInTheDocument();
   });
 
-  it('renders empty', async function () {
+  it('renders empty', async () => {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [],
@@ -69,7 +69,7 @@ describe('ProjectDebugFiles', function () {
     ).toBeInTheDocument();
   });
 
-  it('deletes the file', async function () {
+  it('deletes the file', async () => {
     const deleteMock = MockApiClient.addMockResponse({
       method: 'DELETE',
       url: `/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${
@@ -91,7 +91,7 @@ describe('ProjectDebugFiles', function () {
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('display error if request for dsyms fails', async function () {
+  it('display error if request for dsyms fails', async () => {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [DebugFileFixture()],
@@ -105,7 +105,7 @@ describe('ProjectDebugFiles', function () {
     expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
   });
 
-  it('display error if request for symbol sources fails', async function () {
+  it('display error if request for symbol sources fails', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/builtin-symbol-sources/`,
       method: 'GET',
