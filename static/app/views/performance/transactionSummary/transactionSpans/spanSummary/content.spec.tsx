@@ -29,7 +29,7 @@ describe('SpanSummaryPage', () => {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.span-summary-duration-chart',
+          referrer: 'api.insights.span-summary-duration-chart',
         }),
       ],
       body: {
@@ -67,7 +67,7 @@ describe('SpanSummaryPage', () => {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.span-summary-throughput-chart',
+          referrer: 'api.insights.span-summary-throughput-chart',
         }),
       ],
       body: {
@@ -105,7 +105,7 @@ describe('SpanSummaryPage', () => {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.span-summary-transaction-throughput-chart',
+          referrer: 'api.insights.span-summary-transaction-throughput-chart',
         }),
       ],
       body: {

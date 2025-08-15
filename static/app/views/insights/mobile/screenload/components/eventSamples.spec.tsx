@@ -96,7 +96,7 @@ describe('ScreenLoadEventSamples', () => {
           },
         ],
       },
-      match: [MockApiClient.matchQuery({referrer: 'api.starfish.mobile-event-samples'})],
+      match: [MockApiClient.matchQuery({referrer: 'api.insights.mobile-event-samples'})],
     });
   });
 
