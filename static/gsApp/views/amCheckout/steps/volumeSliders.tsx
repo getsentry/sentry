@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from 'sentry/components/core/badge/featureBadge';
@@ -118,7 +119,7 @@ function VolumeSliders({
   );
 
   return (
-    <Fragment>
+    <SlidersContainer>
       {activePlan.checkoutCategories
         .filter(
           // only show sliders for checkout categories with more than 1 bucket
@@ -172,65 +173,85 @@ function VolumeSliders({
             subscription.billingInterval === activePlan.billingInterval &&
             (subscription.categories.transactions?.reserved ?? 0) > 5_000_000;
 
+          const isIncluded = eventBucket.price === 0;
+
           return (
-            <DataVolumeItem key={category} data-test-id={`${category}-volume-item`}>
+            <DataVolumeItem
+              key={category}
+              data-test-id={`${category}-volume-item`}
+              isNewCheckout={!!isNewCheckout}
+            >
               {isNewCheckout ? (
                 <CategoryContainer>
-                  <Flex align="center" justify="between" gap="2xl">
-                    <Flex direction="column">
-                      <Title htmlFor={sliderId} isNewCheckout={!!isNewCheckout}>
-                        <div>{getPlanCategoryName({plan: activePlan, category})}</div>
-                        {showPerformanceUnits
-                          ? renderPerformanceHovercard()
-                          : categoryInfo?.reservedVolumeTooltip && (
-                              <QuestionTooltip
-                                title={categoryInfo.reservedVolumeTooltip}
-                                position="top"
-                                size="xs"
-                              />
-                            )}
-                      </Title>
-                      <Description>
+                  <Flex direction="column">
+                    <Title htmlFor={sliderId} isNewCheckout={!!isNewCheckout}>
+                      <div>{getPlanCategoryName({plan: activePlan, category})}</div>
+                      {showPerformanceUnits
+                        ? renderPerformanceHovercard()
+                        : categoryInfo?.reservedVolumeTooltip && (
+                            <QuestionTooltip
+                              title={categoryInfo.reservedVolumeTooltip}
+                              position="top"
+                              size="xs"
+                            />
+                          )}
+                    </Title>
+                    {eventBucket.price !== 0 && (
+                      <Description isNewCheckout={!!isNewCheckout}>
                         <div>
-                          {eventBucket.price !== 0 &&
-                            tct('[unitPrice]/[category]', {
-                              category:
-                                category ===
-                                DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT].plural
-                                  ? 'GB'
-                                  : getSingularCategoryName({
-                                      plan: activePlan,
-                                      category,
-                                      capitalize: false,
-                                    }),
-                              unitPrice,
-                            })}
+                          {tct('[unitPrice]/[category]', {
+                            category:
+                              category ===
+                              DATA_CATEGORY_INFO[DataCategoryExact.ATTACHMENT].plural
+                                ? 'GB'
+                                : getSingularCategoryName({
+                                    plan: activePlan,
+                                    category,
+                                    capitalize: false,
+                                  }),
+                            unitPrice,
+                          })}
                         </div>
                       </Description>
-                    </Flex>
-
-                    <VolumeAmount>
-                      {formatReservedWithUnits(
-                        formData.reserved[category] ?? null,
-                        category,
-                        {
-                          isAbbreviated: true,
-                        }
-                      )}
-                    </VolumeAmount>
-                    <Price isIncluded={eventBucket.price === 0}>
-                      {eventBucket.price === 0 ? t('Included') : `+${price}`}
-                    </Price>
+                    )}
                   </Flex>
-                  <RangeSlider
-                    showLabel
-                    name={category}
-                    id={sliderId}
-                    value={formData.reserved[category] ?? ''}
-                    allowedValues={allowedValues}
-                    formatLabel={() => null}
-                    onChange={value => value && handleReservedChange(value, category)}
-                  />
+                  <div>
+                    <SpaceBetweenGrid>
+                      <VolumeAmount>
+                        {formatReservedWithUnits(
+                          formData.reserved[category] ?? null,
+                          category,
+                          {
+                            isAbbreviated: true,
+                          }
+                        )}
+                      </VolumeAmount>
+                      <div>
+                        <Price isIncluded={isIncluded}>
+                          {isIncluded ? t('Included') : price}
+                        </Price>
+                        {!isIncluded && (
+                          <BillingInterval>/{billingInterval}</BillingInterval>
+                        )}
+                      </div>
+                    </SpaceBetweenGrid>
+                    <RangeSlider
+                      showLabel={false}
+                      name={category}
+                      id={sliderId}
+                      value={formData.reserved[category] ?? ''}
+                      allowedValues={allowedValues}
+                      onChange={value => value && handleReservedChange(value, category)}
+                    />
+                    <MinMax isNewCheckout={!!isNewCheckout}>
+                      <div>
+                        {tct('[min] included', {
+                          min: formatReservedWithUnits(min, category),
+                        })}
+                      </div>
+                      <div>{utils.getEventsWithUnit(max, category)}</div>
+                    </MinMax>
+                  </div>
                 </CategoryContainer>
               ) : (
                 <Fragment>
@@ -256,7 +277,7 @@ function VolumeSliders({
                         )}
                       </Events>
                     </SectionHeader>
-                    <Description>
+                    <Description isNewCheckout={!!isNewCheckout}>
                       <div>
                         {eventBucket.price !== 0 &&
                           tct('[unitPrice] per [category]', {
@@ -289,7 +310,7 @@ function VolumeSliders({
                       formatLabel={() => null}
                       onChange={value => value && handleReservedChange(value, category)}
                     />
-                    <MinMax>
+                    <MinMax isNewCheckout={!!isNewCheckout}>
                       <div>{utils.getEventsWithUnit(min, category)}</div>
                       <div>{utils.getEventsWithUnit(max, category)}</div>
                     </MinMax>
@@ -311,20 +332,32 @@ function VolumeSliders({
             </DataVolumeItem>
           );
         })}
-    </Fragment>
+    </SlidersContainer>
   );
 }
 
 export default VolumeSliders;
 
-const DataVolumeItem = styled(PanelItem)`
+const SlidersContainer = styled('div')`
+  > :not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
+  }
+`;
+
+const DataVolumeItem = styled(PanelItem)<{isNewCheckout: boolean}>`
   display: grid;
   grid-auto-flow: row;
   gap: ${space(3)};
   font-weight: normal;
   width: 100%;
   margin: 0;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
+
+  ${p =>
+    p.isNewCheckout &&
+    css`
+      padding-left: 0;
+      padding-right: 0;
+    `}
 `;
 
 const SectionHeader = styled('div')`
@@ -340,16 +373,18 @@ const Title = styled('label')<{isNewCheckout: boolean}>`
   gap: ${space(0.5)};
   align-items: center;
   margin-bottom: 0px;
-  font-weight: ${p =>
-    p.isNewCheckout ? p.theme.fontWeight.normal : p.theme.fontWeight.bold};
+  font-weight: ${p => p.theme.fontWeight.bold};
   font-size: ${p => (p.isNewCheckout ? p.theme.fontSize.md : p.theme.fontSize.xl)};
 `;
 
-const Description = styled('div')`
+const SpaceBetweenGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, auto);
   justify-content: space-between;
-  font-size: ${p => p.theme.fontSize.md};
+`;
+
+const Description = styled(SpaceBetweenGrid)<{isNewCheckout: boolean}>`
+  font-size: ${p => (p.isNewCheckout ? p.theme.fontSize.sm : p.theme.fontSize.md)};
   color: ${p => p.theme.subText};
 `;
 
@@ -419,18 +454,24 @@ const LearnMore = styled('div')`
 
 const VolumeAmount = styled('div')`
   font-weight: ${p => p.theme.fontWeight.bold};
-  font-size: ${p => p.theme.fontSize.md};
 `;
 
-const Price = styled('div')<{isIncluded: boolean}>`
-  font-size: ${p => p.theme.fontSize.md};
-  color: ${p => (p.isIncluded ? p.theme.subText : p.theme.activeText)};
+const Price = styled('span')<{isIncluded: boolean}>`
+  font-size: ${p => p.theme.fontSize.lg};
   font-weight: ${p =>
     p.isIncluded ? p.theme.fontWeight.normal : p.theme.fontWeight.bold};
+`;
+
+const BillingInterval = styled('span')`
+  font-size: ${p => p.theme.fontSize.md};
 `;
 
 const CategoryContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr 3fr;
   gap: ${p => p.theme.space['2xl']};
+
+  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+    grid-template-columns: 1fr;
+  }
 `;
