@@ -1012,6 +1012,7 @@ def process_workflow_engine(job: PostProcessJob) -> None:
                 group_state=job["group_state"],
                 has_reappeared=job["has_reappeared"],
                 has_escalated=job["has_escalated"],
+                start_timestamp_seconds=time(),
             ),
             headers={"sentry-propagate-traces": False},
         )

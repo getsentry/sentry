@@ -233,12 +233,14 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
                 contexts=contexts,
             )
 
+        start_timestamp = datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC)
         rp = RuleProcessor(
             perf_event,
             is_new=True,
             is_regression=True,
             is_new_group_environment=True,
             has_reappeared=True,
+            start_timestamp=start_timestamp,
         )
         results = list(rp.apply())
         assert len(results) == 0
@@ -252,7 +254,11 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         assert rulegroup_to_events == {
             f"{self.rule.id}:{perf_event.group.id}": json.dumps(
-                {"event_id": perf_event.event_id, "occurrence_id": perf_event.occurrence_id}
+                {
+                    "event_id": perf_event.event_id,
+                    "occurrence_id": perf_event.occurrence_id,
+                    "start_timestamp": start_timestamp,
+                }
             )
         }
 
@@ -270,12 +276,14 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
                 "actions": [EMAIL_ACTION_DATA],
             },
         )
+        start_timestamp = datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC)
         rp = RuleProcessor(
             self.group_event,
             is_new=True,
             is_regression=True,
             is_new_group_environment=True,
             has_reappeared=False,
+            start_timestamp=start_timestamp,
         )
         results = list(rp.apply())
         assert len(results) == 0
@@ -289,7 +297,11 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         assert rulegroup_to_events == {
             f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
-                {"event_id": self.group_event.event_id, "occurrence_id": None}
+                {
+                    "event_id": self.group_event.event_id,
+                    "occurrence_id": None,
+                    "start_timestamp": start_timestamp,
+                }
             )
         }
 
@@ -356,12 +368,14 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
                 "actions": [EMAIL_ACTION_DATA],
             },
         )
+        start_timestamp = datetime(2020, 9, 1, 3, 8, 24, 880386, tzinfo=UTC)
         rp = RuleProcessor(
             self.group_event,
             is_new=True,
             is_regression=True,
             is_new_group_environment=True,
             has_reappeared=True,
+            start_timestamp=start_timestamp,
         )
         results = list(rp.apply())
         assert len(results) == 0
@@ -375,7 +389,11 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         assert rulegroup_to_events == {
             f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
-                {"event_id": self.group_event.event_id, "occurrence_id": None}
+                {
+                    "event_id": self.group_event.event_id,
+                    "occurrence_id": None,
+                    "start_timestamp": start_timestamp,
+                }
             )
         }
 
