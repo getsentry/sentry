@@ -59,25 +59,22 @@ function SentryAppExternalInstallationContent() {
     }
   );
 
-  useEffect(
-    function () {
-      async function loadOrgs() {
-        try {
-          const orgs = await fetchOrganizations(api);
-          setOrganizations(orgs);
-          setOrgsLoading(false);
-        } catch (e) {
-          setOrgsLoading(false);
-          // Do nothing.
-        }
+  useEffect(() => {
+    async function loadOrgs() {
+      try {
+        const orgs = await fetchOrganizations(api);
+        setOrganizations(orgs);
+        setOrgsLoading(false);
+      } catch (e) {
+        setOrgsLoading(false);
+        // Do nothing.
       }
-      loadOrgs();
-    },
-    [api]
-  );
+    }
+    loadOrgs();
+  }, [api]);
 
   const onSelectOrg = useCallback(
-    async function (orgSlug: string) {
+    async (orgSlug: string) => {
       const customerDomain = ConfigStore.get('customerDomain');
       // redirect to the org if it's different than the org being selected
       if (customerDomain?.subdomain && orgSlug !== customerDomain?.subdomain) {
@@ -119,7 +116,7 @@ function SentryAppExternalInstallationContent() {
     ]
   );
 
-  useEffect(function () {
+  useEffect(() => {
     // Skip if we have a selected org, or if there aren't any orgs loaded yet.
     if (organization || organizations.length < 1) {
       return;
@@ -142,15 +139,12 @@ function SentryAppExternalInstallationContent() {
     testableWindowLocation.assign(newUrl);
   }, [selectedOrgSlug]);
 
-  const disableInstall = useCallback(
-    function () {
-      if (!(sentryApp && selectedOrgSlug)) {
-        return false;
-      }
-      return isInstalled || isSentryAppUnavailableForOrg(sentryApp, selectedOrgSlug);
-    },
-    [isInstalled, selectedOrgSlug, sentryApp]
-  );
+  const disableInstall = useCallback(() => {
+    if (!(sentryApp && selectedOrgSlug)) {
+      return false;
+    }
+    return isInstalled || isSentryAppUnavailableForOrg(sentryApp, selectedOrgSlug);
+  }, [isInstalled, selectedOrgSlug, sentryApp]);
 
   const onInstall = useCallback(async (): Promise<undefined | void> => {
     if (!organization || !sentryApp) {
