@@ -246,27 +246,30 @@ function Chart({
         Title={Title}
         Actions={Actions}
         Visualization={
-          <ChartVisualization
-            chartInfo={chartInfo}
-            hidden={!visible}
-            chartRef={chartRef}
-            brush={boxSelectOptions.brush}
-            onBrushEnd={boxSelectOptions.onBrushEnd}
-            onBrushStart={boxSelectOptions.onBrushStart}
-            toolBox={boxSelectOptions.toolBox}
-          />
+          visible && (
+            <ChartVisualization
+              chartInfo={chartInfo}
+              chartRef={chartRef}
+              brush={boxSelectOptions.brush}
+              onBrushEnd={boxSelectOptions.onBrushEnd}
+              onBrushStart={boxSelectOptions.onBrushStart}
+              toolBox={boxSelectOptions.toolBox}
+            />
+          )
         }
         Footer={
-          <ConfidenceFooter
-            sampleCount={chartInfo.sampleCount}
-            isLoading={chartInfo.timeseriesResult?.isPending || false}
-            isSampled={chartInfo.isSampled}
-            confidence={chartInfo.confidence}
-            topEvents={
-              topEvents ? Math.min(topEvents, chartInfo.series.length) : undefined
-            }
-            dataScanned={chartInfo.dataScanned}
-          />
+          visible && (
+            <ConfidenceFooter
+              sampleCount={chartInfo.sampleCount}
+              isLoading={chartInfo.timeseriesResult?.isPending || false}
+              isSampled={chartInfo.isSampled}
+              confidence={chartInfo.confidence}
+              topEvents={
+                topEvents ? Math.min(topEvents, chartInfo.series.length) : undefined
+              }
+              dataScanned={chartInfo.dataScanned}
+            />
+          )
         }
         height={chartHeight}
         revealActions="always"

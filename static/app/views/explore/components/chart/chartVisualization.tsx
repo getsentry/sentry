@@ -34,7 +34,6 @@ export function ChartVisualization({
   toolBox,
   chartInfo,
   chartRef,
-  hidden = false,
 }: ChartVisualizationProps) {
   const theme = useTheme();
 
@@ -72,10 +71,6 @@ export function ChartVisualization({
     plottables,
     chartInfo.timeseriesResult.isPending
   );
-
-  if (hidden) {
-    return null;
-  }
 
   if (chartInfo.timeseriesResult.isPending) {
     if (previousPlottables.length === 0) {
