@@ -284,10 +284,24 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         for repo_name in repos:
             try:
                 repo = next(
-                    repo
-                    for repo in autofix_state.request["repos"]
-                    if f"{repo['owner']}/{repo['name']}" == repo_name
+                    (
+                        repo
+                        for repo in autofix_state.request["repos"]
+                        if f"{repo['owner']}/{repo['name']}" == repo_name
+                    ),
+                    None,
                 )
+                if not repo:
+                    logger.error(
+                        "coding_agent.repo_not_found",
+                        extra={
+                            "organization_id": organization.id,
+                            "run_id": run_id,
+                            "repo_name": repo_name,
+                        },
+                    )
+                    # Continue with other repos instead of failing entirely
+                    continue
                 prompt = get_coding_agent_prompt(run_id, trigger_source)
 
                 if not prompt:
