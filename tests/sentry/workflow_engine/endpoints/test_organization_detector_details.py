@@ -203,6 +203,8 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 
     @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     def test_update(self, mock_schedule_update_project_config: mock.MagicMock) -> None:
+        self.valid_data["dataSources"][0]["id"] = self.data_source.id
+
         with self.tasks():
             response = self.get_success_response(
                 self.organization.slug,
@@ -225,6 +227,44 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 
         data_source_detector = DataSourceDetector.objects.get(detector=detector)
         data_source = DataSource.objects.get(id=data_source_detector.data_source.id)
+
+        import pdb
+        pdb.set_trace()
+
+        # make sure the we update the data source, not replace it
+        assert data_source.id == self.data_source.id
+
+        query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
+        snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
+        self.assert_snuba_query_updated(snuba_query)
+
+    def test_update__new_data_source(self) -> None:
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                **self.valid_data,
+                status_code=200,
+            )
+
+        detector = Detector.objects.get(id=response.data["id"])
+        assert response.data == serialize([detector])[0]
+        self.assert_detector_updated(detector)
+
+        condition_group = detector.workflow_condition_group
+        self.assert_condition_group_updated(condition_group)
+
+        conditions = list(DataCondition.objects.filter(condition_group=condition_group))
+        assert len(conditions) == 1
+        condition = conditions[0]
+        self.assert_data_condition_updated(condition)
+
+        data_source_detector = DataSourceDetector.objects.get(detector=detector)
+        data_source = DataSource.objects.get(id=data_source_detector.data_source.id)
+
+        # make sure the data source was removed and a new one was created
+        assert data_source.id != self.data_source.id
+
         query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
         snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
         self.assert_snuba_query_updated(snuba_query)
