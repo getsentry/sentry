@@ -92,7 +92,7 @@ def assert_metrics_call(
 
 
 class GetSeerSimilarIssuesTest(TestCase):
-    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
+    @patch("sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
     def test_sends_expected_data_to_seer(self, mock_get_similarity_data: MagicMock) -> None:
         new_event, new_variants, new_grouphash, new_stacktrace_string = create_new_event(
             self.project
@@ -114,7 +114,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             {"platform": "python", "hybrid_fingerprint": False},
         )
 
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.incr")
     def test_sends_second_seer_request_when_seer_matches_are_unusable(
         self, mock_incr: MagicMock
     ) -> None:
@@ -139,7 +139,7 @@ class GetSeerSimilarIssuesTest(TestCase):
         ]
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ) as mock_get_similarity_data:
             get_seer_similar_issues(new_event, new_grouphash, new_variants)
@@ -183,8 +183,8 @@ class GetSeerSimilarIssuesTest(TestCase):
 
 
 class ParentGroupFoundTest(TestCase):
-    @patch("sentry.grouping.ingest.seer.metrics.distribution")
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.distribution")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.incr")
     def test_simple(self, mock_incr: MagicMock, mock_distribution: MagicMock) -> None:
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
         existing_hash = existing_event.get_primary_hash()
@@ -205,7 +205,7 @@ class ParentGroupFoundTest(TestCase):
         ]
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
@@ -234,8 +234,8 @@ class ParentGroupFoundTest(TestCase):
                 not in distribution_metrics_recorded
             )
 
-    @patch("sentry.grouping.ingest.seer.metrics.distribution")
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.distribution")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.incr")
     def test_hybrid_fingerprint_match(
         self, mock_incr: MagicMock, mock_distribution: MagicMock
     ) -> None:
@@ -264,7 +264,7 @@ class ParentGroupFoundTest(TestCase):
         ]
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
@@ -290,8 +290,8 @@ class ParentGroupFoundTest(TestCase):
                 mock_distribution, "hybrid_fingerprint_results_checked", "match_found", value=1
             )
 
-    @patch("sentry.grouping.ingest.seer.metrics.distribution")
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.distribution")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.incr")
     def test_hybrid_fingerprint_mismatch(
         self, mock_incr: MagicMock, mock_distribution: MagicMock
     ) -> None:
@@ -316,7 +316,7 @@ class ParentGroupFoundTest(TestCase):
         ]
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
@@ -342,8 +342,8 @@ class ParentGroupFoundTest(TestCase):
                 value=1,
             )
 
-    @patch("sentry.grouping.ingest.seer.metrics.distribution")
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.distribution")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.incr")
     def test_hybrid_fingerprint_on_new_event_only(
         self, mock_incr: MagicMock, mock_distribution: MagicMock
     ) -> None:
@@ -368,7 +368,7 @@ class ParentGroupFoundTest(TestCase):
         ]
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
@@ -394,8 +394,8 @@ class ParentGroupFoundTest(TestCase):
                 value=1,
             )
 
-    @patch("sentry.grouping.ingest.seer.metrics.distribution")
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.distribution")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.incr")
     def test_hybrid_fingerprint_on_parent_group_only(
         self, mock_incr: MagicMock, mock_distribution: MagicMock
     ) -> None:
@@ -417,7 +417,7 @@ class ParentGroupFoundTest(TestCase):
         ]
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
@@ -443,8 +443,8 @@ class ParentGroupFoundTest(TestCase):
                 value=1,
             )
 
-    @patch("sentry.grouping.ingest.seer.metrics.distribution")
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.distribution")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.incr")
     def test_hybrid_fingerprint_no_parent_metadata(
         self, mock_incr: MagicMock, mock_distribution: MagicMock
     ) -> None:
@@ -482,7 +482,7 @@ class ParentGroupFoundTest(TestCase):
         ]
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
@@ -510,8 +510,8 @@ class ParentGroupFoundTest(TestCase):
 
 
 class MultipleParentGroupsFoundTest(TestCase):
-    @patch("sentry.grouping.ingest.seer.metrics.distribution")
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.distribution")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.incr")
     def test_simple(self, mock_incr: MagicMock, mock_distribution: MagicMock) -> None:
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
         existing_hash = existing_event.get_primary_hash()
@@ -542,7 +542,7 @@ class MultipleParentGroupsFoundTest(TestCase):
         ]
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
             # It picks the first, more similar match
@@ -572,8 +572,8 @@ class MultipleParentGroupsFoundTest(TestCase):
                 not in distribution_metrics_recorded
             )
 
-    @patch("sentry.grouping.ingest.seer.metrics.distribution")
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.distribution")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.incr")
     def test_hybrid_fingerprint_match_first(
         self, mock_incr: MagicMock, mock_distribution: MagicMock
     ) -> None:
@@ -615,7 +615,7 @@ class MultipleParentGroupsFoundTest(TestCase):
         ]
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
             # It picks the first result because the fingerprint matches the new event
@@ -645,8 +645,8 @@ class MultipleParentGroupsFoundTest(TestCase):
                 value=1,  # It only does one check because it stops once it's found a match
             )
 
-    @patch("sentry.grouping.ingest.seer.metrics.distribution")
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.distribution")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.incr")
     def test_hybrid_fingerprint_match_second(
         self, mock_incr: MagicMock, mock_distribution: MagicMock
     ) -> None:
@@ -688,7 +688,7 @@ class MultipleParentGroupsFoundTest(TestCase):
         ]
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
             # It picks the second result even though it's less similar because the fingerprint
@@ -720,8 +720,8 @@ class MultipleParentGroupsFoundTest(TestCase):
                 value=2,  # It does two checks because the first result isn't a match
             )
 
-    @patch("sentry.grouping.ingest.seer.metrics.distribution")
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.distribution")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.incr")
     def test_hybrid_fingerprint_mismatch(
         self, mock_incr: MagicMock, mock_distribution: MagicMock
     ) -> None:
@@ -758,7 +758,7 @@ class MultipleParentGroupsFoundTest(TestCase):
         ]
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
@@ -784,8 +784,8 @@ class MultipleParentGroupsFoundTest(TestCase):
                 value=2,
             )
 
-    @patch("sentry.grouping.ingest.seer.metrics.distribution")
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.distribution")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.incr")
     def test_hybrid_fingerprint_on_new_event_only(
         self, mock_incr: MagicMock, mock_distribution: MagicMock
     ) -> None:
@@ -822,7 +822,7 @@ class MultipleParentGroupsFoundTest(TestCase):
         ]
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
@@ -848,8 +848,8 @@ class MultipleParentGroupsFoundTest(TestCase):
                 value=2,
             )
 
-    @patch("sentry.grouping.ingest.seer.metrics.distribution")
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.distribution")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.incr")
     def test_hybrid_fingerprint_on_parent_groups_only(
         self, mock_incr: MagicMock, mock_distribution: MagicMock
     ) -> None:
@@ -883,7 +883,7 @@ class MultipleParentGroupsFoundTest(TestCase):
         ]
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
@@ -909,8 +909,8 @@ class MultipleParentGroupsFoundTest(TestCase):
                 value=2,
             )
 
-    @patch("sentry.grouping.ingest.seer.metrics.distribution")
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.distribution")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.incr")
     def test_hybrid_fingerprint_on_first_parent_group_only(
         self, mock_incr: MagicMock, mock_distribution: MagicMock
     ) -> None:
@@ -945,7 +945,7 @@ class MultipleParentGroupsFoundTest(TestCase):
         ]
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
             # It picks the second result even though it's less similar because it has to find a
@@ -974,8 +974,8 @@ class MultipleParentGroupsFoundTest(TestCase):
                 mock_distribution, "hybrid_fingerprint_results_checked", "match_found", value=2
             )
 
-    @patch("sentry.grouping.ingest.seer.metrics.distribution")
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.distribution")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.incr")
     def test_hybrid_fingerprint_no_parent_metadata(
         self, mock_incr: MagicMock, mock_distribution: MagicMock
     ) -> None:
@@ -1026,7 +1026,7 @@ class MultipleParentGroupsFoundTest(TestCase):
         ]
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
             # It picks the second result even though it's less similar, and even though the first
@@ -1056,8 +1056,8 @@ class MultipleParentGroupsFoundTest(TestCase):
                 mock_distribution, "hybrid_fingerprint_results_checked", "match_found", value=2
             )
 
-    @patch("sentry.grouping.ingest.seer.metrics.distribution")
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.distribution")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.incr")
     def test_hybrid_fingerprint_stops_checking_when_match_found(
         self, mock_incr: MagicMock, mock_distribution: MagicMock
     ) -> None:
@@ -1115,7 +1115,7 @@ class MultipleParentGroupsFoundTest(TestCase):
         ]
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
             # It picks the second result even though it's less similar because the fingerprint
@@ -1145,8 +1145,8 @@ class MultipleParentGroupsFoundTest(TestCase):
                 mock_distribution, "hybrid_fingerprint_results_checked", "match_found", value=2
             )
 
-    @patch("sentry.grouping.ingest.seer.metrics.distribution")
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.distribution")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.incr")
     def test_non_hybrid_fingerprint_uses_first_non_hybrid_result(
         self, mock_incr: MagicMock, mock_distribution: MagicMock
     ) -> None:
@@ -1182,7 +1182,7 @@ class MultipleParentGroupsFoundTest(TestCase):
         ]
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=seer_result_data,
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (
@@ -1215,13 +1215,13 @@ class MultipleParentGroupsFoundTest(TestCase):
 
 
 class NoParentGroupFoundTest(TestCase):
-    @patch("sentry.grouping.ingest.seer.metrics.distribution")
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.distribution")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.incr")
     def test_simple(self, mock_incr: MagicMock, mock_distribution: MagicMock) -> None:
         new_event, new_variants, new_grouphash, _ = create_new_event(self.project)
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[],
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)
@@ -1247,8 +1247,8 @@ class NoParentGroupFoundTest(TestCase):
                 not in distribution_metrics_recorded
             )
 
-    @patch("sentry.grouping.ingest.seer.metrics.distribution")
-    @patch("sentry.grouping.ingest.seer.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.distribution")
+    @patch("sentry.issues.grouping.ingest.seer.metrics.incr")
     def test_hybrid_fingerprint(self, mock_incr: MagicMock, mock_distribution: MagicMock) -> None:
         new_event, new_variants, new_grouphash, _ = create_new_event(
             self.project,
@@ -1256,7 +1256,7 @@ class NoParentGroupFoundTest(TestCase):
         )
 
         with patch(
-            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            "sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer",
             return_value=[],
         ):
             assert get_seer_similar_issues(new_event, new_grouphash, new_variants) == (None, None)

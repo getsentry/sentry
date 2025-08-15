@@ -41,11 +41,11 @@ def patch_grouping_helpers(return_values: dict[str, Any]):
             wraps=wrapped_find_grouphash_with_group,
         ) as find_grouphash_with_group_spy,
         mock.patch(
-            "sentry.grouping.ingest.hashing._calculate_primary_hashes_and_variants",
+            "sentry.issues.grouping.ingest.hashing._calculate_primary_hashes_and_variants",
             wraps=wrapped_calculate_primary_hashes,
         ) as calculate_primary_hashes_spy,
         mock.patch(
-            "sentry.grouping.ingest.hashing._calculate_secondary_hashes",
+            "sentry.issues.grouping.ingest.hashing._calculate_secondary_hashes",
             wraps=wrapped_calculate_secondary_hashes,
         ) as calculate_secondary_hashes_spy,
         mock.patch(

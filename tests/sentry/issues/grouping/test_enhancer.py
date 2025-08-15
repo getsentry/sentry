@@ -615,7 +615,7 @@ class EnhancementsTest(TestCase):
                 if rule.has_contributes_actions:
                     assert rule.as_contributes_rule() in contributes_rules
 
-    @patch("sentry.grouping.enhancer.parse_enhancements", wraps=parse_enhancements)
+    @patch("sentry.issues.grouping.enhancer.parse_enhancements", wraps=parse_enhancements)
     def test_caches_enhancements(self, parse_enhancements_spy: MagicMock) -> None:
         self.project.update_option(
             "sentry:grouping_enhancements", "stack.function:recordMetrics +app -group"
@@ -627,13 +627,13 @@ class EnhancementsTest(TestCase):
         # We didn't parse again because the result was cached
         assert parse_enhancements_spy.call_count == 1
 
-    @patch("sentry.grouping.enhancer.parse_enhancements", wraps=parse_enhancements)
+    @patch("sentry.issues.grouping.enhancer.parse_enhancements", wraps=parse_enhancements)
     def test_caches_split_enhancements(self, parse_enhancements_spy: MagicMock) -> None:
         self.project.update_option("sentry:grouping_enhancements", "function:playFetch +app +group")
 
         # Using version 3 forces the enhancements to be split, and we know a split will happen
         # because the custom rule added above has both an in-app and a contributes action
-        with patch("sentry.grouping.api.get_enhancements_version", return_value=3):
+        with patch("sentry.issues.grouping.api.get_enhancements_version", return_value=3):
             get_grouping_config_dict_for_project(self.project)
             assert parse_enhancements_spy.call_count == 1
 
@@ -654,7 +654,7 @@ class EnhancementsTest(TestCase):
         assert str(enhancements.rules[0]) == "<EnhancementRule function:playFetch +app>"
         assert strategy_config.enhancements.id is None
 
-    @patch("sentry.grouping.enhancer._split_rules", wraps=_split_rules)
+    @patch("sentry.issues.grouping.enhancer._split_rules", wraps=_split_rules)
     def test_loads_split_enhancements_from_base64_string(self, split_rules_spy: MagicMock) -> None:
         # Using version 3 forces the enhancements to be split, and we know a split will happen
         # because the rule below has both an in-app and a contributes action

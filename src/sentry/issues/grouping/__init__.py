@@ -1,5 +1,5 @@
 """
-sentry.grouping
+sentry.issues.grouping
 ~~~~~~~~~~~~~~~
 
 This package implements various grouping-related functionality in Sentry.
@@ -15,7 +15,7 @@ can however generate more than one hash, the sum of which will be added to a
 group.  In the database this is represented in the `GroupHash` model.
 
 Grouping hashes can be created from different methods.  These are called
-variants and are implemented in `sentry.grouping.variants`.  The
+variants and are implemented in `sentry.issues.grouping.variants`.  The
 `get_grouping_variants_for_event` function of the grouping API evaluates all
 variants that would be available for the event and returns them.
 
@@ -75,7 +75,7 @@ Component-Based Grouping
 
 The component-based grouping system produces a tree of nodes (referred to
 as a component) to produce the hash.  These are defined in
-`sentry.grouping.component`.  A component has an `id` which is a string
+`sentry.issues.grouping.component`.  A component has an `id` which is a string
 identifying the component in the tree.  This `id` is not unique in the tree
 but unique on one level of the hierarchy.  It has an optional `hint` which is
 a string that carries information for the user about why a value was used, not
@@ -107,7 +107,7 @@ strategy configurations define which ones are picked.
 For instance, there was a `frame:legacy` strategy, which was the legacy
 version of the `frame` strategy.  Then there are the new ones (`frame:v1`,
 `frame:v2`, etc.).  The strategy configuration defines which one is used.
-These are in `sentry.grouping.strategies.configurations`.  A strategy can
+These are in `sentry.issues.grouping.strategies.configurations`.  A strategy can
 inherit from another one, in which case a lot of behavior is inherited unless
 overridden.
 
@@ -135,7 +135,7 @@ Fingerprinting and Enhancements
 -------------------------------
 
 Server-side fingerprinting and enhancements are also folded into this grouping
-system.  The former is in `sentry.grouping.fingerprinting` and can fundamentally
+system.  The former is in `sentry.issues.grouping.fingerprinting` and can fundamentally
 override the default grouping system.  Enhancements are used by the stacktrace
 strategies to improve how stacktraces are used for grouping.  Enhancements
 activate in two places: as part of stacktrace normalization to update the

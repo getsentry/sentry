@@ -96,11 +96,11 @@ class GroupingInput:
     ) -> Event:
         with (
             mock.patch(
-                "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
+                "sentry.issues.grouping.ingest.hashing.get_grouping_config_dict_for_project",
                 return_value=grouping_config,
             ),
             mock.patch(
-                "sentry.grouping.ingest.hashing.get_fingerprinting_config_for_project",
+                "sentry.issues.grouping.ingest.hashing.get_fingerprinting_config_for_project",
                 return_value=fingerprinting_config,
             ),
         ):

@@ -529,7 +529,7 @@ def test_apply_new_fingerprinting_rules(
     )
 
     with mock.patch(
-        "sentry.grouping.ingest.hashing.get_fingerprinting_config_for_project",
+        "sentry.issues.grouping.ingest.hashing.get_fingerprinting_config_for_project",
         return_value=new_rules,
     ):
         # Reprocess
@@ -627,7 +627,7 @@ def test_apply_new_stack_trace_rules(
     original_issue_id = event1.group.id
 
     with mock.patch(
-        "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
+        "sentry.issues.grouping.ingest.hashing.get_grouping_config_dict_for_project",
         return_value={
             "id": DEFAULT_GROUPING_CONFIG,
             "enhancements": Enhancements.from_rules_text(

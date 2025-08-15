@@ -351,7 +351,7 @@ def normalize_stacktraces_for_grouping(
                         pass
         if stripped_querystring:
             # Fires once per event, regardless of how many frames' filenames were stripped
-            metrics.incr("sentry.grouping.stripped_filename_querystrings")
+            metrics.incr("sentry.issues.grouping.stripped_filename_querystrings")
 
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:

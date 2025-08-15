@@ -24,7 +24,7 @@ from tests.sentry.issues.grouping import (
 @django_db_all
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
 @with_grouping_configs(MANUAL_SAVE_CONFIGS)
-@patch("sentry.grouping.strategies.newstyle.logging.exception")
+@patch("sentry.issues.grouping.strategies.newstyle.logging.exception")
 def test_variants_with_manual_save(
     mock_exception_logger: MagicMock,
     config_name: str,
@@ -52,7 +52,7 @@ def test_variants_with_manual_save(
 @django_db_all
 @with_grouping_inputs("grouping_input", GROUPING_INPUTS_DIR)
 @with_grouping_configs(FULL_PIPELINE_CONFIGS)
-@patch("sentry.grouping.strategies.newstyle.logging.exception")
+@patch("sentry.issues.grouping.strategies.newstyle.logging.exception")
 def test_variants_with_full_pipeline(
     mock_exception_logger: MagicMock,
     config_name: str,

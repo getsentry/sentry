@@ -40,7 +40,9 @@ class GroupHashMetadataTest(TestCase):
             ).first()
             assert grouphash and grouphash.metadata is None
 
-        with patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr") as mock_metrics_incr:
+        with patch(
+            "sentry.issues.grouping.ingest.grouphash_metadata.metrics.incr"
+        ) as mock_metrics_incr:
             # New hashes get metadata
             event2 = save_new_event({"message": "Adopt, don't shop"}, self.project)
             grouphash = GroupHash.objects.filter(
@@ -56,7 +58,8 @@ class GroupHashMetadataTest(TestCase):
             with override_options({"grouping.grouphash_metadata.backfill_sample_rate": 0.415}):
                 # Over the sample rate cutoff, so no record created
                 with patch(
-                    "sentry.grouping.ingest.grouphash_metadata.random.random", return_value=0.908
+                    "sentry.issues.grouping.ingest.grouphash_metadata.random.random",
+                    return_value=0.908,
                 ):
                     event3 = save_new_event({"message": "Dogs are great!"}, self.project)
                     assert event3.get_primary_hash() == event1.get_primary_hash()
@@ -67,7 +70,8 @@ class GroupHashMetadataTest(TestCase):
 
                 # Under the sample rate cutoff, so record will be created
                 with patch(
-                    "sentry.grouping.ingest.grouphash_metadata.random.random", return_value=0.1231
+                    "sentry.issues.grouping.ingest.grouphash_metadata.random.random",
+                    return_value=0.1231,
                 ):
                     event4 = save_new_event({"message": "Dogs are great!"}, self.project)
                     assert event4.get_primary_hash() == event1.get_primary_hash()
@@ -153,7 +157,7 @@ class GroupHashMetadataTest(TestCase):
         assert older_config_grouphash.metadata.hashing_metadata is None
 
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
-    @patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.grouphash_metadata.metrics.incr")
     def test_does_grouping_config_update(self, mock_metrics_incr: MagicMock) -> None:
         self.project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
 
@@ -203,7 +207,9 @@ class GroupHashMetadataTest(TestCase):
         self.project.update_option("sentry:grouping_config", DEFAULT_GROUPING_CONFIG)
 
         # Over the sample rate cutoff, so no update should happen
-        with patch("sentry.grouping.ingest.grouphash_metadata.random.random", return_value=0.908):
+        with patch(
+            "sentry.issues.grouping.ingest.grouphash_metadata.random.random", return_value=0.908
+        ):
             event2 = save_new_event({"message": "Dogs are great!"}, self.project)
             grouphash2 = GroupHash.objects.filter(
                 project=self.project, hash=event2.get_primary_hash()
@@ -216,7 +222,9 @@ class GroupHashMetadataTest(TestCase):
             self.assert_metadata_values(grouphash2, {"latest_grouping_config": NO_MSG_PARAM_CONFIG})
 
         # Under the sample rate cutoff, so record should be updated
-        with patch("sentry.grouping.ingest.grouphash_metadata.random.random", return_value=0.1231):
+        with patch(
+            "sentry.issues.grouping.ingest.grouphash_metadata.random.random", return_value=0.1231
+        ):
             event3 = save_new_event({"message": "Dogs are great!"}, self.project)
             grouphash3 = GroupHash.objects.filter(
                 project=self.project, hash=event3.get_primary_hash()
@@ -231,10 +239,11 @@ class GroupHashMetadataTest(TestCase):
             )
 
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
-    @patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.grouphash_metadata.metrics.incr")
     def test_does_schema_update(self, mock_metrics_incr: MagicMock) -> None:
         with patch(
-            "sentry.grouping.ingest.grouphash_metadata.GROUPHASH_METADATA_SCHEMA_VERSION", "11"
+            "sentry.issues.grouping.ingest.grouphash_metadata.GROUPHASH_METADATA_SCHEMA_VERSION",
+            "11",
         ):
             event1 = save_new_event({"message": "Dogs are great!"}, self.project)
             grouphash1 = GroupHash.objects.filter(
@@ -255,10 +264,11 @@ class GroupHashMetadataTest(TestCase):
         # Update the schema by incrementing the version and changing what data is stored.
         with (
             patch(
-                "sentry.grouping.ingest.grouphash_metadata.GROUPHASH_METADATA_SCHEMA_VERSION", "12"
+                "sentry.issues.grouping.ingest.grouphash_metadata.GROUPHASH_METADATA_SCHEMA_VERSION",
+                "12",
             ),
             patch(
-                "sentry.grouping.ingest.grouphash_metadata._get_message_hashing_metadata",
+                "sentry.issues.grouping.ingest.grouphash_metadata._get_message_hashing_metadata",
                 return_value={"something": "different"},
             ),
         ):
@@ -289,12 +299,13 @@ class GroupHashMetadataTest(TestCase):
             )
 
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
-    @patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.grouphash_metadata.metrics.incr")
     def test_does_both_updates(self, mock_metrics_incr: MagicMock) -> None:
         self.project.update_option("sentry:grouping_config", NO_MSG_PARAM_CONFIG)
 
         with patch(
-            "sentry.grouping.ingest.grouphash_metadata.GROUPHASH_METADATA_SCHEMA_VERSION", "11"
+            "sentry.issues.grouping.ingest.grouphash_metadata.GROUPHASH_METADATA_SCHEMA_VERSION",
+            "11",
         ):
             event1 = save_new_event({"message": "Dogs are great!"}, self.project)
             grouphash1 = GroupHash.objects.filter(
@@ -320,10 +331,11 @@ class GroupHashMetadataTest(TestCase):
         # Update the schema by incrementing the version and changing what data is stored.
         with (
             patch(
-                "sentry.grouping.ingest.grouphash_metadata.GROUPHASH_METADATA_SCHEMA_VERSION", "12"
+                "sentry.issues.grouping.ingest.grouphash_metadata.GROUPHASH_METADATA_SCHEMA_VERSION",
+                "12",
             ),
             patch(
-                "sentry.grouping.ingest.grouphash_metadata._get_message_hashing_metadata",
+                "sentry.issues.grouping.ingest.grouphash_metadata._get_message_hashing_metadata",
                 return_value={"something": "different"},
             ),
         ):
@@ -357,7 +369,7 @@ class GroupHashMetadataTest(TestCase):
             )
 
     @override_options({"grouping.grouphash_metadata.backfill_sample_rate": 1.0})
-    @patch("sentry.grouping.ingest.grouphash_metadata.metrics.incr")
+    @patch("sentry.issues.grouping.ingest.grouphash_metadata.metrics.incr")
     def test_grouping_config_update_precedence(self, mock_metrics_incr: MagicMock) -> None:
         """
         Test that we don't overwrite a newer config with an older one, or with None.

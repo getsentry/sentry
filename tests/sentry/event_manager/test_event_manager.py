@@ -1150,7 +1150,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
 
         with patch(
-            "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
+            "sentry.issues.grouping.ingest.hashing.get_grouping_config_dict_for_project",
             return_value=grouping_config,
         ):
             manager = EventManager(
@@ -2474,7 +2474,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         grouping_config = {"id": DEFAULT_GROUPING_CONFIG, "enhancements": enhancements_str}
 
         with patch(
-            "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
+            "sentry.issues.grouping.ingest.hashing.get_grouping_config_dict_for_project",
             return_value=grouping_config,
         ):
             event_params = make_event(
@@ -2552,7 +2552,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         }
 
         with patch(
-            "sentry.grouping.ingest.hashing.get_grouping_config_dict_for_project",
+            "sentry.issues.grouping.ingest.hashing.get_grouping_config_dict_for_project",
             return_value=grouping_config,
         ):
             event_params = make_event(

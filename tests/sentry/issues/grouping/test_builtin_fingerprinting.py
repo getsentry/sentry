@@ -422,13 +422,13 @@ def test_built_in_nextjs_rules_from_config_string_with_custom(
 
 
 def test_load_configs_empty_doesnt_blow_up(tmp_path: Path) -> None:
-    with mock.patch("sentry.grouping.fingerprinting.CONFIGS_DIR", tmp_path):
+    with mock.patch("sentry.issues.grouping.fingerprinting.CONFIGS_DIR", tmp_path):
         assert _load_configs() == {}
 
 
 def test_load_configs_non_existent_path_doesnt_blow_up(tmp_path: Path) -> None:
     tmp_path.rmdir()
-    with mock.patch("sentry.grouping.fingerprinting.CONFIGS_DIR", tmp_path):
+    with mock.patch("sentry.issues.grouping.fingerprinting.CONFIGS_DIR", tmp_path):
         assert _load_configs() == {}
 
 
@@ -441,7 +441,7 @@ def test_load_configs_borked_file_doesnt_blow_up(tmp_path: Path) -> None:
     (rule_dir / "baz.txt").write_text("inaccessible file")
     (rule_dir / "baz.txt").chmod(0o111)
 
-    with mock.patch("sentry.grouping.fingerprinting.CONFIGS_DIR", tmp_path):
+    with mock.patch("sentry.issues.grouping.fingerprinting.CONFIGS_DIR", tmp_path):
         configs = _load_configs()
 
     assert base in configs

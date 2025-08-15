@@ -10,7 +10,7 @@ from sentry.testutils.cases import TestCase
 
 
 class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
-    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
+    @patch("sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
     def test_simple(self, mock_get_similarity_data: MagicMock) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
@@ -64,8 +64,8 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
             {"platform": "python", "hybrid_fingerprint": False},
         )
 
-    @patch("sentry.grouping.ingest.seer.record_did_call_seer_metric")
-    @patch("sentry.grouping.ingest.seer.get_seer_similar_issues")
+    @patch("sentry.issues.grouping.ingest.seer.record_did_call_seer_metric")
+    @patch("sentry.issues.grouping.ingest.seer.get_seer_similar_issues")
     @patch("sentry.seer.similarity.utils.metrics")
     def test_too_many_frames(
         self,
@@ -130,7 +130,7 @@ class MaybeCheckSeerForMatchingGroupHashTest(TestCase):
 
         mock_get_similar_issues.assert_not_called()
 
-    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
+    @patch("sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
     def test_too_many_frames_bypassed_platform(self, mock_get_similarity_data: MagicMock) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 

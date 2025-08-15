@@ -98,7 +98,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             tags={"response_status": 200, "outcome": "no_similar_groups"},
         )
 
-    @mock.patch("sentry.grouping.ingest.seer.CircuitBreaker.record_error")
+    @mock.patch("sentry.issues.grouping.ingest.seer.CircuitBreaker.record_error")
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_bad_response_data(
@@ -167,7 +167,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
 
             mock_metrics_incr.reset_mock()
 
-    @mock.patch("sentry.grouping.ingest.seer.CircuitBreaker.record_error")
+    @mock.patch("sentry.issues.grouping.ingest.seer.CircuitBreaker.record_error")
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.logger")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
@@ -193,7 +193,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         )
         assert mock_record_circuit_breaker_error.call_count == 0
 
-    @mock.patch("sentry.grouping.ingest.seer.CircuitBreaker.record_error")
+    @mock.patch("sentry.issues.grouping.ingest.seer.CircuitBreaker.record_error")
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.logger")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
@@ -233,7 +233,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             mock_metrics_incr.reset_mock()
             mock_record_circuit_breaker_error.reset_mock()
 
-    @mock.patch("sentry.grouping.ingest.seer.CircuitBreaker.record_error")
+    @mock.patch("sentry.issues.grouping.ingest.seer.CircuitBreaker.record_error")
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.logger")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")

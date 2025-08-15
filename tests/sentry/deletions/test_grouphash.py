@@ -44,9 +44,12 @@ class DeleteGroupHashTest(TestCase):
         assert existing_grouphash
 
         with (
-            patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True),
             patch(
-                "sentry.grouping.ingest.seer.get_seer_similar_issues",
+                "sentry.issues.grouping.ingest.seer.should_call_seer_for_grouping",
+                return_value=True,
+            ),
+            patch(
+                "sentry.issues.grouping.ingest.seer.get_seer_similar_issues",
                 return_value=(0.01, existing_grouphash),
             ),
         ):
@@ -88,9 +91,12 @@ class DeleteGroupHashTest(TestCase):
         assert existing_grouphash
 
         with (
-            patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True),
             patch(
-                "sentry.grouping.ingest.seer.get_seer_similar_issues",
+                "sentry.issues.grouping.ingest.seer.should_call_seer_for_grouping",
+                return_value=True,
+            ),
+            patch(
+                "sentry.issues.grouping.ingest.seer.get_seer_similar_issues",
                 return_value=(0.01, existing_grouphash),
             ),
         ):

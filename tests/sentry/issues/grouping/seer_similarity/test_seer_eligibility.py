@@ -68,7 +68,7 @@ class ShouldCallSeerTest(TestCase):
 
         for content_eligibility, expected_result in [(True, True), (False, False)]:
             with patch(
-                "sentry.grouping.ingest.seer._event_content_is_seer_eligible",
+                "sentry.issues.grouping.ingest.seer._event_content_is_seer_eligible",
                 return_value=content_eligibility,
             ):
                 assert (
@@ -113,7 +113,7 @@ class ShouldCallSeerTest(TestCase):
 
         for ratelimit_enabled, expected_result in [(True, False), (False, True)]:
             with patch(
-                "sentry.grouping.ingest.seer.ratelimiter.backend.is_limited",
+                "sentry.issues.grouping.ingest.seer.ratelimiter.backend.is_limited",
                 wraps=lambda key, is_enabled=ratelimit_enabled, **_kwargs: (
                     is_enabled if key == "seer:similarity:global-limit" else False
                 ),
@@ -128,7 +128,7 @@ class ShouldCallSeerTest(TestCase):
 
         for ratelimit_enabled, expected_result in [(True, False), (False, True)]:
             with patch(
-                "sentry.grouping.ingest.seer.ratelimiter.backend.is_limited",
+                "sentry.issues.grouping.ingest.seer.ratelimiter.backend.is_limited",
                 wraps=lambda key, is_enabled=ratelimit_enabled, **_kwargs: (
                     is_enabled
                     if key == f"seer:similarity:project-{self.project.id}-limit"
@@ -145,7 +145,7 @@ class ShouldCallSeerTest(TestCase):
 
         for request_allowed, expected_result in [(True, True), (False, False)]:
             with patch(
-                "sentry.grouping.ingest.seer.CircuitBreaker.should_allow_request",
+                "sentry.issues.grouping.ingest.seer.CircuitBreaker.should_allow_request",
                 return_value=request_allowed,
             ):
                 assert (
@@ -207,7 +207,7 @@ class ShouldCallSeerTest(TestCase):
 
         for frame_check_result, expected_result in [(True, False), (False, True)]:
             with patch(
-                "sentry.grouping.ingest.seer._has_too_many_contributing_frames",
+                "sentry.issues.grouping.ingest.seer._has_too_many_contributing_frames",
                 return_value=frame_check_result,
             ):
                 assert (
@@ -215,7 +215,7 @@ class ShouldCallSeerTest(TestCase):
                     is expected_result
                 )
 
-    @patch("sentry.grouping.ingest.seer.record_did_call_seer_metric")
+    @patch("sentry.issues.grouping.ingest.seer.record_did_call_seer_metric")
     def test_obeys_empty_stacktrace_string_check(
         self, mock_record_did_call_seer: MagicMock
     ) -> None:
@@ -253,7 +253,7 @@ class ShouldCallSeerTest(TestCase):
             empty_frame_event, call_made=False, blocker="empty-stacktrace-string"
         )
 
-    @patch("sentry.grouping.ingest.seer.record_did_call_seer_metric")
+    @patch("sentry.issues.grouping.ingest.seer.record_did_call_seer_metric")
     def test_obeys_race_condition_skip(self, mock_record_did_call_seer: MagicMock) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 
@@ -271,7 +271,7 @@ class ShouldCallSeerTest(TestCase):
             self.event, call_made=False, blocker="race_condition"
         )
 
-    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
+    @patch("sentry.issues.grouping.ingest.seer.get_similarity_data_from_seer", return_value=[])
     def test_stacktrace_string_not_saved_in_event(
         self, mock_get_similarity_data: MagicMock
     ) -> None:

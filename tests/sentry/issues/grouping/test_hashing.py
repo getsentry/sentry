@@ -27,7 +27,7 @@ pytestmark = [requires_snuba]
 
 class BackgroundGroupingTest(TestCase):
     @override_options({"store.background-grouping-config-id": NO_MSG_PARAM_CONFIG})
-    @patch("sentry.grouping.ingest.hashing._calculate_background_grouping")
+    @patch("sentry.issues.grouping.ingest.hashing._calculate_background_grouping")
     def test_background_grouping_sample_rate(
         self, mock_calc_background_grouping: MagicMock
     ) -> None:
@@ -48,7 +48,7 @@ class BackgroundGroupingTest(TestCase):
         background_grouping_error = Exception("nope")
 
         with patch(
-            "sentry.grouping.ingest.hashing._calculate_background_grouping",
+            "sentry.issues.grouping.ingest.hashing._calculate_background_grouping",
             side_effect=background_grouping_error,
         ):
             event = save_new_event({"message": "Dogs are great! 1231"}, self.project)
@@ -92,7 +92,7 @@ class SecondaryGroupingTest(TestCase):
 
     @patch("sentry_sdk.capture_exception")
     @patch(
-        "sentry.grouping.ingest.hashing._calculate_secondary_hashes",
+        "sentry.issues.grouping.ingest.hashing._calculate_secondary_hashes",
         wraps=_calculate_secondary_hashes,
     )
     def test_handles_errors_with_secondary_grouping(
@@ -118,7 +118,7 @@ class SecondaryGroupingTest(TestCase):
         project.update_option("sentry:secondary_grouping_expiry", time() + 3600)
 
         with patch(
-            "sentry.grouping.ingest.hashing._calculate_event_grouping",
+            "sentry.issues.grouping.ingest.hashing._calculate_event_grouping",
             wraps=mock_calculate_event_grouping,
         ):
             event = save_new_event({"message": "Dogs are great! 1231"}, project)
@@ -181,7 +181,7 @@ class SecondaryGroupingTest(TestCase):
 
         with (
             patch(
-                "sentry.grouping.ingest.hashing._calculate_secondary_hashes",
+                "sentry.issues.grouping.ingest.hashing._calculate_secondary_hashes",
                 return_value=[no_msg_param_hash, "additional_secondary_hash_value"],
             ),
             patch(
@@ -207,9 +207,9 @@ class SecondaryGroupingTest(TestCase):
                 NO_MSG_PARAM_CONFIG,
             )
 
-    @patch("sentry.grouping.ingest.hashing._calculate_secondary_hashes")
+    @patch("sentry.issues.grouping.ingest.hashing._calculate_secondary_hashes")
     @patch(
-        "sentry.grouping.ingest.hashing._calculate_primary_hashes_and_variants",
+        "sentry.issues.grouping.ingest.hashing._calculate_primary_hashes_and_variants",
         wraps=_calculate_primary_hashes_and_variants,
     )
     def test_no_error_with_unknown_secondary_config(
