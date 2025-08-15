@@ -60,7 +60,7 @@ import {showSubscriptionDiscount} from 'getsentry/utils/promotionUtils';
 import {loadStripe} from 'getsentry/utils/stripe';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import withPromotions from 'getsentry/utils/withPromotions';
-import CartSummary from 'getsentry/views/amCheckout/cartSummary';
+import Cart from 'getsentry/views/amCheckout/cart';
 import CheckoutOverview from 'getsentry/views/amCheckout/checkoutOverview';
 import CheckoutOverviewV2 from 'getsentry/views/amCheckout/checkoutOverviewV2';
 import AddBillingDetails from 'getsentry/views/amCheckout/steps/addBillingDetails';
@@ -792,7 +792,7 @@ class AMCheckout extends Component<Props, State> {
           <SidePanel>
             <OverviewContainer>
               {isNewCheckout ? (
-                <CartSummary {...overviewProps} />
+                <Cart {...overviewProps} />
               ) : checkoutTier === PlanTier.AM3 ? (
                 <CheckoutOverviewV2 {...overviewProps} />
               ) : (

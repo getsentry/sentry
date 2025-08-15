@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -19,14 +19,14 @@ import {getPlanCategoryName, getSingularCategoryName} from 'getsentry/utils/data
 import type {CheckoutFormData, SelectableProduct} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
-type CartSummaryProps = {
+type CartProps = {
   activePlan: Plan;
   formData: CheckoutFormData;
   subscription: Subscription;
-  // discountInfo?: Promotion['discountInfo'];
+  // discountInfo?: Promotion['discountInfo']; // TODO(ISABELLA): Add this back in
 };
 
-function CartSummary({activePlan, formData, subscription}: CartSummaryProps) {
+function Cart({activePlan, formData, subscription}: CartProps) {
   const shortInterval = useMemo(() => {
     return utils.getShortInterval(activePlan.billingInterval);
   }, [activePlan.billingInterval]);
@@ -39,10 +39,17 @@ function CartSummary({activePlan, formData, subscription}: CartSummaryProps) {
     [] as DataCategory[]
   );
 
+  useEffect(() => {});
+
   const recurringTotal = utils.getReservedPriceCents({...formData, plan: activePlan});
+  const formattedRecurringTotal = utils.displayPrice({cents: recurringTotal});
+  const intervalMultiplier = activePlan.billingInterval === 'monthly' ? 1 : 12;
+  const maxCostPerInterval =
+    (formData.onDemandMaxSpend ?? 0) * intervalMultiplier + recurringTotal;
+  const formattedMaxCostPerInterval = utils.displayPrice({cents: maxCostPerInterval});
 
   return (
-    <CartSummaryContainer>
+    <CartContainer>
       <SummarySection>
         <Title>{t('Plan Summary')}</Title>
         <ItemWithIcon data-test-id="summary-item-plan">
@@ -62,29 +69,26 @@ function CartSummary({activePlan, formData, subscription}: CartSummaryProps) {
                   (formData.reserved[category] ?? 0) > 0
               )
               .map(category => {
+                const reserved = formData.reserved[category] ?? 0;
                 const eventBucket =
                   activePlan.planCategories[category] &&
                   activePlan.planCategories[category].length <= 1
                     ? null
                     : utils.getBucket({
-                        events: formData.reserved[category],
+                        events: reserved,
                         buckets: activePlan.planCategories[category],
                       });
                 const price = eventBucket ? eventBucket.price : 0;
-
                 const formattedPrice = utils.displayPrice({
                   cents: price,
                 });
+                const formattedReserved = formatReservedWithUnits(reserved, category);
 
                 return (
                   <Flex key={category} justify="between" align="center">
                     <div>
-                      {formatReservedWithUnits(
-                        formData.reserved[category] ?? 0,
-                        category
-                      )}{' '}
-                      {formData.reserved[category] === 1 &&
-                      category !== DataCategory.ATTACHMENTS
+                      {formattedReserved}{' '}
+                      {reserved === 1 && category !== DataCategory.ATTACHMENTS
                         ? getSingularCategoryName({
                             plan: activePlan,
                             category,
@@ -107,6 +111,7 @@ function CartSummary({activePlan, formData, subscription}: CartSummaryProps) {
           </Flex>
         </ItemWithIcon>
 
+        {/* TODO(checkout-v3): This will need to be updated for non-budget products */}
         {Object.values(activePlan.availableReservedBudgetTypes)
           .filter(
             budgetTypeInfo =>
@@ -161,7 +166,7 @@ function CartSummary({activePlan, formData, subscription}: CartSummaryProps) {
           <Flex justify="between" align="center">
             <strong>{t('Total')}</strong>
             <strong>
-              {recurringTotal}/{shortInterval}
+              {formattedRecurringTotal}/{shortInterval}
             </strong>
           </Flex>
           <RenewalDate>
@@ -173,22 +178,24 @@ function CartSummary({activePlan, formData, subscription}: CartSummaryProps) {
             })}
           </RenewalDate>
         </Item>
-        <Item>
-          <Flex justify="between" align="center">
-            <div>
-              {tct('[budgetTerm] spend cap', {
-                budgetTerm: capitalize(activePlan.budgetTerm),
-              })}
-            </div>
-            <div>
-              $0-
-              {utils.displayPrice({
-                cents: formData.onDemandMaxSpend ?? 0,
-              })}
-              /mo
-            </div>
-          </Flex>
-        </Item>
+        {!!formData.onDemandMaxSpend && (
+          <Item>
+            <Flex justify="between" align="center">
+              <div>
+                {tct('[budgetTerm] spend cap', {
+                  budgetTerm: capitalize(activePlan.budgetTerm),
+                })}
+              </div>
+              <div>
+                $0-
+                {utils.displayPrice({
+                  cents: formData.onDemandMaxSpend ?? 0,
+                })}
+                /mo
+              </div>
+            </Flex>
+          </Item>
+        )}
         <Item>
           <Flex justify="between" align="center">
             <div>
@@ -197,13 +204,7 @@ function CartSummary({activePlan, formData, subscription}: CartSummaryProps) {
               })}
             </div>
             <div>
-              {utils.displayPrice({
-                cents:
-                  activePlan.billingInterval === 'monthly'
-                    ? (formData.onDemandMaxSpend ?? 0) + recurringTotal
-                    : (formData.onDemandMaxSpend ?? 0) * 12 + recurringTotal,
-              })}
-              /{shortInterval}
+              {formattedMaxCostPerInterval}/{shortInterval}
             </div>
           </Flex>
         </Item>
@@ -224,13 +225,13 @@ function CartSummary({activePlan, formData, subscription}: CartSummaryProps) {
           </Flex>
         </Item>
       </SummarySection>
-    </CartSummaryContainer>
+    </CartContainer>
   );
 }
 
-export default CartSummary;
+export default Cart;
 
-const CartSummaryContainer = styled(Panel)`
+const CartContainer = styled(Panel)`
   display: flex;
   flex-direction: column;
   padding: ${p => p.theme.space['2xl']} 0;
