@@ -44,7 +44,10 @@ export default function BuildDetails() {
     <SentryDocumentTitle title="Build details">
       <Layout.Page>
         <Layout.Header>
-          <BuildDetailsHeaderContent buildDetailsQuery={buildDetailsQuery} />
+          <BuildDetailsHeaderContent
+            buildDetailsQuery={buildDetailsQuery}
+            projectId={projectId}
+          />
         </Layout.Header>
 
         <Layout.Body>
