@@ -5,7 +5,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.constants import ObjectStatus
+from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.organizations.absolute_url import generate_organization_url
 
 
 @region_silo_endpoint
@@ -24,16 +27,33 @@ class OrganizationPluginDeprecationInfoEndpoint(OrganizationEndpoint):
         # Get plugin query parameter
         plugin = request.GET.get("plugin")
 
-        candidate_rules = Rule.objects.filter(
+        plugin_projects = Project.objects.filter(
             status=ObjectStatus.ACTIVE,
-            project__status=ObjectStatus.ACTIVE,
-            project__organization=organization,
-            project__projectoption__key=f"{plugin}:enabled",
-            project__projectoption__value=True,
-            # rulefirehistory__date__gte=timezone.now() - timedelta(days=30),
+            organization=organization,
+            projectoption__key=f"{plugin}:enabled",
+            projectoption__value=True,
         ).distinct()
 
-        matching_rule_ids = []
+        url_prefix = generate_organization_url(organization.slug)
+        affected_rules_urls = self.get_plugin_rules_urls(
+            plugin_projects, f"{url_prefix}/organizations/{organization.slug}/", plugin
+        )
+        affected_issue_urls = self.get_plugin_groups_utls(plugin_projects, plugin, url_prefix)
+
+        return Response(
+            {"affected_rules": affected_rules_urls, "affected_groups": affected_issue_urls}
+        )
+
+    def get_plugin_rules_urls(
+        self, plugin_projects: list[Project], url_prefix: str, plugin: str
+    ) -> list[str]:
+        candidate_rules = Rule.objects.filter(
+            status=ObjectStatus.ACTIVE,
+            project__in=plugin_projects,
+        ).distinct()
+
+        matching_rule_urls = []
+
         for rule in candidate_rules:
             actions = rule.data.get("actions", [])
             for action in actions:
@@ -42,7 +62,26 @@ class OrganizationPluginDeprecationInfoEndpoint(OrganizationEndpoint):
                     == "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
                     and action.get("service") == plugin
                 ):
-                    matching_rule_ids.append(rule.id)
+                    matching_rule_urls.append(
+                        f"{url_prefix}/alerts/rules/{rule.project.slug}/{rule.id}/details/"
+                    )
                     break
+        return matching_rule_urls
 
-        return Response({"affected_rules": matching_rule_ids})
+    def get_plugin_groups_urls(
+        self, plugin_projects: list[Project], plugin: str, url_prefix: str
+    ) -> list[dict]:
+        groups_with_plugin_meta = (
+            Group.objects.filter(
+                project__in=plugin_projects,
+                groupmeta__key__contains=f"{plugin}:tid",
+            )
+            .distinct()
+            .select_related("project")
+        )
+
+        affected_groups_urls = []
+        for group in groups_with_plugin_meta:
+            affected_groups_urls.append(f"{url_prefix}/issues/{group.id}/")
+
+        return affected_groups_urls
