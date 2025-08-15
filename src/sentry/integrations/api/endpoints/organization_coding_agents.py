@@ -121,7 +121,7 @@ def make_coding_agent_prompt(
     # Find root cause analysis step
     root_cause_step = None
     for step in steps:
-        if step.get("type") == "root_cause_analysis":
+        if step.get("key") == "root_cause_analysis":
             root_cause_step = step
             break
 
@@ -154,7 +154,7 @@ def make_coding_agent_prompt(
     # Find solution step
     solution_step = None
     for step in steps:
-        if step.get("type") == "solution":
+        if step.get("key") == "solution":
             solution_step = step
             break
 
