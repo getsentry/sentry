@@ -7,7 +7,6 @@ from django.urls import reverse
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import region_silo_test
 from tests.sentry.feedback import mock_feedback_event
 
@@ -59,7 +58,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
             raw_data='{"data": "Test summary of feedback"}',
         )
 
-    @django_db_all
     def test_get_feedback_summary_without_feature_flag(self) -> None:
         response = self.get_error_response(self.org.slug)
         assert response.status_code == 403
@@ -70,7 +68,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
             response = self.get_error_response(self.org.slug)
             assert response.status_code == 403
 
-    @django_db_all
     @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
     def test_get_feedback_summary_basic(self, mock_make_seer_api_request: MagicMock) -> None:
         mock_make_seer_api_request.return_value = self._make_valid_seer_response()
@@ -88,7 +85,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 15
 
-    @django_db_all
     @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
     def test_get_feedback_summary_with_date_filter(
         self, mock_make_seer_api_request: MagicMock
@@ -120,7 +116,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 12
 
-    @django_db_all
     @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
     def test_get_feedback_summary_with_project_filter(
         self, mock_make_seer_api_request: MagicMock
@@ -179,7 +174,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 22
 
-    @django_db_all
     @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
     def test_get_feedback_summary_with_many_project_filter_separate(
         self, mock_make_seer_api_request: MagicMock
@@ -208,7 +202,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 22
 
-    @django_db_all
     @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
     def test_get_feedback_summary_too_few_feedbacks(
         self, mock_make_seer_api_request: MagicMock
@@ -226,7 +219,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
 
         assert response.data["success"] is False
 
-    @django_db_all
     @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
     @patch(
         "sentry.feedback.endpoints.organization_feedback_summary.MAX_FEEDBACKS_TO_SUMMARIZE_CHARS",
@@ -259,7 +251,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.data["summary"] == "Test summary of feedback"
         assert response.data["numFeedbacksUsed"] == 12
 
-    @django_db_all
     @patch("sentry.feedback.endpoints.organization_feedback_summary.cache")
     def test_get_feedback_summary_cache_hit(self, mock_cache: MagicMock) -> None:
         mock_cache.get.return_value = {
@@ -283,7 +274,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         mock_cache.get.assert_called_once()
         mock_cache.set.assert_not_called()
 
-    @django_db_all
     @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
     @patch("sentry.feedback.endpoints.organization_feedback_summary.cache")
     def test_get_feedback_summary_cache_miss(
@@ -308,7 +298,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         mock_cache.get.assert_called_once()
         mock_cache.set.assert_called_once()
 
-    @django_db_all
     @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
     def test_seer_timeout(self, mock_make_seer_api_request: MagicMock) -> None:
         mock_make_seer_api_request.side_effect = requests.exceptions.Timeout("Request timed out")
@@ -325,7 +314,6 @@ class OrganizationFeedbackSummaryTest(APITestCase):
         assert response.status_code == 500
         assert response.data["detail"] == "Failed to generate a summary for a list of feedbacks"
 
-    @django_db_all
     @patch("sentry.feedback.endpoints.organization_feedback_summary.make_signed_seer_api_request")
     def test_seer_http_errors(self, mock_make_seer_api_request: MagicMock) -> None:
         for status in [400, 401, 403, 404, 429, 500, 502, 503, 504]:
