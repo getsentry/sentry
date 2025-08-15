@@ -157,7 +157,9 @@ class GitlabIntegration(RepositoryIntegration, GitlabIssuesSpec, CommitContextIn
         # TODO: define this, used to migrate repositories
         return False
 
-    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, page_number_limit: int | None = None
+    ) -> list[dict[str, Any]]:
         # Note: gitlab projects are the same things as repos everywhere else
         group = self.get_group_id()
         resp = self.get_client().search_projects(group, query)

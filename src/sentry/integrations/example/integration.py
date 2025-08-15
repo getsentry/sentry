@@ -146,7 +146,9 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
             "description": "This is a test external issue description",
         }
 
-    def get_repositories(self, query: str | None = None) -> list[dict[str, Any]]:
+    def get_repositories(
+        self, query: str | None = None, page_number_limit: int | None = None
+    ) -> list[dict[str, Any]]:
         return [{"name": "repo", "identifier": "user/repo"}]
 
     def get_unmigratable_repositories(self):

@@ -29,10 +29,15 @@ class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegratio
         )
 
     def _get_repository_choices(
-        self, *, group: Group | None, params: Mapping[str, Any], lifecycle: EventLifecycle
+        self,
+        *,
+        group: Group | None,
+        params: Mapping[str, Any],
+        lifecycle: EventLifecycle,
+        page_number_limit: int | None = None,
     ):
         try:
-            repos = self.get_repositories()
+            repos = self.get_repositories(page_number_limit=page_number_limit)
         except ApiError as exc:
             if any(pattern in str(exc) for pattern in SOURCE_CODE_ISSUE_HALT_PATTERNS):
                 lifecycle.record_halt(exc)
@@ -60,7 +65,9 @@ class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegratio
 
         return default_repo, repo_choices
 
-    def get_repository_choices(self, group: Group | None, params: Mapping[str, Any]):
+    def get_repository_choices(
+        self, group: Group | None, params: Mapping[str, Any], page_number_limit: int | None = None
+    ):
         """
         Returns the default repository and a set/subset of repositories of associated with the installation
         """
@@ -69,7 +76,12 @@ class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegratio
             SCMIntegrationInteractionType.GET_REPOSITORY_CHOICES
         ).capture() as lifecycle:
             try:
-                return self._get_repository_choices(group=group, params=params, lifecycle=lifecycle)
+                return self._get_repository_choices(
+                    group=group,
+                    params=params,
+                    lifecycle=lifecycle,
+                    page_number_limit=page_number_limit,
+                )
             except IntegrationError as exc:
                 user_facing_error = exc
         # Now that we're outside the lifecycle, we can raise the user facing error
