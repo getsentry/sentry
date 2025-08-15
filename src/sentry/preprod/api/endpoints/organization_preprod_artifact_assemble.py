@@ -19,6 +19,30 @@ from sentry.tasks.assemble import ChunkFileState
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
+def get_preprod_artifact_rate_limits(
+    request, organization_id_or_slug: str | None = None, *args, **kwargs
+) -> dict[str, dict[RateLimitCategory, RateLimit]]:
+    """Skip rate limiting when the preprod-artifact-assemble feature flag is enabled."""
+    try:
+        organization = kwargs.get("organization") or getattr(
+            kwargs.get("project"), "organization", None
+        )
+        limit = (
+            999999
+            if (
+                organization
+                and features.has(
+                    "organizations:preprod-artifact-assemble", organization, actor=request.user
+                )
+            )
+            else 100
+        )
+    except Exception:
+        limit = 100
+
+    return {"POST": {RateLimitCategory.ORGANIZATION: RateLimit(limit=limit, window=60)}}
+
+
 def validate_preprod_artifact_schema(request_body: bytes) -> tuple[dict, str | None]:
     """
     Validate the JSON schema for preprod artifact assembly requests.
@@ -88,13 +112,7 @@ class ProjectPreprodArtifactAssembleEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
     enforce_rate_limit = True
-    rate_limits = {
-        "POST": {
-            RateLimitCategory.ORGANIZATION: RateLimit(
-                limit=100, window=60
-            ),  # 100 requests per minute per org
-        }
-    }
+    rate_limits = get_preprod_artifact_rate_limits
 
     def post(self, request: Request, project) -> Response:
         """
