@@ -68,14 +68,16 @@ export default function BreadcrumbItem({
   });
 
   const prevExtractState = useRef(isPending);
+  const prevShowSnippet = useRef(showSnippet);
 
   useEffect(() => {
     if (!updateDimensions) {
       return;
     }
 
-    if (isPending !== prevExtractState.current || showSnippet) {
+    if (isPending !== prevExtractState.current || showSnippet !== prevShowSnippet.current) {
       prevExtractState.current = isPending;
+      prevShowSnippet.current = showSnippet;
       updateDimensions();
     }
   }, [isPending, updateDimensions, showSnippet]);
