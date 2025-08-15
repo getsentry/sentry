@@ -580,14 +580,14 @@ def make_valid_processed_event() -> ProcessedEvent:
 
 
 @pytest.mark.parametrize(
-    "profiling_enabled,mock_dsn",
+    "mock_dsn,sample_rate",
     [
-        (True, "http://test@localhost:8000/1"),  # Profiling enabled, DSN available
-        (True, None),  # Profiling enabled, no DSN
-        (False, None),  # Profiling disabled
+        ("http://test@localhost:8000/1", 1.0),  # Profiling active: DSN and sample rate > 0
+        ("http://test@localhost:8000/1", 0),  # Profiling inactive: DSN but sample rate = 0
+        (None, 1.0),  # Profiling inactive: no DSN
+        (None, 0),  # Profiling inactive: no DSN and sample rate = 0
     ],
 )
-@patch("sentry.replays.consumers.recording.options.get")
 @patch("sentry_sdk.profiler.start_profiler")
 @patch("sentry_sdk.profiler.stop_profiler")
 @patch("sentry_sdk.init")
@@ -597,11 +597,9 @@ def test_process_message_with_profiling(
     mock_sdk_init,
     mock_stop_profiler,
     mock_start_profiler,
-    mock_options_get,
-    profiling_enabled,
     mock_dsn,
+    sample_rate,
 ):
-    mock_options_get.return_value = profiling_enabled
     mock_process_message.return_value = FilteredPayload()
 
     message = make_valid_message()
@@ -609,7 +607,7 @@ def test_process_message_with_profiling(
     settings_overrides = {
         "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN": mock_dsn,
         "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE": 0,
-        "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE": 0,
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE": sample_rate,
     }
 
     with override_settings(**settings_overrides):
@@ -618,7 +616,8 @@ def test_process_message_with_profiling(
     assert result == FilteredPayload()
     mock_process_message.assert_called_once_with(message)
 
-    if profiling_enabled and mock_dsn is not None:
+    profiling_active = mock_dsn is not None and sample_rate > 0
+    if profiling_active:
         mock_sdk_init.assert_called_once()
         mock_start_profiler.assert_called_once()
         mock_stop_profiler.assert_called_once()
@@ -629,14 +628,14 @@ def test_process_message_with_profiling(
 
 
 @pytest.mark.parametrize(
-    "profiling_enabled,mock_dsn",
+    "mock_dsn,sample_rate",
     [
-        (True, "http://test@localhost:8000/1"),  # Profiling enabled, DSN available
-        (True, None),  # Profiling enabled, no DSN
-        (False, None),  # Profiling disabled
+        ("http://test@localhost:8000/1", 1.0),  # Profiling active: DSN and sample rate > 0
+        ("http://test@localhost:8000/1", 0),  # Profiling inactive: sample rate = 0
+        (None, 1.0),  # Profiling inactive: no DSN
+        (None, 0),  # Profiling inactive: no DSN and sample rate = 0
     ],
 )
-@patch("sentry.replays.consumers.recording.options.get")
 @patch("sentry_sdk.profiler.start_profiler")
 @patch("sentry_sdk.profiler.stop_profiler")
 @patch("sentry_sdk.init")
@@ -646,19 +645,16 @@ def test_commit_message_with_profiling(
     mock_sdk_init,
     mock_stop_profiler,
     mock_start_profiler,
-    mock_options_get,
-    profiling_enabled,
     mock_dsn,
+    sample_rate,
 ):
-    mock_options_get.return_value = profiling_enabled
-
     processed_event = make_valid_processed_event()
     message = make_processed_event_message(processed_event)
 
     settings_overrides = {
         "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN": mock_dsn,
         "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE": 0,
-        "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE": 0,
+        "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE": sample_rate,
     }
 
     with override_settings(**settings_overrides):
@@ -666,7 +662,8 @@ def test_commit_message_with_profiling(
 
     mock_commit_message.assert_called_once_with(message)
 
-    if profiling_enabled and mock_dsn is not None:
+    profiling_active = mock_dsn is not None and sample_rate > 0
+    if profiling_active:
         mock_sdk_init.assert_called_once()
         mock_start_profiler.assert_called_once()
         mock_stop_profiler.assert_called_once()

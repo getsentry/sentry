@@ -15,7 +15,6 @@ from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk import set_tag
 
-from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.replays.usecases.ingest import (
     DropEvent,
@@ -82,30 +81,29 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 def process_message_with_profiling(
     message: Message[KafkaPayload],
 ) -> ProcessedEvent | FilteredPayload:
-    profiling_enabled = options.get(
-        "replay.consumer.recording.profiling.enabled",
+    # Only initialize profiling if we have a DSN and sample rate > 0
+    profiling_dsn = getattr(
+        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN", None
     )
+    profile_session_sample_rate = getattr(
+        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE", 0
+    )
+    profiling_active = profiling_dsn is not None and profile_session_sample_rate > 0
 
-    if profiling_enabled:
-        profiling_dsn = getattr(
-            settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN", None
+    if profiling_active:
+        sentry_sdk.init(
+            dsn=profiling_dsn,
+            traces_sample_rate=getattr(
+                settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE", 0
+            ),
+            profile_session_sample_rate=profile_session_sample_rate,
+            profile_lifecycle="manual",
         )
-        if profiling_dsn is not None:
-            sentry_sdk.init(
-                dsn=profiling_dsn,
-                traces_sample_rate=getattr(
-                    settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE", 0
-                ),
-                profile_session_sample_rate=getattr(
-                    settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE", 0
-                ),
-                profile_lifecycle="manual",
-            )
-            sentry_sdk.profiler.start_profiler()
+        sentry_sdk.profiler.start_profiler()
 
     result = process_message(message)
 
-    if profiling_enabled and profiling_dsn is not None:
+    if profiling_active:
         sentry_sdk.profiler.stop_profiler()
 
     return result
@@ -204,30 +202,29 @@ def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
 
 
 def commit_message_with_profiling(message: Message[ProcessedEvent]) -> None:
-    profiling_enabled = options.get(
-        "replay.consumer.recording.profiling.enabled",
+    # Only initialize profiling if we have a DSN and sample rate > 0
+    profiling_dsn = getattr(
+        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN", None
     )
+    profile_session_sample_rate = getattr(
+        settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE", 0
+    )
+    profiling_active = profiling_dsn is not None and profile_session_sample_rate > 0
 
-    if profiling_enabled:
-        profiling_dsn = getattr(
-            settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_PROJECT_DSN", None
+    if profiling_active:
+        sentry_sdk.init(
+            dsn=profiling_dsn,
+            traces_sample_rate=getattr(
+                settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE", 0
+            ),
+            profile_session_sample_rate=profile_session_sample_rate,
+            profile_lifecycle="manual",
         )
-        if profiling_dsn is not None:
-            sentry_sdk.init(
-                dsn=profiling_dsn,
-                traces_sample_rate=getattr(
-                    settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_TRACES_SAMPLE_RATE", 0
-                ),
-                profile_session_sample_rate=getattr(
-                    settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_PROFILING_SAMPLE_RATE", 0
-                ),
-                profile_lifecycle="manual",
-            )
-            sentry_sdk.profiler.start_profiler()
+        sentry_sdk.profiler.start_profiler()
 
     commit_message(message)
 
-    if profiling_enabled and profiling_dsn is not None:
+    if profiling_active:
         sentry_sdk.profiler.stop_profiler()
 
 
