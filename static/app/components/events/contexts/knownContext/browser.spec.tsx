@@ -34,8 +34,8 @@ const MOCK_REDACTION = {
   },
 };
 
-describe('BrowserContext', function () {
-  it('returns values and according to the parameters', function () {
+describe('BrowserContext', () => {
+  it('returns values and according to the parameters', () => {
     expect(getBrowserContextData({data: MOCK_BROWSER_CONTEXT})).toEqual([
       {key: 'version', subject: 'Version', value: '83.0.4103'},
       {key: 'name', subject: 'Name', value: ''},
@@ -52,7 +52,7 @@ describe('BrowserContext', function () {
     ]);
   });
 
-  it('renders with meta annotations correctly', function () {
+  it('renders with meta annotations correctly', () => {
     const event = EventFixture({
       _meta: {contexts: {browser: MOCK_REDACTION}},
     });

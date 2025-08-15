@@ -15,7 +15,7 @@ const SERIES_NAME_DELIMITER = '|~|';
 describe('WidgetLegend functions util', () => {
   let legendFunctions: WidgetLegendSelectionState;
 
-  describe('legendChanges', function () {
+  describe('legendChanges', () => {
     let widget: Widget;
     let location: Location;
     let organization: Organization;
@@ -104,7 +104,7 @@ describe('WidgetLegend functions util', () => {
     });
   });
 
-  describe('legend naming', function () {
+  describe('legend naming', () => {
     let widget: Widget;
     beforeEach(() => {
       widget = {
