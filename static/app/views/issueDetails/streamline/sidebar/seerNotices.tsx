@@ -14,7 +14,10 @@ import {ExternalLink} from 'sentry/components/core/link';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import StarFixabilityViewButton from 'sentry/components/events/autofix/seerCreateViewButton';
 import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofix';
-import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
+import {
+  GuidedSteps,
+  useGuidedStepsContext,
+} from 'sentry/components/guidedSteps/guidedSteps';
 import {IconChevron, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -33,6 +36,24 @@ interface SeerNoticesProps {
   hasGithubIntegration?: boolean;
 }
 
+function CustomSkipButton({...props}: Partial<React.ComponentProps<typeof Button>>) {
+  const {currentStep, setCurrentStep, totalSteps} = useGuidedStepsContext();
+
+  if (currentStep >= totalSteps) {
+    return null;
+  }
+
+  const handleSkip = () => {
+    setCurrentStep(currentStep + 1);
+  };
+
+  return (
+    <Button size="sm" onClick={handleSkip} {...props}>
+      {t('Skip')}
+    </Button>
+  );
+}
+
 function CustomStepButtons({
   showBack,
   showNext,
@@ -49,7 +70,7 @@ function CustomStepButtons({
   return (
     <GuidedSteps.ButtonWrapper>
       {showBack && <GuidedSteps.BackButton />}
-      {showNext && <GuidedSteps.NextButton />}
+      {showNext && <CustomSkipButton />}
       {showSkip && (
         <Button onClick={onSkip} size="sm">
           {t('Skip for Now')}

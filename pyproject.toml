@@ -76,13 +76,13 @@ dependencies = [
     "rfc3339-validator>=0.1.2",
     "rfc3986-validator>=0.1.1",
     # [end] jsonschema format validators
-    "sentry-arroyo>=2.28.3",
+    "sentry-arroyo>=2.29.0",
     "sentry-forked-email-reply-parser>=0.5.12.post1",
-    "sentry-kafka-schemas>=1.3.18",
+    "sentry-kafka-schemas>=2.1.0",
     "sentry-ophio>=1.1.3",
-    "sentry-protos>=0.3.1",
+    "sentry-protos>=0.3.4",
     "sentry-redis-tools>=0.5.0",
-    "sentry-relay>=0.9.11",
+    "sentry-relay>=0.9.12",
     "sentry-sdk[http2]>=2.29.1",
     "sentry-usage-accountant>=0.0.10",
     # remove once there are no unmarked transitive dependencies on setuptools
@@ -170,7 +170,7 @@ dev = [
     "sentry-covdefaults-disable-branch-coverage>=1.0.2",
     "sentry-devenv>=1.22.0",
     "sentry-forked-django-stubs>=5.2.2.post1",
-    "sentry-forked-djangorestframework-stubs>=3.16.1.post1",
+    "sentry-forked-djangorestframework-stubs>=3.16.2.post1",
     "time-machine>=2.16.0",
     "types-beautifulsoup4>=4.11.6",
     "types-cachetools>=5.3.0.5",
@@ -212,26 +212,26 @@ addopts = "--tb=short -p no:celery --nomigrations"
 # TODO: --import-mode=importlib will become the default soon,
 # currently we have a few relative imports that don't work with that.
 markers = [
-  "snuba: test requires access to snuba",
-  "snuba_ci: test is run in snuba ci",
-  "sentry_metrics: test requires access to sentry metrics",
-  "symbolicator: test requires access to symbolicator",
-  "querybuilder: smoke tests for QueryBuilders",
-  "thread_leak_allowlist: temporarily allow known-issue thread leaks",
+    "snuba: test requires access to snuba",
+    "snuba_ci: test is run in snuba ci",
+    "sentry_metrics: test requires access to sentry metrics",
+    "symbolicator: test requires access to symbolicator",
+    "querybuilder: smoke tests for QueryBuilders",
+    "thread_leak_allowlist: temporarily allow known-issue thread leaks",
 ]
 filterwarnings = [
-  # Consider all warnings to be errors other than the ignored ones.
-  "error",
+    # Consider all warnings to be errors other than the ignored ones.
+    "error",
 
-  # TODO: we should fix these, but for now there's a lot
-  "ignore:datetime.datetime.utcfromtimestamp\\(\\) is deprecated.*",
-  "ignore:datetime.datetime.utcnow\\(\\) is deprecated.*",
+    # TODO: we should fix these, but for now there's a lot
+    "ignore:datetime.datetime.utcfromtimestamp\\(\\) is deprecated.*",
+    "ignore:datetime.datetime.utcnow\\(\\) is deprecated.*",
 
-  # The following warning filters are for pytest only.
-  "ignore:.*sentry.digests.backends.dummy.DummyBackend.*:sentry.utils.warnings.UnsupportedBackend",
+    # The following warning filters are for pytest only.
+    "ignore:.*sentry.digests.backends.dummy.DummyBackend.*:sentry.utils.warnings.UnsupportedBackend",
 
-  # pytest has not yet implemented the replacement for this yet
-  "ignore:The --looponfail command line argument.*",
+    # pytest has not yet implemented the replacement for this yet
+    "ignore:The --looponfail command line argument.*",
 ]
 looponfailroots = ["src", "tests"]
 
@@ -239,9 +239,9 @@ looponfailroots = ["src", "tests"]
 python_version = "3.13"
 mypy_path = ["fixtures/stubs-for-mypy"]
 plugins = [
-  "pydantic.mypy",
-  "mypy_django_plugin.main",
-  "tools.mypy_helpers.plugin",
+    "pydantic.mypy",
+    "mypy_django_plugin.main",
+    "tools.mypy_helpers.plugin",
 ]
 files = ["."]
 exclude = ["^.venv/", "^venv/", "^self-hosted/"]
@@ -254,7 +254,7 @@ warn_unused_configs = true
 warn_unused_ignores = true
 warn_redundant_casts = true
 enable_error_code = ["ignore-without-code", "redundant-self"]
-local_partial_types = true  # compat with dmypy
+local_partial_types = true                                    # compat with dmypy
 
 [tool.django-stubs]
 django_settings_module = "sentry.conf.server_mypy"
@@ -262,8 +262,8 @@ django_settings_module = "sentry.conf.server_mypy"
 # these have py.typed but incorrect types
 [[tool.mypy.overrides]]
 module = [
-  # TODO: these cause type errors when followed
-  "snuba_sdk.*",
+    # TODO: these cause type errors when followed
+    "snuba_sdk.*",
 ]
 follow_imports = "skip"
 
@@ -307,7 +307,6 @@ module = [
     "sentry.api.endpoints.organization_releases",
     "sentry.api.paginator",
     "sentry.db.postgres.base",
-    "sentry.eventstore.models",
     "sentry.integrations.pagerduty.actions.form",
     "sentry.integrations.slack.message_builder.notifications.issues",
     "sentry.integrations.slack.webhooks.event",
@@ -324,6 +323,7 @@ module = [
     "sentry.search.events.datasets.metrics_layer",
     "sentry.search.events.filter",
     "sentry.search.snuba.executors",
+    "sentry.services.eventstore.models",
     "sentry.snuba.metrics.query_builder",
     "sentry.testutils.cases",
     "sentry.web.frontend.auth_login",
@@ -392,10 +392,6 @@ module = [
     "sentry.dynamic_sampling.rules.combinators.*",
     "sentry.dynamic_sampling.rules.helpers.*",
     "sentry.dynamic_sampling.tasks.helpers.*",
-    "sentry.eventstore.base",
-    "sentry.eventstore.processing.*",
-    "sentry.eventstore.reprocessing.*",
-    "sentry.eventstore.snuba.backend",
     "sentry.eventstream.*",
     "sentry.eventtypes.error",
     "sentry.feedback.migrations.*",
@@ -520,7 +516,6 @@ module = [
     "sentry.monitors.consumers.monitor_consumer",
     "sentry.monkey.*",
     "sentry.net.socket",
-    "sentry.nodestore.*",
     "sentry.notifications.platform.*",
     "sentry.notifications.services.*",
     "sentry.options.rollout",
@@ -559,8 +554,12 @@ module = [
     "sentry.sentry_apps.web.*",
     "sentry.sentry_metrics.consumers.indexer.*",
     "sentry.sentry_metrics.indexer.limiters.*",
+    "sentry.services.eventstore.base",
+    "sentry.services.eventstore.processing.*",
+    "sentry.services.eventstore.reprocessing.*",
+    "sentry.services.eventstore.snuba.backend",
+    "sentry.services.nodestore.*",
     "sentry.shared_integrations.exceptions.*",
-    "sentry.slug.*",
     "sentry.snuba.metrics.extraction",
     "sentry.snuba.metrics.naming_layer.*",
     "sentry.snuba.query_subscriptions.*",
@@ -596,9 +595,11 @@ module = [
     "sentry.utils.celery",
     "sentry.utils.codeowners",
     "sentry.utils.colors",
+    "sentry.utils.committers",
     "sentry.utils.email.*",
     "sentry.utils.env",
     "sentry.utils.event",
+    "sentry.utils.event_frames",
     "sentry.utils.event_tracker",
     "sentry.utils.forms",
     "sentry.utils.function_cache",
@@ -630,6 +631,7 @@ module = [
     "sentry.utils.sentry_apps.*",
     "sentry.utils.services",
     "sentry.utils.signing",
+    "sentry.utils.slug",
     "sentry.utils.sms",
     "sentry.utils.snowflake",
     "sentry.utils.snuba_rpc",
@@ -642,7 +644,6 @@ module = [
     "sentry.web.frontend.cli",
     "sentry.web.frontend.csv",
     "sentry.web.frontend.mixins.*",
-    "sentry.workflow_engine.handlers.action.*",
     "sentry.workflow_engine.handlers.condition.*",
     "sentry.workflow_engine.migrations.*",
     "sentry.workflow_engine.processors.*",
@@ -678,8 +679,6 @@ module = [
     "tests.sentry.dynamic_sampling.rules.biases.snapshots.*",
     "tests.sentry.event_manager.interfaces.snapshots.*",
     "tests.sentry.event_manager.test_event_manager",
-    "tests.sentry.eventstore.processing.*",
-    "tests.sentry.eventstore.snuba.*",
     "tests.sentry.eventstream.kafka.*",
     "tests.sentry.eventtypes.*",
     "tests.sentry.flags.providers.*",
@@ -728,7 +727,6 @@ module = [
     "tests.sentry.middleware.test_reporting_endpoint",
     "tests.sentry.models.fixtures.*",
     "tests.sentry.net.*",
-    "tests.sentry.nodestore.*",
     "tests.sentry.notifications.notification_action.metric_alert_registry.*",
     "tests.sentry.notifications.notifications.organization_request.*",
     "tests.sentry.notifications.platform.*",
@@ -769,6 +767,9 @@ module = [
     "tests.sentry.sentry_apps.token_exchange.*",
     "tests.sentry.sentry_apps.utils.*",
     "tests.sentry.sentry_apps.web.*",
+    "tests.sentry.services.eventstore.processing.*",
+    "tests.sentry.services.eventstore.snuba.*",
+    "tests.sentry.services.nodestore.*",
     "tests.sentry.snuba.metrics.test_metrics_query_layer.*",
     "tests.sentry.tasks.integrations.*",
     "tests.sentry.tasks.snapshots.*",

@@ -168,6 +168,8 @@ def fetch_commits(release_id: int, user_id: int, refs, prev_release_id=None, **k
         with SCMIntegrationInteractionEvent(
             SCMIntegrationInteractionType.COMPARE_COMMITS,
             provider_key=provider_key,
+            organization_id=repo.organization_id,
+            integration_id=repo.integration_id,
         ).capture() as lifecycle:
             lifecycle.add_extras(
                 {

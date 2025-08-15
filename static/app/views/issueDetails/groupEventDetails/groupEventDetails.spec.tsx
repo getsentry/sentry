@@ -344,11 +344,11 @@ describe('groupEventDetails', () => {
     MockApiClient.clearMockResponses();
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('redirects on switching to an invalid environment selection for event', async function () {
+  it('redirects on switching to an invalid environment selection for event', async () => {
     const props = makeDefaultMockData();
     props.router.params.eventId = props.event.id;
     mockGroupApis(props.organization, props.project, props.group, props.event);
@@ -372,7 +372,7 @@ describe('groupEventDetails', () => {
     await waitFor(() => expect(props.router.replace).toHaveBeenCalled());
   });
 
-  it('does not redirect when switching to a valid environment selection for event', async function () {
+  it('does not redirect when switching to a valid environment selection for event', async () => {
     const props = makeDefaultMockData();
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
@@ -391,7 +391,7 @@ describe('groupEventDetails', () => {
     expect(props.router.replace).not.toHaveBeenCalled();
   });
 
-  it('displays error on event error', async function () {
+  it('displays error on event error', async () => {
     const props = makeDefaultMockData();
 
     mockGroupApis(
@@ -423,7 +423,7 @@ describe('groupEventDetails', () => {
     expect(await screen.findByText(/couldn't track down an event/)).toBeInTheDocument();
   });
 
-  it('renders the Span Evidence section for Performance Issues', async function () {
+  it('renders the Span Evidence section for Performance Issues', async () => {
     const props = makeDefaultMockData();
     const group: Group = GroupFixture({
       issueCategory: IssueCategory.PERFORMANCE,
@@ -449,7 +449,7 @@ describe('groupEventDetails', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the Function Evidence section for Profile Issues', async function () {
+  it('renders the Function Evidence section for Profile Issues', async () => {
     const props = makeDefaultMockData();
     const group: Group = GroupFixture({
       issueCategory: IssueCategory.PERFORMANCE,
