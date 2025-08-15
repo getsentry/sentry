@@ -13,7 +13,7 @@ class EventStorageTest(TestCase):
         self.eventstorage = EventStorage()
 
     def test_minimal_columns(self) -> None:
-        assert len(self.eventstorage.minimal_columns[Dataset.Events]) == 4
+        assert len(self.eventstorage.minimal_columns[Dataset.Events]) == 5
         assert len(self.eventstorage.minimal_columns[Dataset.Transactions]) == 4
 
     def test_bind_nodes(self) -> None:
