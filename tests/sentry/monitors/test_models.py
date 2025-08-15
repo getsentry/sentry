@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from unittest import mock
 
@@ -254,26 +255,33 @@ class MonitorEnvironmentTestCase(TestCase):
         }
 
     def test_config_validator(self) -> None:
+        config = {
+            "checkin_margin": None,
+            "max_runtime": None,
+            "schedule": [1, "month"],
+            "schedule_type": ScheduleType.INTERVAL,
+            "alert_rule_id": 1,
+        }
         monitor = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
             name="Unicron",
             slug="unicron",
-            config={
-                "checkin_margin": None,
-                "max_runtime": None,
-                "schedule": [1, "month"],
-                "schedule_type": ScheduleType.INTERVAL,
-                "alert_rule_id": 1,
-            },
+            config=config,
         )
         validated_config = monitor.get_validated_config()
-        assert validated_config is not None
+        assert validated_config == config
 
-        # Check to make sure bad config fails validation
         validated_config["bad_key"] = 100
         monitor.config = validated_config
-        assert monitor.get_validated_config() is None
+
+        with self.assertLogs(logger="root", level=logging.WARNING) as cm:
+            bad_config = monitor.get_validated_config()
+            assert bad_config == validated_config
+            assert bad_config["bad_key"] == 100
+
+        assert len(cm.records) == 1
+        assert "invalid config" in cm.records[0].message
 
 
 class CronMonitorDataSourceHandlerTest(TestCase):
