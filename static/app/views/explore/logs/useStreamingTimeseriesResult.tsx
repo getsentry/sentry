@@ -83,10 +83,7 @@ export function useStreamingTimeseriesResult(
   const organization = useOrganization();
   const groupBys = useQueryParamsGroupBys();
   const visualizes = useQueryParamsVisualizes();
-  if (!visualizes[0] || visualizes.length !== 1) {
-    throw new Error('single visualize only');
-  }
-  const aggregate = visualizes[0].yAxis;
+  const aggregate = visualizes[0]?.yAxis;
 
   const autoRefresh = useLogsAutoRefreshEnabled();
   const {selection} = usePageFilters();
@@ -202,7 +199,7 @@ function createBufferFromTableData(
   groupBuffers: Record<string, BufferedTimeseriesGroup>,
   lastProcessedBucketRef: RefObject<number | null>,
   autoRefresh: boolean,
-  aggregateKey: string,
+  aggregateKey?: string,
   originalTimeseries?: TimeSeries[]
 ) {
   if (
@@ -212,7 +209,8 @@ function createBufferFromTableData(
     !timeseriesIntervalDuration ||
     !defined(timeseriesLastBucketIndex) ||
     !timeseriesValues ||
-    !autoRefresh
+    !autoRefresh ||
+    !aggregateKey
   ) {
     return groupBuffers;
   }
@@ -337,120 +335,122 @@ function createMergedDataFromBuffer(
   }
 
   const mergedData: typeof timeseriesResult.data = {};
-  const aggregateKey = Object.keys(timeseriesResult.data)[0];
 
-  if (!aggregateKey) {
-    return timeseriesResult.data;
-  }
+  for (const [aggregateKey, originalGroupedTimeSeries] of Object.entries(
+    timeseriesResult.data
+  )) {
+    mergedData[aggregateKey] = [];
+    const targetLength = originalGroupedTimeSeries?.[0]?.values.length;
 
-  mergedData[aggregateKey] = [];
-  const originalGroupedTimeSeries = timeseriesResult.data[aggregateKey];
-  const targetLength = originalGroupedTimeSeries?.[0]?.values.length;
-
-  if (!Array.isArray(originalGroupedTimeSeries) || !targetLength) {
-    return timeseriesResult.data;
-  }
-
-  const hasBufferData =
-    Object.keys(groupBuffers).length > 0 &&
-    Object.keys(groupBuffers).some(
-      groupValue => (groupBuffers[groupValue]?.values?.length ?? 0) > 0
-    );
-  let maxBucketIndex = timeseriesLastBucketIndex;
-  let minBucketIndex = timeseriesLastBucketIndex;
-
-  if (hasBufferData) {
-    // Always consider the original timeseries last bucket to include 0-count buckets
-    maxBucketIndex = Math.max(
-      timeseriesLastBucketIndex,
-      ...Object.values(groupBuffers).flatMap(buffer =>
-        buffer.values.map(entry => entry.bucketIndex)
-      )
-    );
-    minBucketIndex = Math.min(
-      ...Object.values(groupBuffers).flatMap(buffer =>
-        buffer.values.map(entry => entry.bucketIndex)
-      )
-    );
-  }
-
-  const allGroupValues = new Set([
-    ...originalGroupedTimeSeries.map(series => series.yAxis),
-    ...Object.keys(groupBuffers),
-  ]);
-
-  Array.from(allGroupValues).forEach(groupValue => {
-    const originalSeries = originalGroupedTimeSeries.find(
-      series => series.yAxis === groupValue
-    );
-    const groupBuffer = groupBuffers[groupValue];
-
-    if (!hasBufferData && originalSeries) {
-      if (mergedData[aggregateKey]) {
-        mergedData[aggregateKey].push({...originalSeries});
-      }
-      return;
+    if (!Array.isArray(originalGroupedTimeSeries) || !targetLength) {
+      return timeseriesResult.data;
     }
 
-    const mergedValues: TimeSeriesItem[] = [];
+    const hasBufferData =
+      Object.keys(groupBuffers).length > 0 &&
+      Object.keys(groupBuffers).some(
+        groupValue => (groupBuffers[groupValue]?.values?.length ?? 0) > 0
+      );
+    let maxBucketIndex = timeseriesLastBucketIndex;
+    let minBucketIndex = timeseriesLastBucketIndex;
 
-    for (
-      let i = maxBucketIndex;
-      i >= minBucketIndex && mergedValues.length < targetLength;
-      i--
-    ) {
-      const entry = groupBuffer?.values.find(e => e.bucketIndex === i);
-      const originalValue = originalSeries?.values[i];
+    if (hasBufferData) {
+      // Always consider the original timeseries last bucket to include 0-count buckets
+      maxBucketIndex = Math.max(
+        timeseriesLastBucketIndex,
+        ...Object.values(groupBuffers).flatMap(buffer =>
+          buffer.values.map(entry => entry.bucketIndex)
+        )
+      );
+      minBucketIndex = Math.min(
+        ...Object.values(groupBuffers).flatMap(buffer =>
+          buffer.values.map(entry => entry.bucketIndex)
+        )
+      );
+    }
 
-      const mergedValue: TimeSeriesItem = {
-        timestamp: timeseriesStartTimestamp + i * timeseriesIntervalDuration,
-        value: 0,
-      };
+    const allGroupValues = new Set([
+      ...originalGroupedTimeSeries.map(series => series.yAxis),
+      ...Object.keys(groupBuffers),
+    ]);
 
-      if (!entry) {
-        // Use original value if no buffer entry exists
-        mergedValue.value = originalValue?.value ?? 0;
+    Array.from(allGroupValues).forEach(groupValue => {
+      const originalSeries = originalGroupedTimeSeries.find(
+        series => series.yAxis === groupValue
+      );
+      const groupBuffer = groupBuffers[groupValue];
+
+      if (!hasBufferData && originalSeries) {
+        if (mergedData[aggregateKey]) {
+          mergedData[aggregateKey].push({...originalSeries});
+        }
+        return;
+      }
+
+      const mergedValues: TimeSeriesItem[] = [];
+
+      for (
+        let i = maxBucketIndex;
+        i >= minBucketIndex && mergedValues.length < targetLength;
+        i--
+      ) {
+        const entry = groupBuffer?.values.find(e => e.bucketIndex === i);
+        const originalValue = originalSeries?.values[i];
+
+        const mergedValue: TimeSeriesItem = {
+          timestamp: timeseriesStartTimestamp + i * timeseriesIntervalDuration,
+          value: 0,
+        };
+
+        if (!entry) {
+          // Use original value if no buffer entry exists
+          mergedValue.value = originalValue?.value ?? 0;
+          if (i === maxBucketIndex) {
+            mergedValue.incomplete = true;
+          }
+          mergedValues.unshift(mergedValue);
+          continue;
+        }
+
+        // Merge buffer count with original value
+        mergedValue.value = entry.count + (originalValue?.value ?? 0);
         if (i === maxBucketIndex) {
           mergedValue.incomplete = true;
         }
         mergedValues.unshift(mergedValue);
-        continue;
       }
 
-      // Merge buffer count with original value
-      mergedValue.value = entry.count + (originalValue?.value ?? 0);
-      if (i === maxBucketIndex) {
-        mergedValue.incomplete = true;
+      for (
+        let i = minBucketIndex - 1;
+        i >= 0 && mergedValues.length < targetLength;
+        i--
+      ) {
+        const originalValue = originalSeries?.values[i] ?? {
+          timestamp: timeseriesStartTimestamp + i * timeseriesIntervalDuration,
+          value: 0,
+        }; // If original series is not found, it means it's either a new group that doesn't exist in the original timeseries, or we received empty table data for a period of time so we need to backfill with zeros.
+        if (originalValue) {
+          mergedValues.unshift(originalValue);
+        }
       }
-      mergedValues.unshift(mergedValue);
-    }
 
-    for (let i = minBucketIndex - 1; i >= 0 && mergedValues.length < targetLength; i--) {
-      const originalValue = originalSeries?.values[i] ?? {
-        timestamp: timeseriesStartTimestamp + i * timeseriesIntervalDuration,
-        value: 0,
-      }; // If original series is not found, it means it's either a new group that doesn't exist in the original timeseries, or we received empty table data for a period of time so we need to backfill with zeros.
-      if (originalValue) {
-        mergedValues.unshift(originalValue);
+      if (mergedData[aggregateKey] && originalGroupedTimeSeries[0]) {
+        mergedData[aggregateKey].push({
+          ...(originalSeries ?? {
+            ...pick(originalGroupedTimeSeries[0], ['dataScanned', 'confidence']),
+            meta: {
+              ...originalGroupedTimeSeries[0].meta,
+              order: groupBuffer?.stableIndex ?? 0,
+            },
+          }),
+          values: mergedValues,
+          yAxis: groupValue,
+        });
       }
-    }
+    });
 
-    if (mergedData[aggregateKey] && originalGroupedTimeSeries[0]) {
-      mergedData[aggregateKey].push({
-        ...(originalSeries ?? {
-          ...pick(originalGroupedTimeSeries[0], ['dataScanned', 'confidence']),
-          meta: {
-            ...originalGroupedTimeSeries[0].meta,
-            order: groupBuffer?.stableIndex ?? 0,
-          },
-        }),
-        values: mergedValues,
-        yAxis: groupValue,
-      });
-    }
-  });
-
-  mergedData[aggregateKey].sort((a, b) => (a.meta.order ?? 0) - (b.meta.order ?? 0));
+    mergedData[aggregateKey].sort((a, b) => (a.meta.order ?? 0) - (b.meta.order ?? 0));
+  }
 
   return mergedData;
 }
