@@ -1,5 +1,6 @@
 import {useTheme} from '@emotion/react';
 
+import {Alert} from 'sentry/components/core/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
@@ -56,6 +57,10 @@ export default function BuildComparison() {
         </Layout.Page>
       </SentryDocumentTitle>
     );
+  }
+
+  if (headBuildDetailsQuery.isError || !headBuildDetailsQuery.data) {
+    return <Alert type="error">{headBuildDetailsQuery.error?.message}</Alert>;
   }
 
   return (
