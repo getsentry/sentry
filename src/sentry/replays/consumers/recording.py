@@ -10,7 +10,6 @@ from arroyo.processing.strategies import RunTask, RunTaskInThreads
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.types import Commit, FilteredPayload, Message, Partition
-from django.conf import settings
 from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 from sentry_sdk import set_tag
@@ -82,9 +81,7 @@ def process_message(message: Message[KafkaPayload]) -> ProcessedEvent | Filtered
     with sentry_sdk.start_transaction(
         name="replays.consumer.recording_buffered.process_message",
         op="replays.consumer.recording_buffered.process_message",
-        custom_sampling_context={
-            "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
-        },
+        custom_sampling_context={"sample_rate": 1.0},  # Force 100% sampling for debugging
     ):
         try:
             recording_event = parse_recording_event(message.payload.value)
@@ -176,11 +173,7 @@ def commit_message(message: Message[ProcessedEvent]) -> None:
         with sentry_sdk.start_transaction(
             name="replays.consumer.recording_buffered.commit_message",
             op="replays.consumer.recording_buffered.commit_message",
-            custom_sampling_context={
-                "sample_rate": getattr(
-                    settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0
-                )
-            },
+            custom_sampling_context={"sample_rate": 1.0},  # Force 100% sampling for debugging
         ):
             try:
                 commit_recording_message(message.payload)

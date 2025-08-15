@@ -334,8 +334,11 @@ def configure_sdk():
         sdk_options["spotlight"] = (
             settings.SPOTLIGHT_ENV_VAR if settings.SPOTLIGHT_ENV_VAR.startswith("http") else True
         )
+    # print("sdk_options", sdk_options)
+    # print("dsns", dsns)
 
     internal_project_key = get_project_key()
+    # print("internal_project_key", internal_project_key)
 
     if dsns.sentry4sentry:
         transport = make_transport(get_options(dsn=dsns.sentry4sentry, **sdk_options))
@@ -352,7 +355,13 @@ def configure_sdk():
         transport = make_transport(get_options(dsn=internal_project_key.dsn_private, **sdk_options))
         sentry_saas_transport = patch_transport_for_instrumentation(transport, "relay")
     else:
-        sentry_saas_transport = None
+        # sentry_saas_transport = None
+        configured_dsn = "http://d826cee7298b824fdac2c42b48a7f395@localhost:8000/1"
+        transport = make_transport(get_options(dsn=configured_dsn, **sdk_options))
+        sentry_saas_transport = patch_transport_for_instrumentation(transport, "relay")
+
+    # print("sentry_saas_transport", sentry_saas_transport)
+    # print("sentry4sentry_transport", sentry4sentry_transport)
 
     if settings.SENTRY_CONTINUOUS_PROFILING_ENABLED:
         sdk_options["profile_session_sample_rate"] = float(
@@ -490,10 +499,15 @@ def configure_sdk():
         "schedule-digests",
     ]
 
+    configured_dsn = "http://d826cee7298b824fdac2c42b48a7f395@localhost:8000/1"
+    # print("dsns.sentry4sentry", dsns.sentry4sentry)
+    # print("dsns.sentry_saas", dsns.sentry_saas)
+
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
-        dsn=dsns.sentry4sentry,
+        # dsn=dsns.sentry4sentry,
+        dsn=configured_dsn,
         transport=MultiplexingTransport(),
         integrations=[
             DjangoAtomicIntegration(),
