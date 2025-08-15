@@ -103,15 +103,16 @@ def process_message_with_profiling(
         "replay.consumer.recording.profiling.enabled",
     )
 
+    # print("[DEBUG] Profiling enabled", profiling_enabled)
     if profiling_enabled:
+        # print("[DEBUG] Profiling enabled")
         profiling_project_key = _get_replay_profiling_project_key()
+        # print("[DEBUG] Profiling project key", profiling_project_key)
         if profiling_project_key is not None:
             sentry_sdk.init(
                 dsn=profiling_project_key.dsn_public,
-                traces_sample_rate=0.0,  # send only profiling data
-                profile_session_sample_rate=getattr(
-                    settings, "SENTRY_REPLAY_CONSUMER_PROFILING_SAMPLE_RATE", 1.0
-                ),
+                traces_sample_rate=1.0,
+                profile_session_sample_rate=1.0,
                 profile_lifecycle="manual",
             )
         sentry_sdk.profiler.start_profiler()
@@ -226,10 +227,12 @@ def commit_message_with_profiling(message: Message[ProcessedEvent]) -> None:
         if profiling_project_key is not None:
             sentry_sdk.init(
                 dsn=profiling_project_key.dsn_public,
+                # sample_rate=1.0,  # temporarily enable events for testing
                 traces_sample_rate=0.0,  # send only profiling data
-                profile_session_sample_rate=getattr(
-                    settings, "SENTRY_REPLAY_CONSUMER_PROFILING_SAMPLE_RATE", 1.0
-                ),
+                # profile_session_sample_rate=getattr(
+                #     settings, "SENTRY_REPLAY_CONSUMER_PROFILING_SAMPLE_RATE", 1.0
+                # ),
+                profile_session_sample_rate=1.0,
                 profile_lifecycle="manual",
             )
         sentry_sdk.profiler.start_profiler()
