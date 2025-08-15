@@ -46,7 +46,7 @@ jest.mock('sentry/components/events/interfaces/frame/useStacktraceLink', () => (
   }),
 }));
 
-describe('LogsTable', function () {
+describe('LogsTable', () => {
   const {organization, project} = initializeOrg({
     organization: {
       features: ['ourlogs-enabled'],
@@ -157,7 +157,7 @@ describe('LogsTable', function () {
     );
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.clearMockResponses();
     mockUseLocation.mockReturnValue(
       LocationFixture({

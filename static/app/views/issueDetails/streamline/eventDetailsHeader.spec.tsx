@@ -77,7 +77,7 @@ describe('EventDetailsHeader', () => {
     });
   });
 
-  it('renders filters alongside the graph', async function () {
+  it('renders filters alongside the graph', async () => {
     render(<EventDetailsHeader {...defaultProps} />, {
       organization,
     });
@@ -99,7 +99,7 @@ describe('EventDetailsHeader', () => {
     expect(screen.getByRole('button', {name: 'Close sidebar'})).toBeInTheDocument();
   });
 
-  it('renders 90d instead of "Since First Seen" when the issue is older than 90d', async function () {
+  it('renders 90d instead of "Since First Seen" when the issue is older than 90d', async () => {
     const oldGroup = GroupFixture({
       firstSeen: new Date(Date.now() - 91 * 24 * 60 * 60 * 1000).toISOString(),
     });
@@ -109,7 +109,7 @@ describe('EventDetailsHeader', () => {
     expect(await screen.findByRole('button', {name: '90D'})).toBeInTheDocument();
   });
 
-  it('updates the query params with search tokens', async function () {
+  it('updates the query params with search tokens', async () => {
     const [tagKey, tagValue] = ['user.email', 's@s.io'];
     const locationQuery = {
       query: {
@@ -145,7 +145,7 @@ describe('EventDetailsHeader', () => {
     });
   }, 20_000);
 
-  it('does not render timeline summary if disabled', async function () {
+  it('does not render timeline summary if disabled', async () => {
     render(<EventDetailsHeader {...defaultProps} />, {
       organization,
     });
@@ -153,7 +153,7 @@ describe('EventDetailsHeader', () => {
     expect(screen.queryByText('Duration')).not.toBeInTheDocument();
   });
 
-  it('renders occurrence summary if enabled', async function () {
+  it('renders occurrence summary if enabled', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
       body: {data: event},

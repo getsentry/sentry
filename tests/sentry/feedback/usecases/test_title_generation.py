@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 import responses
@@ -11,11 +11,8 @@ from sentry.feedback.usecases.title_generation import (
     format_feedback_title,
     get_feedback_title_from_seer,
     make_seer_request,
-    should_get_ai_title,
 )
-from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import Feature
 
 
 def mock_seer_response(**kwargs) -> None:
@@ -28,35 +25,6 @@ def mock_seer_response(**kwargs) -> None:
 
 
 class TestTitleGeneration(TestCase):
-    def test_should_get_ai_title(self):
-        """Test the should_get_ai_title function with various feature flag combinations."""
-        org = Mock(spec=Organization)
-        org.id = 123
-        org.slug = "test-org"
-
-        # both feature flags disabled
-        with Feature(
-            {"organizations:gen-ai-features": False, "organizations:user-feedback-ai-titles": False}
-        ):
-            assert should_get_ai_title(org) is False
-
-        # gen-ai-features enabled, user-feedback-ai-titles disabled
-        with Feature(
-            {"organizations:gen-ai-features": True, "organizations:user-feedback-ai-titles": False}
-        ):
-            assert should_get_ai_title(org) is False
-
-        # gen-ai-features disabled, user-feedback-ai-titles enabled
-        with Feature(
-            {"organizations:gen-ai-features": False, "organizations:user-feedback-ai-titles": True}
-        ):
-            assert should_get_ai_title(org) is False
-
-        # both feature flags enabled
-        with Feature(
-            {"organizations:gen-ai-features": True, "organizations:user-feedback-ai-titles": True}
-        ):
-            assert should_get_ai_title(org) is True
 
     @responses.activate
     def test_make_seer_request(self):

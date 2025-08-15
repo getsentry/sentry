@@ -1,6 +1,7 @@
 from uuid import uuid1
 
 from sentry.models.commit import Commit
+from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.releasecommit import ReleaseCommit
@@ -26,7 +27,7 @@ class ProjectIssuesResolvedInReleaseEndpointTest(APITestCase):
         self.group = self.create_group(project=self.project)
         self.login_as(self.user)
 
-    def build_grouplink(self):
+    def build_grouplink(self) -> None:
         repo = Repository.objects.create(organization_id=self.org.id, name=self.project.name)
         commit = Commit.objects.create(
             organization_id=self.org.id, repository_id=repo.id, key=uuid1().hex
@@ -48,14 +49,14 @@ class ProjectIssuesResolvedInReleaseEndpointTest(APITestCase):
             linked_id=commit.id,
         )
 
-    def build_group_resolution(self, group=None):
+    def build_group_resolution(self, group: Group | None = None) -> GroupResolution:
         return GroupResolution.objects.create(
             group=self.group if group is None else group,
             release=self.release,
             type=GroupResolution.Type.in_release,
         )
 
-    def run_test(self, expected_groups):
+    def run_test(self, expected_groups: list[Group]) -> None:
         response = self.get_success_response(self.org.slug, self.project.slug, self.release.version)
         assert len(response.data) == len(expected_groups)
         expected = set(map(str, [g.id for g in expected_groups]))

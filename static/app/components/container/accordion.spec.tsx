@@ -7,15 +7,15 @@ const items = [
   {header: <p>second header</p>, content: <p>second content</p>},
 ];
 
-describe('Accordion', function () {
-  it('renders expanded item', async function () {
+describe('Accordion', () => {
+  it('renders expanded item', async () => {
     render(<Accordion expandedIndex={0} setExpandedIndex={() => {}} items={items} />);
 
     expect(await screen.findByText('first content')).toBeInTheDocument();
     expect(screen.queryByText('second content')).not.toBeInTheDocument();
   });
 
-  it('invokes callback on header click', async function () {
+  it('invokes callback on header click', async () => {
     const spy = jest.fn();
     render(<Accordion expandedIndex={0} setExpandedIndex={spy} items={items} />);
 

@@ -13,7 +13,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');
 
-describe('Screen Summary', function () {
+describe('Screen Summary', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
@@ -47,7 +47,7 @@ describe('Screen Summary', function () {
     })
   );
 
-  describe('Native Project', function () {
+  describe('Native Project', () => {
     let eventsMock: jest.Mock;
 
     beforeEach(() => {
@@ -79,7 +79,7 @@ describe('Screen Summary', function () {
       jest.clearAllMocks();
     });
 
-    it('renders the top level metrics data correctly', async function () {
+    it('renders the top level metrics data correctly', async () => {
       jest.mocked(useLocation).mockReturnValue({
         action: 'PUSH',
         hash: '',
@@ -111,7 +111,7 @@ describe('Screen Summary', function () {
           ],
         },
         match: [
-          MockApiClient.matchQuery({referrer: 'api.starfish.mobile-startup-totals'}),
+          MockApiClient.matchQuery({referrer: 'api.insights.mobile-startup-totals'}),
         ],
       });
 
