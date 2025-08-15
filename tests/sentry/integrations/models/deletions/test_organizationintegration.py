@@ -8,12 +8,15 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.repository import Repository
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity
+from sentry.workflow_engine.models import Action
 
 
 @control_silo_test
@@ -115,3 +118,42 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase, HybridCloudTestMixi
             # We expect to delete all associated Code Owners and Code Mappings
             assert not ProjectCodeOwners.objects.filter(id=code_owner.id).exists()
             assert not RepositoryProjectPathConfig.objects.filter(id=code_owner.id).exists()
+
+    @with_feature("organizations:update-action-status")
+    def test_actions_disabled_on_integration_delete(self) -> None:
+        """Test that actions are actually disabled when organization integration is deleted."""
+        org = self.create_organization()
+        integration, organization_integration = self.create_provider_integration_for(
+            org, self.user, provider="slack", name="Test Integration"
+        )
+
+        # Create a data condition group
+        condition_group = self.create_data_condition_group(organization=org)
+
+        # Create an action linked to this integration
+        action = self.create_action(
+            type=Action.Type.SLACK,
+            integration_id=integration.id,
+            config={
+                "target_type": ActionTarget.SPECIFIC,
+                "target_identifier": "123",
+                "target_display": "Test Integration",
+            },
+        )
+
+        # Link action to condition group
+        self.create_data_condition_group_action(condition_group=condition_group, action=action)
+
+        organization_integration.update(status=ObjectStatus.PENDING_DELETION)
+        ScheduledDeletion.schedule(instance=organization_integration, days=0)
+
+        with self.tasks(), outbox_runner():
+            run_scheduled_deletions_control()
+
+        # Verify organization integration is deleted
+        assert not OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
+
+        with assume_test_silo_mode(SiloMode.REGION):
+            # Verify action is also deleted
+            action = Action.objects.get(id=action.id)
+            assert action.status == ObjectStatus.DISABLED
