@@ -30,7 +30,7 @@ const requestMocks = {
   spanFields: jest.fn(),
 };
 
-describe('CacheLandingPage', function () {
+describe('CacheLandingPage', () => {
   const organization = OrganizationFixture({features: ['insights-addon-modules']});
 
   jest.mocked(usePageFilters).mockReturnValue(
@@ -77,16 +77,16 @@ describe('CacheLandingPage', function () {
     releases: [],
   });
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.clearAllMocks();
     setRequestMocks(organization);
   });
 
-  afterAll(function () {
+  afterAll(() => {
     jest.resetAllMocks();
   });
 
-  it('fetches module data', async function () {
+  it('fetches module data', async () => {
     render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
@@ -162,7 +162,7 @@ describe('CacheLandingPage', function () {
     );
   });
 
-  it('should escape quote in transaction name', async function () {
+  it('should escape quote in transaction name', async () => {
     requestMocks.spanTransactionList.mockClear();
     requestMocks.spanTransactionList = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -223,7 +223,7 @@ describe('CacheLandingPage', function () {
     );
   });
 
-  it('renders a list of transactions', async function () {
+  it('renders a list of transactions', async () => {
     render(<CacheLandingPage />, {organization, deprecatedRouterMocks: true});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     expect(screen.getByRole('columnheader', {name: 'Transaction'})).toBeInTheDocument();
@@ -268,7 +268,7 @@ describe('CacheLandingPage', function () {
     expect(timeSpentCell).toBeInTheDocument();
   });
 
-  it('shows module onboarding', async function () {
+  it('shows module onboarding', async () => {
     ProjectsStore.loadInitialData([
       ProjectFixture({
         id: '1',

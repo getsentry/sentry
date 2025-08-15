@@ -84,7 +84,7 @@ jest.mocked(useLoadReplayReader).mockImplementation(() => {
   };
 });
 
-describe('EventReplay', function () {
+describe('EventReplay', () => {
   const MockUseReplayOnboardingSidebarPanel = jest.mocked(
     useReplayOnboardingSidebarPanel
   );
@@ -109,7 +109,7 @@ describe('EventReplay', function () {
     projectSlug: 'project-slug',
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     const project = ProjectFixture({platform: 'javascript'});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
@@ -128,7 +128,7 @@ describe('EventReplay', function () {
     });
   });
 
-  it('should render the replay inline onboarding component when replays are enabled and the project supports replay', async function () {
+  it('should render the replay inline onboarding component when replays are enabled and the project supports replay', async () => {
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
@@ -143,7 +143,7 @@ describe('EventReplay', function () {
     ).toBeInTheDocument();
   });
 
-  it('should render a replay when there is a replayId from tags', async function () {
+  it('should render a replay when there is a replayId from tags', async () => {
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
@@ -162,7 +162,7 @@ describe('EventReplay', function () {
     expect(await screen.findByTestId('replay-clip')).toBeInTheDocument();
   });
 
-  it('should render a replay when there is a replay_id from contexts', async function () {
+  it('should render a replay when there is a replay_id from contexts', async () => {
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });

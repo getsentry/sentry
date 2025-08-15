@@ -2,7 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 
-describe('DropdownAutoComplete', function () {
+describe('DropdownAutoComplete', () => {
   const items = [
     {
       value: 'apple',
@@ -18,7 +18,7 @@ describe('DropdownAutoComplete', function () {
     },
   ];
 
-  it('has actor wrapper', function () {
+  it('has actor wrapper', () => {
     render(
       <DropdownAutoComplete items={items}>{() => 'Click Me!'}</DropdownAutoComplete>
     );
@@ -26,7 +26,7 @@ describe('DropdownAutoComplete', function () {
     expect(screen.getByRole('button')).toHaveTextContent('Click Me!');
   });
 
-  it('does not allow the dropdown to be closed without allowActorToggle', async function () {
+  it('does not allow the dropdown to be closed without allowActorToggle', async () => {
     render(
       <DropdownAutoComplete items={items}>{() => 'Click Me!'}</DropdownAutoComplete>
     );
@@ -48,7 +48,7 @@ describe('DropdownAutoComplete', function () {
     expect(screen.getByRole('listbox')).toBeInTheDocument();
   });
 
-  it('toggles dropdown menu when actor is clicked and allowActorToggle=true', async function () {
+  it('toggles dropdown menu when actor is clicked and allowActorToggle=true', async () => {
     render(
       <DropdownAutoComplete allowActorToggle items={items}>
         {() => 'Click Me!'}

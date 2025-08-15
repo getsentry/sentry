@@ -13,7 +13,7 @@ import {QuotaExceededAlert} from './quotaExceededAlert';
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 
-describe('Renders QuotaExceededAlert correctly', function () {
+describe('Renders QuotaExceededAlert correctly', () => {
   const {organization} = initializeOrg();
   const subscription = SubscriptionFixture({
     organization,
@@ -28,7 +28,7 @@ describe('Renders QuotaExceededAlert correctly', function () {
       },
     } as any,
   });
-  beforeEach(function () {
+  beforeEach(() => {
     setMockDate(new Date('2024-12-14').getTime());
     jest.mocked(usePageFilters).mockReturnValue(
       PageFilterStateFixture({
@@ -56,12 +56,12 @@ describe('Renders QuotaExceededAlert correctly', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
     resetMockDate();
   });
 
-  it('renders alert when quota is exceeded', async function () {
+  it('renders alert when quota is exceeded', async () => {
     // Mock performance usage stats endpoint
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/stats_v2/`,

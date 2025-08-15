@@ -16,12 +16,12 @@ import {ModuleName} from 'sentry/views/insights/types';
 
 jest.mock('sentry/utils/usePageFilters');
 
-describe('DomainSelector', function () {
+describe('DomainSelector', () => {
   const organization = OrganizationFixture();
 
   jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
@@ -48,11 +48,11 @@ describe('DomainSelector', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('allows selecting a domain', async function () {
+  it('allows selecting a domain', async () => {
     render(<DomainSelector domainAlias="Domain" moduleName={ModuleName.DB} />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -63,7 +63,7 @@ describe('DomainSelector', function () {
     expect(screen.getByText('sentry_organization')).toBeInTheDocument();
   });
 
-  it('fetches more domains if available', async function () {
+  it('fetches more domains if available', async () => {
     const fetchMoreResponse = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
