@@ -12,7 +12,6 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
 from sentry.integrations.base import IntegrationFeatures
@@ -24,6 +23,7 @@ from sentry.integrations.project_management.metrics import (
     ProjectManagementEvent,
 )
 from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
