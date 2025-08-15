@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sentry_sdk
 from django.db import router, transaction
 
 from sentry import deletions
@@ -22,7 +23,22 @@ class DatabaseBackedHookService(HookService):
             hooks = ServiceHook.objects.filter(application_id=application_id)
             if webhook_url:
                 expanded_events = expand_events(events)
-                hooks.update(url=webhook_url, events=expanded_events)
+                updated_hook_count = hooks.update(url=webhook_url, events=expanded_events)
+
+                if updated_hook_count != hooks.count():
+                    sentry_sdk.set_context(
+                        "hook info",
+                        {
+                            "application_id": application_id,
+                            "updated_hook_count": updated_hook_count,
+                            "expected_hook_count": hooks.count(),
+                            "webhook_url": webhook_url,
+                        },
+                    )
+                    sentry_sdk.capture_message(
+                        "failed_to_update_all_hooks_for_app", level="warning"
+                    )
+
                 return [serialize_service_hook(h) for h in hooks]
             else:
                 deletions.exec_sync_many(list(hooks))
@@ -40,7 +56,19 @@ class DatabaseBackedHookService(HookService):
             hooks = ServiceHook.objects.filter(application_id=application_id)
             if webhook_url:
                 expanded_events = expand_events(events)
-                hooks.update(url=webhook_url, events=expanded_events)
+                updated_hook_count = hooks.update(url=webhook_url, events=expanded_events)
+                if hooks.count() != updated_hook_count:
+                    sentry_sdk.set_context(
+                        "hook info",
+                        {
+                            "application_id": application_id,
+                            "updated_hook_count": updated_hook_count,
+                            "expected_hook_count": hooks.count(),
+                        },
+                    )
+                    sentry_sdk.capture_message(
+                        "failed_to_update_all_hooks_for_app", level="warning"
+                    )
                 return [serialize_service_hook(h) for h in hooks]
             else:
                 deletions.exec_sync_many(list(hooks))
