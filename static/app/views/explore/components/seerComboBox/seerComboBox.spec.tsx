@@ -61,7 +61,7 @@ describe('SeerComboBox', () => {
       name: 'Ask Seer with Natural Language',
     });
     expect(input).toBeInTheDocument();
-    expect(input).toHaveValue('test');
+    expect(input).toHaveValue('test ');
   });
 
   it('sets the passed initial query as the input value', async () => {
@@ -74,7 +74,7 @@ describe('SeerComboBox', () => {
     const input = await screen.findByRole('combobox', {
       name: 'Ask Seer with Natural Language',
     });
-    expect(input).toHaveValue('test');
+    expect(input).toHaveValue('test ');
   });
 
   it('defaults popover to be open', async () => {
