@@ -8,12 +8,12 @@ import {OrderBy, SortBy} from 'sentry/components/events/featureFlags/utils';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import FlagDrawerContent from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
 
-describe('GroupFeatureFlagsDrawerContent', function () {
+describe('GroupFeatureFlagsDrawerContent', () => {
   function getEmptyState() {
     return screen.queryByTestId('empty-state') ?? screen.getByTestId('empty-message');
   }
 
-  beforeEach(function () {
+  beforeEach(() => {
     jest.resetAllMocks();
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/1/tags/`,
@@ -31,7 +31,7 @@ describe('GroupFeatureFlagsDrawerContent', function () {
     ]);
   });
 
-  it('calls flags backend and renders distribution cards', async function () {
+  it('calls flags backend and renders distribution cards', async () => {
     const mockTagsEndpoint = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/1/tags/`,
       body: FeatureFlagTagsFixture(),
@@ -62,7 +62,7 @@ describe('GroupFeatureFlagsDrawerContent', function () {
     expect(screen.getByText('my-rolled-out-feature')).toBeInTheDocument();
   });
 
-  it('renders error state', async function () {
+  it('renders error state', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/1/tags/`,
       statusCode: 400,
@@ -86,7 +86,7 @@ describe('GroupFeatureFlagsDrawerContent', function () {
     });
   });
 
-  it('renders empty state when no flags match the search', async function () {
+  it('renders empty state when no flags match the search', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/1/tags/`,
       body: FeatureFlagTagsFixture(),
@@ -111,7 +111,7 @@ describe('GroupFeatureFlagsDrawerContent', function () {
     expect(emptyState).toHaveTextContent('No feature flags were found for this search');
   });
 
-  it('renders empty state when no flags returned and hasFlags', async function () {
+  it('renders empty state when no flags returned and hasFlags', async () => {
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([
       ProjectFixture({platform: 'javascript', hasFlags: true}),
@@ -136,7 +136,7 @@ describe('GroupFeatureFlagsDrawerContent', function () {
     expect(emptyState).toHaveTextContent('No feature flags were found for this issue');
   });
 
-  it('renders CTA when no flags returned and hasFlags is false', async function () {
+  it('renders CTA when no flags returned and hasFlags is false', async () => {
     render(
       <FlagDrawerContent
         environments={[]}
@@ -154,7 +154,7 @@ describe('GroupFeatureFlagsDrawerContent', function () {
     expect(screen.getByText('Set Up Feature Flags')).toBeInTheDocument();
   });
 
-  it('does not render CTA when no flags returned and platform unsupported', async function () {
+  it('does not render CTA when no flags returned and platform unsupported', async () => {
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([
       ProjectFixture({platform: 'dotnet-awslambda', hasFlags: false}),
@@ -177,7 +177,7 @@ describe('GroupFeatureFlagsDrawerContent', function () {
     expect(getEmptyState()).toBeInTheDocument();
   });
 
-  it('does not render CTA when project not found', async function () {
+  it('does not render CTA when project not found', async () => {
     ProjectsStore.reset();
 
     render(

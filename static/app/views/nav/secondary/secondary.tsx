@@ -7,6 +7,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/core/button';
 import InteractionStateLayer from 'sentry/components/core/interactionStateLayer';
 import {Link, type LinkProps} from 'sentry/components/core/link';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {useHovercardContext} from 'sentry/components/hovercard';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {IconChevron} from 'sentry/icons';
@@ -49,9 +50,11 @@ interface SecondaryNavItemProps extends Omit<LinkProps, 'ref' | 'to'> {
 
 export function SecondaryNav({children, className}: SecondaryNavProps) {
   return (
-    <Wrapper className={className} role="navigation" aria-label="Secondary Navigation">
-      {children}
-    </Wrapper>
+    <ErrorBoundary mini>
+      <Wrapper className={className} role="navigation" aria-label="Secondary Navigation">
+        {children}
+      </Wrapper>
+    </ErrorBoundary>
   );
 }
 

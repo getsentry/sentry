@@ -4,8 +4,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {BaseBadge} from 'sentry/components/idBadge/baseBadge';
 
-describe('BadgeBadge', function () {
-  it('has a display name', function () {
+describe('BadgeBadge', () => {
+  it('has a display name', () => {
     render(
       <BaseBadge
         organization={OrganizationFixture()}
@@ -15,7 +15,7 @@ describe('BadgeBadge', function () {
     expect(screen.getByText('display name')).toBeInTheDocument();
   });
 
-  it('can hide avatar', function () {
+  it('can hide avatar', () => {
     render(
       <BaseBadge organization={OrganizationFixture()} displayName="hello" hideAvatar />
     );
@@ -23,7 +23,7 @@ describe('BadgeBadge', function () {
     expect(screen.getByTestId('badge-display-name')).toHaveTextContent('hello');
   });
 
-  it('can hide name', function () {
+  it('can hide name', () => {
     render(
       <BaseBadge
         organization={OrganizationFixture()}

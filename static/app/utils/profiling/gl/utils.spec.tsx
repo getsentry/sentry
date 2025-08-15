@@ -579,8 +579,8 @@ describe('computeConfigViewWithStrategy', () => {
     ).toBe(true);
   });
 
-  describe('getCenterScaleMatrixFromConfigPosition', function () {
-    it('returns a matrix that represents scaling on both x and y axes', function () {
+  describe('getCenterScaleMatrixFromConfigPosition', () => {
+    it('returns a matrix that represents scaling on both x and y axes', () => {
       const actual = getCenterScaleMatrixFromConfigPosition(
         vec2.fromValues(2, 2),
         vec2.fromValues(0, 0)
@@ -593,7 +593,7 @@ describe('computeConfigViewWithStrategy', () => {
       );
     });
 
-    it('returns a matrix that scales and translates back so the scaling appears to zoom into the point', function () {
+    it('returns a matrix that scales and translates back so the scaling appears to zoom into the point', () => {
       const actual = getCenterScaleMatrixFromConfigPosition(
         vec2.fromValues(2, 2),
         vec2.fromValues(5, 5)

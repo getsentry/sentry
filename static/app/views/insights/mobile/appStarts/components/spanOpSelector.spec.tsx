@@ -9,7 +9,7 @@ import {SpanOpSelector} from 'sentry/views/insights/mobile/appStarts/components/
 
 jest.mock('sentry/utils/usePageFilters');
 
-describe('SpanOpSelector', function () {
+describe('SpanOpSelector', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
@@ -54,7 +54,7 @@ describe('SpanOpSelector', function () {
     },
   });
 
-  it('lists all span operations that are stored', async function () {
+  it('lists all span operations that are stored', async () => {
     render(
       <SpanOpSelector
         primaryRelease="release1"

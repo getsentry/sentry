@@ -31,6 +31,7 @@ type Props = {
   selection: PageFilters;
   theme: Theme;
   widget: Widget;
+  disableTableActions?: boolean;
   errorMessage?: string;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   tableResults?: TableData[];
@@ -46,6 +47,7 @@ export function IssueWidgetCard({
   location,
   theme,
   onWidgetTableResizeColumn,
+  disableTableActions,
 }: Props) {
   const datasetConfig = getDatasetConfig(WidgetType.ISSUE);
 
@@ -83,6 +85,7 @@ export function IssueWidgetCard({
     return datasetConfig.getCustomFieldRenderer?.(field, meta, widget, org) || null;
   };
 
+  const useCellActionsV2 = organization.features.includes('discover-cell-actions-v2');
   return organization.features.includes('dashboards-use-widget-table-visualization') ? (
     <TableContainer>
       <TableWidgetVisualization
@@ -113,7 +116,7 @@ export function IssueWidgetCard({
           } satisfies RenderFunctionBaggage;
         }}
         onResizeColumn={onWidgetTableResizeColumn}
-        allowedCellActions={[]}
+        allowedCellActions={disableTableActions || !useCellActionsV2 ? [] : undefined}
       />
     </TableContainer>
   ) : (

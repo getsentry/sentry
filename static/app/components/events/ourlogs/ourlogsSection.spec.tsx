@@ -6,6 +6,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 const TRACE_ID = '00000000000000000000000000000000';
 
@@ -63,13 +64,13 @@ const event = EventFixture({
   },
 });
 
-describe('OurlogsSection', function () {
-  beforeEach(function () {
+describe('OurlogsSection', () => {
+  beforeEach(() => {
     // the search query combobox is firing updates and causing console.errors
     jest.spyOn(console, 'error').mockImplementation(() => {});
   });
 
-  it('renders empty', function () {
+  it('renders empty', () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-logs/`,
       body: {
@@ -84,7 +85,7 @@ describe('OurlogsSection', function () {
     expect(screen.queryByText(/Logs/)).not.toBeInTheDocument();
   });
 
-  it('renders logs', async function () {
+  it('renders logs', async () => {
     const now = new Date();
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-logs/`,
@@ -97,7 +98,7 @@ describe('OurlogsSection', function () {
             severity_number: 0,
             severity: 'info',
             timestamp: now.toISOString(),
-            'tags[sentry.timestamp_precise,number]': now.getTime() * 1e6,
+            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: now.getTime() * 1e6,
             message: 'i am a log',
           },
         ],

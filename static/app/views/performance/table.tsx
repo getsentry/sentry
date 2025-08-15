@@ -619,7 +619,7 @@ class _Table extends Component<Props, State> {
                   orgSlug={organization.slug}
                   location={location}
                   setError={error => setError(error?.message)}
-                  referrer="api.performance.landing-table"
+                  referrer="api.insights.landing-table"
                   transactionName={transaction}
                   transactionThreshold={transactionThreshold}
                   queryExtras={getMEPQueryParams(value)}

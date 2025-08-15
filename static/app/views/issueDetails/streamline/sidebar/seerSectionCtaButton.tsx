@@ -147,6 +147,13 @@ export function SeerSectionCtaButton({
       return t('Open Resources');
     }
 
+    if (
+      (aiConfig.orgNeedsGenAiAcknowledgement || !aiConfig.hasAutofixQuota) &&
+      !aiConfig.isAutofixSetupLoading
+    ) {
+      return t('Fix it for me');
+    }
+
     if (!lastStep) {
       return t('Find Root Cause');
     }

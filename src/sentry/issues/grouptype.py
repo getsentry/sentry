@@ -532,7 +532,7 @@ class QueryInjectionVulnerabilityGroupType(PerformanceGroupTypeDefaults, GroupTy
     category_v2 = GroupCategory.DB_QUERY.value
     enable_auto_resolve = False
     enable_escalation_detection = False
-    noise_config = NoiseConfig(ignore_limit=5)
+    noise_config = NoiseConfig(ignore_limit=10000)
     default_priority = PriorityLevel.MEDIUM
 
 
@@ -604,36 +604,6 @@ class ProfileFunctionRegressionType(GroupType):
     released = True
     default_priority = PriorityLevel.MEDIUM
     notification_config = NotificationConfig(context=[NotificationContextField.APPROX_START_TIME])
-
-
-@dataclass(frozen=True)
-class MonitorIncidentType(GroupType):
-    type_id = 4001
-    slug = "monitor_check_in_failure"
-    description = "Crons Monitor Failed"
-    category = GroupCategory.CRON.value
-    category_v2 = GroupCategory.OUTAGE.value
-    released = True
-    creation_quota = Quota(3600, 60, 60_000)  # 60,000 per hour, sliding window of 60 seconds
-    default_priority = PriorityLevel.HIGH
-    notification_config = NotificationConfig(context=[])
-
-
-# XXX(epurkhiser): We renamed this group type but we keep the alias since we
-# store group type in pickles
-MonitorCheckInFailure = MonitorIncidentType
-
-
-@dataclass(frozen=True)
-class MonitorCheckInTimeout(MonitorIncidentType):
-    # This is deprecated, only kept around for it's type_id
-    type_id = 4002
-
-
-@dataclass(frozen=True)
-class MonitorCheckInMissed(MonitorIncidentType):
-    # This is deprecated, only kept around for it's type_id
-    type_id = 4003
 
 
 @dataclass(frozen=True)
