@@ -4,7 +4,7 @@ import builtins
 import logging
 from dataclasses import asdict
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
 from django.db.models.signals import pre_save
@@ -16,6 +16,8 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import DefaultFieldsModel, region_silo_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.utils import metrics
 from sentry.workflow_engine.models.json_config import JSONConfigBase
 from sentry.workflow_engine.registry import action_handler_registry
@@ -26,6 +28,15 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+class ActionManager(BaseManager["Action"]):
+    def get_queryset(self) -> BaseQuerySet[Action]:
+        return (
+            super()
+            .get_queryset()
+            .exclude(status__in=(ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS))
+        )
 
 
 @region_silo_model
@@ -40,6 +51,9 @@ class Action(DefaultFieldsModel, JSONConfigBase):
 
     __relocation_scope__ = RelocationScope.Excluded
     __repr__ = sane_repr("id", "type")
+
+    objects: ClassVar[ActionManager] = ActionManager()
+    objects_for_deletion: ClassVar[BaseManager] = BaseManager()
 
     class Type(StrEnum):
         SLACK = "slack"
