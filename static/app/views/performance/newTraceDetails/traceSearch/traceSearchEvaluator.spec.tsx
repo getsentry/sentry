@@ -624,6 +624,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
 
@@ -641,6 +642,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
 
@@ -661,6 +663,7 @@ describe('TraceSearchEvaluator', () => {
         {
           meta: null,
           replay: null,
+          organization,
         }
       );
 
