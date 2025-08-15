@@ -13,6 +13,7 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import IssueListActions from 'sentry/views/issueList/actions';
 import GroupListBody from 'sentry/views/issueList/groupListBody';
+import {IssueListKeyboardNavigation} from 'sentry/views/issueList/keyboardNavigation';
 import {NewViewEmptyState} from 'sentry/views/issueList/newViewEmptyState';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
@@ -103,18 +104,24 @@ function IssueListTable({
               id="IssueList-Body"
               isLoading={issuesLoading}
             >
-              <GroupListBody
-                memberList={memberList}
-                groupStatsPeriod={statsPeriod}
+              <IssueListKeyboardNavigation
                 groupIds={groupIds}
-                displayReprocessingLayout={displayReprocessingActions}
                 query={query}
-                selectedProjectIds={selection.projects}
-                loading={issuesLoading}
-                error={error}
-                refetchGroups={refetchGroups}
                 onActionTaken={onActionTaken}
-              />
+              >
+                <GroupListBody
+                  memberList={memberList}
+                  groupStatsPeriod={statsPeriod}
+                  groupIds={groupIds}
+                  displayReprocessingLayout={displayReprocessingActions}
+                  query={query}
+                  selectedProjectIds={selection.projects}
+                  loading={issuesLoading}
+                  error={error}
+                  refetchGroups={refetchGroups}
+                  onActionTaken={onActionTaken}
+                />
+              </IssueListKeyboardNavigation>
             </VisuallyCompleteWithData>
           </PanelBody>
         </ContainerPanel>

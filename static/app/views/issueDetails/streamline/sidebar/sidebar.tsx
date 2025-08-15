@@ -15,17 +15,23 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributions/useGroupDistributionsDrawer';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {useIssueDetails} from 'sentry/views/issueDetails/streamline/context';
+import {useDrawerShortcuts} from 'sentry/views/issueDetails/streamline/hooks/useDrawerShortcuts';
+import {useIssueActivityDrawer} from 'sentry/views/issueDetails/streamline/hooks/useIssueActivityDrawer';
+import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useMergedIssuesDrawer';
+import {useSimilarIssuesDrawer} from 'sentry/views/issueDetails/streamline/hooks/useSimilarIssuesDrawer';
 import StreamlinedActivitySection from 'sentry/views/issueDetails/streamline/sidebar/activitySection';
 import {DetectorSection} from 'sentry/views/issueDetails/streamline/sidebar/detectorSection';
 import {ExternalIssueSidebarList} from 'sentry/views/issueDetails/streamline/sidebar/externalIssueSidebarList';
 import FirstLastSeenSection from 'sentry/views/issueDetails/streamline/sidebar/firstLastSeenSection';
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/mergedSidebarSection';
 import PeopleSection from 'sentry/views/issueDetails/streamline/sidebar/peopleSection';
+import {useOpenSeerDrawer} from 'sentry/views/issueDetails/streamline/sidebar/seerDrawer';
 import SeerSection from 'sentry/views/issueDetails/streamline/sidebar/seerSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/streamline/sidebar/similarIssuesSidebarSection';
 
@@ -36,6 +42,25 @@ export default function StreamlinedSidebar({group, event, project}: Props) {
   const activeUser = useUser();
   const organization = useOrganization();
   const {isSidebarOpen} = useIssueDetails();
+
+  // Initialize drawer hooks
+  const {openActivityDrawer} = useIssueActivityDrawer({group, project});
+  const {openDistributionsDrawer} = useGroupDistributionsDrawer({
+    group,
+    includeFeatureFlagsTab: true, // Enable feature flags tab
+  });
+  const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
+  const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
+  const openSeerDrawer = useOpenSeerDrawer({group, project, event: event ?? null});
+
+  // Initialize drawer shortcuts
+  useDrawerShortcuts({
+    onOpenActivityDrawer: openActivityDrawer,
+    onOpenDistributionsDrawer: openDistributionsDrawer,
+    onOpenSimilarIssuesDrawer: openSimilarIssuesDrawer,
+    onOpenMergedIssuesDrawer: openMergedIssuesDrawer,
+    onOpenSeerDrawer: openSeerDrawer,
+  });
 
   const {userParticipants, teamParticipants, viewers} = useMemo(() => {
     return {
