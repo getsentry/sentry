@@ -143,7 +143,7 @@ describe('ReserveAdditionalVolume', () => {
           category: 'attachments',
           max: '1TB',
           min: '1GB',
-          selectedTier: '1 GB',
+          selectedTier: '1GB',
         },
         {
           billingInterval: MONTHLY,
@@ -278,7 +278,7 @@ describe('ReserveAdditionalVolume', () => {
           category: 'attachments',
           max: '1TB',
           min: '1GB',
-          selectedTier: '1 GB',
+          selectedTier: '1GB',
         },
         {
           billingInterval: MONTHLY,

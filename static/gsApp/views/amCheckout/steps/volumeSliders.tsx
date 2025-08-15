@@ -202,13 +202,18 @@ function VolumeSliders({
                   <div>
                     <SpaceBetweenGrid>
                       <VolumeAmount>
-                        {formatReservedWithUnits(
-                          formData.reserved[category] ?? null,
-                          category,
-                          {
-                            isAbbreviated: true,
-                          }
-                        )}
+                        {isByteCategory(category)
+                          ? utils.getEventsWithUnit(
+                              formData.reserved[category] ?? 0,
+                              category
+                            )
+                          : formatReservedWithUnits(
+                              formData.reserved[category] ?? null,
+                              category,
+                              {
+                                isAbbreviated: true,
+                              }
+                            )}
                       </VolumeAmount>
                       <div>
                         <Price isIncluded={isIncluded}>
