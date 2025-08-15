@@ -6,9 +6,8 @@ from typing import Any
 import sentry_sdk
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from rest_framework.request import Request
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.analytics.events.codeowners_max_length_exceeded import CodeOwnersMaxLengthExceeded
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
@@ -17,9 +16,7 @@ from sentry.issues.ownership.grammar import (
     convert_codeowners_syntax,
     create_schema_from_issue_owners,
 )
-from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
-from sentry.utils import metrics
 from sentry.utils.codeowners import MAX_RAW_LENGTH
 
 
@@ -124,29 +121,3 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer[ProjectCodeOwners]):
             setattr(instance, key, value)
         instance.save()
         return instance
-
-
-class ProjectCodeOwnersMixin:
-    def has_feature(self, request: Request, project: Project) -> bool:
-        return bool(
-            features.has(
-                "organizations:integrations-codeowners", project.organization, actor=request.user
-            )
-        )
-
-    def track_response_code(self, type: str, status: int | str) -> None:
-        if type in ["create", "update"]:
-            metrics.incr(
-                f"codeowners.{type}.http_response",
-                sample_rate=1.0,
-                tags={"status": status},
-            )
-
-
-from .details import ProjectCodeOwnersDetailsEndpoint
-from .index import ProjectCodeOwnersEndpoint
-
-__all__ = (
-    "ProjectCodeOwnersEndpoint",
-    "ProjectCodeOwnersDetailsEndpoint",
-)
