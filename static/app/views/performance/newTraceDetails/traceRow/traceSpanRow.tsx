@@ -82,30 +82,30 @@ export function TraceSpanRow(
           <PlatformIcon
             platform={props.projects[props.node.metadata.project_slug ?? ''] ?? 'default'}
           />
-          {shouldUseOTelFriendlyUI &&
-          isEAPSpanNode(props.node) &&
-          props.node.value.name ? (
-            <React.Fragment>
-              <span className="TraceName" title={props.node.value.name}>
-                {ellipsize(props.node.value.name, 100)}
-              </span>
-            </React.Fragment>
-          ) : (
-            <React.Fragment>
-              {props.node.value.op && props.node.value.op !== 'default' && (
-                <React.Fragment>
-                  <span className="TraceOperation">{props.node.value.op}</span>
-                  <strong className="TraceEmDash"> — </strong>
-                </React.Fragment>
-              )}
+          <React.Fragment>
+            {props.node.value.op && props.node.value.op !== 'default' && (
+              <React.Fragment>
+                <span className="TraceOperation">{props.node.value.op}</span>
+                <strong className="TraceEmDash"> — </strong>
+              </React.Fragment>
+            )}
+            {shouldUseOTelFriendlyUI &&
+            isEAPSpanNode(props.node) &&
+            props.node.value.name ? (
+              <React.Fragment>
+                <span className="TraceName" title={props.node.value.name}>
+                  {ellipsize(props.node.value.name, 100)}
+                </span>
+              </React.Fragment>
+            ) : (
               <span className="TraceDescription" title={props.node.value.description}>
                 {getNodeDescriptionPrefix(props.node)}
                 {props.node.value.description
                   ? ellipsize(props.node.value.description, 100)
                   : (spanId ?? 'unknown')}
               </span>
-            </React.Fragment>
-          )}
+            )}
+          </React.Fragment>
         </div>
       </div>
       <div
