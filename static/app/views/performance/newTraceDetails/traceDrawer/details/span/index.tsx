@@ -424,7 +424,38 @@ function EAPSpanNodeDetailsContent({
   traceItemData: TraceItemDetailsResponse;
 }) {
   const attributes = traceItemData.attributes;
-  const links = traceItemData.links;
+  const links =
+    traceItemData.links ??
+    (node.value.event_id === '996717f6ae61749d'
+      ? [
+          // A link to another span in the same trace
+          {
+            traceId: 'd3b6fe23b6a64224b71d775851615cde',
+            itemId: 'b34600c2a439c53b',
+            sampled: true,
+            attributes: [
+              {
+                type: 'str',
+                name: 'sentry.link.type',
+                value: 'canned',
+              },
+            ],
+          },
+          // A link to another span in another trace
+          {
+            traceId: '62928fb1416b415886356b2bcabebe06',
+            itemId: '843002c70d616e9d',
+            sampled: true,
+            attributes: [
+              {
+                type: 'str',
+                name: 'sentry.link.type',
+                value: 'canned',
+              },
+            ],
+          },
+        ]
+      : []);
   const isTransaction = isEAPTransactionNode(node) && !!eventTransaction;
 
   const span = useMemo(() => {
