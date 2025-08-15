@@ -69,11 +69,15 @@ interface ProcessedTreeCoverageSunburstData extends TreeCoverageSunburstData {
 interface TreeCoverageSunburstChartProps {
   data: TreeCoverageSunburstData;
   autoHeightResize?: boolean;
+  onNodeClick?: (fullPath: string, isFile: boolean) => void;
+  showLabels?: boolean;
 }
 
 export function TreeCoverageSunburstChart({
   data,
   autoHeightResize = false,
+  onNodeClick,
+  showLabels = true,
 }: TreeCoverageSunburstChartProps) {
   const theme = useTheme();
 
@@ -150,6 +154,12 @@ export function TreeCoverageSunburstChart({
             click: (
               params: Parameters<EChartClickHandler<ProcessedTreeCoverageSunburstData>>[0]
             ) => {
+              // Call the external click handler if provided
+              if (onNodeClick && params?.data) {
+                onNodeClick(params.data.fullPath, params.data.type === 'file');
+              }
+
+              // Original logic for internal chart navigation
               if (params?.data?.type === 'dir') {
                 const parent = rootNode.edges.get(params.data.fullPath);
                 const node = rootNode.nodeMap.get(params.data?.fullPath);
@@ -200,8 +210,45 @@ export function TreeCoverageSunburstChart({
               animation: false,
               type: 'sunburst',
               data: [renderData],
-              radius: [40, 100],
-              label: {show: false},
+              radius: [48, 120],
+              label: {
+                show: showLabels,
+                formatter: showLabels
+                  ? (params: any) => {
+                      // Only show labels for nodes that have enough space
+                      const minAngle = 0.08; // Reduced threshold for more labels
+                      const angle = params.endAngle - params.startAngle;
+
+                      if (angle < minAngle) {
+                        return '';
+                      }
+
+                      // Smart truncation based on available space
+                      const name = params.data.name;
+                      const radius = (params.data.depth || 0) + 1;
+                      const maxLength = Math.max(6, Math.floor(angle * radius * 8));
+
+                      if (name.length > maxLength) {
+                        return name.substring(0, maxLength - 3) + '...';
+                      }
+                      return name;
+                    }
+                  : undefined,
+                fontSize: 12,
+                fontWeight: 600,
+                fontFamily: 'system-ui, -apple-system, sans-serif',
+                color: 'white',
+                textShadowColor: 'rgba(0, 0, 0, 0.8)',
+                textShadowBlur: 3,
+                textShadowOffsetX: 1,
+                textShadowOffsetY: 1,
+                position: 'inside',
+                distance: 5,
+                rotate: 'radial',
+                align: 'center',
+                verticalAlign: 'middle',
+                overflow: 'none',
+              },
               emphasis: {focus: 'ancestor'},
               nodeClick: false,
             },
