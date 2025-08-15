@@ -64,6 +64,15 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
     def data_conditions(self) -> BaseDataConditionValidator:
         raise NotImplementedError
 
+    def enforce_quota_on_create(self) -> None:
+        """
+        Enforce quota limits for detector creation.
+        Raise ValidationError if quota limits are exceeded.
+
+        Only Metric Issues Detector has quota limits.
+        """
+        pass
+
     def update(self, instance: Detector, validated_data: dict[str, Any]):
         with transaction.atomic(router.db_for_write(Detector)):
             if "name" in validated_data:
@@ -110,6 +119,10 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer):
         return instance
 
     def create(self, validated_data):
+        # If quotas are exceeded, we will prevent creation of new detectors.
+        # Do not disable or prevent the users from updating existing detectors.
+        self.enforce_quota_on_create()
+
         with transaction.atomic(router.db_for_write(Detector)):
             condition_group = DataConditionGroup.objects.create(
                 logic_type=DataConditionGroup.Type.ANY,

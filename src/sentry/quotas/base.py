@@ -755,3 +755,9 @@ class Quota(Service):
         Returns the maximum number of dashboards allowed for the organization's plan type.
         """
         return -1
+
+    def get_metric_detector_limit(self, org_id: int) -> int:
+        """
+        Returns the maximum number of detectors allowed for the organization's plan type.
+        """
+        return -1

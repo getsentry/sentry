@@ -12,7 +12,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import features, options, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -562,6 +562,19 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint, AlertRuleIndexMix
         permission, then we must verify that the user is a team admin with "alerts:write" access to the project(s)
         in their request.
         """
+        if features.has(
+            "organizations:workflow-engine-metric-detector-limit", organization, actor=request.user
+        ):
+            alert_limit = quotas.backend.get_metric_detector_limit(organization.id)
+            alert_count = AlertRule.objects.fetch_for_organization(
+                organization=organization
+            ).count()
+
+            if alert_limit >= 0 and alert_count >= alert_limit:
+                raise ValidationError(
+                    f"You may not exceed {alert_limit} metric alerts on your current plan."
+                )
+
         # if the requesting user has any of these org-level permissions, then they can create an alert
         if (
             request.access.has_scope("alerts:write")
