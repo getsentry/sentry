@@ -8,8 +8,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import AlertLastIncidentActivationInfo from 'sentry/views/alerts/list/rules/alertLastIncidentActivationInfo';
 import {CombinedAlertType, IncidentStatus} from 'sentry/views/alerts/types';
 
-describe('AlertLastIncidentActivationInfo', function () {
-  it('Renders non-triggered issue alert correctly', function () {
+describe('AlertLastIncidentActivationInfo', () => {
+  it('Renders non-triggered issue alert correctly', () => {
     const rule = {
       ...ProjectAlertRuleFixture(),
       type: CombinedAlertType.ISSUE,
@@ -19,7 +19,7 @@ describe('AlertLastIncidentActivationInfo', function () {
     expect(screen.getByText('Alert not triggered yet')).toBeInTheDocument();
   });
 
-  it('Renders triggered issue alert correctly', function () {
+  it('Renders triggered issue alert correctly', () => {
     const rule = {
       ...ProjectAlertRuleFixture({
         lastTriggered: '2017-10-17T00:00:00.000Z',
@@ -31,7 +31,7 @@ describe('AlertLastIncidentActivationInfo', function () {
     expect(container).toHaveTextContent('Triggered 3 hours ago');
   });
 
-  it('Renders non-triggered metric alerts', function () {
+  it('Renders non-triggered metric alerts', () => {
     const rule = {
       ...MetricRuleFixture(),
       type: CombinedAlertType.METRIC,
@@ -41,7 +41,7 @@ describe('AlertLastIncidentActivationInfo', function () {
     expect(screen.getByText('Alert not triggered yet')).toBeInTheDocument();
   });
 
-  it('Renders triggered metric alert incidents', function () {
+  it('Renders triggered metric alert incidents', () => {
     const rule = {
       ...MetricRuleFixture({
         latestIncident: IncidentFixture({
@@ -56,7 +56,7 @@ describe('AlertLastIncidentActivationInfo', function () {
     expect(container).toHaveTextContent('Triggered 3 hours ago');
   });
 
-  it('Renders uptime alerts', function () {
+  it('Renders uptime alerts', () => {
     const rule = {
       ...UptimeRuleFixture(),
       type: CombinedAlertType.UPTIME,

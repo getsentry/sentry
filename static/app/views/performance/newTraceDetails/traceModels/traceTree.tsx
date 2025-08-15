@@ -174,6 +174,7 @@ export declare namespace TraceTree {
     profiler_id: string;
     project_id: number;
     project_slug: string;
+    sdk_name: string;
     start_timestamp: number;
     transaction: string;
     transaction_id: string;
@@ -882,14 +883,17 @@ export class TraceTree extends TraceTreeEventDispatcher {
     let missingInstrumentationCount = 0;
 
     TraceTree.ForEachChild(root, child => {
+      const childSdkName = getSdkName(child);
+      const previousSdkName = previous ? getSdkName(previous) : undefined;
+
       if (
         previous &&
         child &&
         ((isSpanNode(previous) && isSpanNode(child)) ||
           (isNonTransactionEAPSpanNode(previous) &&
             isNonTransactionEAPSpanNode(child))) &&
-        shouldAddMissingInstrumentationSpan(child.event?.sdk?.name ?? '') &&
-        shouldAddMissingInstrumentationSpan(previous.event?.sdk?.name ?? '') &&
+        shouldAddMissingInstrumentationSpan(childSdkName) &&
+        shouldAddMissingInstrumentationSpan(previousSdkName) &&
         child.space[0] - previous.space[0] - previous.space[1] >=
           TraceTree.MISSING_INSTRUMENTATION_THRESHOLD_MS
       ) {
@@ -2577,4 +2581,16 @@ export function getNodeDescriptionPrefix(
   const isPrefetch =
     isSpanNode(node) && node.value.data && !!node.value.data['http.request.prefetch'];
   return isPrefetch ? '(prefetch) ' : '';
+}
+
+function getSdkName(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
+  if (isSpanNode(node)) {
+    return node.event?.sdk?.name ?? undefined;
+  }
+
+  if (isEAPSpanNode(node) || isTransactionNode(node)) {
+    return node.value.sdk_name ?? undefined;
+  }
+
+  return undefined;
 }

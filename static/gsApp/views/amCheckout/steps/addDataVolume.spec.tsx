@@ -54,7 +54,7 @@ function assertSliders(sliderInfo: SliderInfo[]) {
   expect(screen.getAllByRole('slider')).toHaveLength(sliderInfo.length);
 }
 
-describe('AddDataVolume for legacy plans', function () {
+describe('AddDataVolume for legacy plans', () => {
   const api = new MockApiClient();
   const {organization, routerProps} = initializeOrg();
   const subscription = SubscriptionFixture({organization});
@@ -84,7 +84,7 @@ describe('AddDataVolume for legacy plans', function () {
     prevStepCompleted: true,
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
@@ -103,7 +103,7 @@ describe('AddDataVolume for legacy plans', function () {
     });
   });
 
-  it('renders a heading', async function () {
+  it('renders a heading', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
@@ -122,7 +122,7 @@ describe('AddDataVolume for legacy plans', function () {
     expect(heading).toBeInTheDocument();
   });
 
-  it('renders with default event volumes', async function () {
+  it('renders with default event volumes', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
@@ -173,7 +173,7 @@ describe('AddDataVolume for legacy plans', function () {
     ]);
   });
 
-  it('renders additional event volume prices, business plan', function () {
+  it('renders additional event volume prices, business plan', () => {
     const props = {
       ...stepProps,
       formData: {
@@ -229,7 +229,7 @@ describe('AddDataVolume for legacy plans', function () {
     ]);
   });
 
-  it('renders event volume prices, team annual plan', function () {
+  it('renders event volume prices, team annual plan', () => {
     const props = {
       ...stepProps,
       activePlan: teamPlanAnnual,
@@ -282,7 +282,7 @@ describe('AddDataVolume for legacy plans', function () {
     ]);
   });
 
-  it('can complete step', async function () {
+  it('can complete step', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
@@ -308,7 +308,7 @@ describe('AddDataVolume for legacy plans', function () {
     expect(within(panel).queryByLabelText('Continue')).not.toBeInTheDocument();
   });
 
-  it('displays performance unit types with feature', function () {
+  it('displays performance unit types with feature', () => {
     const org = OrganizationFixture({features: ['profiling-billing']});
     const props = {
       ...stepProps,
@@ -334,7 +334,7 @@ describe('AddDataVolume for legacy plans', function () {
     expect(transactions).toContain('200M');
   });
 
-  it('does not display performance unit types without feature', function () {
+  it('does not display performance unit types without feature', () => {
     const props = {
       ...stepProps,
       organization,
@@ -359,7 +359,7 @@ describe('AddDataVolume for legacy plans', function () {
   });
 });
 
-describe('AddDataVolume for modern plans', function () {
+describe('AddDataVolume for modern plans', () => {
   const api = new MockApiClient();
   const {organization, routerProps} = initializeOrg();
   const subscription = SubscriptionFixture({organization});
@@ -388,7 +388,7 @@ describe('AddDataVolume for modern plans', function () {
     prevStepCompleted: true,
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/plan-migrations/?applied=0`,
@@ -407,7 +407,7 @@ describe('AddDataVolume for modern plans', function () {
     });
   });
 
-  it('renders a heading', async function () {
+  it('renders a heading', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
@@ -426,7 +426,7 @@ describe('AddDataVolume for modern plans', function () {
     expect(heading).toBeInTheDocument();
   });
 
-  it('renders with default event volumes', async function () {
+  it('renders with default event volumes', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',
@@ -477,7 +477,7 @@ describe('AddDataVolume for modern plans', function () {
     ]);
   });
 
-  it('renders additional event volume prices, business plan', function () {
+  it('renders additional event volume prices, business plan', () => {
     const props = {
       ...stepProps,
       formData: {
@@ -532,7 +532,7 @@ describe('AddDataVolume for modern plans', function () {
     ]);
   });
 
-  it('renders event volume prices, team annual plan', function () {
+  it('renders event volume prices, team annual plan', () => {
     const props = {
       ...stepProps,
       activePlan: teamPlanAnnual,
@@ -585,7 +585,7 @@ describe('AddDataVolume for modern plans', function () {
     ]);
   });
 
-  it('can complete step', async function () {
+  it('can complete step', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/promotions/trigger-check/`,
       method: 'POST',

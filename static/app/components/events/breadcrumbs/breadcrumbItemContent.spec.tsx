@@ -9,8 +9,8 @@ import {
   type BreadcrumbTypeHTTP,
 } from 'sentry/types/breadcrumbs';
 
-describe('BreadcrumbItemContent', function () {
-  it('renders default crumbs with all data', function () {
+describe('BreadcrumbItemContent', () => {
+  it('renders default crumbs with all data', () => {
     const breadcrumb: BreadcrumbTypeDefault = {
       type: BreadcrumbType.DEBUG,
       level: BreadcrumbLevelType.INFO,
@@ -22,7 +22,7 @@ describe('BreadcrumbItemContent', function () {
     expect(screen.getByText('6 items')).toBeInTheDocument();
   });
 
-  it('renders HTTP crumbs with all data', function () {
+  it('renders HTTP crumbs with all data', () => {
     const breadcrumb: BreadcrumbTypeHTTP = {
       type: BreadcrumbType.HTTP,
       level: BreadcrumbLevelType.INFO,
@@ -46,7 +46,7 @@ describe('BreadcrumbItemContent', function () {
     expect(screen.getByText('15080')).toBeInTheDocument();
   });
 
-  it('renders SQL crumbs with all data', function () {
+  it('renders SQL crumbs with all data', () => {
     const breadcrumb: BreadcrumbTypeDefault = {
       type: BreadcrumbType.QUERY,
       level: BreadcrumbLevelType.INFO,
@@ -62,7 +62,7 @@ describe('BreadcrumbItemContent', function () {
     expect(screen.getByText('6 items')).toBeInTheDocument();
   });
 
-  it('renders exception crumbs with all data', function () {
+  it('renders exception crumbs with all data', () => {
     const breadcrumb: BreadcrumbTypeDefault = {
       type: BreadcrumbType.WARNING,
       level: BreadcrumbLevelType.WARNING,
@@ -123,7 +123,7 @@ describe('BreadcrumbItemContent', function () {
     itemWithoutValue.unmount();
   });
 
-  it('renders exception crumbs with array of objects', function () {
+  it('renders exception crumbs with array of objects', () => {
     const breadcrumb: BreadcrumbTypeDefault = {
       type: BreadcrumbType.ERROR,
       level: BreadcrumbLevelType.ERROR,
@@ -143,7 +143,7 @@ describe('BreadcrumbItemContent', function () {
     ).toBeInTheDocument();
   });
 
-  it('applies item limits with fullyExpanded', function () {
+  it('applies item limits with fullyExpanded', () => {
     const longMessage = 'longMessage'.repeat(100);
     const breadcrumb: BreadcrumbTypeDefault = {
       type: BreadcrumbType.DEBUG,

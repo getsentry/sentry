@@ -61,24 +61,27 @@ export const GroupingComponentListItem = styled('li')<{isCollapsible?: boolean}>
     `}
 `;
 
-export const GroupingValue = styled('code')<{valueType: string}>`
+export const GroupingValue = styled('code')<{
+  valueType: string;
+  contributes?: boolean;
+}>`
   display: inline-block;
   margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
   font-size: ${p => p.theme.fontSize.sm};
   padding: 0 ${space(0.25)};
-  background: rgba(112, 163, 214, 0.1);
-  color: ${p => p.theme.textColor};
+  background: ${p => (p.contributes ? 'rgba(112, 163, 214, 0.1)' : 'transparent')};
+  color: ${p => (p.contributes ? p.theme.textColor : p.theme.subText)};
 
-  ${({valueType, theme}) =>
+  ${({valueType, theme, contributes}) =>
     (valueType === 'function' || valueType === 'symbol') &&
     css`
-      font-weight: ${theme.fontWeight.bold};
-      color: ${theme.textColor};
+      font-weight: ${contributes ? theme.fontWeight.bold : 'normal'};
+      color: ${contributes ? theme.textColor : theme.subText};
     `}
 `;
 
 const GroupingComponentWrapper = styled('div')<{isContributing: boolean}>`
-  color: ${p => (p.isContributing ? null : p.theme.textColor)};
+  color: ${p => (p.isContributing ? p.theme.textColor : p.theme.subText)};
 
   ${GroupingValue}, button {
     opacity: 1;

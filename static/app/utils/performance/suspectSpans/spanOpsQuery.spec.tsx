@@ -7,9 +7,9 @@ import {
   SpanSortPercentiles,
 } from 'sentry/views/performance/transactionSummary/transactionSpans/types';
 
-describe('SuspectSpansQuery', function () {
+describe('SuspectSpansQuery', () => {
   let eventView: any, location: any;
-  beforeEach(function () {
+  beforeEach(() => {
     eventView = EventView.fromSavedQuery({
       id: '',
       name: '',
@@ -24,7 +24,7 @@ describe('SuspectSpansQuery', function () {
     };
   });
 
-  it('fetches data on mount', async function () {
+  it('fetches data on mount', async () => {
     const getMock = MockApiClient.addMockResponse({
       url: '/organizations/test-org/events-span-ops/',
       // just asserting that the data is being fetched, no need for actual data here
