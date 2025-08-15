@@ -66,8 +66,10 @@ class ErrorBoundary extends Component<Props, State> {
     }
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(_error: Error | string, errorInfo: React.ErrorInfo) {
     const {errorTag} = this.props;
+
+    const error = typeof _error === 'string' ? new Error(_error) : _error;
 
     this.setState({error});
     Sentry.withScope(scope => {
