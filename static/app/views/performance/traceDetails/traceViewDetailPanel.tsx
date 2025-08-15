@@ -6,6 +6,7 @@ import omit from 'lodash/omit';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Alert} from 'sentry/components/core/alert';
 import {LinkButton} from 'sentry/components/core/button/linkButton';
+import {Flex} from 'sentry/components/core/layout';
 import {Link} from 'sentry/components/core/link';
 import {Tooltip} from 'sentry/components/core/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
@@ -94,16 +95,16 @@ function OpsBreakdown({event}: {event: EventTransaction}) {
     breakdown && (
       <Row
         title={
-          <FlexBox style={{gap: '5px'}}>
+          <Flex align="center" gap="xs">
             {t('Ops Breakdown')}
             <QuestionTooltip
               title={t('Applicable to the children of this event only')}
               size="xs"
             />
-          </FlexBox>
+          </Flex>
         }
       >
-        <div style={{display: 'flex', flexDirection: 'column', gap: space(0.25)}}>
+        <Flex direction="column" gap="2xs">
           {breakdown.slice(0, showingAll ? breakdown.length : 5).map(currOp => {
             const {name, percentage, totalInterval} = currOp;
 
@@ -120,7 +121,7 @@ function OpsBreakdown({event}: {event: EventTransaction}) {
           {breakdown.length > 5 && (
             <a onClick={() => setShowingAll(prev => !prev)}>{renderText}</a>
           )}
-        </div>
+        </Flex>
       </Row>
     )
   );
@@ -288,7 +289,7 @@ function EventDetails({detail, organization, location}: EventDetailProps) {
         </LinkButton>
       </Actions>
 
-      <Title>
+      <Title align="center">
         <Tooltip title={detail.traceFullDetailedEvent.project_slug}>
           <ProjectBadge
             project={
@@ -474,7 +475,7 @@ function SpanDetailsBody({
 
   return (
     <Wrapper>
-      <Title>
+      <Title align="center">
         <Tooltip title={detail.event.projectSlug}>
           <ProjectBadge
             project={project ? project : {slug: detail.event.projectSlug || ''}}
@@ -556,17 +557,13 @@ const Wrapper = styled('div')`
   }
 `;
 
-const FlexBox = styled('div')`
-  display: flex;
-  align-items: center;
-`;
 const Actions = styled('div')`
   display: flex;
   align-items: center;
   justify-content: flex-end;
 `;
 
-const Title = styled(FlexBox)`
+const Title = styled(Flex)`
   gap: ${space(2)};
 `;
 

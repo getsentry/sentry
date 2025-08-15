@@ -30,7 +30,7 @@ const CHART_HEIGHT = 180;
 
 function ChartError() {
   return (
-    <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
+    <Flex height={CHART_HEIGHT} justify="center" align="center">
       <ErrorPanel>
         <IconWarning color="gray300" size="lg" />
         <div>{t('Error loading chart data')}</div>
@@ -41,7 +41,7 @@ function ChartError() {
 
 function ChartLoading() {
   return (
-    <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
+    <Flex height={CHART_HEIGHT} justify="center" align="center">
       <Placeholder height={`${CHART_HEIGHT - 20}px`} />
     </Flex>
   );

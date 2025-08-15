@@ -144,7 +144,7 @@ function MetricDetectorChart({
 
   if (isLoading) {
     return (
-      <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
+      <Flex height={CHART_HEIGHT} justify="center" align="center">
         <Placeholder height={`${CHART_HEIGHT - 20}px`} />
       </Flex>
     );
@@ -152,7 +152,7 @@ function MetricDetectorChart({
 
   if (error) {
     return (
-      <Flex style={{height: CHART_HEIGHT}} justify="center" align="center">
+      <Flex height={CHART_HEIGHT} justify="center" align="center">
         <ErrorPanel>
           <IconWarning color="gray300" size="lg" />
           <div>{t('Error loading chart data')}</div>

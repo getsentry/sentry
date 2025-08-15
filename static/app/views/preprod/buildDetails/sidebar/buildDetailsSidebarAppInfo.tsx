@@ -45,11 +45,11 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
 
       {props.sizeInfo && (
         <Flex gap="sm">
-          <Flex direction="column" gap="xs" style={{flex: 1}}>
+          <Flex direction="column" gap="xs" flex={1}>
             <Heading as="h4">{installSizeText}</Heading>
             <Text size="md">{formatBytesBase10(props.sizeInfo.install_size_bytes)}</Text>
           </Flex>
-          <Flex direction="column" gap="xs" style={{flex: 1}}>
+          <Flex direction="column" gap="xs" flex={1}>
             <Heading as="h4">{t('Download Size')}</Heading>
             <Text size="md">{formatBytesBase10(props.sizeInfo.download_size_bytes)}</Text>
           </Flex>
