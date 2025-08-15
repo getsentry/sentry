@@ -5,8 +5,6 @@ from collections.abc import Callable, Collection, Sequence
 from dataclasses import asdict
 from typing import Any, NotRequired, TypedDict
 
-import sentry_sdk
-
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssueEvidenceData
@@ -207,16 +205,13 @@ class BaseIssueAlertHandler(ABC):
         This method will collect the futures from the activate_downstream_actions method.
         Based off of rule_processor.apply in rules/processing/processor.py
         """
-        with sentry_sdk.start_span(
-            op="workflow_engine.handlers.action.notification.issue_alert.invoke_legacy_registry.activate_downstream_actions"
-        ):
-            if not isinstance(event_data.event, GroupEvent):
-                raise ValueError(
-                    f"WorkflowEventData.event expected GroupEvent, but received: {type(event_data.event).__name__}"
-                )
+        if not isinstance(event_data.event, GroupEvent):
+            raise ValueError(
+                f"WorkflowEventData.event expected GroupEvent, but received: {type(event_data.event).__name__}"
+            )
 
-            grouped_futures = activate_downstream_actions(rule, event_data.event, notification_uuid)
-            return grouped_futures.values()
+        grouped_futures = activate_downstream_actions(rule, event_data.event, notification_uuid)
+        return grouped_futures.values()
 
     @staticmethod
     def execute_futures(
@@ -229,16 +224,13 @@ class BaseIssueAlertHandler(ABC):
         This method will execute the futures.
         Based off of process_rules in post_process.py
         """
-        with sentry_sdk.start_span(
-            op="workflow_engine.handlers.action.notification.issue_alert.execute_futures"
-        ):
-            if not isinstance(event_data.event, GroupEvent):
-                raise ValueError(
-                    "WorkflowEventData.event is not a GroupEvent when evaluating issue alerts"
-                )
+        if not isinstance(event_data.event, GroupEvent):
+            raise ValueError(
+                "WorkflowEventData.event is not a GroupEvent when evaluating issue alerts"
+            )
 
-            for callback, future in futures:
-                safe_execute(callback, event_data.event, future)
+        for callback, future in futures:
+            safe_execute(callback, event_data.event, future)
 
     @staticmethod
     def send_test_notification(
@@ -256,11 +248,8 @@ class BaseIssueAlertHandler(ABC):
                 "WorkflowEventData.event is not a GroupEvent when sending test notification"
             )
 
-        with sentry_sdk.start_span(
-            op="workflow_engine.handlers.action.notification.issue_alert.execute_futures"
-        ):
-            for callback, future in futures:
-                callback(event_data.event, future)
+        for callback, future in futures:
+            callback(event_data.event, future)
 
     @classmethod
     def invoke_legacy_registry(
@@ -276,38 +265,34 @@ class BaseIssueAlertHandler(ABC):
         2. activate_downstream_actions
         3. execute_futures (also in post_process process_rules)
         """
+        # Create a notification uuid
+        notification_uuid = str(uuid.uuid4())
 
-        with sentry_sdk.start_span(
-            op="workflow_engine.handlers.action.notification.issue_alert.invoke_legacy_registry"
-        ):
-            # Create a notification uuid
-            notification_uuid = str(uuid.uuid4())
+        # Create a rule
+        rule = cls.create_rule_instance_from_action(action, detector, event_data)
 
-            # Create a rule
-            rule = cls.create_rule_instance_from_action(action, detector, event_data)
+        logger.info(
+            "notification_action.execute_via_issue_alert_handler",
+            extra={
+                "action_id": action.id,
+                "detector_id": detector.id,
+                "event_data": asdict(event_data),
+                "rule_id": rule.id,
+                "rule_project_id": rule.project.id,
+                "rule_environment_id": rule.environment_id,
+                "rule_label": rule.label,
+                "rule_data": rule.data,
+            },
+        )
+        # Get the futures
+        futures = cls.get_rule_futures(event_data, rule, notification_uuid)
 
-            logger.info(
-                "notification_action.execute_via_issue_alert_handler",
-                extra={
-                    "action_id": action.id,
-                    "detector_id": detector.id,
-                    "event_data": asdict(event_data),
-                    "rule_id": rule.id,
-                    "rule_project_id": rule.project.id,
-                    "rule_environment_id": rule.environment_id,
-                    "rule_label": rule.label,
-                    "rule_data": rule.data,
-                },
-            )
-            # Get the futures
-            futures = cls.get_rule_futures(event_data, rule, notification_uuid)
-
-            # Execute the futures
-            # If the rule id is -1, we are sending a test notification
-            if rule.id == TEST_NOTIFICATION_ID:
-                cls.send_test_notification(event_data, futures)
-            else:
-                cls.execute_futures(event_data, futures)
+        # Execute the futures
+        # If the rule id is -1, we are sending a test notification
+        if rule.id == TEST_NOTIFICATION_ID:
+            cls.send_test_notification(event_data, futures)
+        else:
+            cls.execute_futures(event_data, futures)
 
 
 class TicketingIssueAlertHandler(BaseIssueAlertHandler):
