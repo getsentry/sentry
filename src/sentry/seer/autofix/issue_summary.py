@@ -10,7 +10,7 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
-from sentry import eventstore, features, quotas
+from sentry import eventstore, features, options, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import DataCategory, ObjectStatus
@@ -162,8 +162,8 @@ def _call_seer(
     )
 
     url = settings.SEER_AUTOFIX_URL
-    # Use the summarization URL in S4S environments
-    if getattr(settings, "CUSTOMER_ID", None) == "sentry4sentry":
+    # route to summarization URL if option is true
+    if options.get("seer.issue-summary.use-summarization-url"):
         url = settings.SEER_SUMMARIZATION_URL
 
     response = requests.post(

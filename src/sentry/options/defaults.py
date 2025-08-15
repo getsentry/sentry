@@ -1047,6 +1047,14 @@ register(
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Route issue summary requests to the summarization URL instead of the autofix URL
+register(
+    "seer.issue-summary.use-summarization-url",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "seer.anomaly-detection-killswitch.enabled",
     default=False,
