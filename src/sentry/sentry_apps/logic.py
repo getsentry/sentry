@@ -141,7 +141,7 @@ class SentryAppUpdater:
     def _update_features(self, user: User | RpcUser) -> None:
         if self.features is not None:
             if not _is_elevated_user(user) and self.sentry_app.status == SentryAppStatus.PUBLISHED:
-                raise BadRequest(message="Cannot update features on a published integration.")
+                raise BadRequest(detail="Cannot update features on a published integration.")
 
             IntegrationFeature.objects.clean_update(
                 incoming_features=self.features,
