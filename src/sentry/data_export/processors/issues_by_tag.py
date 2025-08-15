@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import NamedTuple
 
-from sentry import tagstore
 from sentry.models.group import Group, get_group_with_redirect
 from sentry.models.project import Project
+from sentry.services import tagstore
 from sentry.tagstore.types import GroupTagValue
 from sentry.utils.eventuser import EventUser
 

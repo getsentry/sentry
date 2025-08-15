@@ -2,7 +2,7 @@ from unittest import mock
 
 from django.urls import reverse
 
-from sentry import tagstore
+from sentry.services import tagstore
 from sentry.tagstore.base import TagKeyStatus
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now

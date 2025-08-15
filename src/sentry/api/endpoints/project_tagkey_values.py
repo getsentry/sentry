@@ -1,7 +1,6 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import tagstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -11,6 +10,7 @@ from sentry.api.helpers.environments import get_environment_id
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.models.environment import Environment
+from sentry.services import tagstore
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 

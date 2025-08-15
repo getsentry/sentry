@@ -2227,11 +2227,15 @@ SENTRY_NODESTORE = "sentry.services.nodestore.django.DjangoNodeStorage"
 SENTRY_NODESTORE_OPTIONS: dict[str, Any] = {}
 
 # Tag storage backend
-SENTRY_TAGSTORE = os.environ.get("SENTRY_TAGSTORE", "sentry.tagstore.snuba.SnubaTagStorage")
+SENTRY_TAGSTORE = os.environ.get(
+    "SENTRY_TAGSTORE", "sentry.services.tagstore.snuba.SnubaTagStorage"
+)
 SENTRY_TAGSTORE_OPTIONS: dict[str, Any] = {}
 
 # Flag storage backend
-SENTRY_FLAGSTORE = os.environ.get("SENTRY_FLAGSTORE", "sentry.tagstore.snuba.SnubaFlagStorage")
+SENTRY_FLAGSTORE = os.environ.get(
+    "SENTRY_FLAGSTORE", "sentry.services.tagstore.snuba.SnubaFlagStorage"
+)
 SENTRY_FLAGSTORE_OPTIONS: dict[str, Any] = {}
 
 # Search backend

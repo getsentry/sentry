@@ -1,10 +1,10 @@
 from rest_framework import status
 
-from sentry import tagstore
 from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.integrations.messaging.types import LEVEL_TO_COLOR
 from sentry.plugins.base.structs import Notification
 from sentry.plugins.bases import notify
+from sentry.services import tagstore
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
