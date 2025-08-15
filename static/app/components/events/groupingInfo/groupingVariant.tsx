@@ -16,7 +16,7 @@ import type {
 import {EventGroupVariantType} from 'sentry/types/event';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
-import GroupingComponent from './groupingComponent';
+import GroupingComponent, {GroupingHint} from './groupingComponent';
 
 interface GroupingVariantProps {
   event: Event;
@@ -60,14 +60,10 @@ function addFingerprintInfo(
       t('Client fingerprint values'),
       <TextWithQuestionTooltip key="type">
         {variant.client_values?.join(', ') || ''}
-        {'matched_rule' in variant && ( // Only display override tooltip if overriding actually happened
-          <QuestionTooltip
-            size="xs"
-            position="top"
-            title={t(
-              'The client sent a fingerprint that was overridden by a server-side fingerprinting rule.'
-            )}
-          />
+        {'matched_rule' in variant && (
+          <GroupingHint>
+            {`(${t('overridden by server-side fingerprint rule')})`}
+          </GroupingHint>
         )}
       </TextWithQuestionTooltip>,
     ]);

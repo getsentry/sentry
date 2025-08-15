@@ -19,8 +19,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetLegendNameEncoderDecoder from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
@@ -72,8 +70,6 @@ type Props = {
   windowWidth?: number;
 };
 
-const WidgetCardChartWithRouter = withSentryRouter(WidgetCardChart);
-
 export function WidgetCardChartContainer({
   organization,
   selection,
@@ -86,7 +82,6 @@ export function WidgetCardChartContainer({
   onZoom,
   onLegendSelectChanged,
   legendOptions,
-  expandNumbers,
   onDataFetched,
   noPadding,
   onWidgetSplitDecision,
@@ -194,7 +189,7 @@ export function WidgetCardChartContainer({
             {typeof renderErrorMessage === 'function'
               ? renderErrorMessage(errorOrEmptyMessage)
               : null}
-            <WidgetCardChartWithRouter
+            <WidgetCardChart
               disableZoom={disableZoom}
               timeseriesResults={modifiedTimeseriesResults}
               tableResults={tableResults}
@@ -202,10 +197,8 @@ export function WidgetCardChartContainer({
               loading={loading}
               widget={widget}
               selection={selection}
-              organization={organization}
               isMobile={isMobile}
               windowWidth={windowWidth}
-              expandNumbers={expandNumbers}
               onZoom={onZoom}
               timeseriesResultsTypes={timeseriesResultsTypes}
               noPadding={noPadding}
@@ -226,7 +219,6 @@ export function WidgetCardChartContainer({
               minTableColumnWidth={minTableColumnWidth}
               isSampled={isSampled}
               showLoadingText={showLoadingText}
-              theme={theme}
               onWidgetTableSort={onWidgetTableSort}
               onWidgetTableResizeColumn={onWidgetTableResizeColumn}
               disableTableActions={disableTableActions}

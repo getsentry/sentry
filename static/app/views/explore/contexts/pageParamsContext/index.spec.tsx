@@ -157,10 +157,10 @@ describe('PageParamsProvider', () => {
         aggregateSortBys: [{field: 'count(span.self_time)', kind: 'asc'}],
         aggregateFields: [
           {groupBy: 'browser.name'},
+          {groupBy: 'sdk.name'},
           new Visualize('count(span.self_time)', {
             chartType: ChartType.AREA,
           }),
-          {groupBy: 'sdk.name'},
         ],
       })
     );

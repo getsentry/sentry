@@ -51,7 +51,7 @@ def _get_request_exc_extras(e: requests.exceptions.RequestException) -> dict[str
 class ReplaySummaryPermission(ProjectPermission):
     scope_map = {
         "GET": ["event:read", "event:write", "event:admin"],
-        "POST": ["event:write", "event:admin"],
+        "POST": ["event:read", "event:write", "event:admin"],
         "PUT": [],
         "DELETE": [],
     }

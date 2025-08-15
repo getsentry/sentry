@@ -690,7 +690,6 @@ const MM2_PLANS: Record<string, Plan> = {
       'custom-symbol-sources',
       'data-forwarding',
       'discard-groups',
-      'dashboards-basic',
       'discover-query',
       'integrations-codeowners',
       'integrations-event-hooks',
