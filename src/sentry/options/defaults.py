@@ -529,7 +529,6 @@ register(
     "replay.consumer.recording.profiling.enabled",
     type=Bool,
     default=False,
-    # default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

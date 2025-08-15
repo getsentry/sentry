@@ -354,9 +354,6 @@ def configure_sdk():
     else:
         sentry_saas_transport = None
 
-    # print(
-    #     "[DEBUG] SENTRY_CONTINUOUS_PROFILING_ENABLED", settings.SENTRY_CONTINUOUS_PROFILING_ENABLED
-    # )
     if settings.SENTRY_CONTINUOUS_PROFILING_ENABLED:
         sdk_options["profile_session_sample_rate"] = float(
             settings.SENTRY_PROFILES_SAMPLE_RATE or 0
