@@ -18,7 +18,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {OnDemandBudgetMode, type OnDemandBudgets} from 'getsentry/types';
-import {isBizPlanFamily} from 'getsentry/utils/billing';
+import {isBizPlanFamily, isDeveloperPlan} from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import trackGetsentryAnalytics from 'getsentry/utils/trackGetsentryAnalytics';
 import StepHeader from 'getsentry/views/amCheckout/steps/stepHeader';
@@ -319,6 +319,17 @@ function SetPayAsYouGo({
       </StepFooter>
     );
   };
+
+  if (
+    isDeveloperPlan(activePlan) &&
+    (!formData.selectedProducts ||
+      Object.values(formData.selectedProducts).every(
+        productConfig => !productConfig.enabled
+      ))
+  ) {
+    // Free plan can only use PAYG if additional products are selected
+    return null;
+  }
 
   return (
     <Panel>

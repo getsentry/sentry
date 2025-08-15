@@ -40,11 +40,9 @@ export type PlanContent = {
   hasMoreLink?: boolean;
 };
 
-function getContentForPlan(
-  plan: 'team' | 'business',
-  checkoutTier?: PlanTier
-): PlanContent {
-  if (plan === 'team') {
+function getContentForPlan(plan: Plan, checkoutTier?: PlanTier): PlanContent {
+  // TODO(checkout-v3): update copy
+  if (isTeamPlanFamily(plan)) {
     return {
       description: t('Resolve errors and track application performance as a team.'),
       features: {
@@ -55,21 +53,33 @@ function getContentForPlan(
     };
   }
 
+  if (isBizPlanFamily(plan)) {
+    return {
+      description: t(
+        'Everything in the Team plan + deeper insight into your application health.'
+      ),
+      features: {
+        discover: t('Advanced analytics with Discover'),
+        enhanced_priority_alerts: t('Enhanced issue priority and alerting'),
+        dashboard: t('Custom dashboards'),
+        ...(checkoutTier === PlanTier.AM3
+          ? {application_insights: t('Application Insights')}
+          : {cross_project_visibility: t('Cross-project visibility')}),
+        advanced_filtering: t('Advanced server-side filtering'),
+        saml: t('SAML support'),
+      },
+      hasMoreLink: true,
+    };
+  }
+
   return {
-    description: t(
-      'Everything in the Team plan + deeper insight into your application health.'
-    ),
+    description: t('For solo devs working on small projects'),
     features: {
-      discover: t('Advanced analytics with Discover'),
-      enhanced_priority_alerts: t('Enhanced issue priority and alerting'),
-      dashboard: t('Custom dashboards'),
-      ...(checkoutTier === PlanTier.AM3
-        ? {application_insights: t('Application Insights')}
-        : {cross_project_visibility: t('Cross-project visibility')}),
-      advanced_filtering: t('Advanced server-side filtering'),
-      saml: t('SAML support'),
+      one_member: t('1 member'),
+      error_monitoring: t('Error monitoring'),
+      tracing: t('Tracing'),
+      email_alerts: t('Alerts and notifications via email'),
     },
-    hasMoreLink: true,
   };
 }
 
@@ -139,6 +149,7 @@ function PlanSelect({
   const {data: promotionData, refetch} = usePromotionTriggerCheck(organization);
   const discountInfo = promotion?.discountInfo;
   let trailingItems: React.ReactNode = null;
+  const planOptions = getPlanOptions({billingConfig, activePlan});
   if (showSubscriptionDiscount({activePlan, discountInfo}) && discountInfo) {
     const percent = discountInfo.amount / 100;
     trailingItems = (
@@ -180,7 +191,6 @@ function PlanSelect({
     const shouldShowDefaultPayAsYouGo =
       isNewPayingCustomer(subscription, organization) && checkoutTier === PlanTier.AM3; // TODO(isabella): Test if this behavior works as expected on older tiers
 
-    const planOptions = getPlanOptions({billingConfig, activePlan});
     const planToPriorPlan = planOptions.reduce(
       (acc, plan, i) => {
         if (i > 0) {
@@ -211,10 +221,7 @@ function PlanSelect({
               : plan.basePrice;
           const basePrice = formatPrice({cents});
 
-          let planContent = getContentForPlan(
-            isTeamPlanFamily(plan) ? 'team' : 'business',
-            checkoutTier
-          );
+          let planContent = getContentForPlan(plan, checkoutTier);
           const highlightedFeatures = getHighlightedFeatures(referrer);
           const isFeaturesCheckmarked = !subscription.isFree && isTeamPlanFamily(plan);
 
@@ -280,11 +287,12 @@ function PlanSelect({
   };
 
   const renderFooter = () => {
-    const bizPlanContent = getContentForPlan('business', checkoutTier);
+    const bizPlan = planOptions.find(p => isBizPlanFamily(p));
+    const bizPlanContent = bizPlan ? getContentForPlan(bizPlan, checkoutTier) : undefined;
     let missingFeatures: string[] = [];
 
     if (isTeamPlanFamily(activePlan)) {
-      const selectedPlanContent = getContentForPlan('team', checkoutTier);
+      const selectedPlanContent = getContentForPlan(activePlan, checkoutTier);
       missingFeatures = getHighlightedFeatures(referrer).filter(
         feature => !selectedPlanContent.features[feature]
       );
@@ -300,7 +308,7 @@ function PlanSelect({
                 missingFeatures: (
                   <Oxfordize>
                     {missingFeatures.map(feature => (
-                      <b key={feature}>{bizPlanContent.features[feature]}</b>
+                      <b key={feature}>{bizPlanContent?.features[feature]}</b>
                     ))}
                   </Oxfordize>
                 ),

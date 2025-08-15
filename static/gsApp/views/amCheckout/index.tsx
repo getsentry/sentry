@@ -30,6 +30,7 @@ import withSubscription from 'getsentry/components/withSubscription';
 import ZendeskLink from 'getsentry/components/zendeskLink';
 import {
   ANNUAL,
+  DEFAULT_TIER,
   MONTHLY,
   PAYG_BUSINESS_DEFAULT,
   PAYG_TEAM_DEFAULT,
@@ -47,6 +48,7 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {
+  getAmPlanTier,
   hasActiveVCFeature,
   hasPartnerMigrationFeature,
   hasPerformance,
@@ -76,7 +78,7 @@ import type {
   SelectedProductData,
 } from 'getsentry/views/amCheckout/types';
 import {SelectableProduct} from 'getsentry/views/amCheckout/types';
-import {getBucket, hasCheckoutV3} from 'getsentry/views/amCheckout/utils';
+import {getBucket} from 'getsentry/views/amCheckout/utils';
 import {
   getTotalBudget,
   hasOnDemandBudgetsFeature,
@@ -89,6 +91,7 @@ type Props = {
   checkoutTier: PlanTier;
   isError: boolean;
   isLoading: boolean;
+  isNewCheckout: boolean;
   onToggleLegacy: (tier: string) => void;
   organization: Organization;
   queryClient: QueryClient;
@@ -224,7 +227,7 @@ class AMCheckout extends Component<Props, State> {
         data: {tier: checkoutTier},
       });
 
-      const planList = this.getPaidPlans(config);
+      const planList = this.getCheckoutPlans(config);
       const billingConfig = {...config, planList};
       const formData = this.getInitialData(billingConfig);
 
@@ -239,19 +242,21 @@ class AMCheckout extends Component<Props, State> {
     this.setState({loading: false});
   }
 
-  getPaidPlans(billingConfig: BillingConfig) {
-    const paidPlans = billingConfig.planList.filter(
+  getCheckoutPlans(billingConfig: BillingConfig) {
+    const {isNewCheckout} = this.props;
+    const checkoutPlans = billingConfig.planList.filter(
       plan =>
-        plan.basePrice &&
+        // include the free plan only if checkout-v3 is enabled and the plan is from the latest tier
+        (plan.basePrice || (isNewCheckout && getAmPlanTier(plan.id) === DEFAULT_TIER)) &&
         plan.userSelectable &&
         ((plan.billingInterval === MONTHLY && plan.contractInterval === MONTHLY) ||
           (plan.billingInterval === ANNUAL && plan.contractInterval === ANNUAL))
     );
 
-    if (!paidPlans) {
+    if (!checkoutPlans) {
       throw new Error('Cannot get plan options');
     }
-    return paidPlans;
+    return checkoutPlans;
   }
 
   get checkoutSteps() {
@@ -621,8 +626,14 @@ class AMCheckout extends Component<Props, State> {
   };
 
   renderSteps() {
-    const {organization, onToggleLegacy, subscription, checkoutTier, promotionData} =
-      this.props;
+    const {
+      organization,
+      onToggleLegacy,
+      subscription,
+      checkoutTier,
+      promotionData,
+      isNewCheckout,
+    } = this.props;
     const {currentStep, completedSteps, formData, billingConfig} = this.state;
 
     const promoClaimed = getCompletedOrActivePromotion(promotionData);
@@ -652,7 +663,6 @@ class AMCheckout extends Component<Props, State> {
       const isActive = currentStep === stepNumber;
       const isCompleted = !isActive && completedSteps.has(stepNumber);
       const prevStepCompleted = completedSteps.has(stepNumber - 1);
-      const isNewCheckout = hasCheckoutV3(organization); // TODO(checkout-v3): remove post-GA
 
       return (
         <CheckoutStep
