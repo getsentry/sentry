@@ -948,6 +948,8 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Rollout rate to route issue summary requests to the summarization URL
 register(
     "issues.summary.summarization-url-rollout-rate",
     type=Float,
@@ -1053,8 +1055,6 @@ register(
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Route issue summary requests to the summarization URL instead of the autofix URL
 register(
     "seer.anomaly-detection-killswitch.enabled",
     default=False,
