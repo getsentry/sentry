@@ -948,8 +948,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Rollout rate to route issue summary requests to the summarization URL
 register(
     "issues.summary.summarization-url-rollout-rate",
     type=Float,
