@@ -494,6 +494,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "org.slf4j.helpers.Util$ClassContextSecurityManager " "in getExtraClassContext"
         )
 
+    @pytest.mark.skip(reason="flaky: #97930")
     @requires_symbolicator
     @pytest.mark.symbolicator
     def test_resolving_does_not_fail_when_no_value(self) -> None:
