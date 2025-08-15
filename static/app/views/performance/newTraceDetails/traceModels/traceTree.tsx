@@ -1109,7 +1109,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
       let matchCount = 0;
 
       while (index < node.children.length) {
-        // console.log('node');
         // Skip until we find a span candidate
         if (
           !isSpanNode(node.children[index]!) &&
