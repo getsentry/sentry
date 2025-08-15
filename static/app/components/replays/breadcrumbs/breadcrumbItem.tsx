@@ -75,7 +75,10 @@ export default function BreadcrumbItem({
       return;
     }
 
-    if (isPending !== prevExtractState.current || showSnippet !== prevShowSnippet.current) {
+    if (
+      isPending !== prevExtractState.current ||
+      showSnippet !== prevShowSnippet.current
+    ) {
       prevExtractState.current = isPending;
       prevShowSnippet.current = showSnippet;
       updateDimensions();
