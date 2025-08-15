@@ -333,6 +333,9 @@ export function getShortInterval(billingInterval: string): string {
 }
 
 function getWithBytes(gigabytes: number): string {
+  if (gigabytes >= 1000) {
+    return `${(gigabytes / 1000).toLocaleString()} TB`;
+  }
   return `${gigabytes.toLocaleString()} GB`;
 }
 
