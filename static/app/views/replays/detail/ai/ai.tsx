@@ -49,6 +49,17 @@ export default function Ai() {
     startSummaryRequest,
   } = useReplaySummaryContext();
 
+  if (replayRecord?.project_id && !project) {
+    return (
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <EndStateContainer>
+          <img src={replayEmptyState} height={300} alt="" />
+          <div>{t('Project not found. Unable to load replay summary.')}</div>
+        </EndStateContainer>
+      </Wrapper>
+    );
+  }
+
   if (!organization.features.includes('replay-ai-summaries') || !areAiFeaturesAllowed) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
@@ -106,37 +117,6 @@ export default function Ai() {
     );
   }
 
-  // checking this prevents initial flicker
-  const summaryNotComplete =
-    summaryData?.status &&
-    [ReplaySummaryStatus.NOT_STARTED, ReplaySummaryStatus.PROCESSING].includes(
-      summaryData?.status
-    );
-
-  if (isSummaryPending || isPolling || summaryNotComplete) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <LoadingContainer>
-          <div>
-            <img src={loadingGif} style={{maxHeight: 400}} alt={t('Loading...')} />
-          </div>
-          <div>{t('This might take a few moments...')}</div>
-        </LoadingContainer>
-      </Wrapper>
-    );
-  }
-
-  if (replayRecord?.project_id && !project) {
-    return (
-      <Wrapper data-test-id="replay-details-ai-summary-tab">
-        <EndStateContainer>
-          <img src={replayEmptyState} height={300} alt="" />
-          <div>{t('Project not found. Unable to load replay summary.')}</div>
-        </EndStateContainer>
-      </Wrapper>
-    );
-  }
-
   if (isError) {
     return (
       <Wrapper data-test-id="replay-details-ai-summary-tab">
@@ -161,6 +141,26 @@ export default function Ai() {
             </Button>
           </div>
         </EndStateContainer>
+      </Wrapper>
+    );
+  }
+
+  // checking this prevents initial flicker
+  const summaryNotComplete =
+    summaryData?.status &&
+    [ReplaySummaryStatus.NOT_STARTED, ReplaySummaryStatus.PROCESSING].includes(
+      summaryData?.status
+    );
+
+  if (isSummaryPending || isPolling || summaryNotComplete) {
+    return (
+      <Wrapper data-test-id="replay-details-ai-summary-tab">
+        <LoadingContainer>
+          <div>
+            <img src={loadingGif} style={{maxHeight: 400}} alt={t('Loading...')} />
+          </div>
+          <div>{t('This might take a few moments...')}</div>
+        </LoadingContainer>
       </Wrapper>
     );
   }
