@@ -14,6 +14,7 @@ from pydantic import BaseModel, validator
 import sentry.workflow_engine.buffer as buffer
 from sentry import features, nodestore, options
 from sentry.buffer.base import BufferField
+from sentry.constants import ObjectStatus
 from sentry.db import models
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -748,6 +749,9 @@ def fire_actions_for_groups(
                     },
                 )
                 total_actions += len(filtered_actions)
+
+                # We only want to fire active actions
+                filtered_actions = filtered_actions.filter(status=ObjectStatus.ACTIVE)
 
                 fire_actions(filtered_actions, detector, workflow_event_data)
 
