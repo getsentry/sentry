@@ -17,6 +17,8 @@ from sentry_sdk import set_tag
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey, UseCase
 from sentry.replays.usecases.ingest import (
     DropEvent,
     Event,
@@ -79,17 +81,46 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 # Processing Task
 
 
+def _get_replay_profiling_project_key():
+    """Get or create a project key specifically for replay consumer profiling data."""
+    try:
+        internal_project = Project.objects.get(slug="sentry-replay-consumer-profiling")
+        profiling_key, _ = ProjectKey.objects.get_or_create(
+            use_case=UseCase.REPLAY_PROFILING.value,
+            project=internal_project,
+            defaults={"label": "Replay Consumer Profiling"},
+        )
+        return profiling_key
+    except Project.DoesNotExist:
+        logger.warning("Replay profiling project is not configured")
+        return None
+
+
 def process_message_with_options(
     message: Message[KafkaPayload],
 ) -> ProcessedEvent | FilteredPayload:
     profiling_enabled = options.get(
         "replay.consumer.recording.profiling.enabled",
     )
+
     if profiling_enabled:
+        profiling_project_key = _get_replay_profiling_project_key()
+        if profiling_project_key is not None:
+            sentry_sdk.init(
+                dsn=profiling_project_key.dsn_public,
+                traces_sample_rate=0.0,  # send only profiling data
+                profile_session_sample_rate=getattr(
+                    settings, "SENTRY_REPLAY_CONSUMER_PROFILING_SAMPLE_RATE", 1.0
+                ),
+                profile_lifecycle="manual",
+            )
         sentry_sdk.profiler.start_profiler()
+
     result = process_message(message)
+
     if profiling_enabled:
         sentry_sdk.profiler.stop_profiler()
+
     return result
 
 
@@ -189,9 +220,22 @@ def commit_message_with_options(message: Message[ProcessedEvent]) -> None:
     profiling_enabled = options.get(
         "replay.consumer.recording.profiling.enabled",
     )
+
     if profiling_enabled:
+        profiling_project_key = _get_replay_profiling_project_key()
+        if profiling_project_key is not None:
+            sentry_sdk.init(
+                dsn=profiling_project_key.dsn_public,
+                traces_sample_rate=0.0,  # send only profiling data
+                profile_session_sample_rate=getattr(
+                    settings, "SENTRY_REPLAY_CONSUMER_PROFILING_SAMPLE_RATE", 1.0
+                ),
+                profile_lifecycle="manual",
+            )
         sentry_sdk.profiler.start_profiler()
+
     commit_message(message)
+
     if profiling_enabled:
         sentry_sdk.profiler.stop_profiler()
 
