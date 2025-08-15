@@ -696,7 +696,7 @@ export function replaceFreeTextTokens(
     }
   });
 
-  // case when there is a span.description already present
+  // case when there is a replace key and value present
   if (replaceToken) {
     const previousValue =
       replaceToken.value.text.startsWith('[') && replaceToken.value.text.endsWith(']')
