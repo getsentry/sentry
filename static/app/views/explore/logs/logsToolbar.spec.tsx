@@ -137,7 +137,7 @@ describe('LogsToolbar', () => {
       );
     });
 
-    it('can add/delete visualizes', async function () {
+    it('can add/delete visualizes', async () => {
       const {router} = render(
         <Wrapper>
           <LogsToolbar
@@ -200,7 +200,7 @@ describe('LogsToolbar', () => {
       );
     });
 
-    it('can add/delete group bys', async function () {
+    it('can add/delete group bys', async () => {
       const {router} = render(
         <Wrapper>
           <LogsToolbar
