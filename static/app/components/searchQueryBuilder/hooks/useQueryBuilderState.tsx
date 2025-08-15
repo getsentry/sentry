@@ -549,18 +549,28 @@ function updateFilterKey(
 
 const ALPHANUMERIC_REGEX = /[a-zA-Z0-9]/;
 
+/**
+ * This function is used to replace free text tokens with the specified
+ * `replaceRawSearchKeys` prop from `SearchQueryBuilder`. This function also handles
+ * escaping values, as well as merging the previously created filter.
+ *
+ * Example, `replaceRawSearchKeys` set to `['span.description']`
+ *
+ * 1. User types `text` -> `span.description:*text*`
+ * 2. User types `some text` -> `span.description:"*some text*"`
+ * 3. `span.description:*test*` already exists, user types `some text` -> `span.
+ * description:[*test*,"*some text*"]`
+ */
 export function replaceFreeTextTokens(
   action: UpdateFreeTextAction | ReplaceTokensWithTextAction,
   getFieldDefinition: FieldDefinitionGetter,
   replaceRawSearchKeys: string[],
   currentQuery: string
 ) {
-  // if the free text is empty, return early
   if (!action.text || action.text === '' || replaceRawSearchKeys.length === 0) {
     return undefined;
   }
 
-  // if the free text is not actually free text i.e. user entered a filter, return early
   const actionTokens = parseQueryBuilderValue(action.text, getFieldDefinition) ?? [];
   if (actionTokens.every(token => token.type !== Token.FREE_TEXT)) {
     return undefined;
@@ -571,19 +581,16 @@ export function replaceFreeTextTokens(
     return undefined;
   }
 
-  // Single pass to find replace token
   const primarySearchKey = replaceRawSearchKeys[0] ?? '';
-  // Find replace token and free text in single passes
   let replaceToken: TokenResult<Token.FILTER> | undefined;
   const freeTextToken = actionTokens.find(
     token => token.type === Token.FREE_TEXT && ALPHANUMERIC_REGEX.test(token.value)
   );
 
-  // Single pass through tokens for replace token
   for (const token of tokens) {
     if (token.type === Token.FILTER && token.text.includes(primarySearchKey)) {
       replaceToken = token;
-      break; // Early exit once found
+      break;
     }
   }
 
@@ -591,9 +598,8 @@ export function replaceFreeTextTokens(
   if (!valueText) {
     return undefined;
   }
-
   const values = escapeTagValue(`*${valueText}*`);
-  // Combine both action and current tokens, and filter out the free text tokens
+
   const filteredTokens = new Set<string>();
   actionTokens.forEach(token => {
     if (token.type !== Token.FREE_TEXT && !token.text.includes(primarySearchKey)) {
