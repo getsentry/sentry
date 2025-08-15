@@ -16,7 +16,7 @@ import type {
 import {EventGroupVariantType} from 'sentry/types/event';
 import {capitalize} from 'sentry/utils/string/capitalize';
 
-import GroupingComponent from './groupingComponent';
+import GroupingComponent, {GroupingHint} from './groupingComponent';
 
 interface GroupingVariantProps {
   event: Event;
@@ -61,9 +61,9 @@ function addFingerprintInfo(
       <TextWithQuestionTooltip key="type">
         {variant.client_values?.join(', ') || ''}
         {'matched_rule' in variant && (
-          <OverrideText>
+          <GroupingHint>
             {`(${t('overridden by server-side fingerprint rule')})`}
-          </OverrideText>
+          </GroupingHint>
         )}
       </TextWithQuestionTooltip>,
     ]);
@@ -250,10 +250,6 @@ const Hash = styled('span')`
     ${p => p.theme.overflowEllipsis};
     width: 210px;
   }
-`;
-
-const OverrideText = styled('span')`
-  color: ${p => p.theme.subText};
 `;
 
 export default GroupingVariant;
