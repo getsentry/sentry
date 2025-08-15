@@ -467,6 +467,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
     TraceTree.ApplyPreferences(props.tree.root, {
       preferences: traceStateRef.current.preferences,
+      organization: props.organization,
     });
 
     // Construct the visual representation of the tree
@@ -675,7 +676,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
     if (value) {
       let autogroupCount = 0;
-      autogroupCount += TraceTree.AutogroupSiblingSpanNodes(props.tree.root);
+      autogroupCount += TraceTree.AutogroupSiblingSpanNodes(props.tree.root, {
+        organization: props.organization,
+      });
       autogroupCount += TraceTree.AutogroupDirectChildrenSpanNodes(props.tree.root);
       addSuccessMessage(
         autogroupCount > 0
