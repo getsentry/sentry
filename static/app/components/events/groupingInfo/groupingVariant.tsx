@@ -62,8 +62,9 @@ function addFingerprintInfo(
         {variant.client_values?.join(', ') || ''}
         {'matched_rule' in variant && (
           <OverrideText>
-            {' '}
-            ({t('overridden by server-side fingerprint rule')})
+            <OverrideText>
+              {`(${t('overridden by server-side fingerprint rule')})`}
+            </OverrideText>
           </OverrideText>
         )}
       </TextWithQuestionTooltip>,
