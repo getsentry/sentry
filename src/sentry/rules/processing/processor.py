@@ -20,7 +20,7 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.rules import EventState, history, rules
+from sentry.rules import EventState, history
 from sentry.rules.actions.base import instantiate_action
 from sentry.rules.conditions.base import EventCondition
 from sentry.rules.conditions.event_frequency import EventFrequencyConditionData
@@ -62,6 +62,8 @@ def is_condition_slow(
 
 
 def get_rule_type(condition: Mapping[str, Any]) -> str | None:
+    from sentry.rules import rules
+
     rule_cls = rules.get(condition["id"])
     if rule_cls is None:
         logger.warning("Unregistered condition or filter %r", condition["id"])
@@ -239,6 +241,8 @@ class RuleProcessor:
         state: EventState,
         rule: Rule,
     ) -> bool | None:
+        from sentry.rules import rules
+
         condition_cls = rules.get(condition["id"])
         if condition_cls is None:
             logger.warning("Unregistered condition %r", condition["id"])

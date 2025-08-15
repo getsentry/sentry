@@ -20,7 +20,7 @@ from sentry.models.grouprulestatus import GroupRuleStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.rules import history, rules
+from sentry.rules import history
 from sentry.rules.conditions.event_frequency import (
     COMPARISON_INTERVALS,
     DEFAULT_COMPARISON_INTERVAL,
@@ -373,6 +373,8 @@ def get_group_to_groupevent(
 def get_condition_group_results(
     condition_groups: dict[UniqueConditionQuery, DataAndGroups], project: Project
 ) -> dict[UniqueConditionQuery, dict[int, int | float]] | None:
+    from sentry.rules import rules
+
     condition_group_results = {}
     current_time = datetime.now(tz=timezone.utc)
     project_id = project.id
