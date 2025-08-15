@@ -13,7 +13,7 @@ describe('StreamlinedNoteInput', () => {
     MemberListStore.reset();
   });
 
-  it('can mention a member', async function () {
+  it('can mention a member', async () => {
     MemberListStore.loadInitialData([UserFixture()], false, null);
     const onCreate = jest.fn();
     render(<StreamlinedNoteInput onCreate={onCreate} />);
@@ -27,7 +27,7 @@ describe('StreamlinedNoteInput', () => {
     });
   });
 
-  it('can mention a team', async function () {
+  it('can mention a team', async () => {
     TeamStore.loadInitialData([TeamFixture()]);
     const onCreate = jest.fn();
     render(<StreamlinedNoteInput onCreate={onCreate} />);

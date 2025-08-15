@@ -29,8 +29,8 @@ const tickConfig: TimeWindowConfig = {
   },
 };
 
-describe('CheckInTooltip', function () {
-  it('renders tooltip representing single job run', async function () {
+describe('CheckInTooltip', () => {
+  it('renders tooltip representing single job run', async () => {
     const startTs = new Date('2023-06-15T11:00:00Z').valueOf();
     const endTs = startTs;
     const stats = generateTestStats([0, 0, 1, 0, 0]);
@@ -62,7 +62,7 @@ describe('CheckInTooltip', function () {
     expect(within(statusRow).getByText('1')).toBeInTheDocument();
   });
 
-  it('renders tooltip representing multiple job runs 1 env', async function () {
+  it('renders tooltip representing multiple job runs 1 env', async () => {
     const startTs = new Date('2023-06-15T11:00:00Z').valueOf();
     const endTs = startTs;
     const stats = generateTestStats([0, 1, 1, 1, 1]);

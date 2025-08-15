@@ -1,7 +1,7 @@
 import retryableImport from 'sentry/utils/retryableImport';
 
-describe('retryableImport', function () {
-  it('can dynamically import successfully on first try', async function () {
+describe('retryableImport', () => {
+  it('can dynamically import successfully on first try', async () => {
     const importMock = jest.fn();
 
     importMock.mockReturnValue(
@@ -24,7 +24,7 @@ describe('retryableImport', function () {
     expect(importMock).toHaveBeenCalledTimes(1);
   });
 
-  it('does not retry if error was not a webpack chunk loading error', async function () {
+  it('does not retry if error was not a webpack chunk loading error', async () => {
     const importMock = jest.fn();
 
     importMock.mockReturnValueOnce(
@@ -39,7 +39,7 @@ describe('retryableImport', function () {
     expect(importMock).toHaveBeenCalledTimes(1);
   });
 
-  it('can fail 2 dynamic imports and succeed on 3rd try', async function () {
+  it('can fail 2 dynamic imports and succeed on 3rd try', async () => {
     const importMock = jest.fn();
 
     importMock
@@ -69,7 +69,7 @@ describe('retryableImport', function () {
     expect(importMock).toHaveBeenCalledTimes(3);
   });
 
-  it('only retries 3 times', async function () {
+  it('only retries 3 times', async () => {
     const importMock = jest.fn(
       () =>
         new Promise<{default: unknown}>((_resolve, reject) =>

@@ -100,9 +100,9 @@ function mockEventView(data: ReturnType<typeof initializeData>) {
   return eventView;
 }
 
-describe('Performance > Table', function () {
+describe('Performance > Table', () => {
   let eventsMock: jest.Mock;
-  beforeEach(function () {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -181,12 +181,12 @@ describe('Performance > Table', function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  describe('with events', function () {
-    it('renders correct cell actions without feature', async function () {
+  describe('with events', () => {
+    it('renders correct cell actions without feature', async () => {
       const data = initializeData({
         query: 'event.type:transaction transaction:/api*',
       });
@@ -246,7 +246,7 @@ describe('Performance > Table', function () {
       );
     });
 
-    it('hides cell actions when withStaticFilters is true', async function () {
+    it('hides cell actions when withStaticFilters is true', async () => {
       const data = initializeData({
         query: 'event.type:transaction transaction:/api*',
       });
@@ -267,7 +267,7 @@ describe('Performance > Table', function () {
       expect(cellActionContainers).not.toBeInTheDocument();
     });
 
-    it('shows unparameterized tooltip when project only recently sent events', async function () {
+    it('shows unparameterized tooltip when project only recently sent events', async () => {
       const projects = [
         ProjectFixture({id: '1', slug: '1'}),
         ProjectFixture({id: '2', slug: '2'}),
@@ -294,7 +294,7 @@ describe('Performance > Table', function () {
       expect(indicatorContainer).toBeInTheDocument();
     });
 
-    it('does not show unparameterized tooltip when project only recently sent events', async function () {
+    it('does not show unparameterized tooltip when project only recently sent events', async () => {
       const projects = [
         ProjectFixture({id: '1', slug: '1'}),
         ProjectFixture({id: '2', slug: '2'}),
@@ -329,7 +329,7 @@ describe('Performance > Table', function () {
       expect(indicatorContainer).not.toBeInTheDocument();
     });
 
-    it('sends MEP param when setting enabled', async function () {
+    it('sends MEP param when setting enabled', async () => {
       const data = initializeData(
         {
           query: 'event.type:transaction transaction:/api*',
@@ -373,7 +373,7 @@ describe('Performance > Table', function () {
             per_page: 50,
             project: ['1', '2'],
             query: 'event.type:transaction transaction:/api*',
-            referrer: 'api.performance.landing-table',
+            referrer: 'api.insights.landing-table',
             sort: '-team_key_transaction',
             statsPeriod: '14d',
           }),
